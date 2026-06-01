@@ -83,9 +83,10 @@ export function ContactBulkTagDialog({
         } else {
           selectedTags.forEach((t) => current.delete(t));
         }
-        await dbFrom('contacts')
+        const { error: updateError } = await dbFrom('contacts')
           .update({ tags: [...current] })
           .eq('id', contact.id);
+        if (updateError) throw new Error(updateError.message);
       }
 
       toast.success(

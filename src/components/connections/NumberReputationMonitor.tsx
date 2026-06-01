@@ -41,10 +41,15 @@ export function NumberReputationMonitor() {
 
   const loadData = async () => {
     setLoading(true);
-    const { data: reps, error: _error } = await supabase.from('number_reputation').select('*');
-    const { data: connections, error: _connectionsErr } = await supabase
+    const { data: reps, error: repsError } = await supabase.from('number_reputation').select('*');
+    const { data: connections, error: connectionsError } = await supabase
       .from('whatsapp_connections')
       .select('id, instance_id, phone_number');
+    if (repsError || connectionsError) {
+      toast.error('Erro ao carregar reputação dos números');
+      setLoading(false);
+      return;
+    }
     if (reps && connections) {
       setReputations(
         reps.map((r) => ({
