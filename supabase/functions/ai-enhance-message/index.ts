@@ -79,6 +79,14 @@ Regras importantes:
     return jsonResponse({ enhanced: enhancedMessage }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : "Erro desconhecido", 500, req);
+    const status = (typeof error === 'object' && error !== null && 'status' in error)
+      ? (error as { status: number }).status
+      : 500;
+    const message = error instanceof Error
+      ? error.message
+      : (typeof error === 'object' && error !== null && 'message' in error)
+        ? (error as { message: string }).message
+        : "Erro desconhecido";
+    return errorResponse(message, status, req);
   }
 });

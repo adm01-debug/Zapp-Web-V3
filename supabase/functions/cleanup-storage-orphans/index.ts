@@ -6,16 +6,19 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
 
-  // Verify cron secret
+  // Verify cron secret — fail closed if not configured
   const cronSecret = Deno.env.get('CRON_SECRET');
-  if (cronSecret) {
-    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
-    const provided = authHeader?.replace(/^Bearer\s+/i, '') || req.headers.get('x-cron-secret');
-    if (provided !== cronSecret) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' },
-      });
-    }
+  if (!cronSecret) {
+    return new Response(JSON.stringify({ error: 'Service not available' }), {
+      status: 503, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+  const provided = authHeader?.replace(/^Bearer\s+/i, '') || req.headers.get('x-cron-secret');
+  if (provided !== cronSecret) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const log = new Logger("cleanup-storage-orphans");

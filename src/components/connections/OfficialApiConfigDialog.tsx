@@ -103,30 +103,34 @@ export function OfficialApiConfigDialog({
       });
       return;
     }
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from('whatsapp_official_credentials').upsert(
-      {
-        connection_id: connectionId,
-        phone_number_id: form.phone_number_id,
-        waba_id: form.waba_id || null,
-        business_account_id: form.business_account_id || null,
-        access_token: form.access_token,
-        app_secret: form.app_secret,
-        verify_token: form.verify_token,
-        graph_api_version: form.graph_api_version || 'v21.0',
-        created_by: userData.user?.id ?? null,
-      } as any,
-      { onConflict: 'connection_id' }
-    );
-    setSaving(false);
-    if (error) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
-      return;
+    setSaving(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase.from('whatsapp_official_credentials').upsert(
+        {
+          connection_id: connectionId,
+          phone_number_id: form.phone_number_id,
+          waba_id: form.waba_id || null,
+          business_account_id: form.business_account_id || null,
+          access_token: form.access_token,
+          app_secret: form.app_secret,
+          verify_token: form.verify_token,
+          graph_api_version: form.graph_api_version || 'v21.0',
+          created_by: userData.user?.id ?? null,
+        } as any,
+        { onConflict: 'connection_id' }
+      );
+      if (error) {
+        toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({
+        title: 'Credenciais salvas',
+        description: 'WhatsApp Cloud API configurada com sucesso.',
+      });
+    } finally {
+      setSaving(false);
     }
-    toast({
-      title: 'Credenciais salvas',
-      description: 'WhatsApp Cloud API configurada com sucesso.',
-    });
   };
 
   const handleTest = async () => {

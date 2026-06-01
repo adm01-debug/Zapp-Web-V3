@@ -13,11 +13,14 @@ serve(async (req) => {
 
   // Verify cron secret or valid user JWT
   const cronSecret = Deno.env.get('CRON_SECRET');
+  let authedViaCron = false;
   if (cronSecret) {
     const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
     const provided = authHeader?.replace(/^Bearer\s+/i, '') || req.headers.get('x-cron-secret');
-    if (provided !== cronSecret) {
-      // Not a cron call — accept valid user JWTs (e.g. manual UI trigger)
+    if (provided === cronSecret) {
+      authedViaCron = true;
+    } else {
+      // Not a cron call — accept valid user JWTs for safe read-only actions only
       const jwtClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -50,6 +53,15 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'sync-contacts';
+
+    // Privileged actions are restricted to cron-authenticated callers
+    const CRON_ONLY_ACTIONS = ['setup-webhook', 'cleanup-mock', 'full-sync', 'sync-all-messages'];
+    if (!authedViaCron && CRON_ONLY_ACTIONS.includes(action)) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const instanceName = body.instanceName || 'wpp2';
     const page = body.page || 1;
     const offset = body.offset || 100;

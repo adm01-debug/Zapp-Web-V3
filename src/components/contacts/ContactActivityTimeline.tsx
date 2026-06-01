@@ -107,7 +107,9 @@ export function ContactActivityTimeline({
             id: note.id,
             type: 'note',
             title: 'Nota adicionada',
-            description: note.content.substring(0, 80),
+            description:
+              (note.content || '').substring(0, 80) +
+              ((note.content?.length || 0) > 80 ? '...' : ''),
             timestamp: note.created_at,
           });
         });

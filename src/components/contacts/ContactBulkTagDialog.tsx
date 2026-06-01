@@ -68,12 +68,13 @@ export function ContactBulkTagDialog({
     if (selectedTags.size === 0) return;
     setSaving(true);
     try {
-      const { data: contacts, error: _error } = await supabase
+      const { data: contacts, error: contactsError } = await supabase
         .from('contacts')
         .select('id, tags')
         .in('id', contactIds);
 
-      if (!contacts) throw new Error('Erro ao buscar contatos');
+      if (contactsError || !contacts)
+        throw new Error(contactsError?.message || 'Erro ao buscar contatos');
 
       for (const contact of contacts) {
         const current = new Set(contact.tags || []);

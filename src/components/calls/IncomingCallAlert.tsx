@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, forwardRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, PhoneOff, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,10 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement>(
       useIncomingCallBroadcast();
     // Broadcast wins (arrives first); legacy is fallback
     const incomingCall = broadcastCall ?? legacyCall;
-    const dismissCall = () => {
+    const dismissCall = useCallback(() => {
       dismissBroadcast();
       dismissLegacy();
-    };
+    }, [dismissBroadcast, dismissLegacy]);
     const { settings: notifSettings, isQuietHours } = useNotificationSettings();
     const [showDialog, setShowDialog] = useState(false);
     const _audioRef = useRef<HTMLAudioElement | null>(null);

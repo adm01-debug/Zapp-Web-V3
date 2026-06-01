@@ -65,8 +65,16 @@ export function EmailThreadView({ thread, accountId, onBack, className }: EmailT
               console.warn('[EmailThreadView] auto-mark-read failed:', e);
             }
           );
-          supabase.from('email_messages').update({ is_read: true }).in('message_id', unreadIds);
-          supabase.from('email_threads').update({ unread_count: 0 }).eq('id', thread.id);
+          void supabase
+            .from('email_messages')
+            .update({ is_read: true })
+            .in('message_id', unreadIds)
+            .then();
+          void supabase
+            .from('email_threads')
+            .update({ unread_count: 0 })
+            .eq('id', thread.id)
+            .then();
         }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps

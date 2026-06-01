@@ -117,11 +117,11 @@ export function EmailSLADashboard({ className }: EmailSLADashboardProps) {
     { total: 0, unread: 0, ok: 0, warning: 0, breached: 0, pending: 0 }
   );
 
-  const avgFrt =
-    data.length > 0
-      ? data.reduce((a, r) => a + (r.avg_frt_minutes ?? 0), 0) /
-        data.filter((r) => r.avg_frt_minutes != null).length
-      : null;
+  const avgFrt = (() => {
+    const withData = data.filter((r) => r.avg_frt_minutes != null);
+    if (withData.length === 0) return null;
+    return withData.reduce((a, r) => a + (r.avg_frt_minutes ?? 0), 0) / withData.length;
+  })();
 
   return (
     <div className={cn('space-y-4', className)}>

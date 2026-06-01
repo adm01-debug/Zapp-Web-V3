@@ -104,16 +104,25 @@ function EmailTrackingDetail({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       setLoading(true);
-      const [evts, lnks] = await Promise.all([
-        getOpenEvents(email.tracking_id),
-        getTrackedLinks(email.tracking_id),
-      ]);
-      setEvents(evts);
-      setLinks(lnks);
-      setLoading(false);
+      try {
+        const [evts, lnks] = await Promise.all([
+          getOpenEvents(email.tracking_id),
+          getTrackedLinks(email.tracking_id),
+        ]);
+        if (!cancelled) {
+          setEvents(evts);
+          setLinks(lnks);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [email.tracking_id, getOpenEvents, getTrackedLinks]);
 
   return (

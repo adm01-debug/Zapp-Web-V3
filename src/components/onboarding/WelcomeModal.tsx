@@ -22,6 +22,7 @@ export const WelcomeModal = forwardRef<HTMLDivElement, WelcomeModalProps>(functi
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        ref={_ref}
         className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-sm"
       >
         <motion.div

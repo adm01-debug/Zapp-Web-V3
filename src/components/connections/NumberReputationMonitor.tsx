@@ -59,10 +59,14 @@ export function NumberReputationMonitor() {
   };
 
   const startWarmup = async (id: string) => {
-    await supabase
+    const { error } = await supabase
       .from('number_reputation')
       .update({ warmup_status: 'active', warmup_day: 1, daily_limit: 20 })
       .eq('id', id);
+    if (error) {
+      toast.error('Erro ao iniciar aquecimento');
+      return;
+    }
     toast.success('Aquecimento iniciado');
     loadData();
   };
