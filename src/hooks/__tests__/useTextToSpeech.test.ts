@@ -18,6 +18,17 @@ vi.mock('@/lib/logger', () => {
   };
 });
 
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: { access_token: 'test-token' } },
+        error: null,
+      }),
+    },
+  },
+}));
+
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 
 describe('useTextToSpeech', () => {

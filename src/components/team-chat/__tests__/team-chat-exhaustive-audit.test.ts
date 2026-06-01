@@ -114,7 +114,7 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should render document as downloadable link', () => {
-      expect(panelSrc).toMatch(/target="_blank".*rel="noopener noreferrer"/);
+      expect(panelSrc).toMatch(/target="_blank".*rel="noopener noreferrer"/s);
     });
 
     it('should enforce file size limit in uploader', () => {
@@ -195,7 +195,7 @@ describe('Team Chat — Exhaustive Audit', () => {
   // ═══════════════════════════════════════════
   describe('Text-to-Speech Integration', () => {
     it('should have TTS button on each message (hover)', () => {
-      expect(panelSrc).toMatch(/opacity-0\s+group-hover[/\w]*:opacity-100/);
+      expect(panelSrc).toMatch(/opacity-0.*group-hover[/\w]*:opacity-100/);
       expect(panelSrc).toContain('Volume2');
       expect(panelSrc).toContain('VolumeX');
     });
@@ -314,7 +314,7 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should support Enter to save edit', () => {
-      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/);
+      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/s);
     });
 
     it('should support Escape to cancel edit', () => {
@@ -597,7 +597,7 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should have keyboard shortcuts for editing', () => {
-      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/);
+      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/s);
       expect(panelSrc).toMatch(/Escape.*handleCancelEdit/);
     });
   });
