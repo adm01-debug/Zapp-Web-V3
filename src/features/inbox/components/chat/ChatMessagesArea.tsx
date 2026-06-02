@@ -68,10 +68,10 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
       if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     },
     registerMessageRef: (messageId: string, el: HTMLDivElement | null) => {
-      // Logic for message refs if needed
+      // Placeholder
     },
     scrollToMessage: (messageId: string): boolean => {
-      // Basic implementation for scroll to message
+      // Placeholder
       return true;
     },
   }));
@@ -138,7 +138,7 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
   }, [messages.length]);
 
   const handleMessageDeleted = (id: string) => {
-    // Placeholder for deletion logic
+    log.info('Message deleted:', id);
   };
 
   return (
@@ -171,7 +171,6 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const message = messages[virtualRow.index];
           if (!message) return null;
-          const isSent = message.sender === 'agent';
           return (
             <div
               key={message.id || virtualRow.index}
