@@ -130,22 +130,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    authService.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        refreshAll(session.user.id);
+    authService.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        refreshAll(user.id);
       } else {
         setLoading(false);
       }
     }).catch((err) => {
-      log.warn('[Auth] getSession failed, clearing local session', err);
+      log.warn('[Auth] getUser failed, clearing local session', err);
       try {
         Object.keys(localStorage)
           .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
           .forEach((k) => localStorage.removeItem(k));
       } catch { /* noop */ }
       setLoading(false);
+    });
+
+    authService.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    }).catch(() => {
+      // getSession error is already handled by getUser catch
     });
 
     return () => subscription.unsubscribe();
@@ -160,14 +165,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'profiles',
-          filter: `id=eq.${profile?.id}`,
+          filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          log.info('[Auth] Profile update detected via real-time', payload.new);
-          setProfile(payload.new as Profile);
+        async (payload) => {
+          log.info('[Auth] Profile update detected via real-time', payload);
+          if (payload.eventType === 'DELETE') {
+            setProfile(null);
+          } else {
+            // Refetch to ensure we have full data and respect RLS
+            await fetchProfile(user.id);
+          }
         }
       )
       .subscribe();
