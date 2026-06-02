@@ -382,6 +382,34 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
 
   return (
     <div ref={scrollContainerRef} role="log" aria-label="Mensagens da conversa" aria-live="polite" aria-relevant="additions" className="flex-1 min-h-0 min-w-0 overflow-y-auto px-4 py-6 md:px-24 space-y-4 scrollbar-none bg-background/20 relative transition-all duration-500 focus-visible:outline-none" tabIndex={0}>
+  const getItemSize = useCallback((index: number) => {
+    const item = displayedMessages[index];
+    if (!item) return 80;
+    if (item.type === 'image' || item.type === 'video') return 300;
+    if (item.type === 'audio') return 120;
+    if (item.type === 'document') return 100;
+    const content = item.content || '';
+    const lines = Math.ceil(content.length / 60);
+    return Math.max(80, 70 + lines * 22);
+  }, [displayedMessages]);
+
+  const virtualizer = useVirtualizer({
+    count: displayedMessages.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: getItemSize,
+    overscan: 12,
+  });
+
+  return (
+    <div 
+      ref={scrollContainerRef} 
+      role="log" 
+      aria-label="Mensagens da conversa" 
+      aria-live="polite" 
+      aria-relevant="additions" 
+      className="flex-1 min-h-0 min-w-0 overflow-y-auto px-4 py-6 md:px-24 scrollbar-none bg-background/20 relative transition-all duration-500 focus-visible:outline-none" 
+      tabIndex={0}
+    >
       <ChatWatermark />
       
       {isLoading && (
@@ -402,208 +430,106 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
           ))}
         </div>
       )}
-      {messages.length > 0 && (
-        <div className="sticky top-0 z-20 flex flex-col items-center gap-1.5 pointer-events-none -mt-2 mb-2">
-          <div className="pointer-events-auto">
-            <ConversationDeliverySummary messages={messages} />
-          </div>
-          <div className="pointer-events-auto">
-            <MessageStatusFilterBar
-              active={statusFilter}
-              onChange={setStatusFilter}
-              visibleCount={displayedMessages.length}
-              totalCount={messages.length}
-            />
-          </div>
+
+      {displayedMessages.length === 0 && !isLoading && (
+        <div className="flex items-center justify-center h-full">
+          <EmptyState 
+            icon={Clock} 
+            title="Nenhuma mensagem ainda" 
+            description="As mensagens aparecerão aqui quando a conversa começar" 
+            illustration="messages" 
+            size="sm" 
+          />
         </div>
       )}
 
-      {messages.length > 0 && displayedMessages.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center gap-4 animate-in fade-in zoom-in duration-300">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-            {statusFilter.has('failed' as any) ? (
-              <Ban className="w-8 h-8 text-destructive opacity-50" />
-            ) : (
-              <Navigation2 className="w-8 h-8 text-muted-foreground opacity-50" />
-            )}
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-[14px] font-semibold text-foreground">
-              {statusFilter.has('failed' as any) ? 'Nenhuma falha encontrada' : 'Sem resultados'}
-            </h4>
-            <p className="text-[13px] text-muted-foreground max-w-[240px]">
-              {statusFilter.has('failed' as any) 
-                ? 'Todas as mensagens deste contato foram entregues com sucesso.' 
-                : 'Ajuste os filtros ou a busca para encontrar o que procura.'}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setStatusFilter(new Set())}
-            className="mt-2"
+      {displayedMessages.length > 0 && (
+        <div className="flex flex-col items-center gap-4 mb-8 pt-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-2xl p-6 max-w-sm text-center shadow-sm"
           >
-            Limpar todos os filtros
-          </Button>
-        </div>
-      )}
-
-      <AnimatePresence>
-        {showScrollBottom && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            className="fixed bottom-24 right-8 md:right-32 z-40"
-          >
-            <Button
-              variant="secondary"
-              size="icon"
-              className="rounded-full shadow-lg border border-border/50 bg-background/80 backdrop-blur-sm hover:bg-background transition-all duration-300 w-10 h-10"
-              onClick={() => {
-                const container = scrollContainerRef.current;
-                if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-              }}
-              aria-label="Rolar para o fim"
-            >
-              <ChevronDown className="w-5 h-5 text-primary" />
-              {/* Badge opcional para mensagens não lidas no chat ativo poderia ir aqui */}
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/*
-        Topo da lista — duas modalidades mutuamente exclusivas:
-
-        1) MODO EXTERNO (`onLoadOlder` definido):
-           Renderiza spinner de carregamento, badge de cancelamento (com
-           retry) ou marcador "Inicio da conversa" quando nao ha mais.
-
-        2) MODO LOCAL (`onLoadOlder` indefinido):
-           NUNCA renderiza spinner, badge ou qualquer indicador de
-           paginacao. Em vez disso, mostra um marcador estatico de
-           "Inicio da conversa (modo local)" que deixa explicito ao usuario
-           que esta visualizando todas as mensagens disponiveis e que nao
-           ha carregamento adicional. Este marcador e puramente visual:
-           sem listeners, sem efeitos, sem custo de runtime alem do render.
-      */}
-      <div className="flex flex-col items-center gap-4 mb-8 pt-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-2xl p-6 max-w-sm text-center shadow-sm"
-        >
-          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Lock className="w-6 h-6 text-primary" />
-          </div>
-          <h3 className="text-[14px] font-bold mb-1">Criptografia de Ponta a Ponta</h3>
-          <p className="text-[12px] text-muted-foreground leading-relaxed">
-            As mensagens e chamadas são protegidas com criptografia. Ninguém fora desta conversa pode lê-las.
-          </p>
-        </motion.div>
-
-        {onLoadOlder ? (
-          <div className="flex justify-center" aria-live="polite">
-            {loadingOlder && (
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/50 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border/30">
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-                <span>Carregando mensagens anteriores…</span>
-              </div>
-            )}
-            {!loadingOlder && loadCancelled && (
-              <LoadCancelledBadge
-                reason={cancelReason}
-                scrollContainerRef={scrollContainerRef}
-                onRetry={() => {
-                  setLoadCancelled(false);
-                  if (cancelBadgeTimerRef.current) {
-                    clearTimeout(cancelBadgeTimerRef.current);
-                    cancelBadgeTimerRef.current = null;
-                  }
-                  cancelledRef.current = false;
-                  void onLoadOlder?.();
-                }}
-              />
-            )}
-            {!loadingOlder && !loadCancelled && !hasMoreOlder && messages.length > 0 && (
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 bg-muted/30 px-3 py-1 rounded-full">
-                <Info className="w-3 h-3" />
-                <span>Início da conversa</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          messages.length > 0 && (
-            <div
-              className="flex justify-center"
-              data-testid="chat-local-mode-top"
-              data-mode="local"
-            >
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 bg-muted/30 px-3 py-1 rounded-full">
-                <Info className="w-3 h-3" />
-                <span>Início da conversa</span>
-              </div>
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Lock className="w-6 h-6 text-primary" />
             </div>
-          )
-        )}
-      </div>
-
-
-      {Object.entries(groupedMessages).map(([dateKey, dayMessages]) => (
-        <div key={dateKey}>
-          <div className="flex justify-center my-5">
-            <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/80 bg-muted/50 backdrop-blur-sm px-4 py-1 rounded-full border border-border/30 shadow-sm">
-              {formatDateSeparator(new Date(dateKey))}
-            </motion.span>
-          </div>
-
-          <StaggeredList className="space-y-3">
-            {dayMessages.map((message, idx) => {
-              const nextMsg = dayMessages[idx + 1];
-              const prevMsg = dayMessages[idx - 1];
-              const isLastInGroup = !nextMsg || nextMsg.sender !== message.sender;
-              const isFirstInGroup = !prevMsg || prevMsg.sender !== message.sender;
-
-              return (
-                <StaggeredItem key={message.id}>
-                  <MessageBubble
-                    message={message}
-                    isFirstInGroup={isFirstInGroup}
-                    isLastInGroup={isLastInGroup}
-                    contactAvatar={contactAvatar}
-                    instanceName={instanceName}
-                    contactJid={contactJid}
-                    ttsLoading={ttsLoading}
-                    ttsPlaying={ttsPlaying}
-                    ttsMessageId={ttsMessageId}
-                    highlightedMessageIds={highlightedMessageIds}
-                    activeHighlightId={activeHighlightId}
-                    searchQuery={searchQuery}
-                    onSpeak={onSpeak}
-                    onStop={onStop}
-                    onReply={onReply}
-                    onForward={onForward}
-                    onCopy={onCopy}
-                    onScrollToMessage={onScrollToMessage}
-                    onInteractiveButtonClick={onInteractiveButtonClick}
-                    onEditStart={onEditStart}
-                    onMessageDeleted={handleMessageDeleted}
-                    registerRef={(el) => { messageRefs.current[message.id] = el; }}
-                    density={density}
-                    onAudioVoiceChange={onAudioVoiceChange}
-                  />
-                </StaggeredItem>
-              );
-            })}
-          </StaggeredList>
+            <h3 className="text-[14px] font-bold mb-1">Criptografia de Ponta a Ponta</h3>
+            <p className="text-[12px] text-muted-foreground leading-relaxed">
+              As mensagens e chamadas são protegidas com criptografia. Ninguém fora desta conversa pode lê-las.
+            </p>
+          </motion.div>
         </div>
-      ))}
+      )}
+
+      <div style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const message = displayedMessages[virtualRow.index];
+          if (!message) return null;
+          
+          return (
+            <div
+              key={message.id || virtualRow.index}
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+                paddingBottom: '1rem'
+              }}
+            >
+              <MessageBubble
+                message={message}
+                isFirstInGroup={true}
+                isLastInGroup={true}
+                showAvatar={message.from_me ? false : true}
+                contactAvatar={contactAvatar}
+                onSpeak={onSpeak}
+                onStop={onStop}
+                onReply={onReply}
+                onForward={onForward}
+                onCopy={onCopy}
+                onInteractiveButtonClick={onInteractiveButtonClick}
+                onEditStart={onEditStart}
+                ttsLoading={ttsLoading && ttsMessageId === message.id}
+                ttsPlaying={ttsPlaying && ttsMessageId === message.id}
+                highlighted={highlightedMessageIds?.has(message.id)}
+                activeHighlight={activeHighlightId === message.id}
+                searchQuery={searchQuery}
+                onAudioVoiceChange={onAudioVoiceChange}
+              />
+            </div>
+          );
+        })}
+      </div>
 
       <div className="flex justify-start pl-10">
         <TypingIndicator isVisible={isContactTyping} userName={typingUserName} />
       </div>
-      <div ref={messagesEndRef} />
+
+      <div ref={messagesEndRef} className="h-px w-full" />
+      
+      <AnimatePresence>
+        {showScrollBottom && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-24 right-8 z-50"
+          >
+            <Button
+              size="icon"
+              variant="secondary"
+              className="rounded-full shadow-lg"
+              onClick={() => ref && 'current' in ref && ref.current?.scrollToBottom()}
+            >
+              <ChevronDown className="h-5 w-5" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }));
