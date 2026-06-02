@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 import { UserAgent, Registerer } from 'sip.js';
 import { toast } from 'sonner';
