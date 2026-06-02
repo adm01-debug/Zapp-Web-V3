@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
@@ -9,6 +9,12 @@ export type { IncomingCall } from '@/types/incomingCall';
 export function useIncomingCallListener() {
   const { user, profile } = useAuth();
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const dismissCall = useCallback(() => {
     setIncomingCall(null);
@@ -37,17 +43,21 @@ export function useIncomingCallListener() {
           let contactPhone = '';
 
           if (call.contact_id) {
-            const { data: contact , error } = await supabase
+            const { data: contact } = await supabase
               .from('contacts')
               .select('name, phone')
               .eq('id', call.contact_id as string)
               .single();
-            
+
+            if (!mountedRef.current) return;
+
             if (contact) {
               contactName = contact.name || contact.phone;
               contactPhone = contact.phone;
             }
           }
+
+          if (!mountedRef.current) return;
 
           const notes = (call.notes as string) || '';
           const isVideo = notes.toLowerCase().includes('vídeo');
@@ -71,6 +81,7 @@ export function useIncomingCallListener() {
       supabase.removeChannel(channel);
     };
   }, [profile?.id]);
+
 
   return { incomingCall, dismissCall };
 }

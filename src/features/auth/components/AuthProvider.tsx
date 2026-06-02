@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import { authService, Profile } from '@/features/auth/services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '@/features/auth/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+
 
 
 /**
@@ -20,6 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingProfileRef = useRef(false);
   const fetchingRolesRef = useRef(false);
   const fetchingPermissionsRef = useRef(false);
+  const queryClient = useQueryClient();
+
 
   const fetchProfile = useCallback(async (userId: string) => {
     if (fetchingProfileRef.current) return;
@@ -218,24 +222,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setRoles([]);
     setPermissions([]);
+    queryClient.clear();
   };
 
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      profile, 
-      roles, 
-      permissions, 
-      loading, 
-      signIn, 
-      signUp, 
-      signOut, 
+  const contextValue = useMemo(
+    () => ({
+      user,
+      session,
+      profile,
+      roles,
+      permissions,
+      loading,
+      signIn,
+      signUp,
+      signOut,
       refreshProfile,
       refreshRoles,
-      refreshPermissions
-    }}>
+      refreshPermissions,
+    }),
+    [user, session, profile, roles, permissions, loading, refreshProfile, refreshRoles, refreshPermissions]
+  );
+
+  return (
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 }
+

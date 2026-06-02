@@ -47,6 +47,17 @@ export function useMessages(remoteJid: string | null) {
   const [hasMore,     setHasMore]     = useState(false);
   const PAGE_SIZE = 50;
   const offsetRef = useRef(0);
+  const mountedRef = useRef(true);
+  const loadAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      loadAbortRef.current?.abort();
+    };
+  }, []);
+
 
   const mapRow = (row: Record<string, unknown>): Message => ({
     id:                String(row.id ?? ''),
@@ -74,6 +85,9 @@ export function useMessages(remoteJid: string | null) {
   // ── Load ──────────────────────────────────────────────────────────────
 
   const loadMessages = useCallback(async (jid: string) => {
+    loadAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    loadAbortRef.current = ctrl;
     setLoading(true);
     setMessages([]);
     offsetRef.current = 0;
@@ -83,20 +97,21 @@ export function useMessages(remoteJid: string | null) {
         p_limit:      PAGE_SIZE,
         p_offset:     0,
       });
+      if (ctrl.signal.aborted || !mountedRef.current) return;
       if (error) throw error;
       const items = ((data ?? []) as any[]).map(mapRow);
-      // FATOR X RPCs return oldest first? Usually messages are ordered DESC in lists, 
-      // but inbox needs oldest at top for scroll-to-bottom. 
-      // rpc_list_messages_lite uses ORDER BY created_at DESC for pagination consistency.
-      // We reverse them to show in chat.
       const reversed = [...items].reverse();
       setMessages(reversed);
       setHasMore(items.length === PAGE_SIZE);
       offsetRef.current = items.length;
     } catch (err) {
+      if (ctrl.signal.aborted) return;
       console.error('[useMessages]', err);
-    } finally { setLoading(false); }
+    } finally {
+      if (!ctrl.signal.aborted && mountedRef.current) setLoading(false);
+    }
   }, []);
+
 
   useEffect(() => {
     if (remoteJid) loadMessages(remoteJid);
