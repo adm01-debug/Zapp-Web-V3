@@ -149,17 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     authService.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user) {
-        // user is already set by getUser but we sync session here
-      }
-    });
-      log.warn('[Auth] getSession failed, clearing local session', err);
-      try {
-        Object.keys(localStorage)
-          .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
-          .forEach((k) => localStorage.removeItem(k));
-      } catch { /* noop */ }
-      setLoading(false);
+    }).catch(() => {
+      // getSession error is already handled by getUser catch
     });
 
     return () => subscription.unsubscribe();
