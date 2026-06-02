@@ -94,7 +94,7 @@ export function AppRoutes() {
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
       <Routes>
-        <Route path="/design-system" element={<DesignSystem />} />
+        <Route path="/design-system" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><DesignSystem /></ProtectedRoute>} />
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -102,7 +102,7 @@ export function AppRoutes() {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/auth/callback" element={<SSOCallback />} />
         <Route path="/2fa" element={<TwoFactorAuth />} />
-        <Route path="/install" element={<Install />} />
+        <Route path="/install" element={<ProtectedRoute requiredRoles={['admin']}><Install /></ProtectedRoute>} />
         <Route path="/chat-popup/:contactId" element={<ProtectedRoute><ChatPopup /></ProtectedRoute>} />
         <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
         <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />

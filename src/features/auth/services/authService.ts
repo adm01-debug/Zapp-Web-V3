@@ -18,6 +18,10 @@ export const authService = {
     return await supabase.auth.getSession();
   },
 
+  async getUser() {
+    return await supabase.auth.getUser();
+  },
+
   async signIn(email: string, password: string) {
     return await supabase.auth.signInWithPassword({ email, password });
   },
