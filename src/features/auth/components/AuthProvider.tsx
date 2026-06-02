@@ -222,24 +222,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setRoles([]);
     setPermissions([]);
+    queryClient.clear();
   };
 
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      profile, 
-      roles, 
-      permissions, 
-      loading, 
-      signIn, 
-      signUp, 
-      signOut, 
+  const contextValue = useMemo(
+    () => ({
+      user,
+      session,
+      profile,
+      roles,
+      permissions,
+      loading,
+      signIn,
+      signUp,
+      signOut,
       refreshProfile,
       refreshRoles,
-      refreshPermissions
-    }}>
+      refreshPermissions,
+    }),
+    [user, session, profile, roles, permissions, loading, refreshProfile, refreshRoles, refreshPermissions]
+  );
+
+  return (
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 }
+
