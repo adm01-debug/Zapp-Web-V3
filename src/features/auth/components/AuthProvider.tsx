@@ -22,6 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingProfileRef = useRef(false);
   const fetchingRolesRef = useRef(false);
   const fetchingPermissionsRef = useRef(false);
+  const queryClient = useQueryClient();
+
 
   const fetchProfile = useCallback(async (userId: string) => {
     if (fetchingProfileRef.current) return;
