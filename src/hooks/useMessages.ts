@@ -47,6 +47,17 @@ export function useMessages(remoteJid: string | null) {
   const [hasMore,     setHasMore]     = useState(false);
   const PAGE_SIZE = 50;
   const offsetRef = useRef(0);
+  const mountedRef = useRef(true);
+  const loadAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      loadAbortRef.current?.abort();
+    };
+  }, []);
+
 
   const mapRow = (row: Record<string, unknown>): Message => ({
     id:                String(row.id ?? ''),
