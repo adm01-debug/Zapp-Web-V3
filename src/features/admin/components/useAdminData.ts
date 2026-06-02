@@ -59,11 +59,13 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       const { data: profiles , error } = await supabase
         .from('profiles')
         .select('*')
-        .order('name');
+        .order('name')
+        .limit(1000);
 
       const { data: roles , error: rolesErr } = await supabase
         .from('user_roles')
-        .select('*');
+        .select('*')
+        .limit(1000);
 
       if (profiles && roles) {
         const usersWithRoles = profiles.map(profile => {

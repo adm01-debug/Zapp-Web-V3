@@ -1,8 +1,10 @@
 import { useRef, forwardRef, useImperativeHandle, useCallback, useMemo, memo, useEffect, useState, useId, useLayoutEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, Ban, RotateCw, Navigation2, Info, Lock, ChevronDown } from 'lucide-react';
+import { Loader2, Ban, RotateCw, Navigation2, Info, Lock, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const log = getLogger('ChatMessagesArea');
 import { supabase } from '@/integrations/supabase/client';
