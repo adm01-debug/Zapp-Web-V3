@@ -171,8 +171,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${user.id}`,
         },
         async (payload) => {
-          log.info('[Auth] Profile update detected via real-time', payload.event);
-          if (payload.event === 'DELETE') {
+          log.info('[Auth] Profile update detected via real-time', payload);
+          if (payload.eventType === 'DELETE') {
             setProfile(null);
           } else {
             // Refetch to ensure we have full data and respect RLS
