@@ -399,9 +399,9 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = () => {
                   initial={{ y: 100, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 100, opacity: 0 }}
-                  className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-foreground text-background px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4 border border-background/10 backdrop-blur-xl"
+                  className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-foreground text-background px-4 py-2 sm:py-3 rounded-full sm:rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-4 border border-background/10 backdrop-blur-xl w-[90%] sm:w-auto"
                 >
-                  <div className="flex items-center gap-2 border-r border-background/20 pr-4">
+                  <div className="flex items-center gap-2 border-r border-background/20 pr-2 sm:pr-4">
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
                       {selectedIds.length}
                     </div>
