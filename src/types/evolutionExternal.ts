@@ -39,7 +39,11 @@ export interface EvolutionMessage {
   push_name: string | null;
   deleted_at: string | null;
   reactions?: any[] | null;
-  media_meta?: any | null;
+  media_meta?: {
+    ptt?: boolean;
+    [key: string]: any;
+  } | null;
+  ptt?: boolean;
 }
 
 // ─── evolution_messages (lite) ────────────────────────────────
