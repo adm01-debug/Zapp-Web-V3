@@ -38,7 +38,7 @@ export interface EvolutionMessage {
   instance_name: string;
   push_name: string | null;
   deleted_at: string | null;
-  reactions?: any[] | null;
+  reactions?: Array<{ text: string; key: { remoteJid: string; fromMe: boolean; id: string } }> | null;
   media_meta?: {
     ptt?: boolean;
     [key: string]: any;
@@ -74,7 +74,7 @@ export type EvolutionMessageLite = Pick<EvolutionMessage,
   | 'created_at'
   | 'status_at'
   | 'deleted_at'
-> & { reactions?: any[] | null };
+> & { reactions?: Array<{ text: string; key: { remoteJid: string; fromMe: boolean; id: string } }> | null };
 
 /**
  * Project a full EvolutionMessage (e.g. from a realtime payload) into the
