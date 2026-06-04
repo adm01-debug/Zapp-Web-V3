@@ -34,7 +34,7 @@ test.describe('Fluxo de Autenticação e Navegação', () => {
     // Voltar para login (se houver link)
     // Se não houver, testamos o 404
     await page.goto('/rota-inexistente');
-    await expect(page.locator('text=404')).toBeVisible().or(page.locator('text=não encontrada'));
+    await expect(page.locator('text=404, text=não encontrada').first()).toBeVisible();
   });
 
   test('proteção de rotas administrativas', async ({ page }) => {
