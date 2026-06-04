@@ -1,154 +1,173 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Mic, Play, Save, RefreshCw, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/features/auth';
-import { Wand2, Loader2, Play } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Voice {
+  voice_id: string;
+  name: string;
+  category: string;
+  preview_url: string;
+}
 
 export function ElevenLabsVoiceDesign() {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [gender, setGender] = useState('female');
-  const [age, setAge] = useState('young');
-  const [accent, setAccent] = useState('brazilian');
-  const [previewText, setPreviewText] = useState('Olá! Essa é a minha voz personalizada.');
-  const [generating, setGenerating] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
+  const [text, setText] = useState('Olá, eu sou uma inteligência artificial treinada para te ajudar.');
+  const [settings, setSettings] = useState({
+    stability: 0.5,
+    similarity_boost: 0.75,
+    style: 0.0,
+    use_speaker_boost: true
+  });
 
-  const generateVoice = async () => {
-    if (!name.trim()) {
-      toast.error('Dê um nome para a voz');
-      return;
-    }
+  useEffect(() => {
+    const fetchVoices = async () => {
+      setLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-    setGenerating(true);
+        const { data, error } = await supabase.functions.invoke('elevenlabs-voice', {
+          body: { action: 'listVoices' }
+        });
+
+        if (error) throw error;
+        setVoices(data?.voices || []);
+        if (data?.voices?.length > 0) setSelectedVoice(data.voices[0].voice_id);
+      } catch (err) {
+        console.error('Error fetching voices:', err);
+        toast.error('Não foi possível carregar as vozes do ElevenLabs.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVoices();
+  }, []);
+
+  const handleGenerate = async () => {
+    if (!selectedVoice || !text) return;
+    setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-voice-design`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            action: 'generate',
-            name,
-            description: `${description}. Gender: ${gender}, age: ${age}, accent: ${accent}`,
-            text: previewText,
-            gender,
-            age,
-            accent,
-          }),
+      const { data, error } = await supabase.functions.invoke('elevenlabs-voice', {
+        body: {
+          action: 'textToSpeech',
+          voiceId: selectedVoice,
+          text,
+          settings
         }
-      );
+      });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Erro ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.audioContent) {
-        if (audioUrl) URL.revokeObjectURL(audioUrl);
-        const url = `data:audio/mpeg;base64,${data.audioContent}`;
-        setAudioUrl(url);
-      }
-      toast.success('Voz gerada com sucesso!');
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao gerar voz');
+      if (error) throw error;
+      
+      const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
+      audio.play();
+      toast.success('Áudio gerado com sucesso!');
+    } catch (err) {
+      console.error('Error generating voice:', err);
+      toast.error('Erro ao gerar áudio.');
     } finally {
-      setGenerating(false);
+      setLoading(false);
     }
   };
 
   return (
-    <Card className="bg-card/50 border-border/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex items-center gap-2">
           <Wand2 className="w-5 h-5 text-primary" />
-          Criar Voz Personalizada
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Descreva as características e gere uma voz personalizada via ElevenLabs
-        </p>
+          <CardTitle>Design de Voz</CardTitle>
+        </div>
+        <CardDescription>Configure e teste vozes neurais de alta fidelidade</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-xs">Nome da voz</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Atendente Virtual" className="mt-1" />
-          </div>
-          <div>
-            <Label className="text-xs">Descrição</Label>
-            <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Voz suave e profissional" className="mt-1" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <Label className="text-xs">Gênero</Label>
-            <Select value={gender} onValueChange={setGender}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+      <CardContent className="space-y-6">
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label>Voz</Label>
+            <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma voz" />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="female">Feminino</SelectItem>
-                <SelectItem value="male">Masculino</SelectItem>
+                {voices.map((voice) => (
+                  <SelectItem key={voice.voice_id} value={voice.voice_id}>
+                    {voice.name} ({voice.category})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label className="text-xs">Idade</Label>
-            <Select value={age} onValueChange={setAge}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="young">Jovem</SelectItem>
-                <SelectItem value="middle_aged">Meia-idade</SelectItem>
-                <SelectItem value="old">Idoso</SelectItem>
-              </SelectContent>
-            </Select>
+
+          <div className="grid gap-2">
+            <Label>Texto para Teste</Label>
+            <Input 
+              value={text} 
+              onChange={(e) => setText(e.target.value)} 
+              placeholder="Digite o texto que deseja ouvir..."
+            />
           </div>
-          <div>
-            <Label className="text-xs">Sotaque</Label>
-            <Select value={accent} onValueChange={setAccent}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="brazilian">Brasileiro</SelectItem>
-                <SelectItem value="american">Americano</SelectItem>
-                <SelectItem value="british">Britânico</SelectItem>
-              </SelectContent>
-            </Select>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <div className="flex justify-between">
+                  <Label>Estabilidade</Label>
+                  <span className="text-xs text-muted-foreground">{Math.round(settings.stability * 100)}%</span>
+                </div>
+                <Slider 
+                  value={[settings.stability * 100]} 
+                  onValueChange={([v]) => setSettings(s => ({ ...s, stability: v / 100 }))}
+                  max={100}
+                  step={1}
+                />
+              </div>
+              <div className="grid gap-2">
+                <div className="flex justify-between">
+                  <Label>Similaridade</Label>
+                  <span className="text-xs text-muted-foreground">{Math.round(settings.similarity_boost * 100)}%</span>
+                </div>
+                <Slider 
+                  value={[settings.similarity_boost * 100]} 
+                  onValueChange={([v]) => setSettings(s => ({ ...s, similarity_boost: v / 100 }))}
+                  max={100}
+                  step={1}
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <div className="flex justify-between">
+                  <Label>Exagero de Estilo</Label>
+                  <span className="text-xs text-muted-foreground">{Math.round(settings.style * 100)}%</span>
+                </div>
+                <Slider 
+                  value={[settings.style * 100]} 
+                  onValueChange={([v]) => setSettings(s => ({ ...s, style: v / 100 }))}
+                  max={100}
+                  step={1}
+                />
+              </div>
+              <div className="flex items-end h-full pb-1">
+                <Button 
+                  className="w-full gap-2" 
+                  onClick={handleGenerate} 
+                  disabled={loading || !selectedVoice}
+                >
+                  {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                  Gerar e Ouvir
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div>
-          <Label className="text-xs">Texto de preview</Label>
-          <Textarea
-            value={previewText}
-            onChange={e => setPreviewText(e.target.value)}
-            rows={2}
-            className="mt-1 text-sm resize-none"
-          />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button size="sm" onClick={generateVoice} disabled={generating} className="gap-1.5">
-            {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-            Gerar Voz
-          </Button>
-        </div>
-
-        {audioUrl && (
-          <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
-            <Label className="text-xs text-muted-foreground mb-2 block">Preview da Voz</Label>
-            <audio src={audioUrl} controls className="w-full h-10" />
-          </div>
-        )}
       </CardContent>
     </Card>
   );
