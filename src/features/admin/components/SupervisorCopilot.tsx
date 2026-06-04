@@ -50,7 +50,8 @@ Filas: ${queueData.data?.map(q => q.name).join(', ') || 'nenhuma'}
 Agentes: ${agentData.data?.map(a => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
       `.trim();
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession(); // Still need session for access_token in some cases, but getUser is safer for identity
       const response = await supabase.functions.invoke('ai-proxy', {
         body: {
           messages: [
