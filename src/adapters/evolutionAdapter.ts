@@ -31,10 +31,10 @@ export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessa
   }
 
   // Enriquecimento de metadados para telemetria (ex: PTT detection)
-  const mediaMeta: any = Array.isArray(evo.media_meta) ? {} : (evo.media_meta || {});
+  const mediaMeta = (Array.isArray(evo.media_meta) ? {} : (evo.media_meta || {})) as Record<string, unknown>;
   if (evo.message_type === 'audioMessage' || evo.message_type === 'audio') {
-    if (mediaMeta.ptt === undefined && (evo as any).ptt !== undefined) {
-      mediaMeta.ptt = (evo as any).ptt;
+    if (mediaMeta.ptt === undefined && 'ptt' in evo && evo.ptt !== undefined) {
+      mediaMeta.ptt = evo.ptt;
     }
   }
 
