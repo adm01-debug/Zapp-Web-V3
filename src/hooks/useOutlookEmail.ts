@@ -15,8 +15,10 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
-const supabase = _supabase as any;
+import { supabase } from '@/integrations/supabase/client';
+import { dbFrom } from '@/integrations/datasource/db';
+
+
 
 export interface OutlookMessage {
   id: string;
@@ -48,8 +50,7 @@ export function useOutlookEmail() {
 
   // Carrega contas Outlook existentes
   const loadAccounts = useCallback(async () => {
-    const { data, error: dbErr } = await supabase
-      .from('imap_smtp_accounts')
+    const { data, error: dbErr } = await dbFrom('imap_smtp_accounts')
       .select('id, email, is_active, provider')
       .eq('provider', 'outlook')
       .eq('is_active', true)
@@ -186,7 +187,7 @@ export function useOutlookEmail() {
 
   // Desconectar conta
   const disconnect = useCallback(async (accountId: string) => {
-    await supabase.from('imap_smtp_accounts').update({ is_active: false }).eq('id', accountId);
+    await dbFrom('imap_smtp_accounts').update({ is_active: false }).eq('id', accountId);
     setAccounts(prev => prev.filter(a => a.id !== accountId));
     if (activeAccountId === accountId) setActiveAccountId(null);
   }, [activeAccountId]);

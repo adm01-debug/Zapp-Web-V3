@@ -99,7 +99,7 @@ export function useMessages(remoteJid: string | null) {
       });
       if (ctrl.signal.aborted || !mountedRef.current) return;
       if (error) throw error;
-      const items = ((data ?? []) as any[]).map(mapRow);
+      const items = ((data ?? []) as unknown as Record<string, unknown>[]).map(mapRow);
       const reversed = [...items].reverse();
       setMessages(reversed);
       setHasMore(items.length === PAGE_SIZE);
@@ -129,7 +129,7 @@ export function useMessages(remoteJid: string | null) {
         p_offset:     offsetRef.current,
       });
       if (error) throw error;
-      const newItems = ((data ?? []) as any[]).map(mapRow);
+      const newItems = ((data ?? []) as unknown as Record<string, unknown>[]).map(mapRow);
       // Prepended because they are older (reversed for UI)
       const reversed = [...newItems].reverse();
       setMessages((prev) => {
@@ -214,6 +214,7 @@ export function useMessages(remoteJid: string | null) {
   }, [toast]);
 
   const markFollowUpDone = useCallback(async (id: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).rpc('mark_follow_up_done', { p_message_id: id });
     if (error) throw error;
     setMessages((prev) => prev.map((m) => m.id === id ? { ...m, follow_up_done: true } : m));

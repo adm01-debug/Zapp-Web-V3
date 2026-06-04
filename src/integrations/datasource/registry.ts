@@ -33,6 +33,7 @@ export type LogicalEntity =
   | 'audit_log'
   | 'calls'
   | 'deleted_contacts'
+  | 'imap_smtp_accounts'
   | 'profiles'
   | 'user_roles'
   | 'queues'
@@ -70,6 +71,7 @@ export const ENTITY_MAP = {
   routing_queues:       { client: 'lovable', table: 'routing_queues' },
   evolution_contacts:   { client: 'lovable', table: 'evolution_contacts' },
   evolution_messages:   { client: 'lovable', table: 'evolution_messages' },
+  imap_smtp_accounts:   { client: 'lovable', table: 'imap_smtp_accounts' },
 } as const satisfies Record<LogicalEntity, EntityMapping>;
 
 export function getEntityMapping(entity: LogicalEntity): EntityMapping {

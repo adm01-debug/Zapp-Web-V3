@@ -53,9 +53,9 @@ export const messageService = {
       if (whisperErr) {
         log.error('Error fetching whispers:', whisperErr);
       } else if (whispers) {
-        const mappedWhispers = whispers.map((w: any) => this.mapMessage({
+        const mappedWhispers = (whispers as unknown as Record<string, unknown>[]).map((w) => this.mapMessage({
           ...w,
-          sender_id: w.sender_id,
+          sender_id: w.sender_id as string,
           isWhisper: true,
         }));
         allData = allData.concat(mappedWhispers);
@@ -63,8 +63,8 @@ export const messageService = {
 
       // Sort all messages by timestamp
       allData.sort((a, b) => {
-        const timeA = new Date(a.created_at || (a as any).timestamp || (a as any).created_at).getTime();
-        const timeB = new Date(b.created_at || (b as any).timestamp || (b as any).created_at).getTime();
+        const timeA = new Date((a as any).created_at || (a as any).timestamp).getTime();
+        const timeB = new Date((b as any).created_at || (b as any).timestamp).getTime();
         return timeA - timeB;
       });
 
