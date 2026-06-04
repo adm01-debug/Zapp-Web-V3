@@ -19,7 +19,7 @@ test.describe('Fluxo de Autenticação e Navegação', () => {
     
     // Verifica se mensagens de erro aparecem (baseado no useAuthForm)
     // Note: useAuthForm provavelmente usa zod/react-hook-form
-    const emailError = page.locator('text=Email inválido').or(page.locator('text=Obrigatório'));
+    const emailError = page.locator('text=Email inválido, text=Obrigatório');
     // Aguarda um pouco para animação do Framer Motion
     await expect(emailError.first()).toBeVisible({ timeout: 5000 });
   });
