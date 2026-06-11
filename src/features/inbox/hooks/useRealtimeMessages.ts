@@ -348,7 +348,7 @@ export function useRealtimeMessages() {
 
   const filteredConversations = useMemo(() => {
     // Standardize to use live data first, mocks only if explicitly enabled in local storage
-    const filtered = [...conversations];
+    let filtered = [...conversations];
 
 
     // 1. Search
