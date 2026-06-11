@@ -347,10 +347,8 @@ export function useRealtimeMessages() {
   void sendStateTick; // ensure dep tracked
 
   const filteredConversations = useMemo(() => {
-    // Fallback to mocks when there's no real data and mocks are enabled (demo mode)
-    let filtered = (conversations.length === 0 && MOCKS_FLAG)
-      ? [...(MOCK_CONVERSATIONS as unknown as ConversationWithMessages[])]
-      : [...conversations];
+    // Standardize to use live data first, mocks only if explicitly enabled in local storage
+    let filtered = [...conversations];
 
 
     // 1. Search

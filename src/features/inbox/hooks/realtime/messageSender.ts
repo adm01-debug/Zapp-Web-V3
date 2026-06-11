@@ -180,7 +180,7 @@ export async function sendMessageToContact(
 
     if (!connection?.instance_id || connection.status !== 'connected') {
       log.warn('WhatsApp connection not active, message marked as failed');
-      await dbFrom('messages').update({ status: 'failed' }).eq('id', data.id);
+      await dbFrom('messages').update({ status: 'failed', error_reason: 'Nenhuma conexão WhatsApp ativa disponível' }).eq('id', data.id);
       
         await (supabase.from('conversation_audit_logs' as any).insert({
           conversation_id: opts.conversationId,

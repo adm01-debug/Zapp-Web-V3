@@ -127,7 +127,8 @@ export function useMessageUpdateBatcher(
       }
 
       if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
-      updateTimerRef.current = setTimeout(flushPendingUpdates, 100);
+      // Increased debounce window during high traffic to batch more updates together
+      updateTimerRef.current = setTimeout(flushPendingUpdates, 150);
       publishStatus(true);
     },
     [flushPendingUpdates, hydrateConversationForMessage, conversationsRef, publishStatus]

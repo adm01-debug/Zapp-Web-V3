@@ -87,6 +87,12 @@ export function ProtectedRoute({
   const effectiveRoles: AppRole[] | undefined =
     overrideRoles === null ? requiredRoles : overrideRoles;
 
+  // 'dev' always has access
+  const isDev = hasRole('dev' as AppRole);
+  if (isDev) {
+    return <>{children}</>;
+  }
+
   if (effectiveRoles && effectiveRoles.length > 0) {
     // 'dev' always has access
     const hasRequiredRole = hasRole('dev' as AppRole) || effectiveRoles.some(role => hasRole(role));

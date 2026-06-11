@@ -228,11 +228,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await authService.signOut();
-    setProfile(null);
-    setRoles([]);
-    setPermissions([]);
-    queryClient.clear();
+    try {
+      await authService.signOut();
+      // Explicitly clear stale Supabase tokens from localStorage to prevent ghost sessions
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('sb-') && k.includes('-auth-token'))
+          .forEach(k => localStorage.removeItem(k));
+      }
+    } catch (e) {
+      log.warn('[Auth] Error during signOut:', e);
+    } finally {
+      setProfile(null);
+      setRoles([]);
+      setPermissions([]);
+      queryClient.clear();
+    }
   };
 
   const contextValue = useMemo(
