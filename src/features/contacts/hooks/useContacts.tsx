@@ -168,6 +168,7 @@ export function useContacts() {
     try {
       const { data, count, error } = await buildQuery(f);
       if (error) throw error;
+      
       const items = (data ?? []).map(mapRow);
       const last  = items[items.length - 1];
       cursorRef.current = last ? String((last as Record<string, unknown>)[f.sort_field] ?? '') : null;
@@ -177,7 +178,9 @@ export function useContacts() {
     } catch (err) {
       console.error('[useContacts]', err);
       toast({ title: 'Erro ao carregar contatos', description: String(err), variant: 'destructive' });
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   }, [filters, buildQuery, toast]);
 
   // ── Load more ────────────────────────────────────────────────────────────
