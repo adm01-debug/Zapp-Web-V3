@@ -12,7 +12,6 @@ import {
 import { useRealtimeNotifications } from './realtime/useRealtimeNotifications';
 import { useMessageUpdateBatcher } from './realtime/useMessageUpdateBatcher';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
-import { dbFrom, dbTable } from '@/integrations/datasource/db';
 import { MOCK_CONVERSATIONS } from '../components/conversation-list/__mocks__/mockConversations';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
