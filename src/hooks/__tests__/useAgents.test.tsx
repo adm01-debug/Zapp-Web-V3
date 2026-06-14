@@ -17,17 +17,18 @@ const mockQueuesData = {
 // Builder de cadeia robusto: cada método encadeável retorna a própria cadeia,
 // que também é "thenable" e resolve para { data, error }. Cobre qualquer ordem
 // de select/order/eq/in/not/is independente do mapeamento de tabela (dbFrom).
-function makeChain(data: any[]) {
+function makeChain(data: unknown[]) {
   const result = { data, error: null };
-  const chain: any = {};
+  const chain: Record<string, unknown> = {};
   for (const m of ['select', 'order', 'eq', 'in', 'not', 'is', 'gte', 'lte', 'filter', 'limit']) {
     chain[m] = vi.fn(() => chain);
   }
-  chain.then = (resolve: any) => Promise.resolve(result).then(resolve);
+  chain.then = (resolve: (value: typeof result) => unknown) =>
+    Promise.resolve(result).then(resolve);
   return chain;
 }
 
-const tableData: Record<string, any[]> = {
+const tableData: Record<string, unknown[]> = {
   profiles: mockProfiles,
   queues: mockQueuesData.queues,
   queue_members: mockQueuesData.members,

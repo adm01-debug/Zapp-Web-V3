@@ -13,7 +13,7 @@ vi.mock('@/integrations/supabase/client', () => {
   };
   return {
     supabase: {
-      from: (...args: any[]) => mockFrom(...args),
+      from: (...args: unknown[]) => mockFrom(...args),
       channel: vi.fn(() => channel),
       removeChannel: vi.fn(),
       auth: {
@@ -28,10 +28,9 @@ const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: any) => children,
-}))
+}));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
-  AuthProvider: ({ children }: any) => children,
 }));
 
 vi.mock('@/hooks/use-toast', () => ({

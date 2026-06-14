@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'user-1', email: 'test@test.com' } }),
-}))
+}));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'user-1', email: 'test@test.com' } }),
 }));

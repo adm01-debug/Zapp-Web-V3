@@ -18,10 +18,9 @@ vi.mock('@/integrations/supabase/client', () => ({
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'u1' } }),
   AuthProvider: ({ children }: any) => children,
-}))
+}));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'u1' } }),
-  AuthProvider: ({ children }: any) => children,
 }));
 
 vi.mock('@/hooks/use-toast', () => ({
