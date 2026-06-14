@@ -38,6 +38,9 @@ Object.defineProperty(navigator, 'connection', {
 // Mock useAuth (needed by usePerformanceSnapshots)
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ profile: { id: 'test-profile' }, user: { id: 'test-user' } }),
+}))
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: () => ({ profile: { id: 'test-profile' }, user: { id: 'test-user' } }),
 }));
 
 // Mock supabase

@@ -96,6 +96,7 @@ describe('ConversationItem', () => {
       </TooltipProvider>
     );
 
-    expect(screen.getByText('Acme Corp')).toBeDefined();
+    // O componente renderiza "• Acme Corp" (bullet inline), então usamos matcher flexível.
+    expect(screen.getByText(/Acme Corp/)).toBeDefined();
   });
 });

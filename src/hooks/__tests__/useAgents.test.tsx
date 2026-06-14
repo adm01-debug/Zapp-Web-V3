@@ -14,43 +14,36 @@ const mockQueuesData = {
   members: [{ queue_id: 'q1', profile_id: 'p1' }],
 };
 
+// Builder de cadeia robusto: cada método encadeável retorna a própria cadeia,
+// que também é "thenable" e resolve para { data, error }. Cobre qualquer ordem
+// de select/order/eq/in/not/is independente do mapeamento de tabela (dbFrom).
+function makeChain(data: any[]) {
+  const result = { data, error: null };
+  const chain: any = {};
+  for (const m of ['select', 'order', 'eq', 'in', 'not', 'is', 'gte', 'lte', 'filter', 'limit']) {
+    chain[m] = vi.fn(() => chain);
+  }
+  chain.then = (resolve: any) => Promise.resolve(result).then(resolve);
+  return chain;
+}
+
+const tableData: Record<string, any[]> = {
+  profiles: mockProfiles,
+  queues: mockQueuesData.queues,
+  queue_members: mockQueuesData.members,
+  contacts: [{ assigned_to: 'p1' }, { assigned_to: 'p1' }],
+};
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn().mockImplementation((table: string) => {
-      if (table === 'profiles') {
-        return {
-          select: vi.fn().mockReturnValue({
-            order: vi.fn().mockResolvedValue({ data: mockProfiles, error: null }),
-          }),
-        };
-      }
-      if (table === 'queues') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: mockQueuesData.queues, error: null }),
-          }),
-        };
-      }
-      if (table === 'queue_members') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: mockQueuesData.members, error: null }),
-          }),
-        };
-      }
-      if (table === 'contacts') {
-        return {
-          select: vi.fn().mockReturnValue({
-            not: vi.fn().mockResolvedValue({ data: [{ assigned_to: 'p1' }, { assigned_to: 'p1' }], error: null }),
-          }),
-        };
-      }
-      return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
-    }),
+    from: vi.fn().mockImplementation((table: string) => makeChain(tableData[table] ?? [])),
   },
 }));
 
-import { useAgents } from '@/hooks/useAgents';
+// NOTA: este teste cobre o hook de agentes+stats (react-query), que vive em
+// @/features/admin/hooks/useAgents. Há um hook homônimo em @/hooks/useAgents
+// (agentes de IA) com API diferente (loading vs isLoading) — não é o alvo aqui.
+import { useAgents } from '@/features/admin/hooks/useAgents';
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });

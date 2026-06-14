@@ -17,11 +17,13 @@ const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: any) => children,
+}))
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: () => mockUseAuth(),
+  AuthProvider: ({ children }: any) => children,
 }));
 
-vi.mock('@/lib/logger', () => ({
-  log: { error: vi.fn(), debug: vi.fn(), info: vi.fn() },
-}));
+vi.mock('@/lib/logger');
 
 import { useOnboarding } from '@/hooks/useOnboarding';
 
@@ -51,7 +53,7 @@ describe('useOnboarding', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({ data: { id: 's1' }, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: { onboarding_completed: true }, error: null }),
         }),
       }),
     });

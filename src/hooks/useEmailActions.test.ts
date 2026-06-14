@@ -95,15 +95,18 @@ describe('useEmail - Labels and RPC Actions', () => {
     });
 
     it('should handle RPC errors', async () => {
-      vi.mocked(safeClient.rpc).mockResolvedValueOnce({ 
-        data: null, 
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { result } = renderHook(() => useEmail());
+
+      // Persistente (não Once): chamadas de inicialização não devem "consumir"
+      // o mock antes do assignThread sob teste.
+      vi.mocked(safeClient.rpc).mockResolvedValue({
+        data: null,
         error: { message: 'RPC Error' } as any,
         requestId: 'req_123'
       });
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
-      const { result } = renderHook(() => useEmail());
-      
+
       await act(async () => {
         await result.current.assignThread('t1', 'agent_456');
       });

@@ -1,6 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import { AuthProvider } from '../features/auth/components/AuthProvider';
 import { supabase } from '../integrations/supabase/client';
@@ -25,9 +26,14 @@ describe('Auth Flows', () => {
     vi.clearAllMocks();
   });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <AuthProvider>{children}</AuthProvider>
-  );
+  const wrapper = ({ children }: { children: React.ReactNode }) => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return (
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>{children}</AuthProvider>
+      </QueryClientProvider>
+    );
+  };
 
   it('should handle signIn successfully', async () => {
     const mockUser = { id: 'test-user-id', email: 'test@example.com' };

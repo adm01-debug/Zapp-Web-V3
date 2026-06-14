@@ -46,10 +46,7 @@ vi.mock('@/integrations/supabase/externalClient', () => {
 (globalThis as any).__extMockRpc = mockRpc;
 (globalThis as any).__extMockFrom = mockFrom;
 
-vi.mock('@/lib/logger', () => ({
-  log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
-  getLogger: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }),
-}));
+vi.mock('@/lib/logger');
 
 import { useExternalEmpresas } from '@/hooks/useExternalEmpresas';
 import { useExternalCargos } from '@/hooks/useExternalCargos';

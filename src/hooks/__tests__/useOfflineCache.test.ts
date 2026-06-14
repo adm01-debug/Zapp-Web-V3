@@ -2,13 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
 // Mock logger
-vi.mock('@/lib/logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('@/lib/logger');
 
 // Mock useRealtimeMessages type
 vi.mock('@/hooks/useRealtimeMessages', () => ({}));

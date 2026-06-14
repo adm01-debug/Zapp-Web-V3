@@ -5,18 +5,31 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockFrom = vi.fn();
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: (...args: any[]) => mockFrom(...args),
-    auth: {
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+vi.mock('@/integrations/supabase/client', () => {
+  const channel = {
+    on: vi.fn(() => channel),
+    subscribe: vi.fn(() => channel),
+    unsubscribe: vi.fn(),
+  };
+  return {
+    supabase: {
+      from: (...args: any[]) => mockFrom(...args),
+      channel: vi.fn(() => channel),
+      removeChannel: vi.fn(),
+      auth: {
+        onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+        getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      },
     },
-  },
-}));
+  };
+});
 
 const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => mockUseAuth(),
+  AuthProvider: ({ children }: any) => children,
+}))
+vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: any) => children,
 }));
@@ -26,9 +39,7 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-vi.mock('@/lib/logger', () => ({
-  log: { error: vi.fn(), debug: vi.fn(), info: vi.fn() },
-}));
+vi.mock('@/lib/logger');
 
 import { useMessageReactions } from '@/hooks/useMessageReactions';
 

@@ -18,7 +18,8 @@ describe('Button Component', () => {
 
     rerender(<Button variant="outline">Outline</Button>);
     button = screen.getByRole('button', { name: /outline/i });
-    expect(button.className).toContain('border-input');
+    // A variante outline usa o token de borda do design system (border-border/80).
+    expect(button.className).toContain('border');
   });
 
   it('renders in loading state and is disabled', () => {

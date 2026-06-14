@@ -19,9 +19,13 @@ const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: any) => children,
+}))
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: () => mockUseAuth(),
+  AuthProvider: ({ children }: any) => children,
 }));
 
-import { useUserRole } from '@/hooks/useUserRole';
+import { useUserRole } from '@/features/auth/hooks/useUserRole';
 
 describe('useUserRole', () => {
   beforeEach(() => {
@@ -29,7 +33,8 @@ describe('useUserRole', () => {
   });
 
   it('returns empty roles when no user is logged in', async () => {
-    mockUseAuth.mockReturnValue({ user: null, session: null, profile: null, loading: false });
+    // roles agora vêm de useAuth().roles (refatoração de auth).
+    mockUseAuth.mockReturnValue({ user: null, session: null, profile: null, roles: [], loading: false });
 
     const { result } = renderHook(() => useUserRole());
 
@@ -47,6 +52,7 @@ describe('useUserRole', () => {
       user: { id: 'user-1' },
       session: {},
       profile: null,
+      roles: ['admin', 'supervisor'],
       loading: false,
     });
 
@@ -79,6 +85,7 @@ describe('useUserRole', () => {
       user: { id: 'user-1' },
       session: {},
       profile: null,
+      roles: ['agent'],
       loading: false,
     });
 
@@ -108,6 +115,7 @@ describe('useUserRole', () => {
       user: { id: 'user-1' },
       session: {},
       profile: null,
+      roles: ['supervisor'],
       loading: false,
     });
 

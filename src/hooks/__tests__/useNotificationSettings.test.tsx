@@ -19,11 +19,13 @@ const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: any) => children,
+}))
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: () => mockUseAuth(),
+  AuthProvider: ({ children }: any) => children,
 }));
 
-vi.mock('@/lib/logger', () => ({
-  log: { error: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
-}));
+vi.mock('@/lib/logger');
 
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 

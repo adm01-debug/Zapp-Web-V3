@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MFABackupCodes } from '../MFABackupCodes';
 
-// Mock clipboard
-Object.assign(navigator, {
-  clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+// Mock clipboard (navigator.clipboard é getter-only em happy-dom → defineProperty)
+Object.defineProperty(navigator, 'clipboard', {
+  value: { writeText: vi.fn().mockResolvedValue(undefined) },
+  configurable: true,
+  writable: true,
 });
 
 // Mock URL

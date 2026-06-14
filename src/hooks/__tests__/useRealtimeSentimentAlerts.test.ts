@@ -27,9 +27,7 @@ vi.mock('@/utils/notificationSound', () => ({
   requestNotificationPermission: vi.fn(),
 }));
 
-vi.mock('@/lib/logger', () => ({
-  getLogger: () => ({ error: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn() }),
-}));
+vi.mock('@/lib/logger');
 
 const { useRealtimeSentimentAlerts } = await import('@/hooks/useRealtimeSentimentAlerts');
 const { renderHook } = await import('@testing-library/react');

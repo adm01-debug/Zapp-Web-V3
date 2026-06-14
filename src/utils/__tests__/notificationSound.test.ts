@@ -26,9 +26,7 @@ vi.stubGlobal('AudioContext', vi.fn().mockImplementation(() => ({
   resume: vi.fn(),
 })));
 
-vi.mock('@/lib/logger', () => ({
-  log: { error: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
-}));
+vi.mock('@/lib/logger');
 
 import { playNotificationSound, requestNotificationPermission, showBrowserNotification } from '@/utils/notificationSound';
 

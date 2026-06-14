@@ -25,9 +25,12 @@ const UPDATE_HINT = 'Atualize src/test/fixtures/TRILHA_MENSAGENS_NAVEGAVEL.mmd (
 
 // Mapeia node id no .mmd -> caminho do arquivo no repo (espelha bloco `click`).
 const NODE_TO_FILE: Record<string, string> = {
-  URM: 'src/hooks/useRealtimeMessages.ts',
+  // useRealtimeMessages/useMessageStatus em src/hooks/* são re-exports (shims);
+  // a subscription real vive em features/inbox. Já useMessages mantém a
+  // subscription postgres_changes no próprio src/hooks/useMessages.ts.
+  URM: 'src/features/inbox/hooks/useRealtimeMessages.ts',
   UM: 'src/hooks/useMessages.ts',
-  UMS: 'src/hooks/useMessageStatus.ts',
+  UMS: 'src/features/inbox/hooks/useMessageStatus.ts',
   UTN: 'src/hooks/useTranscriptionNotifications.ts',
   URD: 'src/hooks/useRealtimeDashboard.ts',
   UEM: 'src/components/monitoring/hooks/useEvolutionMonitoring.ts',

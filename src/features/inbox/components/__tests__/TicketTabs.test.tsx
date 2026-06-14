@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { TicketTabs } from '../TicketTabs';
+
+const renderWithClient = (ui: React.ReactElement) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 
 // Mock hooks
 const mockHasPermission = vi.fn();
@@ -51,11 +57,14 @@ describe('TicketTabs - Visibilidade de Escopo', () => {
     vi.clearAllMocks();
   });
 
-  it('renderiza apenas "Meus" para Agente sem permissões extras', () => {
+  it('oculta o seletor de escopo para Agente sem permissões extras', () => {
+    // Por design (ver TicketTabs.tsx), o seletor Meus/Depto/Todos só aparece para
+    // quem pode ver departamento ou todos os departamentos. Um agente com apenas
+    // inbox.view_mine não enxerga o seletor (mostrar só "Meus" não agrega valor).
     mockHasPermission.mockImplementation((perm) => perm === 'inbox.view_mine');
-    
-    render(
-      <TicketTabs 
+
+    renderWithClient(
+      <TicketTabs
         conversations={[]}
         mainTab="open"
         subTab="attending"
@@ -68,7 +77,7 @@ describe('TicketTabs - Visibilidade de Escopo', () => {
       />
     );
 
-    expect(screen.getByText('Meus')).toBeDefined();
+    expect(screen.queryByText('Meus')).toBeNull();
     expect(screen.queryByText('Departamento')).toBeNull();
     expect(screen.queryByText('Todos depts.')).toBeNull();
   });
@@ -78,7 +87,7 @@ describe('TicketTabs - Visibilidade de Escopo', () => {
       perm === 'inbox.view_mine' || perm === 'inbox.view_department'
     );
     
-    render(
+    renderWithClient(
       <TicketTabs 
         conversations={[]}
         mainTab="open"
@@ -100,7 +109,7 @@ describe('TicketTabs - Visibilidade de Escopo', () => {
   it('renderiza todos os escopos quando tem permissão inbox.view_all', () => {
     mockHasPermission.mockReturnValue(true);
     
-    render(
+    renderWithClient(
       <TicketTabs 
         conversations={[]}
         mainTab="open"

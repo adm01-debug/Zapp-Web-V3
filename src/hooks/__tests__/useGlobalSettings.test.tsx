@@ -5,7 +5,7 @@ const mockFrom = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: { from: (...args: any[]) => mockFrom(...args) },
 }));
-vi.mock('@/lib/logger', () => ({ log: { error: vi.fn(), info: vi.fn(), warn: vi.fn() } }));
+vi.mock('@/lib/logger');
 
 import { useGlobalSettings } from '@/hooks/useGlobalSettings';
 
