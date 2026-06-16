@@ -1,0 +1,15 @@
+{
+  "framework": "vite",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install --legacy-peer-deps",
+  "env": {
+    "VITE_SUPABASE_URL": "https://allrjhkpuscmgbsnmjlv.supabase.co",
+    "VITE_APP_NAME": "ZAPP-WEB",
+    "VITE_APP_ENV": "production",
+    "VITE_ENABLE_ANALYTICS": "false",
+    "VITE_ENABLE_DEBUG": "false",
+    "VITE_ENABLE_GAMIFICATION": "true",
+    "VITE_ENABLE_GMAIL_INTEGRATION": "false"
+  }
+}
