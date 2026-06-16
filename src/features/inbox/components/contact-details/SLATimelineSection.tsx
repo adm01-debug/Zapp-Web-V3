@@ -253,43 +253,18 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
     agentId: slaAgentId,
   });
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3 py-2">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="flex gap-3">
-            <Skeleton className="w-[22px] h-[22px] rounded-full" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-3 w-32" />
-              <Skeleton className="h-2.5 w-24" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (!timeline || (!timeline.firstContactAt && timeline.totalMessages === 0)) {
-    return (
-      <GenericEmptyState
-        icon={Activity}
-        title="Sem marcos ainda"
-        description="A linha do tempo aparecerá assim que houver mensagens."
-        className="py-6"
-      />
-    );
-  }
-
   const firstResponseLimit = sla?.firstResponseMinutes ?? 5;
   const resolutionLimit = sla?.resolutionMinutes ?? 60;
 
-  const firstResponseStatus: SLAStatus = scope === 'none'
+  // Statuses e hooks abaixo são computados/chamados ANTES dos early-returns
+  // (rules-of-hooks). Tolera `timeline` ausente via optional chaining.
+  const firstResponseStatus: SLAStatus = scope === 'none' || !timeline
     ? 'na'
     : timeline.isAwaitingFirstResponse
       ? getSLAStatus(timeline.awaitingMs, firstResponseLimit)
       : getSLAStatus(timeline.firstResponseDurationMs, firstResponseLimit);
 
-  const resolutionStatus: SLAStatus = scope === 'none'
+  const resolutionStatus: SLAStatus = scope === 'none' || !timeline
     ? 'na'
     : timeline.resolutionDurationMs !== null
       ? getSLAStatus(timeline.resolutionDurationMs, resolutionLimit)
@@ -328,10 +303,37 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
     firstResponseStatus,
     resolutionStatus,
     ruleName: sla?.ruleName ?? null,
-    awaitingMs: timeline.awaitingMs,
-    resolutionDurationMs: timeline.resolutionDurationMs,
+    awaitingMs: timeline?.awaitingMs ?? null,
+    resolutionDurationMs: timeline?.resolutionDurationMs ?? null,
     onOpenConversation: handleOpenConversation,
   });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3 py-2">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex gap-3">
+            <Skeleton className="w-[22px] h-[22px] rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-2.5 w-24" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!timeline || (!timeline.firstContactAt && timeline.totalMessages === 0)) {
+    return (
+      <GenericEmptyState
+        icon={Activity}
+        title="Sem marcos ainda"
+        description="A linha do tempo aparecerá assim que houver mensagens."
+        className="py-6"
+      />
+    );
+  }
 
   const firstResponseDurationLabel = timeline.isAwaitingFirstResponse
     ? `Aguardando há ${formatDurationMs(timeline.awaitingMs)}`

@@ -28,6 +28,8 @@ export const test = base.extend<Fixtures>({
       console.warn('[e2e] login UI falhou — verifique E2E_USER_EMAIL/PASSWORD', err);
       throw err;
     }
+    // `use` aqui é o callback de fixture do Playwright, não o hook React `use`.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page);
     await context.close();
   },
