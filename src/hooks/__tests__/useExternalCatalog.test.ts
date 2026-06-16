@@ -11,11 +11,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-vi.mock('@/lib/logger', () => ({
-  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), error: vi.fn(), warn: vi.fn() }),
-  getLogger: () => ({ debug: vi.fn(), info: vi.fn(), error: vi.fn(), warn: vi.fn() }),
-  log: { debug: vi.fn(), info: vi.fn(), error: vi.fn() },
-}));
+vi.mock('@/lib/logger');
 
 import { useExternalCatalog, ExternalProduct, ExternalCategory, ExternalSupplier, ExternalProductVariant, CatalogFilters } from '@/hooks/useExternalCatalog';
 

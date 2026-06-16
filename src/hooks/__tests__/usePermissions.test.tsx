@@ -18,6 +18,9 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: any) => children,
 }));
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: () => mockUseAuth(),
+}));
 
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -43,7 +46,8 @@ describe('usePermissions', () => {
   });
 
   it('returns empty permissions when no user is logged in', async () => {
-    mockUseAuth.mockReturnValue({ user: null });
+    // userPermissions agora vem de useAuth().permissions (refatoração de auth).
+    mockUseAuth.mockReturnValue({ user: null, permissions: [] });
     mockFrom.mockReturnValue(makeSelectChain());
 
     const { result } = renderHook(() => usePermissions());
@@ -80,7 +84,7 @@ describe('usePermissions', () => {
   });
 
   it('hasPermission correctly checks user permissions', async () => {
-    mockUseAuth.mockReturnValue({ user: { id: 'user-1' } });
+    mockUseAuth.mockReturnValue({ user: { id: 'user-1' }, permissions: ['manage_users'] });
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'permissions') return makeSelectChain([{ id: 'p1', name: 'manage_users', category: 'admin' }]);
@@ -110,7 +114,7 @@ describe('usePermissions', () => {
   });
 
   it('hasAnyPermission works correctly', async () => {
-    mockUseAuth.mockReturnValue({ user: { id: 'user-1' } });
+    mockUseAuth.mockReturnValue({ user: { id: 'user-1' }, permissions: ['view_dashboard'] });
     mockFrom.mockImplementation((table: string) => {
       if (table === 'user_roles') return makeSelectChain([{ role: 'agent' }]);
       if (table === 'role_permissions') {
@@ -133,7 +137,7 @@ describe('usePermissions', () => {
   });
 
   it('hasAllPermissions works correctly', async () => {
-    mockUseAuth.mockReturnValue({ user: { id: 'user-1' } });
+    mockUseAuth.mockReturnValue({ user: { id: 'user-1' }, permissions: ['view_dashboard', 'manage_users'] });
     mockFrom.mockImplementation((table: string) => {
       if (table === 'user_roles') return makeSelectChain([{ role: 'admin' }]);
       if (table === 'role_permissions') {

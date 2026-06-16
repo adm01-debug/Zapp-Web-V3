@@ -25,6 +25,9 @@ const mockUser = { id: 'user-123' };
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({ user: mockUser })),
 }));
+vi.mock('@/features/auth/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({ user: mockUser })),
+}));
 
 import { useDownloadPermission } from '@/hooks/useDownloadPermission';
 import { useAuth } from '@/hooks/useAuth';

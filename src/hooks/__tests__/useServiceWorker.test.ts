@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
-vi.mock('@/lib/logger', () => ({
-  log: { debug: vi.fn(), error: vi.fn(), info: vi.fn() },
-}));
+vi.mock('@/lib/logger');
 
 const mockUnregister = vi.fn().mockResolvedValue(true);
 const mockCaches = {
@@ -62,7 +60,7 @@ describe('useServiceWorker', () => {
 
   it('cleans legacy caches before registering the current worker', async () => {
     mockCaches.keys.mockResolvedValueOnce(['whatsapp-crm-v2']);
-    sessionStorage.setItem('legacy-sw-reset-done', '1');
+    sessionStorage.setItem('sw-cache-reset-done', '1');
 
     const { useServiceWorker } = await import('@/hooks/useServiceWorker');
     renderHook(() => useServiceWorker());

@@ -35,9 +35,7 @@ vi.mock('@/utils/notificationSound', () => ({
   requestNotificationPermission: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('@/lib/logger', () => ({
-  log: { error: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
-}));
+vi.mock('@/lib/logger');
 
 import { useSentimentAlerts } from '@/hooks/useSentimentAlerts';
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth, AuthProvider } from '../useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import React from 'react';
@@ -29,9 +30,14 @@ describe('useAuth hook', () => {
     vi.clearAllMocks();
   });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <AuthProvider>{children}</AuthProvider>
-  );
+  const wrapper = ({ children }: { children: React.ReactNode }) => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return (
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>{children}</AuthProvider>
+      </QueryClientProvider>
+    );
+  };
 
   it('initializes with loading state', async () => {
     (supabase.auth.getSession as any).mockResolvedValue({ data: { session: null }, error: null });
