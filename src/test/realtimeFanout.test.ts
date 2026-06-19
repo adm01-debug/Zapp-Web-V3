@@ -97,7 +97,12 @@ describe('Diagrama TRILHA_MENSAGENS_NAVEGAVEL — validador de fan-out realtime'
   });
 
   it('todo arquivo que escuta postgres_changes em messages esta no diagrama', () => {
-    const listeners = findMessagesListeners();
+    // Infraestrutura/builders não são consumidores e ficam fora do diagrama.
+    const INFRA_IGNORELIST = new Set<string>([
+      'src/integrations/datasource/db.ts',
+      'src/integrations/datasource/registry.ts',
+    ]);
+    const listeners = findMessagesListeners().filter((p) => !INFRA_IGNORELIST.has(p));
     const orphans = listeners.filter((p) => !EXPECTED_REALTIME_CONSUMERS.includes(p));
     if (orphans.length > 0) {
       throw new Error(
