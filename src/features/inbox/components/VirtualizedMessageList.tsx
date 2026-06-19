@@ -54,6 +54,10 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListRef, Virt
 }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  const conversationId = messages[0]?.conversationId;
+  const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
+  useConversationReactionsRealtime(conversationId, messageIds);
+
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
     let currentDate = '';
