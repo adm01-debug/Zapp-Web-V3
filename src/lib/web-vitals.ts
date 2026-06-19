@@ -34,6 +34,9 @@ function getRating(name: string, value: number): 'good' | 'needs-improvement' | 
 
 const metricsBuffer: WebVitalMetric[] = [];
 const uploadQueue: WebVitalMetric[] = [];
+// Last value (per metric name) already sent to backend for this page session —
+// used to avoid flooding `query_telemetry` with thousands of CLS/INP updates.
+const lastSentByName = new Map<string, number>();
 let uploadTimer: number | null = null;
 const OBS_FUNCTION = 'client-observability';
 
@@ -62,19 +65,37 @@ function scheduleFlush() {
   uploadTimer = window.setTimeout(() => {
     uploadTimer = null;
     void flushMetrics();
-  }, 3000);
+  }, 5000);
+}
+
+/**
+ * Decide whether `metric` is worth shipping to the backend. We only ship
+ * non-"good" ratings, and only when the value materially changed since the
+ * last send for this metric (>= 10% jump for numeric metrics, any change for
+ * CLS). This caps inserts at a handful per page-session instead of hundreds.
+ */
+function shouldUpload(metric: WebVitalMetric): boolean {
+  if (metric.rating === 'good') return false;
+  const prev = lastSentByName.get(metric.name);
+  if (prev === undefined) return true;
+  if (metric.name === 'CLS') return Math.abs(metric.value - prev) >= 0.01;
+  return Math.abs(metric.value - prev) / Math.max(prev, 1) >= 0.1;
 }
 
 function onMetric(metric: WebVitalMetric) {
   metricsBuffer.push(metric);
-  uploadQueue.push(metric);
 
   const emoji = metric.rating === 'good' ? '🟢' : metric.rating === 'needs-improvement' ? '🟡' : '🔴';
   const unit = metric.name === 'CLS' ? '' : 'ms';
   log.info(`${emoji} ${metric.name}: ${metric.value.toFixed(metric.name === 'CLS' ? 3 : 0)}${unit} (${metric.rating})`);
 
-  if (typeof window !== 'undefined') scheduleFlush();
+  if (typeof window !== 'undefined' && shouldUpload(metric)) {
+    lastSentByName.set(metric.name, metric.value);
+    uploadQueue.push(metric);
+    scheduleFlush();
+  }
 }
+
 
 export function initWebVitals() {
   if (typeof window === 'undefined') return;
