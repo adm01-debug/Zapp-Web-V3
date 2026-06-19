@@ -91,6 +91,11 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
     return () => { void supabase.removeChannel(channel); };
   }, [messages, queryClient]);
 
+  // Realtime de reações: 1 canal por conversa, invalida apenas IDs visíveis
+  const conversationId = messages[0]?.conversationId;
+  const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
+  useConversationReactionsRealtime(conversationId, messageIds);
+
   const getItemSize = useCallback((index: number) => {
     const item = messages[index];
     if (!item) return 80;
