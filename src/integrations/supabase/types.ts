@@ -422,6 +422,35 @@ export type Database = {
         }
         Relationships: []
       }
+      audio_meme_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          meme_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meme_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meme_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_meme_favorites_meme_id_fkey"
+            columns: ["meme_id"]
+            isOneToOne: false
+            referencedRelation: "audio_memes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audio_memes: {
         Row: {
           audio_url: string
@@ -8410,8 +8439,37 @@ export type Database = {
             }
             Returns: string
           }
+      fn_increment_meme_use: { Args: { p_meme_id: string }; Returns: undefined }
+      fn_list_audio_meme_categories: {
+        Args: never
+        Returns: {
+          category: string
+          total: number
+        }[]
+      }
+      fn_list_audio_memes_for_user: {
+        Args: {
+          p_category?: string
+          p_only_favorites?: boolean
+          p_search?: string
+        }
+        Returns: {
+          audio_url: string
+          category: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          is_favorite: boolean
+          name: string
+          use_count: number
+        }[]
+      }
       fn_return_transfer: {
         Args: { p_reason: string; p_transfer_id: string }
+        Returns: boolean
+      }
+      fn_toggle_user_meme_favorite: {
+        Args: { p_meme_id: string }
         Returns: boolean
       }
       fn_transfer_comment:
