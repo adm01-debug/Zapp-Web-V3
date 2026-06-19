@@ -8403,6 +8403,71 @@ export type Database = {
           },
         ]
       }
+      whatsapp_official_credentials_safe: {
+        Row: {
+          app_id: string | null
+          connection_id: string | null
+          created_at: string | null
+          has_access_token: boolean | null
+          has_app_secret: boolean | null
+          id: string | null
+          phone_number_id: string | null
+          updated_at: string | null
+          waba_id: string | null
+        }
+        Insert: {
+          app_id?: string | null
+          connection_id?: string | null
+          created_at?: string | null
+          has_access_token?: never
+          has_app_secret?: never
+          id?: string | null
+          phone_number_id?: string | null
+          updated_at?: string | null
+          waba_id?: string | null
+        }
+        Update: {
+          app_id?: string | null
+          connection_id?: string | null
+          created_at?: string | null
+          has_access_token?: never
+          has_app_secret?: never
+          id?: string | null
+          phone_number_id?: string | null
+          updated_at?: string | null
+          waba_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections_agent"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calculate_level: { Args: { xp_amount: number }; Returns: number }
