@@ -190,7 +190,7 @@ export const MessageBubble = memo(function MessageBubble({
           />
 
           {message.is_deleted ? (
-            <DeletedMessagePlaceholder isSent={isSent} content={message.content} />
+            <DeletedMessagePlaceholder isSent={isSent} content={message.content} deletedAt={message.deleted_at} />
           ) : (
             <motion.div
               whileHover={{ scale: 1.01 }}
