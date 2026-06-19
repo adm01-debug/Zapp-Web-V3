@@ -4,9 +4,10 @@
  */
 import { handleCors, errorResponse, jsonResponse, Logger, requireEnv, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { z, parseBody } from "../_shared/schemas.ts";
-import { logAiUsage, extractTokenUsage, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { logAiUsage, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { callLovableAI, callOpenAICompatible, callCustomWebhook, withRetry } from "../_shared/ai-providers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
+import { requireUser } from "../_shared/auth.ts";
 
 const AiProxySchema = z.object({
   messages: z.array(z.object({
@@ -101,11 +102,15 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("ai-proxy");
-  const userId = extractUserIdFromRequest(req);
+
+  // Require authenticated user — prevents anonymous AI credit drain.
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
+  const userId = authed.user.id;
 
   try {
     const ip = getClientIP(req);
-    const { allowed } = checkRateLimit(`proxy:${ip}`, 30, 60_000);
+    const { allowed } = checkRateLimit(`proxy:${userId}:${ip}`, 30, 60_000);
     if (!allowed) return errorResponse("Limite de requisições excedido. Tente novamente em 1 minuto.", 429, req);
 
     const parsed = parseBody(AiProxySchema, await req.json());

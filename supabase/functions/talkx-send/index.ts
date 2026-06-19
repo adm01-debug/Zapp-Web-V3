@@ -5,6 +5,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+import { requireAdminOrSupervisor, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 function getGreeting(): string {
   const hour = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false });
@@ -64,6 +65,14 @@ Deno.serve(async (req) => {
   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
   const log = new Logger("talkx-send", req);
   const requestId = log.getRequestId();
+
+  // Accept either an admin/supervisor user JWT (manual start/pause/cancel from UI)
+  // or the service-role token / cron secret (talkx-scheduler trigger).
+  const cronDenied = requireServiceRoleOrCron(req);
+  if (cronDenied) {
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
