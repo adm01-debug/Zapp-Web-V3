@@ -63,8 +63,9 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-// Aceita tanto literal `table: 'messages'` quanto helper `table: dbTable('messages')`.
-const MESSAGES_CHANNEL_RE = /supabase\s*\.channel\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"]messages['"]/;
+// Aceita literal `table: 'messages'` e helper `table: dbTable('messages')`,
+// independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
+const MESSAGES_CHANNEL_RE = /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"]messages['"]/;
 
 function findMessagesListeners(): string[] {
   const srcDir = join(REPO_ROOT, 'src');
