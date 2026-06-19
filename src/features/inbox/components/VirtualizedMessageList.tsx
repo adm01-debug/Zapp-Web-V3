@@ -9,6 +9,7 @@ import { MessageBubble } from './VirtualMessageBubble';
 import { Clock } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useConversationReactionsRealtime } from '../hooks/reactions/useConversationReactionsRealtime';
 
 interface VirtualizedMessageListProps {
   messages: Message[];
@@ -52,6 +53,10 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListRef, Virt
   contactAvatar,
 }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
+
+  const conversationId = messages[0]?.conversationId;
+  const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
+  useConversationReactionsRealtime(conversationId, messageIds);
 
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
