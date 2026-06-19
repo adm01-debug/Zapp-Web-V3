@@ -56,6 +56,19 @@ export function DeletedMessagePlaceholder({ isSent, content, deletedAt }: Delete
             <ShieldAlert className="w-3 h-3" />
           )}
           <span>{isSent ? 'Você apagou esta mensagem' : 'O contato apagou esta mensagem'}</span>
+          {relativeTime && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 ml-1 opacity-70 cursor-help">
+                  <Clock className="w-2.5 h-2.5" />
+                  <span className="text-[10px] font-normal">{relativeTime}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                Apagada em {absoluteTime}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {/* Original content preserved */}
