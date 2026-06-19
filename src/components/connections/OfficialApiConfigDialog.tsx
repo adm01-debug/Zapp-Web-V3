@@ -40,31 +40,44 @@ export function OfficialApiConfigDialog({
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
+  // Indica se a conexão já possui access_token/app_secret salvos.
+  // Por segurança (RLS), o frontend NUNCA recebe os valores em texto puro —
+  // apenas flags vindas da view `whatsapp_official_credentials_safe`.
+  const [hasAccessToken, setHasAccessToken] = useState(false);
+  const [hasAppSecret, setHasAppSecret] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from('whatsapp_official_credentials')
-          .select('phone_number_id, waba_id, business_account_id, access_token, app_secret, verify_token, graph_api_version')
+        const { data } = await (supabase as unknown as {
+          from: (t: string) => {
+            select: (c: string) => {
+              eq: (col: string, v: string) => {
+                maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
+              };
+            };
+          };
+        })
+          .from('whatsapp_official_credentials_safe')
+          .select('phone_number_id, waba_id, has_access_token, has_app_secret')
           .eq('connection_id', connectionId)
           .maybeSingle();
         if (cancelled) return;
         if (data) {
-          const mapped: CredentialsForm = {
-            phone_number_id: (data as any).phone_number_id ?? '',
-            waba_id: (data as any).waba_id ?? '',
-            business_account_id: (data as any).business_account_id ?? '',
-            access_token: (data as any).access_token ?? '',
-            app_secret: (data as any).app_secret ?? '',
-            verify_token: (data as any).verify_token ?? '',
-            graph_api_version: (data as any).graph_api_version ?? 'v21.0',
-          };
-          setForm(mapped);
+          setForm({
+            ...EMPTY,
+            phone_number_id: (data.phone_number_id as string) ?? '',
+            waba_id: (data.waba_id as string) ?? '',
+          });
+          setHasAccessToken(Boolean(data.has_access_token));
+          setHasAppSecret(Boolean(data.has_app_secret));
         } else {
           setForm(EMPTY);
+          setHasAccessToken(false);
+          setHasAppSecret(false);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -72,6 +85,7 @@ export function OfficialApiConfigDialog({
     })();
     return () => { cancelled = true; };
   }, [open, connectionId]);
+
 
   const update = (k: keyof CredentialsForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
