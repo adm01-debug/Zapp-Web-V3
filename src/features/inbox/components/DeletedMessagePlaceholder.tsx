@@ -1,14 +1,26 @@
-import { Ban, Eye, ShieldAlert } from 'lucide-react';
+import { Ban, Eye, ShieldAlert, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from '@/components/ui/motion';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DeletedMessagePlaceholderProps {
   isSent: boolean;
   content?: string;
+  /** ISO timestamp do soft delete (vem do backend como evolution_messages.deleted_at). */
+  deletedAt?: string | null;
 }
 
-export function DeletedMessagePlaceholder({ isSent, content }: DeletedMessagePlaceholderProps) {
+export function DeletedMessagePlaceholder({ isSent, content, deletedAt }: DeletedMessagePlaceholderProps) {
   const hasOriginalContent = content && content !== '[Mensagem apagada]';
+  const deletedDate = deletedAt ? new Date(deletedAt) : null;
+  const relativeTime = deletedDate && !Number.isNaN(deletedDate.getTime())
+    ? formatDistanceToNow(deletedDate, { addSuffix: true, locale: ptBR })
+    : null;
+  const absoluteTime = deletedDate && !Number.isNaN(deletedDate.getTime())
+    ? deletedDate.toLocaleString('pt-BR')
+    : null;
 
   return (
     <motion.div

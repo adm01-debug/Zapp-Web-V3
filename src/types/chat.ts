@@ -106,6 +106,8 @@ export interface Message {
   // Database fields (present when loaded from DB)
   external_id?: string;
   is_deleted?: boolean;
+  /** Timestamp ISO de quando a mensagem foi apagada (soft delete via protocolMessage REVOKE). */
+  deleted_at?: string | null;
   message_type?: string;
   senderName?: string;
   created_at?: string;
