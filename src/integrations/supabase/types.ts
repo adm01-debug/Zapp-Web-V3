@@ -8647,6 +8647,7 @@ export type Database = {
         }
         Returns: string
       }
+      purge_old_query_telemetry: { Args: { p_days?: number }; Returns: number }
       reassign_absent_agents: {
         Args: { inactive_minutes?: number }
         Returns: number
