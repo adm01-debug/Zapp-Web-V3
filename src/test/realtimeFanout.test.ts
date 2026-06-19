@@ -21,7 +21,7 @@ const MMD_PATH = resolve(__dirname, 'fixtures/TRILHA_MENSAGENS_NAVEGAVEL.mmd');
 // Ao alterar consumidores realtime de 'messages', atualize AMBOS: diagrama e esta lista.
 const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/hooks/useRealtimeMessages.ts',
-  'src/features/inbox/hooks/useMessages.ts',
+  'src/hooks/useMessages.ts',
   'src/features/inbox/hooks/useMessageStatus.ts',
   'src/hooks/useTranscriptionNotifications.ts',
   'src/hooks/useRealtimeDashboard.ts',
@@ -63,7 +63,9 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-const MESSAGES_CHANNEL_RE = /supabase\s*\.channel\([\s\S]*?table:\s*['"]messages['"]/;
+// Aceita literal `table: 'messages'` e helper `table: dbTable('messages')`,
+// independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
+const MESSAGES_CHANNEL_RE = /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"]messages['"]/;
 
 function findMessagesListeners(): string[] {
   const srcDir = join(REPO_ROOT, 'src');
@@ -95,7 +97,12 @@ describe('Diagrama TRILHA_MENSAGENS_NAVEGAVEL — validador de fan-out realtime'
   });
 
   it('todo arquivo que escuta postgres_changes em messages esta no diagrama', () => {
-    const listeners = findMessagesListeners();
+    // Infraestrutura/builders não são consumidores e ficam fora do diagrama.
+    const INFRA_IGNORELIST = new Set<string>([
+      'src/integrations/datasource/db.ts',
+      'src/integrations/datasource/registry.ts',
+    ]);
+    const listeners = findMessagesListeners().filter((p) => !INFRA_IGNORELIST.has(p));
     const orphans = listeners.filter((p) => !EXPECTED_REALTIME_CONSUMERS.includes(p));
     if (orphans.length > 0) {
       throw new Error(

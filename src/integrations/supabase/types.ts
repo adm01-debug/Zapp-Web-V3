@@ -2886,6 +2886,13 @@ export type Database = {
             referencedRelation: "departments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "department_invitations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       departments: {
@@ -5293,6 +5300,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -8149,6 +8163,42 @@ export type Database = {
           },
         ]
       }
+      departments_safe: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          has_whatsapp_api_key: boolean | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          updated_at: string | null
+          whatsapp_instance_id: string | null
+          whatsapp_mode: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          has_whatsapp_api_key?: never
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string | null
+          whatsapp_mode?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          has_whatsapp_api_key?: never
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string | null
+          whatsapp_mode?: string | null
+        }
+        Relationships: []
+      }
       gmail_accounts_safe: {
         Row: {
           created_at: string | null
@@ -8324,11 +8374,13 @@ export type Database = {
       }
       whatsapp_connections_safe: {
         Row: {
+          auto_reconnect_enabled: boolean | null
           battery_level: number | null
           created_at: string | null
           created_by: string | null
           farewell_enabled: boolean | null
           farewell_message: string | null
+          has_qr_code: boolean | null
           health_response_ms: number | null
           health_status: string | null
           id: string | null
@@ -8336,52 +8388,62 @@ export type Database = {
           is_default: boolean | null
           is_plugged: boolean | null
           last_health_check: string | null
+          loop_protection_active: boolean | null
+          max_reconnect_attempts: number | null
           max_retries: number | null
           name: string | null
           phone_number: string | null
-          qr_code: string | null
+          reconnect_interval_seconds: number | null
           retry_count: number | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
+          auto_reconnect_enabled?: boolean | null
           battery_level?: number | null
           created_at?: string | null
           created_by?: string | null
           farewell_enabled?: boolean | null
           farewell_message?: string | null
+          has_qr_code?: never
           health_response_ms?: number | null
           health_status?: string | null
           id?: string | null
-          instance_id?: never
+          instance_id?: string | null
           is_default?: boolean | null
           is_plugged?: boolean | null
           last_health_check?: string | null
+          loop_protection_active?: boolean | null
+          max_reconnect_attempts?: number | null
           max_retries?: number | null
           name?: string | null
           phone_number?: string | null
-          qr_code?: never
+          reconnect_interval_seconds?: number | null
           retry_count?: number | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
+          auto_reconnect_enabled?: boolean | null
           battery_level?: number | null
           created_at?: string | null
           created_by?: string | null
           farewell_enabled?: boolean | null
           farewell_message?: string | null
+          has_qr_code?: never
           health_response_ms?: number | null
           health_status?: string | null
           id?: string | null
-          instance_id?: never
+          instance_id?: string | null
           is_default?: boolean | null
           is_plugged?: boolean | null
           last_health_check?: string | null
+          loop_protection_active?: boolean | null
+          max_reconnect_attempts?: number | null
           max_retries?: number | null
           name?: string | null
           phone_number?: string | null
-          qr_code?: never
+          reconnect_interval_seconds?: number | null
           retry_count?: number | null
           status?: string | null
           updated_at?: string | null
