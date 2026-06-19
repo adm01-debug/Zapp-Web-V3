@@ -40,68 +40,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const fetchRoles = useCallback(async (userId: string) => {
+  /**
+   * Fetch roles + permissions in a single coordinated pass, avoiding the
+   * previous duplicate query against `user_roles` (called by both fetchRoles
+   * and fetchPermissions on every login / token refresh).
+   */
+  const fetchRolesAndPermissions = useCallback(async (userId: string) => {
     if (fetchingRolesRef.current) return;
     fetchingRolesRef.current = true;
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      if (!error && data) {
-        const userRoles = data.map((r) => r.role as string);
-        setRoles(userRoles);
-      }
-    } catch (err: unknown) {
-      log.warn('[Auth] Failed to fetch roles for user:', userId, err);
-    } finally {
-      fetchingRolesRef.current = false;
-    }
-  }, []);
-
-  const fetchPermissions = useCallback(async (userId: string) => {
-    if (fetchingPermissionsRef.current) return;
     fetchingPermissionsRef.current = true;
     try {
-      // Get roles first (to avoid complex joins that might hit RLS issues or be slow)
-      const { data: userRoles } = await supabase
+      const { data: userRoles, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
 
-      if (userRoles && userRoles.length > 0) {
-        const roles = userRoles.map(r => r.role);
-        const { data: perms } = await supabase
-          .from('role_permissions')
-          .select('permissions(name)')
-          .in('role', roles);
-
-        if (perms) {
-          const permNames = perms
-            .map(p => (p.permissions as unknown as { name: string } | null)?.name)
-            .filter(Boolean) as string[];
-          setPermissions([...new Set(permNames)]);
-        }
-      } else {
+      if (error || !userRoles) {
+        setRoles([]);
         setPermissions([]);
+        return;
+      }
+
+      const roleNames = userRoles.map((r) => r.role as string);
+      setRoles(roleNames);
+
+      if (roleNames.length === 0) {
+        setPermissions([]);
+        return;
+      }
+
+      const { data: perms } = await supabase
+        .from('role_permissions')
+        .select('permissions(name)')
+        .in('role', roleNames as never);
+
+      if (perms) {
+        const permNames = perms
+          .map((p) => (p.permissions as unknown as { name: string } | null)?.name)
+          .filter(Boolean) as string[];
+        setPermissions([...new Set(permNames)]);
       }
     } catch (err: unknown) {
-      log.warn('[Auth] Failed to fetch permissions for user:', userId, err);
+      log.warn('[Auth] Failed to fetch roles/permissions for user:', userId, err);
     } finally {
+      fetchingRolesRef.current = false;
       fetchingPermissionsRef.current = false;
     }
   }, []);
+
+  // Backward-compatible helpers used by refreshRoles / refreshPermissions consumers.
+  const fetchRoles = useCallback(
+    (userId: string) => fetchRolesAndPermissions(userId),
+    [fetchRolesAndPermissions],
+  );
+  const fetchPermissions = useCallback(
+    (userId: string) => fetchRolesAndPermissions(userId),
+    [fetchRolesAndPermissions],
+  );
 
   const refreshAll = useCallback(async (userId: string) => {
     setLoading(true);
     await Promise.all([
       fetchProfile(userId),
-      fetchRoles(userId),
-      fetchPermissions(userId)
+      fetchRolesAndPermissions(userId),
     ]);
     setLoading(false);
-  }, [fetchProfile, fetchRoles, fetchPermissions]);
+  }, [fetchProfile, fetchRolesAndPermissions]);
+
 
   useEffect(() => {
     const subscription = authService.onAuthStateChange((event, session) => {
