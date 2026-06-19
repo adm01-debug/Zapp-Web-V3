@@ -91,31 +91,38 @@ export function OfficialApiConfigDialog({
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSave = async () => {
-    if (!form.phone_number_id || !form.access_token || !form.app_secret || !form.verify_token) {
-      toast({ title: 'Campos obrigatórios', description: 'Preencha Phone Number ID, Access Token, App Secret e Verify Token.', variant: 'destructive' });
+    // Quando segredos já estão configurados, o usuário pode atualizar apenas metadados.
+    const accessTokenOk = form.access_token || hasAccessToken;
+    const appSecretOk = form.app_secret || hasAppSecret;
+    if (!form.phone_number_id || !accessTokenOk || !appSecretOk) {
+      toast({ title: 'Campos obrigatórios', description: 'Preencha Phone Number ID, Access Token e App Secret.', variant: 'destructive' });
       return;
     }
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase
+    setSaving(true);
+    // Apenas envia colunas que existem na tabela; segredos são enviados só se preenchidos.
+    const payload: Record<string, unknown> = {
+      connection_id: connectionId,
+      phone_number_id: form.phone_number_id,
+      waba_id: form.waba_id || null,
+    };
+    if (form.access_token) payload.access_token = form.access_token;
+    if (form.app_secret) payload.app_secret = form.app_secret;
+    const { error } = await (supabase as unknown as {
+      from: (t: string) => {
+        upsert: (v: Record<string, unknown>, o: { onConflict: string }) => Promise<{ error: { message: string } | null }>;
+      };
+    })
       .from('whatsapp_official_credentials')
-      .upsert({
-        connection_id: connectionId,
-        phone_number_id: form.phone_number_id,
-        waba_id: form.waba_id || null,
-        business_account_id: form.business_account_id || null,
-        access_token: form.access_token,
-        app_secret: form.app_secret,
-        verify_token: form.verify_token,
-        graph_api_version: form.graph_api_version || 'v21.0',
-        created_by: userData.user?.id ?? null,
-      } as any, { onConflict: 'connection_id' });
+      .upsert(payload, { onConflict: 'connection_id' });
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
       return;
     }
     toast({ title: 'Credenciais salvas', description: 'WhatsApp Cloud API configurada com sucesso.' });
+    onOpenChange(false);
   };
+
 
   const handleTest = async () => {
     if (!instanceId) return;
