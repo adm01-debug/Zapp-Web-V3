@@ -21,7 +21,7 @@ const MMD_PATH = resolve(__dirname, 'fixtures/TRILHA_MENSAGENS_NAVEGAVEL.mmd');
 // Ao alterar consumidores realtime de 'messages', atualize AMBOS: diagrama e esta lista.
 const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/hooks/useRealtimeMessages.ts',
-  'src/features/inbox/hooks/useMessages.ts',
+  'src/hooks/useMessages.ts',
   'src/features/inbox/hooks/useMessageStatus.ts',
   'src/hooks/useTranscriptionNotifications.ts',
   'src/hooks/useRealtimeDashboard.ts',
