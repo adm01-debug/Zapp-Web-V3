@@ -169,7 +169,11 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'whatsapp_connections' },
-        () => { fetchStatus(); }
+        () => {
+          // Invalidate shared cache so other consumers (senders, dialogs) see fresh data.
+          import('@/lib/whatsappConnectionsCache').then(m => m.invalidateWhatsappConnectionsCache());
+          fetchStatus();
+        }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };

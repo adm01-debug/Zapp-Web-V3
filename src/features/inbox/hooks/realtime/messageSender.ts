@@ -7,6 +7,7 @@ import { buildSendIdempotencyKey, buildSendIdempotencyKeyFromFingerprint } from 
 import { toast } from '@/hooks/use-toast';
 import { emitSendStatus } from './sendStatusBus';
 import { dbFrom } from '@/integrations/datasource/db';
+import { getWhatsappConnectionById, getFirstConnectedWhatsapp } from '@/lib/whatsappConnectionsCache';
 
 const MAX_RETRIES = 3;
 const lastInstabilityToastByContact = new Map<string, number>();
@@ -41,23 +42,12 @@ async function resolveConnection(contactConnectionId: string | null) {
   let connection: { instance_id: string | null; status: string | null } | null = null;
 
   if (resolvedConnectionId) {
-    const { data, error } = await supabase
-      .from('whatsapp_connections')
-      .select('instance_id, status')
-      .eq('id', resolvedConnectionId)
-      .single();
-    connection = data;
+    const row = await getWhatsappConnectionById(resolvedConnectionId);
+    if (row) connection = { instance_id: row.instance_id, status: row.status };
   }
 
   if (!connection?.instance_id || connection.status !== 'connected') {
-    const { data: fallback } = await supabase
-      .from('whatsapp_connections')
-      .select('id, instance_id, status')
-      .eq('status', 'connected')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
+    const fallback = await getFirstConnectedWhatsapp();
     if (fallback?.instance_id) {
       resolvedConnectionId = fallback.id;
       connection = { instance_id: fallback.instance_id, status: fallback.status };
