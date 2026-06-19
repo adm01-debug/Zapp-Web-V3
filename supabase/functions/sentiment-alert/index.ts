@@ -1,10 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { SentimentAlertSchema, parseBody } from "../_shared/schemas.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  // Internal-only: called by analyze-conversation / realtime trigger with service role.
+  // Blocks anonymous enumeration of contactId values that would leak PII and spam agent inboxes.
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   const log = new Logger("sentiment-alert");
 
@@ -127,7 +133,7 @@ Deno.serve(async (req) => {
       consecutiveLow,
       emailSent,
       agentNotified: agentProfile?.name || null,
-      alertDetails,
+      // `alertDetails` is intentionally omitted from the HTTP response to avoid PII leakage.
     }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
