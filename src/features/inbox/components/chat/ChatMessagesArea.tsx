@@ -11,6 +11,7 @@ import { Message, InteractiveButton } from '@/types/chat';
 import { motion, AnimatePresence } from '@/components/ui/motion';
 import { TypingIndicator } from '@/features/inbox/components/TypingIndicator';
 import { MessageBubble } from './MessageBubble';
+import { useConversationReactionsRealtime } from '@/features/inbox/hooks/reactions/useConversationReactionsRealtime';
 
 import type { LoadOlderProps } from './loadOlderTypes';
 
@@ -89,6 +90,11 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [messages, queryClient]);
+
+  // Realtime de reações: 1 canal por conversa, invalida apenas IDs visíveis
+  const conversationId = messages[0]?.conversationId;
+  const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
+  useConversationReactionsRealtime(conversationId, messageIds);
 
   const getItemSize = useCallback((index: number) => {
     const item = messages[index];
