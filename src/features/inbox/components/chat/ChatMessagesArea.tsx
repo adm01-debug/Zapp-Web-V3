@@ -11,6 +11,7 @@ import { Message, InteractiveButton } from '@/types/chat';
 import { motion, AnimatePresence } from '@/components/ui/motion';
 import { TypingIndicator } from '@/features/inbox/components/TypingIndicator';
 import { MessageBubble } from './MessageBubble';
+import { useConversationReactionsRealtime } from '@/features/inbox/hooks/reactions/useConversationReactionsRealtime';
 
 import type { LoadOlderProps } from './loadOlderTypes';
 
