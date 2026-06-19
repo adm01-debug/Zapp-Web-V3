@@ -4370,13 +4370,19 @@ export type Database = {
           contact_id: string | null
           content: string
           created_at: string
+          deleted_at: string | null
           external_id: string | null
           id: string
           is_deleted: boolean | null
           is_edited: boolean
           is_read: boolean | null
+          link_preview: Json | null
+          media_meta: Json | null
+          media_mimetype: string | null
+          media_type: string | null
           media_url: string | null
           message_type: string
+          reply_to_id: string | null
           sender: string
           status: string | null
           status_updated_at: string | null
@@ -4392,13 +4398,19 @@ export type Database = {
           contact_id?: string | null
           content: string
           created_at?: string
+          deleted_at?: string | null
           external_id?: string | null
           id?: string
           is_deleted?: boolean | null
           is_edited?: boolean
           is_read?: boolean | null
+          link_preview?: Json | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_type?: string | null
           media_url?: string | null
           message_type?: string
+          reply_to_id?: string | null
           sender: string
           status?: string | null
           status_updated_at?: string | null
@@ -4414,13 +4426,19 @@ export type Database = {
           contact_id?: string | null
           content?: string
           created_at?: string
+          deleted_at?: string | null
           external_id?: string | null
           id?: string
           is_deleted?: boolean | null
           is_edited?: boolean
           is_read?: boolean | null
+          link_preview?: Json | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_type?: string | null
           media_url?: string | null
           message_type?: string
+          reply_to_id?: string | null
           sender?: string
           status?: string | null
           status_updated_at?: string | null
@@ -4463,6 +4481,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {
