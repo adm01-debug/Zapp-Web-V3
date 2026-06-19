@@ -183,17 +183,22 @@ export function OfficialApiConfigDialog({
               <Input id="business_account_id" value={form.business_account_id} onChange={update('business_account_id')} />
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="access_token">Access Token *</Label>
-              <Input id="access_token" type="password" value={form.access_token} onChange={update('access_token')} placeholder="EAAG..." />
+              <Label htmlFor="access_token">
+                Access Token * {hasAccessToken && <span className="text-xs text-muted-foreground">(já configurado — preencha apenas para alterar)</span>}
+              </Label>
+              <Input id="access_token" type="password" value={form.access_token} onChange={update('access_token')} placeholder={hasAccessToken ? '••••••••' : 'EAAG...'} />
             </div>
             <div>
-              <Label htmlFor="app_secret">App Secret *</Label>
-              <Input id="app_secret" type="password" value={form.app_secret} onChange={update('app_secret')} />
+              <Label htmlFor="app_secret">
+                App Secret * {hasAppSecret && <span className="text-xs text-muted-foreground">(já configurado)</span>}
+              </Label>
+              <Input id="app_secret" type="password" value={form.app_secret} onChange={update('app_secret')} placeholder={hasAppSecret ? '••••••••' : ''} />
             </div>
             <div>
               <Label htmlFor="verify_token">Verify Token *</Label>
               <Input id="verify_token" value={form.verify_token} onChange={update('verify_token')} placeholder="qualquer string secreta" />
             </div>
+
             <div>
               <Label htmlFor="graph_api_version">Graph API Version</Label>
               <Input id="graph_api_version" value={form.graph_api_version} onChange={update('graph_api_version')} />
