@@ -39,14 +39,13 @@ export function useAudioMemes(open: boolean) {
 
   const fetchMemes = useCallback(async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // DOC ARCHITECTURE COMPLIANCE: Use RPC to get per-user favorites and sorted catalog
-    // Using any to bypass strict type checking until types.ts is updated automatically
+    // RPC usa auth.uid() server-side; assinatura: (p_category, p_only_favorites, p_search)
     const { data, error } = await (supabase as any).rpc('fn_list_audio_memes_for_user', {
-      p_user_id: user?.id || null
+      p_category: null,
+      p_only_favorites: false,
+      p_search: null,
     });
-    
+
     if (!error && data) {
       setMemes(data as AudioMemeItem[]);
     } else if (error) {
