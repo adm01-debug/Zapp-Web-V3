@@ -8781,6 +8781,10 @@ export type Database = {
       }
       is_ip_blocked: { Args: { check_ip: string }; Returns: boolean }
       is_ip_whitelisted: { Args: { check_ip: string }; Returns: boolean }
+      is_queue_member_of_contact: {
+        Args: { _contact_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_team_conversation_member: {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
