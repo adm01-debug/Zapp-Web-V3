@@ -105,7 +105,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
   ];
 
-  const query = useQuery<{ rows: FailedMessageRow[]; total: number }>({
+  const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_list_failed_messages', {
