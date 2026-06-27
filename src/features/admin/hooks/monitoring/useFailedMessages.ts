@@ -117,9 +117,14 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_limit: pageSize,
         p_offset: page * pageSize,
       });
-      if (error) throw error;
+      if (error) {
+        if (isRlsDeniedError(error)) {
+          // Não quebra a lista — retorna vazio e deixa a UI mostrar mensagem clara.
+          return { rows: [], total: 0, deniedReason: formatAdminError(error, 'a DLQ') };
+        }
+        throw error;
+      }
       const list = (data ?? []) as any[];
-      // Client-side filters (RPC keeps API surface small).
       const filtered = list.filter((r) => {
         if (errorCode) {
           const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');
@@ -132,10 +137,11 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       });
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: FailedMessageRow[] = filtered.map(({ total_count: _t, ...rest }) => rest as FailedMessageRow);
-      return { rows, total };
+      return { rows, total, deniedReason: null as string | null };
     },
     staleTime: 15_000,
     refetchInterval: 30_000,
+    retry: (count, err) => !isRlsDeniedError(err) && count < 2,
   });
 
   const aggregates = useMemo<FailedMessagesAggregates>(() => {
