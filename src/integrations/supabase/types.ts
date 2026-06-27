@@ -5825,6 +5825,33 @@ export type Database = {
           },
         ]
       }
+      rls_denied_log: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          required_role: string | null
+          resource: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          required_role?: string | null
+          resource: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          required_role?: string | null
+          resource?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -8814,6 +8841,10 @@ export type Database = {
             }
             Returns: undefined
           }
+      log_rls_denied: {
+        Args: { p_context?: Json; p_required_role?: string; p_resource: string }
+        Returns: undefined
+      }
       log_security_event: {
         Args: {
           p_action: string
@@ -8879,23 +8910,37 @@ export type Database = {
         | { Args: { p_item_id: string }; Returns: boolean }
         | { Args: { p_id?: string; p_item_id?: string }; Returns: boolean }
       rpc_dlq_bulk_abandon: { Args: { p_ids: string[] }; Returns: boolean }
-      rpc_dlq_list_audit: {
-        Args: { p_limit?: number }
-        Returns: {
-          action: string | null
-          created_at: string | null
-          id: string
-          item_id: string | null
-          performed_by: string | null
-          reason: string | null
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "dlq_audit_log"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
+      rpc_dlq_list_audit:
+        | {
+            Args: { p_limit?: number }
+            Returns: {
+              action: string | null
+              created_at: string | null
+              id: string
+              item_id: string | null
+              performed_by: string | null
+              reason: string | null
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "dlq_audit_log"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: { p_action: string; p_limit: number; p_offset: number }
+            Returns: {
+              action: string
+              created_at: string
+              details: Json
+              entity_id: string
+              id: string
+              user_email: string
+              user_id: string
+              user_name: string
+            }[]
+          }
       rpc_dlq_log_item_action:
         | {
             Args: {
@@ -8950,24 +8995,76 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      rpc_list_failed_messages: {
-        Args: { p_limit?: number }
-        Returns: {
-          created_at: string | null
-          error_message: string | null
-          id: string
-          instance_name: string | null
-          message_id: string | null
-          next_retry_at: string | null
-          retry_count: number | null
-          status: string | null
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "failed_messages"
-          isOneToOne: false
-          isSetofReturn: true
+      rpc_list_failed_messages:
+        | {
+            Args: { p_limit?: number }
+            Returns: {
+              created_at: string | null
+              error_message: string | null
+              id: string
+              instance_name: string | null
+              message_id: string | null
+              next_retry_at: string | null
+              retry_count: number | null
+              status: string | null
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "failed_messages"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: {
+              p_from: string
+              p_instance: string
+              p_limit: number
+              p_offset: number
+              p_search: string
+              p_status: string[]
+              p_to: string
+            }
+            Returns: {
+              created_at: string
+              error_message: string
+              id: string
+              instance_name: string
+              message_id: string
+              next_retry_at: string
+              retry_count: number
+              status: string
+              total_count: number
+            }[]
+          }
+      rpc_list_transfers_paginated: {
+        Args: {
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_priority?: number
+          p_status?: string
+          p_to?: string
         }
+        Returns: {
+          accepted_at: string
+          category: string
+          completed_at: string
+          contact_name: string
+          created_at: string
+          from_agent_id: string
+          id: string
+          priority: number
+          reason: string
+          remote_jid: string
+          sla_deadline: string
+          source_instance: string
+          status: string
+          target_instance: string
+          to_agent_id: string
+          total_count: number
+          transfer_type: string
+        }[]
       }
       rpc_migrate_whatsapp_integration: { Args: never; Returns: Json }
       rpc_upsert_contact: {

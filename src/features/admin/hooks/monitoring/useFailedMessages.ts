@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/features/auth';
 import { toast } from 'sonner';
+import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 import {
   classifyRootCause,
   aggregateByRootCause,
@@ -104,7 +105,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
   ];
 
-  const query = useQuery<{ rows: FailedMessageRow[]; total: number }>({
+  const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_list_failed_messages', {
@@ -116,9 +117,14 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_limit: pageSize,
         p_offset: page * pageSize,
       });
-      if (error) throw error;
+      if (error) {
+        if (isRlsDeniedError(error)) {
+          // Não quebra a lista — retorna vazio e deixa a UI mostrar mensagem clara.
+          return { rows: [], total: 0, deniedReason: formatAdminError(error, 'a DLQ') };
+        }
+        throw error;
+      }
       const list = (data ?? []) as any[];
-      // Client-side filters (RPC keeps API surface small).
       const filtered = list.filter((r) => {
         if (errorCode) {
           const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');
@@ -131,10 +137,11 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       });
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: FailedMessageRow[] = filtered.map(({ total_count: _t, ...rest }) => rest as FailedMessageRow);
-      return { rows, total };
+      return { rows, total, deniedReason: null as string | null };
     },
     staleTime: 15_000,
     refetchInterval: 30_000,
+    retry: (count, err) => !isRlsDeniedError(err) && count < 2,
   });
 
   const aggregates = useMemo<FailedMessagesAggregates>(() => {
@@ -350,6 +357,8 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     rows: query.data?.rows ?? [],
     /** Convenience: total_count from RPC */
     total: query.data?.total ?? 0,
+    /** Mensagem amigável quando a RLS bloquear (sem quebrar a UI). */
+    deniedReason: query.data?.deniedReason ?? null,
     aggregates,
     retryNow,
     abandon,
