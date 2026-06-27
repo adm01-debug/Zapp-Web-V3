@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/features/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles } from "lucide-react";
 import NotFound from "@/pages/NotFound";
+import { PageTransition } from "@/components/transitions";
 
 // Retry wrapper for lazy imports to handle transient network failures
 function lazyWithRetry(factory: () => Promise<any>, retries = 3): React.LazyExoticComponent<any> {
@@ -93,6 +94,7 @@ function RouteLoadingFallback() {
 export function AppRoutes() {
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
+      <PageTransition>
       <Routes>
         <Route path="/design-system" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><DesignSystem /></ProtectedRoute>} />
         <Route path="/access-denied" element={<AccessDenied />} />
@@ -147,6 +149,7 @@ export function AppRoutes() {
         <Route path="*" element={<NotFound />} />
 
       </Routes>
+      </PageTransition>
     </Suspense>
   );
 }
