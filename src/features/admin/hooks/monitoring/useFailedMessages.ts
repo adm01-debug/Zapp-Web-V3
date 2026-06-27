@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/features/auth';
 import { toast } from 'sonner';
+import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 import {
   classifyRootCause,
   aggregateByRootCause,
