@@ -14,6 +14,7 @@ import { ServiceWorkerUpdateBanner } from "@/components/system/ServiceWorkerUpda
 import { BuildValidationOverlay } from "@/components/debug/BuildValidationOverlay";
 import { HardResetButton } from "@/components/debug/HardResetButton";
 import { useThemeAudit } from "@/hooks/useThemeAudit";
+import { TransitionProvider } from "@/components/transitions";
 
 
 const log = getLogger('App');
@@ -121,7 +122,9 @@ function AppContent() {
         <Toaster />
         <Sonner />
         <ServiceWorkerUpdateBanner />
-        <AppRoutes />
+        <TransitionProvider defaultVariant="fade">
+          <AppRoutes />
+        </TransitionProvider>
         <BuildValidationOverlay />
         <HardResetButton />
       </GlobalKeyboardProvider>
