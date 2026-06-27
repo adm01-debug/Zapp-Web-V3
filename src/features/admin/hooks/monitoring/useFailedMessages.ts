@@ -357,6 +357,8 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     rows: query.data?.rows ?? [],
     /** Convenience: total_count from RPC */
     total: query.data?.total ?? 0,
+    /** Mensagem amigável quando a RLS bloquear (sem quebrar a UI). */
+    deniedReason: query.data?.deniedReason ?? null,
     aggregates,
     retryNow,
     abandon,
