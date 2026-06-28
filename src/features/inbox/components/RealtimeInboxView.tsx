@@ -17,6 +17,7 @@ import { useRealtimeFallbackRefetch } from '@/features/inbox';
 import { useSLAAlerts } from '@/features/sla/hooks/useSLAAlerts';
 import { useDepartmentAgents } from '@/features/auth';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
+import { useAriaAnnouncer } from '@/hooks/useAriaAnnouncer';
 import { WifiOff, RefreshCw, Loader2, MessageSquarePlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
