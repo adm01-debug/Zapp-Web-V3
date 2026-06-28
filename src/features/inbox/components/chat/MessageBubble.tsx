@@ -115,9 +115,9 @@ export const MessageBubble = memo(function MessageBubble({
         data-testid={`message-bubble-${message.id}`}
         data-message-id={message.id}
         className={cn(
-          'flex group gap-2 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-2xl',
+          'flex group gap-2.5 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-2xl',
           isSent ? 'justify-end' : 'justify-start',
-          density === 'comfortable' ? 'mb-2' : density === 'compact' ? 'mb-1.5' : 'mb-1',
+          density === 'comfortable' ? 'mb-3' : density === 'compact' ? 'mb-2' : 'mb-1.5',
           highlightedMessageIds?.has(message.id) && 'relative',
           activeHighlightId === message.id && 'ring-2 ring-primary ring-offset-1 rounded-2xl animate-[pulse_1.5s_ease-in-out_1]',
           highlightedMessageIds?.has(message.id) && activeHighlightId !== message.id && 'bg-primary/10 rounded-2xl',
