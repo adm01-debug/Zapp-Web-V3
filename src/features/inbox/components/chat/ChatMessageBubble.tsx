@@ -117,9 +117,9 @@ export function ChatMessageBubble({
     <div 
       ref={(el) => registerRef(message.id, el)}
       className={cn(
-        'flex group', 
+        'flex group gap-2.5',
         isSent ? 'justify-end' : 'justify-start',
-        density === 'comfortable' ? 'mb-4' : density === 'compact' ? 'mb-1.5' : 'mb-0.5'
+        density === 'comfortable' ? 'mb-3' : density === 'compact' ? 'mb-2' : 'mb-1.5'
       )}
       {...swipeHandlers}
     >
