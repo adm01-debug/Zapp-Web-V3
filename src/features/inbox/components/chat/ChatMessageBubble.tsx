@@ -202,30 +202,20 @@ export function ChatMessageBubble({
         </div>
 
         <motion.div
-          whileHover={{ y: -1 }}
+          whileHover={{ scale: 1.005 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           className={cn(
-            'relative shadow-sm transition-all duration-300 overflow-visible border',
+            'relative transition-all overflow-visible',
             (message.type === 'image' || message.type === 'video') && !message.content
-              ? 'p-0'
-              : density === 'comfortable' ? 'px-3.5 py-2' : density === 'compact' ? 'px-2.5 py-1.5' : 'px-2 py-1',
+              ? 'p-1 pb-0'
+              : density === 'comfortable' ? 'px-4 py-2.5' : density === 'compact' ? 'px-3.5 py-2' : 'px-3 py-1.5',
             message.isWhisper
-              ? 'rounded-2xl bg-warning/10 border-warning/20 text-warning-foreground dark:text-warning-foreground shadow-inner'
-              : isSent 
-                ? 'rounded-2xl rounded-tr-none bg-primary text-primary-foreground border-primary/20 shadow-md shadow-primary/10' 
-                : 'rounded-2xl rounded-tl-none bg-muted/50 text-foreground border-border/50 hover:bg-muted/80'
+              ? 'rounded-2xl bg-warning/10 border border-warning/40 text-warning-foreground shadow-inner'
+              : isSent
+                ? 'rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                : 'rounded-2xl rounded-bl-md bg-card text-card-foreground border border-border/70 shadow-sm'
           )}
         >
-          {!message.isWhisper && (
-            <div className={cn(
-              "absolute top-0 w-2 h-3 overflow-hidden",
-              isSent ? "left-full -translate-x-0.5" : "right-full translate-x-0.5"
-            )}>
-              <div className={cn(
-                "w-3 h-3 rotate-45 transform origin-top-left",
-                isSent ? "bg-chat-sent" : "bg-chat-received"
-              )} />
-            </div>
-          )}
 
           {/* Quoted message (reply) */}
           {message.replyTo && (
