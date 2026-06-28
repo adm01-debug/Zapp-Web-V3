@@ -76,7 +76,7 @@ export const MessageBubble = memo(({
         damping: 30,
         mass: 0.8
       }}
-      className={cn('flex group px-4 py-1 gap-2', isSent ? 'justify-end' : 'justify-start')}
+      className={cn('flex group px-4 py-1.5 gap-2.5', isSent ? 'justify-end' : 'justify-start')}
     >
       {!isSent && (
         <Avatar className="w-9 h-9 shrink-0 self-end mb-1 ring-2 ring-background shadow-md border border-border/5 transition-transform group-hover:scale-105">
@@ -114,13 +114,17 @@ export const MessageBubble = memo(({
         {message.is_deleted ? (
           <DeletedMessagePlaceholder isSent={isSent} content={message.content} />
         ) : (
-          <motion.div 
+          <motion.div
             layout
             whileHover={{ scale: 1.005 }}
             className={cn(
-              'message-bubble relative transition-all duration-300',
-              (message.type === 'image' || message.type === 'video') && !message.content ? 'p-0 overflow-hidden rounded-2xl' : '',
-              isSent ? 'sent ml-12' : 'received mr-12'
+              'relative transition-all overflow-visible',
+              (message.type === 'image' || message.type === 'video') && !message.content
+                ? 'p-1 pb-0'
+                : 'px-4 py-2.5',
+              isSent
+                ? 'bg-primary text-primary-foreground rounded-2xl rounded-br-md shadow-md shadow-primary/20 ml-12'
+                : 'bg-card text-card-foreground rounded-2xl rounded-bl-md shadow-sm border border-border/70 mr-12'
             )}>
             {message.replyTo && <QuotedMessage replyTo={message.replyTo} isSent={isSent} onClick={() => scrollToMessage(message.replyTo!.messageId)} />}
             {message.buttonResponse && <ButtonResponseBadge buttonTitle={message.buttonResponse.buttonTitle} isSent={isSent} />}
@@ -130,10 +134,10 @@ export const MessageBubble = memo(({
             {message.type === 'audio' && message.mediaUrl && <div className="mb-2"><AudioMessagePlayer audioUrl={message.mediaUrl} messageId={message.id} isSent={isSent} existingTranscription={message.transcription} transcriptionStatus={message.transcriptionStatus} refreshKey={mediaRefreshKey} /></div>}
             {message.type === 'document' && message.mediaUrl && <div className="mb-2"><DocumentPreview url={message.mediaUrl} fileName="document" isSent={isSent} /></div>}
             {message.type === 'location' && message.location && <LocationMessageDisplay location={message.location} isSent={isSent} />}
-            {message.content && message.type === 'text' && <p className="text-[15px] leading-relaxed font-semibold whitespace-pre-wrap break-words tracking-normal">{message.content}</p>}
-            <div className={cn('flex items-center gap-1.5 mt-1.5 text-[10px] uppercase font-black tracking-[0.05em]', isSent ? 'text-primary-foreground/50' : 'text-muted-foreground/40')}>
-              <span>{formatMessageTime(message.timestamp)}</span>
-              {isSent && <MessageStatusInline message={message} />}
+            {message.content && message.type === 'text' && <p className="text-[15px] leading-[1.6] whitespace-pre-wrap break-words tracking-tight">{message.content}</p>}
+            <div className={cn('flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5', isSent ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
+              <span className="text-[11px] font-normal leading-none">{formatMessageTime(message.timestamp)}</span>
+              {isSent && <MessageStatusInline message={message} className="scale-90 origin-right" />}
             </div>
           </motion.div>
         )}
