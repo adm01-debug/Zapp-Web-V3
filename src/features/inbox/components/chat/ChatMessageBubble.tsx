@@ -317,18 +317,18 @@ export function ChatMessageBubble({
                   Sussurro Interno
                 </div>
               )}
-              <TextWithLinks text={message.content} className={cn(" text-[13.5px] font-normal tracking-normal whitespace-pre-wrap leading-[1.35]", message.isWhisper && "italic")} maxPreviews={2} />
+              <TextWithLinks text={message.content} className={cn("text-[15px] whitespace-pre-wrap leading-[1.6] tracking-tight", message.isWhisper && "italic")} maxPreviews={2} />
             </div>
           )}
 
           {/* Timestamp and status */}
           <div
             className={cn(
-              'flex items-center justify-end gap-1 mt-0.5',
-              isSent ? 'text-[hsl(var(--muted-foreground))]' : 'text-[hsl(var(--muted-foreground))]'
+              'flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5',
+              isSent ? 'text-primary-foreground/75' : 'text-muted-foreground'
             )}
           >
-            <span className="text-[10px]">
+            <span className="text-[11px] font-normal leading-none">
               {formatMessageTime(message.timestamp)}
             </span>
             {isSent && <MessageStatusIconWithTooltip status={message.status} />}
