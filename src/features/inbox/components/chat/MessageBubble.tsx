@@ -193,14 +193,16 @@ export const MessageBubble = memo(function MessageBubble({
             <DeletedMessagePlaceholder isSent={isSent} content={message.content} deletedAt={message.deleted_at} />
           ) : (
             <motion.div
-              whileHover={{ scale: 1.01 }}
+              whileHover={{ scale: 1.005 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               className={cn(
-                'relative transition-all overflow-visible shadow-lg',
-                (message.type === 'image' || message.type === 'video') && !message.content ? 'p-1 pb-0' : density === 'comfortable' ? 'px-5 py-3.5' : 'px-4 py-3',
+                'relative transition-all overflow-visible',
+                (message.type === 'image' || message.type === 'video') && !message.content
+                  ? 'p-1 pb-0'
+                  : density === 'comfortable' ? 'px-4 py-2.5' : density === 'compact' ? 'px-3.5 py-2' : 'px-3 py-1.5',
                 isSent
-                  ? cn('bg-primary text-primary-foreground rounded-[1.25rem] rounded-tr-none border border-primary/20')
-                  : cn('bg-card text-foreground border border-border/60 rounded-[1.25rem] rounded-tl-none'),
+                  ? 'bg-primary text-primary-foreground rounded-2xl rounded-br-md shadow-md shadow-primary/20'
+                  : 'bg-card text-card-foreground rounded-2xl rounded-bl-md shadow-sm border border-border/70',
                 message.isWhisper && 'bg-warning text-warning-foreground border-warning/50 border-dashed font-bold ring-4 ring-warning/5',
                 isFailedTerminal && 'ring-2 ring-destructive/50 border-destructive/40'
               )}
