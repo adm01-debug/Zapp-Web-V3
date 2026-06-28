@@ -17,6 +17,7 @@ import { useRealtimeFallbackRefetch } from '@/features/inbox';
 import { useSLAAlerts } from '@/features/sla/hooks/useSLAAlerts';
 import { useDepartmentAgents } from '@/features/auth';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
+import { useAriaAnnouncer } from '@/hooks/useAriaAnnouncer';
 import { WifiOff, RefreshCw, Loader2, MessageSquarePlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -198,6 +199,20 @@ export function RealtimeInboxView() {
 
   const bulkActions = useInboxBulkActions({ refetch: inbox.refetch, filteredConversations: inboxFilters.filteredConversations });
   const pullToRefresh = usePullToRefresh({ onRefresh: async () => { await inbox.refetch(); }, disabled: !isMobile || !!inbox.selectedContactId });
+
+  // P0 a11y — anuncia novas mensagens não lidas para leitores de tela (aria-live polite)
+  const { announce } = useAriaAnnouncer();
+  const lastUnreadRef = useRef(0);
+  useEffect(() => {
+    const total = (inboxFilters.filteredConversations || []).reduce(
+      (sum: number, c: any) => sum + (c?.unreadCount || 0), 0
+    );
+    if (total > lastUnreadRef.current && lastUnreadRef.current > 0) {
+      const delta = total - lastUnreadRef.current;
+      announce(delta === 1 ? 'Nova mensagem recebida' : `${delta} novas mensagens recebidas`);
+    }
+    lastUnreadRef.current = total;
+  }, [inboxFilters.filteredConversations, announce]);
 
   useGlobalSearchShortcut({ onOpen: () => inbox.setGlobalSearchOpen(true) });
 
