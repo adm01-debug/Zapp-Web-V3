@@ -39,6 +39,7 @@ const SLAAlertPreferences = lazyWithRetry(() => import("@/pages/SLAAlertPreferen
 const SLAAlertHistory = lazyWithRetry(() => import("@/pages/SLAAlertHistory"));
 const SendStatusBusDebug = lazyWithRetry(() => import("@/pages/SendStatusBusDebug"));
 const RealtimeFanoutDebug = lazyWithRetry(() => import("@/pages/RealtimeFanoutDebug"));
+const BackendDiagnostics = lazyWithRetry(() => import("@/pages/BackendDiagnostics"));
 const RolesPage = lazyWithRetry(() => import("@/pages/admin/RolesPage"));
 const DepartmentsPage = lazyWithRetry(() => import("@/pages/admin/DepartmentsPage"));
 const RateLimitDashboard = lazyWithRetry(() => import("@/pages/admin/RateLimitDashboard"));
