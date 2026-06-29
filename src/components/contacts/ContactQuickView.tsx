@@ -30,11 +30,13 @@ interface ContactQuickViewProps {
 export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
   contact, isOpen, onClose, onEdit, onDelete, onOpenChat
 }) => {
+  // Hook antes de qualquer early-return (rules-of-hooks); tolera contato nulo.
+  const health = useMemo(() => contact ? calculateContactHealth(contact) : 0, [contact]);
+
   if (!contact) return null;
 
   const typeCfg = contact.contact_type ? CONTACT_TYPE_CONFIG[contact.contact_type] : null;
   const initials = contact.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const health = useMemo(() => contact ? calculateContactHealth(contact) : 0, [contact]);
   const healthColor = getHealthColor(health);
 
   return (
