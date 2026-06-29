@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockRpc = vi.fn();
+const mockInvoke = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     rpc: (...args: any[]) => mockRpc(...args),
+    functions: {
+      invoke: (...args: unknown[]) => mockInvoke(...args),
+    },
   },
 }));
 
@@ -19,8 +23,8 @@ describe('loginAttempts', () => {
 
   describe('checkAccountLock', () => {
     it('returns not locked for unknown email', async () => {
-      mockRpc.mockResolvedValue({
-        data: [{ is_locked: false, locked_until: null, attempts: 0 }],
+      mockInvoke.mockResolvedValue({
+        data: { is_locked: false, locked_until: null, attempts: 0 },
         error: null,
       });
 
@@ -30,8 +34,8 @@ describe('loginAttempts', () => {
 
     it('returns locked with expiry time', async () => {
       const futureDate = new Date(Date.now() + 60000).toISOString();
-      mockRpc.mockResolvedValue({
-        data: [{ is_locked: true, locked_until: futureDate, attempts: 5 }],
+      mockInvoke.mockResolvedValue({
+        data: { is_locked: true, locked_until: futureDate, attempts: 5 },
         error: null,
       });
 
@@ -41,7 +45,7 @@ describe('loginAttempts', () => {
     });
 
     it('handles RPC error gracefully', async () => {
-      mockRpc.mockResolvedValue({
+      mockInvoke.mockResolvedValue({
         data: null,
         error: new Error('Network failure'),
       });
@@ -51,8 +55,8 @@ describe('loginAttempts', () => {
     });
 
     it('handles empty result data', async () => {
-      mockRpc.mockResolvedValue({
-        data: [],
+      mockInvoke.mockResolvedValue({
+        data: null,
         error: null,
       });
 
@@ -64,22 +68,25 @@ describe('loginAttempts', () => {
 
   describe('recordFailedLogin', () => {
     it('records first failed attempt', async () => {
-      mockRpc.mockResolvedValue({
-        data: [{ is_locked: false, locked_until: null, attempts: 1 }],
+      mockInvoke.mockResolvedValue({
+        data: { is_locked: false, locked_until: null, attempts: 1 },
         error: null,
       });
 
       const result = await recordFailedLogin('test@test.com');
-      expect(mockRpc).toHaveBeenCalledWith('record_failed_login', expect.objectContaining({
-        p_email: 'test@test.com',
+      expect(mockInvoke).toHaveBeenCalledWith('login-attempts', expect.objectContaining({
+        body: expect.objectContaining({
+          action: 'record_failed',
+          email: 'test@test.com',
+        }),
       }));
       expect(result.isLocked).toBe(false);
     });
 
     it('returns locked after max attempts', async () => {
       const futureDate = new Date(Date.now() + 60000).toISOString();
-      mockRpc.mockResolvedValue({
-        data: [{ is_locked: true, locked_until: futureDate, attempts: 5 }],
+      mockInvoke.mockResolvedValue({
+        data: { is_locked: true, locked_until: futureDate, attempts: 5 },
         error: null,
       });
 
@@ -88,7 +95,7 @@ describe('loginAttempts', () => {
     });
 
     it('handles error gracefully', async () => {
-      mockRpc.mockResolvedValue({
+      mockInvoke.mockResolvedValue({
         data: null,
         error: new Error('DB error'),
       });
@@ -100,14 +107,16 @@ describe('loginAttempts', () => {
 
   describe('clearLoginAttempts', () => {
     it('clears login attempts for email', async () => {
-      mockRpc.mockResolvedValue({ data: null, error: null });
+      mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
 
       await clearLoginAttempts('test@test.com');
-      expect(mockRpc).toHaveBeenCalledWith('clear_login_attempts', { p_email: 'test@test.com' });
+      expect(mockInvoke).toHaveBeenCalledWith('login-attempts', expect.objectContaining({
+        body: expect.objectContaining({ action: 'clear', email: 'test@test.com' }),
+      }));
     });
 
     it('handles error without throwing', async () => {
-      mockRpc.mockResolvedValue({ data: null, error: new Error('Failed') });
+      mockInvoke.mockResolvedValue({ data: null, error: new Error('Failed') });
 
       await expect(clearLoginAttempts('test@test.com')).resolves.not.toThrow();
     });
