@@ -1,5 +1,5 @@
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion';
 import { GripVertical, Maximize2, Minimize2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +73,7 @@ export function DraggableWidgetContainer({
                     {(provided, snapshot) => (
                       <motion.div
                         ref={provided.innerRef}
-                        {...provided.draggableProps}
+                        {...(provided.draggableProps as unknown as HTMLMotionProps<"div">)}
                         layout
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1, transition: { duration: 0.3, ease: "easeOut" } }}

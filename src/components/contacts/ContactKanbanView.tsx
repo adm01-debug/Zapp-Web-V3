@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, type HTMLAttributes } from 'react';
 import { motion } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -141,7 +141,7 @@ export function ContactKanbanView({ contacts, onContactClick }: ContactKanbanVie
                                 {(dragProvided, dragSnapshot) => (
                                   <div
                                     ref={dragProvided.innerRef}
-                                    {...dragProvided.draggableProps}
+                                    {...(dragProvided.draggableProps as unknown as HTMLAttributes<HTMLDivElement>)}
                                     className={cn(
                                       "w-full text-left p-3 rounded-lg border border-border/30",
                                       "bg-card hover:bg-muted/40 hover:border-primary/20",
