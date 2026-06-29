@@ -17,11 +17,12 @@ test.describe('Fluxo de Autenticação e Navegação', () => {
     // Tenta submeter vazio
     await page.click('button[type="submit"]');
     
-    // Verifica se mensagens de erro aparecem (baseado no useAuthForm)
-    // Note: useAuthForm provavelmente usa zod/react-hook-form
-    const emailError = page.locator('text=Email inválido, text=Obrigatório');
-    // Aguarda um pouco para animação do Framer Motion
-    await expect(emailError.first()).toBeVisible({ timeout: 5000 });
+    // useAuthForm valida com Zod antes de chamar Supabase.
+    // Mensagem real: "Email inválido" (z.string().email em useAuthForm.ts:18)
+    // Nota: text= do Playwright não suporta OR com vírgula — usar .or() ou seletor único
+    await expect(
+      page.locator('text=Email inválido').first()
+    ).toBeVisible({ timeout: 5000 });
   });
 
   test('navegação entre páginas públicas', async ({ page }) => {
@@ -31,10 +32,10 @@ test.describe('Fluxo de Autenticação e Navegação', () => {
     await page.click('text=Esqueci minha senha');
     await expect(page).toHaveURL(/\/forgot-password/);
     
-    // Voltar para login (se houver link)
-    // Se não houver, testamos o 404
+    // Rotas desconhecidas renderizam NotFound.tsx que exibe "Página não encontrada"
+    // text= do Playwright não suporta OR com vírgula — usar seletor único
     await page.goto('/rota-inexistente');
-    await expect(page.locator('text=404, text=não encontrada').first()).toBeVisible();
+    await expect(page.locator('text=Página não encontrada').first()).toBeVisible({ timeout: 8000 });
   });
 
   test('proteção de rotas administrativas', async ({ page }) => {
