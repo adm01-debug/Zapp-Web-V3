@@ -200,6 +200,8 @@ export class Logger {
 
 const EXACT_ALLOWED_ORIGINS = new Set([
   'https://pronto-talk-suite.lovable.app',
+  'https://whats-your-line.lovable.app',
+  'https://id-preview--22c0b518-7895-4f4f-9ea0-978457a2c37a.lovable.app',
   'https://id-preview--1d419c34-35ac-4a71-96a5-146ca1b3ebf2.lovable.app',
   'https://1d419c34-35ac-4a71-96a5-146ca1b3ebf2.lovableproject.com',
 ]);
@@ -207,6 +209,9 @@ const EXACT_ALLOWED_ORIGINS = new Set([
 const LOCAL_ORIGIN_PATTERNS = [
   /^http:\/\/localhost(?::\d{1,5})?$/,
   /^http:\/\/127\.0\.0\.1(?::\d{1,5})?$/,
+  /^https:\/\/id-preview--[a-f0-9-]+\.lovable\.app$/,
+  /^https:\/\/preview--[a-f0-9-]+\.lovable\.app$/,
+  /^https:\/\/[a-f0-9-]+\.lovableproject\.com$/,
 ];
 
 function isAllowedOrigin(origin: string): boolean {
