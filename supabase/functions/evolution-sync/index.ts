@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import {
   syncContacts, syncMessages, syncAllMessages,
   setupWebhook, cleanupMock, fullSync,
@@ -11,6 +12,10 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   const corsHeaders = getCorsHeaders(req);
+
+  // Admin/supervisor-only — destructive sync ops cannot be triggered anonymously.
+  const authed = await requireAdminOrSupervisor(req);
+  if (authed instanceof Response) return authed;
 
   const evolutionApiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
   const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');

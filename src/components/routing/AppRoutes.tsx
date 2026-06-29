@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/features/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles } from "lucide-react";
 import NotFound from "@/pages/NotFound";
+import { PageTransition } from "@/components/transitions";
 
 // Retry wrapper for lazy imports to handle transient network failures
 function lazyWithRetry(factory: () => Promise<any>, retries = 3): React.LazyExoticComponent<any> {
@@ -38,6 +39,7 @@ const SLAAlertPreferences = lazyWithRetry(() => import("@/pages/SLAAlertPreferen
 const SLAAlertHistory = lazyWithRetry(() => import("@/pages/SLAAlertHistory"));
 const SendStatusBusDebug = lazyWithRetry(() => import("@/pages/SendStatusBusDebug"));
 const RealtimeFanoutDebug = lazyWithRetry(() => import("@/pages/RealtimeFanoutDebug"));
+const BackendDiagnostics = lazyWithRetry(() => import("@/pages/BackendDiagnostics"));
 const RolesPage = lazyWithRetry(() => import("@/pages/admin/RolesPage"));
 const DepartmentsPage = lazyWithRetry(() => import("@/pages/admin/DepartmentsPage"));
 const RateLimitDashboard = lazyWithRetry(() => import("@/pages/admin/RateLimitDashboard"));
@@ -93,6 +95,7 @@ function RouteLoadingFallback() {
 export function AppRoutes() {
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
+      <PageTransition>
       <Routes>
         <Route path="/design-system" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><DesignSystem /></ProtectedRoute>} />
         <Route path="/access-denied" element={<AccessDenied />} />
@@ -115,6 +118,7 @@ export function AppRoutes() {
         <Route path="/sla/alerts" element={<ProtectedRoute><SLAAlertHistory /></ProtectedRoute>} />
         <Route path="/debug/send-status-bus" element={<ProtectedRoute><SendStatusBusDebug /></ProtectedRoute>} />
         <Route path="/debug/realtime-fanout" element={<ProtectedRoute><RealtimeFanoutDebug /></ProtectedRoute>} />
+        <Route path="/debug/backend" element={<BackendDiagnostics />} />
         <Route path="/admin/roles" element={<ProtectedRoute requiredRoles={['admin']}><RolesPage /></ProtectedRoute>} />
         <Route path="/admin/departments" element={<ProtectedRoute requiredRoles={['admin']}><DepartmentsPage /></ProtectedRoute>} />
         <Route path="/admin/rate-limit" element={<ProtectedRoute requiredRoles={['admin']}><RateLimitDashboard /></ProtectedRoute>} />
@@ -147,6 +151,7 @@ export function AppRoutes() {
         <Route path="*" element={<NotFound />} />
 
       </Routes>
+      </PageTransition>
     </Suspense>
   );
 }

@@ -2,10 +2,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { ChatbotL1Schema, parseBody } from "../_shared/schemas.ts";
 import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  // Internal-only: called by webhook handlers with service role.
+  // Blocks anonymous AI credit drain and arbitrary reads of chatbot flows / KB.
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   const log = new Logger("chatbot-l1");
   const userId = extractUserIdFromRequest(req);

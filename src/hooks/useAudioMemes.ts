@@ -39,14 +39,13 @@ export function useAudioMemes(open: boolean) {
 
   const fetchMemes = useCallback(async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // DOC ARCHITECTURE COMPLIANCE: Use RPC to get per-user favorites and sorted catalog
-    // Using any to bypass strict type checking until types.ts is updated automatically
+    // RPC usa auth.uid() server-side; assinatura: (p_category, p_only_favorites, p_search)
     const { data, error } = await (supabase as any).rpc('fn_list_audio_memes_for_user', {
-      p_user_id: user?.id || null
+      p_category: null,
+      p_only_favorites: false,
+      p_search: null,
     });
-    
+
     if (!error && data) {
       setMemes(data as AudioMemeItem[]);
     } else if (error) {
@@ -189,12 +188,14 @@ export function useAudioMemes(open: boolean) {
   }, []);
 
   const handleConfirmUpload = useCallback(async (pending: PendingUpload) => {
-    // DOC ARCHITECTURE COMPLIANCE: Use RPC to add meme
-    const { error: insertError } = await (supabase as any).rpc('fn_add_audio_meme', {
-      p_name: pending.name,
-      p_url: pending.audioUrl,
-      p_category: pending.selectedCategory,
-      p_duration: pending.duration
+    // Insere direto (RLS já permite a authenticated com uploaded_by = auth.uid())
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error: insertError } = await supabase.from('audio_memes').insert({
+      name: pending.name,
+      audio_url: pending.audioUrl,
+      category: pending.selectedCategory,
+      duration_seconds: pending.duration,
+      uploaded_by: user?.id ?? null,
     });
 
     if (insertError) {
@@ -218,10 +219,13 @@ export function useAudioMemes(open: boolean) {
     if (audioRef.current) { audioRef.current.pause(); setPlayingId(null); }
     onSend(meme);
     onClose();
-    // DOC ARCHITECTURE COMPLIANCE: The actual use_count++ and database entry 
-    // should ideally happen via RPC during sending to avoid UI delays,
-    // but we keep a local sync for the list.
     setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m));
+    // Incrementa use_count no banco (RPC)
+    try {
+      await (supabase as any).rpc('fn_increment_meme_use', { p_meme_id: meme.id });
+    } catch (err) {
+      log.error('fn_increment_meme_use error', err);
+    }
   }, []);
 
   const toggleFavorite = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
@@ -229,19 +233,16 @@ export function useAudioMemes(open: boolean) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error('Efetue login para favoritar'); return; }
 
-    // OPTIMISTIC UPDATE
     const newVal = !meme.is_favorite;
     setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, is_favorite: newVal } : m));
 
-    // DOC ARCHITECTURE COMPLIANCE: Individual favorite toggle via RPC
+    // RPC usa auth.uid() — só recebe o meme_id
     const { error } = await (supabase as any).rpc('fn_toggle_user_meme_favorite', {
-      p_user_id: user.id,
-      p_meme_id: meme.id
+      p_meme_id: meme.id,
     });
 
     if (error) {
       log.error('toggleFavorite error', error);
-      // ROLLBACK UI if failed
       setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, is_favorite: !newVal } : m));
       toast.error('Erro ao atualizar favorito');
     }

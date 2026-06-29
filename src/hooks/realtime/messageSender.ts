@@ -1,5 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import {
+  getWhatsappConnectionById,
+  getFirstConnectedWhatsapp,
+} from '@/lib/whatsappConnectionsCache';
 // Uses RealtimeMessage type from parent hook
 
 const log = getLogger('MessageSender');
@@ -13,29 +17,19 @@ interface SendMessageResult {
 
 /**
  * Resolves the WhatsApp connection to use for sending, with fallback.
+ * Reads go through the module-level cache to avoid a DB round-trip on every send.
  */
 async function resolveConnection(contactConnectionId: string | null) {
   let resolvedConnectionId = contactConnectionId;
   let connection: { instance_id: string | null; status: string | null } | null = null;
 
   if (resolvedConnectionId) {
-    const { data } = await supabase
-      .from('whatsapp_connections')
-      .select('instance_id, status')
-      .eq('id', resolvedConnectionId)
-      .single();
-    connection = data;
+    const row = await getWhatsappConnectionById(resolvedConnectionId);
+    if (row) connection = { instance_id: row.instance_id, status: row.status };
   }
 
   if (!connection?.instance_id || connection.status !== 'connected') {
-    const { data: fallback } = await supabase
-      .from('whatsapp_connections')
-      .select('id, instance_id, status')
-      .eq('status', 'connected')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
+    const fallback = await getFirstConnectedWhatsapp();
     if (fallback?.instance_id) {
       resolvedConnectionId = fallback.id;
       connection = { instance_id: fallback.instance_id, status: fallback.status };

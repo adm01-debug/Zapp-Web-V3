@@ -1,14 +1,26 @@
-import { Ban, Eye, ShieldAlert } from 'lucide-react';
+import { Ban, Eye, ShieldAlert, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from '@/components/ui/motion';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DeletedMessagePlaceholderProps {
   isSent: boolean;
   content?: string;
+  /** ISO timestamp do soft delete (vem do backend como evolution_messages.deleted_at). */
+  deletedAt?: string | null;
 }
 
-export function DeletedMessagePlaceholder({ isSent, content }: DeletedMessagePlaceholderProps) {
+export function DeletedMessagePlaceholder({ isSent, content, deletedAt }: DeletedMessagePlaceholderProps) {
   const hasOriginalContent = content && content !== '[Mensagem apagada]';
+  const deletedDate = deletedAt ? new Date(deletedAt) : null;
+  const relativeTime = deletedDate && !Number.isNaN(deletedDate.getTime())
+    ? formatDistanceToNow(deletedDate, { addSuffix: true, locale: ptBR })
+    : null;
+  const absoluteTime = deletedDate && !Number.isNaN(deletedDate.getTime())
+    ? deletedDate.toLocaleString('pt-BR')
+    : null;
 
   return (
     <motion.div
@@ -44,6 +56,19 @@ export function DeletedMessagePlaceholder({ isSent, content }: DeletedMessagePla
             <ShieldAlert className="w-3 h-3" />
           )}
           <span>{isSent ? 'Você apagou esta mensagem' : 'O contato apagou esta mensagem'}</span>
+          {relativeTime && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1 ml-1 opacity-70 cursor-help">
+                  <Clock className="w-2.5 h-2.5" />
+                  <span className="text-[10px] font-normal">{relativeTime}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                Apagada em {absoluteTime}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {/* Original content preserved */}

@@ -51,6 +51,8 @@ export interface RealtimeMessage {
   transcription: string | null;
   transcription_status: string | null;
   is_deleted: boolean | null;
+  /** Timestamp do soft delete (protocolMessage REVOKE). Null = mensagem viva. */
+  deleted_at?: string | null;
   retry_attempt?: number | null;
   retry_total?: number | null;
   /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */

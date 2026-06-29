@@ -4,32 +4,44 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useInboxHeartbeat');
 
-export function useInboxHeartbeat(userId: string | undefined) {
+const THROTTLE_MS = 120_000; // 2 min between writes (except going offline)
+const HEARTBEAT_MS = 180_000; // 3 min ping while tab visible
+
+export function useInboxHeartbeat(profileId: string | undefined) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [onlineStatus, setOnlineStatus] = useState<string>('offline');
 
   useEffect(() => {
-    if (!userId) return;
+    if (!profileId) return;
+
+    let lastWriteAt = 0;
+    let lastWrittenStatus: string | null = null;
 
     const updateStatus = async (status: string) => {
       setOnlineStatus(status);
       setIsOnline(status === 'online');
-      
+
       const now = Date.now();
-      const appWindow = window as Window & { __lastStatusUpdate?: number };
-      const lastUpdate = appWindow.__lastStatusUpdate || 0;
-      
-      // Throttle updates: max every 30s unless going offline
-      if (now - lastUpdate < 30000 && status !== 'offline') return;
-      appWindow.__lastStatusUpdate = now;
+      const goingOffline = status === 'offline';
+      // Skip DB write if status unchanged AND we're inside the throttle window
+      if (
+        !goingOffline &&
+        status === lastWrittenStatus &&
+        now - lastWriteAt < THROTTLE_MS
+      ) {
+        return;
+      }
+      lastWriteAt = now;
+      lastWrittenStatus = status;
 
       try {
-        await supabase.from('profiles')
-          .update({ 
+        await supabase
+          .from('profiles')
+          .update({
             online_status: status as 'online' | 'offline' | 'busy',
-            last_seen: new Date().toISOString()
+            last_seen: new Date().toISOString(),
           })
-          .eq('id', userId);
+          .eq('id', profileId);
       } catch (err) {
         log.error('Failed to update heartbeat status:', err);
       }
@@ -38,39 +50,31 @@ export function useInboxHeartbeat(userId: string | undefined) {
     const handleVisibilityChange = () => {
       updateStatus(document.visibilityState === 'visible' ? 'online' : 'offline');
     };
-
-    const handleOnline = () => {
-      setIsOnline(true);
-      updateStatus('online');
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      updateStatus('offline');
-    };
+    const handleOnline = () => updateStatus('online');
+    const handleOffline = () => updateStatus('offline');
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initial status
     updateStatus('online');
 
-    // Heartbeat every 60s while visible
     const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        updateStatus('online');
-      }
-    }, 60000);
+      if (document.visibilityState === 'visible') updateStatus('online');
+    }, HEARTBEAT_MS);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
-      updateStatus('offline');
+      // Best-effort offline write on unmount
+      void supabase
+        .from('profiles')
+        .update({ online_status: 'offline', last_seen: new Date().toISOString() })
+        .eq('id', profileId);
     };
-  }, [userId]);
+  }, [profileId]);
 
   return { isOnline, onlineStatus };
 }

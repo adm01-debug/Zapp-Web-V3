@@ -8,66 +8,77 @@ interface LockStatus {
   remainingTime: number; // in seconds
 }
 
-export async function checkAccountLock(email: string): Promise<LockStatus> {
-  const { data, error } = await supabase.rpc('is_account_locked', {
-    check_email: email
-  });
+interface LoginAttemptsPayload {
+  is_locked?: boolean;
+  locked_until?: string | null;
+  attempts?: number;
+}
 
-  if (error) {
-    log.error('Error checking account lock:', error);
-    return { isLocked: false, lockedUntil: null, attempts: 0, remainingTime: 0 };
+type LoginAttemptAction = 'check' | 'record_failed' | 'clear';
+
+const DEFAULT_LOCK_STATUS: LockStatus = {
+  isLocked: false,
+  lockedUntil: null,
+  attempts: 0,
+  remainingTime: 0,
+};
+
+function toLockStatus(payload: LoginAttemptsPayload | null | undefined, fallbackAttempts = 0): LockStatus {
+  if (!payload) {
+    return { ...DEFAULT_LOCK_STATUS, attempts: fallbackAttempts };
   }
 
-  const result = data?.[0];
-  if (!result) {
-    return { isLocked: false, lockedUntil: null, attempts: 0, remainingTime: 0 };
-  }
-
-  const lockedUntil = result.locked_until ? new Date(result.locked_until) : null;
-  const remainingTime = lockedUntil ? Math.max(0, Math.floor((lockedUntil.getTime() - Date.now()) / 1000)) : 0;
+  const lockedUntil = payload.locked_until ? new Date(payload.locked_until) : null;
+  const remainingTime = lockedUntil
+    ? Math.max(0, Math.floor((lockedUntil.getTime() - Date.now()) / 1000))
+    : 0;
 
   return {
-    isLocked: result.is_locked,
+    isLocked: Boolean(payload.is_locked),
     lockedUntil,
-    attempts: result.attempts,
-    remainingTime
+    attempts: payload.attempts ?? fallbackAttempts,
+    remainingTime,
   };
+}
+
+async function invokeLoginAttempts(
+  action: LoginAttemptAction,
+  email: string,
+): Promise<LoginAttemptsPayload | null> {
+  const { data, error } = await supabase.functions.invoke<LoginAttemptsPayload>('login-attempts', {
+    body: {
+      action,
+      email,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    },
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function checkAccountLock(email: string): Promise<LockStatus> {
+  try {
+    return toLockStatus(await invokeLoginAttempts('check', email));
+  } catch (error) {
+    log.error('Error checking account lock:', error);
+    return DEFAULT_LOCK_STATUS;
+  }
 }
 
 export async function recordFailedLogin(email: string): Promise<LockStatus> {
-  const { data, error } = await supabase.rpc('record_failed_login', {
-    p_email: email,
-    p_ip_address: null,
-    p_user_agent: navigator.userAgent
-  });
-
-  if (error) {
+  try {
+    return toLockStatus(await invokeLoginAttempts('record_failed', email), 1);
+  } catch (error) {
     log.error('Error recording failed login:', error);
-    return { isLocked: false, lockedUntil: null, attempts: 0, remainingTime: 0 };
+    return DEFAULT_LOCK_STATUS;
   }
-
-  const result = data?.[0];
-  if (!result) {
-    return { isLocked: false, lockedUntil: null, attempts: 1, remainingTime: 0 };
-  }
-
-  const lockedUntil = result.locked_until ? new Date(result.locked_until) : null;
-  const remainingTime = lockedUntil ? Math.max(0, Math.floor((lockedUntil.getTime() - Date.now()) / 1000)) : 0;
-
-  return {
-    isLocked: result.is_locked,
-    lockedUntil,
-    attempts: result.attempts,
-    remainingTime
-  };
 }
 
 export async function clearLoginAttempts(email: string): Promise<void> {
-  const { error } = await supabase.rpc('clear_login_attempts', {
-    p_email: email
-  });
-
-  if (error) {
+  try {
+    await invokeLoginAttempts('clear', email);
+  } catch (error) {
     log.error('Error clearing login attempts:', error);
   }
 }

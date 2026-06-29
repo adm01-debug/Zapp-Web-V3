@@ -43,6 +43,7 @@ export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessa
     transcription: null,
     transcription_status: null,
     is_deleted: evo.deleted_at != null,
+    deleted_at: evo.deleted_at ?? null,
     contactAvatar: null,
     reactions: Array.isArray(evo.reactions) ? evo.reactions : [],
   };

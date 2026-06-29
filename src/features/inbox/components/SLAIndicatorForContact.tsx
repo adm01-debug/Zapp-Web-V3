@@ -95,24 +95,26 @@ function SLATooltipContent({ applicable, isLoading, fallbackFr, fallbackRes, pri
  */
 export function SLAIndicatorForContact({ conversation, compact, className }: SLAIndicatorForContactProps) {
   const contact = conversation.contact;
-  if (!contact) return null;
 
+  // Hooks devem ser chamados incondicionalmente e na mesma ordem em todo render
+  // (rules-of-hooks). O early-return de `!contact` fica depois dos hooks; os
+  // inputs usam optional chaining para tolerar contato ausente.
   const { data: applicable, isLoading } = useApplicableSLA({
-    contactId: contact.id,
-    company: contact.company ?? null,
-    jobTitle: contact.job_title ?? null,
-    contactType: contact.contact_type ?? null,
+    contactId: contact?.id,
+    company: contact?.company ?? null,
+    jobTitle: contact?.job_title ?? null,
+    contactType: contact?.contact_type ?? null,
     queueId: conversation.queue?.id || conversation.queue_id || null,
     agentId: conversation.assignedTo?.id || conversation.assigned_to || null,
   });
 
   const lastSlaRef = useRef<string | null>(null);
-  const convId = conversation.id || contact.id;
+  const convId = conversation.id || contact?.id || '';
   const priority = conversation.priority || 'medium';
-  const createdAt = conversation.createdAt || (contact.created_at ? new Date(contact.created_at) : new Date());
+  const createdAt = conversation.createdAt || (contact?.created_at ? new Date(contact.created_at) : new Date());
   const lastMessage = conversation.lastMessage;
   const status = conversation.status || 'open';
-  const updatedAt = conversation.updatedAt || (contact.updated_at ? new Date(contact.updated_at) : new Date());
+  const updatedAt = conversation.updatedAt || (contact?.updated_at ? new Date(contact.updated_at) : new Date());
 
   useEffect(() => {
     if (applicable?.ruleName && applicable.ruleName !== lastSlaRef.current) {
@@ -123,6 +125,8 @@ export function SLAIndicatorForContact({ conversation, compact, className }: SLA
 
   const fallbackFr = priority === 'high' ? 2 : 5;
   const fallbackRes = priority === 'high' ? 30 : 60;
+
+  if (!contact) return null;
 
   return (
     <Tooltip delayDuration={200}>

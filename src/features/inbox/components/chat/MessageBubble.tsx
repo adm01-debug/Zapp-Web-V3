@@ -115,9 +115,9 @@ export const MessageBubble = memo(function MessageBubble({
         data-testid={`message-bubble-${message.id}`}
         data-message-id={message.id}
         className={cn(
-          'flex group gap-2 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-2xl',
+          'flex group gap-2.5 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none rounded-2xl',
           isSent ? 'justify-end' : 'justify-start',
-          density === 'comfortable' ? 'mb-2' : density === 'compact' ? 'mb-1.5' : 'mb-1',
+          density === 'comfortable' ? 'mb-3' : density === 'compact' ? 'mb-2' : 'mb-1.5',
           highlightedMessageIds?.has(message.id) && 'relative',
           activeHighlightId === message.id && 'ring-2 ring-primary ring-offset-1 rounded-2xl animate-[pulse_1.5s_ease-in-out_1]',
           highlightedMessageIds?.has(message.id) && activeHighlightId !== message.id && 'bg-primary/10 rounded-2xl',
@@ -190,17 +190,19 @@ export const MessageBubble = memo(function MessageBubble({
           />
 
           {message.is_deleted ? (
-            <DeletedMessagePlaceholder isSent={isSent} content={message.content} />
+            <DeletedMessagePlaceholder isSent={isSent} content={message.content} deletedAt={message.deleted_at} />
           ) : (
             <motion.div
-              whileHover={{ scale: 1.01 }}
+              whileHover={{ scale: 1.005 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               className={cn(
-                'relative transition-all overflow-visible shadow-lg',
-                (message.type === 'image' || message.type === 'video') && !message.content ? 'p-1 pb-0' : density === 'comfortable' ? 'px-5 py-3.5' : 'px-4 py-3',
+                'relative transition-all overflow-visible',
+                (message.type === 'image' || message.type === 'video') && !message.content
+                  ? 'p-1 pb-0'
+                  : density === 'comfortable' ? 'px-4 py-2.5' : density === 'compact' ? 'px-3.5 py-2' : 'px-3 py-1.5',
                 isSent
-                  ? cn('bg-primary text-primary-foreground rounded-[1.25rem] rounded-tr-none border border-primary/20')
-                  : cn('bg-card text-foreground border border-border/60 rounded-[1.25rem] rounded-tl-none'),
+                  ? 'bg-primary text-primary-foreground rounded-2xl rounded-br-md shadow-md shadow-primary/20'
+                  : 'bg-card text-card-foreground rounded-2xl rounded-bl-md shadow-sm border border-border/70',
                 message.isWhisper && 'bg-warning text-warning-foreground border-warning/50 border-dashed font-bold ring-4 ring-warning/5',
                 isFailedTerminal && 'ring-2 ring-destructive/50 border-destructive/40'
               )}
@@ -230,10 +232,10 @@ export const MessageBubble = memo(function MessageBubble({
                 />
               )}
               <div className={cn(
-                'flex items-center justify-end gap-1 mt-1 -mb-0.5', 
-                (message.type === 'image' || message.type === 'video') && !message.content 
-                  ? 'absolute bottom-2 right-2 text-foreground drop-shadow-md bg-foreground/30 px-1.5 py-0.5 rounded-full backdrop-blur-xs' 
-                  : 'text-[hsl(var(--muted-foreground))]'
+                'flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5',
+                (message.type === 'image' || message.type === 'video') && !message.content
+                  ? 'absolute bottom-2 right-2 text-white drop-shadow-md bg-black/40 px-1.5 py-0.5 rounded-full backdrop-blur-sm'
+                  : isSent ? 'text-primary-foreground/75' : 'text-muted-foreground'
               )}>
                 {message.isEdited && <span className="text-[9px] italic mr-0.5">editada</span>}
                 <div className="flex items-center gap-1">

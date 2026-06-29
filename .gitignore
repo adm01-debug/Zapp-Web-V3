@@ -150,3 +150,7 @@ supabase/.temp/
 .stylelintcache
 *.tgz
 .yarn-integrity
+
+# Playwright auth state
+e2e/.auth/
+playwright-report-e2e/

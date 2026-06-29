@@ -40,31 +40,44 @@ export function OfficialApiConfigDialog({
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
+  // Indica se a conexão já possui access_token/app_secret salvos.
+  // Por segurança (RLS), o frontend NUNCA recebe os valores em texto puro —
+  // apenas flags vindas da view `whatsapp_official_credentials_safe`.
+  const [hasAccessToken, setHasAccessToken] = useState(false);
+  const [hasAppSecret, setHasAppSecret] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from('whatsapp_official_credentials')
-          .select('phone_number_id, waba_id, business_account_id, access_token, app_secret, verify_token, graph_api_version')
+        const { data } = await (supabase as unknown as {
+          from: (t: string) => {
+            select: (c: string) => {
+              eq: (col: string, v: string) => {
+                maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
+              };
+            };
+          };
+        })
+          .from('whatsapp_official_credentials_safe')
+          .select('phone_number_id, waba_id, has_access_token, has_app_secret')
           .eq('connection_id', connectionId)
           .maybeSingle();
         if (cancelled) return;
         if (data) {
-          const mapped: CredentialsForm = {
-            phone_number_id: (data as any).phone_number_id ?? '',
-            waba_id: (data as any).waba_id ?? '',
-            business_account_id: (data as any).business_account_id ?? '',
-            access_token: (data as any).access_token ?? '',
-            app_secret: (data as any).app_secret ?? '',
-            verify_token: (data as any).verify_token ?? '',
-            graph_api_version: (data as any).graph_api_version ?? 'v21.0',
-          };
-          setForm(mapped);
+          setForm({
+            ...EMPTY,
+            phone_number_id: (data.phone_number_id as string) ?? '',
+            waba_id: (data.waba_id as string) ?? '',
+          });
+          setHasAccessToken(Boolean(data.has_access_token));
+          setHasAppSecret(Boolean(data.has_app_secret));
         } else {
           setForm(EMPTY);
+          setHasAccessToken(false);
+          setHasAppSecret(false);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -73,35 +86,43 @@ export function OfficialApiConfigDialog({
     return () => { cancelled = true; };
   }, [open, connectionId]);
 
+
   const update = (k: keyof CredentialsForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSave = async () => {
-    if (!form.phone_number_id || !form.access_token || !form.app_secret || !form.verify_token) {
-      toast({ title: 'Campos obrigatórios', description: 'Preencha Phone Number ID, Access Token, App Secret e Verify Token.', variant: 'destructive' });
+    // Quando segredos já estão configurados, o usuário pode atualizar apenas metadados.
+    const accessTokenOk = form.access_token || hasAccessToken;
+    const appSecretOk = form.app_secret || hasAppSecret;
+    if (!form.phone_number_id || !accessTokenOk || !appSecretOk) {
+      toast({ title: 'Campos obrigatórios', description: 'Preencha Phone Number ID, Access Token e App Secret.', variant: 'destructive' });
       return;
     }
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase
+    setSaving(true);
+    // Apenas envia colunas que existem na tabela; segredos são enviados só se preenchidos.
+    const payload: Record<string, unknown> = {
+      connection_id: connectionId,
+      phone_number_id: form.phone_number_id,
+      waba_id: form.waba_id || null,
+    };
+    if (form.access_token) payload.access_token = form.access_token;
+    if (form.app_secret) payload.app_secret = form.app_secret;
+    const { error } = await (supabase as unknown as {
+      from: (t: string) => {
+        upsert: (v: Record<string, unknown>, o: { onConflict: string }) => Promise<{ error: { message: string } | null }>;
+      };
+    })
       .from('whatsapp_official_credentials')
-      .upsert({
-        connection_id: connectionId,
-        phone_number_id: form.phone_number_id,
-        waba_id: form.waba_id || null,
-        business_account_id: form.business_account_id || null,
-        access_token: form.access_token,
-        app_secret: form.app_secret,
-        verify_token: form.verify_token,
-        graph_api_version: form.graph_api_version || 'v21.0',
-        created_by: userData.user?.id ?? null,
-      } as any, { onConflict: 'connection_id' });
+      .upsert(payload, { onConflict: 'connection_id' });
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
       return;
     }
     toast({ title: 'Credenciais salvas', description: 'WhatsApp Cloud API configurada com sucesso.' });
+    onOpenChange(false);
   };
+
 
   const handleTest = async () => {
     if (!instanceId) return;
@@ -169,17 +190,22 @@ export function OfficialApiConfigDialog({
               <Input id="business_account_id" value={form.business_account_id} onChange={update('business_account_id')} />
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="access_token">Access Token *</Label>
-              <Input id="access_token" type="password" value={form.access_token} onChange={update('access_token')} placeholder="EAAG..." />
+              <Label htmlFor="access_token">
+                Access Token * {hasAccessToken && <span className="text-xs text-muted-foreground">(já configurado — preencha apenas para alterar)</span>}
+              </Label>
+              <Input id="access_token" type="password" value={form.access_token} onChange={update('access_token')} placeholder={hasAccessToken ? '••••••••' : 'EAAG...'} />
             </div>
             <div>
-              <Label htmlFor="app_secret">App Secret *</Label>
-              <Input id="app_secret" type="password" value={form.app_secret} onChange={update('app_secret')} />
+              <Label htmlFor="app_secret">
+                App Secret * {hasAppSecret && <span className="text-xs text-muted-foreground">(já configurado)</span>}
+              </Label>
+              <Input id="app_secret" type="password" value={form.app_secret} onChange={update('app_secret')} placeholder={hasAppSecret ? '••••••••' : ''} />
             </div>
             <div>
               <Label htmlFor="verify_token">Verify Token *</Label>
               <Input id="verify_token" value={form.verify_token} onChange={update('verify_token')} placeholder="qualquer string secreta" />
             </div>
+
             <div>
               <Label htmlFor="graph_api_version">Graph API Version</Label>
               <Input id="graph_api_version" value={form.graph_api_version} onChange={update('graph_api_version')} />

@@ -191,6 +191,8 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const pullY = useMotionValue(0);
   const pullProgress = useTransform(pullY, [0, 80], [0, 1]);
+  // Hook chamado incondicionalmente no topo (rules-of-hooks); usado no JSX abaixo.
+  const arrowRotate = useTransform(pullProgress, [0, 1], [0, 180]);
 
   const handleDragEnd = async () => {
     if (pullY.get() > 80) {
@@ -226,7 +228,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
               />
             ) : (
               <motion.div
-                style={{ rotate: useTransform(pullProgress, [0, 1], [0, 180]) }}
+                style={{ rotate: arrowRotate }}
                 className="w-6 h-6"
               >
                 ↓

@@ -1,11 +1,12 @@
 // Edge function: gera sugestão de resposta para uma execução de automação
 // Usa Lovable AI Gateway (sem API key do usuário) + Knowledge Base + Tag Recommender
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 interface Body {
@@ -187,6 +188,10 @@ async function callAi(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Internal-only: called by the automation engine with service role.
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

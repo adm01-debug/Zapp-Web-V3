@@ -422,6 +422,35 @@ export type Database = {
         }
         Relationships: []
       }
+      audio_meme_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          meme_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meme_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meme_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_meme_favorites_meme_id_fkey"
+            columns: ["meme_id"]
+            isOneToOne: false
+            referencedRelation: "audio_memes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audio_memes: {
         Row: {
           audio_url: string
@@ -2857,6 +2886,13 @@ export type Database = {
             referencedRelation: "departments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "department_invitations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       departments: {
@@ -4341,13 +4377,19 @@ export type Database = {
           contact_id: string | null
           content: string
           created_at: string
+          deleted_at: string | null
           external_id: string | null
           id: string
           is_deleted: boolean | null
           is_edited: boolean
           is_read: boolean | null
+          link_preview: Json | null
+          media_meta: Json | null
+          media_mimetype: string | null
+          media_type: string | null
           media_url: string | null
           message_type: string
+          reply_to_id: string | null
           sender: string
           status: string | null
           status_updated_at: string | null
@@ -4363,13 +4405,19 @@ export type Database = {
           contact_id?: string | null
           content: string
           created_at?: string
+          deleted_at?: string | null
           external_id?: string | null
           id?: string
           is_deleted?: boolean | null
           is_edited?: boolean
           is_read?: boolean | null
+          link_preview?: Json | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_type?: string | null
           media_url?: string | null
           message_type?: string
+          reply_to_id?: string | null
           sender: string
           status?: string | null
           status_updated_at?: string | null
@@ -4385,13 +4433,19 @@ export type Database = {
           contact_id?: string | null
           content?: string
           created_at?: string
+          deleted_at?: string | null
           external_id?: string | null
           id?: string
           is_deleted?: boolean | null
           is_edited?: boolean
           is_read?: boolean | null
+          link_preview?: Json | null
+          media_meta?: Json | null
+          media_mimetype?: string | null
+          media_type?: string | null
           media_url?: string | null
           message_type?: string
+          reply_to_id?: string | null
           sender?: string
           status?: string | null
           status_updated_at?: string | null
@@ -4434,6 +4488,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {
@@ -5241,6 +5302,13 @@ export type Database = {
             referencedRelation: "departments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       qr_attempts: {
@@ -5756,6 +5824,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rls_denied_log: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          required_role: string | null
+          resource: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          required_role?: string | null
+          resource: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          required_role?: string | null
+          resource?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       role_permissions: {
         Row: {
@@ -8095,6 +8190,42 @@ export type Database = {
           },
         ]
       }
+      departments_safe: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          has_whatsapp_api_key: boolean | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          updated_at: string | null
+          whatsapp_instance_id: string | null
+          whatsapp_mode: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          has_whatsapp_api_key?: never
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string | null
+          whatsapp_mode?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          has_whatsapp_api_key?: never
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string | null
+          whatsapp_mode?: string | null
+        }
+        Relationships: []
+      }
       gmail_accounts_safe: {
         Row: {
           created_at: string | null
@@ -8270,11 +8401,13 @@ export type Database = {
       }
       whatsapp_connections_safe: {
         Row: {
+          auto_reconnect_enabled: boolean | null
           battery_level: number | null
           created_at: string | null
           created_by: string | null
           farewell_enabled: boolean | null
           farewell_message: string | null
+          has_qr_code: boolean | null
           health_response_ms: number | null
           health_status: string | null
           id: string | null
@@ -8282,52 +8415,62 @@ export type Database = {
           is_default: boolean | null
           is_plugged: boolean | null
           last_health_check: string | null
+          loop_protection_active: boolean | null
+          max_reconnect_attempts: number | null
           max_retries: number | null
           name: string | null
           phone_number: string | null
-          qr_code: string | null
+          reconnect_interval_seconds: number | null
           retry_count: number | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
+          auto_reconnect_enabled?: boolean | null
           battery_level?: number | null
           created_at?: string | null
           created_by?: string | null
           farewell_enabled?: boolean | null
           farewell_message?: string | null
+          has_qr_code?: never
           health_response_ms?: number | null
           health_status?: string | null
           id?: string | null
-          instance_id?: never
+          instance_id?: string | null
           is_default?: boolean | null
           is_plugged?: boolean | null
           last_health_check?: string | null
+          loop_protection_active?: boolean | null
+          max_reconnect_attempts?: number | null
           max_retries?: number | null
           name?: string | null
           phone_number?: string | null
-          qr_code?: never
+          reconnect_interval_seconds?: number | null
           retry_count?: number | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
+          auto_reconnect_enabled?: boolean | null
           battery_level?: number | null
           created_at?: string | null
           created_by?: string | null
           farewell_enabled?: boolean | null
           farewell_message?: string | null
+          has_qr_code?: never
           health_response_ms?: number | null
           health_status?: string | null
           id?: string | null
-          instance_id?: never
+          instance_id?: string | null
           is_default?: boolean | null
           is_plugged?: boolean | null
           last_health_check?: string | null
+          loop_protection_active?: boolean | null
+          max_reconnect_attempts?: number | null
           max_retries?: number | null
           name?: string | null
           phone_number?: string | null
-          qr_code?: never
+          reconnect_interval_seconds?: number | null
           retry_count?: number | null
           status?: string | null
           updated_at?: string | null
@@ -8345,6 +8488,71 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_official_credentials_safe: {
+        Row: {
+          app_id: string | null
+          connection_id: string | null
+          created_at: string | null
+          has_access_token: boolean | null
+          has_app_secret: boolean | null
+          id: string | null
+          phone_number_id: string | null
+          updated_at: string | null
+          waba_id: string | null
+        }
+        Insert: {
+          app_id?: string | null
+          connection_id?: string | null
+          created_at?: string | null
+          has_access_token?: never
+          has_app_secret?: never
+          id?: string | null
+          phone_number_id?: string | null
+          updated_at?: string | null
+          waba_id?: string | null
+        }
+        Update: {
+          app_id?: string | null
+          connection_id?: string | null
+          created_at?: string | null
+          has_access_token?: never
+          has_app_secret?: never
+          id?: string | null
+          phone_number_id?: string | null
+          updated_at?: string | null
+          waba_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections_agent"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_official_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_connections_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -8410,8 +8618,37 @@ export type Database = {
             }
             Returns: string
           }
+      fn_increment_meme_use: { Args: { p_meme_id: string }; Returns: undefined }
+      fn_list_audio_meme_categories: {
+        Args: never
+        Returns: {
+          category: string
+          total: number
+        }[]
+      }
+      fn_list_audio_memes_for_user: {
+        Args: {
+          p_category?: string
+          p_only_favorites?: boolean
+          p_search?: string
+        }
+        Returns: {
+          audio_url: string
+          category: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          is_favorite: boolean
+          name: string
+          use_count: number
+        }[]
+      }
       fn_return_transfer: {
         Args: { p_reason: string; p_transfer_id: string }
+        Returns: boolean
+      }
+      fn_toggle_user_meme_favorite: {
+        Args: { p_meme_id: string }
         Returns: boolean
       }
       fn_transfer_comment:
@@ -8571,6 +8808,10 @@ export type Database = {
       }
       is_ip_blocked: { Args: { check_ip: string }; Returns: boolean }
       is_ip_whitelisted: { Args: { check_ip: string }; Returns: boolean }
+      is_queue_member_of_contact: {
+        Args: { _contact_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_team_conversation_member: {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
@@ -8600,6 +8841,10 @@ export type Database = {
             }
             Returns: undefined
           }
+      log_rls_denied: {
+        Args: { p_context?: Json; p_required_role?: string; p_resource: string }
+        Returns: undefined
+      }
       log_security_event: {
         Args: {
           p_action: string
@@ -8647,6 +8892,7 @@ export type Database = {
         }
         Returns: string
       }
+      purge_old_query_telemetry: { Args: { p_days?: number }; Returns: number }
       reassign_absent_agents: {
         Args: { inactive_minutes?: number }
         Returns: number
@@ -8664,23 +8910,37 @@ export type Database = {
         | { Args: { p_item_id: string }; Returns: boolean }
         | { Args: { p_id?: string; p_item_id?: string }; Returns: boolean }
       rpc_dlq_bulk_abandon: { Args: { p_ids: string[] }; Returns: boolean }
-      rpc_dlq_list_audit: {
-        Args: { p_limit?: number }
-        Returns: {
-          action: string | null
-          created_at: string | null
-          id: string
-          item_id: string | null
-          performed_by: string | null
-          reason: string | null
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "dlq_audit_log"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
+      rpc_dlq_list_audit:
+        | {
+            Args: { p_limit?: number }
+            Returns: {
+              action: string | null
+              created_at: string | null
+              id: string
+              item_id: string | null
+              performed_by: string | null
+              reason: string | null
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "dlq_audit_log"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: { p_action: string; p_limit: number; p_offset: number }
+            Returns: {
+              action: string
+              created_at: string
+              details: Json
+              entity_id: string
+              id: string
+              user_email: string
+              user_id: string
+              user_name: string
+            }[]
+          }
       rpc_dlq_log_item_action:
         | {
             Args: {
@@ -8735,24 +8995,76 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      rpc_list_failed_messages: {
-        Args: { p_limit?: number }
-        Returns: {
-          created_at: string | null
-          error_message: string | null
-          id: string
-          instance_name: string | null
-          message_id: string | null
-          next_retry_at: string | null
-          retry_count: number | null
-          status: string | null
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "failed_messages"
-          isOneToOne: false
-          isSetofReturn: true
+      rpc_list_failed_messages:
+        | {
+            Args: { p_limit?: number }
+            Returns: {
+              created_at: string | null
+              error_message: string | null
+              id: string
+              instance_name: string | null
+              message_id: string | null
+              next_retry_at: string | null
+              retry_count: number | null
+              status: string | null
+            }[]
+            SetofOptions: {
+              from: "*"
+              to: "failed_messages"
+              isOneToOne: false
+              isSetofReturn: true
+            }
+          }
+        | {
+            Args: {
+              p_from: string
+              p_instance: string
+              p_limit: number
+              p_offset: number
+              p_search: string
+              p_status: string[]
+              p_to: string
+            }
+            Returns: {
+              created_at: string
+              error_message: string
+              id: string
+              instance_name: string
+              message_id: string
+              next_retry_at: string
+              retry_count: number
+              status: string
+              total_count: number
+            }[]
+          }
+      rpc_list_transfers_paginated: {
+        Args: {
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_priority?: number
+          p_status?: string
+          p_to?: string
         }
+        Returns: {
+          accepted_at: string
+          category: string
+          completed_at: string
+          contact_name: string
+          created_at: string
+          from_agent_id: string
+          id: string
+          priority: number
+          reason: string
+          remote_jid: string
+          sla_deadline: string
+          source_instance: string
+          status: string
+          target_instance: string
+          to_agent_id: string
+          total_count: number
+          transfer_type: string
+        }[]
       }
       rpc_migrate_whatsapp_integration: { Args: never; Returns: Json }
       rpc_upsert_contact: {

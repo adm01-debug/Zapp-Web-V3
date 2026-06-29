@@ -1,0 +1,69 @@
+/**
+ * Hook paginado de transferências para o Admin. Respeita RLS:
+ * - admin/supervisor veem todas
+ * - agentes veem apenas transferências em que são origem/destino
+ *
+ * Erros de RLS (42501/403) viram `deniedReason` em PT-BR sem quebrar a lista.
+ */
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
+
+export interface TransferRow {
+  id: string;
+  source_instance: string | null;
+  target_instance: string | null;
+  remote_jid: string | null;
+  contact_name: string | null;
+  status: string;
+  priority: number | null;
+  transfer_type: string | null;
+  category: string | null;
+  reason: string | null;
+  from_agent_id: string | null;
+  to_agent_id: string | null;
+  sla_deadline: string | null;
+  created_at: string;
+  accepted_at: string | null;
+  completed_at: string | null;
+}
+
+export interface TransfersFilters {
+  status?: string | null;
+  priority?: number | null;
+  from?: string | null;
+  to?: string | null;
+  page?: number;
+  pageSize?: number;
+}
+
+export function useTransfersPaginated(filters: TransfersFilters = {}) {
+  const { status = null, priority = null, from = null, to = null, page = 0, pageSize = 50 } = filters;
+
+  return useQuery<{ rows: TransferRow[]; total: number; deniedReason: string | null }>({
+    queryKey: ['transfers-paginated', { status, priority, from, to, page, pageSize }],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('rpc_list_transfers_paginated' as never, {
+        p_status: status,
+        p_priority: priority,
+        p_from: from,
+        p_to: to,
+        p_limit: pageSize,
+        p_offset: page * pageSize,
+      } as never);
+      if (error) {
+        if (isRlsDeniedError(error)) {
+          return { rows: [], total: 0, deniedReason: formatAdminError(error, 'as transferências') };
+        }
+        throw error;
+      }
+      const list = (data ?? []) as Array<TransferRow & { total_count?: number | string }>;
+      const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
+      const rows: TransferRow[] = list.map(({ total_count: _t, ...rest }) => rest);
+      return { rows, total, deniedReason: null };
+    },
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    retry: (count, err) => !isRlsDeniedError(err) && count < 2,
+  });
+}

@@ -110,7 +110,7 @@ flowchart LR
   %% FAN-OUT REALTIME — quem escuta postgres_changes na tabela 'messages'
   %% =====================================================================
   DB -.->|INSERT/UPDATE| URM
-  DB -.->|INSERT/UPDATE/DELETE| UM
+  DB -.->|INSERT/UPDATE| UM
   DB -.->|UPDATE status| UMS
   DB -.->|UPDATE transcription| UTN
   DB -.->|INSERT/UPDATE KPIs| URD
