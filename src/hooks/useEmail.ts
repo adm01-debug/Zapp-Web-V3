@@ -384,19 +384,35 @@ export function useEmail() {
         return;
       }
 
+      // `settled` evita que o poll de popup.closed e o handler de mensagem
+      // disparem cleanup duas vezes (ex.: a mensagem já fechou o popup via
+      // popup?.close() — sem essa flag, o próximo tick do poll veria
+      // popup.closed===true e tentaria limpar de novo, possivelmente
+      // resetando oauthInFlightRef no meio de um exchangeCode ainda em voo).
+      let settled = false;
+      let closeCheckInterval: ReturnType<typeof setInterval> | null = null;
+
+      const cleanupListeners = () => {
+        window.removeEventListener('message', handler);
+        if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
+      };
+
       // Escutar callback do popup.
       // Protocolo real do backend gmail-oauth (callback GET):
       //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
       //   { type: 'gmail-oauth-error', error }  -> falha (ex.: usuário negou consentimento)
       const handler = async (event: MessageEvent) => {
+        if (settled) return;
         if (event.data?.type === 'gmail-oauth-error') {
-          window.removeEventListener('message', handler);
+          settled = true;
+          cleanupListeners();
           setError(`Autorização Google negada: ${event.data.error ?? 'erro desconhecido'}`);
           oauthInFlightRef.current = false;
           return;
         }
         if (event.data?.type !== 'gmail-oauth-code') return;
-        window.removeEventListener('message', handler);
+        settled = true;
+        cleanupListeners();
 
         const { code } = event.data;
         if (!code) { oauthInFlightRef.current = false; return; }
@@ -424,6 +440,24 @@ export function useEmail() {
       };
 
       window.addEventListener('message', handler);
+
+      // Detecta o usuário fechando o popup MANUALMENTE (sem completar o
+      // fluxo) — sem isto, a guarda de concorrência acima travaria o botão
+      // "Conectar" para sempre, já que nenhuma mensagem chegaria para
+      // resetar oauthInFlightRef. Em try/catch porque navegadores com
+      // Cross-Origin-Opener-Policy estrita podem bloquear o acesso a
+      // popup.closed; nesse caso simplesmente tentamos de novo no próximo
+      // tick em vez de derrubar a sessão.
+      closeCheckInterval = setInterval(() => {
+        if (settled) { if (closeCheckInterval !== null) clearInterval(closeCheckInterval); return; }
+        let closed = false;
+        try { closed = popup.closed; } catch { closed = false; }
+        if (closed) {
+          settled = true;
+          cleanupListeners();
+          oauthInFlightRef.current = false;
+        }
+      }, 500);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
