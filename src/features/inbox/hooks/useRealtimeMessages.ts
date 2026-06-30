@@ -197,6 +197,33 @@ export function useRealtimeMessages() {
     [commitConversations, hydrateConversationForMessage, notifyAboutIncomingMessage]
   );
 
+  // Reage a um DELETE real na tabela messages (ex.: moderação via
+  // useMonitoringActions). payload.old traz a linha completa porque
+  // public.messages tem REPLICA IDENTITY FULL, então id e contact_id estao
+  // sempre disponíveis aqui. Recalcula a conversa inteira via
+  // buildConversation (mesmo helper do handleNewMessage) para manter
+  // lastMessage/unreadCount consistentes, sem reordenar a lista (deleição
+  // não deve "subir" a conversa como uma mensagem nova faria).
+  const handleMessageDelete = useCallback(
+    (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
+      const deletedMessage = payload.old as RealtimeMessage;
+      if (!deletedMessage?.id || !deletedMessage?.contact_id) return;
+
+      commitConversations((prev) => {
+        const idx = prev.findIndex((c) => c.contact.id === deletedMessage.contact_id);
+        if (idx < 0) return prev;
+        const conv = prev[idx];
+        if (!conv.messages.some((m) => m.id === deletedMessage.id)) return prev;
+
+        const remainingMessages = conv.messages.filter((m) => m.id !== deletedMessage.id);
+        const updated = [...prev];
+        updated[idx] = buildConversation(conv.contact, remainingMessages);
+        return updated;
+      });
+    },
+    [commitConversations]
+  );
+
   const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
@@ -237,6 +264,7 @@ export function useRealtimeMessages() {
     const channelName = `messages-realtime-${Math.random().toString(36).slice(2, 9)}`;
     logMessagesSubscribe('useRealtimeMessages', { event: 'INSERT', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
+    logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
     
     const channel = dbChannel('messages', channelName)
       .on('postgres_changes', { 
@@ -255,6 +283,14 @@ export function useRealtimeMessages() {
         (payload) => {
           if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageUpdate)(payload as RealtimePostgresChangesPayload<RealtimeMessage>);
         })
+      .on('postgres_changes', { 
+        event: 'DELETE', 
+        schema: 'public', 
+        table: dbTable('messages'),
+      },
+        (payload) => {
+          if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageDelete)(payload as RealtimePostgresChangesPayload<RealtimeMessage>);
+        })
       .subscribe((status) => { 
         if (active) log.debug('Subscription status', { status }); 
       });
@@ -263,7 +299,7 @@ export function useRealtimeMessages() {
       active = false;
       void dbRemoveChannel('messages', channel); 
     };
-  }, [fetchConversations, handleNewMessage, handleMessageUpdate]);
+  }, [fetchConversations, handleNewMessage, handleMessageUpdate, handleMessageDelete]);
 
   const sendMessage = async (contactId: string, content: string, messageType: string = 'text', mediaUrl?: string, mediaPayload?: string) => {
     const response = await sendMessageToContact(contactId, content, messageType, mediaUrl, mediaPayload);
