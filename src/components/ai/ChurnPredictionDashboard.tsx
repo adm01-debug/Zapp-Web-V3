@@ -10,18 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { differenceInDays } from 'date-fns';
 import { dbFrom } from '@/integrations/datasource/db';
-
-interface ChurnRisk {
-  contactId: string;
-  contactName: string;
-  phone: string;
-  riskScore: number; // 0-100
-  riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  daysSinceLastMessage: number;
-  totalMessages: number;
-  sentiment: string | null;
-  reasons: string[];
-}
+import { classifyChurnRisk, type ChurnRisk } from './classifyChurnRisk';
 
 export function ChurnPredictionDashboard() {
   const [risks, setRisks] = useState<ChurnRisk[]>([]);
@@ -80,10 +69,7 @@ export function ChurnPredictionDashboard() {
         }
 
         score = Math.min(100, score);
-        let riskLevel: ChurnRisk['riskLevel'] = 'low';
-        if (score >= 80) riskLevel = 'critical';
-        else if (score >= 60) riskLevel = 'high';
-        else if (score >= 30) riskLevel = 'medium';
+        const riskLevel: ChurnRisk['riskLevel'] = classifyChurnRisk(score);
 
         if (reasons.length === 0) reasons.push('Engajamento regular');
 

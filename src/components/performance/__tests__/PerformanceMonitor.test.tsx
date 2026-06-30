@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { PerformanceMonitor } from '../PerformanceMonitor';
+import { classifyMetricStatus } from '../classifyMetricStatus';
 
 // Mock performance API
 const mockNav = {
@@ -207,43 +208,51 @@ describe('PerformanceMonitor', () => {
   // ===== STATUS THRESHOLDS =====
   describe('Status thresholds', () => {
     it('FCP < 1800 is good', () => {
-      const status = 450 < 1800 ? 'good' : 450 < 3000 ? 'warning' : 'critical';
-      expect(status).toBe('good');
+      expect(classifyMetricStatus(450, 1800, 3000)).toBe('good');
     });
 
     it('FCP 2000 is warning', () => {
-      const status = 2000 < 1800 ? 'good' : 2000 < 3000 ? 'warning' : 'critical';
-      expect(status).toBe('warning');
+      expect(classifyMetricStatus(2000, 1800, 3000)).toBe('warning');
     });
 
     it('FCP 4000 is critical', () => {
-      const status = 4000 < 1800 ? 'good' : 4000 < 3000 ? 'warning' : 'critical';
-      expect(status).toBe('critical');
+      expect(classifyMetricStatus(4000, 1800, 3000)).toBe('critical');
     });
 
     it('TTFB < 200 is good', () => {
-      const status = 40 < 200 ? 'good' : 40 < 500 ? 'warning' : 'critical';
-      expect(status).toBe('good');
+      expect(classifyMetricStatus(40, 200, 500)).toBe('good');
     });
 
     it('DOM < 1500 is good', () => {
-      const status = 500 < 1500 ? 'good' : 500 < 3000 ? 'warning' : 'critical';
-      expect(status).toBe('good');
+      expect(classifyMetricStatus(500, 1500, 3000)).toBe('good');
     });
 
     it('DOM > 3000 is critical', () => {
-      const status = 5000 < 1500 ? 'good' : 5000 < 3000 ? 'warning' : 'critical';
-      expect(status).toBe('critical');
+      expect(classifyMetricStatus(5000, 1500, 3000)).toBe('critical');
     });
 
     it('memory < 60% is good', () => {
-      const status = 20 < 60 ? 'good' : 20 < 80 ? 'warning' : 'critical';
-      expect(status).toBe('good');
+      expect(classifyMetricStatus(20, 60, 80)).toBe('good');
     });
 
     it('RTT < 100 is good', () => {
-      const status = 50 < 100 ? 'good' : 50 < 300 ? 'warning' : 'critical';
-      expect(status).toBe('good');
+      expect(classifyMetricStatus(50, 100, 300)).toBe('good');
+    });
+
+    it('boundary: valor exatamente igual ao limiar "good" é warning, não good (< estrito)', () => {
+      expect(classifyMetricStatus(1800, 1800, 3000)).toBe('warning');
+    });
+
+    it('boundary: valor exatamente igual ao limiar "warning" é critical, não warning (< estrito)', () => {
+      expect(classifyMetricStatus(3000, 1800, 3000)).toBe('critical');
+    });
+
+    it('boundary: 1 abaixo do limiar "good" ainda é good', () => {
+      expect(classifyMetricStatus(1799, 1800, 3000)).toBe('good');
+    });
+
+    it('valor 0 é sempre good (abaixo de qualquer limiar positivo)', () => {
+      expect(classifyMetricStatus(0, 1800, 3000)).toBe('good');
     });
 
     it('4g network is good', () => {

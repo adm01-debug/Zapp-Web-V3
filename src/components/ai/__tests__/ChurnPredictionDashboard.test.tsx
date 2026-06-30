@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { ChurnPredictionDashboard } from '../ChurnPredictionDashboard';
+import { classifyChurnRisk } from '../classifyChurnRisk';
 
 const mockContacts = [
   { id: 'c1', name: 'Maria Silva', phone: '+5511999990001', ai_sentiment: 'negative', updated_at: '2025-01-01T00:00:00Z', created_at: '2024-12-01T00:00:00Z' },
@@ -95,23 +96,48 @@ describe('ChurnPredictionDashboard', () => {
     });
 
     it('classifies critical when score >= 80', () => {
-      const level = 85 >= 80 ? 'critical' : 85 >= 60 ? 'high' : 85 >= 30 ? 'medium' : 'low';
-      expect(level).toBe('critical');
+      expect(classifyChurnRisk(85)).toBe('critical');
     });
 
     it('classifies high when score >= 60', () => {
-      const level = 65 >= 80 ? 'critical' : 65 >= 60 ? 'high' : 65 >= 30 ? 'medium' : 'low';
-      expect(level).toBe('high');
+      expect(classifyChurnRisk(65)).toBe('high');
     });
 
     it('classifies medium when score >= 30', () => {
-      const level = 45 >= 80 ? 'critical' : 45 >= 60 ? 'high' : 45 >= 30 ? 'medium' : 'low';
-      expect(level).toBe('medium');
+      expect(classifyChurnRisk(45)).toBe('medium');
     });
 
     it('classifies low when score < 30', () => {
-      const level = 15 >= 80 ? 'critical' : 15 >= 60 ? 'high' : 15 >= 30 ? 'medium' : 'low';
-      expect(level).toBe('low');
+      expect(classifyChurnRisk(15)).toBe('low');
+    });
+
+    it('boundary: score exatamente 80 é critical (>=, não >)', () => {
+      expect(classifyChurnRisk(80)).toBe('critical');
+    });
+
+    it('boundary: score 79 (1 abaixo de 80) é high, não critical', () => {
+      expect(classifyChurnRisk(79)).toBe('high');
+    });
+
+    it('boundary: score exatamente 60 é high', () => {
+      expect(classifyChurnRisk(60)).toBe('high');
+    });
+
+    it('boundary: score 59 (1 abaixo de 60) é medium, não high', () => {
+      expect(classifyChurnRisk(59)).toBe('medium');
+    });
+
+    it('boundary: score exatamente 30 é medium', () => {
+      expect(classifyChurnRisk(30)).toBe('medium');
+    });
+
+    it('boundary: score 29 (1 abaixo de 30) é low, não medium', () => {
+      expect(classifyChurnRisk(29)).toBe('low');
+    });
+
+    it('extremos: score 0 é low, score 100 é critical', () => {
+      expect(classifyChurnRisk(0)).toBe('low');
+      expect(classifyChurnRisk(100)).toBe('critical');
     });
 
     it('adds inactivity reason when > 30 days', () => {

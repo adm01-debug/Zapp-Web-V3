@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { usePerformanceSnapshots } from '@/hooks/usePerformanceSnapshots';
+import { classifyMetricStatus, type PerformanceMetricStatus } from './classifyMetricStatus';
 
 interface PerformanceMetric {
   name: string;
   value: number;
   unit: string;
-  status: 'good' | 'warning' | 'critical';
+  status: PerformanceMetricStatus;
 }
 
 export function PerformanceMonitor() {
@@ -44,13 +45,13 @@ export function PerformanceMonitor() {
     const ttfb = nav ? Math.round(nav.responseStart - nav.requestStart) : 0;
 
     const newMetrics: PerformanceMetric[] = [
-      { name: 'FCP', value: fcpValue, unit: 'ms', status: fcpValue < 1800 ? 'good' : fcpValue < 3000 ? 'warning' : 'critical' },
-      { name: 'Page Load', value: pageLoadTime, unit: 'ms', status: pageLoadTime < 3000 ? 'good' : pageLoadTime < 5000 ? 'warning' : 'critical' },
-      { name: 'DOM Ready', value: domReady, unit: 'ms', status: domReady < 2000 ? 'good' : domReady < 4000 ? 'warning' : 'critical' },
-      { name: 'TTFB', value: ttfb, unit: 'ms', status: ttfb < 200 ? 'good' : ttfb < 500 ? 'warning' : 'critical' },
-      { name: 'Memória JS', value: memoryUsed, unit: `MB / ${memoryTotal}MB`, status: memoryPercent < 60 ? 'good' : memoryPercent < 80 ? 'warning' : 'critical' },
-      { name: 'DOM Nodes', value: domNodes, unit: 'nós', status: domNodes < 1500 ? 'good' : domNodes < 3000 ? 'warning' : 'critical' },
-      { name: 'RTT', value: rtt, unit: 'ms', status: rtt < 100 ? 'good' : rtt < 300 ? 'warning' : 'critical' },
+      { name: 'FCP', value: fcpValue, unit: 'ms', status: classifyMetricStatus(fcpValue, 1800, 3000) },
+      { name: 'Page Load', value: pageLoadTime, unit: 'ms', status: classifyMetricStatus(pageLoadTime, 3000, 5000) },
+      { name: 'DOM Ready', value: domReady, unit: 'ms', status: classifyMetricStatus(domReady, 2000, 4000) },
+      { name: 'TTFB', value: ttfb, unit: 'ms', status: classifyMetricStatus(ttfb, 200, 500) },
+      { name: 'Memória JS', value: memoryUsed, unit: `MB / ${memoryTotal}MB`, status: classifyMetricStatus(memoryPercent, 60, 80) },
+      { name: 'DOM Nodes', value: domNodes, unit: 'nós', status: classifyMetricStatus(domNodes, 1500, 3000) },
+      { name: 'RTT', value: rtt, unit: 'ms', status: classifyMetricStatus(rtt, 100, 300) },
       { name: 'Conexão', value: networkType === '4g' ? 100 : networkType === '3g' ? 60 : 30, unit: networkType, status: networkType === '4g' ? 'good' : networkType === '3g' ? 'warning' : 'critical' },
     ];
 
