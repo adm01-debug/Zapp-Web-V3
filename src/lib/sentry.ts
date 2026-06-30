@@ -60,12 +60,10 @@ export function initSentry(): boolean {
         }
         return event;
       },
-      // Domínios pra distributed tracing
+      // Domínios pra distributed tracing (self-hosted Supabase + same-origin)
       tracePropagationTargets: [
         /^\//,
-        /^https:\/\/.*\.supabase\.co/,
-        /^https:\/\/allrjhkpuscmgbsnmjlv\.supabase\.co/,
-        /^https:\/\/tdprnylgyrogbbhgdoik\.supabase\.co/,
+        /^https:\/\/supabase\.atomicabr\.com\.br/,
       ],
     });
 
@@ -74,7 +72,7 @@ export function initSentry(): boolean {
     console.info("[sentry] ✅ initialized successfully");
     return true;
   } catch (err) {
-     
+    // eslint-disable-next-line no-console
     console.error("[sentry] init failed:", err);
     return false;
   }
