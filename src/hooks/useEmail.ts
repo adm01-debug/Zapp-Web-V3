@@ -44,7 +44,7 @@ export type TokenStatus = EmailTokenStatus;
 
 const supabase = _supabase as any;
 
-// ── Hook Principal ─────────────────────────────────────────────────────────
+// ── Hook Principal ─────────────────────────────────────────────────────
 
 export function useEmail() {
   const [accounts, setAccounts]               = useState<EmailAccount[]>([]);
@@ -67,7 +67,7 @@ export function useEmail() {
 
   const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Carregar contas Email ───────────────────────────────────────────────
+  // ── Carregar contas Email ───────────────────────────────────────────
   const loadAccounts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -101,7 +101,7 @@ export function useEmail() {
     setIsLoading(false);
   }, [activeAccountId]);
 
-  // ── Verificar status dos tokens ─────────────────────────────────────────
+  // ── Verificar status dos tokens ────────────────────────────────────
   const checkTokenStatus = useCallback(async () => {
     const { data, error: rpcErr, requestId } = await safeClient.rpc('rpc_email_token_status');
     if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
@@ -118,7 +118,7 @@ export function useEmail() {
     }
   }, []);
 
-  // ── Carregar threads ────────────────────────────────────────────────────
+  // ── Carregar threads ──────────────────────────────────────────────
   const loadThreads = useCallback(async (accountId?: string, label: EmailLabel = 'INBOX', append = false) => {
     const id = accountId ?? activeAccountId;
     if (!id) return;
@@ -150,7 +150,7 @@ export function useEmail() {
     setIsLoadingThreads(false);
   }, [activeAccountId, threads.length]);
 
-  // ── Carregar mensagens de uma thread ────────────────────────────────────
+  // ── Carregar mensagens de uma thread ────────────────────────────────
   const loadMessages = useCallback(async (threadId: string) => {
     setIsLoadingMessages(true);
     const { data, error: dbErr } = await safeClient.from('email_messages', (q) =>
@@ -172,7 +172,7 @@ export function useEmail() {
     setIsLoadingMessages(false);
   }, []);
 
-  // ── Selecionar thread ────────────────────────────────────────────────────
+  // ── Selecionar thread ───────────────────────────────────────────
   const selectThread = useCallback(async (thread: EmailThread | null) => {
     setSelectedThread(thread);
     if (thread) {
@@ -182,14 +182,14 @@ export function useEmail() {
     }
   }, [loadMessages]);
 
-  // ── Carregar mais threads (Paginação) ───────────────────────────────────
+  // ── Carregar mais threads (Paginação) ───────────────────────────────
   const loadMore = useCallback(async () => {
     if (hasMore && !isLoadingThreads) {
       await loadThreads(activeAccountId || undefined, activeLabel, true);
     }
   }, [hasMore, isLoadingThreads, activeAccountId, activeLabel, loadThreads]);
 
-  // ── Sincronizar inbox via email-sync ────────────────────────────────────
+  // ── Sincronizar inbox via email-sync ───────────────────────────────
   const syncNow = useCallback(async (accountId?: string) => {
     const id = accountId ?? activeAccountId;
     if (!id || isSyncing) return;
@@ -197,7 +197,7 @@ export function useEmail() {
     setIsSyncing(true);
     setError(null);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('email-sync', {
+      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-sync', {
         body: { action: 'syncInbox', accountId: id, maxResults: 100 },
       });
 
@@ -216,13 +216,13 @@ export function useEmail() {
     }
   }, [activeAccountId, isSyncing, activeLabel, loadThreads, checkTokenStatus]);
 
-  // ── Renovar token manualmente ───────────────────────────────────────────
+  // ── Renovar token manualmente ────────────────────────────────────
   const refreshToken = useCallback(async (accountId?: string) => {
     const id = accountId ?? activeAccountId;
     if (!id) return;
 
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('email-oauth', {
+      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-oauth', {
         body: { action: 'refreshToken', accountId: id },
       });
 
@@ -238,13 +238,13 @@ export function useEmail() {
     }
   }, [activeAccountId, checkTokenStatus]);
 
-  // ── Renovar Pub/Sub watch ───────────────────────────────────────────────
+  // ── Renovar Pub/Sub watch ───────────────────────────────────────
   const renewWatch = useCallback(async (accountId?: string) => {
     const id = accountId ?? activeAccountId;
     if (!id) return;
 
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('email-webhook', {
+      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-webhook', {
         body: { action: 'renewWatch', accountId: id },
       });
 
@@ -256,13 +256,13 @@ export function useEmail() {
     }
   }, [activeAccountId, checkTokenStatus]);
 
-  // ── Enviar email ────────────────────────────────────────────────────────
+  // ── Enviar email ──────────────────────────────────────────────
   const sendEmail = useCallback(async (params: EmailSendParams): Promise<{ success: boolean; error?: string }> => {
     if (!activeAccountId) return { success: false, error: 'Nenhuma conta Email ativa' };
 
     setIsSending(true);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('email-send', {
+      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-send', {
         body: {
           action: 'send',
           accountId: activeAccountId,
@@ -284,7 +284,7 @@ export function useEmail() {
     }
   }, [activeAccountId]);
 
-  // ── Marcar thread como lida/não lida ───────────────────────────────────
+  // ── Marcar thread como lida/não lida ──────────────────────────────
   const markAsRead = useCallback(async (threadId: string, read = true) => {
     const { error: rpcErr, requestId } = await safeClient.rpc('rpc_email_mark_thread_read', {
       p_thread_id: threadId,
@@ -299,7 +299,7 @@ export function useEmail() {
     }
   }, []);
 
-  // ── Star/Unstar thread ──────────────────────────────────────────────────
+  // ── Star/Unstar thread ───────────────────────────────────────────
   const starThread = useCallback(async (threadId: string, starred = true) => {
     const { error: rpcErr, requestId } = await safeClient.rpc('rpc_email_star_thread', {
       p_thread_id: threadId,
@@ -313,7 +313,7 @@ export function useEmail() {
     }
   }, []);
 
-  // ── Archive thread ──────────────────────────────────────────────────────
+  // ── Archive thread ─────────────────────────────────────────────
   const archiveThread = useCallback(async (threadId: string) => {
     const { error: rpcErr, requestId } = await safeClient.rpc('rpc_email_archive_thread', {
       p_thread_id: threadId,
@@ -326,7 +326,7 @@ export function useEmail() {
     }
   }, []);
 
-  // ── Assign thread a agente ──────────────────────────────────────────────
+  // ── Assign thread a agente ───────────────────────────────────────
   const assignThread = useCallback(async (threadId: string, agentId: string | null) => {
     const { error: rpcErr, requestId } = await safeClient.rpc('rpc_email_assign_thread', {
       p_thread_id: threadId,
@@ -342,7 +342,7 @@ export function useEmail() {
     }
   }, []);
 
-  // ── Desconectar conta ───────────────────────────────────────────────────
+  // ── Desconectar conta ──────────────────────────────────────────
   const disconnect = useCallback(async (accountId: string) => {
     const { requestId, error: dbErr } = await safeClient.from('email_accounts', (q) =>
       q.update({ is_active: false, updated_at: new Date().toISOString() })
@@ -356,11 +356,11 @@ export function useEmail() {
     }
   }, [activeAccountId]);
 
-  // ── OAuth: iniciar fluxo de conexão ────────────────────────────────────
+  // ── OAuth: iniciar fluxo de conexão ─────────────────────────────────
   const startOAuth = useCallback(async () => {
     setError(null);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('email-oauth', {
+      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-oauth', {
         body: { action: 'getAuthUrl' },
       });
 
@@ -386,7 +386,7 @@ export function useEmail() {
         const { data: { user } } = await (supabase as any).auth.getUser();
         if (!user) return;
 
-        const { data: exchangeData, error: exchangeErr } = await (supabase as any).functions.invoke('email-oauth', {
+        const { data: exchangeData, error: exchangeErr } = await (supabase as any).functions.invoke('gmail-oauth', {
           body: { action: 'exchangeCode', code, userId: user.id },
         });
 
@@ -406,7 +406,7 @@ export function useEmail() {
     }
   }, [loadAccounts, checkTokenStatus]);
 
-  // ── Realtime subscription nas threads ──────────────────────────────────
+  // ── Realtime subscription nas threads ──────────────────────────────
   useEffect(() => {
     if (!activeAccountId) return;
 
@@ -435,7 +435,7 @@ export function useEmail() {
     return () => { (supabase as any).removeChannel(channel); };
   }, [activeAccountId]);
 
-  // ── Token check automático (a cada 5 minutos) ───────────────────────────
+  // ── Token check automático (a cada 5 minutos) ──────────────────────────
   useEffect(() => {
     checkTokenStatus();
 
@@ -448,19 +448,19 @@ export function useEmail() {
     };
   }, [checkTokenStatus]);
 
-  // ── Carregar ao montar ──────────────────────────────────────────────────
+  // ── Carregar ao montar ──────────────────────────────────────────
   useEffect(() => {
     loadAccounts();
   }, [loadAccounts]);
 
-  // ── Carregar threads quando muda conta ou label ─────────────────────────
+  // ── Carregar threads quando muda conta ou label ──────────────────────────
   useEffect(() => {
     if (activeAccountId) {
       loadThreads(activeAccountId, activeLabel);
     }
   }, [activeAccountId, activeLabel]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Computed ────────────────────────────────────────────────────────────
+  // ── Computed ───────────────────────────────────────────────────
   const unreadCount = threads.reduce((sum, t) => sum + (t.unread_count ?? 0), 0);
   const slaBreachedCount = threads.filter(t => t.sla_status === 'breached').length;
   const activeAccount = accounts.find(a => a.id === activeAccountId) ?? null;
