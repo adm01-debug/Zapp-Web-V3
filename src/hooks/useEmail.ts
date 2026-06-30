@@ -64,6 +64,7 @@ export function useEmail() {
   const [schemaStatus, setSchemaStatus]       = useState<{ ok: boolean; lastChecked: Date | null }>({ ok: true, lastChecked: null });
   const [nextPageToken, setNextPageToken]     = useState<string | null>(null);
   const [hasMore, setHasMore]                 = useState(false);
+  const oauthInFlightRef                       = useRef(false);
 
   const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -358,6 +359,12 @@ export function useEmail() {
 
   // ── OAuth: iniciar fluxo de conexão ─────────────────────────────────
   const startOAuth = useCallback(async () => {
+    // Guarda contra clique duplo / chamadas concorrentes: sem isto, dois
+    // listeners 'message' ficariam ativos e ambos tentariam exchangeCode
+    // com o MESMO code de uso único, fazendo a 2ª tentativa falhar no servidor.
+    if (oauthInFlightRef.current) return;
+    oauthInFlightRef.current = true;
+
     setError(null);
     try {
       const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-oauth', {
@@ -366,25 +373,40 @@ export function useEmail() {
 
       if (fnErr || !data?.authUrl) {
         setError('Erro ao obter URL de autorização Google. Verifique GOOGLE_CLIENT_ID.');
+        oauthInFlightRef.current = false;
         return;
       }
 
       const popup = window.open(data.authUrl, 'email_oauth', 'width=500,height=600,scrollbars=yes');
       if (!popup) {
         setError('Popup bloqueado. Permita popups para este site.');
+        oauthInFlightRef.current = false;
         return;
       }
 
-      // Escutar callback do popup
+      // Escutar callback do popup.
+      // Protocolo real do backend gmail-oauth (callback GET):
+      //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
+      //   { type: 'gmail-oauth-error', error }  -> falha (ex.: usuário negou consentimento)
       const handler = async (event: MessageEvent) => {
-        if (event.data?.type !== 'email_oauth_callback') return;
+        if (event.data?.type === 'gmail-oauth-error') {
+          window.removeEventListener('message', handler);
+          setError(`Autorização Google negada: ${event.data.error ?? 'erro desconhecido'}`);
+          oauthInFlightRef.current = false;
+          return;
+        }
+        if (event.data?.type !== 'gmail-oauth-code') return;
         window.removeEventListener('message', handler);
 
         const { code } = event.data;
-        if (!code) return;
+        if (!code) { oauthInFlightRef.current = false; return; }
 
         const { data: { user } } = await (supabase as any).auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setError('Sessão expirada. Faça login novamente.');
+          oauthInFlightRef.current = false;
+          return;
+        }
 
         const { data: exchangeData, error: exchangeErr } = await (supabase as any).functions.invoke('gmail-oauth', {
           body: { action: 'exchangeCode', code, userId: user.id },
@@ -392,17 +414,20 @@ export function useEmail() {
 
         if (exchangeErr || !exchangeData?.success) {
           setError('Falha na autenticação Google. Tente novamente.');
+          oauthInFlightRef.current = false;
           return;
         }
 
         await loadAccounts();
         await checkTokenStatus();
+        oauthInFlightRef.current = false;
       };
 
       window.addEventListener('message', handler);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      oauthInFlightRef.current = false;
     }
   }, [loadAccounts, checkTokenStatus]);
 
