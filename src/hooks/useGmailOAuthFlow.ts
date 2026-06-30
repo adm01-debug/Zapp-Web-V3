@@ -189,21 +189,36 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
           return;
         }
 
+        // `settled` evita cleanup duplo entre o poll de popup.closed e o
+        // handler de mensagem (ex.: a mensagem já fechou o popup via
+        // popup?.close() — sem essa flag, o próximo tick do poll veria
+        // popup.closed===true e tentaria limpar de novo).
+        let settled = false;
+        let closeCheckInterval: ReturnType<typeof setInterval> | null = null;
+
+        const cleanupListeners = () => {
+          window.removeEventListener('message', onMessage);
+          if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
+        };
+
         // Listener para message do popup.
         // Protocolo real do backend gmail-oauth (callback GET):
         //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
         //   { type: 'gmail-oauth-error', error }  -> falha
         const onMessage = async (event: MessageEvent) => {
+          if (settled) return;
           const msg = event.data;
           if (msg?.type === 'gmail-oauth-error') {
-            window.removeEventListener('message', onMessage);
+            settled = true;
+            cleanupListeners();
             popup?.close();
             toast.error('Falha na autenticação Email', { description: String(msg.error ?? '') });
             oauthInFlightRef.current = false;
             return;
           }
           if (msg?.type !== 'gmail-oauth-code') return; // mensagem de outra origem/tipo: ignora, sem remover o listener
-          window.removeEventListener('message', onMessage);
+          settled = true;
+          cleanupListeners();
           popup?.close();
           if (!msg.code) {
             toast.error('Código de autorização ausente na resposta do Google.');
@@ -236,6 +251,24 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
           }
         };
         window.addEventListener('message', onMessage);
+
+        // Detecta o usuário fechando o popup MANUALMENTE (sem completar o
+        // fluxo) — sem isto, a guarda de concorrência acima travaria o botão
+        // "Conectar" para sempre, já que nenhuma mensagem chegaria para
+        // resetar oauthInFlightRef. Em try/catch porque navegadores com
+        // Cross-Origin-Opener-Policy estrita podem bloquear o acesso a
+        // popup.closed; nesse caso simplesmente tentamos de novo no próximo
+        // tick em vez de derrubar a sessão.
+        closeCheckInterval = setInterval(() => {
+          if (settled) { if (closeCheckInterval !== null) clearInterval(closeCheckInterval); return; }
+          let closed = false;
+          try { closed = popup.closed; } catch { closed = false; }
+          if (closed) {
+            settled = true;
+            cleanupListeners();
+            oauthInFlightRef.current = false;
+          }
+        }, 500);
       });
   }, [loadAccounts]);
 
@@ -257,7 +290,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     }
   }, []);
 
-  // ── Effects ──────────────────────────────────────────────────────
+  // ── Effects ───────────────────────────────────────────────────
 
   // Carga inicial
   useEffect(() => {
