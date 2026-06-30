@@ -43,7 +43,7 @@ export function EmailOAuthCallback() {
         }
 
         // Trocar code por tokens via Edge Function
-        const { data, error: fnErr } = await supabase.functions.invoke('email-oauth', {
+        const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
           body: { action: 'exchangeCode', code, userId: user.id, state },
         });
 
