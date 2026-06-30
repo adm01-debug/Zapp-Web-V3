@@ -2,32 +2,47 @@
 
 Full scan of DB code objects for references to the OLD Lovable project
 (`allrjhkpuscmgbsnmjlv`), old anon project (`uqysyzndkfiwfztbqvsl`), any
-`*.supabase.co` URL, or `lovable` tokens.
+`*.supabase.co` URL, or `lovable` tokens. **Function bodies were then read to
+confirm true positives vs. benign mentions.**
 
-## Function URL landmines (repoint required - GATED on target being ready)
-1. `public.notify_sicoob_on_reply`
-   -> `https://allrjhkpuscmgbsnmjlv.supabase.co/functions/v1/sicoob-bridge-reply`
-   Calls edge function `sicoob-bridge-reply`; auth via GUC
-   `app.settings.service_role_key` which is currently UNSET.
-   Fix order: deploy function on self-hosted -> provision service_role ->
-   repoint URL. (See docs/cutover/db_edge_function_references.md)
+## Function URL landmines
 
-2. `public.fn_media_public_url`
-   -> `https://allrjhkpuscmgbsnmjlv.supabase.co` (builds PUBLIC MEDIA URLs)
-   On self-hosted, media is served by MinIO/R2 (vault: `minio_endpoint_public`
-   / `minio_media_bucket` / `r2_endpoint` / `r2_bucket_media`). This MUST be
-   repointed to the self-hosted public media endpoint, AND the media objects
-   must exist there. Do NOT repoint blind - confirm media migration + the exact
-   public-URL shape first. Impacts every image/audio rendered from WhatsApp.
+### REAL - `public.notify_sicoob_on_reply` (GATED cutover fix)
+Trigger (SECURITY DEFINER) on agent replies to `sicoob_gifts` contacts. It does
+a **synchronous** `extensions.http_post` to
+`https://allrjhkpuscmgbsnmjlv.supabase.co/functions/v1/sicoob-bridge-reply`
+with `Authorization: Bearer <current_setting('app.settings.service_role_key',
+true)>`.
 
-(`public.fn_constraints_reference_pipeline` matched the scan but exposes no
-URL - benign mention; glance only.)
+Issues:
+1. URL points at the Lovable project being decommissioned (swap host to
+   `https://supabase.atomicabr.com.br`).
+2. GUC `app.settings.service_role_key` is UNSET -> empty bearer -> the edge
+   function will reject the call. Provision the service_role (GUC via
+   `ALTER DATABASE ... SET`, or move to Vault) - do NOT hardcode the key in the
+   function body.
+3. **Risk:** synchronous `http_post` that errors (404/401/timeout) can raise and
+   ABORT the agent message INSERT. Wrap the call in a `BEGIN ... EXCEPTION WHEN
+   OTHERS THEN ... END` block so a failed notification never blocks the reply.
+
+Fix order at cutover: deploy `sicoob-bridge-reply` on self-hosted -> provision
+service_role -> CREATE OR REPLACE with (host swapped + exception-wrapped).
+Decision/owner: Pink. Safe to stage on self-hosted (DB not in prod until flip).
+
+### NOT A LANDMINE - `public.fn_media_public_url` (verified benign)
+Reading the body: it maps media URLs to the **R2 worker proxy**
+`https://zapp-media-proxy.adm01.workers.dev` (your own infra). The
+`allrjhkpuscmgbsnmjlv.supabase.co` branch only **passes legacy URLs through
+unchanged** ('manter como esta por enquanto') - it does NOT generate Lovable
+URLs. No action needed; do NOT 'fix' it (would break the R2 mapping).
+
+(`public.fn_constraints_reference_pipeline` matched the scan but exposes no URL
+- benign mention.)
 
 ## Data / config decision (not a URL repoint)
 - `ai.ai_providers.provider_type` DEFAULT `'lovable_ai'` -> the default AI
   provider is Lovable's AI gateway. Confirm AI routing still works off-Lovable,
-  or change the default to a directly-configured provider. Needs a product
-  decision + an alternative provider configured.
+  or change the default to a directly-configured provider. Product decision.
 
 ## Views
 - No old references in any view definition. View layer is clean.
@@ -45,7 +60,7 @@ deliver events:
 - public: profiles, app_notifications, team_messages, whatsapp_connections,
   system_health_incidents, email_health_summary, email_revalidation_jobs
 
-## Bottom line
-The DB side is cutover-ready EXCEPT: the 2 gated function repoints
-(`sicoob-bridge-reply` URL + media public-URL) and the AI-provider default
-decision. No other Lovable references remain in DB code or views.
+## Bottom line (corrected after reading function bodies)
+The DB side is cutover-ready EXCEPT ONE gated item: `notify_sicoob_on_reply`
+(deploy function -> provision service_role -> repoint+exception-wrap). The media
+function is fine, views are clean, realtime is verified, anon is fully locked.
