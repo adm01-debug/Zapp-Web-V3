@@ -1,12 +1,13 @@
 -- =====================================================================
 -- zapp-web-v3 - Self-hosted Supabase - ANON read-leak hardening (FULL)
--- Date: 2026-06-30
+-- Date: 2026-06-30  (v2: now also covers materialized views, relkind 'm')
 --
 -- WHY: `anon` (public API key, NO login) can read ~350 relations whose
 --      RLS does not actually restrict it:
 --        (A) tables with RLS disabled
 --        (B) tables with an anon/public USING(true) SELECT/ALL policy
 --        (C) views created WITH (security_invoker=off) that bypass RLS
+--        (D) materialized views (no RLS at all) granted to anon
 --      => full WhatsApp message/conversation history, contacts, deals,
 --         dashboards, and some credential views are readable by anyone
 --         holding the public anon key. LGPD exposure.
@@ -16,16 +17,15 @@
 --      policy. `authenticated` and `service_role` are untouched, so the
 --      app (post-login) keeps working.
 --
+-- RESULT (applied 2026-06-30): 342 relations revoked; residual anon-
+--      readable leak = ALLOWLIST only (cookies_config, workspaces).
+--
 -- SAFETY:
 --   * Backs up the exact anon grants to archive.anon_grant_backup_20260630
 --     (rollback source). See the ROLLBACK script.
 --   * ALLOWLIST below keeps anon on relations the logged-OUT app may need.
 --     REVIEW IT before running. Defaults: cookies_config, workspaces.
---   * Run in a low-traffic window; smoke-test login + chat afterwards.
---
--- NOTE: A safe subset was ALREADY applied live on 2026-06-30 (canonical
---       message/conversation views + credential/ops tables). This script
---       is idempotent and simply skips whatever is already revoked.
+--   * Idempotent: re-running skips whatever is already revoked.
 -- =====================================================================
 
 BEGIN;
@@ -46,7 +46,7 @@ INSERT INTO _anon_keep(schema, rel) VALUES
 -- --------------------------------------------------------------------
 
 WITH targets AS (
-  -- (A) RLS disabled
+  -- (A) RLS disabled (regular + partitioned tables)
   SELECT n.nspname AS schema, c.relname AS rel
   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname IN ('public','evo','zapp','bpm','ai','email_app')
@@ -68,6 +68,12 @@ WITH targets AS (
     AND has_table_privilege('anon', format('%I.%I', n.nspname, c.relname), 'SELECT')
     AND coalesce((SELECT option_value FROM pg_options_to_table(c.reloptions)
                   WHERE option_name = 'security_invoker'), 'false') = 'false'
+  UNION
+  -- (D) materialized views (no RLS) granted to anon
+  SELECT n.nspname, c.relname
+  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE c.relkind = 'm' AND n.nspname IN ('public','evo','zapp','bpm','ai','email_app')
+    AND has_table_privilege('anon', format('%I.%I', n.nspname, c.relname), 'SELECT')
 )
 INSERT INTO archive.anon_grant_backup_20260630(schema, rel, privs)
 SELECT t.schema, t.rel,
@@ -93,10 +99,5 @@ END $$;
 
 COMMIT;
 
--- Post-check (expect 0 rows): re-run the audit query in the runbook,
--- or:
---   SELECT n.nspname, c.relname
---   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
---   WHERE n.nspname IN ('public','evo','zapp','bpm','ai','email_app')
---     AND c.relkind IN ('r','p') AND c.relrowsecurity=false
---     AND has_table_privilege('anon', format('%I.%I',n.nspname,c.relname),'SELECT');
+-- Post-check (expect only the allowlist, i.e. 2 rows):
+--   WITH t AS ( <targets CTE above> ) SELECT * FROM t ORDER BY 1,2;
