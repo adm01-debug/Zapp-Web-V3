@@ -77,3 +77,12 @@ verify_jwt = true
 
 [functions.whatsapp-cloud-webhook]
 verify_jwt = false
+
+[functions.speech-to-text]
+verify_jwt = true
+
+[functions.fetch-whatsapp-avatar]
+verify_jwt = true
+
+[functions.elevenlabs-voice]
+verify_jwt = true

@@ -45,7 +45,7 @@ export function useEmailLabels(accountId: string | null) {
   const syncLabels = useCallback(async () => {
     if (!accountId) return;
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('email-sync', {
+      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-sync', {
         body: { action: 'syncLabels', accountId },
       });
       if (!fnErr && data?.success) {
