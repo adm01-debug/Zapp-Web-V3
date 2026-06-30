@@ -179,7 +179,7 @@ export function EmailWebhookMonitor() {
           <div className="bg-muted/50 rounded-lg p-4  text-xs space-y-2 border">
             <p className="text-muted-foreground">Endpoint:</p>
             <p className="pl-4 text-foreground/80 break-all">
-              {import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-webhook
+              {import.meta.env.VITE_SUPABASE_URL}/functions/v1/gmail-webhook
             </p>
             <p className="text-muted-foreground mt-2">Tipo: Google Cloud Pub/Sub Push</p>
             <p className="text-muted-foreground">Eventos: messages.insert (INBOX)</p>

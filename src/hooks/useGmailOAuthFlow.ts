@@ -163,7 +163,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   const startOAuth = useCallback(() => {
     // Monta URL de autorização (Edge Function email-oauth retorna a URL)
     supabase.functions
-      .invoke('email-oauth', { body: { action: 'getAuthUrl' } })
+      .invoke('gmail-oauth', { body: { action: 'getAuthUrl' } })
       .then(({ data, error }) => {
         if (error || !data?.url) {
           toast.error('Não foi possível iniciar a autenticação Email');
@@ -176,14 +176,43 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
           'width=500,height=600,scrollbars=yes'
         );
 
-        // Listener para message do popup (após callback bem-sucedido)
-        const onMessage = (event: MessageEvent) => {
-          if (event.data?.type === 'email-oauth-success') {
+        // Listener para message do popup.
+        // Protocolo real do backend gmail-oauth (callback GET):
+        //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
+        //   { type: 'gmail-oauth-error', error }  -> falha
+        const onMessage = async (event: MessageEvent) => {
+          const msg = event.data;
+          if (msg?.type === 'gmail-oauth-error') {
             window.removeEventListener('message', onMessage);
             popup?.close();
-            loadAccounts().then(() => {
-              toast.success(`Conta Email conectada: ${event.data.email}`);
-            });
+            toast.error('Falha na autenticação Email', { description: String(msg.error ?? '') });
+            return;
+          }
+          if (msg?.type === 'gmail-oauth-code' && msg.code) {
+            window.removeEventListener('message', onMessage);
+            popup?.close();
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) {
+                toast.error('Sessão expirada. Faça login novamente.');
+                return;
+              }
+              // exchangeCode exige { code, userId } (ver supabase/functions/gmail-oauth)
+              const { data: result, error: exErr } = await supabase.functions.invoke('gmail-oauth', {
+                body: { action: 'exchangeCode', code: msg.code, userId: user.id },
+              });
+              if (exErr || result?.error) {
+                toast.error('Não foi possível concluir a conexão Email', {
+                  description: String(exErr?.message ?? result?.error ?? ''),
+                });
+                return;
+              }
+              await loadAccounts();
+              toast.success(`Conta Email conectada${result?.email ? `: ${result.email}` : ''}`);
+            } catch (err) {
+              log.error('Erro ao concluir OAuth Email', err);
+              toast.error('Erro ao concluir a autenticação Email');
+            }
           }
         };
         window.addEventListener('message', onMessage);
