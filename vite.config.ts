@@ -5,13 +5,15 @@ import { componentTagger } from "lovable-tagger";
 import { compression } from 'vite-plugin-compression2';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const VALID_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeXN5em5ka2Zpd2Z6dGJxdnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjYwMjIsImV4cCI6MjA5NDEwMjAyMn0.q5bc5VkD--EZnuLYaf-d2Tqi8ctTD9sfhvGKClnPhiA';
-
+// Supabase self-hosted (oficial): https://supabase.atomicabr.com.br
+// IMPORTANTE: a anon key NÃO é hardcoded aqui. Ela deve vir de
+// VITE_SUPABASE_ANON_KEY (env do Vercel / .env.local). Sem ela o app falha
+// explicitamente, em vez de apontar silenciosamente para o projeto errado.
 const MANAGED_PUBLIC_ENV_FALLBACKS = {
-  VITE_SUPABASE_URL: 'https://uqysyzndkfiwfztbqvsl.supabase.co',
-  VITE_SUPABASE_ANON_KEY: VALID_ANON_KEY,
-  VITE_SUPABASE_PUBLISHABLE_KEY: VALID_ANON_KEY,
-  VITE_SUPABASE_PROJECT_ID: 'uqysyzndkfiwfztbqvsl',
+  VITE_SUPABASE_URL: 'https://supabase.atomicabr.com.br',
+  VITE_SUPABASE_ANON_KEY: '',
+  VITE_SUPABASE_PUBLISHABLE_KEY: '',
+  VITE_SUPABASE_PROJECT_ID: '',
 } as const;
 
 const resolvePublicEnv = (mode: string) => {

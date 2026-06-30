@@ -64,8 +64,7 @@ export function initSentry(): boolean {
       tracePropagationTargets: [
         /^\//,
         /^https:\/\/.*\.supabase\.co/,
-        /^https:\/\/allrjhkpuscmgbsnmjlv\.supabase\.co/,
-        /^https:\/\/tdprnylgyrogbbhgdoik\.supabase\.co/,
+        /^https:\/\/supabase\.atomicabr\.com\.br/,
       ],
     });
 
