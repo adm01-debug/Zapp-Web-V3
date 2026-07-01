@@ -5,10 +5,11 @@ import { componentTagger } from "lovable-tagger";
 import { compression } from 'vite-plugin-compression2';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Supabase self-hosted (oficial): https://supabase.atomicabr.com.br
-// IMPORTANTE: a anon key NÃO é hardcoded aqui. Ela deve vir de
-// VITE_SUPABASE_ANON_KEY (env do Vercel / .env.local). Sem ela o app falha
-// explicitamente, em vez de apontar silenciosamente para o projeto errado.
+// Self-hosted Supabase (cutover 2026-06-30). These are FALLBACKS only, used
+// when the matching VITE_* env var is absent (e.g. local dev without .env).
+// In Vercel/production the real env vars override these. The anon key is
+// intentionally NOT hardcoded here — a public anon key still grants API access,
+// so it must come from the environment, never from the repo.
 const MANAGED_PUBLIC_ENV_FALLBACKS = {
   VITE_SUPABASE_URL: 'https://supabase.atomicabr.com.br',
   VITE_SUPABASE_ANON_KEY: '',
