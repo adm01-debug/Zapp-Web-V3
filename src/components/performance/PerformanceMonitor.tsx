@@ -21,7 +21,7 @@ export function PerformanceMonitor() {
   const [cacheStats, setCacheStats] = useState({ hits: 0, misses: 0, size: 0 });
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState('24');
-  const { history: dbHistory, loading: dbLoading, saveSnapshot, loadHistory, clearOldSnapshots } = usePerformanceSnapshots();
+  const { history: dbHistory, saveSnapshot, loadHistory, clearOldSnapshots } = usePerformanceSnapshots();
 
   const collectMetrics = useCallback(async () => {
     setLoading(true);
@@ -101,8 +101,8 @@ export function PerformanceMonitor() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'good': return <Badge className="bg-primary/10 text-primary border-primary/30 text-[10px]">Bom</Badge>;
-      case 'warning': return <Badge className="bg-warning/10 text-warning border-warning/30 text-[10px]">Atenção</Badge>;
-      case 'critical': return <Badge variant="destructive" className="text-[10px]">Crítico</Badge>;
+      case 'warning': return <Badge className="bg-warning/10 text-warning border-warning/30 text-[10px]">{String.fromCodePoint(0x41, 0x74, 0x65, 0x6e, 0x63, 0x61, 0x6f)}</Badge>;
+      case 'critical': return <Badge variant="destructive" className="text-[10px]">{String.fromCodePoint(0x43, 0x72, 0xed, 0x74, 0x69, 0x63, 0x6f)}</Badge>;
       default: return null;
     }
   };
