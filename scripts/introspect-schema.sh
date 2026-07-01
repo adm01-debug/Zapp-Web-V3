@@ -99,20 +99,13 @@ SQL
 # Primary keys, unique, foreign keys, checks
 psql -Atq -v ON_ERROR_STOP=1 <<'SQL' >> "$SCHEMA_OUT"
 SELECT format('ALTER TABLE public.%I ADD CONSTRAINT %I %s;',
-              conrelid::regclass::text
-                |> replace('public.',''),
-              conname,
-              pg_get_constraintdef(oid))
-FROM pg_constraint
-WHERE connamespace='public'::regnamespace
-  AND contype IN ('p','u','f','c')
-  AND NOT EXISTS (
-    SELECT 1 FROM pg_constraint c2
-    WHERE c2.conname = pg_constraint.conname
-      AND c2.connamespace = pg_constraint.connamespace
-      AND c2.oid < pg_constraint.oid
-  )
-ORDER BY conrelid::regclass::text, contype, conname;
+              c.relname, con.conname, pg_get_constraintdef(con.oid))
+FROM pg_constraint con
+JOIN pg_class c ON c.oid = con.conrelid
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname='public'
+  AND con.contype IN ('p','u','f','c')
+ORDER BY c.relname, con.contype, con.conname;
 SQL
 
 # Indexes (non-constraint)
