@@ -7643,8 +7643,10 @@ export type Database = {
           battery_level: number | null
           created_at: string
           created_by: string | null
+          degraded_at: string | null
           farewell_enabled: boolean | null
           farewell_message: string | null
+          health_reason: string | null
           health_response_ms: number | null
           health_status: string | null
           id: string
@@ -7656,6 +7658,7 @@ export type Database = {
           max_reconnect_attempts: number | null
           max_retries: number | null
           name: string
+          owner_jid: string | null
           phone_number: string
           qr_code: string | null
           reconnect_interval_seconds: number | null
@@ -7668,8 +7671,10 @@ export type Database = {
           battery_level?: number | null
           created_at?: string
           created_by?: string | null
+          degraded_at?: string | null
           farewell_enabled?: boolean | null
           farewell_message?: string | null
+          health_reason?: string | null
           health_response_ms?: number | null
           health_status?: string | null
           id?: string
@@ -7681,6 +7686,7 @@ export type Database = {
           max_reconnect_attempts?: number | null
           max_retries?: number | null
           name: string
+          owner_jid?: string | null
           phone_number: string
           qr_code?: string | null
           reconnect_interval_seconds?: number | null
@@ -7693,8 +7699,10 @@ export type Database = {
           battery_level?: number | null
           created_at?: string
           created_by?: string | null
+          degraded_at?: string | null
           farewell_enabled?: boolean | null
           farewell_message?: string | null
+          health_reason?: string | null
           health_response_ms?: number | null
           health_status?: string | null
           id?: string
@@ -7706,6 +7714,7 @@ export type Database = {
           max_reconnect_attempts?: number | null
           max_retries?: number | null
           name?: string
+          owner_jid?: string | null
           phone_number?: string
           qr_code?: string | null
           reconnect_interval_seconds?: number | null
