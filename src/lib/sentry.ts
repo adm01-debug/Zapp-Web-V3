@@ -60,10 +60,12 @@ export function initSentry(): boolean {
         }
         return event;
       },
-      // Domínios pra distributed tracing (self-hosted Supabase + cloud Supabase + same-origin)
+      // Domínios pra distributed tracing (self-hosted Supabase + cloud Supabase + same-origin).
+      // SEGURANÇA: [^.]+ restringe a UM nível de subdomínio, bloqueando subdomain-nesting
+      // (ex: evil.supabase.co.attacker.com receberia headers sem esta restrição).
       tracePropagationTargets: [
         /^\//,
-        /^https:\/\/.*\.supabase\.co/,
+        /^https:\/\/[^.]+\.supabase\.co(\/|$)/,
         /^https:\/\/supabase\.atomicabr\.com\.br/,
       ],
     });
