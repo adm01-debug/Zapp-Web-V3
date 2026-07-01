@@ -10,7 +10,7 @@
     "typecheck": "npm run types:check && tsc --noEmit -p tsconfig.app.json",
     "types:gen": "bash scripts/validate-supabase-types.sh",
     "types:check": "bash scripts/validate-supabase-types.sh --check --summary",
-    "check": "npm run check:fnsync && npm run typecheck && npm run lint && npm run build",
+    "check": "npm run check:fnsync && npm run check:febesync && npm run typecheck && npm run lint && npm run build",
     "check:fnsync": "bash scripts/check-edge-function-sync.sh",
     "verify": "npm run check",
     "prebuild": "npm run types:gen && bun run scripts/generate-component-registry.ts",
@@ -38,7 +38,8 @@
     "ds:test": "bun test scripts/check-design-system.test.ts",
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "check:febesync": "bash scripts/check-fe-be-sync.sh"
   },
   "dependencies": {
     "@axe-core/react": "^4.12.1",
