@@ -60,7 +60,7 @@ export function initSentry(): boolean {
         }
         return event;
       },
-      // Domínios pra distributed tracing (self-hosted Supabase + cloud Supabase + same-origin)
+      // Domínios pra distributed tracing (self-hosted Supabase + same-origin)
       tracePropagationTargets: [
         /^\//,
         /^https:\/\/.*\.supabase\.co/,
