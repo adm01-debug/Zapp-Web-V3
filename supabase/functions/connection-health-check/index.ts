@@ -125,6 +125,11 @@ Deno.serve(async (req) => {
   try {
     const evolutionUrl = requireEnv('EVOLUTION_API_URL');
     const evolutionKey = requireEnv('EVOLUTION_API_KEY');
+    const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
+    const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
+    if (isPlaceholder(evolutionUrl) || isPlaceholder(evolutionKey) || !isValidUrl(evolutionUrl)) {
+      return new Response(JSON.stringify({ error: 'evolution_api_not_configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+    }
     const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
 
