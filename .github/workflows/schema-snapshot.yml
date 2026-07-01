@@ -1,0 +1,88 @@
+name: Schema Snapshot Sync
+
+# Regenera ALL_IN_ONE.sql via introspecção e falha se houver drift
+# em relação a schema_public_full.sql.
+#
+# ⚠️ Requer secrets configurados no GitHub (Settings → Secrets → Actions):
+#   PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE
+#
+# Lovable Cloud NÃO expõe a senha do banco — este job só roda em projetos
+# apontando para Supabase self-hosted / BYO. Enquanto os secrets não existirem,
+# o job é pulado (guard abaixo).
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'   # segunda 06:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+
+concurrency:
+  group: schema-snapshot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate-and-diff:
+    name: Regenerate & diff snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Guard — skip when DB credentials are absent
+        id: guard
+        env:
+          PGHOST: ${{ secrets.PGHOST }}
+        run: |
+          if [ -z "$PGHOST" ]; then
+            echo "PGHOST secret not set — skipping (Lovable Cloud does not expose DB creds)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install psql
+        if: steps.guard.outputs.skip != 'true'
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Regenerate ALL_IN_ONE.sql via introspection
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          PGHOST:     ${{ secrets.PGHOST }}
+          PGPORT:     ${{ secrets.PGPORT }}
+          PGUSER:     ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+        run: bash scripts/introspect-schema.sh
+
+      - name: Diff against committed schema_public_full.sql
+        if: steps.guard.outputs.skip != 'true'
+        id: diff
+        run: |
+          set +e
+          diff -u supabase/migrations-snapshot/schema_public_full.sql \
+                  supabase/migrations-snapshot/02_schema_full.sql \
+            > /tmp/schema.diff
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "❌ Schema drift detected."
+            head -200 /tmp/schema.diff
+            exit 1
+          fi
+          echo "✅ Snapshot is in sync."
+
+      - name: Commit refreshed snapshot
+        if: steps.guard.outputs.skip != 'true' && success()
+        run: |
+          if git diff --quiet supabase/migrations-snapshot/; then
+            echo "No changes to commit."
+          else
+            git config user.name  "lovable-schema-bot"
+            git config user.email "bot@lovable.dev"
+            git add supabase/migrations-snapshot/
+            git commit -m "chore(snapshot): refresh ALL_IN_ONE.sql via introspection [skip ci]"
+            git push
+          fi
