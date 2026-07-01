@@ -22,11 +22,16 @@ serve(async (req) => {
     });
   }
 
-  const evolutionApiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-  const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');
+  const rawEvolutionApiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').trim();
+  const rawEvolutionApiKey = (Deno.env.get('EVOLUTION_API_KEY') || '').trim();
+  const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
+  const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
 
-  if (!evolutionApiUrl || !evolutionApiKey) {
-    return new Response(JSON.stringify({ error: 'Evolution API not configured', message: 'Please configure EVOLUTION_API_URL and EVOLUTION_API_KEY secrets' }), {
+  const evolutionApiUrl = rawEvolutionApiUrl.replace(/\/+$/, '');
+  const evolutionApiKey = rawEvolutionApiKey;
+
+  if (isPlaceholder(evolutionApiUrl) || isPlaceholder(evolutionApiKey) || !isValidUrl(evolutionApiUrl)) {
+    return new Response(JSON.stringify({ error: 'Evolution API not configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), {
       status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
