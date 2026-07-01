@@ -1,11 +1,15 @@
-name: schema-drift-guard
+name: schema-drift-guard (manual)
+
+# NOTA IMPORTANTE:
+# O monitoramento AUTOMATICO de drift roda IN-CLUSTER via Swarm stack schema-drift-guard,
+# que chama ops.check_schema_drift() 1x/dia e grava em ops.schema_drift_log.
+# Motivo: o Postgres canonico NAO e exposto a internet (correto), entao um runner do
+# GitHub nao alcanca o banco. Este workflow e um check MANUAL opcional, para ambientes
+# onde o banco seja alcancavel via secret DATABASE_URL.
+
 on:
-  pull_request:
-    paths:
-      - 'supabase/migrations/**'
-      - 'scripts/check_schema_drift.sql'
-      - 'scripts/check-schema-drift.sh'
   workflow_dispatch:
+
 jobs:
   drift:
     runs-on: ubuntu-latest
@@ -13,7 +17,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Instalar psql
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: Guard de drift de schema
+      - name: Guard de drift (via funcao no banco)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: bash scripts/check-schema-drift.sh
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL nao definido - pulando (o guard roda in-cluster).";
+            exit 0;
+          fi
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT ops.check_schema_drift(true);"
