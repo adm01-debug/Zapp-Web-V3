@@ -40,11 +40,22 @@ Deno.serve(async (req) => {
   const log = new Logger('evolution-health');
 
   try {
-    const EVOLUTION_API_URL = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '')
-    const EVOLUTION_API_KEY = Deno.env.get('EVOLUTION_API_KEY')!
+    const EVOLUTION_API_URL = (Deno.env.get('EVOLUTION_API_URL') || '').trim().replace(/\/+$/, '')
+    const EVOLUTION_API_KEY = (Deno.env.get('EVOLUTION_API_KEY') || '').trim()
     const INSTANCE_NAME = Deno.env.get('EVOLUTION_INSTANCE_NAME') || 'wpp2'
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+    const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
+    const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
+    if (isPlaceholder(EVOLUTION_API_URL) || isPlaceholder(EVOLUTION_API_KEY) || !isValidUrl(EVOLUTION_API_URL)) {
+      return new Response(JSON.stringify({
+        status: 'unhealthy',
+        error: 'evolution_api_not_configured',
+        message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.',
+        timestamp: new Date().toISOString(),
+      }), { status: 503, headers });
+    }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const alerts: string[] = []
