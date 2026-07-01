@@ -1,0 +1,19 @@
+name: schema-drift-guard
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/check_schema_drift.sql'
+      - 'scripts/check-schema-drift.sh'
+  workflow_dispatch:
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Guard de drift de schema
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bash scripts/check-schema-drift.sh
