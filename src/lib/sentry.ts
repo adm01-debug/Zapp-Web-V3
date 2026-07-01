@@ -5,7 +5,7 @@
  * - If VITE_SENTRY_DSN is empty/undefined → noop (zero overhead, zero network calls)
  * - If VITE_SENTRY_DSN is set → init with sane defaults for SPA + Supabase backend
  *
- * Activation: defina VITE_SENTRY_DSN no .env.local + rebuild
+ * Ativação: defina VITE_SENTRY_DSN no .env.local + rebuild
  *
  * Tags automaticamente:
  * - environment: prod (mode=production) | dev (mode=development) | preview
@@ -25,14 +25,14 @@ export function initSentry(): boolean {
   if (!DSN || DSN.trim() === "" || DSN === "PLACEHOLDER") {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
-      console.info("[sentry] DSN not configured — Sentry disabled (defina VITE_SENTRY_DSN no .env.local pra ativar)");
+      console.info("[sentry] DSN not configured \u2014 Sentry disabled (defina VITE_SENTRY_DSN no .env.local pra ativar)");
     }
     return false;
   }
 
   try {
     // eslint-disable-next-line no-console
-    console.info(`[sentry] initializing — env=${ENV} release=${RELEASE} dsn_host=${DSN.split('@')[1]?.split('/')[0]}`);
+    console.info(`[sentry] initializing \u2014 env=${ENV} release=${RELEASE} dsn_host=${DSN.split('@')[1]?.split('/')[0]}`);
     sentryInit({
       dsn: DSN,
       environment: ENV,
@@ -60,7 +60,7 @@ export function initSentry(): boolean {
         }
         return event;
       },
-      // Domínios pra distributed tracing
+      // Domínios pra distributed tracing (self-hosted Supabase + cloud Supabase + same-origin)
       tracePropagationTargets: [
         /^\//,
         /^https:\/\/.*\.supabase\.co/,
@@ -70,10 +70,10 @@ export function initSentry(): boolean {
 
     initialized = true;
     // eslint-disable-next-line no-console
-    console.info("[sentry] ✅ initialized successfully");
+    console.info("[sentry] \u2705 initialized successfully");
     return true;
   } catch (err) {
-     
+    // eslint-disable-next-line no-console
     console.error("[sentry] init failed:", err);
     return false;
   }
