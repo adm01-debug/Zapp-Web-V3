@@ -12,7 +12,7 @@ import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { eventBus } from '@/lib/eventBus';
 import { deduplicateMessages, setLastReceived } from '@/lib/inbox/chatOptimizations';
 
-// ── Types ───────────────────────────────────────────────
+// ── Types ───────────────────────────────────────
 
 export interface Message {
   id:               string;
@@ -37,7 +37,7 @@ export interface Message {
   created_at:       string;
 }
 
-// ── Hook ─────────────────────────────────────────────────────
+// ── Hook ───────────────────────────────────────────────
 
 export function useMessages(remoteJid: string | null) {
   const { toast } = useToast();
@@ -82,7 +82,7 @@ export function useMessages(remoteJid: string | null) {
     created_at:        String(row.created_at ?? ''),
   });
 
-  // ── Load ────────────────────────────────────────────
+  // ── Load ──────────────────────────────────────────
 
   const loadMessages = useCallback(async (jid: string) => {
     loadAbortRef.current?.abort();
@@ -117,7 +117,7 @@ export function useMessages(remoteJid: string | null) {
     if (remoteJid) loadMessages(remoteJid);
   }, [remoteJid, loadMessages]);
 
-  // ── Load more (older messages) ────────────────────────────────
+  // ── Load more (older messages) ──────────────────────────────────
 
   const loadMore = useCallback(async () => {
     if (!remoteJid || loadingMore || !hasMore) return;
@@ -141,7 +141,7 @@ export function useMessages(remoteJid: string | null) {
     } finally { setLoadingMore(false); }
   }, [remoteJid, loadingMore, hasMore]);
 
-  // ── Realtime new messages ────────────────────────────────
+  // ── Realtime new messages ────────────────────────
 
   useEffect(() => {
     if (!remoteJid) return;
@@ -189,7 +189,11 @@ export function useMessages(remoteJid: string | null) {
       }, (payload) => {
         // payload.old traz a linha completa (REPLICA IDENTITY FULL em public.messages),
         // então o filtro por remote_jid e o id continuam disponíveis para um DELETE.
-        setMessages((prev) => prev.filter((m) => m.id !== payload.old.id));
+        // Guarda defensiva: em edge cases de reconexão de websocket, payload.old pode
+        // chegar incompleto. Early return impede TypeError e mantém a lista intacta.
+        const deletedId = payload?.old?.id;
+        if (!deletedId) return;
+        setMessages((prev) => prev.filter((m) => m.id !== deletedId));
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -203,7 +207,7 @@ export function useMessages(remoteJid: string | null) {
     return unsub;
   }, [remoteJid, loadMessages]);
 
-  // ── Actions ────────────────────────────────────────────
+  // ── Actions ──────────────────────────────────────────
 
   const toggleStar = useCallback(async (id: string, current: boolean) => {
     await dbFrom('messages').update({ is_starred: !current }).eq('id', id);

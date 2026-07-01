@@ -97,7 +97,7 @@ export function ChurnPredictionDashboard() {
         medium: churnRisks.filter(r => r.riskLevel === 'medium').length,
         low: churnRisks.filter(r => r.riskLevel === 'low').length,
       });
-    } catch (err) {
+    } catch {
       toast.error('Erro ao analisar risco de churn');
     } finally {
       setLoading(false);
@@ -107,7 +107,7 @@ export function ChurnPredictionDashboard() {
   const runAIAnalysis = async () => {
     setAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-churn-analysis', {
+      const { error } = await supabase.functions.invoke('ai-churn-analysis', {
         body: { contactIds: risks.slice(0, 20).map(r => r.contactId) }
       });
       if (error) throw error;
@@ -129,13 +129,6 @@ export function ChurnPredictionDashboard() {
       case 'low': return 'bg-primary text-primary-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
-  };
-
-  const getRiskProgressColor = (score: number) => {
-    if (score >= 80) return 'bg-destructive';
-    if (score >= 60) return 'bg-warning';
-    if (score >= 30) return 'bg-accent';
-    return 'bg-success';
   };
 
   return (
