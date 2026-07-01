@@ -1,19 +1,12 @@
 -- ══════════════════════════════════════════════════════════════════
 -- ZAPP WEB — Snapshot completo do schema public (Lovable Cloud)
--- Gerado em: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+-- Gerado em: 2026-07-01T10:02:51Z
 -- Origem: uqysyzndkfiwfztbqvsl (Lovable Cloud)
 -- 
 -- Conteúdo:
---   • 7 extensions
---   • 4 enums
---   • 146 tables + PKs/FKs/defaults/checks
---   • 331 indexes
---   • 105 functions (SECURITY DEFINER onde aplicável)
---   • 82 triggers
---   • 10 views
---   • 414 RLS policies
---   • GRANTs por role (anon/authenticated/service_role)
---   • 7 storage buckets (metadata)
+--   • 7 extensions  •  4 enums  •  146 tables  •  331 indexes
+--   • 105 functions •  82 triggers •  10 views •  414 policies
+--   • GRANTs (anon/authenticated/service_role) • 7 storage buckets
 --
 -- IDEMPOTENTE: pode rodar múltiplas vezes sem erros.
 -- USO: psql -h <host> -U postgres -d postgres -f ALL_IN_ONE.sql
@@ -41,7 +34,6 @@ DO $$ BEGIN CREATE TYPE public.service_account_type AS ENUM ('google_sheets','go
 -- PostgreSQL database dump
 --
 
-\restrict jXdrEsTwQ3gRwY1zIBwJxC8iaI3bMpCxNkrz8Hyasc7tmwRcQxTtk4BWwhyYOfU
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.9
@@ -16771,7 +16763,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jXdrEsTwQ3gRwY1zIBwJxC8iaI3bMpCxNkrz8Hyasc7tmwRcQxTtk4BWwhyYOfU
 
 
 -- ─── 4. STORAGE BUCKETS ──────────────────────────────────────────
