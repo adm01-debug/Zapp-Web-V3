@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, lazy, Suspense } from 'react';
 import { useAuth } from '@/features/auth';
 import { motion, AnimatePresence } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,6 @@ import { AudioMessagePlayer } from '@/features/inbox/components/AudioMessagePlay
 import { InteractiveMessageDisplay, ButtonResponseBadge } from '@/features/inbox/components/InteractiveMessage';
 import { TextWithLinks } from '@/features/inbox/components/LinkPreview';
 import { QuotedMessage } from '@/features/inbox/components/ReplyQuote';
-import { LocationMessageDisplay } from '@/features/inbox/components/LocationMessage';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatMessageTime } from './messageUtils';
 import { MessageStatusInline } from './MessageStatusInline';
@@ -29,6 +28,7 @@ import { MessageBubbleUnsupported } from './MessageBubbleUnsupported';
 import { useContactAvatar } from '@/features/inbox';
 
 import { getLogger } from '@/lib/logger';
+const LocationMessageDisplay = lazy(() => import('@/features/inbox/components/LocationMessage').then(m => ({ default: m.LocationMessageDisplay })));
 const log = getLogger('MessageBubble');
 
 interface MessageBubbleProps {
@@ -218,7 +218,7 @@ export const MessageBubble = memo(function MessageBubble({
               {message.type === 'video' && message.mediaUrl && <div className="mb-1.5"><VideoPreview url={message.mediaUrl} caption={message.content} isSent={isSent} refreshKey={mediaRefreshKey} /></div>}
               {message.type === 'audio' && message.mediaUrl && <div className="mb-1"><AudioMessagePlayer audioUrl={message.mediaUrl} messageId={message.id} isSent={isSent} existingTranscription={message.transcription} transcriptionStatus={message.transcriptionStatus} refreshKey={mediaRefreshKey} onVoiceChange={onAudioVoiceChange} conversationId={message.conversationId} /></div>}
               {message.type === 'document' && message.mediaUrl && <div className="mb-1.5"><DocumentPreview url={message.mediaUrl} fileName={message.content || 'documento'} isSent={isSent} /></div>}
-              {message.type === 'location' && message.location && <LocationMessageDisplay location={message.location} isSent={isSent} />}
+              {message.type === 'location' && message.location && (<Suspense fallback={<div className="w-full h-32 bg-muted animate-pulse rounded-lg" />}><LocationMessageDisplay location={message.location} isSent={isSent} /></Suspense>)}
               {message.type === 'sticker' && message.mediaUrl && <div className="mb-1 group/sticker relative"><img src={message.mediaUrl} alt="Sticker" className="max-w-[160px] max-h-[160px] object-contain drop-shadow-lg" loading="lazy" /></div>}
               {!showUnsupportedFallback && message.content && !['audio','location','video','document','sticker'].includes(message.type) && (
                 <TextWithLinks 
