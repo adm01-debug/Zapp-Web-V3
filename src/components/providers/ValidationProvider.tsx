@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { validationLogger } from '@/utils/validationLogger';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ValidationContextType {
@@ -19,22 +19,41 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const runProactiveChecks = async () => {
     validationLogger.addEvent('render', 'Starting proactive validation checks');
-    
+
+    // When Supabase isn't configured, skip the network checks entirely (they
+    // would only produce ERR_NAME_NOT_RESOLVED noise) and report a degraded —
+    // not failed — state. The DOM render check still runs.
+    if (!isSupabaseConfigured) {
+      warnSupabaseUnconfigured('ValidationProvider');
+      validationLogger.addEvent('network', 'Supabase não configurado — checagens de rede puladas (modo degradado)');
+      const rootEl = document.getElementById('root');
+      if (!rootEl || rootEl.childElementCount === 0) {
+        validationLogger.addEvent('error', 'Critical: Root element is empty after expected render time');
+        setStatus('error');
+      } else {
+        validationLogger.addEvent('render', 'DOM rendering confirmed');
+        setStatus('warning');
+      }
+      return;
+    }
+
     // Check 1: Supabase Connection
     try {
       const { error } = await supabase.from('profiles').select('id').limit(1).maybeSingle();
       if (error) throw error;
       validationLogger.addEvent('network', 'Supabase API connection verified');
-    } catch (err: any) {
-      validationLogger.addEvent('error', `Critical: Supabase connection failed: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      validationLogger.addEvent('error', `Critical: Supabase connection failed: ${msg}`);
     }
 
     // Check 2: Auth Session
     try {
       await supabase.auth.getSession();
       validationLogger.addEvent('network', 'Auth service verified');
-    } catch (err: any) {
-      validationLogger.addEvent('error', `Auth service check failed: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      validationLogger.addEvent('error', `Auth service check failed: ${msg}`);
     }
 
     // Check 3: Render Verification
