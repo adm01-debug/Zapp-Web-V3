@@ -161,6 +161,30 @@ async function runHealthCheck(req: Request) {
   }
 }
 
+/**
+ * Sentinela para distinguir "falha ao parsear JSON" de um valor legítimo
+ * `null` (que é JSON válido). Sem isto, um body `null` seria confundido com
+ * corpo malformado e receberia a mensagem errada.
+ */
+const PARSE_FAILED = Symbol("parse_failed");
+
+/**
+ * Faz o parse do corpo JSON da requisição de forma segura.
+ *
+ * FIX 2026-07-02: um corpo malformado (ex.: `{"action": BROKEN`) fazia o
+ * `await req.json()` lançar SyntaxError, que caía no catch global e retornava
+ * HTTP 500. Body inválido é erro do CLIENTE → o contrato correto é 400 Bad
+ * Request. Retorna o sentinela PARSE_FAILED em caso de erro de parse; qualquer
+ * outro valor (inclusive `null`) é um parse bem-sucedido e segue para o Zod.
+ */
+async function parseJsonBody(req: Request): Promise<unknown | typeof PARSE_FAILED> {
+  try {
+    return await req.json();
+  } catch {
+    return PARSE_FAILED;
+  }
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -194,9 +218,14 @@ Deno.serve(async (req) => {
       return jsonRes({ error: "Too many requests. Try again in 1 minute." }, 429, req);
     }
 
+    // Parse do corpo UMA vez, com 400 em body malformado (antes: 500 via catch global).
+    const rawBody = await parseJsonBody(req);
+    if (rawBody === PARSE_FAILED) {
+      return jsonRes({ error: "Invalid JSON body" }, 400, req);
+    }
+
     // Allow lightweight health probe via POST { action: "health" } (auth required)
-    const probeBody = await req.clone().json().catch(() => null);
-    if (probeBody?.action === "health") {
+    if ((rawBody as { action?: unknown })?.action === "health") {
       return runHealthCheck(req);
     }
 
@@ -212,7 +241,6 @@ Deno.serve(async (req) => {
     }
     const extClient = createClient(extUrl, extKey);
 
-    const rawBody = await req.json();
     const bodyParse = ActionSchema.safeParse(rawBody);
     if (!bodyParse.success) {
       return jsonRes({ error: "Invalid request", details: bodyParse.error.flatten().fieldErrors }, 400, req);
