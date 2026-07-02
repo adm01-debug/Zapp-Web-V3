@@ -99,6 +99,13 @@ function computeStatus(elapsed: number, config: SLAConfig): SLAStatus {
   return 'ok';
 }
 
+/**
+ * IDs de conta vindos do fallback GMAIL_MOCKS (ex.: 'mock-account-123') não
+ * existem no banco e não são UUIDs válidos — consultar o PostgREST com eles
+ * gera 400 (22P02) em loop. Nesses casos o SLA opera apenas em memória.
+ */
+const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
+
 export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig> = {}) {
   const slaConfig: SLAConfig = { ...DEFAULT_SLA, ...config };
   const [records, setRecords] = useState<Record<string, EmailSLARecord>>({});
@@ -136,13 +143,16 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
         slaConfig
       );
 
-      safeClient.from('email_threads', (q) =>
-        q.update({
-          first_reply_at: replyAt,
-          frt_minutes:    frt,
-          sla_status:     'ok',
-        }).eq('thread_id', threadId)
-      );
+      // Persistência só faz sentido para threads reais (UUIDs do banco).
+      if (!isMockId(threadId)) {
+        safeClient.from('email_threads', (q) =>
+          q.update({
+            first_reply_at: replyAt,
+            frt_minutes:    frt,
+            sla_status:     'ok',
+          }).eq('thread_id', threadId)
+        );
+      }
 
       return {
         ...prev,
@@ -173,7 +183,7 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
   }, [slaConfig]);
 
   useEffect(() => {
-    if (!accountId) return;
+    if (!accountId || isMockId(accountId)) return;
 
     safeClient.from<any>('email_threads', (q) =>
       q.select('thread_id, last_message_at, unread_count')
