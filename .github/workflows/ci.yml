@@ -82,15 +82,10 @@ jobs:
           fi
           exit 0
 
-      - name: TypeScript diagnostics
-        run: |
-          set +e
-          bunx tsc --noEmit -p tsconfig.app.json
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "::warning title=TypeScript debt::TypeScript currently has existing failures. This step is diagnostic until cleanup PRs land."
-          fi
-          exit 0
+      - name: TypeScript check (blocking)
+        # tsc --noEmit is clean on main (verified 0 errors). Now a hard gate so
+        # new type errors block the merge instead of being reported as advisory.
+        run: bunx tsc --noEmit -p tsconfig.app.json
 
   test:
     name: Unit tests
@@ -110,15 +105,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Vitest diagnostics
-        run: |
-          set +e
-          bun run test -- --coverage --reporter=verbose
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "::warning title=Vitest debt::Vitest failed on the current baseline. See logs; this remains advisory until test stabilization lands."
-          fi
-          exit 0
+      - name: Unit tests (blocking)
+        # Vitest is green on main (2088 passed, 0 failed) after the mock-drift
+        # fixes, and the forks pool (vitest.config.ts) keeps memory bounded so
+        # the run is stable. Now a hard gate; NODE_OPTIONS raises the heap for
+        # the coverage pass.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: bun run test -- --coverage --reporter=verbose
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
