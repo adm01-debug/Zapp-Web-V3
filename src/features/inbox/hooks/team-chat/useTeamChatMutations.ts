@@ -127,28 +127,48 @@ export function useCreateTeamConversation() {
     mutationFn: async ({ type, name, memberIds = [], departmentId }: { type: 'direct' | 'group' | 'department'; name?: string; memberIds?: string[]; departmentId?: string }) => {
       if (!profile) throw new Error('Not authenticated');
 
+      // Conversa direta: reaproveita 1:1 existente entre os dois perfis.
+      // Sem loop N+1 e sem .single() (que gerava 406/PGRST116 quando não havia linha).
       if (type === 'direct' && memberIds.length === 1) {
         const otherId = memberIds[0];
-        const { data: existing } = await supabase.from('team_conversation_members').select('conversation_id').eq('profile_id', profile.id);
-        if (existing?.length) {
-          for (const mem of existing) {
-            const { data: conv } = await supabase.from('team_conversations').select('*').eq('id', mem.conversation_id).eq('type', 'direct').single();
-            if (conv) {
-              const { data: otherMem } = await supabase.from('team_conversation_members').select('id').eq('conversation_id', conv.id).eq('profile_id', otherId).single();
-              if (otherMem) return conv;
-            }
+        const { data: mine, error: mineErr } = await supabase
+          .from('team_conversation_members')
+          .select('conversation_id')
+          .eq('profile_id', profile.id);
+        if (mineErr) throw mineErr;
+        const myConvIds = (mine ?? []).map(m => m.conversation_id);
+        if (myConvIds.length > 0) {
+          const { data: shared, error: sharedErr } = await supabase
+            .from('team_conversation_members')
+            .select('conversation_id')
+            .eq('profile_id', otherId)
+            .in('conversation_id', myConvIds);
+          if (sharedErr) throw sharedErr;
+          const sharedIds = (shared ?? []).map(m => m.conversation_id);
+          if (sharedIds.length > 0) {
+            const { data: existingConv, error: convLookupErr } = await supabase
+              .from('team_conversations')
+              .select('*')
+              .in('id', sharedIds)
+              .eq('type', 'direct')
+              .limit(1)
+              .maybeSingle();
+            if (convLookupErr) throw convLookupErr;
+            if (existingConv) return existingConv;
           }
         }
       }
 
-      // If it's a department conversation, check if it already exists
+      // Conversa de departamento: única por departamento (índice UNIQUE parcial no banco)
       if (type === 'department' && departmentId) {
-        const { data: existingDeptConv } = await supabase
+        const { data: existingDeptConv, error: deptErr } = await supabase
           .from('team_conversations')
           .select('*')
           .eq('department_id', departmentId)
+          .eq('type', 'department')
+          .limit(1)
           .maybeSingle();
-        
+        if (deptErr) throw deptErr;
         if (existingDeptConv) return existingDeptConv;
       }
 
@@ -161,16 +181,15 @@ export function useCreateTeamConversation() {
       
       if (convErr) throw convErr;
       
-      // If it's a group or direct, add specified members
-      if (type !== 'department') {
-        const allMembers = [profile.id, ...memberIds.filter(id => id !== profile.id)];
-        const { error: memError } = await supabase.from('team_conversation_members').insert(allMembers.map(pid => ({ conversation_id: conv.id, profile_id: pid })));
-        if (memError) throw memError;
-      } else {
-        // For department conversations, we can still add the creator for UI consistency in some lists
-        const { error: memError } = await supabase.from('team_conversation_members').insert({ conversation_id: conv.id, profile_id: profile.id });
-        if (memError) throw memError;
-      }
+      // Membros deduplicados (o banco também garante UNIQUE (conversation_id, profile_id)).
+      // Em conversas de departamento, apenas o criador é adicionado para consistência de UI.
+      const memberProfileIds = type !== 'department'
+        ? [...new Set([profile.id, ...memberIds])]
+        : [profile.id];
+      const { error: memError } = await supabase
+        .from('team_conversation_members')
+        .insert(memberProfileIds.map(pid => ({ conversation_id: conv.id, profile_id: pid })));
+      if (memError) throw memError;
       
       return conv;
     },
