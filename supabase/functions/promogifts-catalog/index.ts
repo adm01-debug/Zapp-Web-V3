@@ -162,18 +162,26 @@ async function runHealthCheck(req: Request) {
 }
 
 /**
+ * Sentinela para distinguir "falha ao parsear JSON" de um valor legítimo
+ * `null` (que é JSON válido). Sem isto, um body `null` seria confundido com
+ * corpo malformado e receberia a mensagem errada.
+ */
+const PARSE_FAILED = Symbol("parse_failed");
+
+/**
  * Faz o parse do corpo JSON da requisição de forma segura.
  *
  * FIX 2026-07-02: um corpo malformado (ex.: `{"action": BROKEN`) fazia o
  * `await req.json()` lançar SyntaxError, que caía no catch global e retornava
  * HTTP 500. Body inválido é erro do CLIENTE → o contrato correto é 400 Bad
- * Request. Este helper isola o parse e sinaliza o 400 via `null`.
+ * Request. Retorna o sentinela PARSE_FAILED em caso de erro de parse; qualquer
+ * outro valor (inclusive `null`) é um parse bem-sucedido e segue para o Zod.
  */
-async function parseJsonBody(req: Request): Promise<unknown | null> {
+async function parseJsonBody(req: Request): Promise<unknown | typeof PARSE_FAILED> {
   try {
     return await req.json();
   } catch {
-    return null;
+    return PARSE_FAILED;
   }
 }
 
@@ -212,7 +220,7 @@ Deno.serve(async (req) => {
 
     // Parse do corpo UMA vez, com 400 em body malformado (antes: 500 via catch global).
     const rawBody = await parseJsonBody(req);
-    if (rawBody === null) {
+    if (rawBody === PARSE_FAILED) {
       return jsonRes({ error: "Invalid JSON body" }, 400, req);
     }
 
