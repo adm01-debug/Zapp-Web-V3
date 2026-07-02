@@ -354,9 +354,14 @@ async function fetchMessagesAfter(
   return result.data;
 }
 
+// Mocks são estritamente opt-in E somente em DEV: em produção NUNCA
+// substituímos conversas reais por dados de demonstração. (A lógica anterior
+// `!== '0'` era opt-out: qualquer usuário sem a chave no localStorage — ou
+// seja, todos — via MOCK_CONVERSATIONS no lugar do inbox real.)
 const USE_MOCKS =
+  import.meta.env.DEV &&
   typeof window !== 'undefined' &&
-  window.localStorage?.getItem('mockConversations') !== '0';
+  window.localStorage?.getItem('mockConversations') === '1';
 
 // ─── Global Enrichment Cache to avoid redundant RPC calls ──────────
 const contactEnrichmentCache = new Map<string, { data: any; timestamp: number }>();
