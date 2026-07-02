@@ -4,7 +4,7 @@
  */
 
 import { getLogger } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 
 const log = getLogger('WebVitals');
 
@@ -41,7 +41,13 @@ let uploadTimer: number | null = null;
 const OBS_FUNCTION = 'client-observability';
 
 async function flushMetrics() {
-  if (!uploadQueue.length || !import.meta.env.VITE_SUPABASE_URL) return;
+  if (!uploadQueue.length) return;
+  // Raw env check missed the case where URL exists but the key is a placeholder.
+  // Trust the hardened flag instead, and drop the queue so it can't grow forever.
+  if (!isSupabaseConfigured) {
+    uploadQueue.length = 0;
+    return;
+  }
 
   const batch = uploadQueue.splice(0, uploadQueue.length).map((metric) => ({
     ...metric,
@@ -122,7 +128,7 @@ export function initWebVitals() {
       }
     });
     lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
-  } catch (_e) { /* not supported */ }
+  } catch { /* not supported */ }
 
   // FID - First Input Delay
   try {
@@ -139,7 +145,7 @@ export function initWebVitals() {
       }
     });
     fidObserver.observe({ type: 'first-input', buffered: true });
-  } catch (_e) { /* not supported */ }
+  } catch { /* not supported */ }
 
   // CLS - Cumulative Layout Shift
   try {
@@ -159,7 +165,7 @@ export function initWebVitals() {
       });
     });
     clsObserver.observe({ type: 'layout-shift', buffered: true });
-  } catch (_e) { /* not supported */ }
+  } catch { /* not supported */ }
 
   // INP - Interaction to Next Paint
   try {
@@ -176,7 +182,7 @@ export function initWebVitals() {
       }
     });
     inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 40 } as PerformanceObserverInit);
-  } catch (_e) { /* not supported */ }
+  } catch { /* not supported */ }
 
   // TTFB - Time to First Byte
   try {

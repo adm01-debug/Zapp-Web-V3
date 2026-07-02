@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { playNotificationSound } from '@/utils/notificationSound';
 import { showBrowserNotification, requestNotificationPermission } from '@/utils/notificationSound';
@@ -78,6 +78,13 @@ export function useRealtimeSentimentAlerts() {
   }, [settings, isQuietHours]);
 
   useEffect(() => {
+    // Skip realtime entirely when Supabase isn't configured — otherwise the
+    // socket retries forever against an unreachable host and floods the console.
+    if (!isSupabaseConfigured) {
+      warnSupabaseUnconfigured('useRealtimeSentimentAlerts');
+      return;
+    }
+
     log.debug('Setting up realtime subscription');
 
     const channel = supabase

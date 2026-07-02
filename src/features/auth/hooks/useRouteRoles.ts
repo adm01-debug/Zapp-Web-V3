@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { type AppRole } from './useUserRole';
 
 /**
@@ -14,6 +14,13 @@ const inflight = new Map<string, Promise<void>>();
 function fetchRoles(path: string): Promise<void> {
   const existing = inflight.get(path);
   if (existing) return existing;
+  // No Supabase → no override lookup. Cache `null` so callers fall back to
+  // their hard-coded `requiredRoles`, and so we never re-enter or hit network.
+  if (!isSupabaseConfigured) {
+    warnSupabaseUnconfigured('useRouteRoles');
+    cache.set(path, null);
+    return Promise.resolve();
+  }
   const p = (async () => {
     try {
       const { data, error } = await supabase
