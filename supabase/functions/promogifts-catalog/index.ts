@@ -161,6 +161,22 @@ async function runHealthCheck(req: Request) {
   }
 }
 
+/**
+ * Faz o parse do corpo JSON da requisição de forma segura.
+ *
+ * FIX 2026-07-02: um corpo malformado (ex.: `{"action": BROKEN`) fazia o
+ * `await req.json()` lançar SyntaxError, que caía no catch global e retornava
+ * HTTP 500. Body inválido é erro do CLIENTE → o contrato correto é 400 Bad
+ * Request. Este helper isola o parse e sinaliza o 400 via `null`.
+ */
+async function parseJsonBody(req: Request): Promise<unknown | null> {
+  try {
+    return await req.json();
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -194,9 +210,14 @@ Deno.serve(async (req) => {
       return jsonRes({ error: "Too many requests. Try again in 1 minute." }, 429, req);
     }
 
+    // Parse do corpo UMA vez, com 400 em body malformado (antes: 500 via catch global).
+    const rawBody = await parseJsonBody(req);
+    if (rawBody === null) {
+      return jsonRes({ error: "Invalid JSON body" }, 400, req);
+    }
+
     // Allow lightweight health probe via POST { action: "health" } (auth required)
-    const probeBody = await req.clone().json().catch(() => null);
-    if (probeBody?.action === "health") {
+    if ((rawBody as { action?: unknown })?.action === "health") {
       return runHealthCheck(req);
     }
 
@@ -212,7 +233,6 @@ Deno.serve(async (req) => {
     }
     const extClient = createClient(extUrl, extKey);
 
-    const rawBody = await req.json();
     const bodyParse = ActionSchema.safeParse(rawBody);
     if (!bodyParse.success) {
       return jsonRes({ error: "Invalid request", details: bodyParse.error.flatten().fieldErrors }, 400, req);
