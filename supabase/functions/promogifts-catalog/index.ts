@@ -8,6 +8,32 @@ const jsonRes = (body: unknown, status = 200, req?: Request) =>
     headers: { ...(req ? getCorsHeaders(req) : getCorsHeaders()), "Content-Type": "application/json" },
   });
 
+/**
+ * Extrai uma mensagem de erro legível de qualquer valor lançado.
+ *
+ * Erros do PostgREST vindos do supabase-js SÃO objetos planos
+ * ({ message, code, details, hint }), NÃO instâncias de Error. Fazer
+ * String(err) neles produz o inútil "[object Object]" que o cliente recebia
+ * antes deste fix. Ordem: Error.message > .message de objeto > .error_description
+ * > .hint > JSON > String().
+ */
+function errMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    if (typeof o.message === "string" && o.message) return o.message;
+    if (typeof o.error_description === "string" && o.error_description) return o.error_description;
+    if (typeof o.hint === "string" && o.hint) return o.hint;
+    try {
+      const j = JSON.stringify(err);
+      if (j && j !== "{}") return j;
+    } catch {
+      /* cíclico / não serializável — cai no fallback */
+    }
+  }
+  return String(err);
+}
+
 // ─── Input Schemas ────────────────────────────────────────────
 const ALLOWED_ORDER_FIELDS = ["name", "sale_price", "stock_quantity", "brand", "created_at", "sku"] as const;
 
@@ -32,8 +58,22 @@ const ActionSchema = z.object({
   params: z.record(z.unknown()).optional().default({}),
 });
 
+/**
+ * Sanitiza o termo de busca antes de interpolá-lo num filtro PostgREST.
+ *
+ * Remove TODOS os caracteres com semântica no mini-DSL de filtros do
+ * PostgREST, não apenas os wildcards ILIKE. Crucial: a VÍRGULA é o separador
+ * de filtros dentro de .or() — se sobreviver, "a,b" vira dois filtros
+ * ("name.ilike.%a" e "b%...") e o PostgREST responde 400/500. Igualmente
+ * perigosos: parênteses (agrupamento de filtros), dois-pontos (separador
+ * operador:valor) e aspas.
+ *
+ * Nota: os valores JÁ são parametrizados pelo supabase-js, então isto é
+ * defense-in-depth contra 500 de filtro malformado — não contra injeção SQL
+ * (que o driver já previne).
+ */
 function sanitizeSearch(input: string): string {
-  return input.replace(/[%_.\\()]/g, "").trim().slice(0, 100);
+  return input.replace(/[%_.\\(),:'"`]/g, "").trim().slice(0, 100);
 }
 
 const PRODUCT_FIELDS = `id, name, description, short_description, sku, sale_price, suggested_price,
@@ -104,7 +144,7 @@ async function runHealthCheck(req: Request) {
       return jsonRes({
         status: "error", code: "EXTERNAL_DB_UNREACHABLE",
         configured: true, reachable: false,
-        error: error.message, duration_ms,
+        error: errMessage(error), duration_ms,
         hint: "Secrets presentes, mas o banco externo rejeitou a query. Verifique URL/anon key e RLS.",
       }, 502, req);
     }
@@ -113,10 +153,9 @@ async function runHealthCheck(req: Request) {
       checked_at: new Date().toISOString(),
     }, 200, req);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
     return jsonRes({
       status: "error", code: "EXTERNAL_DB_UNREACHABLE",
-      configured: true, reachable: false, error: msg,
+      configured: true, reachable: false, error: errMessage(err),
       duration_ms: Math.round(performance.now() - startedAt),
     }, 502, req);
   }
@@ -238,7 +277,7 @@ Deno.serve(async (req) => {
 
     return jsonRes({ error: "Invalid action" }, 400, req);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = errMessage(err);
     log.error("Error", { error: msg });
     return jsonRes({ error: msg }, 500, req);
   }
