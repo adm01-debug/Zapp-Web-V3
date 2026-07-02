@@ -15,6 +15,9 @@
  *  2. Mapeie em `ENTITY_MAP` para `{ client, table }`.
  *  3. Use `dbFrom('nova-entidade')` no código — nunca `supabase.from(...)` direto.
  *
+ * ⚠️ dbFrom/dbTable/dbChannel agora falham com erro explícito se a entidade
+ *    não estiver registrada aqui (ver requireMapping em db.ts). Não pule o passo 2.
+ *
  * Quando usar cada caminho:
  *  - `dbFrom` / `dbChannel` / `dbTable` (este arquivo + db.ts)
  *      → entidades **lovable** (profiles, queues, whatsapp_connections)
@@ -37,6 +40,7 @@ export type LogicalEntity =
   | 'profiles'
   | 'user_roles'
   | 'queues'
+  | 'queue_positions'
   | 'whatsapp_connections'
   | 'team_conversations'
   | 'routing_rules'
@@ -65,6 +69,9 @@ export const ENTITY_MAP = {
   profiles:             { client: 'lovable', table: 'profiles' },
   user_roles:           { client: 'lovable', table: 'user_roles' },
   queues:               { client: 'lovable', table: 'queues' },
+  // Fila de espera real (waiting count). View public.queue_positions sobre
+  // zapp.queue_positions (RLS: authenticated ALL). Consumida por useQueues.
+  queue_positions:      { client: 'lovable', table: 'queue_positions' },
   whatsapp_connections: { client: 'lovable', table: 'whatsapp_connections' },
   team_conversations:   { client: 'lovable', table: 'team_conversations' },
   routing_rules:        { client: 'lovable', table: 'routing_rules' },

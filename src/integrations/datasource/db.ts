@@ -20,14 +20,33 @@
 import type { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
-import { ENTITY_MAP, type LogicalEntity } from './registry';
+import { ENTITY_MAP, type LogicalEntity, type EntityMapping } from './registry';
 import { recordQueryEvent, classifySeverity } from '@/lib/clientTelemetry';
 import { generateCorrelationId } from '@/lib/correlationId';
 import type { RpcDefinition, DatasourceClient } from './rpcCatalog';
 import { validateEntityAccess, validateRpcAccess } from './sentinel';
 
-export function dbClient(entity: LogicalEntity): SupabaseClient {
+/**
+ * Fail-fast com mensagem acionável quando uma entidade não está no registry.
+ * Sem este guard, `ENTITY_MAP[entity]` retorna undefined e o erro real vira
+ * um "Cannot read properties of undefined (reading 'table')" minificado em
+ * produção — impossível de diagnosticar. (Causa raiz do bug de 2026-07-02
+ * em useQueues: dbFrom('queue_positions') antes da entidade ser registrada.)
+ */
+function requireMapping(entity: LogicalEntity): EntityMapping {
   const mapping = ENTITY_MAP[entity];
+  if (!mapping) {
+    throw new Error(
+      `[datasource] Entidade lógica "${String(entity)}" não está registrada em ` +
+        `ENTITY_MAP (src/integrations/datasource/registry.ts). ` +
+        `Adicione-a ao LogicalEntity + ENTITY_MAP antes de usar dbFrom/dbChannel/dbTable.`,
+    );
+  }
+  return mapping;
+}
+
+export function dbClient(entity: LogicalEntity): SupabaseClient {
+  const mapping = requireMapping(entity);
   const target = (mapping.client as string) === 'external' ? externalSupabase : supabase;
   if (!target) {
     throw new Error(
@@ -38,14 +57,14 @@ export function dbClient(entity: LogicalEntity): SupabaseClient {
 }
 
 export function dbTable(entity: LogicalEntity): string {
-  return ENTITY_MAP[entity].table;
+  return requireMapping(entity).table;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function dbFrom(entity: LogicalEntity): any {
-  const mapping = ENTITY_MAP[entity];
+  const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
-  return (dbClient(entity) as any).from(dbTable(entity));
+  return (dbClient(entity) as any).from(mapping.table);
 }
 
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {

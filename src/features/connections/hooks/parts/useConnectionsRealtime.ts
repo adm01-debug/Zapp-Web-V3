@@ -4,18 +4,26 @@ import { log } from '@/lib/logger';
 import { WhatsAppConnection, QrCodeDialogState } from '../useConnectionsManager';
 
 /**
- * Realtime das conexões WhatsApp (canal `whatsapp-connections-changes`).
+ * Realtime das conexões WhatsApp.
  *
- * FIX 2026-07-02 — "cannot add `postgres_changes` callbacks … after `subscribe()`":
- * a versão anterior recriava o canal a cada mudança de `qrCodeDialog.open`,
- * `qrCodeDialog.connectionId` ou identidade de `announceConnected` (deps do
- * useEffect). Como `supabase.channel(topic)` devolve a MESMA instância enquanto
- * o `removeChannel()` (assíncrono) do cleanup anterior ainda não concluiu o
- * teardown, o render seguinte chamava `.on('postgres_changes', …)` num canal
- * já inscrito → exceção fatal capturada pelo ErrorBoundary.
+ * FIX 2026-07-02 (v2) — "cannot add `postgres_changes` callbacks … after `subscribe()`":
+ * A v1 do fix (refs + deps estáveis) reduziu, mas NÃO eliminou o crash. Causa
+ * remanescente: `supabase.channel(topic)` devolve a MESMA instância enquanto
+ * existir um canal com aquele topic no client — e `removeChannel()` é
+ * assíncrono. Em remounts rápidos (StrictMode, navegação, remount pelo
+ * ErrorBoundary) o novo mount recebia o canal ANTIGO ainda inscrito e chamava
+ * `.on('postgres_changes', …)` nele → exceção fatal → ErrorBoundary → remount
+ * → loop.
  *
- * Padrão correto: inscrever UMA única vez por mount e ler o estado volátil
+ * Correção definitiva: topic ÚNICO por mount (sufixo aleatório), de modo que
+ * cada instância do hook sempre cria um canal novo. Mesmo padrão já usado em
+ * `useQueues.ts` (queues-changes:<rand>).
+ *
+ * Mantido da v1: inscrever UMA única vez por mount e ler o estado volátil
  * (dialog de QR code, callback de anúncio) via refs dentro do handler.
+ *
+ * Nota DB: `public.whatsapp_connections` é TABELA (não view do repoint layer)
+ * e está na publicação `supabase_realtime` — schema 'public' aqui está correto.
  */
 export function useConnectionsRealtime(
   setConnections: React.Dispatch<React.SetStateAction<WhatsAppConnection[]>>,
@@ -35,8 +43,11 @@ export function useConnectionsRealtime(
   }, [announceConnected]);
 
   useEffect(() => {
+    // Topic único por mount — evita reutilizar instância de canal já inscrita
+    // cujo teardown (removeChannel assíncrono) ainda não terminou.
+    const channelName = `whatsapp-connections-changes:${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel('whatsapp-connections-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'whatsapp_connections' },
