@@ -5,10 +5,13 @@ import { useDensity } from '@/hooks/useDensity';
 import { MOCK_CONVERSATIONS } from './conversation-list/__mocks__/mockConversations';
 import { ConversationItem as SharedConversationItem } from './conversation-list/ConversationItem';
 
-// Mocks: enabled when localStorage flag is set OR when no real conversations exist (demo fallback)
+// Mocks: estritamente opt-in (localStorage mockConversations='1') e apenas em
+// DEV. Nunca usamos demo-fallback em produção: um inbox legitimamente vazio
+// exibindo conversas falsas induz o operador a responder clientes inexistentes.
 const MOCKS_FLAG =
+  import.meta.env.DEV &&
   typeof window !== 'undefined' &&
-  window.localStorage?.getItem('mockConversations') !== '0';
+  window.localStorage?.getItem('mockConversations') === '1';
 
 interface VirtualizedRealtimeListProps {
   conversations: ConversationWithMessages[];
