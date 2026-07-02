@@ -1,160 +1,166 @@
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
-import {
-  corsHeaders,
-  shortRid,
-  logEvent,
-  recordMetric
-} from './lib/utils.ts'
-import { handleRpc, handleQuery } from './lib/handlers.ts'
-import { QueryLogContext } from './lib/types.ts'
+// external-db-proxy v1.4 (2026-07-02) — + evolution_webhook_events na whitelist (fix 403 admin webhook pages)
+// NOTA: Este arquivo espelha a versão DEPLOYADA no self-hosted (supabase.atomicabr.com.br).
+// Implementação anterior (client anon + lib/) foi substituída em prod: após o anon-lockout
+// (PR #102), o client anon perdeu os GRANTs das views do repoint layer => 403.
+// Esta versão usa service_role + whitelist explícita de tabelas como camada de autorização.
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
-const CORRELATION_HEADER = 'x-correlation-id'
-const REQUEST_ID_HEADER = 'x-request-id'
-const SCHEMA_ALLOWLIST = new Set(['public', 'evo_api'])
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-correlation-id, x-request-id",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+};
 
-// Client cache to avoid re-initializing for every request
-const clientCache = new Map<string, SupabaseClient>()
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-async function handler(req: Request): Promise<Response> {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+const ALLOWED_SCHEMAS = ["public"];
 
-  if (req.method === 'GET') {
+// Whitelist de tabelas v1.3 — expandida para inbox/conversas
+const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
+  public: [
+    "evolution_contacts",
+    "evolution_messages",
+    "evolution_conversations",
+    "evolution_chats",
+    "evolution_calls",
+    "evolution_realtime_events",
+    "evolution_webhook_events",
+    "evolution_webhook_events_wpp2",
+    "evolution_labels",
+    "evolution_label_associations",
+    "evolution_reactions",
+    "evolution_whatsapp_status",
+    "evolution_settings",
+    "evolution_alerts",
+    "whatsapp_connections",
+    "channel_connections",
+    "connection_health_logs",
+    "conversations",
+    "conversation_transfers",
+    "queues",
+    "queue_members",
+    "queue_goals",
+    "companies",
+    "contact_emails",
+    "profiles",
+    "app_notifications",
+    "agent_presence",
+    "outbound_message_queue",
+    "sales_deals",
+    "department_invitations",
+    "interactions",
+    "sla_delivery_rules",
+    "sla_delivery_violations",
+    "team_messages",
+    "team_message_reactions",
+    "transfer_comments",
+    "stickers",
+    "sticker_categories",
+    "sticker_favorites",
+    "audio_memes",
+    "audio_meme_categories",
+    "audio_meme_favorites",
+    "gmail_accounts",
+    "gmail_cache_test",
+    "gmail_health_logs",
+    "gmail_revalidation_jobs",
+    "email_tracked_messages",
+    "email_tracking_events",
+    "whisper_files",
+    "dispatch_error_logs",
+    "query_telemetry",
+    "api_keys",
+    "whatsapp_cloud_webhook_pings",
+    "qr_attempts"
+  ]
+};
+
+function isSafeIdent(s) {
+  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method === "GET") {
     return new Response(
-      JSON.stringify({ ok: true, fn: 'external-db-proxy', ts: Date.now() }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+      JSON.stringify({ ok: true, fn: "external-db-proxy", version: "1.4", ts: Date.now() }),
+      { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
+    );
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...cors, "Content-Type": "application/json" }
+    });
   }
 
-  const startedAt = Date.now()
-  const rid = shortRid()
-  let cid: string = req.headers.get(CORRELATION_HEADER) || shortRid()
-  
-  let jsonHeaders: Record<string, string> = {
-    ...corsHeaders,
-    'Content-Type': 'application/json',
-    [CORRELATION_HEADER]: cid,
-    [REQUEST_ID_HEADER]: rid,
+  const cid = req.headers.get("x-correlation-id") || crypto.randomUUID();
+  const rid = req.headers.get("x-request-id") || crypto.randomUUID();
+  const start = Date.now();
+
+  let body = {};
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON body", cid, rid }), {
+      status: 400, headers: { ...cors, "Content-Type": "application/json" }
+    });
   }
 
-  const reqMeta = {
-    method: req.method,
-    ua: req.headers.get('user-agent')?.slice(0, 80),
-    has_auth: !!req.headers.get('authorization'),
-    cid_from_header: !!req.headers.get(CORRELATION_HEADER),
-  }
+  const schema = String(body.schema ?? "public");
+  const table = String(body.table ?? "");
+  const rpc = typeof body.rpc === "string" ? body.rpc : null;
+  const action = typeof body.action === "string" ? body.action : rpc ? "rpc" : table ? "select" : null;
 
-  const finish = (resp: Response, action: string, extra: Record<string, any> = {}) => {
-    const total = Date.now() - startedAt
-    logEvent({ phase: 'end', cid, rid, action, status: resp.status, total_ms: total, ...extra })
-    
-    const skipMetrics = action === 'config_error' || action === 'bad_request'
-    if (!skipMetrics) {
-      recordMetric({
-        cid, rid, op: action,
-        target: (extra?.table as string) || (extra?.rpc as string) || action,
-        status: resp.status, ms: total,
-        ok: resp.status >= 200 && resp.status < 400,
-        timeout_fired: !!extra?.timeout_fired,
-        pg_timeout: !!extra?.pg_timeout,
-      })
+  if (action === "rpc" && rpc) {
+    if (!isSafeIdent(rpc)) {
+      return new Response(JSON.stringify({ error: "Invalid rpc identifier", cid, rid }), {
+        status: 400, headers: { ...cors, "Content-Type": "application/json" }
+      });
     }
-    return resp
+    const params = { ...(body.params ?? {}) };
+    delete params.__cid;
+    try {
+      const { data, error } = await supabase.rpc(rpc, params);
+      if (error) return new Response(JSON.stringify({ error: error.message, cid, rid, data: null }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true, cid, rid, data, latency_ms: Date.now() - start }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message, cid, rid, data: null }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    }
+  }
+
+  const select_cols = String(body.select ?? "*");
+  const limit = Math.min(Math.max(Number(body.limit ?? 50), 1), 500);
+  const offset = Math.max(Number(body.offset ?? 0), 0);
+  const filter = body.filter && typeof body.filter === "object" ? body.filter : null;
+  const filters = Array.isArray(body.filters) ? body.filters : null;
+  const order_by = body.order_by ? String(body.order_by) : (body.order?.column ?? null);
+  const order_asc = body.order_asc !== undefined ? Boolean(body.order_asc) : Boolean(body.order?.ascending);
+
+  if (!isSafeIdent(schema)) return new Response(JSON.stringify({ error: "Invalid schema", cid, rid }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+  if (!isSafeIdent(table)) return new Response(JSON.stringify({ error: "Invalid table", cid, rid }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+
+  if (!ALLOWED_SCHEMAS.includes(schema)) {
+    return new Response(JSON.stringify({ schema_unavailable: true, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
+  }
+
+  const allowedTables = SCHEMA_TABLE_WHITELIST[schema] || [];
+  if (allowedTables.length > 0 && !allowedTables.includes(table)) {
+    return new Response(JSON.stringify({ error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
   try {
-    const url = Deno.env.get('EXTERNAL_SUPABASE_URL')
-    const key = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')
-    const isValidUrl = !!url && /^https?:\/\//i.test(url) && !url.includes('PLACEHOLDER')
-    const isValidKey = !!key && !key.includes('PLACEHOLDER')
-    if (!isValidUrl || !isValidKey) {
-      logEvent({ phase: 'start', cid, rid, ...reqMeta, error: 'missing_or_placeholder_env' })
-      return finish(
-        new Response(
-          JSON.stringify({
-            error: 'EXTERNAL_DB_NOT_CONFIGURED',
-            message: 'External DB credentials are not configured (placeholder or missing).',
-            fallback: true,
-            cid,
-            rid,
-          }),
-          { status: 200, headers: jsonHeaders },
-        ),
-        'config_error',
-      )
-    }
-
-    let body: any
-    try {
-      body = await req.json()
-    } catch (e: any) {
-      logEvent({ phase: 'start', cid, rid, ...reqMeta, error: 'invalid_json', err_msg: e.message })
-      return finish(
-        new Response(JSON.stringify({ error: 'Invalid JSON body', cid, rid }), { status: 400, headers: jsonHeaders }),
-        'bad_request'
-      )
-    }
-
-    if (!req.headers.get(CORRELATION_HEADER) && typeof body.__cid === 'string' && body.__cid) {
-      cid = body.__cid
-      jsonHeaders[CORRELATION_HEADER] = cid
-    }
-
-    const rawAction = typeof body.action === 'string' ? body.action : undefined
-    const rpc = typeof body.rpc === 'string' ? body.rpc : undefined
-    const table = typeof body.table === 'string' ? body.table : undefined
-    const action = rawAction ?? (rpc ? 'rpc' : table ? 'select' : undefined)
-    const { schema } = body
-    const requestedSchema = typeof schema === 'string' && schema.length > 0 ? schema : 'public'
-    
-    if (!SCHEMA_ALLOWLIST.has(requestedSchema)) {
-      return finish(
-        new Response(JSON.stringify({ error: `Schema not allowed: ${requestedSchema}`, cid, rid }), { status: 400, headers: jsonHeaders }),
-        'bad_request'
-      )
-    }
-
-    const cacheKey = `${url}:${requestedSchema}`
-    let client = clientCache.get(cacheKey)
-
-    if (!client) {
-      client = createClient(url, key, {
-        auth: { persistSession: false, autoRefreshToken: false },
-        db: { schema: requestedSchema },
-        global: { 
-          headers: { 'x-statement-timeout': '12000' },
-          fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' })
-        },
-      })
-      clientCache.set(cacheKey, client)
-      
-      // Clear cache if it grows too large (unlikely given allowlist but good practice)
-      if (clientCache.size > 10) clientCache.clear()
-    }
-
-    const ctx: QueryLogContext = { cid, rid, op: action || 'select', target: (rpc || table || 'unknown'), startedAt }
-
-    logEvent({ phase: 'start', cid, rid, ...reqMeta, action: action ?? 'select', table, rpc })
-
-    if (action === 'rpc' && rpc) {
-      return finish(await handleRpc(client, rpc, body.params || {}, ctx, jsonHeaders), 'rpc', { rpc })
-    }
-
-    if ((action === 'select' || action === 'update') && table) {
-      return finish(await handleQuery(client, action, table, body, ctx, jsonHeaders), action, { table })
-    }
-
-    return finish(
-      new Response(JSON.stringify({ error: 'Missing action, table or rpc', cid, rid }), { status: 400, headers: jsonHeaders }),
-      'bad_request'
-    )
-
-  } catch (e: any) {
-    const total = Date.now() - startedAt
-    logEvent({ phase: 'crash', cid, rid, err: e.message, stack: e.stack, total_ms: total })
-    return new Response(JSON.stringify({ error: 'Internal server error', cid, rid }), { status: 500, headers: jsonHeaders })
+    let query = supabase.from(table).select(select_cols, { count: "exact" }).limit(limit);
+    if (filters) { for (const f of filters) { const op = f.operator ?? "eq"; if (!isSafeIdent(f.column ?? "")) continue; if (typeof query[op] === "function") query = query[op](f.column, f.value); } }
+    else if (filter) { for (const [key, value] of Object.entries(filter)) { if (!isSafeIdent(key)) continue; query = query.eq(key, value); } }
+    if (order_by && isSafeIdent(String(order_by))) query = query.order(String(order_by), { ascending: order_asc });
+    if (offset > 0) query = query.range(offset, offset + limit - 1);
+    const { data, count, error } = await query;
+    if (error) return new Response(JSON.stringify({ error: error.message, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, cid, rid, data: data || [], count: count ?? (data?.length || 0), schema, table, latency_ms: Date.now() - start }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message, cid, rid, data: [], count: 0 }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
-}
-
-Deno.serve(handler)
+});

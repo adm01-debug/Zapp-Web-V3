@@ -38,6 +38,14 @@ export const AiSuggestReplySchema = z.object({
   context: z.string().optional(),
 });
 
+/** Schema para detecção de novo dispositivo (detect-new-device) */
+export const DetectNewDeviceSchema = z.object({
+  device_fingerprint: z.string().min(8).max(128),
+  browser: z.string().min(1).max(100),
+  os: z.string().min(1).max(100),
+  device_name: z.string().min(1).max(200),
+});
+
 /** Helper para parse seguro */
 export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {
   const result = schema.safeParse(body);
@@ -50,4 +58,3 @@ export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {
   }
   return { success: true, data: result.data };
 }
-
