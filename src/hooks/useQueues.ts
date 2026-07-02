@@ -63,19 +63,20 @@ export function useQueues() {
 
       if (membersError) throw membersError;
 
-      // Fetch waiting counts per queue
-      const { data: waitingData, error: waitingError } = await dbFrom('contacts')
-        .select('queue_id')
-        .not('queue_id', 'is', null)
-        .is('assigned_to', null);
+      // Fetch waiting counts per queue.
+      // Fonte correta: queue_positions (fila de espera real). contacts.queue_id é
+      // NULL::uuid hardcoded na view do repoint layer => a contagem antiga era
+      // eternamente 0. Mesma fonte usada pelo rpc_queue_sla_panel v2.
+      const { data: waitingData, error: waitingError } = await dbFrom('queue_positions')
+        .select('queue_id');
 
       if (waitingError) throw waitingError;
 
       // Count waiting per queue
       const waitingCounts: Record<string, number> = {};
-      waitingData?.forEach(contact => {
-        if (contact.queue_id) {
-          waitingCounts[contact.queue_id] = (waitingCounts[contact.queue_id] || 0) + 1;
+      (waitingData as { queue_id: string | null }[] | null)?.forEach(row => {
+        if (row.queue_id) {
+          waitingCounts[row.queue_id] = (waitingCounts[row.queue_id] || 0) + 1;
         }
       });
 
@@ -271,8 +272,11 @@ export function useQueues() {
     const channelName = `queues-changes:${Math.random().toString(36).slice(2, 10)}`;
     const queuesChannel = supabase
       .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queues' }, fetchQueues)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_members' }, fetchQueues)
+      // public.queues / public.queue_members são VIEWS (repoint layer) — o realtime
+      // só emite WAL da tabela-base. Bases zapp.* estão na publicação supabase_realtime
+      // com RLS SELECT p/ authenticated; o callback não lê payload, só refetcha.
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queues' }, fetchQueues)
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_members' }, fetchQueues)
       .subscribe();
 
     return () => {
