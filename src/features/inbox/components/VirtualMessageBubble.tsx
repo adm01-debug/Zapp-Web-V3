@@ -1,4 +1,4 @@
-import { useEffect, memo } from 'react';
+import { useEffect, memo, lazy, Suspense } from 'react';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('VirtualMessageBubble');
@@ -12,13 +12,13 @@ import { DocumentPreview, VideoPreview } from './MediaPreview';
 import { InteractiveMessageDisplay, ButtonResponseBadge } from './InteractiveMessage';
 import { DeletedMessagePlaceholder } from './DeletedMessagePlaceholder';
 import { QuotedMessage } from './ReplyQuote';
-import { LocationMessageDisplay } from './LocationMessage';
 import { AudioMessagePlayer } from './AudioMessagePlayer';
 import { TextToSpeechButton } from './TextToSpeechButton';
 import { Reply, Forward, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { MessageStatusInline } from './chat/MessageStatusInline';
 import { useContactAvatar } from '@/features/inbox';
+const LocationMessageDisplay = lazy(() => import('./LocationMessage').then(m => ({ default: m.LocationMessageDisplay })));
 
 function formatMessageTime(date: Date): string {
   return format(date, 'HH:mm');
@@ -133,7 +133,7 @@ export const MessageBubble = memo(({
             {message.type === 'video' && message.mediaUrl && <div className="mb-2"><VideoPreview url={message.mediaUrl} caption={message.content} isSent={isSent} refreshKey={mediaRefreshKey} /></div>}
             {message.type === 'audio' && message.mediaUrl && <div className="mb-2"><AudioMessagePlayer audioUrl={message.mediaUrl} messageId={message.id} isSent={isSent} existingTranscription={message.transcription} transcriptionStatus={message.transcriptionStatus} refreshKey={mediaRefreshKey} /></div>}
             {message.type === 'document' && message.mediaUrl && <div className="mb-2"><DocumentPreview url={message.mediaUrl} fileName="document" isSent={isSent} /></div>}
-            {message.type === 'location' && message.location && <LocationMessageDisplay location={message.location} isSent={isSent} />}
+            {message.type === 'location' && message.location && (<Suspense fallback={<div className="w-full h-32 bg-muted animate-pulse rounded-lg" />}><LocationMessageDisplay location={message.location} isSent={isSent} /></Suspense>)}
             {message.content && message.type === 'text' && <p className="text-[15px] leading-[1.6] whitespace-pre-wrap break-words tracking-tight">{message.content}</p>}
             <div className={cn('flex items-center justify-end gap-1.5 mt-1.5 -mb-0.5', isSent ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
               <span className="text-[11px] font-normal leading-none">{formatMessageTime(message.timestamp)}</span>
