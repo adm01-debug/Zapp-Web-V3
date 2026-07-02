@@ -50,6 +50,20 @@ const supabase = _supabase as any;
  */
 const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
 
+/**
+ * A tabela-base email_app.email_threads não possui as colunas derivadas da view
+ * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
+ * replica exatamente as expressões da view para payloads de realtime.
+ */
+const mapBaseThreadRow = (row: any): EmailThread => ({
+  ...row,
+  thread_id:       row.id,
+  email_thread_id: row.gmail_thread_id != null ? String(row.gmail_thread_id) : '',
+  account_id:      row.gmail_account_id,
+  unread_count:    row.is_unread ? Math.max(row.message_count ?? 1, 1) : 0,
+  is_unread:       !!row.is_unread,
+});
+
 // ── Hook Principal ─────────────────────────────────────────────────────
 
 export function useEmail() {
@@ -159,6 +173,10 @@ export function useEmail() {
 
   // ── Carregar mensagens de uma thread ────────────────────────────────
   const loadMessages = useCallback(async (threadId: string) => {
+    if (isMockId(threadId)) {
+      setMessages(GMAIL_MOCKS.messages.filter(m => m.thread_id === threadId));
+      return;
+    }
     setIsLoadingMessages(true);
     const { data, error: dbErr } = await safeClient.from('email_messages', (q) =>
       q.select('*')
@@ -226,7 +244,7 @@ export function useEmail() {
   // ── Renovar token manualmente ────────────────────────────────────
   const refreshToken = useCallback(async (accountId?: string) => {
     const id = accountId ?? activeAccountId;
-    if (!id) return;
+    if (!id || isMockId(id)) return;
 
     try {
       const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-oauth', {
@@ -248,7 +266,7 @@ export function useEmail() {
   // ── Renovar Pub/Sub watch ───────────────────────────────────────
   const renewWatch = useCallback(async (accountId?: string) => {
     const id = accountId ?? activeAccountId;
-    if (!id) return;
+    if (!id || isMockId(id)) return;
 
     try {
       const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-webhook', {
@@ -266,6 +284,9 @@ export function useEmail() {
   // ── Enviar email ──────────────────────────────────────────────
   const sendEmail = useCallback(async (params: EmailSendParams): Promise<{ success: boolean; error?: string }> => {
     if (!activeAccountId) return { success: false, error: 'Nenhuma conta Email ativa' };
+    if (isMockId(activeAccountId)) {
+      return { success: false, error: 'Conta de demonstração — conecte uma conta real para enviar emails.' };
+    }
 
     setIsSending(true);
     try {
@@ -293,6 +314,12 @@ export function useEmail() {
 
   // ── Marcar thread como lida/não lida ──────────────────────────────
   const markAsRead = useCallback(async (threadId: string, read = true) => {
+    if (isMockId(threadId)) {
+      setThreads(prev => prev.map(t =>
+        t.id === threadId ? { ...t, unread_count: read ? 0 : (t.unread_count || 1) } : t
+      ));
+      return;
+    }
     const { error: rpcErr, requestId } = await safeClient.rpc('rpc_email_mark_thread_read', {
       p_thread_id: threadId,
       p_read:      read,
@@ -308,6 +335,10 @@ export function useEmail() {
 
   // ── Star/Unstar thread ───────────────────────────────────────────
   const starThread = useCallback(async (threadId: string, starred = true) => {
+    if (isMockId(threadId)) {
+      setThreads(prev => prev.map(t => (t.id === threadId ? { ...t, is_starred: starred } : t)));
+      return;
+    }
     const { error: rpcErr, requestId } = await safeClient.rpc('rpc_email_star_thread', {
       p_thread_id: threadId,
       p_starred:   starred,
@@ -322,6 +353,10 @@ export function useEmail() {
 
   // ── Archive thread ─────────────────────────────────────────────
   const archiveThread = useCallback(async (threadId: string) => {
+    if (isMockId(threadId)) {
+      setThreads(prev => prev.filter(t => t.id !== threadId));
+      return;
+    }
     const { error: rpcErr, requestId } = await safeClient.rpc('rpc_email_archive_thread', {
       p_thread_id: threadId,
       p_archived:  true,
@@ -335,6 +370,10 @@ export function useEmail() {
 
   // ── Assign thread a agente ───────────────────────────────────────
   const assignThread = useCallback(async (threadId: string, agentId: string | null) => {
+    if (isMockId(threadId)) {
+      setThreads(prev => prev.map(t => (t.id === threadId ? { ...t, assigned_to: agentId } : t)));
+      return;
+    }
     const { error: rpcErr, requestId } = await safeClient.rpc('rpc_email_assign_thread', {
       p_thread_id: threadId,
       p_agent_id:  agentId,
@@ -351,10 +390,12 @@ export function useEmail() {
 
   // ── Desconectar conta ──────────────────────────────────────────
   const disconnect = useCallback(async (accountId: string) => {
-    const { requestId, error: dbErr } = await safeClient.from('email_accounts', (q) =>
-      q.update({ is_active: false, updated_at: new Date().toISOString() })
-       .eq('id', accountId)
-    );
+    if (!isMockId(accountId)) {
+      await safeClient.from('email_accounts', (q) =>
+        q.update({ is_active: false, updated_at: new Date().toISOString() })
+         .eq('id', accountId)
+      );
+    }
 
     setAccounts(prev => prev.filter(a => a.id !== accountId));
     if (activeAccountId === accountId) {
@@ -475,24 +516,27 @@ export function useEmail() {
   useEffect(() => {
     if (!activeAccountId || isMockId(activeAccountId)) return;
 
+    // A view public.email_threads não emite eventos WAL. Assinamos a tabela-base
+    // email_app.email_threads (presente na publication supabase_realtime) e
+    // adaptamos o payload ao shape da view via mapBaseThreadRow.
     const channel = (supabase as any)
       .channel(`email-threads-${activeAccountId}`)
       .on('postgres_changes', {
         event:  '*',
-        schema: 'public',
+        schema: 'email_app',
         table:  'email_threads',
-        filter: `account_id=eq.${activeAccountId}`,
+        filter: `gmail_account_id=eq.${activeAccountId}`,
       }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          const nt = { ...(payload.new as EmailThread), thread_id: (payload.new as any).email_thread_id, is_unread: (payload.new as any).unread_count > 0 };
+          const nt = mapBaseThreadRow(payload.new);
           setThreads(prev => [nt, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
-          setThreads(prev => prev.map(t => t.id === (payload.new as EmailThread).id
-            ? { ...t, ...(payload.new as EmailThread), thread_id: (payload.new as any).email_thread_id, is_unread: (payload.new as any).unread_count > 0 }
-            : t
-          ));
+          const ut = mapBaseThreadRow(payload.new);
+          setThreads(prev => prev.map(t => (t.id === ut.id ? { ...t, ...ut } : t)));
         } else if (payload.eventType === 'DELETE') {
-          setThreads(prev => prev.filter(t => t.id !== (payload.old as EmailThread).id));
+          const deletedId = (payload.old as any)?.id;
+          if (!deletedId) return;
+          setThreads(prev => prev.filter(t => t.id !== deletedId));
         }
       })
       .subscribe();
