@@ -1,14 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { WhatsAppConnection, QrCodeDialogState } from '../useConnectionsManager';
 
+/**
+ * Realtime das conexões WhatsApp (canal `whatsapp-connections-changes`).
+ *
+ * FIX 2026-07-02 — "cannot add `postgres_changes` callbacks … after `subscribe()`":
+ * a versão anterior recriava o canal a cada mudança de `qrCodeDialog.open`,
+ * `qrCodeDialog.connectionId` ou identidade de `announceConnected` (deps do
+ * useEffect). Como `supabase.channel(topic)` devolve a MESMA instância enquanto
+ * o `removeChannel()` (assíncrono) do cleanup anterior ainda não concluiu o
+ * teardown, o render seguinte chamava `.on('postgres_changes', …)` num canal
+ * já inscrito → exceção fatal capturada pelo ErrorBoundary.
+ *
+ * Padrão correto: inscrever UMA única vez por mount e ler o estado volátil
+ * (dialog de QR code, callback de anúncio) via refs dentro do handler.
+ */
 export function useConnectionsRealtime(
   setConnections: React.Dispatch<React.SetStateAction<WhatsAppConnection[]>>,
   qrCodeDialog: QrCodeDialogState,
   setQrCodeDialog: React.Dispatch<React.SetStateAction<QrCodeDialogState>>,
   announceConnected: (conn: { id: string; name: string }) => void
 ) {
+  const qrCodeDialogRef = useRef(qrCodeDialog);
+  const announceConnectedRef = useRef(announceConnected);
+
+  useEffect(() => {
+    qrCodeDialogRef.current = qrCodeDialog;
+  }, [qrCodeDialog]);
+
+  useEffect(() => {
+    announceConnectedRef.current = announceConnected;
+  }, [announceConnected]);
+
   useEffect(() => {
     const channel = supabase
       .channel('whatsapp-connections-changes')
@@ -23,12 +48,13 @@ export function useConnectionsRealtime(
             setConnections((prev) =>
               prev.map((conn) => (conn.id === newConn.id ? newConn : conn))
             );
-            
+
             if (newConn.status === 'connected' && oldConn?.status !== 'connected') {
-              announceConnected({ id: newConn.id, name: newConn.name });
+              announceConnectedRef.current({ id: newConn.id, name: newConn.name });
             }
-            
-            if (qrCodeDialog.open && qrCodeDialog.connectionId === newConn.id) {
+
+            const dialog = qrCodeDialogRef.current;
+            if (dialog.open && dialog.connectionId === newConn.id) {
               if (newConn.status === 'connected') {
                 setQrCodeDialog((prev) => ({ ...prev, status: 'connected', qrCode: null, expiresAt: null }));
               } else if (newConn.qr_code) {
@@ -52,5 +78,6 @@ export function useConnectionsRealtime(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qrCodeDialog.open, qrCodeDialog.connectionId, setConnections, setQrCodeDialog, announceConnected]);
+    // setState do React tem identidade estável — este efeito roda 1x por mount.
+  }, [setConnections, setQrCodeDialog]);
 }

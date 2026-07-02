@@ -34,6 +34,32 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   return outputArray.buffer;
 }
 
+/**
+ * Aguarda o Service Worker ser registrado. O registro é DEFERIDO em App.tsx
+ * (DeferredHooks: first paint + ~800ms + lazy chunk), então componentes que
+ * montam cedo NÃO podem depender de `navigator.serviceWorker.ready` — essa
+ * promise nunca resolve enquanto nenhum SW estiver registrado, e o race de 5s
+ * anterior estourava como falso "ERROR" no console.
+ * Faz polling em `getRegistration()`. Nunca lança: retorna `null` no timeout.
+ */
+async function waitForServiceWorkerRegistration(
+  timeoutMs = 15_000,
+  pollMs = 500,
+): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) return null;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) return registration;
+    } catch {
+      return null;
+    }
+    await new Promise((resolve) => setTimeout(resolve, pollMs));
+  }
+  return null;
+}
+
 export function usePushNotifications() {
   const [state, setState] = useState<PushNotificationState>({
     isSupported: false,
@@ -57,18 +83,18 @@ export function usePushNotifications() {
       
       let isSubscribed = false;
       try {
-        // Add timeout so we don't hang forever if SW never registers
-        const swReady = Promise.race([
-          navigator.serviceWorker.ready,
-          new Promise<null>((_, reject) => 
-            setTimeout(() => reject(new Error('SW ready timeout')), 5000)
-          ),
-        ]);
-        const registration = await swReady as ServiceWorkerRegistration;
-        const subscription = await registration.pushManager.getSubscription();
-        isSubscribed = !!subscription;
+        // O SW é registrado de forma deferida (App.tsx/DeferredHooks) — usar
+        // polling em getRegistration() em vez de correr contra `.ready`.
+        const registration = await waitForServiceWorkerRegistration();
+        if (registration) {
+          const subscription = await registration.pushManager.getSubscription();
+          isSubscribed = !!subscription;
+        } else {
+          // Condição esperada (SW deferido ou indisponível) — não é erro de app.
+          log.warn('[Push] Service Worker não registrado dentro da janela de espera; checagem de subscription adiada');
+        }
       } catch (error) {
-        log.error('Error checking push subscription (SW may not be registered):', error);
+        log.warn('[Push] Falha não-crítica ao checar push subscription:', error);
       }
 
       setState({
@@ -116,7 +142,12 @@ export function usePushNotifications() {
         if (!granted) return null;
       }
 
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await waitForServiceWorkerRegistration();
+      if (!registration) {
+        toast.error('Service Worker ainda não está pronto. Tente novamente em alguns segundos.');
+        return null;
+      }
+      await navigator.serviceWorker.ready; // registro existe -> ativação é iminente
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -138,7 +169,8 @@ export function usePushNotifications() {
 
   const unsubscribe = useCallback(async (): Promise<boolean> => {
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await waitForServiceWorkerRegistration(5_000);
+      if (!registration) return false; // sem SW registrado não há subscription a remover
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
@@ -162,8 +194,12 @@ export function usePushNotifications() {
     }
 
     try {
-      const registration = await navigator.serviceWorker.ready;
-      
+      const registration = await waitForServiceWorkerRegistration(5_000);
+      if (!registration) {
+        log.warn('[Push] SW indisponível — notificação não exibida:', payload.title);
+        return false;
+      }
+
       const options: NotificationOptions = {
         body: payload.body,
         icon: payload.icon || '/favicon.ico',

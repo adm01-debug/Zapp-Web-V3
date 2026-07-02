@@ -56,7 +56,7 @@ export function SalesPipelineView() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
-    const channel = supabase.channel('deals-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'sales_deals' }, () => fetchData()).subscribe();
+    const channel = supabase.channel('deals-changes').on('postgres_changes', { event: '*', schema: 'zapp', table: 'sales_deals' }, () => fetchData()).subscribe(); // public.sales_deals é VIEW — realtime só emite da tabela-base zapp.sales_deals (publicada + RLS auth_full_access)
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
