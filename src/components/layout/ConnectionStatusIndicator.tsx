@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { WifiOff, Wifi, RefreshCw, History } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -126,6 +126,14 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   }, [open, selectedInstance, filter]);
 
   const fetchStatus = async () => {
+    // App-shell component (lives in the Sidebar): without this guard it fires a
+    // REST query on every mount, producing ERR_NAME_NOT_RESOLVED noise when
+    // Supabase isn't configured. The realtime channel below is already inert.
+    if (!isSupabaseConfigured) {
+      warnSupabaseUnconfigured('ConnectionStatusIndicator');
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from('whatsapp_connections')
       .select('id, instance_id, phone_number, status');
