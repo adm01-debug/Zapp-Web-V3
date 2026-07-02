@@ -55,14 +55,23 @@ const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-')
  * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
  * replica exatamente as expressões da view para payloads de realtime.
  */
-const mapBaseThreadRow = (row: any): EmailThread => ({
-  ...row,
-  thread_id:       row.id,
-  email_thread_id: row.gmail_thread_id != null ? String(row.gmail_thread_id) : '',
-  account_id:      row.gmail_account_id,
-  unread_count:    row.is_unread ? Math.max(row.message_count ?? 1, 1) : 0,
-  is_unread:       !!row.is_unread,
-});
+const mapBaseThreadRow = (row: any): EmailThread =>
+  emailMappers.thread({
+    ...row,
+    thread_id:       row.id,
+    email_thread_id: row.gmail_thread_id != null ? String(row.gmail_thread_id) : null,
+    account_id:      row.gmail_account_id,
+    unread_count:    row.is_unread ? Math.max(row.message_count ?? 1, 1) : 0,
+  });
+
+/**
+ * Remove chaves undefined antes do spread de UPDATE: o mapper materializa
+ * todas as chaves do EmailThread, e um spread cru sobrescreveria campos que
+ * a linha-base nao possui (ex.: contact) com undefined, apagando estado
+ * previamente carregado via RPC.
+ */
+const definedOnly = <T extends object>(o: T): Partial<T> =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
 // ── Hook Principal ─────────────────────────────────────────────────────
 
@@ -532,7 +541,7 @@ export function useEmail() {
           setThreads(prev => [nt, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
           const ut = mapBaseThreadRow(payload.new);
-          setThreads(prev => prev.map(t => (t.id === ut.id ? { ...t, ...ut } : t)));
+          setThreads(prev => prev.map(t => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t)));
         } else if (payload.eventType === 'DELETE') {
           const deletedId = (payload.old as any)?.id;
           if (!deletedId) return;
