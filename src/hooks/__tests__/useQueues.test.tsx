@@ -46,13 +46,12 @@ vi.mock('@/integrations/supabase/client', () => ({
           }),
         };
       }
-      if (table === 'contacts') {
+      // Waiting counts now come from queue_positions (via dbFrom -> lovable
+      // client -> supabase.from). The old contacts.queue_id source was always
+      // 0, so the hook was corrected; the mock follows the same source.
+      if (table === 'queue_positions') {
         return {
-          select: vi.fn().mockReturnValue({
-            not: vi.fn().mockReturnValue({
-              is: vi.fn().mockResolvedValue({ data: mockWaiting, error: null }),
-            }),
-          }),
+          select: vi.fn().mockResolvedValue({ data: mockWaiting, error: null }),
         };
       }
       return {
