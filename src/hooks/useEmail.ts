@@ -44,6 +44,12 @@ export type TokenStatus = EmailTokenStatus;
 
 const supabase = _supabase as any;
 
+/**
+ * IDs vindos do fallback GMAIL_MOCKS (ex.: 'mock-account-123') não existem no
+ * banco e não são UUIDs — chamadas de rede com eles geram 400/22P02 em loop.
+ */
+const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
+
 // ── Hook Principal ─────────────────────────────────────────────────────
 
 export function useEmail() {
@@ -122,7 +128,7 @@ export function useEmail() {
   // ── Carregar threads ──────────────────────────────────────────────
   const loadThreads = useCallback(async (accountId?: string, label: EmailLabel = 'INBOX', append = false) => {
     const id = accountId ?? activeAccountId;
-    if (!id) return;
+    if (!id || isMockId(id)) return;
 
     setIsLoadingThreads(true);
     const { data, error: rpcErr, requestId } = await safeClient.rpc('rpc_email_search_threads', {
@@ -193,7 +199,7 @@ export function useEmail() {
   // ── Sincronizar inbox via email-sync ───────────────────────────────
   const syncNow = useCallback(async (accountId?: string) => {
     const id = accountId ?? activeAccountId;
-    if (!id || isSyncing) return;
+    if (!id || isMockId(id) || isSyncing) return;
 
     setIsSyncing(true);
     setError(null);
@@ -467,7 +473,7 @@ export function useEmail() {
 
   // ── Realtime subscription nas threads ──────────────────────────────
   useEffect(() => {
-    if (!activeAccountId) return;
+    if (!activeAccountId || isMockId(activeAccountId)) return;
 
     const channel = (supabase as any)
       .channel(`email-threads-${activeAccountId}`)
