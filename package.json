@@ -126,7 +126,7 @@
     "vite-plugin-pwa": "0.19.8",
     "wait-on": "^9.0.5",
     "web-vitals": "^5.3.0",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
   },
   "devDependencies": {
