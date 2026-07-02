@@ -165,17 +165,64 @@ psql_ro() { psql -X -A -t -v ON_ERROR_STOP=1 "$@"; }
   "
   echo ""
 
-  # 10) Grants em tabelas do public
+  # 10) Grants efetivos (via has_table_privilege) — captura grants herdados
+  #     de PUBLIC / role membership que information_schema.role_table_grants
+  #     não retorna. Sem isso, um restore fresco ficaria sem acesso ao
+  #     PostgREST mesmo com RLS e policies corretas.
   echo "-- ============ GRANTS ============"
   psql_ro -c "
+    WITH targets AS (
+      SELECT c.oid, c.relname, r.rolname
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS r(rolname)
+      WHERE n.nspname='public' AND c.relkind IN ('r','v')
+    ),
+    privs AS (
+      SELECT relname, rolname, unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) AS priv, oid
+      FROM targets
+    )
     SELECT format('GRANT %s ON public.%I TO %I;',
-      string_agg(DISTINCT privilege_type, ', '), table_name, grantee)
-    FROM information_schema.role_table_grants
-    WHERE table_schema='public' AND grantee IN ('anon','authenticated','service_role')
-    GROUP BY table_name, grantee
-    ORDER BY table_name, grantee;
+      string_agg(priv, ', ' ORDER BY priv), relname, rolname)
+    FROM privs
+    WHERE has_table_privilege(rolname, oid, priv)
+    GROUP BY relname, rolname
+    ORDER BY relname, rolname;
   "
   echo ""
+
+  # 11) Grants em sequences (necessário para colunas serial/identity via API)
+  echo "-- ============ SEQUENCE GRANTS ============"
+  psql_ro -c "
+    WITH targets AS (
+      SELECT c.oid, c.relname, r.rolname
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS r(rolname)
+      WHERE n.nspname='public' AND c.relkind='S'
+    )
+    SELECT format('GRANT USAGE, SELECT ON SEQUENCE public.%I TO %I;', relname, rolname)
+    FROM targets
+    WHERE has_sequence_privilege(rolname, oid, 'USAGE');
+  "
+  echo ""
+
+  # 12) Grants em funções (execute)
+  echo "-- ============ FUNCTION GRANTS ============"
+  psql_ro -c "
+    WITH targets AS (
+      SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args, r.rolname
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS r(rolname)
+      WHERE n.nspname='public'
+    )
+    SELECT format('GRANT EXECUTE ON FUNCTION public.%I(%s) TO %I;', proname, args, rolname)
+    FROM targets
+    WHERE has_function_privilege(rolname, oid, 'EXECUTE');
+  " | head -2000
+  echo ""
+
 
   echo "COMMIT;"
 } > "$TMP"
