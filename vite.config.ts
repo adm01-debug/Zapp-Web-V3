@@ -99,5 +99,23 @@ export default defineConfig(({ mode }) => ({
     reportCompressedSize: false,
     cssCodeSplit: true,
     sourcemap: mode === 'development',
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        // Isola libs pesadas "folha" (usadas por telas/rotas especificas) em chunks
+        // proprios e cacheaveis, tirando-as do bundle de entrada. Conservador de
+        // proposito: NAO separa o ecossistema React (evita problemas de ordem de init).
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('mapbox-gl') || id.includes('mapbox')) return 'vendor-mapbox';
+          if (id.includes('recharts') || id.includes('/d3-') || id.includes('victory-vendor')) return 'vendor-charts';
+          if (id.includes('jspdf')) return 'vendor-pdf';
+          if (id.includes('node_modules/xlsx')) return 'vendor-xlsx';
+          if (id.includes('sip.js')) return 'vendor-sip';
+          if (id.includes('@sentry')) return 'vendor-sentry';
+          if (id.includes('framer-motion')) return 'vendor-motion';
+        },
+      },
+    },
   }
 }));
