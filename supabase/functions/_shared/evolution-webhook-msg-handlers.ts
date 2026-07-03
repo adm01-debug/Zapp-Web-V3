@@ -57,12 +57,13 @@ export async function handleSendMessage(supabase: any, instance: string, data: u
             // `.select('id')` lets us verify whether the UPDATE actually claimed
             // the row. With `.is('external_id', null)` a concurrent writer will
             // match 0 rows; only advance `updatedMessageId` when we got the row.
-            const { data: claimed } = await supabase.from('messages')
+            const { data: claimed, error: claimError } = await supabase.from('messages')
               .update({ status: 'sent', external_id: externalId, status_updated_at: now })
               .eq('id', pendingMessage.id)
               .is('external_id', null)
               .select('id');
-            if (claimed?.length) updatedMessageId = pendingMessage.id;
+            if (claimError) { console.error('[SEND] Error claiming placeholder:', claimError); }
+            else if (claimed?.length) updatedMessageId = pendingMessage.id;
           }
         }
       }

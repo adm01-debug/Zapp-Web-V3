@@ -56,11 +56,12 @@ export async function handleOutgoingWhatsAppMessage(
     // Only return when this writer actually claimed the placeholder row.
     // With `.is('external_id', null)` a concurrent webhook matches 0 rows and
     // must fall through to the INSERT below so the message is never dropped.
-    const { data: claimed } = await supabase.from('messages')
+    const { data: claimed, error: claimError } = await supabase.from('messages')
       .update({ status: 'sent', external_id: externalId, status_updated_at: new Date().toISOString() })
       .eq('id', pendingMessage.id)
       .is('external_id', null)
       .select('id');
+    if (claimError) { console.error('[FROM_ME] Error claiming placeholder:', claimError); return; }
     if (claimed?.length) return;
   }
 
