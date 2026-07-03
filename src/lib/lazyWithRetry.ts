@@ -5,10 +5,7 @@ const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
 
 /**
  * Detects chunk-not-found errors from failed dynamic imports.
- *
- * BUG FIX A: previous version called String(err) unconditionally, which throws
- * TypeError for prototype-less objects (Object.create(null)). We now check for
- * a .message property first before falling back to String().
+ * BUG A FIX: defensive against Object.create(null) (no .toString()).
  */
 export function isChunkLoadError(err: unknown): boolean {
   let msg = '';
@@ -22,7 +19,6 @@ export function isChunkLoadError(err: unknown): boolean {
     }
     msg = msg.toLowerCase();
   } catch {
-    // String() can throw for Object.create(null) without Symbol.toPrimitive.
     return false;
   }
   return (
@@ -37,15 +33,23 @@ export function isChunkLoadError(err: unknown): boolean {
 /**
  * Triggers a hard page reload if the 30-second cooldown has elapsed.
  *
- * BUG FIX B: a corrupted sessionStorage value (NaN, negative) caused permanent
- * lockout: Date.now() - NaN = NaN, NaN > 30000 = false always. We now treat
- * NaN and negative values as 0 ("never reloaded") so the guard stays functional.
+ * BUG B + E FIX: uses Number.isFinite() instead of isNaN().
+ * isNaN() does NOT catch Infinity: Date.now()-Infinity=-Infinity, -Inf>30000=false.
+ * Number.isFinite() catches NaN, Infinity, and -Infinity in one check.
+ *
+ * Guard table (exhaustive):
+ *   'CORRUPTED'   -> NaN       -> !isFinite -> last=0 -> reload
+ *   '1e999'       -> Infinity  -> !isFinite -> last=0 -> reload (BUG E fix)
+ *   'Infinity'    -> Infinity  -> !isFinite -> last=0 -> reload
+ *   '-1'          -> -1        -> <0        -> last=0 -> reload
+ *   ''            -> 0         -> isFinite  -> last=0 -> reload
+ *   '1750000000'  -> timestamp -> isFinite  -> cooldown logic applies
  */
 export function triggerChunkReload(): boolean {
   try {
     const rawLast = sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY);
     const parsed = Number(rawLast ?? '0');
-    const last = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+    const last = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
     const now = Date.now();
     if (now - last > CHUNK_RELOAD_COOLDOWN_MS) {
       sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(now));
