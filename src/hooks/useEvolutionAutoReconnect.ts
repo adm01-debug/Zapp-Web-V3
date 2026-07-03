@@ -45,28 +45,22 @@ function extractHttpStatus(err: unknown): number | undefined {
 /**
  * useEvolutionAutoReconnect
  *
- * BUGS CORRIGIDOS (2026-07-03 hotfix):
- *  1. fn_log_reconnection_attempt chamado com parâmetros ERRADOS.
- *     A função real no DB aceita:
- *       (p_connection_id, p_instance_name, p_status, p_error_message,
- *        p_attempt_number, p_qr_generated, p_metadata)
- *     O código anterior enviava:
- *       (p_connection_id, p_attempt, p_status_before, p_reason_before,
- *        p_result, p_error)
- *     Isso causaria erro PostgreSQL 42883 (function does not exist) ou
- *     chamada com todos os params NULL.
- *
- *  2. useEvolutionAutoReconnect usava isReconnecting (state) como
- *     dependência em useCallback → stale closure → double-fire.
- *     Fix: isReconnectingRef para guards sem dep de closure.
- *
- *  3. performReconnect era função plain → capturava restartInstance
- *     stale do render inicial.
- *     Fix: useCallback([restartInstance]).
- *
- *  4. @ts-nocheck removido, tipagem explícita de WhatsAppConnection.
- *
- *  5. 401/403 para o ciclo de retry e emite credential-error event.
+ * BUGS CORRIGIDOS (2026-07-03):
+ *  1. fn_log_reconnection_attempt chamado com parâmetros ERRADOS (PR #130).
+ *  2. stale closure em isReconnecting (PR #127).
+ *  3. performReconnect não memoizado (PR #127).
+ *  4. @ts-nocheck removido (PR #127).
+ *  5. 401/403 aborta ciclo de retry (PR #127).
+ *  6. [ESTE COMMIT] p_status='connected' viola chk_reconnection_status.
+ *     zapp.reconnection_logs aceita apenas:
+ *       ['attempting','success','failed','timeout','cancelled']
+ *     O código anterior enviava 'connected' → CHECK VIOLATION silenciosa.
+ *     Fix: status === 'success' ? 'success' : 'failed'
+ *  7. [ESTE COMMIT] p_connection_id recebia whatsapp_connections.id que
+ *     aponta para FK zapp.channel_connections(id) — tabela vazia.
+ *     Isso causaria FK violation em toda tentativa de log.
+ *     Fix: p_connection_id=NULL (FK é nullable); whatsapp_connection_id
+ *     preservado em p_metadata para rastreabilidade.
  */
 export function useEvolutionAutoReconnect(instanceName?: string) {
   const { restartInstance, getInstanceStatus, connectInstance } = useEvolutionApi();
@@ -107,8 +101,8 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       lastAttemptTime.current[id] = now;
       attemptMap.current[id]      = attempts + 1;
 
-      let status: 'success' | 'failed' = 'success';
-      let errorMsg: string | null       = null;
+      let attemptStatus: 'success' | 'failed' = 'success';
+      let errorMsg: string | null             = null;
 
       try {
         await restartInstance(connection.instance_id);
@@ -117,7 +111,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
           body: { instanceName: connection.instance_id },
         });
       } catch (err: unknown) {
-        status   = 'failed';
+        attemptStatus = 'failed';
         errorMsg = err instanceof Error ? err.message : String(err);
         log.error(`Reconnection failed for ${connection.name}`, err);
 
@@ -135,20 +129,23 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
         }
       }
 
-      // HOTFIX: usar parâmetros corretos da função fn_log_reconnection_attempt
-      // Assinatura real: (p_connection_id, p_instance_name, p_status,
-      //                   p_error_message, p_attempt_number, p_qr_generated, p_metadata)
+      // HOTFIX Bug 6: p_status 'connected' viola chk_reconnection_status.
+      // Valores válidos: ['attempting','success','failed','timeout','cancelled'].
+      // HOTFIX Bug 7: p_connection_id não pode ser whatsapp_connections.id pois
+      // a FK aponta para zapp.channel_connections (tabela separada/vazia).
+      // Solucao: p_connection_id=NULL (FK nullable), whatsapp_connection_id em metadata.
       try {
-        await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<unknown>)('fn_log_reconnection_attempt', {
-          p_connection_id:  id,
+        await supabase.rpc('fn_log_reconnection_attempt', {
+          p_connection_id:  null,                     // Bug 7 fix: FK ref vazia
           p_instance_name:  connection.instance_id,
-          p_status:         status === 'success' ? 'connected' : 'failed',
+          p_status:         attemptStatus,             // Bug 6 fix: 'success'|'failed'
           p_error_message:  errorMsg,
           p_attempt_number: attempts + 1,
           p_qr_generated:   false,
-          p_metadata:       {
-            reconnect_reason: connection.health_reason,
-            status_before:    connection.status,
+          p_metadata: {
+            whatsapp_connection_id: id,               // rastreabilidade via metadata
+            reconnect_reason:       connection.health_reason,
+            status_before:          connection.status,
           },
         });
       } catch (rpcErr) {
@@ -183,7 +180,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { void supabase.removeChannel(channel); };
   }, [performReconnect]);
 
   // ── 2. Specific Instance Polling ──────────────────────────────────────────
