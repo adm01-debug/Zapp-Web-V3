@@ -9,6 +9,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 // data layer and drives every effect to a deterministic, settled state.
 
 const dbList = vi.fn();
+const dbRpc  = vi.fn();
 const dbFrom = vi.fn();
 const dbTable = vi.fn((t: string) => t);
 
@@ -21,6 +22,7 @@ const removeChannel = vi.fn();
 
 vi.mock('@/integrations/datasource/db', () => ({
   dbList: (...a: unknown[]) => dbList(...a),
+  dbRpc:  (...a: unknown[]) => dbRpc(...a),
   dbFrom: (...a: unknown[]) => dbFrom(...a),
   dbTable: (...a: unknown[]) => dbTable(...(a as Parameters<typeof dbTable>)),
 }));
@@ -56,6 +58,7 @@ describe('useMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dbList.mockResolvedValue({ data: [], error: null });
+    dbRpc.mockResolvedValue({ data: null, error: null });
     dbFrom.mockReturnValue({
       update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
     });
