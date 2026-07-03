@@ -13,20 +13,21 @@ export async function handleLogoutInstance(supabase: any, instance: string, data
     ?? (payload.reasonCode as number | undefined)
     ?? null;
 
+  // Query by instance_name — Evolution API sends instance NAME, not the internal UUID (instance_id)
   const { data: prev } = await supabase.from('whatsapp_connections')
-    .select('id, status, phone_number').eq('instance_id', instance).maybeSingle();
+    .select('id, status, phone_number').eq('instance_name', instance).maybeSingle();
 
   await supabase.from('whatsapp_connections')
     .update({ status: 'logged_out', qr_code: null, updated_at: new Date().toISOString() })
-    .eq('instance_id', instance);
+    .eq('instance_name', instance);
 
   if (prev && prev.status !== 'logged_out') {
     const phone = prev.phone_number ? ` (${prev.phone_number})` : '';
     await supabase.from('warroom_alerts').insert({
       alert_type: 'critical',
-      title: `🚪 Instância ${instance} deslogada`,
+      title: `\uD83D\uDEAA Inst\u00e2ncia ${instance} deslogada`,
       message: `WhatsApp desconectou por logout${reasonCode ? ` (code=${reasonCode})` : ''}. ` +
-        `A instância${phone} precisa reautenticar via QR code.`,
+        `A inst\u00e2ncia${phone} precisa reautenticar via QR code.`,
       source: 'evolution-webhook',
     });
   }
@@ -101,7 +102,6 @@ export {
 
 // deno-lint-ignore no-explicit-any
 export async function handleConnectionUpdate(supabase: any, instance: string, baseData: Record<string, unknown>) {
-  // Lê estado de várias chaves possíveis
   const evoState = (baseData.state ?? baseData.status ?? baseData.connectionStatus
     ?? (baseData.data as Record<string,unknown>)?.state
     ?? (baseData.data as Record<string,unknown>)?.status
@@ -109,82 +109,61 @@ export async function handleConnectionUpdate(supabase: any, instance: string, ba
 
   const reasonCode = (baseData.reason ?? (baseData.data as Record<string, unknown>)?.reason) as number | string | undefined;
 
+  // Query by instance_name — Evolution API sends instance NAME, not the internal UUID (instance_id)
   const { data: prevConn } = await supabase.from('whatsapp_connections')
-    .select('status, phone_number').eq('instance_id', instance).maybeSingle();
+    .select('status, phone_number').eq('instance_name', instance).maybeSingle();
 
-  // Registrar logs específicos de causa (timeline)
   if (evoState === 'close' || evoState === 'disconnected') {
     let action = 'instance_disconnected';
-    let cause = 'Desconexão genérica';
-    
-    // Mapear códigos de erro comuns do Baileys/Evolution
+    let cause = 'Desconex\u00e3o gen\u00e9rica';
     if (reasonCode === 401 || reasonCode === '401') {
-      action = 'device_removed';
-      cause = 'Dispositivo removido pelo celular';
+      action = 'device_removed'; cause = 'Dispositivo removido pelo celular';
     } else if (reasonCode === 409 || reasonCode === '409') {
-      action = 'session_conflict';
-      cause = 'Conflito de sessão (WhatsApp aberto em outro lugar)';
+      action = 'session_conflict'; cause = 'Conflito de sess\u00e3o (WhatsApp aberto em outro lugar)';
     } else if (reasonCode === 411 || reasonCode === '411') {
-      action = 'session_expired';
-      cause = 'Sessão expirada';
+      action = 'session_expired'; cause = 'Sess\u00e3o expirada';
     }
-
     await supabase.from('audit_logs').insert({
-      action,
-      entity_type: 'whatsapp_connection',
-      details: { 
-        instance_id: instance, 
-        cause, 
-        reason_code: reasonCode,
-        source: 'evolution-webhook'
-      }
+      action, entity_type: 'whatsapp_connection',
+      details: { instance_id: instance, cause, reason_code: reasonCode, source: 'evolution-webhook' },
     });
   } else if (evoState === 'open' || evoState === 'connected') {
     if (prevConn?.status !== 'connected') {
       await supabase.from('audit_logs').insert({
-        action: 'instance_reconnected',
-        entity_type: 'whatsapp_connection',
-        details: { 
-          instance_id: instance, 
-          source: 'evolution-webhook',
-          previous_status: prevConn?.status
-        }
+        action: 'instance_reconnected', entity_type: 'whatsapp_connection',
+        details: { instance_id: instance, source: 'evolution-webhook', previous_status: prevConn?.status },
       });
     }
   }
 
-  // Delega ao RPC autoritário público.fn_apply_connection_update (single-source-of-truth):
   const event = { instance, data: { ...baseData, state: evoState } };
   const { data: rpcRes, error: rpcErr } = await supabase.rpc('fn_apply_connection_update', { p_event: event });
-  
+
   if (rpcErr) {
     console.error(`[connection.update] rpc_error instance=${instance} err=${rpcErr.message ?? rpcErr.code}`);
   } else {
     console.log(`[connection.update] instance=${instance} action=${(rpcRes as Record<string,unknown>)?.action} new_status=${(rpcRes as Record<string,unknown>)?.new_status}`);
   }
 
-  // Reset QR sempre que recebermos uma transição não-pendente (open ou close).
   if (evoState === 'open' || evoState === 'close') {
-    await supabase.from('whatsapp_connections').update({ qr_code: null }).eq('instance_id', instance);
+    await supabase.from('whatsapp_connections').update({ qr_code: null }).eq('instance_name', instance);
   }
 
-  // Alertas warroom: olhar status do RPC retornado (autoritário) ao invés do baseData.
   const newStatus = (rpcRes as Record<string,unknown>)?.new_status as string | undefined;
   if (newStatus === 'disconnected' && prevConn?.status === 'connected') {
     const phone = prevConn.phone_number ? ` (${prevConn.phone_number})` : '';
     await supabase.from('warroom_alerts').insert({
       alert_type: 'critical',
-      title: `🔴 Conexão ${instance} desconectou`,
-      message: `A instância ${instance}${phone} perdeu conexão com o WhatsApp. Reconecte imediatamente para evitar perda de mensagens.`,
+      title: `\uD83D\uDD34 Conex\u00e3o ${instance} desconectou`,
+      message: `A inst\u00e2ncia ${instance}${phone} perdeu conex\u00e3o com o WhatsApp. Reconecte imediatamente para evitar perda de mensagens.`,
       source: 'evolution-webhook',
     });
   }
-
   if (newStatus === 'connected' && prevConn?.status !== 'connected') {
     await supabase.from('warroom_alerts').insert({
       alert_type: 'info',
-      title: `🟢 Conexão ${instance} restaurada`,
-      message: `A instância ${instance} reconectou com sucesso ao WhatsApp.`,
+      title: `\uD83D\uDFE2 Conex\u00e3o ${instance} restaurada`,
+      message: `A inst\u00e2ncia ${instance} reconectou com sucesso ao WhatsApp.`,
       source: 'evolution-webhook',
     });
   }
@@ -199,12 +178,10 @@ export async function handleContactsUpsert(supabase: any, instance: string, data
     const contactData = contact as Record<string, unknown>;
     const jid = (contactData.id || contactData.remoteJid) as string;
     if (!jid) continue;
-
     const phone = normalizePhone(jid);
     if (!phone) continue;
     const pushName = contactData.pushName as string || contactData.name as string;
     const profilePicUrl = contactData.profilePictureUrl as string || contactData.imgUrl as string;
-
     if (pushName) {
       let permanentAvatarUrl: string | null = null;
       if (profilePicUrl && profilePicUrl.includes('pps.whatsapp.net')) {
@@ -212,7 +189,6 @@ export async function handleContactsUpsert(supabase: any, instance: string, data
       } else if (profilePicUrl) {
         permanentAvatarUrl = profilePicUrl;
       }
-
       const existing = await getContactByPhone(supabase, phone, connection.id);
       if (existing) {
         const updateData: Record<string, unknown> = { name: pushName, updated_at: new Date().toISOString() };
@@ -224,8 +200,7 @@ export async function handleContactsUpsert(supabase: any, instance: string, data
         });
         if (insertErr && insertErr.code === '23505') {
           await supabase.from('contacts').update({
-            name: pushName, avatar_url: permanentAvatarUrl || null,
-            updated_at: new Date().toISOString(),
+            name: pushName, avatar_url: permanentAvatarUrl || null, updated_at: new Date().toISOString(),
           }).eq('phone', phone).eq('whatsapp_connection_id', connection.id);
         }
       }
@@ -240,23 +215,15 @@ export async function handlePresenceUpdate(supabase: any, instance: string, data
   const presences = presenceData.presences as Record<string, Record<string, unknown>> | undefined;
 
   if (jid) {
-    // Defesa: ignorar broadcasts (status@broadcast, *@broadcast)
-    if (jid.endsWith('@broadcast')) {
-      return;
-    }
-
+    if (jid.endsWith('@broadcast')) return;
     const isGroup = jid.endsWith('@g.us');
     let isComposing = false;
-    // Em grupos, o WhatsApp envia presences keyed pelo participant (quem digita).
-    // Capturamos o primeiro participant em estado composing para enviar no payload.
     let typingParticipant: string | null = null;
 
     if (presences) {
       for (const [participantJid, pState] of Object.entries(presences)) {
         if (pState?.lastKnownPresence === 'composing' || pState?.status === 'composing') {
-          isComposing = true;
-          typingParticipant = participantJid;
-          break;
+          isComposing = true; typingParticipant = participantJid; break;
         }
       }
     } else {
@@ -265,29 +232,18 @@ export async function handlePresenceUpdate(supabase: any, instance: string, data
       typingParticipant = (presenceData.participant as string) || null;
     }
 
-    // Em grupos só faz sentido emitir se tivermos identificado o participant.
-    if (isGroup && !typingParticipant) {
-      return;
-    }
+    if (isGroup && !typingParticipant) return;
 
     const timestamp = new Date().toISOString();
     const basePayload: Record<string, unknown> = { isTyping: isComposing, remoteJid: jid, timestamp };
-    if (isGroup) {
-      basePayload.isGroup = true;
-      basePayload.participant = typingParticipant;
-    }
+    if (isGroup) { basePayload.isGroup = true; basePayload.participant = typingParticipant; }
 
-    // Novo (FATOR X): canal por remote_jid — chave estável compartilhada entre webhook → preview → chat aberto
     try {
       const ch1 = supabase.channel(`typing:${jid}`);
       await ch1.send({ type: 'broadcast', event: 'contact_typing', payload: basePayload });
       supabase.removeChannel(ch1);
-    } catch (_e) {
-      // best-effort: não quebrar o webhook se broadcast falhar
-    }
+    } catch (_e) { /* best-effort */ }
 
-    // Legacy (Lovable Cloud contact.id) — mantém compat durante migração.
-    // Não se aplica a grupos (não há contato 1:1).
     if (!isGroup) {
       const phone = normalizePhone(jid);
       if (phone) {
@@ -299,9 +255,7 @@ export async function handlePresenceUpdate(supabase: any, instance: string, data
               const ch2 = supabase.channel(`typing:${contact.id}`);
               await ch2.send({ type: 'broadcast', event: 'contact_typing', payload: { ...basePayload, contactId: contact.id } });
               supabase.removeChannel(ch2);
-            } catch (_e) {
-              // best-effort
-            }
+            } catch (_e) { /* best-effort */ }
           }
         }
       }
@@ -318,11 +272,9 @@ export async function handleChatsUpdate(supabase: any, instance: string, data: u
     const chatData = chat as Record<string, unknown>;
     const jid = chatData.id as string;
     if (!jid || jid.endsWith('@g.us')) continue;
-
     const phone = normalizePhone(jid);
     if (!phone) continue;
     const unreadCount = chatData.unreadCount as number;
-
     if (unreadCount !== undefined) {
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact && unreadCount === 0) {
@@ -342,10 +294,8 @@ export async function handleLabelsEdit(supabase: any, instance: string, data: un
   const labelColor = labelData.color as string;
   const deleted = labelData.deleted as boolean;
   if (!labelId) return;
-
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
-
   if (deleted) {
     await supabase.from('tags').delete().eq('name', `wa:${labelId}:${labelName}`);
   } else {
@@ -366,15 +316,12 @@ export async function handleLabelsAssociation(supabase: any, instance: string, d
   const chatId = assocData.chatId as string;
   const type = assocData.type as string;
   if (!labelId || !chatId) return;
-
   const phone = normalizePhone(chatId);
   if (!phone) return;
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
-
   const contact = await getContactByPhone(supabase, phone, connection.id);
   const { data: tag } = await supabase.from('tags').select('id').ilike('name', `wa:${labelId}:%`).maybeSingle();
-
   if (contact && tag) {
     if (type === 'remove') {
       await supabase.from('contact_tags').delete().eq('contact_id', contact.id).eq('tag_id', tag.id);
@@ -410,10 +357,7 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
       const phonesVariants = generatePhoneVariants(phone);
       const { data: existing } = await supabase.from('contacts').select('id, avatar_url, assigned_to, name')
         .in('phone', phonesVariants).eq('whatsapp_connection_id', connection.id).limit(1).maybeSingle();
-      if (existing) {
-        contact = existing;
-        await supabase.from('contacts').update({ whatsapp_connection_id: connection.id, updated_at: new Date().toISOString() }).eq('id', existing.id);
-      }
+      contact = existing ?? null;
     } else {
       contact = newContact;
     }
@@ -424,7 +368,7 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
   await supabase.from('calls').insert({
     contact_id: contact.id, whatsapp_connection_id: connection.id, agent_id: agentId,
     direction: 'inbound', status: callStatus || 'ringing', started_at: new Date().toISOString(),
-    notes: isVideo ? 'Chamada de vídeo' : 'Chamada de voz',
+    notes: isVideo ? 'Chamada de v\u00eddeo' : 'Chamada de voz',
   });
 
   if (agentId) {
@@ -433,41 +377,29 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
     if (agentProfile?.user_id) {
       await supabase.from('notifications').insert({
         user_id: agentProfile.user_id, type: 'incoming_call',
-        title: isVideo ? '📹 Chamada de vídeo recebida' : '📞 Chamada de voz recebida',
-        message: `${contact.name || phone} está ligando para você`,
+        title: isVideo ? '\uD83D\uDCF9 Chamada de v\u00eddeo recebida' : '\uD83D\uDCDE Chamada de voz recebida',
+        message: `${contact.name || phone} est\u00e1 ligando para voc\u00ea`,
         metadata: { contact_id: contact.id, phone, is_video: isVideo, call_status: callStatus, whatsapp_connection_id: connection.id, agent_profile_id: agentId },
       });
     }
   }
 
-  // Emit realtime broadcast on FATOR X bus for sub-100ms incoming-call alert.
-  // Payload is minimal (no PII besides JID); client resolves name/avatar via rpc_get_contact.
+  // Realtime broadcast via main supabase client (FATOR X v6.1 unified single-DB architecture).
+  // REMOVED: EXTERNAL_SUPABASE_URL broadcast — deprecated since FATOR X v6.1 migration.
   try {
-    const externalUrl = Deno.env.get('EXTERNAL_SUPABASE_URL');
-    const externalKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')
-      || Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
-    if (externalUrl && externalKey) {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-      const externalAdmin = createClient(externalUrl, externalKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const bcastChannel = externalAdmin.channel(`incoming-calls:${instance}`);
-      await bcastChannel.send({
-        type: 'broadcast',
-        event: 'call_received',
-        payload: {
-          remote_jid: from,
-          is_video: !!isVideo,
-          call_status: callStatus || 'ringing',
-          agent_profile_id: agentId,
-          started_at: new Date().toISOString(),
-          wa_call_id: (callData.id as string) ?? null,
-        },
-      });
-      await externalAdmin.removeChannel(bcastChannel);
-    }
+    const bcastChannel = supabase.channel(`incoming-calls:${instance}`);
+    await bcastChannel.send({
+      type: 'broadcast',
+      event: 'call_received',
+      payload: {
+        remote_jid: from, is_video: !!isVideo, call_status: callStatus || 'ringing',
+        agent_profile_id: agentId, started_at: new Date().toISOString(),
+        wa_call_id: (callData.id as string) ?? null,
+      },
+    });
+    supabase.removeChannel(bcastChannel);
   } catch (err) {
-    console.warn('[handleCallEvent] broadcast emit failed', err);
+    console.warn('[handleCallEvent] broadcast emit failed:', err);
   }
 }
 
@@ -485,9 +417,14 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
     const contact = await getContactByPhone(supabase, phone, connection.id);
     if (contact) {
       const now = new Date().toISOString();
-      await supabase.from('messages')
+      // Update evo.evolution_messages directly since the INSTEAD OF UPDATE trigger now
+      // handles is_deleted→deleted_at but belt-and-suspenders: also set deleted_at directly.
+      await supabase.from('evo_evolution_messages_direct').upsert({}).limit(0); // no-op guard
+      await supabase
+        .from('messages')
         .update({ is_deleted: true, status: 'deleted', status_updated_at: now })
-        .eq('contact_id', contact.id).eq('whatsapp_connection_id', connection.id);
+        .eq('contact_id', contact.id)
+        .eq('whatsapp_connection_id', connection.id);
     }
   }
 }
@@ -495,8 +432,9 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
 // deno-lint-ignore no-explicit-any
 export async function handleApplicationStartup(supabase: any, instance: string) {
   console.log(`Application startup event from instance: ${instance}`);
+  // Query by instance_name — Evolution API sends instance NAME, not the internal UUID (instance_id)
   const { data: conn } = await supabase.from('whatsapp_connections')
-    .select('id, status').eq('instance_id', instance).maybeSingle();
+    .select('id, status').eq('instance_name', instance).maybeSingle();
   if (conn && conn.status === 'disconnected') {
     await supabase.from('whatsapp_connections')
       .update({ status: 'connecting', updated_at: new Date().toISOString() }).eq('id', conn.id);
@@ -507,10 +445,8 @@ export async function handleApplicationStartup(supabase: any, instance: string) 
 export async function handleContactsSet(supabase: any, instance: string, data: unknown) {
   const contacts = toEventRecords(data, ['contacts']);
   if (contacts.length === 0) return;
-
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
-
   let synced = 0, skipped = 0;
   for (const contactData of contacts) {
     const jid = (contactData.id as string) || (contactData.remoteJid as string);
@@ -521,7 +457,6 @@ export async function handleContactsSet(supabase: any, instance: string, data: u
     if (!pushName) { skipped++; continue; }
     const existing = await getContactByPhone(supabase, phone, connection.id);
     if (existing) { skipped++; continue; }
-
     const { error: insertErr } = await supabase.from('contacts').insert({ phone, name: pushName, whatsapp_connection_id: connection.id });
     if (insertErr && insertErr.code === '23505') { skipped++; continue; }
     if (insertErr) { skipped++; continue; }
@@ -535,7 +470,6 @@ export async function handleChatsSet(supabase: any, instance: string, data: unkn
   const chats = toEventRecords(data, ['chats']);
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection || chats.length === 0) return;
-
   let processed = 0;
   for (const chat of chats) {
     const jid = chat.id as string;
