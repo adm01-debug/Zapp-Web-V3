@@ -1,10 +1,10 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Bug, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { log } from '@/lib/logger';
 import { recordQueryEvent, type Severity } from '@/lib/clientTelemetry';
-import { CHUNK_RELOAD_SESSION_KEY } from '@/lib/lazyWithRetry';
+import { CHUNK_RELOAD_SESSION_KEY, isChunkLoadError } from '@/lib/lazyWithRetry';
 
 const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
 
@@ -22,7 +22,6 @@ function detectAndReloadOnChunkError(error: Error): boolean {
   try {
     const rawLast = sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY);
     const parsed = Number(rawLast ?? '0');
-    // BUG D + E FIX: isNaN() misses Infinity. Number.isFinite() catches both.
     const last = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
     if (Date.now() - last > CHUNK_RELOAD_COOLDOWN_MS) {
       sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(Date.now()));
@@ -47,7 +46,8 @@ function classifyRenderFailure(error: Error): {
     /timeout|timed out|statement timeout|canceling statement|proxy_timeout/.test(msg);
   const isProxy = /external db proxy|external-db-proxy|query timed out|external_proxy/.test(msg);
   const isAbort = error?.name === 'AbortError' || /aborted/.test(msg);
-  const isQueryFailure = isTimeout || isProxy || isAbort || /rpc|supabase|fetch failed|network/.test(msg);
+  const isQueryFailure = isTimeout || isProxy || isAbort ||
+    /rpc|supabase|fetch failed|network/.test(msg);
 
   let severity: Severity = 'error';
   if (isTimeout) severity = 'timeout';
@@ -70,6 +70,7 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  onReset?: () => void;
   resetKey?: string | number;
 }
 
@@ -147,6 +148,12 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      // FIX F2: when the error is a stale-chunk hash mismatch, the correct
+      // action is a hard reload (not a re-render retry). Show a dedicated
+      // "Recarregar P\u00e1gina" primary button so the user isn't confused by
+      // "Tentar novamente" which would just re-trigger the same 404 errors.
+      const isChunkErr = this.state.error ? isChunkLoadError(this.state.error) : false;
+
       return (
         <div
           className="min-h-screen flex items-center justify-center bg-background p-4"
@@ -161,10 +168,12 @@ export class ErrorBoundary extends Component<Props, State> {
                 </div>
               </div>
               <CardTitle className="text-2xl font-bold text-foreground">
-                Ops! Algo deu errado
+                {isChunkErr ? 'Atualiza\u00e7\u00e3o dispon\u00edvel' : 'Ops! Algo deu errado'}
               </CardTitle>
               <CardDescription className="text-muted-foreground mt-2">
-                Encontramos um erro inesperado. Tente recarregar a p\u00e1gina.
+                {isChunkErr
+                  ? 'A p\u00e1gina foi atualizada no servidor. Recarregue para obter a vers\u00e3o mais recente.'
+                  : 'Encontramos um erro inesperado. Tente recarregar a p\u00e1gina.'}
               </CardDescription>
             </CardHeader>
 
@@ -189,22 +198,33 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button onClick={this.handleRetry} className="flex-1" variant="default">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Tentar novamente
-                </Button>
+                {isChunkErr ? (
+                  // Chunk error: reload is the only meaningful action.
+                  <Button onClick={this.handleReload} className="flex-1" variant="default">
+                    <RotateCw className="w-4 h-4 mr-2" />
+                    Recarregar P\u00e1gina
+                  </Button>
+                ) : (
+                  // Normal error: try re-rendering first.
+                  <Button onClick={this.handleRetry} className="flex-1" variant="default">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Tentar novamente
+                  </Button>
+                )}
                 <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
                   <Home className="w-4 h-4 mr-2" />
                   Voltar ao in\u00edcio
                 </Button>
               </div>
 
-              <button
-                onClick={this.handleReload}
-                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
-              >
-                Ou recarregue a p\u00e1gina completamente
-              </button>
+              {!isChunkErr && (
+                <button
+                  onClick={this.handleReload}
+                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
+                >
+                  Ou recarregue a p\u00e1gina completamente
+                </button>
+              )}
             </CardContent>
           </Card>
         </div>
