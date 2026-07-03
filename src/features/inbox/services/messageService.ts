@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { messageRepository } from '@/features/inbox/data-access/messageRepository';
 import type { Message } from '@/types/chat';
 import type { RealtimeMessage } from '@/features/inbox/hooks/useRealtimeMessages';
+import { isValidUUID } from '@/utils/uuid';
 
 import { getLogger } from '@/lib/logger';
 
@@ -44,21 +45,32 @@ export const messageService = {
         }
       }
 
-      // Fetch whispers (internal notes)
-      const { data: whispers, error: whisperErr } = await supabase
-        .from('whisper_messages')
-        .select('*')
-        .eq('contact_id', contactId);
+      // Fetch whispers (internal notes) — only when contactId is a valid UUID.
+      // whisper_messages.contact_id is a uuid column; passing a WhatsApp JID
+      // (phone number, e.g. "551146375517") causes PostgREST to return 400
+      // "invalid input syntax for type uuid". Skip silently when called with
+      // a JID or any non-UUID identifier.
+      if (isValidUUID(contactId)) {
+        const { data: whispers, error: whisperErr } = await supabase
+          .from('whisper_messages')
+          .select('*')
+          .eq('contact_id', contactId);
 
-      if (whisperErr) {
-        log.error('Error fetching whispers:', whisperErr);
-      } else if (whispers) {
-        const mappedWhispers = (whispers as unknown as Record<string, unknown>[]).map((w) => this.mapMessage({
-          ...w,
-          sender_id: w.sender_id as string,
-          isWhisper: true,
-        }));
-        allData = allData.concat(mappedWhispers);
+        if (whisperErr) {
+          log.error('Error fetching whispers:', whisperErr);
+        } else if (whispers) {
+          const mappedWhispers = (whispers as unknown as Record<string, unknown>[]).map((w) => this.mapMessage({
+            ...w,
+            sender_id: w.sender_id as string,
+            isWhisper: true,
+          }));
+          allData = allData.concat(mappedWhispers);
+        }
+      } else {
+        log.debug(
+          '[getAllMessagesForContact] skipping whisper fetch — contactId is not a UUID (likely a WhatsApp JID)',
+          { contactId },
+        );
       }
 
       // Sort all messages by timestamp

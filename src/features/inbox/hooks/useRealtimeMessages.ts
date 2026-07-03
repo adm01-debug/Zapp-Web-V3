@@ -12,6 +12,7 @@ import {
 import { useRealtimeNotifications } from './realtime/useRealtimeNotifications';
 import { useMessageUpdateBatcher } from './realtime/useMessageUpdateBatcher';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
+import { isValidUUID } from '@/utils/uuid';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
 const log = getLogger('RealtimeMessages');
@@ -329,6 +330,23 @@ export function useRealtimeMessages() {
   const lastSeenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const markAsRead = async (contactId: string) => {
+    // ── UUID guard ──────────────────────────────────────────────────────────
+    // messages.contact_id (and evo.evolution_messages.contact_id) are uuid
+    // columns. When USE_EXTERNAL_DB=true the selectedContactId in
+    // useRealtimeInbox may be a WhatsApp JID / phone number (e.g. "551146375517")
+    // instead of a UUID. Passing it to PostgREST's .eq() on a uuid column
+    // causes 400 "invalid input syntax for type uuid".
+    // Skip silently — handleSelectConversation already calls evolution-api
+    // to mark messages read on the WhatsApp side when USE_EXTERNAL_DB=true.
+    if (!isValidUUID(contactId)) {
+      log.warn(
+        '[markAsRead] contactId is not a valid UUID — skipping to prevent 400 (likely a WhatsApp JID)',
+        { contactId },
+      );
+      return;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     const { error } = await dbFrom('messages')
       .update({ is_read: true })
       .eq('contact_id', contactId)
@@ -388,9 +406,7 @@ export function useRealtimeMessages() {
   void sendStateTick; // ensure dep tracked
 
   const filteredConversations = useMemo(() => {
-    // Standardize to use live data first, mocks only if explicitly enabled in local storage
     let filtered = [...conversations];
-
 
     // 1. Search
     if (search) {
@@ -406,9 +422,7 @@ export function useRealtimeMessages() {
     if (statusFilter !== 'all') {
       filtered = filtered.filter(conv => {
         if (statusFilter === 'unread') return conv.unreadCount > 0;
-        // Logic for open/closed: check ticket status or last message direction
         if (statusFilter === 'open') {
-          // No FATOR X (external), consideramos aberto se houver tickets pendentes ou se a última mensagem for do contato
           return !conv.lastMessage || conv.lastMessage.sender === 'contact' || (conv.contact as any).routing_status === 'pending';
         }
         if (statusFilter === 'closed') {
@@ -423,12 +437,9 @@ export function useRealtimeMessages() {
       if (sortBy === 'unread') {
         if (a.unreadCount !== b.unreadCount) return b.unreadCount - a.unreadCount;
       }
-      
       if (sortBy === 'name') {
         return a.contact.name.localeCompare(b.contact.name);
       }
-
-      // Default: lastMessage
       const aTime = a.lastMessage ? new Date(a.lastMessage.created_at).getTime() : new Date(a.contact.created_at).getTime();
       const bTime = b.lastMessage ? new Date(b.lastMessage.created_at).getTime() : new Date(b.contact.created_at).getTime();
       return bTime - aTime;
@@ -448,7 +459,6 @@ export function useRealtimeMessages() {
     dismissNotification, setSelectedContact, setSoundEnabled,
     conversationSendState,
     batcherStatus,
-
     /**
      * @deprecated Use the hook directly where needed
      */
