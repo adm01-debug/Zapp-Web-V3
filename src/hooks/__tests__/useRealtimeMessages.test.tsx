@@ -162,13 +162,7 @@ describe('useRealtimeMessages', () => {
     });
   });
 
-  // QUARANTINED (2026-07-03): flaky under the blocking gate. The hook's `loading`
-  // intermittently never settles to false within the 10s waitFor on the CI
-  // runner (passes in-suite locally, fails on CI) — a race between the mocked
-  // contacts/messages/realtime async chains and the hook's effect ordering, not
-  // a real product bug. Skipped so it can't randomly redden the gate; needs a
-  // deterministic rewrite (fake timers / explicit resolves) before re-enabling.
-  it.skip('includes contacts referenced by recent messages even when they are outside the seeded contact list', async () => {
+  it('includes contacts referenced by recent messages even when they are outside the seeded contact list', async () => {
     const seededContact = makeContact({
       id: 'seeded-contact',
       name: 'Contato antigo',
@@ -237,13 +231,15 @@ describe('useRealtimeMessages', () => {
 
     const { result } = renderHook(() => useRealtimeMessages());
 
+    // Wait on the actual outcome — the hidden contact's conversation appearing —
+    // not on the `loading` flag. `loading` toggles as the hook's effects settle
+    // (the callbacks it depends on are recreated per render), so keying the wait
+    // on it was racy and made this test flaky. Keying on the data is deterministic.
     await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      expect(result.current.conversations.map((c: any) => c.contact.id)).toContain(
+        hiddenActiveContact.id
+      );
     }, { timeout: 10000 });
-
-    expect(result.current.conversations.map((c: any) => c.contact.id)).toContain(
-      hiddenActiveContact.id
-    );
   });
 
   it('creates a conversation when a realtime message arrives for a contact not loaded initially', () => {
