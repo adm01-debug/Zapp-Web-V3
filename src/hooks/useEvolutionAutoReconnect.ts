@@ -135,7 +135,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       // a FK aponta para zapp.channel_connections (tabela separada/vazia).
       // Solucao: p_connection_id=NULL (FK nullable), whatsapp_connection_id em metadata.
       try {
-        await supabase.rpc('fn_log_reconnection_attempt', {
+        await (supabase.rpc as unknown as (n: string, a: unknown) => Promise<unknown>)('fn_log_reconnection_attempt', {
           p_connection_id:  null,                     // Bug 7 fix: FK ref vazia
           p_instance_name:  connection.instance_id,
           p_status:         attemptStatus,             // Bug 6 fix: 'success'|'failed'
