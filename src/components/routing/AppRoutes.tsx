@@ -1,28 +1,15 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/features/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles } from "lucide-react";
 import NotFound from "@/pages/NotFound";
 import { PageTransition } from "@/components/transitions";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
+// GAP FIX C: import from shared module (was local function without stale-chunk
+// detection). The old local version caused 3 retries x 1s = 3s delay before
+// reload for hash-mismatch errors. Now all 50+ URL routes get instant reload.
 
-// Retry wrapper for lazy imports to handle transient network failures
-function lazyWithRetry(factory: () => Promise<any>, retries = 3): React.LazyExoticComponent<any> {
-  return lazy(() => {
-    let attempt = 0;
-    const load = (): Promise<any> =>
-      factory().catch((err: unknown) => {
-        attempt++;
-        if (attempt < retries) {
-          return new Promise(r => setTimeout(r, 1000 * attempt)).then(load);
-        }
-        throw err;
-      });
-    return load();
-  });
-}
-
-// Lazy-load ALL page routes
 const Index = lazyWithRetry(() => import("@/pages/Index"));
 const Auth = lazyWithRetry(() => import("@/pages/Auth"));
 const ForgotPassword = lazyWithRetry(() => import("@/pages/ForgotPassword"));
@@ -72,12 +59,9 @@ const InboxPage = lazyWithRetry(() => import("@/pages/inbox/InboxPage"));
 const AdminConnectionsPage = lazyWithRetry(() => import("@/pages/admin/Connections"));
 const PerformanceDashboard = lazyWithRetry(() => import("@/pages/admin/PerformanceDashboard"));
 
-
-
-// Route loading fallback component
 function RouteLoadingFallback() {
   return (
-    <div className="flex items-center justify-center h-screen bg-background" role="status" aria-busy="true" aria-label="Carregando página">
+    <div className="flex items-center justify-center h-screen bg-background" role="status" aria-busy="true" aria-label="Carregando">
       <div className="text-center space-y-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto animate-pulse">
           <Sparkles className="w-8 h-8 text-primary" aria-hidden="true" />
@@ -86,7 +70,7 @@ function RouteLoadingFallback() {
           <Skeleton className="h-4 w-32 mx-auto" />
           <Skeleton className="h-3 w-24 mx-auto" />
         </div>
-        <span className="sr-only">Carregando página...</span>
+        <span className="sr-only">Carregando...</span>
       </div>
     </div>
   );
@@ -109,7 +93,6 @@ export function AppRoutes() {
         <Route path="/chat-popup/:contactId" element={<ProtectedRoute><ChatPopup /></ProtectedRoute>} />
         <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
         <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />
-
         <Route path="/queue/:id" element={<ProtectedRoute><QueueDetails /></ProtectedRoute>} />
         <Route path="/queues/comparison" element={<ProtectedRoute><QueuesComparison /></ProtectedRoute>} />
         <Route path="/sla" element={<ProtectedRoute><SLADashboard /></ProtectedRoute>} />
@@ -149,7 +132,6 @@ export function AppRoutes() {
         <Route path="/connections" element={<Navigate to="/?view=connections&tab=connections" replace />} />
         <Route path="/integrations" element={<Navigate to="/?view=connections&tab=integrations" replace />} />
         <Route path="*" element={<NotFound />} />
-
       </Routes>
       </PageTransition>
     </Suspense>
