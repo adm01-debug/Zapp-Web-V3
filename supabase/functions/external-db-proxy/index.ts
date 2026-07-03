@@ -242,7 +242,25 @@ Deno.serve(async (req) => {
 
     const { data, count, error } = await query;
     if (error) {
-      return jsonResponse({ error: error.message, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
+      const err = error as { code?: string; message: string };
+      const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
+      if (missing) {
+        console.warn("[external-db-proxy] missing_table", { schema, table, cid });
+        return jsonResponse({
+          error: `Tabela '${schema}.${table}' não encontrada no destino (${targetName}).`,
+          hint: "Verifique se a migration foi aplicada no self-hosted e se o schema 'evo' está exposto na Data API (config.toml → [api].schemas).",
+          missing_table: true,
+          schema,
+          table,
+          target: targetName,
+          cid,
+          rid,
+          data: [],
+          count: 0,
+          latency_ms: Date.now() - start,
+        }, 503);
+      }
+      return jsonResponse({ error: err.message, code: err.code, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
     }
 
     return jsonResponse({
