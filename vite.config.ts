@@ -108,7 +108,11 @@ export default defineConfig(({ mode }) => ({
             handler: 'NetworkFirst' as const,
             options: {
               cacheName: 'navigation-cache',
-              networkTimeoutSeconds: 3,
+              networkTimeoutSeconds: 5,
+              expiration: {
+                maxEntries: 1,
+                maxAgeSeconds: 60 * 60 * 24, // 24h — caps staleness of offline fallback
+              },
               cacheableResponse: {
                 statuses: [200],
               },

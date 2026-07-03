@@ -53,8 +53,15 @@ export async function handleOutgoingWhatsAppMessage(
     .order('created_at', { ascending: true }).limit(1).maybeSingle();
 
   if (pendingMessage?.id) {
-    await supabase.from('messages').update({ status: 'sent', external_id: externalId, status_updated_at: new Date().toISOString() }).eq('id', pendingMessage.id);
-    return;
+    // Only return when this writer actually claimed the placeholder row.
+    // With `.is('external_id', null)` a concurrent webhook matches 0 rows and
+    // must fall through to the INSERT below so the message is never dropped.
+    const { data: claimed } = await supabase.from('messages')
+      .update({ status: 'sent', external_id: externalId, status_updated_at: new Date().toISOString() })
+      .eq('id', pendingMessage.id)
+      .is('external_id', null)
+      .select('id');
+    if (claimed?.length) return;
   }
 
   const { error: msgError } = await supabase.from('messages').insert({
