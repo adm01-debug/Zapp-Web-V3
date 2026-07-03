@@ -22,14 +22,14 @@ const removeChannel = vi.fn();
 vi.mock('@/integrations/datasource/db', () => ({
   dbList: (...a: unknown[]) => dbList(...a),
   dbFrom: (...a: unknown[]) => dbFrom(...a),
-  dbTable: (...a: unknown[]) => dbTable(...a),
+  dbTable: (...a: unknown[]) => dbTable(...(a as Parameters<typeof dbTable>)),
 }));
 vi.mock('@/integrations/datasource/rpcCatalog', () => ({
   RPC: { listMessagesLite: 'list_messages_lite' },
 }));
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    channel: (...a: unknown[]) => supabaseChannel(...a),
+    channel: (...a: unknown[]) => supabaseChannel(...(a as Parameters<typeof supabaseChannel>)),
     removeChannel: (...a: unknown[]) => removeChannel(...a),
     rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
