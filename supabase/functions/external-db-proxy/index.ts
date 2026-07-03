@@ -214,10 +214,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }, 403);
   }
 
-  if (EVO_TABLE_RE.test(table) && !EXTERNAL_URL && schema === "evo") {
-    return jsonResponse({
-      error: `Tabela '${table}' não encontrada no backend local. Configure o banco correto das tabelas Evolution em EXTERNAL_SUPABASE_URL/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY.`,
-      cid,
+
       rid,
       data: [],
       count: 0,
