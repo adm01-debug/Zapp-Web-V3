@@ -154,6 +154,10 @@ interface RevokeLgpdConsentParams {
   p_reason?: string;
 }
 
+type GetLgpdComplianceStatsParams =
+  | { p_instance_name?: string | null }
+  | { p_workspace_id: string };
+
 interface DashboardHomeParams {
   p_instance?: string | null;
   p_assigned_to?: string | null;
@@ -372,7 +376,7 @@ export const RPC = {
     client: 'lovable',
   }),
 
-  getLgpdComplianceStats: def<{ p_instance_name?: string | null } | { p_workspace_id: string }, Record<string, unknown>>({
+  getLgpdComplianceStats: def<GetLgpdComplianceStatsParams, Record<string, unknown>>({
     name: 'get_lgpd_compliance_stats',
     client: 'lovable',
   }),
