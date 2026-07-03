@@ -1,32 +1,50 @@
 /**
- * Registro central das instâncias Evolution API / partições de
- * `evolution_messages` e `evolution_conversations` no FATOR X.
+ * Registro central das instâncias Evolution API.
  *
- * FATOR X v6.1: lista reduzida às instâncias REAIS existentes no banco
- * (`public.whatsapp_connections` / partições `evo.*`). As 14 instâncias
- * planejadas (setores/vendedores) foram removidas — validar input contra
- * nomes inexistentes gerava filtros que retornavam vazio silenciosamente.
+ * FONTE DE VERDADE dinâmica: `SELECT instance_name, is_active FROM whatsapp_connections`.
+ * Esta constante é o fallback estático de validação/UX.
  *
- * FONTE DE VERDADE dinâmica: `SELECT instance_name FROM whatsapp_connections`.
- * Esta constante é apenas o fallback estático de validação/UX. Ao criar uma
- * instância nova na Evolution API, adicione-a aqui E crie a partição no PG.
+ * INSTÂNCIAS ATIVAS (verificado 2026-07-03):
+ *  - wpp_pink_test: instância principal ATIVA (5342 msgs, 2203 convs)
+ *  - wpp2          : instância legada (1.8M msgs histórico até Maio 2026)
+ *
+ * Para adicionar uma nova instância:
+ *  1. Adicione-a em WHATSAPP_INSTANCES abaixo.
+ *  2. Crie as partições no PG se necessário.
+ *  3. Configure o webhook na Evolution API.
  */
 
 export const WHATSAPP_INSTANCES = [
-  // Produção principal (Promo Brindes — 551146375517)
+  // Instância legada — dados históricos até Maio 2026
   'wpp2',
-  // Ambiente de testes
+  // Instância ATIVA atual — dados de Maio 2026 em diante
   'wpp_pink_test',
-  // Fallback (não selecionável pelo usuário, partição default do PG)
+  // Fallback interno do PG (não selecionável pelo usuário)
   'default',
 ] as const;
 
 export type WhatsAppInstance = (typeof WHATSAPP_INSTANCES)[number];
 
-/** Instância default usada em todo o app quando nenhuma é especificada. */
+/**
+ * Instância default LEGADA — mantida para retrocompatibilidade.
+ * ATENÇÃO: Use ACTIVE_WHATSAPP_INSTANCE para novas interações.
+ * @deprecated Prefira ALL_INSTANCES_FILTER (null) ou ACTIVE_WHATSAPP_INSTANCE.
+ */
 export const DEFAULT_WHATSAPP_INSTANCE: WhatsAppInstance = 'wpp2';
 
-/** Instâncias selecionáveis pela UI (exclui `default`, que é fallback do PG). */
+/**
+ * Instância atualmente ATIVA (recebe mensagens novas).
+ * Atualizar quando a instância principal mudar.
+ */
+export const ACTIVE_WHATSAPP_INSTANCE: WhatsAppInstance = 'wpp_pink_test';
+
+/**
+ * Valor sentinela para indicar "todas as instâncias" nas RPCs.
+ * Passe null como p_instance para não filtrar por instância.
+ */
+export const ALL_INSTANCES_FILTER = null;
+
+/** Instâncias selecionáveis pela UI (exclui `default`). */
 export const SELECTABLE_WHATSAPP_INSTANCES = WHATSAPP_INSTANCES.filter(
   (i) => i !== 'default',
 ) as readonly WhatsAppInstance[];
@@ -36,9 +54,9 @@ export function isValidWhatsAppInstance(value: unknown): value is WhatsAppInstan
 }
 
 /**
- * Retorna a instância validada ou cai para `DEFAULT_WHATSAPP_INSTANCE`.
+ * Retorna a instância validada ou cai para `ACTIVE_WHATSAPP_INSTANCE`.
  * Use em pontos de entrada (querystring, localStorage, props externas).
  */
 export function coerceWhatsAppInstance(value: unknown): WhatsAppInstance {
-  return isValidWhatsAppInstance(value) ? value : DEFAULT_WHATSAPP_INSTANCE;
+  return isValidWhatsAppInstance(value) ? value : ACTIVE_WHATSAPP_INSTANCE;
 }
