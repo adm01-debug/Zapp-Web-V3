@@ -110,7 +110,13 @@ export function useTeamConversations() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'team_messages' }, () => {
         queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_conversations' }, () => {
+      // public.team_conversations e uma VIEW (security_invoker) sobre zapp.team_conversations;
+      // views nao emitem eventos realtime. Assinamos as tabelas base no schema zapp
+      // (adicionadas a publication supabase_realtime em 2026-07-02).
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversations' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversation_members' }, () => {
         queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
       .subscribe();
