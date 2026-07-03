@@ -1,123 +1,109 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const mockFrom = vi.fn();
-const mockChannel = vi.fn().mockReturnValue({
-  on: vi.fn().mockReturnThis(),
-  subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-});
-const mockRemoveChannel = vi.fn();
+// Rewritten 2026-07-03 against the real hook API. The previous suite was stale:
+// it called useMessages({ contactId }) (an object) when the hook takes a string
+// remoteJid, so renderHook's per-render object identity re-fired the load effect
+// in an infinite loop and OOM'd. It also mocked supabase.from().range() while the
+// hook fetches via dbList(RPC.listMessagesLite). This version mocks the correct
+// data layer and drives every effect to a deterministic, settled state.
 
+const dbList = vi.fn();
+const dbFrom = vi.fn();
+const dbTable = vi.fn((t: string) => t);
+
+const realtimeChannel = {
+  on: vi.fn().mockReturnThis(),
+  subscribe: vi.fn().mockReturnThis(),
+};
+const supabaseChannel = vi.fn(() => realtimeChannel);
+const removeChannel = vi.fn();
+
+vi.mock('@/integrations/datasource/db', () => ({
+  dbList: (...a: unknown[]) => dbList(...a),
+  dbFrom: (...a: unknown[]) => dbFrom(...a),
+  dbTable: (...a: unknown[]) => dbTable(...a),
+}));
+vi.mock('@/integrations/datasource/rpcCatalog', () => ({
+  RPC: { listMessagesLite: 'list_messages_lite' },
+}));
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
-    channel: (...args: any[]) => mockChannel(...args),
-    removeChannel: (...args: any[]) => mockRemoveChannel(...args),
+    channel: (...a: unknown[]) => supabaseChannel(...a),
+    removeChannel: (...a: unknown[]) => removeChannel(...a),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
 }));
-
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
+vi.mock('@/lib/eventBus', () => ({ eventBus: { on: vi.fn(() => vi.fn()) } }));
+vi.mock('@/lib/inbox/chatOptimizations', () => ({
+  deduplicateMessages: (_prev: unknown[], next: unknown[]) => next,
+  setLastReceived: vi.fn(),
+}));
+vi.mock('@/lib/sanitize', () => ({ sanitizeText: (s: string) => s }));
 vi.mock('@/lib/logger');
 
 import { useMessages } from '@/hooks/useMessages';
 
-// QUARANTINED (2026-07-03): this suite is stale and crashes the whole test run
-// with an OOM. The hook's API is `useMessages(remoteJid: string | null)`, but
-// these tests call `useMessages({ contactId })` — an object. `renderHook`
-// creates a new object every render, so the `[remoteJid]` effect dependency
-// changes identity each render, re-firing loadMessages in an infinite
-// re-render loop until the heap is exhausted. The mocks are also wrong (they
-// stub `supabase.from().select().eq().order().range()`, but the hook fetches
-// via `dbList(RPC.listMessagesLite)`). `@ts-nocheck` hid the object-vs-string
-// mismatch. Skipped rather than left to OOM the suite; needs a full rewrite
-// against the real string API + a dbList mock. See docs/HARDENING_SESSION.
-
-function makeQueryChain(data: any[] = [], error: any = null) {
-  const rangeMock = vi.fn()
-    .mockResolvedValueOnce({ data, error })
-    .mockResolvedValue({ data: [], error: null });
+function row(over: Record<string, unknown> = {}) {
   return {
-    select: vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        order: vi.fn().mockReturnValue({
-          range: rangeMock,
-        }),
-      }),
-    }),
+    id: 'm1', message_id: 'wamid1', remote_jid: 'jid1', from_me: false,
+    message_type: 'text', content: 'oi', created_at: '2026-01-01T00:00:00Z', ...over,
   };
 }
 
-describe.skip('useMessages', () => {
+describe('useMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFrom.mockReturnValue(makeQueryChain());
+    dbList.mockResolvedValue({ data: [], error: null });
+    dbFrom.mockReturnValue({
+      update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+    });
   });
 
-  it('returns empty messages when contactId is null', async () => {
-    const { result } = renderHook(() => useMessages({ contactId: null }));
-
-    // With null contactId, messages should be empty immediately
-    // The hook sets loading=false and messages=[] synchronously for null contactId
-    await waitFor(() => {
-      expect(result.current.messages).toEqual([]);
-    });
-
-    expect(result.current.error).toBeNull();
+  it('does not fetch and stays empty when remoteJid is null', async () => {
+    const { result } = renderHook(() => useMessages(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.messages).toEqual([]);
+    expect(dbList).not.toHaveBeenCalled();
   });
 
-  it('fetches messages when contactId is provided', async () => {
-    const mockMessages = [
-      { id: 'msg-1', contact_id: 'c1', content: 'Hello', sender: 'contact', created_at: '2024-01-01' },
-      { id: 'msg-2', contact_id: 'c1', content: 'Hi!', sender: 'agent', created_at: '2024-01-01' },
-    ];
-    mockFrom.mockReturnValue(makeQueryChain(mockMessages));
+  it('loads messages via dbList(RPC.listMessagesLite) and reverses them for the UI', async () => {
+    dbList.mockResolvedValue({ data: [row({ id: 'a' }), row({ id: 'b' })], error: null });
+    const { result } = renderHook(() => useMessages('jid1'));
 
-    const { result } = renderHook(() => useMessages({ contactId: 'c1' }));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+    await waitFor(() => expect(result.current.messages).toHaveLength(2));
+    expect(dbList).toHaveBeenCalledWith('list_messages_lite', {
+      p_remote_jid: 'jid1', p_limit: 50, p_offset: 0,
     });
-
-    expect(result.current.messages).toEqual(mockMessages.map(m => ({ ...m, isEdited: false })));
+    expect(result.current.messages.map((m) => m.id)).toEqual(['b', 'a']);
+    expect(result.current.loading).toBe(false);
   });
 
-  it('sets error when fetch fails', async () => {
-    mockFrom.mockReturnValue(makeQueryChain(null, new Error('Network error')));
+  it('settles to loading=false with no messages when the fetch errors', async () => {
+    dbList.mockResolvedValue({ data: null, error: new Error('boom') });
+    const { result } = renderHook(() => useMessages('jid1'));
 
-    const { result } = renderHook(() => useMessages({ contactId: 'c1' }));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.error).toBeTruthy();
+    await waitFor(() => expect(dbList).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.messages).toEqual([]);
   });
 
-  it('does not fetch when enabled=false', () => {
-    const { result } = renderHook(() => useMessages({ contactId: 'c1', enabled: false }));
-    expect(result.current).toBeDefined();
+  it('subscribes to a realtime channel scoped to the remoteJid', async () => {
+    const { result } = renderHook(() => useMessages('jid1'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(supabaseChannel).toHaveBeenCalledWith('messages:jid1');
+    expect(realtimeChannel.subscribe).toHaveBeenCalled();
   });
 
-  it('clears messages when contactId changes to null', async () => {
-    const mockMessages = [
-      { id: 'msg-1', contact_id: 'c1', content: 'Hello', sender: 'contact', created_at: '2024-01-01' },
-    ];
-    mockFrom.mockReturnValue(makeQueryChain(mockMessages));
-
-    const { result, rerender } = renderHook(
-      ({ contactId }: { contactId: string | null }) => useMessages({ contactId }),
-      { initialProps: { contactId: 'c1' as string | null } }
-    );
-
-    await waitFor(() => {
-      expect(result.current.messages).toHaveLength(1);
+  it('reports hasMore when a full page is returned', async () => {
+    dbList.mockResolvedValue({
+      data: Array.from({ length: 50 }, (_, i) => row({ id: `m${i}`, message_id: `w${i}` })),
+      error: null,
     });
+    const { result } = renderHook(() => useMessages('jid1'));
 
-    mockFrom.mockReturnValue(makeQueryChain());
-    rerender({ contactId: null });
-
-    await waitFor(() => {
-      expect(result.current.messages).toEqual([]);
-    });
+    await waitFor(() => expect(result.current.messages).toHaveLength(50));
+    expect(result.current.hasMore).toBe(true);
   });
 });
