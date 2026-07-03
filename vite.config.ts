@@ -109,13 +109,9 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: 'navigation-cache',
               networkTimeoutSeconds: 3,
-              plugins: [
-                {
-                  cacheableResponse: {
-                    statuses: [200],
-                  },
-                },
-              ],
+              cacheableResponse: {
+                statuses: [200],
+              },
             },
           },
           // Google Fonts: cache aggressively (1 year) — these never change.
