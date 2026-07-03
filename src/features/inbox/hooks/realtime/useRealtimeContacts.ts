@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { externalSupabase } from '@/integrations/supabase/externalClient';
 import type { EvolutionContact } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
@@ -99,7 +99,11 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!enabled || !isExternalConfigured || !externalSupabase) {
+    // FATOR X v6.2: externalSupabase nunca é null (fallback para o client
+    // principal autenticado quando VITE_EXTERNAL_* ausentes). O gate por
+    // isExternalConfigured deixava o realtime de contatos permanentemente
+    // desligado em produção.
+    if (!enabled || !externalSupabase) {
       setRealtimeContactsStatus('disconnected');
       return;
     }
@@ -227,7 +231,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'evo', // FATOR X v6.2: tabela-fonte (view public não emite)
           table: 'evolution_contacts',
           filter: `instance_name=eq.${instance}`,
         },
