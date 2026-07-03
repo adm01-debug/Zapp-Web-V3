@@ -18,7 +18,7 @@
  *  - Trocar `remoteJid` reseta estado e dispara nova primeira carga.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { externalSupabase } from '@/integrations/supabase/externalClient';
 import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';
 import { toEvolutionMessageLite } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
