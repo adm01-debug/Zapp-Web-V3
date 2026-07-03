@@ -85,7 +85,7 @@ export default function HmacSelfTestPage() {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      const { error: insertError } = await supabase.from('hmac_selftest_audit').insert({
+      const { error: insertError } = await (supabase.from as unknown as (t: string) => { insert: (v: unknown) => Promise<{ error: unknown }> })('hmac_selftest_audit').insert({
         instance,
         ok: !!payload.ok,
         duration_ms: payload.duration_ms ?? fallbackMs,
@@ -140,7 +140,7 @@ export default function HmacSelfTestPage() {
             resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
             dismissed_by: uid,
             is_read: true,
-          })
+          } as never)
           .eq('source', source)
           .is('resolved_at', null);
         if (resolveError) log.warn('warroom_alerts resolve failed', resolveError);
