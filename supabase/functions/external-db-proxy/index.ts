@@ -154,7 +154,41 @@ Deno.serve(async (req) => {
   }
 
   if (req.method === "GET") {
-    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.6", target: targetName, ts: Date.now() }, 200);
+    const url = new URL(req.url);
+    if (url.searchParams.get("health") === "1" || url.searchParams.get("check") === "tables") {
+      const probes = [
+        { schema: "evo", table: "evolution_messages" },
+        { schema: "evo", table: "evolution_webhook_events" },
+      ];
+      const startH = Date.now();
+      const checks = await Promise.all(probes.map(async (p) => {
+        const t0 = Date.now();
+        try {
+          const client = supabase!.schema(p.schema);
+          const { error } = await client.from(p.table).select("*", { count: "exact", head: true }).limit(1);
+          if (error) {
+            const err = error as { code?: string; message: string };
+            const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
+            return { ...p, ok: false, exists: !missing, missing_table: missing, error: err.message, code: err.code ?? null, latency_ms: Date.now() - t0 };
+          }
+          return { ...p, ok: true, exists: true, missing_table: false, latency_ms: Date.now() - t0 };
+        } catch (e) {
+          return { ...p, ok: false, exists: false, missing_table: false, error: e instanceof Error ? e.message : "probe failed", latency_ms: Date.now() - t0 };
+        }
+      }));
+      const allOk = checks.every((c) => c.ok);
+      return jsonResponse({
+        ok: allOk,
+        fn: "external-db-proxy",
+        version: "1.7",
+        target: targetName,
+        checks,
+        hint: allOk ? undefined : "Se missing_table=true, aplique a migration no self-hosted e exponha o schema 'evo' em config.toml → [api].schemas.",
+        latency_ms: Date.now() - startH,
+        ts: Date.now(),
+      }, allOk ? 200 : 503);
+    }
+    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.7", target: targetName, ts: Date.now() }, 200);
   }
 
   if (req.method !== "POST") {
