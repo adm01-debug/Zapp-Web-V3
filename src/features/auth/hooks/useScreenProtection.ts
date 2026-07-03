@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { getLogger } from '@/lib/logger';
 
+const log = getLogger('useScreenProtection');
 const STORAGE_KEY = 'screen-protection-enabled';
 
 function getStoredState(): boolean {
@@ -41,7 +43,10 @@ export function useScreenProtection() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'PrintScreen') {
         e.preventDefault();
-        navigator.clipboard?.writeText?.('').catch(() => {});
+        // Clipboard write can be denied by browser permission policy — ignore gracefully.
+        navigator.clipboard?.writeText?.('').catch((err: unknown) => {
+          log.debug('Clipboard clear after PrintScreen denied by browser', err);
+        });
         showWarning();
         return;
       }
@@ -71,7 +76,10 @@ export function useScreenProtection() {
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && !isInputElement) {
         e.preventDefault();
-        navigator.clipboard?.writeText?.('').catch(() => {});
+        // Same as above — clipboard clear may be denied; log at debug.
+        navigator.clipboard?.writeText?.('').catch((err: unknown) => {
+          log.debug('Clipboard clear after copy-block denied by browser', err);
+        });
         showWarning();
         return;
       }
