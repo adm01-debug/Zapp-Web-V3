@@ -1,10 +1,26 @@
-// external-db-proxy v1.5 (2026-07-02) — +evolution_audit_log (fix 403 useIdempotencyMissAlerts), -evolution_chats (objeto inexistente)
-// NOTA: Este arquivo espelha a versão DEPLOYADA no self-hosted (supabase.atomicabr.com.br).
-// Implementação anterior (client anon + lib/) foi substituída em prod: após o anon-lockout
-// (PR #102), o client anon perdeu os GRANTs das views do repoint layer => 403.
-// Esta versão usa service_role + whitelist explícita de tabelas como camada de autorização.
+// external-db-proxy v1.6 (2026-07-03)
+// Proxy autorizado para consultas de tabelas operacionais.
+// Observação: este arquivo NÃO presume FATOR X. Quando `EXTERNAL_SUPABASE_URL`
+// e `EXTERNAL_SUPABASE_SERVICE_ROLE_KEY` existem, usa o banco externo correto
+// configurado no projeto; caso contrário, usa o backend Lovable Cloud local.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+
+type RequestBody = {
+  schema?: unknown;
+  table?: unknown;
+  rpc?: unknown;
+  action?: unknown;
+  params?: Record<string, unknown>;
+  select?: unknown;
+  limit?: unknown;
+  offset?: unknown;
+  filter?: Record<string, unknown>;
+  filters?: Array<{ column?: unknown; operator?: unknown; value?: unknown }>;
+  order_by?: unknown;
+  order?: { column?: unknown; ascending?: unknown };
+  order_asc?: unknown;
+};
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -12,209 +28,251 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
-// FATOR X (external self-hosted Supabase) — tabelas evolution_* vivem lá,
-// NÃO na Lovable Cloud. Se as envs externas não estiverem configuradas,
-// caímos no client local para não quebrar chamadas a tabelas locais
-// (profiles, channel_connections etc), mas leituras de evolution_* vão
-// retornar "table not found" — sintoma exato desta issue.
-// Ignora valores placeholder/inválidos para evitar crash no boot
-function pickEnv(...names: string[]): string | undefined {
-  for (const n of names) {
-    const v = Deno.env.get(n);
-    if (!v) continue;
-    const t = v.trim();
-    if (!t) continue;
-    if (/PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(t)) continue;
-    return t;
-  }
-  return undefined;
+const PLACEHOLDER_RE = /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i;
+const EVO_TABLE_RE = /^evolution_/;
+const SAFE_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+function pickEnv(name: string): string | undefined {
+  const value = Deno.env.get(name)?.trim();
+  if (!value || PLACEHOLDER_RE.test(value)) return undefined;
+  return value;
 }
 
-const EXTERNAL_URL =
-  pickEnv("EXTERNAL_SUPABASE_URL", "FATOR_X_URL") ??
-  pickEnv("SUPABASE_URL") ??
-  "";
-const EXTERNAL_KEY =
-  pickEnv(
-    "EXTERNAL_SUPABASE_SERVICE_ROLE_KEY",
-    "FATOR_X_SERVICE_ROLE_KEY",
-    "EXTERNAL_SUPABASE_ANON_KEY",
-  ) ??
-  pickEnv("SUPABASE_SERVICE_ROLE_KEY") ??
-  "";
+function isSafeIdent(value: string): boolean {
+  return SAFE_IDENT_RE.test(value);
+}
+
+const EXTERNAL_URL = pickEnv("EXTERNAL_SUPABASE_URL");
+const EXTERNAL_KEY = pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? pickEnv("EXTERNAL_SUPABASE_ANON_KEY");
+const LOCAL_URL = pickEnv("SUPABASE_URL");
+const LOCAL_KEY = pickEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+const TARGET_URL = EXTERNAL_URL ?? LOCAL_URL ?? "";
+const TARGET_KEY = EXTERNAL_KEY ?? LOCAL_KEY ?? "";
+const targetName = EXTERNAL_URL ? "external-configured" : "lovable-cloud-local";
 
 let supabase: ReturnType<typeof createClient> | null = null;
 let bootError: string | null = null;
+
 try {
-  if (!EXTERNAL_URL || !/^https?:\/\//i.test(EXTERNAL_URL)) {
-    throw new Error(
-      `EXTERNAL_SUPABASE_URL ausente ou inválida ('${EXTERNAL_URL}'). Configure o secret no projeto.`,
-    );
+  if (!TARGET_URL || !/^https?:\/\//i.test(TARGET_URL)) {
+    throw new Error("URL do banco ausente ou inválida para o external-db-proxy.");
   }
-  if (!EXTERNAL_KEY) {
-    throw new Error("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente. Configure o secret no projeto.");
+  if (!TARGET_KEY) {
+    throw new Error("Chave de acesso do banco ausente para o external-db-proxy.");
   }
-  supabase = createClient(EXTERNAL_URL, EXTERNAL_KEY, { auth: { persistSession: false } });
-} catch (e) {
-  bootError = (e as Error).message;
+  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
+} catch (error) {
+  bootError = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o proxy.";
   console.error("[external-db-proxy] boot error:", bootError);
 }
 
-const ALLOWED_SCHEMAS = ["public"];
+const ALLOWED_SCHEMAS = ["public", "evo"];
 
-// Whitelist de tabelas v1.3 — expandida para inbox/conversas
+const EVOLUTION_TABLES = [
+  "evolution_contacts",
+  "evolution_messages",
+  "evolution_conversations",
+  "evolution_calls",
+  "evolution_realtime_events",
+  "evolution_webhook_events",
+  "evolution_audit_log",
+  "evolution_webhook_events_wpp2",
+  "evolution_labels",
+  "evolution_label_associations",
+  "evolution_reactions",
+  "evolution_whatsapp_status",
+  "evolution_settings",
+  "evolution_alerts",
+];
+
+const LOCAL_TABLES = [
+  "whatsapp_connections",
+  "channel_connections",
+  "connection_health_logs",
+  "conversations",
+  "conversation_transfers",
+  "queues",
+  "queue_members",
+  "queue_goals",
+  "companies",
+  "contact_emails",
+  "profiles",
+  "app_notifications",
+  "agent_presence",
+  "outbound_message_queue",
+  "sales_deals",
+  "department_invitations",
+  "interactions",
+  "sla_delivery_rules",
+  "sla_delivery_violations",
+  "team_messages",
+  "team_message_reactions",
+  "transfer_comments",
+  "stickers",
+  "sticker_categories",
+  "sticker_favorites",
+  "audio_memes",
+  "audio_meme_categories",
+  "audio_meme_favorites",
+  "gmail_accounts",
+  "gmail_cache_test",
+  "gmail_health_logs",
+  "gmail_revalidation_jobs",
+  "email_tracked_messages",
+  "email_tracking_events",
+  "whisper_files",
+  "dispatch_error_logs",
+  "query_telemetry",
+  "api_keys",
+  "whatsapp_cloud_webhook_pings",
+  "qr_attempts",
+];
+
 const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
-  public: [
-    "evolution_contacts",
-    "evolution_messages",
-    "evolution_conversations",
-    "evolution_calls",
-    "evolution_realtime_events",
-    "evolution_webhook_events",
-    "evolution_audit_log",
-    "evolution_webhook_events_wpp2",
-    "evolution_labels",
-    "evolution_label_associations",
-    "evolution_reactions",
-    "evolution_whatsapp_status",
-    "evolution_settings",
-    "evolution_alerts",
-    "whatsapp_connections",
-    "channel_connections",
-    "connection_health_logs",
-    "conversations",
-    "conversation_transfers",
-    "queues",
-    "queue_members",
-    "queue_goals",
-    "companies",
-    "contact_emails",
-    "profiles",
-    "app_notifications",
-    "agent_presence",
-    "outbound_message_queue",
-    "sales_deals",
-    "department_invitations",
-    "interactions",
-    "sla_delivery_rules",
-    "sla_delivery_violations",
-    "team_messages",
-    "team_message_reactions",
-    "transfer_comments",
-    "stickers",
-    "sticker_categories",
-    "sticker_favorites",
-    "audio_memes",
-    "audio_meme_categories",
-    "audio_meme_favorites",
-    "gmail_accounts",
-    "gmail_cache_test",
-    "gmail_health_logs",
-    "gmail_revalidation_jobs",
-    "email_tracked_messages",
-    "email_tracking_events",
-    "whisper_files",
-    "dispatch_error_logs",
-    "query_telemetry",
-    "api_keys",
-    "whatsapp_cloud_webhook_pings",
-    "qr_attempts"
-  ]
+  public: [...LOCAL_TABLES, ...EVOLUTION_TABLES],
+  evo: EVOLUTION_TABLES,
 };
 
-function isSafeIdent(s) {
-  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s);
+function resolveSchema(schema: string, table: string): string {
+  if (schema === "public" && EVO_TABLE_RE.test(table) && !EXTERNAL_URL) return "evo";
+  return schema;
+}
+
+function jsonResponse(payload: Record<string, unknown>, status: number): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
   if (bootError || !supabase) {
-    return new Response(
-      JSON.stringify({
-        error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
-        hint: "Configure os secrets EXTERNAL_SUPABASE_URL e EXTERNAL_SUPABASE_SERVICE_ROLE_KEY do FATOR X.",
-        data: [], count: 0,
-      }),
-      { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
-    );
+    return jsonResponse({
+      error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
+      hint: "Configure EXTERNAL_SUPABASE_URL e EXTERNAL_SUPABASE_SERVICE_ROLE_KEY com o banco correto das tabelas Evolution.",
+      data: [],
+      count: 0,
+    }, 503);
   }
+
   if (req.method === "GET") {
-    return new Response(
-      JSON.stringify({ ok: true, fn: "external-db-proxy", version: "1.5", ts: Date.now() }),
-      { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.6", target: targetName, ts: Date.now() }, 200);
   }
+
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405, headers: { ...cors, "Content-Type": "application/json" }
-    });
+    return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
   const cid = req.headers.get("x-correlation-id") || crypto.randomUUID();
   const rid = req.headers.get("x-request-id") || crypto.randomUUID();
   const start = Date.now();
 
-  let body = {};
+  let body: RequestBody;
   try {
-    body = await req.json();
+    body = await req.json() as RequestBody;
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body", cid, rid }), {
-      status: 400, headers: { ...cors, "Content-Type": "application/json" }
-    });
+    return jsonResponse({ error: "Invalid JSON body", cid, rid }, 400);
   }
 
-  const schema = String(body.schema ?? "public");
+  const requestedSchema = String(body.schema ?? "public");
   const table = String(body.table ?? "");
   const rpc = typeof body.rpc === "string" ? body.rpc : null;
   const action = typeof body.action === "string" ? body.action : rpc ? "rpc" : table ? "select" : null;
 
   if (action === "rpc" && rpc) {
-    if (!isSafeIdent(rpc)) {
-      return new Response(JSON.stringify({ error: "Invalid rpc identifier", cid, rid }), {
-        status: 400, headers: { ...cors, "Content-Type": "application/json" }
-      });
-    }
+    if (!isSafeIdent(rpc)) return jsonResponse({ error: "Invalid rpc identifier", cid, rid }, 400);
+
     const params = { ...(body.params ?? {}) };
     delete params.__cid;
+
     try {
       const { data, error } = await supabase.rpc(rpc, params);
-      if (error) return new Response(JSON.stringify({ error: error.message, cid, rid, data: null }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-      return new Response(JSON.stringify({ ok: true, cid, rid, data, latency_ms: Date.now() - start }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
-    } catch (e) {
-      return new Response(JSON.stringify({ error: e.message, cid, rid, data: null }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+      if (error) return jsonResponse({ error: error.message, cid, rid, data: null }, 400);
+      return jsonResponse({ ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "RPC failed";
+      return jsonResponse({ error: message, cid, rid, data: null }, 500);
     }
   }
 
-  const select_cols = String(body.select ?? "*");
+  const selectCols = String(body.select ?? "*");
   const limit = Math.min(Math.max(Number(body.limit ?? 50), 1), 500);
   const offset = Math.max(Number(body.offset ?? 0), 0);
   const filter = body.filter && typeof body.filter === "object" ? body.filter : null;
   const filters = Array.isArray(body.filters) ? body.filters : null;
-  const order_by = body.order_by ? String(body.order_by) : (body.order?.column ?? null);
-  const order_asc = body.order_asc !== undefined ? Boolean(body.order_asc) : Boolean(body.order?.ascending);
+  const orderBy = body.order_by ? String(body.order_by) : body.order?.column ? String(body.order.column) : null;
+  const orderAsc = body.order_asc !== undefined ? Boolean(body.order_asc) : Boolean(body.order?.ascending);
 
-  if (!isSafeIdent(schema)) return new Response(JSON.stringify({ error: "Invalid schema", cid, rid }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-  if (!isSafeIdent(table)) return new Response(JSON.stringify({ error: "Invalid table", cid, rid }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+  if (!isSafeIdent(requestedSchema)) return jsonResponse({ error: "Invalid schema", cid, rid }, 400);
+  if (!isSafeIdent(table)) return jsonResponse({ error: "Invalid table", cid, rid }, 400);
 
+  const schema = resolveSchema(requestedSchema, table);
   if (!ALLOWED_SCHEMAS.includes(schema)) {
-    return new Response(JSON.stringify({ schema_unavailable: true, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
+    return jsonResponse({ schema_unavailable: true, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 200);
   }
 
   const allowedTables = SCHEMA_TABLE_WHITELIST[schema] || [];
   if (allowedTables.length > 0 && !allowedTables.includes(table)) {
-    return new Response(JSON.stringify({ error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
+    return jsonResponse({ error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }, 403);
+  }
+
+  if (EVO_TABLE_RE.test(table) && !EXTERNAL_URL && schema === "evo") {
+    return jsonResponse({
+      error: `Tabela '${table}' não encontrada no backend local. Configure o banco correto das tabelas Evolution em EXTERNAL_SUPABASE_URL/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY.`,
+      cid,
+      rid,
+      data: [],
+      count: 0,
+      latency_ms: Date.now() - start,
+    }, 503);
   }
 
   try {
-    let query = supabase.from(table).select(select_cols, { count: "exact" }).limit(limit);
-    if (filters) { for (const f of filters) { const op = f.operator ?? "eq"; if (!isSafeIdent(f.column ?? "")) continue; if (typeof query[op] === "function") query = query[op](f.column, f.value); } }
-    else if (filter) { for (const [key, value] of Object.entries(filter)) { if (!isSafeIdent(key)) continue; query = query.eq(key, value); } }
-    if (order_by && isSafeIdent(String(order_by))) query = query.order(String(order_by), { ascending: order_asc });
+    const client = schema === "public" ? supabase : supabase.schema(schema);
+    let query = client.from(table).select(selectCols, { count: "exact" }).limit(limit);
+
+    if (filters) {
+      for (const item of filters) {
+        const column = String(item.column ?? "");
+        const operator = String(item.operator ?? "eq");
+        if (!isSafeIdent(column) || !isSafeIdent(operator)) continue;
+        const maybeOperator = query[operator as keyof typeof query];
+        if (typeof maybeOperator === "function") {
+          query = (maybeOperator as (column: string, value: unknown) => typeof query).call(query, column, item.value);
+        }
+      }
+    } else if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (!isSafeIdent(key)) continue;
+        query = query.eq(key, value);
+      }
+    }
+
+    if (orderBy && isSafeIdent(orderBy)) query = query.order(orderBy, { ascending: orderAsc });
     if (offset > 0) query = query.range(offset, offset + limit - 1);
+
     const { data, count, error } = await query;
-    if (error) return new Response(JSON.stringify({ error: error.message, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
-    return new Response(JSON.stringify({ ok: true, cid, rid, data: data || [], count: count ?? (data?.length || 0), schema, table, latency_ms: Date.now() - start }), { status: 200, headers: { ...cors, "Content-Type": "application/json" } });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: e.message, cid, rid, data: [], count: 0 }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    if (error) {
+      return jsonResponse({ error: error.message, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
+    }
+
+    return jsonResponse({
+      ok: true,
+      cid,
+      rid,
+      data: data || [],
+      count: count ?? (data?.length || 0),
+      schema,
+      requested_schema: requestedSchema,
+      table,
+      target: targetName,
+      latency_ms: Date.now() - start,
+    }, 200);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Query failed";
+    return jsonResponse({ error: message, cid, rid, data: [], count: 0 }, 500);
   }
 });
