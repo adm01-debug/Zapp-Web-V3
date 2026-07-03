@@ -193,12 +193,10 @@ export function useRealtimeMessages() {
   );
 
   // Reage a um DELETE real na tabela messages (ex.: moderação via
-  // useMonitoringActions). payload.old traz a linha completa porque
-  // public.messages tem REPLICA IDENTITY FULL, então id e contact_id estao
-  // sempre disponíveis aqui. Recalcula a conversa inteira via
-  // buildConversation (mesmo helper do handleNewMessage) para manter
-  // lastMessage/unreadCount consistentes, sem reordenar a lista (deleição
-  // não deve "subir" a conversa como uma mensagem nova faria).
+  // useMonitoringActions). Na fonte evo.evolution_messages a replica identity
+  // é default (payload.old só traz a PK) — a guarda abaixo já cobre old
+  // incompleto. Recalcula a conversa inteira via buildConversation para manter
+  // lastMessage/unreadCount consistentes, sem reordenar a lista.
   const handleMessageDelete = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
       const deletedMessage = payload.old as RealtimeMessage;
@@ -261,30 +259,40 @@ export function useRealtimeMessages() {
     logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
     
+    // FATOR X v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
+    // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
+    const adaptEvoPayload = (p: RealtimePostgresChangesPayload<Record<string, unknown>>): RealtimePostgresChangesPayload<RealtimeMessage> => {
+      const map = (r: Record<string, unknown> | undefined) => r && ({
+        ...r,
+        sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
+        is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
+      });
+      return { ...p, new: map(p.new as Record<string, unknown>), old: map(p.old as Record<string, unknown>) } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>;
+    };
     const channel = dbChannel('messages', channelName)
       .on('postgres_changes', { 
         event: 'INSERT', 
-        schema: 'public', 
-        table: dbTable('messages'),
+        schema: 'evo', 
+        table: 'evolution_messages',
       },
         (payload) => {
-          if (active) wrapMessagesHandler('useRealtimeMessages', handleNewMessage)(payload as RealtimePostgresChangesPayload<RealtimeMessage>);
+          if (active) wrapMessagesHandler('useRealtimeMessages', handleNewMessage)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         })
       .on('postgres_changes', { 
         event: 'UPDATE', 
-        schema: 'public', 
-        table: dbTable('messages'),
+        schema: 'evo', 
+        table: 'evolution_messages',
       },
         (payload) => {
-          if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageUpdate)(payload as RealtimePostgresChangesPayload<RealtimeMessage>);
+          if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageUpdate)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         })
       .on('postgres_changes', { 
         event: 'DELETE', 
-        schema: 'public', 
-        table: dbTable('messages'),
+        schema: 'evo', 
+        table: 'evolution_messages',
       },
         (payload) => {
-          if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageDelete)(payload as RealtimePostgresChangesPayload<RealtimeMessage>);
+          if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageDelete)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         })
       .subscribe((status) => { 
         if (active) log.debug('Subscription status', { status }); 

@@ -52,7 +52,7 @@ export function useEvolutionMonitoring() {
     const channel = supabase
       .channel('monitoring-connections')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_connections' }, () => fetchData())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
+      .on('postgres_changes', { event: 'INSERT', schema: 'evo', table: 'evolution_messages' }, // FATOR X v6.2: view public não emite
         wrapMessagesHandler<{ new: Record<string, unknown> }>('useEvolutionMonitoring', () => fetchData()))
       .subscribe();
     return () => { supabase.removeChannel(channel); };

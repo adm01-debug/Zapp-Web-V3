@@ -62,7 +62,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'public',
+          schema: 'evo', // FATOR X v6.2: tabela-fonte
           table: 'evolution_messages',
           filter: `instance_name=eq.${instance}`,
         },
@@ -76,7 +76,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'public',
+          schema: 'evo', // FATOR X v6.2: tabela-fonte
           table: 'evolution_messages',
           filter: `instance_name=eq.${instance}`,
         },

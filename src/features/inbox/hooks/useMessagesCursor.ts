@@ -18,7 +18,7 @@
  *  - Trocar `remoteJid` reseta estado e dispara nova primeira carga.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { externalSupabase } from '@/integrations/supabase/externalClient';
 import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';
 import { toEvolutionMessageLite } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
@@ -90,7 +90,7 @@ export function useMessagesCursor({
 
   const fetchPage = useCallback(
     async (beforeDate: string | null): Promise<EvolutionMessageLite[]> => {
-      if (!isExternalConfigured || !externalSupabase || !remoteJid) return [];
+      if (!externalSupabase || !remoteJid) return [];
 
       const controller = new AbortController();
       abortRef.current?.abort();
@@ -213,9 +213,9 @@ export function useMessagesCursor({
     if (mountedRef.current) setLoadingOlder(false);
   }, []);
 
-  // Realtime — only set up when configured + enabled + jid present.
+  // Realtime — only set up when enabled + jid present.
   useEffect(() => {
-    if (!enabled || !remoteJid || !isExternalConfigured || !externalSupabase) return;
+    if (!enabled || !remoteJid || !externalSupabase) return;
 
     // externalSupabase is loosely typed (no Database generic), so the
     // postgres_changes overload is not visible. Cast to a permissive shape.
@@ -238,9 +238,10 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'public',
+          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
-          filter: `remote_jid=eq.${remoteJid},instance_name=eq.${DEFAULT_INSTANCE}`,
+          // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
+          filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
           const raw = payload.new;
@@ -261,9 +262,10 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'public',
+          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
-          filter: `remote_jid=eq.${remoteJid},instance_name=eq.${DEFAULT_INSTANCE}`,
+          // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
+          filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
           const raw = payload.new;
@@ -278,9 +280,10 @@ export function useMessagesCursor({
         'postgres_changes',
         {
           event: 'DELETE',
-          schema: 'public',
+          schema: 'evo', // FATOR X v6.2: tabela-fonte evo.evolution_messages
           table: 'evolution_messages',
-          filter: `remote_jid=eq.${remoteJid},instance_name=eq.${DEFAULT_INSTANCE}`,
+          // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
+          filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
           const id = payload.old?.id;

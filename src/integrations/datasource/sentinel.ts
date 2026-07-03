@@ -1,51 +1,33 @@
 /**
- * Datasource Sentinel — Audit and prevent misuse of standard Supabase client
- * for evolution_* tables, ensuring they use externalSupabase.
+ * Datasource Sentinel — telemetria de acesso ao domínio FATOR X.
+ *
+ * ARQUITETURA v6.1 (single-database): as RPCs `evolution_*` rodam no client
+ * PRINCIPAL AUTENTICADO (SECURITY DEFINER; `anon` revogado no banco). Chamar
+ * RPCs via client 'lovable' é o comportamento CORRETO — não é violação.
+ *
+ * O sentinel antigo (pré-v6.1) lançava erro nesse caso e quebrava o app em
+ * DEV. Esta versão mantém as assinaturas públicas, mas atua apenas como
+ * telemetria leve de desenvolvimento:
+ *  - loga acesso direto via `.from()` a tabelas `evolution_*` (preferir RPC);
+ *  - nunca lança exceção.
  */
 import { ENTITY_MAP } from './registry';
 
-/**
- * Validates that an entity is being accessed through the correct client.
- * Throws if a standard Supabase call is made to an 'external' entity.
- */
 export function validateEntityAccess(entity: string, clientName: 'lovable' | 'external'): void {
-  // Find if this table/entity is registered as external
+  if (!import.meta.env.DEV) return;
   const mapping = Object.values(ENTITY_MAP).find(m => m.table === entity);
-  
-  if (mapping && (mapping.client as string) === 'external' && clientName === 'lovable') {
-    const errorMsg = `[Datasource Sentinel] SECURITY VIOLATION: Attempted to access external table "${entity}" using Lovable Cloud client. Use dbFrom('${entity}') or externalSupabase instead.`;
-    console.error(errorMsg);
-    // In production we might just log, but in dev/test we fail fast
-    if (import.meta.env.DEV) {
-      throw new Error(errorMsg);
-    }
-  }
-
-  // Prevent any evolution_* access on lovable client even if not in ENTITY_MAP
-  if (entity.startsWith('evolution_') && clientName === 'lovable') {
-    const errorMsg = `[Datasource Sentinel] CRITICAL: Hardcoded reference to "${entity}" detected on Lovable client. Tables evolution_* MUST use externalSupabase.`;
-    console.error(errorMsg);
-    if (import.meta.env.DEV) {
-      throw new Error(errorMsg);
-    }
+  if (entity.startsWith('evolution_') && !mapping) {
+    console.debug(
+      `[Datasource Sentinel] Acesso direto a "${entity}" fora do ENTITY_MAP (client: ${clientName}). ` +
+        'Preferir RPCs do rpcCatalog para o domínio evolution_*.',
+    );
   }
 }
 
-/**
- * Validates RPC calls to ensure evolution_* functions are not called on the wrong client.
- */
 export function validateRpcAccess(name: string, clientName: 'lovable' | 'external'): void {
-  const isEvolutionRpc = name.startsWith('rpc_list_') || 
-                         name.startsWith('rpc_get_') || 
-                         name.startsWith('rpc_insert_') || 
-                         name.startsWith('rpc_upsert_') ||
-                         name.includes('evolution');
-
-  if (isEvolutionRpc && clientName === 'lovable') {
-     const errorMsg = `[Datasource Sentinel] SECURITY VIOLATION: RPC "${name}" appears to be an evolution function but was called via Lovable client.`;
-     console.error(errorMsg);
-     if (import.meta.env.DEV) {
-       throw new Error(errorMsg);
-     }
-  }
+  if (!import.meta.env.DEV) return;
+  // v6.1: RPCs do domínio no client principal autenticado = caminho oficial.
+  // Mantido apenas para rastreio em dev; sem warnings, sem throws.
+  void name;
+  void clientName;
 }
