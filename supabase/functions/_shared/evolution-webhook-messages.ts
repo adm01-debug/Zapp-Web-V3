@@ -82,6 +82,7 @@ export async function handleOutgoingWhatsAppMessage(
     contact_id: contact.id, whatsapp_connection_id: connection.id, content: parsed.content,
     message_type: parsed.messageType, media_url: mediaUrl, sender: 'agent', external_id: externalId,
     status: 'sent', created_at: messageCreatedAt, agent_id: contact.assigned_to || null,
+    status_updated_at: new Date().toISOString(),
   }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true }).select('id').maybeSingle();
 
   if (msgError) { console.error('[FROM_ME] Error inserting outgoing message:', msgError); return; }
