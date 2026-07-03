@@ -2,37 +2,22 @@
  * Registro central das instâncias Evolution API / partições de
  * `evolution_messages` e `evolution_conversations` no FATOR X.
  *
- * Fonte: docs/architecture/JORNADA_MENSAGEM_WHATSAPP.md (Estágio 3C).
- * Mantido em UM único lugar para evitar strings mágicas espalhadas e para
- * que validações de input no frontend rejeitem instâncias inexistentes
- * antes de bater no Realtime / RPC.
+ * FATOR X v6.1: lista reduzida às instâncias REAIS existentes no banco
+ * (`public.whatsapp_connections` / partições `evo.*`). As 14 instâncias
+ * planejadas (setores/vendedores) foram removidas — validar input contra
+ * nomes inexistentes gerava filtros que retornavam vazio silenciosamente.
  *
- * IMPORTANTE: ao adicionar/remover uma partição no FATOR X, atualizar
- * esta lista E o trigger `pubviaroot` continua cobrindo automaticamente
- * todas as filhas — o frontend só precisa conhecer os nomes válidos.
+ * FONTE DE VERDADE dinâmica: `SELECT instance_name FROM whatsapp_connections`.
+ * Esta constante é apenas o fallback estático de validação/UX. Ao criar uma
+ * instância nova na Evolution API, adicione-a aqui E crie a partição no PG.
  */
 
 export const WHATSAPP_INSTANCES = [
-  // Produção principal
+  // Produção principal (Promo Brindes — 551146375517)
   'wpp2',
-  // Testes
+  // Ambiente de testes
   'wpp_pink_test',
-  // Setores
-  'compras',
-  'diretoria',
-  'financeiro',
-  'logistica',
-  'marketing',
-  'sac',
-  // Vendedores individuais
-  'vendedor_01',
-  'vendedor_02',
-  'vendedor_03',
-  'vendedor_04',
-  'vendedor_05',
-  'vendedor_06',
-  'vendedor_07',
-  // Fallback (não seleciável pelo usuário, partição default)
+  // Fallback (não selecionável pelo usuário, partição default do PG)
   'default',
 ] as const;
 
