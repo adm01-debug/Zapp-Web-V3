@@ -3,7 +3,7 @@
 
 import {
   isRecord, normalizePhone, toEventRecords,
-  getConnectionByInstance, getContactByPhone, persistProfilePicture,
+  getConnectionByInstance, getContactByPhone, persistProfilePicture, generatePhoneVariants,
 } from "./evolution-helpers.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -193,17 +193,19 @@ export async function handleConnectionUpdate(supabase: any, instance: string, ba
 // deno-lint-ignore no-explicit-any
 export async function handleContactsUpsert(supabase: any, instance: string, data: unknown) {
   const contacts = Array.isArray(data) ? data : [data];
+  const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) return;
   for (const contact of contacts) {
     const contactData = contact as Record<string, unknown>;
     const jid = (contactData.id || contactData.remoteJid) as string;
     if (!jid) continue;
 
-    const phone = jid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+    const phone = normalizePhone(jid);
+    if (!phone) continue;
     const pushName = contactData.pushName as string || contactData.name as string;
     const profilePicUrl = contactData.profilePictureUrl as string || contactData.imgUrl as string;
-    const connection = await getConnectionByInstance(supabase, instance);
 
-    if (connection && pushName) {
+    if (pushName) {
       let permanentAvatarUrl: string | null = null;
       if (profilePicUrl && profilePicUrl.includes('pps.whatsapp.net')) {
         permanentAvatarUrl = await persistProfilePicture(supabase, phone, profilePicUrl);
@@ -310,22 +312,23 @@ export async function handlePresenceUpdate(supabase: any, instance: string, data
 // deno-lint-ignore no-explicit-any
 export async function handleChatsUpdate(supabase: any, instance: string, data: unknown) {
   const chats = Array.isArray(data) ? data : [data];
+  const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) return;
   for (const chat of chats) {
     const chatData = chat as Record<string, unknown>;
     const jid = chatData.id as string;
     if (!jid || jid.endsWith('@g.us')) continue;
 
-    const phone = jid.replace('@s.whatsapp.net', '');
+    const phone = normalizePhone(jid);
+    if (!phone) continue;
     const unreadCount = chatData.unreadCount as number;
 
     if (unreadCount !== undefined) {
-      const connection = await getConnectionByInstance(supabase, instance);
-      if (connection) {
-        const contact = await getContactByPhone(supabase, phone, connection.id);
-        if (contact && unreadCount === 0) {
-          await supabase.from('messages').update({ is_read: true })
-            .eq('contact_id', contact.id).eq('sender', 'contact').eq('is_read', false);
-        }
+      const contact = await getContactByPhone(supabase, phone, connection.id);
+      if (contact && unreadCount === 0) {
+        await supabase.from('messages').update({ is_read: true })
+          .eq('contact_id', contact.id).eq('sender', 'contact').eq('is_read', false)
+          .eq('whatsapp_connection_id', connection.id);
       }
     }
   }
@@ -364,7 +367,8 @@ export async function handleLabelsAssociation(supabase: any, instance: string, d
   const type = assocData.type as string;
   if (!labelId || !chatId) return;
 
-  const phone = chatId.replace('@s.whatsapp.net', '').replace('@g.us', '');
+  const phone = normalizePhone(chatId);
+  if (!phone) return;
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
 
@@ -392,7 +396,8 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
   const callStatus = callData.status as string;
   if (!from) return;
 
-  const phone = from.replace('@s.whatsapp.net', '');
+  const phone = normalizePhone(from);
+  if (!phone) return;
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
 
@@ -402,9 +407,9 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
       .insert({ phone, name: phone, whatsapp_connection_id: connection.id })
       .select('id, avatar_url, assigned_to, name').single();
     if (insertErr && insertErr.code === '23505') {
-      const phonesVariants = [phone, `+${phone}`, phone.replace(/^\+/, '')];
+      const phonesVariants = generatePhoneVariants(phone);
       const { data: existing } = await supabase.from('contacts').select('id, avatar_url, assigned_to, name')
-        .in('phone', [...new Set(phonesVariants)]).limit(1).maybeSingle();
+        .in('phone', phonesVariants).eq('whatsapp_connection_id', connection.id).limit(1).maybeSingle();
       if (existing) {
         contact = existing;
         await supabase.from('contacts').update({ whatsapp_connection_id: connection.id, updated_at: new Date().toISOString() }).eq('id', existing.id);
@@ -469,20 +474,20 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
 // deno-lint-ignore no-explicit-any
 export async function handleChatsDelete(supabase: any, instance: string, data: unknown) {
   const chats = Array.isArray(data) ? data : [data];
+  const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) return;
   for (const chat of chats) {
     const chatData = isRecord(chat) ? chat : {};
     const jid = (chatData.id as string) || (chatData.remoteJid as string);
     if (!jid || jid.endsWith('@g.us')) continue;
     const phone = normalizePhone(jid);
     if (!phone) continue;
-    const connection = await getConnectionByInstance(supabase, instance);
-    if (!connection) continue;
     const contact = await getContactByPhone(supabase, phone, connection.id);
     if (contact) {
       const now = new Date().toISOString();
       await supabase.from('messages')
         .update({ is_deleted: true, status: 'deleted', status_updated_at: now })
-        .eq('contact_id', contact.id);
+        .eq('contact_id', contact.id).eq('whatsapp_connection_id', connection.id);
     }
   }
 }
@@ -542,7 +547,8 @@ export async function handleChatsSet(supabase: any, instance: string, data: unkn
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact) {
         await supabase.from('messages').update({ is_read: true })
-          .eq('contact_id', contact.id).eq('sender', 'contact').eq('is_read', false);
+          .eq('contact_id', contact.id).eq('sender', 'contact').eq('is_read', false)
+          .eq('whatsapp_connection_id', connection.id);
         processed++;
       }
     }

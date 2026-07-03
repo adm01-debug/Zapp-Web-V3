@@ -287,14 +287,17 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
 }
 
 // deno-lint-ignore no-explicit-any
-export async function handleReactionEvent(supabase: any, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
+export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';
   const reactKey = reactionMessage.key as Record<string, unknown> | undefined;
   if (!reactKey?.id) return;
 
   const targetExternalId = reactKey.id as string;
+  const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) { console.log(`Reaction: no connection for instance ${instance}`); return; }
   const { data: targetMessage } = await supabase
-    .from('messages').select('id, contact_id').eq('external_id', targetExternalId).maybeSingle();
+    .from('messages').select('id, contact_id').eq('external_id', targetExternalId)
+    .eq('whatsapp_connection_id', connection.id).maybeSingle();
   if (!targetMessage) { console.log(`Reaction target not found: ${targetExternalId}`); return; }
 
   if (emoji === '') {
