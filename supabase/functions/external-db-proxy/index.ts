@@ -17,13 +17,48 @@ const cors = {
 // caímos no client local para não quebrar chamadas a tabelas locais
 // (profiles, channel_connections etc), mas leituras de evolution_* vão
 // retornar "table not found" — sintoma exato desta issue.
-const EXTERNAL_URL = Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("FATOR_X_URL") ?? Deno.env.get("SUPABASE_URL")!;
+// Ignora valores placeholder/inválidos para evitar crash no boot
+function pickEnv(...names: string[]): string | undefined {
+  for (const n of names) {
+    const v = Deno.env.get(n);
+    if (!v) continue;
+    const t = v.trim();
+    if (!t) continue;
+    if (/PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(t)) continue;
+    return t;
+  }
+  return undefined;
+}
+
+const EXTERNAL_URL =
+  pickEnv("EXTERNAL_SUPABASE_URL", "FATOR_X_URL") ??
+  pickEnv("SUPABASE_URL") ??
+  "";
 const EXTERNAL_KEY =
-  Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
-  Deno.env.get("FATOR_X_SERVICE_ROLE_KEY") ??
-  Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") ??
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const supabase = createClient(EXTERNAL_URL, EXTERNAL_KEY, { auth: { persistSession: false } });
+  pickEnv(
+    "EXTERNAL_SUPABASE_SERVICE_ROLE_KEY",
+    "FATOR_X_SERVICE_ROLE_KEY",
+    "EXTERNAL_SUPABASE_ANON_KEY",
+  ) ??
+  pickEnv("SUPABASE_SERVICE_ROLE_KEY") ??
+  "";
+
+let supabase: ReturnType<typeof createClient> | null = null;
+let bootError: string | null = null;
+try {
+  if (!EXTERNAL_URL || !/^https?:\/\//i.test(EXTERNAL_URL)) {
+    throw new Error(
+      `EXTERNAL_SUPABASE_URL ausente ou inválida ('${EXTERNAL_URL}'). Configure o secret no projeto.`,
+    );
+  }
+  if (!EXTERNAL_KEY) {
+    throw new Error("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente. Configure o secret no projeto.");
+  }
+  supabase = createClient(EXTERNAL_URL, EXTERNAL_KEY, { auth: { persistSession: false } });
+} catch (e) {
+  bootError = (e as Error).message;
+  console.error("[external-db-proxy] boot error:", bootError);
+}
 
 const ALLOWED_SCHEMAS = ["public"];
 
@@ -93,6 +128,16 @@ function isSafeIdent(s) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (bootError || !supabase) {
+    return new Response(
+      JSON.stringify({
+        error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
+        hint: "Configure os secrets EXTERNAL_SUPABASE_URL e EXTERNAL_SUPABASE_SERVICE_ROLE_KEY do FATOR X.",
+        data: [], count: 0,
+      }),
+      { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
+    );
+  }
   if (req.method === "GET") {
     return new Response(
       JSON.stringify({ ok: true, fn: "external-db-proxy", version: "1.5", ts: Date.now() }),
