@@ -1,4 +1,3 @@
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/features/auth";
 import { ThemeSync } from "@/hooks/useTheme";
@@ -51,20 +50,25 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary
       resetKey={errorKey}
+      onReset={() => {
+        // FIX F1: Reset the auto-retry counter when the ErrorBoundary recovers
+        // from a non-chunk error. This ensures subsequent unrelated errors still
+        // get their full 3 retry slots instead of inheriting the count from the
+        // previous error episode.
+        retryCountRef.current = 0;
+        log.info('ErrorBoundary recovered \u2014 auto-retry counter reset to 0');
+      }}
       onError={(error) => {
         log.error('ErrorBoundary caught:', error.message);
 
-        // ── Chunk load errors (stale hash mismatch after deploy) ──────────────
-        // Re-rendering via errorKey++ will NEVER fix this — the browser already
-        // has a reference to a chunk URL that 404s. The only remedy is a hard
-        // page reload so the browser fetches the new index.html and new hashes.
+        // \u2500\u2500 Chunk load errors (stale hash mismatch after deploy) \u2500\u2500
         if (isChunkLoadError(error)) {
-          log.warn('Chunk load error detected — triggering hard reload to recover stale chunks');
+          log.warn('Chunk load error detected \u2014 triggering hard reload to recover stale chunks');
           triggerChunkReload();
-          return; // Skip the re-render retry loop entirely.
+          return;
         }
 
-        // ── Other render errors → bounded re-render retry ─────────────────────
+        // \u2500\u2500 Other render errors \u2192 bounded re-render retry \u2500\u2500
         if (retryCountRef.current < MAX_RETRIES) {
           retryCountRef.current += 1;
           log.warn(`Auto-retry ${retryCountRef.current}/${MAX_RETRIES}`);
