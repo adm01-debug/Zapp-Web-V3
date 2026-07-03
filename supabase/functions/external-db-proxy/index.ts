@@ -42,24 +42,19 @@ function isSafeIdent(value: string): boolean {
   return SAFE_IDENT_RE.test(value);
 }
 
-const EXTERNAL_URL = pickEnv("EXTERNAL_SUPABASE_URL");
-const EXTERNAL_KEY = pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? pickEnv("EXTERNAL_SUPABASE_ANON_KEY");
-const LOCAL_URL = pickEnv("SUPABASE_URL");
-const LOCAL_KEY = pickEnv("SUPABASE_SERVICE_ROLE_KEY");
-
-const TARGET_URL = EXTERNAL_URL ?? LOCAL_URL ?? "";
-const TARGET_KEY = EXTERNAL_URL ? (EXTERNAL_KEY ?? "") : (LOCAL_KEY ?? "");
-const targetName = EXTERNAL_URL ? "external-configured" : "lovable-cloud-local";
+const TARGET_URL = pickEnv("SUPABASE_URL") ?? "";
+const TARGET_KEY = pickEnv("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const targetName = "self-hosted";
 
 let supabase: ReturnType<typeof createClient> | null = null;
 let bootError: string | null = null;
 
 try {
   if (!TARGET_URL || !/^https?:\/\//i.test(TARGET_URL)) {
-    throw new Error("URL do banco ausente ou inválida para o external-db-proxy.");
+    throw new Error("SUPABASE_URL ausente ou inválido para o external-db-proxy.");
   }
   if (!TARGET_KEY) {
-    throw new Error("Chave de acesso do banco ausente para o external-db-proxy.");
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY ausente para o external-db-proxy.");
   }
   supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
 } catch (error) {
@@ -219,16 +214,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }, 403);
   }
 
-  if (EVO_TABLE_RE.test(table) && !EXTERNAL_URL && schema === "evo") {
-    return jsonResponse({
-      error: `Tabela '${table}' não encontrada no backend local. Configure o banco correto das tabelas Evolution em EXTERNAL_SUPABASE_URL/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY.`,
-      cid,
-      rid,
-      data: [],
-      count: 0,
-      latency_ms: Date.now() - start,
-    }, 503);
-  }
+
 
   try {
     const client = schema === "public" ? supabase : supabase.schema(schema);
