@@ -90,17 +90,34 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
       {!collapsed && (
         <span className="relative z-10 text-[13px] font-medium truncate">{item.label}</span>
       )}
+      {/*
+       * IMPORTANTE: Não usar <button> aqui dentro — HTML proíbe elemento
+       * interativo dentro de outro elemento interativo (button > button).
+       * Isso causava o warning:
+       *   "Warning: <button> cannot appear as a descendant of <button>"
+       * e quebrava acessibilidade de teclado. Usamos <div role="button">
+       * com tabIndex e onKeyDown para manter semântica ARIA válida.
+       */}
       {!collapsed && onToggleFavorite && (
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleFavorite(item.id);
+            }
+          }}
           className={cn(
-            'relative z-20 ml-auto w-5 h-5 rounded flex items-center justify-center transition-all opacity-0 group-hover/item:opacity-100',
+            'relative z-20 ml-auto w-5 h-5 rounded flex items-center justify-center transition-all opacity-0 group-hover/item:opacity-100 cursor-pointer',
             isFavorite ? 'opacity-100 text-warning' : 'text-muted-foreground hover:text-warning'
           )}
           aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
         >
           <Star className={cn('w-3 h-3', isFavorite && 'fill-warning')} />
-        </button>
+        </div>
       )}
       {badgeCount != null && badgeCount > 0 && (
         <span
