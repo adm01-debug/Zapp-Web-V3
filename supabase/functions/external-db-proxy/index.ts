@@ -1,8 +1,6 @@
-// external-db-proxy v1.6 (2026-07-03)
+// external-db-proxy v1.7 (2026-07-03)
 // Proxy autorizado para consultas de tabelas operacionais.
-// Observação: este arquivo NÃO presume FATOR X. Quando `EXTERNAL_SUPABASE_URL`
-// e `EXTERNAL_SUPABASE_SERVICE_ROLE_KEY` existem, usa o banco externo correto
-// configurado no projeto; caso contrário, usa o backend Lovable Cloud local.
+// Evolution/FATOR X usa o Supabase self-hosted atomicabr e o schema `evo`.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -31,6 +29,7 @@ const cors = {
 const PLACEHOLDER_RE = /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i;
 const EVO_TABLE_RE = /^evolution_/;
 const SAFE_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+const SELF_HOSTED_SUPABASE_URL = "https://supabase.atomicabr.com.br";
 
 function pickEnv(name: string): string | undefined {
   const value = Deno.env.get(name)?.trim();
@@ -45,7 +44,7 @@ function isSafeIdent(value: string): boolean {
 const EXTERNAL_URL = pickEnv("EXTERNAL_SUPABASE_URL");
 const EXTERNAL_KEY = pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? pickEnv("EXTERNAL_SUPABASE_ANON_KEY");
 
-const TARGET_URL = EXTERNAL_URL ?? "";
+const TARGET_URL = EXTERNAL_URL ?? SELF_HOSTED_SUPABASE_URL;
 const TARGET_KEY = EXTERNAL_KEY ?? "";
 const targetName = "self-hosted-external";
 
