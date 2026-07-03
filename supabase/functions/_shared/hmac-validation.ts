@@ -102,6 +102,30 @@ export function extractSignatureFromHeaders(headers: Headers): string | null {
 }
 
 /**
+ * Extracts a plaintext shared-secret bearer from request headers.
+ *
+ * Some producers cannot compute a per-request HMAC and instead send a static
+ * shared secret (e.g. Evolution API's native webhook only supports static
+ * headers). This reads those headers so the validator can authenticate them
+ * via a constant-time equality check against the configured secret(s).
+ */
+export function extractSharedSecretFromHeaders(headers: Headers): string | null {
+  const sharedSecretHeaders = [
+    'x-webhook-secret',   // Evolution API native webhook / RabbitMQ consumer
+    'x-webhook-token',    // Alternative
+  ];
+
+  for (const header of sharedSecretHeaders) {
+    const value = headers.get(header);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+/**
  * WebhookSecurityService - Comprehensive webhook security validation.
  *
  * Supports multi-secret rotation: when constructed with an array of secrets,
@@ -124,17 +148,37 @@ export function extractSignatureFromHeaders(headers: Headers): string | null {
 export class WebhookSecurityService {
   private secrets: string[];
   private strictMode: boolean;
+  private allowSharedSecret: boolean;
 
   /**
    * @param secret - HMAC secret (string) or list of secrets (rotation). Empty
    *                strings are filtered out so an unset env var doesn't add a
    *                permanently-failing slot.
    * @param strictMode - If true, rejects requests without signatures. Default: false
+   * @param allowSharedSecret - If true, also authenticates requests that present
+   *                a valid plaintext shared secret in `x-webhook-secret`
+   *                (constant-time compared against the configured secrets), in
+   *                addition to HMAC signatures. This is what lets producers that
+   *                cannot sign per-request (Evolution's native webhook) pass
+   *                strict mode. HMAC is always preferred and checked first.
+   *                Default: true.
    */
-  constructor(secret: string | string[], strictMode = false) {
+  constructor(secret: string | string[], strictMode = false, allowSharedSecret = true) {
     const arr = Array.isArray(secret) ? secret : [secret];
     this.secrets = arr.filter((s): s is string => typeof s === 'string' && s.length > 0);
     this.strictMode = strictMode;
+    this.allowSharedSecret = allowSharedSecret;
+  }
+
+  /** Constant-time check of a plaintext shared secret against every configured secret. */
+  private sharedSecretMatches(candidate: string): boolean {
+    let matched = false;
+    for (const secret of this.secrets) {
+      // timingSafeEqual short-circuits on length mismatch but never leaks which
+      // secret matched; OR-accumulate so we always scan the full list.
+      matched = timingSafeEqual(candidate, secret) || matched;
+    }
+    return matched;
   }
 
   /**
@@ -146,9 +190,14 @@ export class WebhookSecurityService {
     error?: string;
     signatureFound: boolean;
     signatureValid: boolean;
+    sharedSecretValid?: boolean;
   }> {
     const signature = extractSignatureFromHeaders(req.headers);
     const signatureFound = signature !== null;
+    const sharedSecret = this.allowSharedSecret
+      ? extractSharedSecretFromHeaders(req.headers)
+      : null;
+    const sharedSecretFound = sharedSecret !== null;
 
     // Read body
     let payload: string;
@@ -164,7 +213,33 @@ export class WebhookSecurityService {
       };
     }
 
-    // If no signature and strict mode, reject
+    // No HMAC signature: try the shared-secret bearer path before falling back
+    // to strict/non-strict handling. A shared secret that is present but wrong
+    // is always rejected (the caller claimed auth and failed), regardless of
+    // strict mode.
+    if (!signatureFound && sharedSecretFound) {
+      if (this.secrets.length > 0 && this.sharedSecretMatches(sharedSecret!)) {
+        console.info('[HMAC] Authenticated via shared-secret bearer (x-webhook-secret)');
+        return {
+          valid: true,
+          payload,
+          signatureFound: false,
+          signatureValid: false,
+          sharedSecretValid: true,
+        };
+      }
+      console.warn('[HMAC] Invalid shared secret received');
+      return {
+        valid: false,
+        payload,
+        error: 'Invalid webhook shared secret',
+        signatureFound: false,
+        signatureValid: false,
+        sharedSecretValid: false,
+      };
+    }
+
+    // If no signature (and no shared secret) and strict mode, reject
     if (!signatureFound && this.strictMode) {
       console.warn('[HMAC] Strict mode: rejecting request without signature');
       return {
@@ -274,8 +349,8 @@ export class WebhookSecurityService {
  * });
  * ```
  */
-export function createWebhookValidator(secret: string | string[], strictMode = false) {
-  const service = new WebhookSecurityService(secret, strictMode);
+export function createWebhookValidator(secret: string | string[], strictMode = false, allowSharedSecret = true) {
+  const service = new WebhookSecurityService(secret, strictMode, allowSharedSecret);
   return (req: Request) => service.validateRequest(req);
 }
 
