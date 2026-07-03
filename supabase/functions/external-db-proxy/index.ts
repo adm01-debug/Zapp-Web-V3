@@ -1,4 +1,4 @@
-// external-db-proxy v1.4 (2026-07-02) — + evolution_webhook_events na whitelist (fix 403 admin webhook pages)
+// external-db-proxy v1.5 (2026-07-02) — +evolution_audit_log (fix 403 useIdempotencyMissAlerts), -evolution_chats (objeto inexistente)
 // NOTA: Este arquivo espelha a versão DEPLOYADA no self-hosted (supabase.atomicabr.com.br).
 // Implementação anterior (client anon + lib/) foi substituída em prod: após o anon-lockout
 // (PR #102), o client anon perdeu os GRANTs das views do repoint layer => 403.
@@ -24,10 +24,10 @@ const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
     "evolution_contacts",
     "evolution_messages",
     "evolution_conversations",
-    "evolution_chats",
     "evolution_calls",
     "evolution_realtime_events",
     "evolution_webhook_events",
+    "evolution_audit_log",
     "evolution_webhook_events_wpp2",
     "evolution_labels",
     "evolution_label_associations",
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method === "GET") {
     return new Response(
-      JSON.stringify({ ok: true, fn: "external-db-proxy", version: "1.4", ts: Date.now() }),
+      JSON.stringify({ ok: true, fn: "external-db-proxy", version: "1.5", ts: Date.now() }),
       { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }

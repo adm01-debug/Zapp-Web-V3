@@ -165,7 +165,11 @@ Deno.serve(async (req) => {
     }, 200, req);
 
   } catch (error: unknown) {
-    log.error("Error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : "Unknown error", 500, req);
+    // PostgrestError é objeto plano (não instanceof Error) — extrair .message p/ diagnosticabilidade
+    const msg = error instanceof Error ? error.message
+      : (error && typeof error === "object" && "message" in error) ? String((error as { message: unknown }).message)
+      : JSON.stringify(error);
+    log.error("Error", { error: msg });
+    return errorResponse(msg, 500, req);
   }
 });

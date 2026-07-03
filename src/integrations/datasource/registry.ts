@@ -40,8 +40,6 @@ export type LogicalEntity =
   | 'queue_positions'
   | 'whatsapp_connections'
   | 'team_conversations'
-  | 'routing_rules'
-  | 'routing_queues'
   | 'evolution_contacts'
   | 'evolution_messages';
 
@@ -69,8 +67,6 @@ export const ENTITY_MAP = {
   queue_positions:      { client: 'lovable', table: 'queue_positions' },
   whatsapp_connections: { client: 'lovable', table: 'whatsapp_connections' },
   team_conversations:   { client: 'lovable', table: 'team_conversations' },
-  routing_rules:        { client: 'lovable', table: 'routing_rules' },
-  routing_queues:       { client: 'lovable', table: 'routing_queues' },
   evolution_contacts:   { client: 'lovable', table: 'evolution_contacts' },
   evolution_messages:   { client: 'lovable', table: 'evolution_messages' },
   imap_smtp_accounts:   { client: 'lovable', table: 'imap_smtp_accounts' },
