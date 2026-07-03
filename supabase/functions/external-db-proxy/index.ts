@@ -41,23 +41,20 @@ function isSafeIdent(value: string): boolean {
 
 const EXTERNAL_URL = pickEnv("EXTERNAL_SUPABASE_URL");
 const EXTERNAL_KEY = pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? pickEnv("EXTERNAL_SUPABASE_ANON_KEY");
-const LOCAL_URL = pickEnv("SUPABASE_URL");
-const LOCAL_KEY = pickEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-const useExternal = Boolean(EXTERNAL_URL && EXTERNAL_KEY);
-const TARGET_URL = useExternal ? EXTERNAL_URL! : LOCAL_URL!;
-const TARGET_KEY = useExternal ? EXTERNAL_KEY! : LOCAL_KEY!;
-const targetName = useExternal ? "self-hosted-external" : "lovable-cloud-local";
+const TARGET_URL = EXTERNAL_URL ?? "";
+const TARGET_KEY = EXTERNAL_KEY ?? "";
+const targetName = "self-hosted-external";
 
 let supabase: ReturnType<typeof createClient> | null = null;
 let bootError: string | null = null;
 
 try {
-  if (!TARGET_URL || !/^https?:\/\//i.test(TARGET_URL)) {
-    throw new Error("URL do Supabase inválida (nem EXTERNAL_SUPABASE_URL nem SUPABASE_URL disponíveis).");
+  if (!EXTERNAL_URL || !/^https?:\/\//i.test(EXTERNAL_URL)) {
+    throw new Error("EXTERNAL_SUPABASE_URL ausente ou inválida — configure com a URL do Supabase self-hosted.");
   }
-  if (!TARGET_KEY) {
-    throw new Error("Service role key ausente (nem EXTERNAL_SUPABASE_SERVICE_ROLE_KEY nem SUPABASE_SERVICE_ROLE_KEY).");
+  if (!EXTERNAL_KEY) {
+    throw new Error("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente — configure com a service_role do self-hosted.");
   }
   supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
 } catch (error) {
@@ -245,7 +242,25 @@ Deno.serve(async (req) => {
 
     const { data, count, error } = await query;
     if (error) {
-      return jsonResponse({ error: error.message, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
+      const err = error as { code?: string; message: string };
+      const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
+      if (missing) {
+        console.warn("[external-db-proxy] missing_table", { schema, table, cid });
+        return jsonResponse({
+          error: `Tabela '${schema}.${table}' não encontrada no destino (${targetName}).`,
+          hint: "Verifique se a migration foi aplicada no self-hosted e se o schema 'evo' está exposto na Data API (config.toml → [api].schemas).",
+          missing_table: true,
+          schema,
+          table,
+          target: targetName,
+          cid,
+          rid,
+          data: [],
+          count: 0,
+          latency_ms: Date.now() - start,
+        }, 503);
+      }
+      return jsonResponse({ error: err.message, code: err.code, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
     }
 
     return jsonResponse({
