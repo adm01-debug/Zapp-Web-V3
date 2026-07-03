@@ -215,12 +215,6 @@ Deno.serve(async (req) => {
   }
 
 
-      rid,
-      data: [],
-      count: 0,
-      latency_ms: Date.now() - start,
-    }, 503);
-  }
 
   try {
     const client = schema === "public" ? supabase : supabase.schema(schema);
