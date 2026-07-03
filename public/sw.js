@@ -12,7 +12,18 @@ self.addEventListener('activate', (event) => {
       console.log('[ServiceWorker] Removing cache', key);
       return caches.delete(key);
     }));
-    await self.clients.claim();
+    // clients.claim() can throw InvalidStateError if this worker is superseded
+    // during the activation lifecycle (rapid update cycles, multiple tabs).
+    // This is a benign race — the new active worker will claim clients instead.
+    try {
+      await self.clients.claim();
+    } catch (e) {
+      if (e instanceof Error && e.name === 'InvalidStateError') {
+        console.warn('[ServiceWorker] clients.claim() skipped (worker superseded during activation):', e.message);
+      } else {
+        throw e;
+      }
+    }
   })());
 });
 
