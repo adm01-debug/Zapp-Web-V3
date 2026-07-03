@@ -203,7 +203,7 @@ export function useConnectionsManager() {
       // 1. Log audit event before action
       const { data: { user } } = await supabase.auth.getUser();
       if (user && externalSupabase) {
-        await (externalSupabase as Record<string, unknown> & { rpc: (name: string, args: unknown) => Promise<unknown> }).rpc('fn_safe_audit_log', {
+        await (externalSupabase as unknown as { rpc: (name: string, args: unknown) => Promise<unknown> }).rpc('fn_safe_audit_log', {
           p_entity_type: 'whatsapp_connection',
           p_entity_id: connection.id,
           p_action: 'disconnect',
