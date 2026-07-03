@@ -174,7 +174,7 @@ export function useConnectionsManager() {
     const fetchConnections = async () => {
       setLoading(true);
       const { data, error } = await whatsappConnectionRepository.fetchConnections();
-      if (!error && data) setConnections(data as WhatsAppConnection[]);
+      if (!error && data) setConnections(data as unknown as WhatsAppConnection[]);
       setLoading(false);
     };
     void fetchConnections();
