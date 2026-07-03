@@ -51,13 +51,15 @@ export const messageRepository = {
     onUpdate: (payload: RealtimePostgresChangesPayload<Message>) => void;
     onDelete: (payload: RealtimePostgresChangesPayload<Message>) => void;
   }) {
-    const table = dbTable('messages');
+    // FATOR X v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
+    // A view compat `public.messages` nao emite eventos postgres_changes.
+    const table = 'evolution_messages';
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'public',
+          schema: 'evo',
           table,
           filter: `contact_id=eq.${contactId}`,
         },
@@ -67,7 +69,7 @@ export const messageRepository = {
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'public',
+          schema: 'evo',
           table,
           filter: `contact_id=eq.${contactId}`,
         },
@@ -77,7 +79,7 @@ export const messageRepository = {
         'postgres_changes',
         {
           event: 'DELETE',
-          schema: 'public',
+          schema: 'evo',
           table,
           filter: `contact_id=eq.${contactId}`,
         },

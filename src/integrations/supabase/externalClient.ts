@@ -1,11 +1,23 @@
 /**
  * External Supabase Client — FATOR X (Self-hosted VPS)
  *
- * Connects to the self-hosted Supabase (Self-hosted VPS)
- * which holds the full `evolution_*` domain (contacts, messages,
- * conversations, etc).
+ * HISTÓRICO: este client apontava para um Supabase "externo" separado.
+ * Após a consolidação single-database (v6.x), o domínio `evolution_*`
+ * vive no MESMO Supabase self-hosted do client principal
+ * (`@/integrations/supabase/client` → https://supabase.atomicabr.com.br).
+ *
+ * COMPORTAMENTO (FATOR X v6.1):
+ *  - Se `VITE_EXTERNAL_SUPABASE_URL/ANON_KEY` estiverem definidas, cria um
+ *    client dedicado (compat com ambientes que ainda separam os bancos).
+ *  - Se NÃO estiverem (caso do deploy Vercel), reutiliza o client principal
+ *    AUTENTICADO — as RPCs do domínio são SECURITY DEFINER com EXECUTE
+ *    exclusivo para `authenticated`/`service_role` (anon foi revogado).
+ *
+ * Isso elimina a classe de erros "[datasource] cliente external indisponível"
+ * causada por env vars ausentes no build.
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from './client';
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
 
@@ -33,10 +45,13 @@ const config = getEnvConfig();
 let EXTERNAL_URL = config.url;
 let EXTERNAL_ANON_KEY = config.key;
 
-// No fallback to local keys to avoid accidental writes to internal during dev
 export let isExternalConfigured = Boolean(EXTERNAL_URL && EXTERNAL_ANON_KEY);
 
-export let externalSupabase: SupabaseClient | null = isExternalConfigured
+/**
+ * Nunca é `null`: cai para o client principal autenticado quando as envs
+ * dedicadas não existem (mesmo banco após a consolidação single-database).
+ */
+export let externalSupabase: SupabaseClient = isExternalConfigured
   ? createClient(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
       auth: {
         persistSession: false,
@@ -48,7 +63,13 @@ export let externalSupabase: SupabaseClient | null = isExternalConfigured
         },
       },
     })
-  : null;
+  : (supabase as unknown as SupabaseClient);
+
+if (!isExternalConfigured) {
+  console.info(
+    '[externalClient] VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).',
+  );
+}
 
 /**
  * Updates the external client at runtime.
@@ -57,11 +78,11 @@ export let externalSupabase: SupabaseClient | null = isExternalConfigured
  */
 export function updateRuntimeExternalConfig(url: string, key: string) {
   if (!url || !key) return;
-  
+
   EXTERNAL_URL = url;
   EXTERNAL_ANON_KEY = key;
   isExternalConfigured = true;
-  
+
   // Re-create the client instance
   (externalSupabase as any) = createClient(url, key, {
     auth: {
@@ -74,19 +95,10 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
       },
     },
   });
-  
+
   console.log('[externalClient] Runtime config updated successfully');
 }
 
-let warned = false;
-
-export function getExternalSupabase(): SupabaseClient | null {
-  if (!externalSupabase && !warned) {
-    warned = true;
-    console.warn(
-      '[externalClient] Supabase Externo não configurado. Verifique VITE_EXTERNAL_SUPABASE_URL e VITE_EXTERNAL_SUPABASE_ANON_KEY.',
-    );
-  }
+export function getExternalSupabase(): SupabaseClient {
   return externalSupabase;
 }
-

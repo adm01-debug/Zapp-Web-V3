@@ -1,48 +1,31 @@
 /**
  * Zap Webb — Supabase Client (LEITURA + Realtime)
  *
- * Conecta ao backend self-hosted da Promo Brindes em
- * https://supabase.atomicabr.com.br para leitura das tabelas
- * `evolution_*` e subscrição de eventos em tempo real.
+ * FATOR X v6.1: este módulo REEXPORTA o client principal autenticado
+ * (`@/integrations/supabase/client`). Após a consolidação single-database,
+ * manter um terceiro client `anon` aqui era inseguro E não-funcional:
+ * o `anon` teve todos os grants revogados no domínio `evolution_*`
+ * (hardening v6.1.1) — leituras/updates/realtime exigem `authenticated`.
  *
- * Este client é DEDICADO ao domínio Zap Webb e NÃO substitui o
- * client Lovable Cloud (`@/integrations/supabase/client`), que
- * continua responsável por auth/sessão e tabelas internas.
+ * A API pública do módulo (zappSupabase / ZAPPWEB_INSTANCE / ZAPPWEB_CONFIG)
+ * foi preservada para não quebrar os consumidores existentes.
  *
  * ⚠️  Toda ESCRITA de mensagens vai pela Evolution API
- *     (ver `src/integrations/zappweb/evolutionClient.ts`).
+ *     (ver `src/integrations/zappweb/evolutionClient.ts`) ou pela RPC
+ *     `send_message_v2` (fila `zapp.outbound_message_queue`).
  */
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-
-const ZAPP_URL =
-  import.meta.env.VITE_ZAPPWEB_SUPABASE_URL ||
-  import.meta.env.VITE_EXTERNAL_SUPABASE_URL ||
-  'https://supabase.atomicabr.com.br';
-
-// Anon key must be supplied via environment — never hardcode a JWT in the bundle.
-const ZAPP_ANON =
-  import.meta.env.VITE_ZAPPWEB_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY ||
-  '';
-
-if (!ZAPP_ANON) {
-  console.warn(
-    '[zappSupabase] VITE_ZAPPWEB_SUPABASE_ANON_KEY (ou VITE_EXTERNAL_SUPABASE_ANON_KEY) ausente — ' +
-      'o client Zap Webb não conseguirá ler/subscrever sem a anon key configurada.',
-  );
-}
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 export const ZAPPWEB_INSTANCE = (import.meta.env.VITE_ZAPPWEB_INSTANCE ||
   'wpp2') as string;
 
-export const zappSupabase: SupabaseClient = createClient(ZAPP_URL, ZAPP_ANON, {
-  auth: { persistSession: false, autoRefreshToken: false },
-  realtime: { params: { eventsPerSecond: 10 } },
-  global: { headers: { 'x-client-info': 'zapp-webb-frontend' } },
-});
+/** Client autenticado compartilhado (sessão do usuário logado). */
+export const zappSupabase: SupabaseClient = supabase as unknown as SupabaseClient;
 
 export const ZAPPWEB_CONFIG = {
-  url: ZAPP_URL,
-  anonKey: ZAPP_ANON,
+  url: import.meta.env.VITE_SUPABASE_URL as string,
+  /** @deprecated anon key nao e mais usada (client autenticado compartilhado). */
+  anonKey: '',
   instance: ZAPPWEB_INSTANCE,
 } as const;
