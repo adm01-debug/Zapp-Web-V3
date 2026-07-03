@@ -4,6 +4,38 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { log } from '@/lib/logger';
 import { recordQueryEvent, type Severity } from '@/lib/clientTelemetry';
+import { CHUNK_RELOAD_SESSION_KEY } from '@/lib/lazyWithRetry';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chunk load error detection (inline to avoid any import chain that might
+// itself fail if the module system is broken)
+// ─────────────────────────────────────────────────────────────────────────────
+const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
+
+function detectAndReloadOnChunkError(error: Error): boolean {
+  const msg = (error?.message ?? '').toLowerCase();
+  const isChunkError =
+    msg.includes('failed to fetch dynamically imported module') ||
+    msg.includes('loading chunk') ||
+    msg.includes('importing a module script failed') ||
+    msg.includes('error loading dynamically imported module') ||
+    msg.includes('unable to preload css for');
+
+  if (!isChunkError) return false;
+
+  try {
+    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY) ?? '0');
+    if (Date.now() - last > CHUNK_RELOAD_COOLDOWN_MS) {
+      sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(Date.now()));
+      window.location.reload();
+      return true;
+    }
+  } catch {
+    window.location.reload();
+    return true;
+  }
+  return false; // cooldown active — fall through to error UI
+}
 
 /**
  * Detects whether a thrown error originated from a slow/failing external
@@ -75,6 +107,15 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // ── Safety net: auto-reload on stale chunk hash mismatch ─────────────────
+    // This runs even if lazyWithRetry's own handler somehow missed it (e.g.
+    // error propagated from a non-lazy-wrapped import).
+    if (detectAndReloadOnChunkError(error)) {
+      // Reload triggered — don't bother with state update or telemetry
+      // since the page is about to be refreshed.
+      return;
+    }
+
     log.error('ErrorBoundary caught an error:', error, errorInfo);
     this.setState({ errorInfo });
 

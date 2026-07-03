@@ -45,22 +45,39 @@ export default defineConfig(({ mode }) => ({
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      // NOTE: includeAssets lists files that exist in public/.
+      // pwa-192x192.png / pwa-512x512.png do NOT exist; the real icons live
+      // under public/icons/ — reference those in the manifest below.
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         name: 'OmniChannel Pro',
         short_name: 'OmniPro',
         description: 'Plataforma Omnichannel de Alta Performance',
-        theme_color: '#ffffff',
+        theme_color: '#25d366',
+        background_color: '#0a0a0a',
+        display: 'standalone',
+        start_url: '/',
+        scope: '/',
+        lang: 'pt-BR',
+        // These icon paths match the files that actually exist in public/icons/
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: '/icons/icon-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
-            src: 'pwa-512x512.png',
+            src: '/icons/icon-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
