@@ -60,7 +60,7 @@ function parseFileEvents(absPath: string): Set<Evt> {
   let m: RegExpExecArray | null;
   while ((m = blockRe.exec(src)) !== null) {
     const body = m[1];
-    if (!/table:\s*(?:['"]messages['"]|dbTable\(\s*['"]messages['"]\s*\))/.test(body)) continue;
+    if (!/table:\s*(?:['"](?:messages|evolution_messages)['"]|dbTable\(\s*['"](?:messages|evolution_messages)['"]\s*\))/.test(body)) continue;
     const ev = body.match(/event:\s*['"]([A-Z*]+)['"]/);
     if (!ev) continue;
     if (ev[1] === '*') ALL_EVENTS.forEach((e) => out.add(e));

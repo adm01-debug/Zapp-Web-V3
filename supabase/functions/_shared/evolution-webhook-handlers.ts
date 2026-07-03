@@ -223,8 +223,8 @@ export async function handleContactsUpsert(supabase: any, instance: string, data
         if (insertErr && insertErr.code === '23505') {
           await supabase.from('contacts').update({
             name: pushName, avatar_url: permanentAvatarUrl || null,
-            whatsapp_connection_id: connection.id, updated_at: new Date().toISOString(),
-          }).eq('phone', phone);
+            updated_at: new Date().toISOString(),
+          }).eq('phone', phone).eq('whatsapp_connection_id', connection.id);
         }
       }
     }

@@ -63,9 +63,10 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-// Aceita literal `table: 'messages'` e helper `table: dbTable('messages')`,
+// Aceita literal `table: 'messages'|'evolution_messages'` e helper `table: dbTable(...)`,
 // independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
-const MESSAGES_CHANNEL_RE = /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"]messages['"]/;
+// 'evolution_messages' é o nome da tabela no schema 'evo' (FATOR X v6.2).
+const MESSAGES_CHANNEL_RE = /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:messages|evolution_messages)['"]/;
 
 function findMessagesListeners(): string[] {
   const srcDir = join(REPO_ROOT, 'src');
