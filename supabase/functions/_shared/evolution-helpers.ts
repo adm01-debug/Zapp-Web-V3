@@ -186,7 +186,7 @@ export async function getConnectionByInstance(supabase: any, instance: string): 
   const { data } = await supabase
     .from('whatsapp_connections')
     .select('id')
-    .eq('instance_name', instance)
+    .eq('instance_id', instance)
     .maybeSingle();
   return data;
 }
