@@ -48,7 +48,7 @@ const LOCAL_URL = pickEnv("SUPABASE_URL");
 const LOCAL_KEY = pickEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 const TARGET_URL = EXTERNAL_URL ?? LOCAL_URL ?? "";
-const TARGET_KEY = EXTERNAL_KEY ?? LOCAL_KEY ?? "";
+const TARGET_KEY = EXTERNAL_URL ? (EXTERNAL_KEY ?? "") : (LOCAL_KEY ?? "");
 const targetName = EXTERNAL_URL ? "external-configured" : "lovable-cloud-local";
 
 let supabase: ReturnType<typeof createClient> | null = null;
@@ -135,7 +135,7 @@ const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
 };
 
 function resolveSchema(schema: string, table: string): string {
-  if (schema === "public" && EVO_TABLE_RE.test(table) && !EXTERNAL_URL) return "evo";
+  if (schema === "public" && EVO_TABLE_RE.test(table)) return "evo";
   return schema;
 }
 
