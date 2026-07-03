@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { log } from '@/lib/logger';
 import { recordQueryEvent, type Severity } from '@/lib/clientTelemetry';
-import { CHUNK_RELOAD_SESSION_KEY, isChunkLoadError } from '@/lib/lazyWithRetry';
+import {
+  CHUNK_RELOAD_SESSION_KEY,
+  CLOCK_SKEW_TOLERANCE_MS,
+  isChunkLoadError,
+} from '@/lib/lazyWithRetry';
 
 const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
-// Must stay in sync with CLOCK_SKEW_TOLERANCE_MS in lazyWithRetry.ts.
-// Prevents 1e308 and far-future timestamps from bypassing the cooldown guard
-// (QA v7 Findings 1 and 2).
-const CLOCK_SKEW_TOLERANCE_MS = 60_000;
 
 function detectAndReloadOnChunkError(error: Error): boolean {
   const msg = (error?.message ?? '').toLowerCase();
@@ -29,6 +29,7 @@ function detectAndReloadOnChunkError(error: Error): boolean {
     const now = Date.now();
     // FINDING 1+2 FIX: upper bound rejects 1e308 (isFinite but astronomical)
     // and future timestamps written by extensions / DevTools.
+    // CLOCK_SKEW_TOLERANCE_MS is imported from lazyWithRetry.ts to prevent drift.
     const last =
       Number.isFinite(parsed) && parsed >= 0 && parsed <= now + CLOCK_SKEW_TOLERANCE_MS
         ? parsed
@@ -54,10 +55,10 @@ function detectAndReloadOnChunkError(error: Error): boolean {
  * polluting the telemetry panel.
  *
  * New strategy:
- *  - \brpc\b    — word-boundary so we don't catch "corrupted", "deprecated", etc.
- *  - postgrest   — PostgREST-specific errors from the DB proxy layer
- *  - fetch failed / network request failed / econnrefused — specific network errors
- *  - supabase + query-keyword  — e.g. "supabase query timeout", "supabase rpc"
+ *  - \brpc\b    -- word-boundary so we don't catch "corrupted", "deprecated", etc.
+ *  - postgrest   -- PostgREST-specific errors from the DB proxy layer
+ *  - fetch failed / network request failed / econnrefused -- specific network errors
+ *  - supabase + query-keyword  -- e.g. "supabase query timeout", "supabase rpc"
  *
  * Auth errors ("supabase auth: 401"), storage errors ("supabase storage..."),
  * and generic "network" mentions are no longer false positives.
@@ -137,7 +138,7 @@ export class ErrorBoundary extends Component<Props, State> {
   /**
    * FIX F1: Notify the parent when the boundary recovers from an error.
    *
-   * React calls componentDidUpdate after every render with the *previous* state,
+   * React calls componentDidUpdate after every render with the previous state,
    * so the transition prevState.hasError=true -> this.state.hasError=false fires
    * exactly once per recovery (when getDerivedStateFromProps clears the error
    * due to a resetKey change OR when handleRetry resets the state manually).
