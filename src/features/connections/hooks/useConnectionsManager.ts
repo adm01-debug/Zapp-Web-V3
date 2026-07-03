@@ -47,7 +47,7 @@ export interface QrCodeDialogState {
   attemptId: string | null;
   ttlSeconds: number | null;
   ttlSource: QrTtlSource | null;
-  rawPayload?: any;
+  rawPayload?: unknown;
 }
 
 const QR_STORAGE_KEY = 'zapp:qrDialog:v1';
@@ -78,17 +78,17 @@ export function useConnectionsManager() {
       
       // Evolution API pode retornar `base64` no nível raiz OU dentro de `qrcode.base64`.
       const rawBase64: string | undefined =
-        (result as any)?.qrcode?.base64 ||
-        (result as any)?.base64 ||
-        (result as any)?.qr ||
-        (result as any)?.qrcode;
+        (result as Record<string, unknown> & { qrcode?: { base64?: string } })?.qrcode?.base64 ||
+        (result as Record<string, unknown>)?.base64 as string ||
+        (result as Record<string, unknown>)?.qr as string ||
+        (result as Record<string, unknown>)?.qrcode as string;
       
       if (!rawBase64) {
         setQrCodeDialog((prev) => ({
           ...prev,
           status: 'error',
           rawPayload: result,
-          errorMessage: 'A API Evolution não retornou um QR Code. A instância pode já estar conectada — clique em "Atualizar" e verifique o status.',
+          errorMessage: 'A API Evolution não retornou um QR Code. A instância pode já estar conectada — clique em “Atualizar” e verifique o status.',
         }));
         return;
       }
@@ -99,16 +99,17 @@ export function useConnectionsManager() {
         status: 'pending',
         expiresAt,
         rawPayload: result,
-        attemptId: (attemptId as any).data?.id || null,
+        attemptId: (attemptId as { data?: { id?: string } } | null)?.data?.id ?? null,
         ttlSeconds: Math.round(ttlMs / 1000),
         ttlSource: ttlSource as QrTtlSource,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       setQrCodeDialog((prev) => ({ 
         ...prev, 
         status: 'error', 
-        errorMessage: error.message,
-        rawPayload: error.payload || error 
+        errorMessage: errMsg,
+        rawPayload: error
       }));
     }
   }, [setQrCodeDialog]);
@@ -147,7 +148,9 @@ export function useConnectionsManager() {
     }
   }, [setQrCodeDialog, generateQr]);
 
-  const actions = (useConnectionsActions as any)(
+  const actions = (useConnectionsActions as unknown as (
+    ...args: unknown[]
+  ) => ReturnType<typeof useConnectionsActions>)(
     connections, setConnections, setIsCreating, setIsAddDialogOpen, setNewConnection,
     handleShowQrCode, disconnectInstance, deleteInstance, newConnection
   );
@@ -163,7 +166,7 @@ export function useConnectionsManager() {
       }
     } catch (e) {
       // sessionStorage may be unavailable (private mode/quota) — non-fatal for the QR flow.
-      console.warn('[useConnectionsManager] failed to persist QR dialog state', e);
+      log.warn('[useConnectionsManager] failed to persist QR dialog state', e);
     }
   }, [qrCodeDialog]);
 
@@ -171,10 +174,10 @@ export function useConnectionsManager() {
     const fetchConnections = async () => {
       setLoading(true);
       const { data, error } = await whatsappConnectionRepository.fetchConnections();
-      if (!error && data) setConnections(data as any[]);
+      if (!error && data) setConnections(data as WhatsAppConnection[]);
       setLoading(false);
     };
-    fetchConnections();
+    void fetchConnections();
   }, [setConnections, setLoading]);
 
   const handleRefreshQrCode = async () => {
@@ -188,7 +191,9 @@ export function useConnectionsManager() {
   };
 
   const handleCopyId = (id: string) => {
-    navigator.clipboard.writeText(id);
+    navigator.clipboard.writeText(id).catch((err) => {
+      log.warn('[useConnectionsManager] clipboard write failed', err);
+    });
     toast({ title: 'ID copiado!' });
   };
 
@@ -198,7 +203,7 @@ export function useConnectionsManager() {
       // 1. Log audit event before action
       const { data: { user } } = await supabase.auth.getUser();
       if (user && externalSupabase) {
-        await (externalSupabase as any).rpc("fn_safe_audit_log", {
+        await (externalSupabase as Record<string, unknown> & { rpc: (name: string, args: unknown) => Promise<unknown> }).rpc('fn_safe_audit_log', {
           p_entity_type: 'whatsapp_connection',
           p_entity_id: connection.id,
           p_action: 'disconnect',
@@ -213,7 +218,7 @@ export function useConnectionsManager() {
       ));
 
       // 3. Call disconnect API
-      const response = await disconnectInstance(connection.instance_id);
+      const response = await disconnectInstance(connection.instance_id) as { success?: boolean; reason?: string } | null;
       
       if (response && response.success === false) {
         throw new Error(response.reason || 'Falha na API Evolution ao desconectar');
@@ -236,19 +241,20 @@ export function useConnectionsManager() {
 
       // 5. Guided Flow: Auto-open QR dialog with progress
       setTimeout(() => {
-        handleShowQrCode({ ...connection, status: 'disconnected', qr_code: null });
+        void handleShowQrCode({ ...connection, status: 'disconnected', qr_code: null });
       }, 500);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 6. Error Recovery: Restore state if failed
       setConnections(prev => prev.map(c => 
         c.id === connection.id ? { ...c, status: 'connected' } : c
       ));
 
       log.error('Error in handleDisconnect:', error);
+      const errMsg = error instanceof Error ? error.message : 'Não foi possível encerrar a sessão. Tente novamente.';
       toast({ 
         title: 'Erro ao desconectar', 
-        description: error.message || 'Não foi possível encerrar a sessão. Tente novamente.', 
+        description: errMsg, 
         variant: 'destructive' 
       });
       throw error;
@@ -258,7 +264,7 @@ export function useConnectionsManager() {
   const handleSetApiType = async (connection: WhatsAppConnection, api_type: WhatsAppApiType) => {
     const { error } = await whatsappConnectionRepository.updateConnection(connection.id, { api_type });
     if (error) {
-      toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar', description: (error as { message?: string }).message ?? String(error), variant: 'destructive' });
       return;
     }
     setConnections(prev => prev.map(c => c.id === connection.id ? { ...c, api_type } : c));
