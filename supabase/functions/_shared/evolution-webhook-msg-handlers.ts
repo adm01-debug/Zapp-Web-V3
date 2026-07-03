@@ -8,6 +8,7 @@ import {
 // deno-lint-ignore no-explicit-any
 export async function handleSendMessage(supabase: any, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) return;
   for (const entry of toEventRecords(data, ['messages'])) {
     const keySource = isRecord(entry.key) ? entry.key : isRecord(baseData.key) ? baseData.key : null;
     const key = keySource as { remoteJid?: string; fromMe?: boolean; id?: string } | null;
@@ -17,10 +18,8 @@ export async function handleSendMessage(supabase: any, instance: string, data: u
     let updatedMessageId: string | null = null;
     const now = new Date().toISOString();
 
-    const existLookup = supabase.from('messages').select('id, status').eq('external_id', externalId);
-    const { data: existingMessage } = await (
-      connection?.id ? existLookup.eq('whatsapp_connection_id', connection.id) : existLookup
-    ).maybeSingle();
+    const { data: existingMessage } = await supabase.from('messages').select('id, status')
+      .eq('external_id', externalId).eq('whatsapp_connection_id', connection.id).maybeSingle();
 
     if (existingMessage?.id) {
       if (shouldUpdateStatus(existingMessage.status, 'sent')) {
@@ -34,7 +33,7 @@ export async function handleSendMessage(supabase: any, instance: string, data: u
     if (!updatedMessageId) {
       const phone = normalizePhone(resolveEventJid(key, entry, baseData) ?? undefined);
 
-      if (connection?.id && phone) {
+      if (phone) {
         const contact = await getContactByPhone(supabase, phone, connection.id);
         if (contact?.id) {
           const msgPayload = entry.message || baseData.message;
@@ -85,6 +84,7 @@ export async function handleMessagesUpdate(supabase: any, instance: string, data
     'ERROR': 'failed',
   };
   const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) return;
 
   for (const entry of toEventRecords(data, ['messages', 'updates', 'statuses'])) {
     const keySource = isRecord(entry.key) ? entry.key : isRecord(baseData.key) ? baseData.key : null;
@@ -94,17 +94,15 @@ export async function handleMessagesUpdate(supabase: any, instance: string, data
 
     if (newStatus && key?.id) {
       const now = new Date().toISOString();
-      const msgLookup = supabase.from('messages').select('id, status').eq('external_id', key.id);
-      const { data: currentMessage } = await (
-        connection?.id ? msgLookup.eq('whatsapp_connection_id', connection.id) : msgLookup
-      ).maybeSingle();
+      const { data: currentMessage } = await supabase.from('messages').select('id, status')
+        .eq('external_id', key.id).eq('whatsapp_connection_id', connection.id).maybeSingle();
 
       if (currentMessage?.id) {
         if (shouldUpdateStatus(currentMessage.status, newStatus)) {
           await supabase.from('messages').update({ status: newStatus, status_updated_at: now }).eq('id', currentMessage.id);
           console.log(`Message ${key.id} status: ${currentMessage.status} → ${newStatus}`);
         }
-      } else if (connection?.id) {
+      } else {
         let contactId: string | null = null;
         const remoteJid = resolveEventJid(entry, baseData);
         if (remoteJid) {
@@ -128,6 +126,7 @@ export async function handleMessagesUpdate(supabase: any, instance: string, data
 // deno-lint-ignore no-explicit-any
 export async function handleMessagesDelete(supabase: any, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) return;
   for (const entry of toEventRecords(data, ['messages', 'keys'])) {
     const keySource = isRecord(entry.key)
       ? entry.key : (typeof entry.id === 'string' ? entry : null) ?? (isRecord(baseData.key) ? baseData.key : null);
@@ -135,14 +134,11 @@ export async function handleMessagesDelete(supabase: any, instance: string, data
     if (!key?.id) continue;
 
     const now = new Date().toISOString();
-    const deleteQuery = supabase.from('messages')
+    const { data: updatedMessages } = await supabase.from('messages')
       .update({ is_deleted: true, status: 'deleted', status_updated_at: now })
-      .eq('external_id', key.id);
-    const { data: updatedMessages } = await (
-      connection?.id ? deleteQuery.eq('whatsapp_connection_id', connection.id) : deleteQuery
-    ).select('id');
+      .eq('external_id', key.id).eq('whatsapp_connection_id', connection.id).select('id');
 
-    if (!updatedMessages?.length && connection?.id) {
+    if (!updatedMessages?.length) {
       let contactId: string | null = null;
       const bestJid = resolveEventJid(key, entry, baseData);
       if (bestJid) {
@@ -211,6 +207,7 @@ export async function handleMessagesSet(supabase: any, instance: string, data: u
 // deno-lint-ignore no-explicit-any
 export async function handleMessagesEdited(supabase: any, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) return;
   for (const entry of toEventRecords(data, ['messages'])) {
     const keySource = isRecord(entry.key) ? entry.key : isRecord(baseData.key) ? baseData.key : null;
     const key = keySource as { id?: string } | null;
@@ -223,10 +220,8 @@ export async function handleMessagesEdited(supabase: any, instance: string, data
 
     if (!editedContent) continue;
 
-    const msgLookup = supabase.from('messages').select('id').eq('external_id', key.id);
-    const { data: existing } = await (
-      connection?.id ? msgLookup.eq('whatsapp_connection_id', connection.id) : msgLookup
-    ).maybeSingle();
+    const { data: existing } = await supabase.from('messages').select('id')
+      .eq('external_id', key.id).eq('whatsapp_connection_id', connection.id).maybeSingle();
     if (existing) {
       await supabase.from('messages').update({ content: editedContent, is_edited: true, updated_at: new Date().toISOString() }).eq('id', existing.id);
       console.log(`Message edited: ${key.id}`);

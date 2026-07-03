@@ -13,7 +13,10 @@ export async function handleOutgoingWhatsAppMessage(
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
 ) {
   const externalId = key.id;
-  const { data: existingMessage } = await supabase.from('messages').select('id').eq('external_id', externalId).maybeSingle();
+  const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) return;
+  const { data: existingMessage } = await supabase.from('messages').select('id')
+    .eq('external_id', externalId).eq('whatsapp_connection_id', connection.id).maybeSingle();
   if (existingMessage) return;
 
   const payloadKey = isRecord(data.key) ? data.key : null;
@@ -23,9 +26,6 @@ export async function handleOutgoingWhatsAppMessage(
     console.log(`[FROM_ME] Ignored message ${externalId}: unresolved recipient`, { bestJid });
     return;
   }
-
-  const connection = await getConnectionByInstance(supabase, instance);
-  if (!connection) return;
 
   const contact = await getContactByPhone(supabase, phone, connection.id);
   if (!contact) return;
@@ -117,7 +117,7 @@ export async function handleIncomingMessage(
       // Duplicate phone — contact exists with another connection; fetch with 9th digit variants
       const phonesVariants = generatePhoneVariants(phone);
       const { data: existing } = await supabase.from('contacts').select('id, avatar_url, assigned_to, name')
-        .in('phone', phonesVariants).limit(1).maybeSingle();
+        .in('phone', phonesVariants).eq('whatsapp_connection_id', connection.id).limit(1).maybeSingle();
       if (existing) {
         contact = existing;
         await supabase.from('contacts').update({ whatsapp_connection_id: connection.id, updated_at: new Date().toISOString() }).eq('id', existing.id);
@@ -140,7 +140,7 @@ export async function handleIncomingMessage(
     ? new Date((data.messageTimestamp as number) * 1000).toISOString() : new Date().toISOString();
 
   const { data: existingMessage } = await supabase.from('messages')
-    .select('id, status, content').eq('external_id', key.id).maybeSingle();
+    .select('id, status, content').eq('external_id', key.id).eq('whatsapp_connection_id', connection.id).maybeSingle();
 
   if (existingMessage?.id) {
     const preservedStatus = existingMessage.status && existingMessage.status !== 'received' ? existingMessage.status : 'received';
@@ -263,6 +263,7 @@ export async function handleAudioTranscription(supabase: any, _contactId: string
     const response = await fetch(`${supabaseUrl}/functions/v1/ai-transcribe-audio`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
       body: JSON.stringify({ audioUrl: mediaUrl, messageId }),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (response.ok) {
