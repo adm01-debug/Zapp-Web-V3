@@ -338,7 +338,7 @@ export const RPC = {
     contact_ids:      string[];
     contact_names:    string[];
     contact_count?:   number;
-  }}>({
+  }>>({
     name: 'find_duplicate_contacts',
     client: 'lovable',
   }),
