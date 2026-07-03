@@ -12,9 +12,18 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+// FATOR X (external self-hosted Supabase) — tabelas evolution_* vivem lá,
+// NÃO na Lovable Cloud. Se as envs externas não estiverem configuradas,
+// caímos no client local para não quebrar chamadas a tabelas locais
+// (profiles, channel_connections etc), mas leituras de evolution_* vão
+// retornar "table not found" — sintoma exato desta issue.
+const EXTERNAL_URL = Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("FATOR_X_URL") ?? Deno.env.get("SUPABASE_URL")!;
+const EXTERNAL_KEY =
+  Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ??
+  Deno.env.get("FATOR_X_SERVICE_ROLE_KEY") ??
+  Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") ??
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabase = createClient(EXTERNAL_URL, EXTERNAL_KEY, { auth: { persistSession: false } });
 
 const ALLOWED_SCHEMAS = ["public"];
 
