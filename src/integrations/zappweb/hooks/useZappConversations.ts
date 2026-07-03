@@ -56,7 +56,7 @@ export function useZappConversations(opts: Options = {}) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'evo',
           table: 'evolution_conversations',
           filter: `instance_name=eq.${instance}`,
         },
