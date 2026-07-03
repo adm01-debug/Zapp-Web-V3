@@ -46,7 +46,7 @@ export async function handleOutgoingWhatsAppMessage(
   const messageCreatedAt = (data.messageTimestamp as number)
     ? new Date((data.messageTimestamp as number) * 1000).toISOString() : new Date().toISOString();
 
-  const recentCutoff = new Date(Date.now() - 60_000).toISOString();
+  const recentCutoff = new Date(Date.now() - 300_000).toISOString();
   const { data: pendingMessage } = await supabase.from('messages').select('id')
     .eq('contact_id', contact.id).eq('sender', 'agent').eq('message_type', parsed.messageType)
     .is('external_id', null).gte('created_at', recentCutoff)
@@ -56,18 +56,22 @@ export async function handleOutgoingWhatsAppMessage(
     // Only return when this writer actually claimed the placeholder row.
     // With `.is('external_id', null)` a concurrent webhook matches 0 rows and
     // must fall through to the INSERT below so the message is never dropped.
-    const { data: claimed } = await supabase.from('messages')
+    const { data: claimed, error: claimError } = await supabase.from('messages')
       .update({ status: 'sent', external_id: externalId, status_updated_at: new Date().toISOString() })
       .eq('id', pendingMessage.id)
       .is('external_id', null)
       .select('id');
+    if (claimError) { console.error('[FROM_ME] Error claiming placeholder:', claimError); return; }
     if (claimed?.length) return;
   }
 
   // Re-check before INSERT: a concurrent webhook that lost the placeholder race
-  // may have already inserted a row for this externalId between the initial
-  // dedup check (line ~18) and here. Without this guard both writers fall through
-  // to INSERT and produce a duplicate row.
+  // may have already inserted a row for this externalId in the window between the
+  // initial dedup check (~line 18) and here. This SELECT reduces the chance of
+  // hitting the DB UNIQUE constraint, but it is not atomic — a sub-millisecond
+  // race between the SELECT and the upsert below is still possible. The
+  // upsert's ON CONFLICT DO NOTHING (ignoreDuplicates:true) is the final,
+  // fully atomic backstop: the DB rejects the second write at constraint level.
   const { data: raceCheck } = await supabase.from('messages')
     .select('id')
     .eq('external_id', externalId)
@@ -75,13 +79,18 @@ export async function handleOutgoingWhatsAppMessage(
     .maybeSingle();
   if (raceCheck) return;
 
-  const { error: msgError } = await supabase.from('messages').insert({
+  // upsert + ignoreDuplicates:true maps to ON CONFLICT (external_id,whatsapp_connection_id) DO NOTHING.
+  // When two concurrent webhooks both fall through the raceCheck above (sub-millisecond window),
+  // only one INSERT wins; the other silently no-ops at the DB layer with no error returned.
+  const { data: insertedMessage, error: msgError } = await supabase.from('messages').upsert({
     contact_id: contact.id, whatsapp_connection_id: connection.id, content: parsed.content,
     message_type: parsed.messageType, media_url: mediaUrl, sender: 'agent', external_id: externalId,
     status: 'sent', created_at: messageCreatedAt, agent_id: contact.assigned_to || null,
-  }).select('id').single();
+    status_updated_at: new Date().toISOString(),
+  }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true }).select('id').maybeSingle();
 
   if (msgError) { console.error('[FROM_ME] Error inserting outgoing message:', msgError); return; }
+  if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
 }
 
