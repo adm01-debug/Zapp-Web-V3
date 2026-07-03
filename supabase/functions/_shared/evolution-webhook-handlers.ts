@@ -226,7 +226,7 @@ export async function handleContactsUpsert(supabase: any, instance: string, data
           await supabase.from('contacts').update({
             name: pushName, avatar_url: permanentAvatarUrl || null,
             updated_at: new Date().toISOString(),
-          }).eq('phone', phone).eq('whatsapp_connection_id', connection.id);
+          }).in('phone', generatePhoneVariants(phone)).eq('whatsapp_connection_id', connection.id);
         }
       }
     }
@@ -278,12 +278,13 @@ export async function handlePresenceUpdate(supabase: any, instance: string, data
     }
 
     // Novo (FATOR X): canal por remote_jid — chave estável compartilhada entre webhook → preview → chat aberto
+    const ch1 = supabase.channel(`typing:${jid}`);
     try {
-      const ch1 = supabase.channel(`typing:${jid}`);
       await ch1.send({ type: 'broadcast', event: 'contact_typing', payload: basePayload });
-      supabase.removeChannel(ch1);
     } catch (_e) {
       // best-effort: não quebrar o webhook se broadcast falhar
+    } finally {
+      supabase.removeChannel(ch1);
     }
 
     // Legacy (Lovable Cloud contact.id) — mantém compat durante migração.
@@ -295,12 +296,13 @@ export async function handlePresenceUpdate(supabase: any, instance: string, data
         if (connection) {
           const contact = await getContactByPhone(supabase, phone, connection.id);
           if (contact) {
+            const ch2 = supabase.channel(`typing:${contact.id}`);
             try {
-              const ch2 = supabase.channel(`typing:${contact.id}`);
               await ch2.send({ type: 'broadcast', event: 'contact_typing', payload: { ...basePayload, contactId: contact.id } });
-              supabase.removeChannel(ch2);
             } catch (_e) {
               // best-effort
+            } finally {
+              supabase.removeChannel(ch2);
             }
           }
         }
@@ -317,7 +319,7 @@ export async function handleChatsUpdate(supabase: any, instance: string, data: u
   for (const chat of chats) {
     const chatData = chat as Record<string, unknown>;
     const jid = chatData.id as string;
-    if (!jid || jid.endsWith('@g.us')) continue;
+    if (!jid || jid.endsWith('@g.us') || jid.endsWith('@lid')) continue;
 
     const phone = normalizePhone(jid);
     if (!phone) continue;
@@ -347,7 +349,7 @@ export async function handleLabelsEdit(supabase: any, instance: string, data: un
   if (!connection) return;
 
   if (deleted) {
-    await supabase.from('tags').delete().eq('name', `wa:${labelId}:${labelName}`);
+    await supabase.from('tags').delete().ilike('name', `wa:${labelId}:%`);
   } else {
     const tagName = labelName || `Label ${labelId}`;
     const { data: existingTag } = await supabase.from('tags').select('id').ilike('name', `wa:${labelId}:%`).maybeSingle();
@@ -479,7 +481,7 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
   for (const chat of chats) {
     const chatData = isRecord(chat) ? chat : {};
     const jid = (chatData.id as string) || (chatData.remoteJid as string);
-    if (!jid || jid.endsWith('@g.us')) continue;
+    if (!jid || jid.endsWith('@g.us') || jid.endsWith('@lid')) continue;
     const phone = normalizePhone(jid);
     if (!phone) continue;
     const contact = await getContactByPhone(supabase, phone, connection.id);
@@ -514,7 +516,7 @@ export async function handleContactsSet(supabase: any, instance: string, data: u
   let synced = 0, skipped = 0;
   for (const contactData of contacts) {
     const jid = (contactData.id as string) || (contactData.remoteJid as string);
-    if (!jid || jid.endsWith('@g.us') || jid.endsWith('@broadcast')) { skipped++; continue; }
+    if (!jid || jid.endsWith('@g.us') || jid.endsWith('@broadcast') || jid.endsWith('@lid')) { skipped++; continue; }
     const phone = normalizePhone(jid);
     if (!phone) { skipped++; continue; }
     const pushName = (contactData.pushName as string) || (contactData.name as string) || (contactData.notify as string);
@@ -524,7 +526,7 @@ export async function handleContactsSet(supabase: any, instance: string, data: u
 
     const { error: insertErr } = await supabase.from('contacts').insert({ phone, name: pushName, whatsapp_connection_id: connection.id });
     if (insertErr && insertErr.code === '23505') { skipped++; continue; }
-    if (insertErr) { skipped++; continue; }
+    if (insertErr) { console.warn(`[contacts.set] insert error for ${phone}:`, insertErr.message); skipped++; continue; }
     synced++;
   }
   console.log(`contacts.set: synced ${synced}, skipped ${skipped} for ${instance}`);

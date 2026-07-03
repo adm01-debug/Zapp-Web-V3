@@ -113,11 +113,13 @@ export async function handleMessagesUpdate(supabase: any, instance: string, data
           }
         }
 
-        await supabase.from('messages').insert({
-          content: '[Mensagem recebida]', message_type: 'text', sender: 'contact',
-          external_id: key.id, status: newStatus, status_updated_at: now, created_at: now,
-          contact_id: contactId, whatsapp_connection_id: connection.id,
-        });
+        if (contactId) {
+          await supabase.from('messages').insert({
+            content: '[Mensagem recebida]', message_type: 'text', sender: 'contact',
+            external_id: key.id, status: newStatus, status_updated_at: now, created_at: now,
+            contact_id: contactId, whatsapp_connection_id: connection.id,
+          });
+        }
       }
     }
   }
@@ -197,7 +199,7 @@ export async function handleMessagesSet(supabase: any, instance: string, data: u
     await supabase.from('messages').insert({
       content, message_type: messageType, sender: key.fromMe ? 'agent' : 'contact',
       external_id: key.id, contact_id: contact.id, whatsapp_connection_id: connection.id,
-      status: key.fromMe ? 'sent' : null, is_read: key.fromMe ? true : false, created_at: ts,
+      status: key.fromMe ? 'sent' : 'received', is_read: !!key.fromMe, created_at: ts,
     });
     synced++;
   }
