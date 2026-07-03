@@ -181,12 +181,26 @@ export function shouldUpdateStatus(currentStatus: string | null, newStatus: stri
   return newPriority > currentPriority;
 }
 
+/**
+ * Resolves a whatsapp_connection row by the Evolution API instance identifier.
+ *
+ * IMPORTANT: Evolution API sends instance_name (e.g. 'wpp2', 'wpp_pink_test') in the
+ * webhook `instance` field — NOT the internal UUID stored in instance_id.
+ *
+ * On the self-hosted schema:
+ *   - instance_name TEXT NOT NULL  = human-readable Evolution API identifier (e.g. 'wpp2')
+ *   - instance_id   TEXT           = Evolution API internal UUID (auto-assigned, optional)
+ *
+ * Bug history: commit 22446264 (PR #123) erroneously changed this to `.eq('instance_id')`
+ * based on the Lovable Cloud schema which lacked instance_name. The self-hosted prod schema
+ * has BOTH columns; always use instance_name for webhook lookups.
+ */
 // deno-lint-ignore no-explicit-any
 export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
   const { data } = await supabase
     .from('whatsapp_connections')
     .select('id')
-    .eq('instance_id', instance)
+    .eq('instance_name', instance)   // MUST be instance_name; Evolution sends the name string
     .maybeSingle();
   return data;
 }
@@ -294,28 +308,28 @@ export async function handleReactionEvent(supabase: any, instance: string, react
 
   const targetExternalId = reactKey.id as string;
   const connection = await getConnectionByInstance(supabase, instance);
-  if (!connection) { console.log(`Reaction: no connection for instance ${instance}`); return; }
+  if (!connection) { console.warn(`[reaction] no connection for instance=${instance}`); return; }
   const { data: targetMessage } = await supabase
     .from('messages').select('id, contact_id').eq('external_id', targetExternalId)
     .eq('whatsapp_connection_id', connection.id).maybeSingle();
-  if (!targetMessage) { console.log(`Reaction target not found: ${targetExternalId}`); return; }
+  if (!targetMessage) { console.log(`[reaction] target not found: ${targetExternalId}`); return; }
 
   if (emoji === '') {
     if (!actorFromMe) {
       await supabase.from('message_reactions').delete()
         .eq('message_id', targetMessage.id).eq('contact_id', targetMessage.contact_id);
       await supabase.from('messages').update({ updated_at: new Date().toISOString() }).eq('id', targetMessage.id);
-      console.log(`Reaction removed on message ${targetExternalId}`);
+      console.log(`[reaction] removed on message ${targetExternalId}`);
     }
   } else if (!actorFromMe) {
     const { error: upsertErr } = await supabase.from('message_reactions').upsert(
       { message_id: targetMessage.id, contact_id: targetMessage.contact_id, emoji },
       { onConflict: 'message_id,contact_id,emoji' }
     );
-    if (upsertErr) { console.error('Error upserting reaction:', upsertErr); }
+    if (upsertErr) { console.error('[reaction] upsert error:', upsertErr); }
     else {
       await supabase.from('messages').update({ updated_at: new Date().toISOString() }).eq('id', targetMessage.id);
-      console.log(`Reaction synced: ${emoji} on message ${targetExternalId}`);
+      console.log(`[reaction] synced: ${emoji} on message ${targetExternalId}`);
     }
   }
 }
