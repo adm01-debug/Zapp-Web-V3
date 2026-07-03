@@ -27,7 +27,6 @@ import { checkRateLimit } from "../_shared/rate-limiter.ts";
 // Multi-secret support enables zero-downtime rotation:
 //   - EVOLUTION_WEBHOOK_SECRETS=new,old  → validate both, sign with `new`
 //   - EVOLUTION_WEBHOOK_SECRET=single    → legacy single-secret mode
-// Falls back to the older WEBHOOK_SECRET env name for backwards compatibility.
 const WEBHOOK_SECRETS = (() => {
   const evo = readWebhookSecretsFromEnv('EVOLUTION_WEBHOOK');
   if (evo.length > 0) return evo;
@@ -56,17 +55,13 @@ serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // HMAC validation before reading body as JSON so we can verify on raw text.
   let rawBody: string;
-  // Tenta extrair instância do header (alguns webhooks Evolution mandam) p/ contar falhas
-  // antes mesmo de parsear o body. Cai em 'unknown' se não houver.
   const headerInstance = req.headers.get('x-evolution-instance') || req.headers.get('x-instance') || null;
 
   if (validateWebhook) {
     const result = await validateWebhook(req);
     if (!result.valid) {
       console.warn(redactSecrets(`[webhook][${requestId}] rejected: ${result.error ?? 'unknown'} signatureFound=${result.signatureFound}`));
-      // Auto-pause: conta invalid_signature na janela e persiste o evento
       recordAuthFailureAndMaybePause(supabase, headerInstance ?? 'unknown', 'invalid_signature', 'webhook', { message: result.error ?? 'invalid_signature' });
       await auditWebhookEvent(supabase, {
         request_id: requestId, status: 'rejected',
@@ -97,9 +92,7 @@ serve(async (req) => {
       return contractErrorResponse(
         'INVALID_WEBHOOK_PAYLOAD',
         'Payload does not match Evolution Webhook contract',
-        parsed.error.issues,
-        requestId,
-        req
+        parsed.error.issues, requestId, req
       );
     }
     payload = parsed.data as WebhookPayload;
@@ -116,14 +109,10 @@ serve(async (req) => {
   const data = payload.data ?? {};
   const baseData = isRecord(data) ? data : {};
 
-  // Pause guard: se a instância foi pausada (manual ou auto), descarta o evento
-  // com 503 e audit 'rejected'. A Evolution costuma retry-arr, mas durante a
-  // janela de pausa preferimos isso a continuar processando lixo.
   if (await isInstancePaused(supabase, instance)) {
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'rejected',
-      error_message: 'instance_paused',
-      duration_ms: Date.now() - startedAt,
+      error_message: 'instance_paused', duration_ms: Date.now() - startedAt,
     });
     console.warn(`[webhook][${requestId}] instance=${instance} is paused — skipping event ${event}`);
     return new Response(
@@ -132,17 +121,13 @@ serve(async (req) => {
     );
   }
 
-  // Rate Limit guard: prevent storming from a single instance/event
   const rateLimit = await checkRateLimit(supabase, {
-    instanceId: instance || 'unknown',
-    eventType: event,
-    limit: 300, // 300 events per minute per instance/event
+    instanceId: instance || 'unknown', eventType: event, limit: 300,
   });
   if (!rateLimit.allowed) {
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'rejected',
-      error_message: 'rate_limit_exceeded',
-      duration_ms: Date.now() - startedAt,
+      error_message: 'rate_limit_exceeded', duration_ms: Date.now() - startedAt,
     });
     console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit})`);
     return new Response(
@@ -151,8 +136,6 @@ serve(async (req) => {
     );
   }
 
-  // Idempotency guard: dedup by hash of (instance + event + body). Evolution retries reuse
-  // the same payload, so if we have seen this event_id we short-circuit with 200.
   const bodyHash = await sha256Hex(rawBody);
   const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
   const isNew = await markEventProcessed(supabase, eventId, instance, event);
@@ -175,9 +158,10 @@ serve(async (req) => {
     if (event === 'qrcode.updated') {
       const qrCode = (baseData.qrcode as Record<string, string>)?.base64;
       if (qrCode) {
+        // Use instance_name — Evolution sends instance NAME in webhook, not the internal UUID (instance_id)
         await supabase.from('whatsapp_connections')
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
-          .eq('instance_id', instance);
+          .eq('instance_name', instance);
       }
     }
 
@@ -251,7 +235,6 @@ serve(async (req) => {
     if (event === 'groups.upsert' || event === 'group.update') {
       await handleGroupsUpsert(supabase, instance, data);
     }
-
     if (event === 'group.participants.update' || event === 'group-participants.update') {
       await handleGroupParticipantsUpdate(supabase, instance, data);
     }
@@ -272,8 +255,6 @@ serve(async (req) => {
     });
     return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: corsHeaders });
   } catch (error: unknown) {
-    // Logical/handler errors: log the detail internally, return 200 to evo so it does not
-    // retry-storm the same event. The idempotency guard above makes retries safe.
     const detail = error instanceof Error ? error.message : String(error);
     console.error(redactSecrets(`[webhook][${requestId}] handler_error event=${event} instance=${instance}: ${detail}`));
     await auditWebhookEvent(supabase, {

@@ -379,18 +379,18 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
         user_id: agentProfile.user_id, type: 'incoming_call',
         title: isVideo ? '\uD83D\uDCF9 Chamada de v\u00eddeo recebida' : '\uD83D\uDCDE Chamada de voz recebida',
         message: `${contact.name || phone} est\u00e1 ligando para voc\u00ea`,
-        metadata: { contact_id: contact.id, phone, is_video: isVideo, call_status: callStatus, whatsapp_connection_id: connection.id, agent_profile_id: agentId },
+        metadata: { contact_id: contact.id, phone, is_video: isVideo, call_status: callStatus,
+          whatsapp_connection_id: connection.id, agent_profile_id: agentId },
       });
     }
   }
 
-  // Realtime broadcast via main supabase client (FATOR X v6.1 unified single-DB architecture).
-  // REMOVED: EXTERNAL_SUPABASE_URL broadcast — deprecated since FATOR X v6.1 migration.
+  // Realtime broadcast via main supabase client (FATOR X v6.1 single-DB architecture).
+  // REMOVED: deprecated EXTERNAL_SUPABASE_URL broadcast path.
   try {
     const bcastChannel = supabase.channel(`incoming-calls:${instance}`);
     await bcastChannel.send({
-      type: 'broadcast',
-      event: 'call_received',
+      type: 'broadcast', event: 'call_received',
       payload: {
         remote_jid: from, is_video: !!isVideo, call_status: callStatus || 'ringing',
         agent_profile_id: agentId, started_at: new Date().toISOString(),
@@ -417,11 +417,9 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
     const contact = await getContactByPhone(supabase, phone, connection.id);
     if (contact) {
       const now = new Date().toISOString();
-      // Update evo.evolution_messages directly since the INSTEAD OF UPDATE trigger now
-      // handles is_deleted→deleted_at but belt-and-suspenders: also set deleted_at directly.
-      await supabase.from('evo_evolution_messages_direct').upsert({}).limit(0); // no-op guard
-      await supabase
-        .from('messages')
+      // The INSTEAD OF UPDATE trigger on public.messages now correctly handles
+      // is_deleted=true → sets deleted_at = now in evo.evolution_messages.
+      await supabase.from('messages')
         .update({ is_deleted: true, status: 'deleted', status_updated_at: now })
         .eq('contact_id', contact.id)
         .eq('whatsapp_connection_id', connection.id);
