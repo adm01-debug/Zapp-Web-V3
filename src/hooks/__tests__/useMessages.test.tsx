@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 
 // Rewritten 2026-07-03 against the real hook API. The previous suite was stale:
 // it called useMessages({ contactId }) (an object) when the hook takes a string
@@ -105,5 +105,56 @@ describe('useMessages', () => {
 
     await waitFor(() => expect(result.current.messages).toHaveLength(50));
     expect(result.current.hasMore).toBe(true);
+  });
+
+  it('loadMore issues a second dbList with p_offset=50 and sets hasMore=false on a partial page', async () => {
+    dbList.mockResolvedValue({
+      data: Array.from({ length: 50 }, (_, i) => row({ id: `m${i}`, message_id: `w${i}` })),
+      error: null,
+    });
+    const { result } = renderHook(() => useMessages('jid1'));
+    await waitFor(() => expect(result.current.hasMore).toBe(true));
+
+    dbList.mockResolvedValue({ data: [row({ id: 'extra' })], error: null });
+
+    await act(async () => { await result.current.loadMore(); });
+
+    expect(dbList).toHaveBeenCalledTimes(2);
+    expect(dbList).toHaveBeenNthCalledWith(2, 'list_messages_lite', expect.objectContaining({
+      p_remote_jid: 'jid1', p_offset: 50,
+    }));
+    expect(result.current.hasMore).toBe(false);
+    expect(result.current.loadingMore).toBe(false);
+    expect(result.current.messages).toHaveLength(51);
+  });
+
+  it('appends a new message when a realtime INSERT payload arrives', async () => {
+    dbList.mockResolvedValue({ data: [row({ id: 'existing', message_id: 'wmid0' })], error: null });
+    const { result } = renderHook(() => useMessages('jid1'));
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+
+    const insertCall = realtimeChannel.on.mock.calls.find(
+      (c: unknown[]) => (c[1] as Record<string, unknown>)?.event === 'INSERT',
+    );
+    const insertCallback = insertCall?.[2] as (p: Record<string, unknown>) => void;
+
+    act(() => { insertCallback({ new: row({ id: 'new1', message_id: 'wmid1' }) }); });
+
+    await waitFor(() => expect(result.current.messages).toHaveLength(2));
+    expect(result.current.messages.some((m) => m.id === 'new1')).toBe(true);
+  });
+
+  it('does not throw and leaves messages unchanged when a realtime UPDATE arrives with payload.new=null', async () => {
+    dbList.mockResolvedValue({ data: [row({ id: 'r1' })], error: null });
+    const { result } = renderHook(() => useMessages('jid1'));
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+
+    const updateCall = realtimeChannel.on.mock.calls.find(
+      (c: unknown[]) => (c[1] as Record<string, unknown>)?.event === 'UPDATE',
+    );
+    const updateCallback = updateCall?.[2] as (p: Record<string, unknown>) => void;
+
+    expect(() => act(() => { updateCallback({ new: null, old: { id: 'r1' } }); })).not.toThrow();
+    expect(result.current.messages).toHaveLength(1);
   });
 });

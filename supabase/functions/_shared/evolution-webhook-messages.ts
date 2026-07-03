@@ -53,7 +53,10 @@ export async function handleOutgoingWhatsAppMessage(
     .order('created_at', { ascending: true }).limit(1).maybeSingle();
 
   if (pendingMessage?.id) {
-    await supabase.from('messages').update({ status: 'sent', external_id: externalId, status_updated_at: new Date().toISOString() }).eq('id', pendingMessage.id);
+    await supabase.from('messages')
+      .update({ status: 'sent', external_id: externalId, status_updated_at: new Date().toISOString() })
+      .eq('id', pendingMessage.id)
+      .is('external_id', null); // concurrent-safe: second writer matches 0 rows
     return;
   }
 

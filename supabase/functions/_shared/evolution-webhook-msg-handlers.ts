@@ -54,9 +54,12 @@ export async function handleSendMessage(supabase: any, instance: string, data: u
             .limit(1).maybeSingle();
 
           if (pendingMessage?.id) {
+            // `.is('external_id', null)` makes concurrent duplicate SEND_MESSAGE
+            // webhooks safe: the second writer matches 0 rows and falls through.
             await supabase.from('messages')
               .update({ status: 'sent', external_id: externalId, status_updated_at: now })
-              .eq('id', pendingMessage.id);
+              .eq('id', pendingMessage.id)
+              .is('external_id', null);
             updatedMessageId = pendingMessage.id;
           }
         }

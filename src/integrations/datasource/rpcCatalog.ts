@@ -29,8 +29,8 @@ import type {
   EvolutionMessage,
   EvolutionConversation,
 } from '@/types/evolutionExternal';
-
-export type DatasourceClient = 'lovable' | 'external';
+import type { DatasourceClient } from './registry';
+export type { DatasourceClient };
 
 export interface RpcDefinition<TParams, TRow> {
   /** Nome exato da função SQL no banco. */
@@ -311,6 +311,40 @@ interface SendMessageV2Row {
   message: string;
 }
 
+// ── Message actions (toggles, follow-up) ──────────────────────────────────────
+
+interface ToggleMessageStarParams {
+  p_message_id: string;
+  p_value: boolean;
+}
+
+interface ToggleMessageImportantParams {
+  p_message_id: string;
+  p_value: boolean;
+}
+
+interface ScheduleFollowUpParams {
+  p_message_id: string;
+  p_follow_up_at: string;
+  p_follow_up_done?: boolean;
+}
+
+interface MarkFollowUpDoneParams {
+  p_message_id: string;
+}
+
+// ── Outbound event telemetry ──────────────────────────────────────────────────
+
+interface LogOutboundEventParams {
+  p_conversation_id: string;
+  p_message_type: string;
+  p_instance_name: string;
+  p_status: string;
+  p_latency_ms: number;
+  p_error_code?: string | null;
+  p_metadata?: Record<string, unknown> | null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Catalog
 // ─────────────────────────────────────────────────────────────────────────────
@@ -504,6 +538,33 @@ export const RPC = {
 
   send_message_v2: def<SendMessageV2Params, SendMessageV2Row>({
     name: 'send_message_v2',
+    client: 'lovable',
+  }),
+
+  // ── Message actions (toggle star/important, follow-up) ─────────────────────
+  toggleMessageStar: def<ToggleMessageStarParams, boolean>({
+    name: 'rpc_toggle_message_star',
+    client: 'lovable',
+  }),
+
+  toggleMessageImportant: def<ToggleMessageImportantParams, boolean>({
+    name: 'rpc_toggle_message_important',
+    client: 'lovable',
+  }),
+
+  scheduleFollowUp: def<ScheduleFollowUpParams, Record<string, unknown>>({
+    name: 'rpc_schedule_follow_up',
+    client: 'lovable',
+  }),
+
+  markFollowUpDone: def<MarkFollowUpDoneParams, Record<string, unknown>>({
+    name: 'mark_follow_up_done',
+    client: 'lovable',
+  }),
+
+  // ── Outbound event telemetry ──────────────────────────────────────────────
+  logOutboundEvent: def<LogOutboundEventParams, Record<string, unknown>>({
+    name: 'rpc_log_outbound_event',
     client: 'lovable',
   }),
 } as const;

@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { sanitizeText } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
-import { dbList } from '@/integrations/datasource/db';
+import { dbList, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { eventBus } from '@/lib/eventBus';
 import { deduplicateMessages, setLastReceived } from '@/lib/inbox/chatOptimizations';
@@ -203,6 +203,7 @@ export function useMessages(
         table:  'evolution_messages',
         filter: `remote_jid=eq.${remoteJid}`,
       }, (payload) => {
+        if (!payload.new) return;
         setMessages((prev) => prev.map((m) =>
           m.id === payload.new.id ? mapRow(payload.new as Record<string, unknown>) : m
         ));
@@ -238,7 +239,7 @@ export function useMessages(
     const newVal = !current;
     setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_starred: newVal } : m));
     try {
-      const { error } = await (supabase as any).rpc('rpc_toggle_message_star', {
+      const { error } = await dbRpc(RPC.toggleMessageStar, {
         p_message_id: id,
         p_value: newVal,
       });
@@ -253,7 +254,7 @@ export function useMessages(
     const newVal = !current;
     setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_important: newVal } : m));
     try {
-      const { error } = await (supabase as any).rpc('rpc_toggle_message_important', {
+      const { error } = await dbRpc(RPC.toggleMessageImportant, {
         p_message_id: id,
         p_value: newVal,
       });
@@ -266,7 +267,7 @@ export function useMessages(
 
   const scheduleFollowUp = useCallback(async (id: string, followUpAt: string) => {
     try {
-      const { error } = await (supabase as any).rpc('rpc_schedule_follow_up', {
+      const { error } = await dbRpc(RPC.scheduleFollowUp, {
         p_message_id:    id,
         p_follow_up_at:  followUpAt,
         p_follow_up_done: false,
@@ -283,7 +284,7 @@ export function useMessages(
 
   const markFollowUpDone = useCallback(async (id: string) => {
     try {
-      const { error } = await (supabase as any).rpc('mark_follow_up_done', { p_message_id: id });
+      const { error } = await dbRpc(RPC.markFollowUpDone, { p_message_id: id });
       if (error) throw error;
       setMessages((prev) => prev.map((m) => m.id === id ? { ...m, follow_up_done: true } : m));
     } catch (err) {

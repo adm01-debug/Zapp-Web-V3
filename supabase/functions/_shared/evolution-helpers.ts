@@ -169,14 +169,17 @@ export function resolveEventJid(...sources: unknown[]): string | null {
 }
 
 export const STATUS_PRIORITY: Record<string, number> = {
-  'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'played': 3,
+  'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'played': 4,
   'failed': -1, 'deleted': 99, 'received': 1,
 };
 
 export function shouldUpdateStatus(currentStatus: string | null, newStatus: string): boolean {
   if (!currentStatus) return true;
-  if (newStatus === 'deleted' || newStatus === 'failed') return true;
   const currentPriority = STATUS_PRIORITY[currentStatus] ?? 0;
+  if (newStatus === 'deleted') return true;
+  // Allow 'failed' only if the message has not yet reached 'delivered' or beyond,
+  // preventing stale error ACKs from downgrading already-confirmed messages.
+  if (newStatus === 'failed') return currentPriority < STATUS_PRIORITY['delivered'];
   const newPriority = STATUS_PRIORITY[newStatus] ?? 0;
   return newPriority > currentPriority;
 }

@@ -222,7 +222,7 @@ export async function sendExternalAudio(
     log.error('evolution-api send-audio failed', error);
     const info = parseEvolutionError(error);
     
-    void supabase.rpc('rpc_log_outbound_event', {
+    void dbInsert(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
       p_message_type: 'audio',
       p_instance_name: instance,
@@ -240,7 +240,7 @@ export async function sendExternalAudio(
     log.error('evolution-api send-audio error envelope', envelope);
     const info = parseEvolutionError(envelope);
 
-    void supabase.rpc('rpc_log_outbound_event', {
+    void dbInsert(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
       p_message_type: 'audio',
       p_instance_name: instance,
@@ -254,8 +254,8 @@ export async function sendExternalAudio(
   }
 
   const externalId = envelope?.key?.id ?? null;
-  
-  void supabase.rpc('rpc_log_outbound_event', {
+
+  void dbInsert(RPC.logOutboundEvent, {
     p_conversation_id: remoteJid,
     p_message_type: 'audio',
     p_instance_name: instance,
@@ -395,7 +395,7 @@ export async function sendExternalPtv(
     log.error('evolution-api send-ptv failed', error);
     const info = parseEvolutionError(error);
 
-    void supabase.rpc('rpc_log_outbound_event', {
+    void dbInsert(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
       p_message_type: 'video_ptv',
       p_instance_name: instance,
@@ -413,7 +413,7 @@ export async function sendExternalPtv(
     log.error('evolution-api send-ptv error envelope', envelope);
     const info = parseEvolutionError(envelope);
 
-    void supabase.rpc('rpc_log_outbound_event', {
+    void dbInsert(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
       p_message_type: 'video_ptv',
       p_instance_name: instance,
@@ -428,7 +428,7 @@ export async function sendExternalPtv(
 
   const externalId = envelope?.key?.id ?? null;
 
-  void supabase.rpc('rpc_log_outbound_event', {
+  void dbInsert(RPC.logOutboundEvent, {
     p_conversation_id: remoteJid,
     p_message_type: 'video_ptv',
     p_instance_name: instance,
