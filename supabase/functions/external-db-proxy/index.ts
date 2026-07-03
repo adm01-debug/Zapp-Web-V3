@@ -1,0 +1,278 @@
+// external-db-proxy v1.6 (2026-07-03)
+// Proxy autorizado para consultas de tabelas operacionais.
+// Observação: este arquivo NÃO presume FATOR X. Quando `EXTERNAL_SUPABASE_URL`
+// e `EXTERNAL_SUPABASE_SERVICE_ROLE_KEY` existem, usa o banco externo correto
+// configurado no projeto; caso contrário, usa o backend Lovable Cloud local.
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+
+type RequestBody = {
+  schema?: unknown;
+  table?: unknown;
+  rpc?: unknown;
+  action?: unknown;
+  params?: Record<string, unknown>;
+  select?: unknown;
+  limit?: unknown;
+  offset?: unknown;
+  filter?: Record<string, unknown>;
+  filters?: Array<{ column?: unknown; operator?: unknown; value?: unknown }>;
+  order_by?: unknown;
+  order?: { column?: unknown; ascending?: unknown };
+  order_asc?: unknown;
+};
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-correlation-id, x-request-id",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+};
+
+const PLACEHOLDER_RE = /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i;
+const EVO_TABLE_RE = /^evolution_/;
+const SAFE_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+function pickEnv(name: string): string | undefined {
+  const value = Deno.env.get(name)?.trim();
+  if (!value || PLACEHOLDER_RE.test(value)) return undefined;
+  return value;
+}
+
+function isSafeIdent(value: string): boolean {
+  return SAFE_IDENT_RE.test(value);
+}
+
+const EXTERNAL_URL = pickEnv("EXTERNAL_SUPABASE_URL");
+const EXTERNAL_KEY = pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? pickEnv("EXTERNAL_SUPABASE_ANON_KEY");
+const LOCAL_URL = pickEnv("SUPABASE_URL");
+const LOCAL_KEY = pickEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+const TARGET_URL = EXTERNAL_URL ?? LOCAL_URL ?? "";
+const TARGET_KEY = EXTERNAL_KEY ?? LOCAL_KEY ?? "";
+const targetName = EXTERNAL_URL ? "external-configured" : "lovable-cloud-local";
+
+let supabase: ReturnType<typeof createClient> | null = null;
+let bootError: string | null = null;
+
+try {
+  if (!TARGET_URL || !/^https?:\/\//i.test(TARGET_URL)) {
+    throw new Error("URL do banco ausente ou inválida para o external-db-proxy.");
+  }
+  if (!TARGET_KEY) {
+    throw new Error("Chave de acesso do banco ausente para o external-db-proxy.");
+  }
+  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
+} catch (error) {
+  bootError = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o proxy.";
+  console.error("[external-db-proxy] boot error:", bootError);
+}
+
+const ALLOWED_SCHEMAS = ["public", "evo"];
+
+const EVOLUTION_TABLES = [
+  "evolution_contacts",
+  "evolution_messages",
+  "evolution_conversations",
+  "evolution_calls",
+  "evolution_realtime_events",
+  "evolution_webhook_events",
+  "evolution_audit_log",
+  "evolution_webhook_events_wpp2",
+  "evolution_labels",
+  "evolution_label_associations",
+  "evolution_reactions",
+  "evolution_whatsapp_status",
+  "evolution_settings",
+  "evolution_alerts",
+];
+
+const LOCAL_TABLES = [
+  "whatsapp_connections",
+  "channel_connections",
+  "connection_health_logs",
+  "conversations",
+  "conversation_transfers",
+  "queues",
+  "queue_members",
+  "queue_goals",
+  "companies",
+  "contact_emails",
+  "profiles",
+  "app_notifications",
+  "agent_presence",
+  "outbound_message_queue",
+  "sales_deals",
+  "department_invitations",
+  "interactions",
+  "sla_delivery_rules",
+  "sla_delivery_violations",
+  "team_messages",
+  "team_message_reactions",
+  "transfer_comments",
+  "stickers",
+  "sticker_categories",
+  "sticker_favorites",
+  "audio_memes",
+  "audio_meme_categories",
+  "audio_meme_favorites",
+  "gmail_accounts",
+  "gmail_cache_test",
+  "gmail_health_logs",
+  "gmail_revalidation_jobs",
+  "email_tracked_messages",
+  "email_tracking_events",
+  "whisper_files",
+  "dispatch_error_logs",
+  "query_telemetry",
+  "api_keys",
+  "whatsapp_cloud_webhook_pings",
+  "qr_attempts",
+];
+
+const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
+  public: [...LOCAL_TABLES, ...EVOLUTION_TABLES],
+  evo: EVOLUTION_TABLES,
+};
+
+function resolveSchema(schema: string, table: string): string {
+  if (schema === "public" && EVO_TABLE_RE.test(table) && !EXTERNAL_URL) return "evo";
+  return schema;
+}
+
+function jsonResponse(payload: Record<string, unknown>, status: number): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
+  if (bootError || !supabase) {
+    return jsonResponse({
+      error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
+      hint: "Configure EXTERNAL_SUPABASE_URL e EXTERNAL_SUPABASE_SERVICE_ROLE_KEY com o banco correto das tabelas Evolution.",
+      data: [],
+      count: 0,
+    }, 503);
+  }
+
+  if (req.method === "GET") {
+    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.6", target: targetName, ts: Date.now() }, 200);
+  }
+
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  }
+
+  const cid = req.headers.get("x-correlation-id") || crypto.randomUUID();
+  const rid = req.headers.get("x-request-id") || crypto.randomUUID();
+  const start = Date.now();
+
+  let body: RequestBody;
+  try {
+    body = await req.json() as RequestBody;
+  } catch {
+    return jsonResponse({ error: "Invalid JSON body", cid, rid }, 400);
+  }
+
+  const requestedSchema = String(body.schema ?? "public");
+  const table = String(body.table ?? "");
+  const rpc = typeof body.rpc === "string" ? body.rpc : null;
+  const action = typeof body.action === "string" ? body.action : rpc ? "rpc" : table ? "select" : null;
+
+  if (action === "rpc" && rpc) {
+    if (!isSafeIdent(rpc)) return jsonResponse({ error: "Invalid rpc identifier", cid, rid }, 400);
+
+    const params = { ...(body.params ?? {}) };
+    delete params.__cid;
+
+    try {
+      const { data, error } = await supabase.rpc(rpc, params);
+      if (error) return jsonResponse({ error: error.message, cid, rid, data: null }, 400);
+      return jsonResponse({ ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "RPC failed";
+      return jsonResponse({ error: message, cid, rid, data: null }, 500);
+    }
+  }
+
+  const selectCols = String(body.select ?? "*");
+  const limit = Math.min(Math.max(Number(body.limit ?? 50), 1), 500);
+  const offset = Math.max(Number(body.offset ?? 0), 0);
+  const filter = body.filter && typeof body.filter === "object" ? body.filter : null;
+  const filters = Array.isArray(body.filters) ? body.filters : null;
+  const orderBy = body.order_by ? String(body.order_by) : body.order?.column ? String(body.order.column) : null;
+  const orderAsc = body.order_asc !== undefined ? Boolean(body.order_asc) : Boolean(body.order?.ascending);
+
+  if (!isSafeIdent(requestedSchema)) return jsonResponse({ error: "Invalid schema", cid, rid }, 400);
+  if (!isSafeIdent(table)) return jsonResponse({ error: "Invalid table", cid, rid }, 400);
+
+  const schema = resolveSchema(requestedSchema, table);
+  if (!ALLOWED_SCHEMAS.includes(schema)) {
+    return jsonResponse({ schema_unavailable: true, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 200);
+  }
+
+  const allowedTables = SCHEMA_TABLE_WHITELIST[schema] || [];
+  if (allowedTables.length > 0 && !allowedTables.includes(table)) {
+    return jsonResponse({ error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }, 403);
+  }
+
+  if (EVO_TABLE_RE.test(table) && !EXTERNAL_URL && schema === "evo") {
+    return jsonResponse({
+      error: `Tabela '${table}' não encontrada no backend local. Configure o banco correto das tabelas Evolution em EXTERNAL_SUPABASE_URL/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY.`,
+      cid,
+      rid,
+      data: [],
+      count: 0,
+      latency_ms: Date.now() - start,
+    }, 503);
+  }
+
+  try {
+    const client = schema === "public" ? supabase : supabase.schema(schema);
+    let query = client.from(table).select(selectCols, { count: "exact" }).limit(limit);
+
+    if (filters) {
+      for (const item of filters) {
+        const column = String(item.column ?? "");
+        const operator = String(item.operator ?? "eq");
+        if (!isSafeIdent(column) || !isSafeIdent(operator)) continue;
+        const maybeOperator = query[operator as keyof typeof query];
+        if (typeof maybeOperator === "function") {
+          query = (maybeOperator as (column: string, value: unknown) => typeof query).call(query, column, item.value);
+        }
+      }
+    } else if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (!isSafeIdent(key)) continue;
+        query = query.eq(key, value);
+      }
+    }
+
+    if (orderBy && isSafeIdent(orderBy)) query = query.order(orderBy, { ascending: orderAsc });
+    if (offset > 0) query = query.range(offset, offset + limit - 1);
+
+    const { data, count, error } = await query;
+    if (error) {
+      return jsonResponse({ error: error.message, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
+    }
+
+    return jsonResponse({
+      ok: true,
+      cid,
+      rid,
+      data: data || [],
+      count: count ?? (data?.length || 0),
+      schema,
+      requested_schema: requestedSchema,
+      table,
+      target: targetName,
+      latency_ms: Date.now() - start,
+    }, 200);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Query failed";
+    return jsonResponse({ error: message, cid, rid, data: [], count: 0 }, 500);
+  }
+});
