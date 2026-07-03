@@ -131,20 +131,24 @@ Deno.serve(async (req: Request) => {
       // 2d. Auto-fix if requested
       if (action === 'auto-fix' && (diag.webhookSeverity === 'critical' || diag.webhookSeverity === 'warning')) {
         try {
+          // Evolution API v4.x requires the body wrapped in { webhook: { ... } }
           const fixRes = await fetch(`${evolutionUrl}/webhook/set/${conn.instance_id}`, {
             method: 'POST',
             headers: { apikey: evolutionKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              url: `${supabaseUrl}/functions/v1/evolution-webhook`,
-              webhookByEvents: false,
-              webhookBase64: true,
-              events: [
-                'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'MESSAGES_DELETE', 'MESSAGES_SET',
-                'SEND_MESSAGE', 'CONTACTS_UPSERT', 'CONTACTS_UPDATE', 'CONTACTS_SET',
-                'PRESENCE_UPDATE', 'CHATS_UPSERT', 'CHATS_UPDATE', 'CHATS_DELETE', 'CHATS_SET',
-                'CONNECTION_UPDATE', 'LABELS_EDIT', 'LABELS_ASSOCIATION',
-                'GROUPS_UPSERT', 'GROUP_PARTICIPANTS_UPDATE', 'CALL', 'QRCODE_UPDATED',
-              ],
+              webhook: {
+                enabled: true,
+                url: `${supabaseUrl}/functions/v1/evolution-webhook`,
+                webhookByEvents: false,
+                webhookBase64: true,
+                events: [
+                  'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'MESSAGES_DELETE', 'MESSAGES_SET',
+                  'SEND_MESSAGE', 'CONTACTS_UPSERT', 'CONTACTS_UPDATE', 'CONTACTS_SET',
+                  'PRESENCE_UPDATE', 'CHATS_UPSERT', 'CHATS_UPDATE', 'CHATS_DELETE', 'CHATS_SET',
+                  'CONNECTION_UPDATE', 'LABELS_EDIT', 'LABELS_ASSOCIATION',
+                  'GROUPS_UPSERT', 'GROUP_PARTICIPANTS_UPDATE', 'CALL', 'QRCODE_UPDATED',
+                ],
+              },
             }),
             signal: AbortSignal.timeout(15000),
           });
