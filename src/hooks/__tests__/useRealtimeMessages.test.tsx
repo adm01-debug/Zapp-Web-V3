@@ -236,9 +236,9 @@ describe('useRealtimeMessages', () => {
     // (the callbacks it depends on are recreated per render), so keying the wait
     // on it was racy and made this test flaky. Keying on the data is deterministic.
     await waitFor(() => {
-      expect(result.current.conversations.map((c: any) => c.contact.id)).toContain(
-        hiddenActiveContact.id
-      );
+      expect(
+        result.current.conversations.map((c: { contact: { id: string } }) => c.contact.id),
+      ).toContain(hiddenActiveContact.id);
     }, { timeout: 10000 });
   });
 
