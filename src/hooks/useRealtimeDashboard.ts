@@ -104,8 +104,8 @@ export function useRealtimeDashboard() {
       .channel('dashboard-realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: dbTable('messages') },
-        wrapMessagesHandler<{ new: { sender?: string } }>('useRealtimeDashboard', (payload) => {
+        { event: 'INSERT', schema: 'evo', table: 'evolution_messages' }, // FATOR X v6.2
+        wrapMessagesHandler<{ new: { from_me?: boolean } }>('useRealtimeDashboard', (payload) => {
           log.debug('New message received in dashboard');
           minuteCountRef.current++;
           messageCountRef.current++;
@@ -114,13 +114,13 @@ export function useRealtimeDashboard() {
             ...prev,
             messagesThisHour: messageCountRef.current,
             lastMessageAt: new Date(),
-            unreadMessages: payload.new.sender === 'contact' ? prev.unreadMessages + 1 : prev.unreadMessages,
+            unreadMessages: payload.new.from_me === false ? prev.unreadMessages + 1 : prev.unreadMessages,
           }));
         })
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: dbTable('contacts') },
+        { event: 'INSERT', schema: 'evo', table: 'evolution_contacts' }, // FATOR X v6.2
         () => {
           setState(prev => ({
             ...prev,
@@ -130,7 +130,7 @@ export function useRealtimeDashboard() {
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: dbTable('messages') },
+        { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' }, // FATOR X v6.2
         wrapMessagesHandler<{ new: { is_read?: boolean }; old?: { is_read?: boolean } }>('useRealtimeDashboard', (payload) => {
           if (payload.new.is_read && !payload.old?.is_read) {
             setState(prev => ({

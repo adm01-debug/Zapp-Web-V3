@@ -82,15 +82,16 @@ export const useMessageStatus = (contactId?: string) => {
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'public',
-          table: dbTable('messages'),
+          schema: 'evo', // FATOR X v6.2: tabela-fonte (view public não emite)
+          table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },
         wrapMessagesHandler<{ new: Record<string, unknown>; old?: Record<string, unknown> }>('useMessageStatus', (payload) => {
           const newData = payload.new as {
             id: string;
             status: string;
-            status_updated_at: string;
+            status_updated_at?: string;
+            status_at?: string; // fonte evo.evolution_messages usa status_at
             error_code?: string | null;
             error_reason?: string | null;
           };
@@ -100,7 +101,7 @@ export const useMessageStatus = (contactId?: string) => {
               updated.set(newData.id, {
                 id: newData.id,
                 status: newData.status as MessageUIStatus,
-                status_updated_at: newData.status_updated_at,
+                status_updated_at: newData.status_updated_at ?? newData.status_at ?? new Date().toISOString(),
                 error_code: newData.error_code ?? null,
                 error_reason: newData.error_reason ?? null,
               });
