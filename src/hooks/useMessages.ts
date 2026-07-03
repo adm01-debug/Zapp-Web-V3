@@ -6,10 +6,12 @@
  *  - Realtime: assina evo.evolution_messages (BASE TABLE) não public.messages (VIEW)
  *  - Message.status: string, não number (evita NaN em payloads realtime)
  *  - toggleStar/Important: usam RPC SECURITY DEFINER, não UPDATE em VIEW
- *  - p_instance: passãvel do contexto da conversa para filtro multi-instância
+ *  - p_instance: passável do contexto da conversa para filtro multi-instância
+ *  - console.error removidos: todos convertidos para getLogger (2026-07-03)
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import { sanitizeText } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
 import { dbList } from '@/integrations/datasource/db';
@@ -17,7 +19,9 @@ import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { eventBus } from '@/lib/eventBus';
 import { deduplicateMessages, setLastReceived } from '@/lib/inbox/chatOptimizations';
 
-// ── Types ───────────────────────────────────────────────
+const log = getLogger('useMessages');
+
+// ── Types ──────────────────────────────────────────────
 
 export interface Message {
   id:               string;
@@ -48,7 +52,7 @@ export interface Message {
   updated_at:       string;
 }
 
-// ── Hook ───────────────────────────────────────────────────
+// ── Hook ───────────────────────────────────────────────────────
 
 export function useMessages(
   remoteJid: string | null,
@@ -72,7 +76,7 @@ export function useMessages(
     };
   }, []);
 
-  // mapRow: tipos fieis ao esquema evo.evolution_messages
+  // mapRow: tipos fiéis ao esquema evo.evolution_messages
   const mapRow = (row: Record<string, unknown>): Message => ({
     id:                String(row.id ?? ''),
     message_id:        String(row.message_id ?? ''),
@@ -99,7 +103,7 @@ export function useMessages(
     updated_at:        String(row.updated_at ?? row.created_at ?? ''),
   });
 
-  // ── Load initial page ──────────────────────────────────────────
+  // ── Load initial page ─────────────────────────────────────────────────────
 
   const loadMessages = useCallback(async (jid: string) => {
     loadAbortRef.current?.abort();
@@ -111,7 +115,7 @@ export function useMessages(
     try {
       const { data, error } = await dbList(RPC.listMessagesLite, {
         p_remote_jid: jid,
-        p_instance:   instanceName ?? undefined,  // null/undefined = todas as instâncias
+        p_instance:   instanceName ?? undefined,
         p_limit:      PAGE_SIZE,
         p_offset:     0,
       });
@@ -124,7 +128,7 @@ export function useMessages(
       offsetRef.current = items.length;
     } catch (err) {
       if (ctrl.signal.aborted) return;
-      console.error('[useMessages] loadMessages error:', err);
+      log.error('loadMessages error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       if (!ctrl.signal.aborted && mountedRef.current) setLoading(false);
     }
@@ -135,7 +139,7 @@ export function useMessages(
     if (remoteJid) loadMessages(remoteJid);
   }, [remoteJid, loadMessages]);
 
-  // ── Load more (older) ─────────────────────────────────────────
+  // ── Load more (older) ─────────────────────────────────────────────────
 
   const loadMore = useCallback(async () => {
     if (!remoteJid || loadingMore || !hasMore) return;
@@ -157,7 +161,7 @@ export function useMessages(
       setHasMore(newItems.length === PAGE_SIZE);
       offsetRef.current += newItems.length;
     } catch (err) {
-      console.error('[useMessages] loadMore error:', err);
+      log.error('loadMore error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoadingMore(false);
     }
@@ -173,8 +177,8 @@ export function useMessages(
       // INSERT — nova mensagem
       .on('postgres_changes', {
         event:  'INSERT',
-        schema: 'evo',             // schema da tabela base
-        table:  'evolution_messages', // BASE TABLE (em supabase_realtime publication)
+        schema: 'evo',
+        table:  'evolution_messages',
         filter: `remote_jid=eq.${remoteJid}`,
       }, (payload) => {
         const newMsg = mapRow(payload.new as Record<string, unknown>);
@@ -228,22 +232,19 @@ export function useMessages(
     return unsub;
   }, [remoteJid, loadMessages]);
 
-  // ── Actions (usam RPCs SECURITY DEFINER, não UPDATE em VIEW) ─────────
+  // ── Actions (usam RPCs SECURITY DEFINER, não UPDATE em VIEW) ──────────────────
 
   const toggleStar = useCallback(async (id: string, current: boolean) => {
     const newVal = !current;
-    // Otimismo local imediato
     setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_starred: newVal } : m));
     try {
-      // RPC SECURITY DEFINER escrevendo em evo.evolution_messages
       const { error } = await (supabase as any).rpc('rpc_toggle_message_star', {
         p_message_id: id,
         p_value: newVal,
       });
       if (error) throw error;
     } catch (err) {
-      // Rollback do otimismo em caso de falha
-      console.error('[useMessages] toggleStar error:', err);
+      log.error('toggleStar error', { id, error: err instanceof Error ? err.message : String(err) });
       setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_starred: current } : m));
     }
   }, []);
@@ -258,7 +259,7 @@ export function useMessages(
       });
       if (error) throw error;
     } catch (err) {
-      console.error('[useMessages] toggleImportant error:', err);
+      log.error('toggleImportant error', { id, error: err instanceof Error ? err.message : String(err) });
       setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_important: current } : m));
     }
   }, []);
@@ -276,7 +277,7 @@ export function useMessages(
       ));
       toast({ title: '⏰ Follow-up agendado!', duration: 2_500 });
     } catch (err) {
-      console.error('[useMessages] scheduleFollowUp error:', err);
+      log.error('scheduleFollowUp error', { id, error: err instanceof Error ? err.message : String(err) });
     }
   }, [toast]);
 
@@ -286,7 +287,7 @@ export function useMessages(
       if (error) throw error;
       setMessages((prev) => prev.map((m) => m.id === id ? { ...m, follow_up_done: true } : m));
     } catch (err) {
-      console.error('[useMessages] markFollowUpDone error:', err);
+      log.error('markFollowUpDone error', { id, error: err instanceof Error ? err.message : String(err) });
     }
   }, []);
 

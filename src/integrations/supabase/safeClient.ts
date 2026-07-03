@@ -1,8 +1,9 @@
-
 import { supabase as _supabase } from './client';
+import { getLogger } from '@/lib/logger';
 import { PostgrestError } from '@supabase/supabase-js';
 
 const supabase = _supabase;
+const _log = getLogger('safeClient');
 
 /**
  * Interface para retorno padronizado do safeClient
@@ -195,7 +196,6 @@ export const safeClient = {
     else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
     try {
-      // Usar a flag SECURITY DEFINER via RPC para atualizar o estado sem depender de RLS complexo no insert direto
       await supabase.rpc('rpc_update_email_health_state' as any, {
         p_status: status,
         p_failure_count: telemetry.recentFailures.length,
@@ -206,23 +206,26 @@ export const safeClient = {
         }
       });
     } catch (err) {
-      console.warn('[safeClient] Erro ao sincronizar estado de saúde', err);
+      _log.warn('Erro ao sincronizar estado de saúde', { error: err instanceof Error ? err.message : String(err) });
     }
   },
 
   /**
-   * Logger estruturado com masking de dados sensíveis
+   * Logger estruturado com masking de dados sensíveis — usa o logger de produção
+   * em vez de console.* para que os logs sigam o nível de verbosidade configurado.
    */
   log(requestId: string, level: 'info' | 'warn' | 'error', message: string, detail?: any) {
-    const prefix = `[safeClient][${requestId}]`;
     const maskedDetail = this.maskSensitiveData(detail);
-    
+    const meta: Record<string, unknown> = { requestId };
+    if (maskedDetail != null) {
+      meta['detail'] = maskedDetail;
+    }
     if (level === 'error') {
-      console.error(prefix, message, maskedDetail || '');
+      _log.error(`${message}`, meta);
     } else if (level === 'warn') {
-      console.warn(prefix, message, maskedDetail || '');
+      _log.warn(`${message}`, meta);
     } else {
-      console.info(prefix, message, maskedDetail || '');
+      _log.info(`${message}`, meta);
     }
   },
 
@@ -233,7 +236,6 @@ export const safeClient = {
     if (!data) return data;
     if (typeof data !== 'object') {
       if (typeof data === 'string') {
-        // Mascarar tokens e emails se detectados em strings soltas
         if (data.length > 50 || data.includes('@')) {
           return this.applyMasking(data);
         }
@@ -276,7 +278,6 @@ export const safeClient = {
   },
 
   applyMasking(str: string): string {
-    // Regex simples para capturar potenciais tokens OAuth ou JWT
     if (str.length > 30 && (str.includes('.') || /^[a-zA-Z0-9_-]+$/.test(str))) {
       return str.substring(0, 5) + '...' + str.substring(str.length - 5);
     }
@@ -313,13 +314,10 @@ export const safeClient = {
       });
     } catch (dbErr) {
       // Ignorar erros de persistência para não travar a operação principal
-      console.warn('[safeClient] Falha ao persistir log de saúde', dbErr);
+      _log.warn('Falha ao persistir log de saúde', { error: dbErr instanceof Error ? dbErr.message : String(dbErr) });
     }
   },
 
-  /**
-   * Retorna telemetria (usado pelo health service)
-   */
   getTelemetry() {
     return {
       lastValidation,
@@ -328,9 +326,6 @@ export const safeClient = {
     };
   },
 
-  /**
-   * Retorna info do cache
-   */
   getCacheInfo() {
     const values = Array.from(resourceCache.values());
     const expiration = values.length > 0 ? Math.max(...values.map(v => v.expires)) : null;
@@ -340,9 +335,6 @@ export const safeClient = {
     };
   },
 
-  /**
-   * Limpa o cache para prefixos específicos
-   */
   clearCache(prefix?: string) {
     if (!prefix) {
       resourceCache.clear();
@@ -355,9 +347,6 @@ export const safeClient = {
     }
   },
 
-  /**
-   * Helper para formatar erros do Supabase/Postgrest
-   */
   formatError(error: PostgrestError | any): Error {
     if (error.message) {
       if (error.message.toLowerCase().includes('does not exist')) {
