@@ -75,13 +75,17 @@ export async function handleOutgoingWhatsAppMessage(
     .maybeSingle();
   if (raceCheck) return;
 
-  const { error: msgError } = await supabase.from('messages').insert({
+  // upsert + ignoreDuplicates:true maps to ON CONFLICT (external_id,whatsapp_connection_id) DO NOTHING.
+  // When two concurrent webhooks both fall through the raceCheck above (sub-millisecond window),
+  // only one INSERT wins; the other silently no-ops at the DB layer with no error returned.
+  const { data: insertedMessage, error: msgError } = await supabase.from('messages').upsert({
     contact_id: contact.id, whatsapp_connection_id: connection.id, content: parsed.content,
     message_type: parsed.messageType, media_url: mediaUrl, sender: 'agent', external_id: externalId,
     status: 'sent', created_at: messageCreatedAt, agent_id: contact.assigned_to || null,
-  }).select('id').single();
+  }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true }).select('id').maybeSingle();
 
   if (msgError) { console.error('[FROM_ME] Error inserting outgoing message:', msgError); return; }
+  if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
 }
 
