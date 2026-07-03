@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * HmacSelfTestPage
  * Rota dedicada (/admin/hmac-selftest) que executa o self-test HMAC ao carregar
@@ -22,7 +21,10 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getLogger } from '@/lib/logger';
 import { HmacAuditHistoryPanel } from '@/pages/admin-webhook-secret-status/HmacAuditHistoryPanel';
+
+const log = getLogger('HmacSelfTestPage');
 
 type Phase =
   | 'config' | 'parse-body' | 'build-payload' | 'sign' | 'mutate'
@@ -80,10 +82,10 @@ export default function HmacSelfTestPage() {
 
   async function logAudit(payload: SelfTestResult, fallbackMs: number) {
     try {
-      const { data: userData , error } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      await supabase.from('hmac_selftest_audit').insert({
+      const { error: insertError } = await supabase.from('hmac_selftest_audit').insert({
         instance,
         ok: !!payload.ok,
         duration_ms: payload.duration_ms ?? fallbackMs,
@@ -91,15 +93,18 @@ export default function HmacSelfTestPage() {
         message: payload.message ?? null,
         executed_by: uid,
       });
+      if (insertError) {
+        log.warn('audit insert failed', insertError);
+      }
     } catch (e) {
-      console.warn('[HmacSelfTestPage] audit insert failed', e);
+      log.warn('audit insert threw', e);
     }
   }
 
   async function syncAlert(payload: SelfTestResult) {
     const source = `hmac-selftest:${instance}`;
     try {
-      const { data: userData , error: userDataErr } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
       const { data: existing, error: existingError } = await supabase
@@ -109,6 +114,10 @@ export default function HmacSelfTestPage() {
         .is('resolved_at', null)
         .order('created_at', { ascending: false })
         .limit(1);
+      if (existingError) {
+        log.warn('warroom_alerts lookup failed', existingError);
+        return;
+      }
       const activeId = existing?.[0]?.id ?? null;
       if (!payload.ok && !activeId) {
         const failed = payload.scenarios?.filter((s) => !s.passed) ?? [];
@@ -117,14 +126,15 @@ export default function HmacSelfTestPage() {
         const detail = failed.length > 0
           ? failed.map((s) => `${s.name}${s.failed_phase ? `@${s.failed_phase}` : ''}: ${s.reason ?? '—'}`).join(' | ')
           : (payload.error ?? payload.message ?? 'Falha no self-test HMAC');
-        await supabase.from('warroom_alerts').insert({
+        const { error: insertAlertError } = await supabase.from('warroom_alerts').insert({
           alert_type: 'error',
           title: `HMAC self-test falhou (${instance})`,
           message: `${phasePrefix}${detail}${reqSuffix}`.slice(0, 500),
           source,
         });
+        if (insertAlertError) log.warn('warroom_alerts insert failed', insertAlertError);
       } else if (payload.ok && activeId) {
-        await supabase.from('warroom_alerts')
+        const { error: resolveError } = await supabase.from('warroom_alerts')
           .update({
             resolved_at: new Date().toISOString(),
             resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
@@ -133,9 +143,10 @@ export default function HmacSelfTestPage() {
           })
           .eq('source', source)
           .is('resolved_at', null);
+        if (resolveError) log.warn('warroom_alerts resolve failed', resolveError);
       }
     } catch (e) {
-      console.warn('[HmacSelfTestPage] alert sync failed', e);
+      log.warn('alert sync threw', e);
     }
   }
 
@@ -170,7 +181,7 @@ export default function HmacSelfTestPage() {
   // Roda automaticamente ao carregar e quando params mudam (via URL)
   useEffect(() => {
     document.title = 'HMAC Self-test — Status';
-    run();
+    void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -210,7 +221,7 @@ export default function HmacSelfTestPage() {
             </p>
           </div>
         </div>
-        <Button onClick={run} disabled={loading} data-testid="hmac-selftest-rerun">
+        <Button onClick={() => void run()} disabled={loading} data-testid="hmac-selftest-rerun">
           {loading
             ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             : <RotateCcw className="h-4 w-4 mr-2" />}
@@ -255,7 +266,7 @@ export default function HmacSelfTestPage() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={run}
+              onClick={() => void run()}
               disabled={loading}
               data-testid="hmac-selftest-apply"
             >
@@ -348,7 +359,7 @@ export default function HmacSelfTestPage() {
                   <div className="text-muted-foreground">
                     {PHASE_LABEL[result.failed_phase]}.
                     {result.request_id && (
-                      <> Use <code className="">req={result.request_id.slice(0, 8)}…</code> para correlacionar nos logs.</>
+                      <> Use <code className="">{`req=${result.request_id.slice(0, 8)}…`}</code> para correlacionar nos logs.</>
                     )}
                   </div>
                 </div>
