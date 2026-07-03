@@ -2,6 +2,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useSLAAlertPreferences');
 
 export interface SLAAlertPreferences {
   enabled: boolean;
@@ -20,8 +23,16 @@ export const DEFAULT_SLA_ALERT_PREFERENCES: SLAAlertPreferences = {
 };
 
 /**
- * Per-user SLA alert preferences. Stored in `public.sla_alert_preferences` (RLS scoped to auth.uid()).
- * Falls back to "all enabled" defaults when the user has no row yet or while loading.
+ * Per-user SLA alert preferences. Stored in `public.sla_alert_preferences`
+ * (RLS scoped to auth.uid()).
+ *
+ * Falls back gracefully to "all enabled" defaults when:
+ *   - the user has no row yet
+ *   - the table does not exist (ambiente Lovable/cloud preview)
+ *   - qualquer outro erro de DB
+ *
+ * Erros 404/PGRST116/PGRST204/42P01 (relação não encontrada) são
+ * tratados silenciosamente — o hook simplesmente usa os defaults.
  */
 export function useSLAAlertPreferences() {
   const { user } = useAuth();
@@ -36,6 +47,7 @@ export function useSLAAlertPreferences() {
       return;
     }
     setIsLoading(true);
+
     void supabase
       .from('sla_alert_preferences')
       .select('enabled, alert_first_response, alert_resolution, severity_warning, severity_breached')
@@ -43,17 +55,40 @@ export function useSLAAlertPreferences() {
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (!error && data) {
+
+        if (error) {
+          // Codigos que indicam tabela inexistente (ambiente sem migration)
+          // ou linha não encontrada: tratar como defaults silenciosamente.
+          const code = (error as any)?.code ?? '';
+          const msg  = (error as any)?.message ?? '';
+          const isTableMissing =
+            code === 'PGRST116' ||
+            code === 'PGRST204' ||
+            code === '42P01'    ||
+            msg.includes('relation') ||
+            msg.includes('does not exist') ||
+            msg.includes('404');
+
+          if (!isTableMissing) {
+            log.warn('[useSLAAlertPreferences] Erro ao carregar preferências:', msg);
+          }
+          // Em qualquer caso de erro: manter defaults (já é o estado inicial).
+          setIsLoading(false);
+          return;
+        }
+
+        if (data) {
           setPreferences({
-            enabled: data.enabled,
-            alert_first_response: data.alert_first_response,
-            alert_resolution: data.alert_resolution,
-            severity_warning: data.severity_warning,
-            severity_breached: data.severity_breached,
+            enabled:               data.enabled,
+            alert_first_response:  data.alert_first_response,
+            alert_resolution:      data.alert_resolution,
+            severity_warning:      data.severity_warning,
+            severity_breached:     data.severity_breached,
           });
         }
         setIsLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
