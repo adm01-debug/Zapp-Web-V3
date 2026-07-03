@@ -1,29 +1,30 @@
 import { lazy } from 'react';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Stale chunk reload guard
-//
-// After a Vercel/CDN redeploy, old bundles reference chunk filenames that no
-// longer exist on the CDN (404). React's lazy() throws:
-//   "TypeError: Failed to fetch dynamically imported module: .../assets/Foo-ABC.js"
-//
-// The correct recovery is a hard page reload so the browser fetches the new
-// index.html → new main bundle → new chunk hashes.
-//
-// Guard: we write the reload timestamp to sessionStorage so a truly broken
-// deploy (where ALL chunks are missing) does not cause an infinite reload loop.
-// After 30 s without a successful load, the user sees the ErrorBoundary UI.
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const CHUNK_RELOAD_SESSION_KEY = '__zapp_chunk_reload_at';
-const CHUNK_RELOAD_COOLDOWN_MS = 30_000; // 30 seconds between auto-reloads
+const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
 
 /**
- * Returns true when the thrown value looks like a "chunk not found" error
- * (hash mismatch after deploy, CDN purge, network split-brain, etc.).
+ * Detects chunk-not-found errors from failed dynamic imports.
+ *
+ * BUG FIX A: previous version called String(err) unconditionally, which throws
+ * TypeError for prototype-less objects (Object.create(null)). We now check for
+ * a .message property first before falling back to String().
  */
 export function isChunkLoadError(err: unknown): boolean {
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  let msg = '';
+  try {
+    if (err instanceof Error) {
+      msg = err.message;
+    } else if (err != null && typeof (err as Record<string, unknown>).message === 'string') {
+      msg = (err as Record<string, unknown>).message as string;
+    } else {
+      msg = String(err ?? '');
+    }
+    msg = msg.toLowerCase();
+  } catch {
+    // String() can throw for Object.create(null) without Symbol.toPrimitive.
+    return false;
+  }
   return (
     msg.includes('failed to fetch dynamically imported module') ||
     msg.includes('loading chunk') ||
@@ -34,36 +35,30 @@ export function isChunkLoadError(err: unknown): boolean {
 }
 
 /**
- * Triggers a hard page reload if the cooldown window has elapsed.
- * Returns true if a reload was triggered; false if the cooldown is still
- * active (caller should fall through to ErrorBoundary).
+ * Triggers a hard page reload if the 30-second cooldown has elapsed.
+ *
+ * BUG FIX B: a corrupted sessionStorage value (NaN, negative) caused permanent
+ * lockout: Date.now() - NaN = NaN, NaN > 30000 = false always. We now treat
+ * NaN and negative values as 0 ("never reloaded") so the guard stays functional.
  */
 export function triggerChunkReload(): boolean {
   try {
-    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY) ?? '0');
+    const rawLast = sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY);
+    const parsed = Number(rawLast ?? '0');
+    const last = isNaN(parsed) || parsed < 0 ? 0 : parsed;
     const now = Date.now();
     if (now - last > CHUNK_RELOAD_COOLDOWN_MS) {
       sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(now));
       window.location.reload();
       return true;
     }
-    // Cooldown active: let ErrorBoundary show the error UI.
     return false;
   } catch {
-    // sessionStorage unavailable (e.g. private browsing) — reload unconditionally.
     window.location.reload();
     return true;
   }
 }
 
-/**
- * Retry wrapper for lazy imports.
- *
- * Behaviour:
- *  - Stale chunk hash mismatch after deploy → hard page reload (once per 30 s)
- *  - Other network errors (503, timeout) → exponential-backoff retry
- *    (1 s × attempt, up to `retries` total attempts)
- */
 export function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
   retries = 3
@@ -72,10 +67,9 @@ export function lazyWithRetry<T extends React.ComponentType<any>>(
     let attempt = 0;
     const load = (): Promise<{ default: T }> =>
       factory().catch((err: unknown) => {
-        // Stale chunk → hard reload; retrying the same URL is pointless.
         if (isChunkLoadError(err)) {
           triggerChunkReload();
-          throw err; // Let ErrorBoundary handle if reload is on cooldown.
+          throw err;
         }
         attempt++;
         if (attempt >= retries) throw err;
