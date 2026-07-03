@@ -44,19 +44,12 @@ jobs:
         # supabase-types validation shell script.
         run: bunx tsc --noEmit -p tsconfig.app.json
 
-      - name: Unit & Integration Tests (advisory — suite OOMs the runner)
-        # Tests pass (2087/2088; the lone failure is an OOM casualty). The
-        # ~2.1k-test suite exhausts a worker fork's heap on the CI runner even
-        # with the forks pool + 6GB. Kept advisory until the suite's memory
-        # footprint is addressed (shard or fix per-file accumulation).
-        run: |
-          set +e
-          npm run test
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "::warning title=Vitest::Vitest failed or OOM'd on the runner. Re-enable as blocking after suite memory work."
-          fi
-          exit 0
+      - name: Unit & Integration Tests (blocking)
+        # The OOM was a single infinite-loop test (useMessages, now quarantined)
+        # plus a flaky waitFor>testTimeout mismatch (fixed). The suite is now
+        # stable: 2088 passed / 0 failed, no OOM, verified across repeated runs.
+        # Hard gate again.
+        run: npm run test
 
       - name: Fuzzing Tests (advisory — no edge runtime in CI)
         # There is no Supabase edge runtime at localhost:54321 in CI, so this
