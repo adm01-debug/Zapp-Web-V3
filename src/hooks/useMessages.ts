@@ -8,6 +8,7 @@
  *  - toggleStar/Important: usam RPC SECURITY DEFINER, não UPDATE em VIEW
  *  - p_instance: passável do contexto da conversa para filtro multi-instância
  *  - console.error removidos: todos convertidos para getLogger (2026-07-03)
+ *  - (supabase as any).rpc() removido: usa callRpc typed helper (2026-07-03)
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +52,17 @@ export interface Message {
   created_at:       string;
   updated_at:       string;
 }
+
+// ── Typed RPC helper ────────────────────────────────────────────────────────
+//
+// Custom RPCs (rpc_toggle_message_star, etc.) live in the evo/zapp schema and
+// are not present in the generated Database['public']['Functions'] types.
+// Using `unknown` here is narrower than `any`: TypeScript enforces the return
+// shape we declare while allowing any string as the function name.
+//
+type RpcResult = { data: unknown; error: { message: string; code: string } | null };
+const callRpc = (fn: string, args?: Record<string, unknown>): Promise<RpcResult> =>
+  (supabase.rpc as unknown as (f: string, a?: Record<string, unknown>) => Promise<RpcResult>)(fn, args);
 
 // ── Hook ───────────────────────────────────────────────────────
 
@@ -238,11 +250,11 @@ export function useMessages(
     const newVal = !current;
     setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_starred: newVal } : m));
     try {
-      const { error } = await (supabase as any).rpc('rpc_toggle_message_star', {
+      const { error } = await callRpc('rpc_toggle_message_star', {
         p_message_id: id,
         p_value: newVal,
       });
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     } catch (err) {
       log.error('toggleStar error', { id, error: err instanceof Error ? err.message : String(err) });
       setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_starred: current } : m));
@@ -253,25 +265,25 @@ export function useMessages(
     const newVal = !current;
     setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_important: newVal } : m));
     try {
-      const { error } = await (supabase as any).rpc('rpc_toggle_message_important', {
+      const { error } = await callRpc('rpc_toggle_message_important', {
         p_message_id: id,
         p_value: newVal,
       });
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     } catch (err) {
-      log.error('toggleImportant error', { id, error: err instanceof Error ? err.message : String(err) });
+      log.error('toggleImportant error', { id, error: err instanceof Error ? err.message : String(err) });;
       setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_important: current } : m));
     }
   }, []);
 
   const scheduleFollowUp = useCallback(async (id: string, followUpAt: string) => {
     try {
-      const { error } = await (supabase as any).rpc('rpc_schedule_follow_up', {
-        p_message_id:    id,
-        p_follow_up_at:  followUpAt,
+      const { error } = await callRpc('rpc_schedule_follow_up', {
+        p_message_id:     id,
+        p_follow_up_at:   followUpAt,
         p_follow_up_done: false,
       });
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       setMessages((prev) => prev.map((m) =>
         m.id === id ? { ...m, follow_up_at: followUpAt, follow_up_done: false } : m
       ));
@@ -283,8 +295,8 @@ export function useMessages(
 
   const markFollowUpDone = useCallback(async (id: string) => {
     try {
-      const { error } = await (supabase as any).rpc('mark_follow_up_done', { p_message_id: id });
-      if (error) throw error;
+      const { error } = await callRpc('mark_follow_up_done', { p_message_id: id });
+      if (error) throw new Error(error.message);
       setMessages((prev) => prev.map((m) => m.id === id ? { ...m, follow_up_done: true } : m));
     } catch (err) {
       log.error('markFollowUpDone error', { id, error: err instanceof Error ? err.message : String(err) });
