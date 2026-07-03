@@ -7,6 +7,10 @@ import { recordQueryEvent, type Severity } from '@/lib/clientTelemetry';
 import { CHUNK_RELOAD_SESSION_KEY, isChunkLoadError } from '@/lib/lazyWithRetry';
 
 const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
+// Must stay in sync with CLOCK_SKEW_TOLERANCE_MS in lazyWithRetry.ts.
+// Prevents 1e308 and far-future timestamps from bypassing the cooldown guard
+// (QA v7 Findings 1 and 2).
+const CLOCK_SKEW_TOLERANCE_MS = 60_000;
 
 function detectAndReloadOnChunkError(error: Error): boolean {
   const msg = (error?.message ?? '').toLowerCase();
@@ -22,9 +26,15 @@ function detectAndReloadOnChunkError(error: Error): boolean {
   try {
     const rawLast = sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY);
     const parsed = Number(rawLast ?? '0');
-    const last = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-    if (Date.now() - last > CHUNK_RELOAD_COOLDOWN_MS) {
-      sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(Date.now()));
+    const now = Date.now();
+    // FINDING 1+2 FIX: upper bound rejects 1e308 (isFinite but astronomical)
+    // and future timestamps written by extensions / DevTools.
+    const last =
+      Number.isFinite(parsed) && parsed >= 0 && parsed <= now + CLOCK_SKEW_TOLERANCE_MS
+        ? parsed
+        : 0;
+    if (now - last > CHUNK_RELOAD_COOLDOWN_MS) {
+      sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(now));
       window.location.reload();
       return true;
     }
@@ -128,7 +138,7 @@ export class ErrorBoundary extends Component<Props, State> {
    * FIX F1: Notify the parent when the boundary recovers from an error.
    *
    * React calls componentDidUpdate after every render with the *previous* state,
-   * so the transition prevState.hasError=true → this.state.hasError=false fires
+   * so the transition prevState.hasError=true -> this.state.hasError=false fires
    * exactly once per recovery (when getDerivedStateFromProps clears the error
    * due to a resetKey change OR when handleRetry resets the state manually).
    */
@@ -192,7 +202,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // FIX F2: When the error is a stale-chunk hash mismatch, the correct
       // action is a hard reload (not a re-render retry). Show a dedicated
-      // "Recarregar P\u00e1gina" primary button so the user isn't confused by
+      // "Recarregar Pagina" primary button so the user is not confused by
       // "Tentar novamente" which would just re-trigger the same 404 errors.
       const isChunkErr = this.state.error ? isChunkLoadError(this.state.error) : false;
 

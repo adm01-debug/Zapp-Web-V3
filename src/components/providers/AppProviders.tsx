@@ -56,19 +56,19 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         // get their full 3 retry slots instead of inheriting the count from the
         // previous error episode.
         retryCountRef.current = 0;
-        log.info('ErrorBoundary recovered \u2014 auto-retry counter reset to 0');
+        log.info('ErrorBoundary recovered — auto-retry counter reset to 0');
       }}
       onError={(error) => {
         log.error('ErrorBoundary caught:', error.message);
 
-        // \u2500\u2500 Chunk load errors (stale hash mismatch after deploy) \u2500\u2500
+        // Chunk load errors (stale hash mismatch after deploy)
         if (isChunkLoadError(error)) {
-          log.warn('Chunk load error detected \u2014 triggering hard reload to recover stale chunks');
+          log.warn('Chunk load error detected — triggering hard reload to recover stale chunks');
           triggerChunkReload();
           return;
         }
 
-        // \u2500\u2500 Other render errors \u2192 bounded re-render retry \u2500\u2500
+        // Other render errors -> bounded re-render retry
         if (retryCountRef.current < MAX_RETRIES) {
           retryCountRef.current += 1;
           log.warn(`Auto-retry ${retryCountRef.current}/${MAX_RETRIES}`);
