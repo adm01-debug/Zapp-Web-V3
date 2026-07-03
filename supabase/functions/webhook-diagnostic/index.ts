@@ -1,8 +1,10 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -45,11 +47,12 @@ Deno.serve(async (req: Request) => {
     for (const conn of instances) {
       const diag: Record<string, unknown> = { instance: conn.instance_id };
 
-      // 2a. Check instance status - try multiple endpoints
+      // 2a. Check instance connection state
+      const dbConnRecord = (connections || []).find((c: Record<string, unknown>) => c.instance_id === conn.instance_id);
       try {
         let state = 'unknown';
-        // Try v2 endpoint first
-        const statusRes = await fetch(`${evolutionUrl}/instance/connect/${conn.instance_id}`, {
+        // /instance/connectionState returns {"instance":{"state":"open"}} — correct endpoint for status checks
+        const statusRes = await fetch(`${evolutionUrl}/instance/connectionState/${conn.instance_id}`, {
           headers: { apikey: evolutionKey },
           signal: AbortSignal.timeout(10000),
         });
@@ -59,8 +62,7 @@ Deno.serve(async (req: Request) => {
         }
         // Fallback: use DB status if API unreachable
         if (state === 'unknown') {
-          const dbConn = (connections || []).find((c: Record<string, unknown>) => c.instance_id === conn.instance_id);
-          state = dbConn?.status === 'connected' ? 'open' : (dbConn?.status || 'unknown');
+          state = dbConnRecord?.status === 'connected' ? 'open' : (dbConnRecord?.status || 'unknown');
         }
         diag.connectionState = state;
         diag.statusOk = state === 'open' || state === 'connected';
@@ -84,6 +86,7 @@ Deno.serve(async (req: Request) => {
 
         const criticalEvents = ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED', 'CONTACTS_UPSERT', 'SEND_MESSAGE'];
         const missingEvents = criticalEvents.filter(e => !events.includes(e));
+        const missingAll = WEBHOOK_EVENTS.filter(e => !events.includes(e));
 
         diag.webhook = {
           url: currentUrl,
@@ -92,6 +95,7 @@ Deno.serve(async (req: Request) => {
           eventsCount: events.length,
           events,
           missingCritical: missingEvents,
+          missingFromCanonical: missingAll,
           enabled: webhook?.enabled !== false,
           webhookByEvents: webhook?.webhookByEvents,
           webhookBase64: webhook?.webhookBase64,
@@ -112,12 +116,15 @@ Deno.serve(async (req: Request) => {
         diag.webhookSeverity = 'error';
       }
 
-      // 2c. Check recent message flow
+      // 2c. Check recent message flow (scoped to this instance via whatsapp_connection_id)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data: recentMsgs } = await supabase
+      const connDbId = dbConnRecord?.id as string | undefined;
+      let msgQuery = supabase
         .from('messages')
         .select('sender, created_at')
         .gte('created_at', oneHourAgo);
+      if (connDbId) msgQuery = msgQuery.eq('whatsapp_connection_id', connDbId);
+      const { data: recentMsgs } = await msgQuery;
 
       const incoming = recentMsgs?.filter(m => m.sender === 'contact').length || 0;
       const outgoing = recentMsgs?.filter(m => m.sender === 'agent').length || 0;
@@ -141,13 +148,7 @@ Deno.serve(async (req: Request) => {
                 url: `${supabaseUrl}/functions/v1/evolution-webhook`,
                 webhookByEvents: false,
                 webhookBase64: true,
-                events: [
-                  'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'MESSAGES_DELETE', 'MESSAGES_SET',
-                  'SEND_MESSAGE', 'CONTACTS_UPSERT', 'CONTACTS_UPDATE', 'CONTACTS_SET',
-                  'PRESENCE_UPDATE', 'CHATS_UPSERT', 'CHATS_UPDATE', 'CHATS_DELETE', 'CHATS_SET',
-                  'CONNECTION_UPDATE', 'LABELS_EDIT', 'LABELS_ASSOCIATION',
-                  'GROUPS_UPSERT', 'GROUP_PARTICIPANTS_UPDATE', 'CALL', 'QRCODE_UPDATED',
-                ],
+                events: WEBHOOK_EVENTS,
               },
             }),
             signal: AbortSignal.timeout(15000),

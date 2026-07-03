@@ -6,6 +6,7 @@ import { normalizeChatList, normalizeContactList, normalizeProfile } from "../_s
 import { maybeLogFallback } from "../_shared/evolution-fallback-telemetry.ts";
 import { mapFetchInstancesToProfile, shouldFallbackForProfile } from "../_shared/evolution-profile-fallback.ts";
 import { isInstancePaused, recordAuthFailureAndMaybePause } from "../_shared/instance-pause.ts";
+import { WEBHOOK_EVENTS } from "../_shared/evolution-sync-actions.ts";
 
 
 serve(async (req) => {
@@ -393,17 +394,7 @@ serve(async (req) => {
       const webhookEnabled = wb.enabled ?? (body as any).enabled ?? true;
       const webhookByEvents = wb.webhookByEvents ?? (body as any).webhookByEvents ?? false;
       const webhookBase64 = wb.webhookBase64 ?? (body as any).webhookBase64 ?? true;
-      const webhookEvents = (wb.events as string[] | undefined) || (body as any).events as string[] | undefined || [
-        'APPLICATION_STARTUP','QRCODE_UPDATED','CONNECTION_UPDATE',
-        'MESSAGES_SET','MESSAGES_UPSERT','MESSAGES_UPDATE','MESSAGES_DELETE','MESSAGES_EDITED',
-        'SEND_MESSAGE','SEND_MESSAGE_UPDATE',
-        'CONTACTS_SET','CONTACTS_UPSERT','CONTACTS_UPDATE',
-        'PRESENCE_UPDATE',
-        'CHATS_SET','CHATS_UPSERT','CHATS_UPDATE','CHATS_DELETE',
-        'GROUPS_UPSERT','GROUP_UPDATE','GROUP_PARTICIPANTS_UPDATE',
-        'TYPEBOT_START','TYPEBOT_CHANGE_STATUS',
-        'LABELS_EDIT','LABELS_ASSOCIATION','CALL',
-      ];
+      const webhookEvents = (wb.events as string[] | undefined) || (body as any).events as string[] | undefined || WEBHOOK_EVENTS;
       return await proxy(`/webhook/set/${instance}`, 'POST', {
         webhook: { enabled: webhookEnabled, url: webhookUrl, webhookByEvents, webhookBase64, events: webhookEvents },
       });

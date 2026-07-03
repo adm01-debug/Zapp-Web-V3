@@ -258,7 +258,7 @@ export async function fullSync(
       const contactsList = await contactsResponse.json();
       const validContacts: { phone: string; name: string; avatar_url: string | null; whatsapp_connection_id: string }[] = [];
       for (const c of contactsList) {
-        const jid = c.remoteJid || '';
+        const jid = c.id || c.remoteJid || '';
         if (!jid.endsWith('@s.whatsapp.net') || c.isGroup) { totalSkipped++; continue; }
         const phone = jid.replace('@s.whatsapp.net', '');
         if (!phone || phone.length < 6) { totalSkipped++; continue; }
@@ -270,7 +270,7 @@ export async function fullSync(
         const { error: insErr } = await supabase.from('contacts').insert(ct);
         if (!insErr) totalSynced++;
         else if (insErr.code === '23505') {
-          await supabase.from('contacts').update({ name: ct.name, avatar_url: ct.avatar_url, whatsapp_connection_id: ct.whatsapp_connection_id }).eq('phone', ct.phone);
+          await supabase.from('contacts').update({ name: ct.name, avatar_url: ct.avatar_url }).eq('phone', ct.phone).eq('whatsapp_connection_id', ct.whatsapp_connection_id);
           totalSynced++;
         }
       }
