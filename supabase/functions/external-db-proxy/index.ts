@@ -42,19 +42,22 @@ function isSafeIdent(value: string): boolean {
   return SAFE_IDENT_RE.test(value);
 }
 
-const TARGET_URL = pickEnv("SUPABASE_URL") ?? "";
-const TARGET_KEY = pickEnv("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const targetName = "self-hosted";
+const EXTERNAL_URL = pickEnv("EXTERNAL_SUPABASE_URL");
+const EXTERNAL_KEY = pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? pickEnv("EXTERNAL_SUPABASE_ANON_KEY");
+
+const TARGET_URL = EXTERNAL_URL ?? "";
+const TARGET_KEY = EXTERNAL_KEY ?? "";
+const targetName = "self-hosted-external";
 
 let supabase: ReturnType<typeof createClient> | null = null;
 let bootError: string | null = null;
 
 try {
   if (!TARGET_URL || !/^https?:\/\//i.test(TARGET_URL)) {
-    throw new Error("SUPABASE_URL ausente ou inválido para o external-db-proxy.");
+    throw new Error("EXTERNAL_SUPABASE_URL ausente/placeholder — configure com a URL do Supabase self-hosted.");
   }
   if (!TARGET_KEY) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY ausente para o external-db-proxy.");
+    throw new Error("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente — configure com a service_role do self-hosted.");
   }
   supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
 } catch (error) {
