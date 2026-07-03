@@ -191,11 +191,11 @@ export async function setupWebhook(
   instanceName: string, supabaseUrl: string, webhookUrlOverride: string | undefined, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const webhookUrl = webhookUrlOverride || `${supabaseUrl}/functions/v1/evolution-webhook`;
+  // Evolution API v4.x: body must be wrapped in { webhook: { ... } }
   const webhookResponse = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
     body: JSON.stringify({
-      enabled: true, url: webhookUrl, webhookByEvents: true, webhookBase64: false,
-      events: WEBHOOK_EVENTS,
+      webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS },
     }),
   });
   const webhookData = await webhookResponse.json();
@@ -283,7 +283,7 @@ export async function fullSync(
   try {
     const webhookResponse = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
-      body: JSON.stringify({ enabled: true, url: webhookUrl, webhookByEvents: true, webhookBase64: false, events: WEBHOOK_EVENTS }),
+      body: JSON.stringify({ webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS } }),
     });
     results.webhook = { success: webhookResponse.ok, url: webhookUrl };
   } catch (e) { results.webhook = { success: false, error: String(e) }; }

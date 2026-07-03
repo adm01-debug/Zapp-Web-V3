@@ -383,7 +383,31 @@ serve(async (req) => {
     if (action === 'set-settings') return await proxy(`/settings/set/${instance}`, 'POST', { rejectCall: (body as any).rejectCall, msgCall: (body as any).msgCall, groupsIgnore: (body as any).groupsIgnore, alwaysOnline: (body as any).alwaysOnline, readMessages: (body as any).readMessages, readStatus: (body as any).readStatus, syncFullHistory: (body as any).syncFullHistory });
     if (action === 'get-settings') return await proxy(`/settings/find/${instance}`, 'GET');
 
-    if (action === 'set-webhook') return await proxy(`/webhook/set/${instance}`, 'POST', { webhook: { enabled: (body as any).enabled ?? true, url: (body as any).url, webhookByEvents: (body as any).webhookByEvents ?? true, webhookBase64: (body as any).webhookBase64 ?? false, events: (body as any).events || ['APPLICATION_STARTUP','QRCODE_UPDATED','CONNECTION_UPDATE','MESSAGES_SET','MESSAGES_UPSERT','MESSAGES_UPDATE','MESSAGES_DELETE','MESSAGES_EDITED','SEND_MESSAGE','SEND_MESSAGE_UPDATE','CONTACTS_SET','CONTACTS_UPSERT','CONTACTS_UPDATE','PRESENCE_UPDATE','CHATS_SET','CHATS_UPSERT','CHATS_UPDATE','CHATS_DELETE','GROUPS_UPSERT','GROUP_UPDATE','GROUP_PARTICIPANTS_UPDATE','TYPEBOT_START','TYPEBOT_CHANGE_STATUS','LABELS_EDIT','LABELS_ASSOCIATION','CALL'] } });
+    if (action === 'set-webhook') {
+      // Accept both flat body { url, events, ... } and nested { webhook: { url, events, ... } }
+      // The monitoring UI sends nested; direct API callers send flat. Both must work.
+      const wb = (typeof (body as any).webhook === 'object' && (body as any).webhook !== null)
+        ? (body as any).webhook as Record<string, unknown>
+        : {} as Record<string, unknown>;
+      const webhookUrl = (wb.url as string | undefined) || (body as any).url as string | undefined;
+      const webhookEnabled = wb.enabled ?? (body as any).enabled ?? true;
+      const webhookByEvents = wb.webhookByEvents ?? (body as any).webhookByEvents ?? false;
+      const webhookBase64 = wb.webhookBase64 ?? (body as any).webhookBase64 ?? true;
+      const webhookEvents = (wb.events as string[] | undefined) || (body as any).events as string[] | undefined || [
+        'APPLICATION_STARTUP','QRCODE_UPDATED','CONNECTION_UPDATE',
+        'MESSAGES_SET','MESSAGES_UPSERT','MESSAGES_UPDATE','MESSAGES_DELETE','MESSAGES_EDITED',
+        'SEND_MESSAGE','SEND_MESSAGE_UPDATE',
+        'CONTACTS_SET','CONTACTS_UPSERT','CONTACTS_UPDATE',
+        'PRESENCE_UPDATE',
+        'CHATS_SET','CHATS_UPSERT','CHATS_UPDATE','CHATS_DELETE',
+        'GROUPS_UPSERT','GROUP_UPDATE','GROUP_PARTICIPANTS_UPDATE',
+        'TYPEBOT_START','TYPEBOT_CHANGE_STATUS',
+        'LABELS_EDIT','LABELS_ASSOCIATION','CALL',
+      ];
+      return await proxy(`/webhook/set/${instance}`, 'POST', {
+        webhook: { enabled: webhookEnabled, url: webhookUrl, webhookByEvents, webhookBase64, events: webhookEvents },
+      });
+    }
     if (action === 'get-webhook') return await proxy(`/webhook/find/${instance}`, 'GET');
 
     if (action === 'send-text') {
