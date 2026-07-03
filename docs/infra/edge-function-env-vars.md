@@ -6,6 +6,20 @@ The `supabase_functions` Docker Swarm service (`rhfc155h366c54ka5x52p1do3`) requ
 environment variables to be configured **in the startup command** (not just in the `Env` array), so
 that `Deno.env.toObject()` returns them to user workers.
 
+### Current startup command (as of 2026-07-03)
+
+```sh
+export JWT_SECRET=$(cat /run/secrets/supabase_jwt_secret_v1) \
+  && export DB_PASS=$(cat /run/secrets/supabase_db_password_v1) \
+  && export SUPABASE_DB_URL=postgresql://postgres:${DB_PASS}@db:5432/postgres \
+  && export SUPABASE_SERVICE_ROLE_KEY=$(cat /run/secrets/supabase_service_key_v1) \
+  && export EVOLUTION_API_URL=http://evolution_evolution:8080 \
+  && export EVOLUTION_API_KEY=429683C4C977415CAAFCCE10F7D57E11 \
+  && exec edge-runtime start \
+       --main-service /home/deno/functions/main \
+       --request-wait-timeout 60000
+```
+
 ### How env vars reach user workers
 
 The startup command is `/bin/sh -c "export VAR=... && exec edge-runtime start ..."`. The
@@ -29,8 +43,7 @@ but must also be explicitly exported to PID 1 if added to the `Args` startup com
 
 > **Note on EVOLUTION_API_URL**: Use the internal Docker overlay network hostname
 > (`evolution_evolution:8080`) rather than the external URL (`https://evolution.atomicabr.com.br`).
-> Internal routing has ~5ms RTT; external routing adds TLS + reverse proxy overhead and is
-> subject to external DNS resolution from within the container network.
+> Internal routing has ~56ms RTT (confirmed); external routing adds TLS + reverse proxy overhead.
 
 ### Variables injected via Docker Secrets (read in startup script)
 
@@ -42,6 +55,17 @@ These are mounted as files under `/run/secrets/` and exported before `exec edge-
 | `SUPABASE_DB_URL` | derived from `supabase_db_password_v1` |
 | `SUPABASE_SERVICE_ROLE_KEY` | `supabase_service_key_v1` |
 
+### edge-runtime flags explained
+
+| Flag | Value | Notes |
+|---|---|---|
+| `--main-service` | `/home/deno/functions/main` | Main service handler |
+| `--request-wait-timeout` | `60000` ms | **Critical**: time allowed for a user worker to establish connection (cold-start). Default is 10000ms (10s), which is insufficient for cold-starting heavy functions (e.g., evolution-api with 13 remote imports from deno.land/esm.sh that can take 12-15s to load). |
+
+> **Note**: `--wall-clock-time` does NOT exist in edge-runtime v1.71.2. The equivalent is
+> `--request-wait-timeout` (max time to establish connection with a worker) and
+> `--user-worker-request-idle-timeout` (max request processing time, disabled by default).
+
 ### main/index.ts tuning
 
 The `main/index.ts` (live on host at `/root/supabase/docker/volumes/functions/main/index.ts`,
@@ -49,21 +73,35 @@ The `main/index.ts` (live on host at `/root/supabase/docker/volumes/functions/ma
 
 ```typescript
 const memoryLimitMb = 256       // up from 150 MB
-const workerTimeoutMs = 5 * 60 * 1000  // up from 1 min → 5 min (survive cold-start module loading)
+const workerTimeoutMs = 5 * 60 * 1000  // up from 1 min → 5 min
 ```
 
-This prevents the "wall clock duration warning" + "early termination" death loop that occurs when
-cold-starting user workers that import remote modules from `deno.land` and `esm.sh`.
+`workerTimeoutMs` in `userWorkers.create()` controls the idle timeout for the user worker pool
+(how long a worker lives without requests). It does NOT control the per-request wall clock time.
 
 ### Incident summary — 2026-07-03
 
-**Symptom**: All `evolution-api`, `evolution-api/status`, `evolution-api/list-instances` edge
-function calls returned HTTP 503 (`Edge Function returned a non-2xx status code`).
+**Symptom 1** (Critical): All `evolution-api` edge function calls returned HTTP 503.
+**Root cause**: `EVOLUTION_API_URL` and `EVOLUTION_API_KEY` were absent from the service spec.
+**Fix**: Added to startup command via `portainer_update_service`.
 
-**Root cause**: `EVOLUTION_API_URL` and `EVOLUTION_API_KEY` were absent from the `supabase_functions`
-Swarm service spec. The function's guard clause (`isPlaceholder(evolutionApiUrl)`) short-circuits
-immediately and returns `503 { error: 'Evolution API not configured' }` before any network call.
+**Symptom 2** (High): `wall clock duration warning` + `early termination` in edge-runtime logs.
+**Root cause**: `--request-wait-timeout` defaults to 10000ms (10s), but cold-starting evolution-api
+from `deno.land`/`esm.sh` CDNs takes 12-15s on a clean isolate, exceeding the limit.
+**Fix**: `--request-wait-timeout 60000` added to startup command.
 
-**Fix applied**: Updated the service spec via `portainer_update_service` to export both variables
-in the startup command (`Args`). The container `a01c3038625d` (task `usvkh84hsolg43t9s2k08j9df`)
-is now running with the correct configuration.
+**Verification timeline**:
+- Before fix: wall clock warnings every ~15s, 503 on every call
+- After EVOLUTION vars: 503 resolved, wall clock still firing at ~14s  
+- After request-wait-timeout: no wall clock warnings observed (container `34c72b8a0993`)
+
+### Security gap (NOT yet fixed — requires explicit decision)
+
+The `auth_rw` RLS policy on `zapp.instance_processing_pauses` uses `qual: true` (always-pass),
+effectively overriding the admin-only `ipp_admin_*` policies. Any authenticated user can currently
+read, write, and delete pause records. The `SECURITY DEFINER` function
+`auto_pause_instance_on_auth_spike` bypasses RLS, so the auto-pause flow is unaffected.
+
+Resolution options:
+1. Drop `auth_rw` policy if `ipp_admin_*` are the intended access controls
+2. Convert `auth_rw` to a RESTRICTIVE policy to let it coexist with admin checks
