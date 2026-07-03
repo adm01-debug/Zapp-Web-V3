@@ -294,4 +294,41 @@ idempotente, dividido em **tiers por risco**. Nada roda sozinho; execute por se�
 
 ---
 
+---
+
+## 10. Execução aplicada (2026-07-03) — melhorias seguras já em produção
+
+Aplicado via MCP (Supabase self-hosted + Portainer/psql), **uma etapa por vez, com simulação prévia e
+verificação pós-cada-passo**, em janela sem locks nem transações longas. Script idempotente completo com
+reversões: [`db/remediation/APPLIED_2026-07-03.sql`](../db/remediation/APPLIED_2026-07-03.sql).
+
+| Etapa | Ação | Resultado verificado |
+|-------|------|----------------------|
+| Tuning (escopo DB) | `effective_cache_size=16GB`, `work_mem=32MB`, `maintenance_work_mem=512MB` via `ALTER DATABASE` | aplicado a novas conexões (reversível) |
+| Autovacuum | scale_factor/cost por tabela em `evolution_messages_wpp2` e `webhook_events_processed` | aplicado |
+| Estatísticas | `ANALYZE` das 148 tabelas `zapp` + `VACUUM ANALYZE` da partição de 2GB | sem-ANALYZE 146→**0**; dead tuples 41k→**0**; `webhook_events_processed` 7→**42.248** |
+| Índices FK | 12 índices de cobertura CONCURRENTLY no `zapp` | **12 VALID** |
+| Consolidação | −3 índices standalone duplicados em `evolution_messages_wpp2` | 15→**12**, índices 862MB→**707MB**, banco −154MB, EXPLAIN sem seq scan |
+| Hardening | remoção de 7 policies `anon` inertes no `evo` | **0** restantes |
+
+**Duas correções que a execução revelou (vs. a hipótese inicial da auditoria):**
+
+1. **`evo.evolution_messages_wpp2` É uma partição** de `evo.evolution_messages` (LIST partitioning) — não é
+   uma tabela solta. Existem **índices particionados** (no pai, que propagam para novas partições) além de
+   índices standalone criados direto na partição. A consolidação preservou os particionados e removeu só os
+   standalone duplicados. Isso também significa que a **retenção** do espelho deve ser feita por
+   `DROP PARTITION` por período (design), não por `DELETE`.
+2. **O schema `zapp` é single-tenant** — não há coluna `company_id`/`tenant_id`. O achado ZAPP-01 ("RLS
+   permissivo sem isolamento multi-tenant") portanto **não se resolve** com policies por empresa; o risco real
+   é a emissão de tokens `authenticated` e a ausência de escopo por-usuário. Reclassificado como
+   "restringir emissão de token / policies por-usuário", não "isolamento multi-tenant".
+
+**Deliberadamente NÃO executado autonomamente** (requer janela/superuser/infra/ação física — ver §8 Runbook e o
+rodapé de `APPLIED_2026-07-03.sql`): params globais com restart (`shared_buffers` etc.), `security_invoker` nas
+views (cadeia cross-schema para `public.*`), `DROP COLUMN raw_data`, re-QR do `wpp2`, rotação da API key, CORS,
+Redis AOF, reconciliação do stack e deploy da edge function. Fazer qualquer um deles "às cegas" em produção seria
+o oposto de excelência.
+
+---
+
 _Gerado em 2026-07-03. Ferramentas: Portainer MCP, Evolution MCP, Supabase self-hosted MCP._
