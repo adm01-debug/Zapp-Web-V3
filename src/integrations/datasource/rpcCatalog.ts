@@ -154,9 +154,14 @@ interface RevokeLgpdConsentParams {
   p_reason?: string;
 }
 
-type GetLgpdComplianceStatsParams =
-  | { p_instance_name?: string | null }
-  | { p_workspace_id: string };
+interface GetLgpdComplianceStatsParams {
+  p_instance_name?: string | null;
+  p_workspace_id?: string;
+}
+
+interface GetContactStatsParams {
+  p_instance_name?: string | null;
+}
 
 interface DashboardHomeParams {
   p_instance?: string | null;
@@ -371,7 +376,7 @@ export const RPC = {
     client: 'lovable',
   }),
 
-  getContactStats: def<{ p_instance_name?: string | null }, Record<string, unknown>>({
+  getContactStats: def<GetContactStatsParams, Record<string, unknown>>({
     name: 'get_contact_stats',
     client: 'lovable',
   }),
@@ -381,17 +386,17 @@ export const RPC = {
     client: 'lovable',
   }),
 
-  grantLgpdConsent: def<GrantLgpdConsentParams, Record<string, unknown> | boolean>({
+  grantLgpdConsent: def<GrantLgpdConsentParams, unknown>({
     name: 'grant_lgpd_consent',
     client: 'lovable',
   }),
 
-  revokeLgpdConsent: def<RevokeLgpdConsentParams, Record<string, unknown> | boolean>({
+  revokeLgpdConsent: def<RevokeLgpdConsentParams, unknown>({
     name: 'revoke_lgpd_consent',
     client: 'lovable',
   }),
 
-  getDuplicateReport: def<{ p_instance_name?: string | null }, Record<string, unknown>>({
+  getDuplicateReport: def<GetContactStatsParams, Record<string, unknown>>({
     name: 'get_duplicate_report',
     client: 'lovable',
   }),
