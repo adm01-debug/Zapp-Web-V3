@@ -82,15 +82,46 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB
+        // FIX F4: Increased from 4MB to 8MB so that vendor-mapbox (~6.5MB)
+        // is included in the precache. Without this, the map chunk is served
+        // only from the network, breaking offline map access and also making
+        // the chunk visible to 404 errors after a deploy hash change.
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         clientsClaim: true,
         skipWaiting: true,
         cleanupOutdatedCaches: true,
         runtimeCaching: [
+          // FIX F3: Navigation requests (window.location.reload(), link clicks,
+          // browser back/forward) always go to the NETWORK first so the browser
+          // fetches the freshest index.html after a deploy.
+          //
+          // Without this, the service worker could serve a stale precached
+          // index.html after a chunk-error reload, meaning the old bundle
+          // (with broken chunk hashes) would load again.
+          //
+          // networkTimeoutSeconds=3: if the network is slow or offline, fall
+          // back to the cached index.html so the SPA still loads.
+          {
+            urlPattern: ({ request }: { request: Request }) =>
+              request.mode === 'navigate',
+            handler: 'NetworkFirst' as const,
+            options: {
+              cacheName: 'navigation-cache',
+              networkTimeoutSeconds: 3,
+              plugins: [
+                {
+                  cacheableResponse: {
+                    statuses: [200],
+                  },
+                },
+              ],
+            },
+          },
+          // Google Fonts: cache aggressively (1 year) — these never change.
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'CacheFirst' as const,
             options: {
               cacheName: 'google-fonts-cache',
               expiration: {
