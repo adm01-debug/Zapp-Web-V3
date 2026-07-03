@@ -22,7 +22,6 @@ function detectAndReloadOnChunkError(error: Error): boolean {
   try {
     const rawLast = sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY);
     const parsed = Number(rawLast ?? '0');
-    // BUG D + E FIX: isNaN() misses Infinity. Number.isFinite() catches both.
     const last = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
     if (Date.now() - last > CHUNK_RELOAD_COOLDOWN_MS) {
       sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(Date.now()));
@@ -47,7 +46,8 @@ function classifyRenderFailure(error: Error): {
     /timeout|timed out|statement timeout|canceling statement|proxy_timeout/.test(msg);
   const isProxy = /external db proxy|external-db-proxy|query timed out|external_proxy/.test(msg);
   const isAbort = error?.name === 'AbortError' || /aborted/.test(msg);
-  const isQueryFailure = isTimeout || isProxy || isAbort || /rpc|supabase|fetch failed|network/.test(msg);
+  const isQueryFailure = isTimeout || isProxy || isAbort ||
+    /rpc|supabase|fetch failed|network/.test(msg);
 
   let severity: Severity = 'error';
   if (isTimeout) severity = 'timeout';
@@ -70,6 +70,12 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  /**
+   * Called when the boundary transitions from error state back to a clean
+   * state (i.e. after a resetKey change clears the error). Use this to reset
+   * external counters such as auto-retry counts in AppProviders.
+   */
+  onReset?: () => void;
   resetKey?: string | number;
 }
 
@@ -96,6 +102,23 @@ export class ErrorBoundary extends Component<Props, State> {
       return { hasError: false, error: null, errorInfo: null, prevResetKey: props.resetKey };
     }
     return null;
+  }
+
+  /**
+   * FIX F1: Notify the parent when the boundary recovers from an error.
+   *
+   * React calls componentDidUpdate after every render with the *previous* state,
+   * so the transition prevState.hasError=true → this.state.hasError=false fires
+   * exactly once per recovery (when getDerivedStateFromProps clears the error
+   * due to a resetKey change).
+   */
+  public componentDidUpdate(
+    _prevProps: Props,
+    prevState: State
+  ): void {
+    if (prevState.hasError && !this.state.hasError) {
+      this.props.onReset?.();
+    }
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
