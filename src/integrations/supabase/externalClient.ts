@@ -66,7 +66,10 @@ export let externalSupabase: SupabaseClient = isExternalConfigured
   : (supabase as unknown as SupabaseClient);
 
 if (!isExternalConfigured) {
-  console.info(
+  // Expected in production (single-database FATOR X): VITE_EXTERNAL_* are not
+  // set; the main authenticated client is reused. Not an error — use debug level
+  // to avoid polluting the console on every production session.
+  console.debug(
     '[externalClient] VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).',
   );
 }

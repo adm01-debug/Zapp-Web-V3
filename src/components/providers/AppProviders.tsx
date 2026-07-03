@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/errors/ErrorBoundary";
 import { ValidationProvider } from "@/components/providers/ValidationProvider";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { getLogger } from "@/lib/logger";
+import { isChunkLoadError, triggerChunkReload } from "@/lib/lazyWithRetry";
 
 
 const log = getLogger('AppProviders');
@@ -51,7 +52,19 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <ErrorBoundary
       resetKey={errorKey}
       onError={(error) => {
-        log.error('ErrorBoundary caught:', error.message, error.stack);
+        log.error('ErrorBoundary caught:', error.message);
+
+        // ── Chunk load errors (stale hash mismatch after deploy) ──────────────
+        // Re-rendering via errorKey++ will NEVER fix this — the browser already
+        // has a reference to a chunk URL that 404s. The only remedy is a hard
+        // page reload so the browser fetches the new index.html and new hashes.
+        if (isChunkLoadError(error)) {
+          log.warn('Chunk load error detected — triggering hard reload to recover stale chunks');
+          triggerChunkReload();
+          return; // Skip the re-render retry loop entirely.
+        }
+
+        // ── Other render errors → bounded re-render retry ─────────────────────
         if (retryCountRef.current < MAX_RETRIES) {
           retryCountRef.current += 1;
           log.warn(`Auto-retry ${retryCountRef.current}/${MAX_RETRIES}`);
