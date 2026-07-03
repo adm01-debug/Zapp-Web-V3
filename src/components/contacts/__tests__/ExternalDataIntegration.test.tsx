@@ -3,12 +3,18 @@ import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Mock RPC and direct table calls used by the updated hooks
-const mockRpc = vi.fn();
-const mockFrom = vi.fn();
+// Mock RPC and direct table calls used by the updated hooks.
+// useExternalEmpresas / useExternalCargos call:
+//   - getExternalSupabase().from('salespeople')  → externalClient mock
+//   - dbRpc(RPC.searchContactsAdvanced, ...)     → datasource/db mock (routes to 'lovable' client)
+const mockDbRpc = vi.fn();  // intercepts dbRpc calls (search_contacts_advanced etc.)
+const mockFrom = vi.fn();   // tracks getExternalSupabase().from() calls
+
+vi.mock('@/integrations/datasource/db', () => ({
+  dbRpc: (...a: unknown[]) => (globalThis as any).__mockDbRpc(...a),
+}));
 
 vi.mock('@/integrations/supabase/externalClient', () => {
-  const _mockRpc = (...args: any[]) => (globalThis as any).__extMockRpc(...args);
   const _mockFrom = (table: string) => {
     (globalThis as any).__extMockFrom(table);
     return {
@@ -34,7 +40,7 @@ vi.mock('@/integrations/supabase/externalClient', () => {
       })),
     };
   };
-  const client = { rpc: _mockRpc, from: _mockFrom };
+  const client = { from: _mockFrom };
   return {
     externalSupabase: client,
     getExternalSupabase: () => client,
@@ -42,8 +48,8 @@ vi.mock('@/integrations/supabase/externalClient', () => {
   };
 });
 
-// Bridge mock fns to globalThis so the hoisted factory can access them
-(globalThis as any).__extMockRpc = mockRpc;
+// Bridge mock fns to globalThis so hoisted factories can access them at call time
+(globalThis as any).__mockDbRpc = mockDbRpc;
 (globalThis as any).__extMockFrom = mockFrom;
 
 vi.mock('@/lib/logger');
@@ -58,24 +64,29 @@ function createWrapper() {
   );
 }
 
+// dbRpc returns { data, error, correlationId } — match what the hook destructures
+function rpcOk(data: unknown) {
+  return Promise.resolve({ data, error: null, correlationId: '' });
+}
+function rpcErr(message: string) {
+  return Promise.resolve({ data: null, error: new Error(message), correlationId: '' });
+}
+
 // ─── useExternalEmpresas (RPC-based) ───────────────────────────────
 describe('useExternalEmpresas', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock search_contacts_advanced RPC returning company_name
-    mockRpc.mockResolvedValue({
-      data: {
-        results: [
-          { company_name: 'Acme Corp' },
-          { company_name: 'TechBR' },
-          { company_name: '  SpaceLabs  ' },
-          { company_name: 'Acme Corp' }, // duplicate
-          { company_name: '' }, // empty
-          { company_name: null }, // null
-        ],
-      },
-      error: null,
-    });
+    // Default: single page with diverse company names
+    mockDbRpc.mockReturnValue(rpcOk({
+      results: [
+        { company_name: 'Acme Corp' },
+        { company_name: 'TechBR' },
+        { company_name: '  SpaceLabs  ' },
+        { company_name: 'Acme Corp' }, // duplicate
+        { company_name: '' }, // empty
+        { company_name: null }, // null
+      ],
+    }));
   });
 
   it('fetches unique trimmed empresa names via RPC', async () => {
@@ -91,40 +102,35 @@ describe('useExternalEmpresas', () => {
     expect(data.filter(e => e === '')).toHaveLength(0);
   });
 
-  it('calls search_contacts_advanced RPC', async () => {
+  it('calls dbRpc with search_contacts_advanced def and p_page=0', async () => {
     const { result } = renderHook(() => useExternalEmpresas(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockRpc).toHaveBeenCalledWith('search_contacts_advanced', expect.objectContaining({
-      p_page: 0,
-      p_page_size: 200,
-    }));
+    // dbRpc is called with (RpcDefinition, params) — first arg is the def object
+    expect(mockDbRpc).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'search_contacts_advanced' }),
+      expect.objectContaining({ p_page: 0, p_page_size: 200 }),
+    );
   });
 
   it('paginates until fewer results than page size', async () => {
     // First call returns full page, second returns partial
-    mockRpc
-      .mockResolvedValueOnce({
-        data: {
-          results: Array.from({ length: 200 }, (_, i) => ({ company_name: `Company ${i}` })),
-        },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: {
-          results: [{ company_name: 'Last Company' }],
-        },
-        error: null,
-      });
+    mockDbRpc
+      .mockReturnValueOnce(rpcOk({
+        results: Array.from({ length: 200 }, (_, i) => ({ company_name: `Company ${i}` })),
+      }))
+      .mockReturnValueOnce(rpcOk({
+        results: [{ company_name: 'Last Company' }],
+      }));
 
     const { result } = renderHook(() => useExternalEmpresas(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockRpc).toHaveBeenCalledTimes(2);
+    expect(mockDbRpc).toHaveBeenCalledTimes(2);
     expect(result.current.data).toContain('Last Company');
     expect(result.current.data).toContain('Company 0');
   });
 
   it('handles RPC error gracefully', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'RPC failed' } });
+    mockDbRpc.mockReturnValue(rpcErr('RPC failed'));
     const { result } = renderHook(() => useExternalEmpresas(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual([]);
@@ -143,18 +149,15 @@ describe('useExternalEmpresas', () => {
 describe('useExternalCargos', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock RPC returning cargo field
-    mockRpc.mockResolvedValue({
-      data: {
-        results: [
-          { cargo: 'Diretor' },
-          { cargo: 'Analista' },
-          { cargo: 'Gerente' }, // duplicate with salespeople
-          { cargo: '' },
-        ],
-      },
-      error: null,
-    });
+    // Default: RPC returns cargo field entries
+    mockDbRpc.mockReturnValue(rpcOk({
+      results: [
+        { cargo: 'Diretor' },
+        { cargo: 'Analista' },
+        { cargo: 'Gerente' }, // duplicate with salespeople
+        { cargo: '' },
+      ],
+    }));
   });
 
   it('merges salespeople.role + RPC cargos, deduplicates', async () => {
@@ -180,12 +183,13 @@ describe('useExternalCargos', () => {
     expect(mockFrom).toHaveBeenCalledWith('salespeople');
   });
 
-  it('also calls RPC for additional cargos', async () => {
+  it('also calls dbRpc for additional cargos', async () => {
     const { result } = renderHook(() => useExternalCargos(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockRpc).toHaveBeenCalledWith('search_contacts_advanced', expect.objectContaining({
-      p_page: 0,
-    }));
+    expect(mockDbRpc).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'search_contacts_advanced' }),
+      expect.objectContaining({ p_page: 0 }),
+    );
   });
 
   it('returns sorted results (pt-BR locale)', async () => {
@@ -197,7 +201,6 @@ describe('useExternalCargos', () => {
   });
 
   it('handles salespeople error gracefully, still returns RPC data', async () => {
-    // Override the from mock to simulate error for salespeople
     // The mock already returns data, so this tests the merge logic
     const { result } = renderHook(() => useExternalCargos(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

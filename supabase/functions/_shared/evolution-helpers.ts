@@ -186,7 +186,7 @@ export async function getConnectionByInstance(supabase: any, instance: string): 
   const { data } = await supabase
     .from('whatsapp_connections')
     .select('id')
-    .eq('instance_name', instance)
+    .eq('instance_id', instance)
     .maybeSingle();
   return data;
 }
@@ -205,24 +205,6 @@ export async function getContactByPhone(
     .eq('whatsapp_connection_id', connectionId)
     .limit(1)
     .maybeSingle();
-  
-  // If not found with connection filter, try without it (contact may belong to another connection)
-  if (!data) {
-    const { data: anyConnection } = await supabase
-      .from('contacts')
-      .select('id, avatar_url, assigned_to, name')
-      .in('phone', phonesVariants)
-      .limit(1)
-      .maybeSingle();
-    if (anyConnection) {
-      // Update the contact's connection to the current one
-      await supabase.from('contacts')
-        .update({ whatsapp_connection_id: connectionId, updated_at: new Date().toISOString() })
-        .eq('id', anyConnection.id);
-      console.log(`[CONTACT] Found contact ${anyConnection.id} via phone variant, relinked to connection ${connectionId}`);
-      return anyConnection;
-    }
-  }
   
   return data;
 }

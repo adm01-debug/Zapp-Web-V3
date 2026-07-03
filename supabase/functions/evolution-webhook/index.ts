@@ -177,7 +177,7 @@ serve(async (req) => {
       if (qrCode) {
         await supabase.from('whatsapp_connections')
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
-          .eq('instance_name', instance);
+          .eq('instance_id', instance);
       }
     }
 
@@ -264,7 +264,7 @@ serve(async (req) => {
     if (event === 'messages.set') await handleMessagesSet(supabase, instance, data);
     if (event === 'contacts.set') await handleContactsSet(supabase, instance, data);
     if (event === 'chats.set') await handleChatsSet(supabase, instance, data);
-    if (event === 'messages.edited' || event === 'messages.edit') await handleMessagesEdited(supabase, data, baseData);
+    if (event === 'messages.edited' || event === 'messages.edit') await handleMessagesEdited(supabase, instance, data, baseData);
 
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'processed',
