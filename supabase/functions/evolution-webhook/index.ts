@@ -35,8 +35,14 @@ const WEBHOOK_SECRETS = (() => {
   return legacy ? [legacy] : [];
 })();
 const STRICT_MODE = (Deno.env.get('EVOLUTION_WEBHOOK_STRICT') ?? 'true').toLowerCase() !== 'false';
+// Evolution's native webhook and the RabbitMQ consumer authenticate with a
+// static `x-webhook-secret` header (they cannot compute a per-request HMAC).
+// Accept that shared-secret bearer, constant-time compared against the same
+// configured secret, in addition to HMAC signatures. HMAC stays preferred.
+// Set EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false to require HMAC only.
+const ALLOW_SHARED_SECRET = (Deno.env.get('EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET') ?? 'true').toLowerCase() !== 'false';
 const validateWebhook = WEBHOOK_SECRETS.length > 0
-  ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE)
+  ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE, ALLOW_SHARED_SECRET)
   : null;
 
 serve(async (req) => {
