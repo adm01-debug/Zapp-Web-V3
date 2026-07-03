@@ -6,10 +6,6 @@ import { log } from '@/lib/logger';
 import { recordQueryEvent, type Severity } from '@/lib/clientTelemetry';
 import { CHUNK_RELOAD_SESSION_KEY } from '@/lib/lazyWithRetry';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Chunk load error detection (inline to avoid any import chain that might
-// itself fail if the module system is broken)
-// ─────────────────────────────────────────────────────────────────────────────
 const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
 
 function detectAndReloadOnChunkError(error: Error): boolean {
@@ -24,7 +20,10 @@ function detectAndReloadOnChunkError(error: Error): boolean {
   if (!isChunkError) return false;
 
   try {
-    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY) ?? '0');
+    const rawLast = sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY);
+    const parsed = Number(rawLast ?? '0');
+    // BUG D + E FIX: isNaN() misses Infinity. Number.isFinite() catches both.
+    const last = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
     if (Date.now() - last > CHUNK_RELOAD_COOLDOWN_MS) {
       sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(Date.now()));
       window.location.reload();
@@ -34,14 +33,9 @@ function detectAndReloadOnChunkError(error: Error): boolean {
     window.location.reload();
     return true;
   }
-  return false; // cooldown active — fall through to error UI
+  return false;
 }
 
-/**
- * Detects whether a thrown error originated from a slow/failing external
- * query (proxy timeout, statement timeout, abort, etc.) so we can emit a
- * telemetry event from the boundary instead of just logging it.
- */
 function classifyRenderFailure(error: Error): {
   isQueryFailure: boolean;
   severity: Severity;
@@ -67,8 +61,6 @@ function classifyRenderFailure(error: Error): {
   };
 }
 
-// Try to recover the correlationId an external call may have embedded
-// in the thrown error message (e.g. "[cid=ab12cd34] ...").
 function extractCorrelationId(error: Error): string | undefined {
   const m = /\bcid[=:]\s*([0-9a-f]{6,})/i.exec(error?.message || '');
   return m?.[1];
@@ -107,21 +99,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // ── Safety net: auto-reload on stale chunk hash mismatch ─────────────────
-    // This runs even if lazyWithRetry's own handler somehow missed it (e.g.
-    // error propagated from a non-lazy-wrapped import).
     if (detectAndReloadOnChunkError(error)) {
-      // Reload triggered — don't bother with state update or telemetry
-      // since the page is about to be refreshed.
       return;
     }
 
     log.error('ErrorBoundary caught an error:', error, errorInfo);
     this.setState({ errorInfo });
 
-    // Always emit a telemetry event so the panel surfaces UI render
-    // failures alongside slow/timed-out external queries. This keeps the
-    // "why did the screen blank?" answer in one place.
     try {
       const { isQueryFailure, severity, target } = classifyRenderFailure(error);
       recordQueryEvent({
@@ -163,10 +147,8 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      // IMPORTANT: No framer-motion here! If framer-motion caused the error,
-      // using it in the fallback would create an infinite crash loop.
       return (
-        <div 
+        <div
           className="min-h-screen flex items-center justify-center bg-background p-4"
           role="alert"
           aria-live="assertive"
@@ -182,7 +164,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 Ops! Algo deu errado
               </CardTitle>
               <CardDescription className="text-muted-foreground mt-2">
-                Encontramos um erro inesperado. Tente recarregar a página.
+                Encontramos um erro inesperado. Tente recarregar a p\u00e1gina.
               </CardDescription>
             </CardHeader>
 
@@ -194,7 +176,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     Detalhes do erro (desenvolvimento)
                   </summary>
                   <div className="mt-2 space-y-2">
-                    <p className="text-destructive  text-xs break-all">
+                    <p className="text-destructive text-xs break-all">
                       {this.state.error.message}
                     </p>
                     {this.state.errorInfo?.componentStack && (
@@ -207,21 +189,13 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button
-                  onClick={this.handleRetry}
-                  className="flex-1"
-                  variant="default"
-                >
+                <Button onClick={this.handleRetry} className="flex-1" variant="default">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Tentar novamente
                 </Button>
-                <Button
-                  onClick={this.handleGoHome}
-                  variant="outline"
-                  className="flex-1"
-                >
+                <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
                   <Home className="w-4 h-4 mr-2" />
-                  Voltar ao início
+                  Voltar ao in\u00edcio
                 </Button>
               </div>
 
@@ -229,7 +203,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleReload}
                 className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
               >
-                Ou recarregue a página completamente
+                Ou recarregue a p\u00e1gina completamente
               </button>
             </CardContent>
           </Card>
@@ -241,7 +215,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// HOC para envolver componentes com Error Boundary
 export function withErrorBoundary<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   fallback?: ReactNode
@@ -255,7 +228,6 @@ export function withErrorBoundary<P extends object>(
   };
 }
 
-// Hook-like component for functional error boundaries
 export function ErrorFallback({
   error,
   resetErrorBoundary,
