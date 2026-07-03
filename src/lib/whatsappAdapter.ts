@@ -20,6 +20,9 @@
  *    erro explícito para o caller orientar o usuário.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getLogger } from "@/lib/logger";
+
+const log = getLogger('whatsappAdapter');
 
 export type WhatsAppMode = "official" | "unofficial";
 
@@ -30,7 +33,6 @@ export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
   const now = Date.now();
   if (!force && cachedMode && now < cacheExpiresAt) return cachedMode;
   try {
-    // deno-lint-ignore no-explicit-any
     const { data, error } = await supabase.rpc("rpc_get_whatsapp_mode" as any);
     if (error) throw error;
     const mode = (data as string) === "official" ? "official" : "unofficial";
@@ -38,7 +40,7 @@ export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
     cacheExpiresAt = now + 30_000;
     return mode;
   } catch (e) {
-    console.warn("[whatsappAdapter] getWhatsAppMode fallback", e);
+    log.warn('getWhatsAppMode fallback', { error: e instanceof Error ? e.message : String(e) });
     return "unofficial";
   }
 }
@@ -52,13 +54,6 @@ export function invalidateWhatsAppModeCache() {
 }
 
 const DEFAULT_INSTANCE = "wpp2";
-
-// ----- Resolução automática de transporte ----------------------------------
-//
-// "Modo" é a *intenção* do admin (oficial vs não-oficial).
-// "Transporte" é o que o adapter realmente vai usar agora — leva em conta se
-// as credenciais necessárias estão configuradas. Se o admin pediu oficial mas
-// faltam secrets do Cloud, caímos para Evolution e relatamos `degraded`.
 
 export type WhatsAppTransport = "cloud" | "evolution";
 
@@ -99,7 +94,7 @@ async function checkCloudCredentials(): Promise<{ ok: boolean; missing: string[]
     cloudCredsCache = { ...result, expiresAt: now + 30_000 };
     return result;
   } catch (e) {
-    console.warn("[whatsappAdapter] checkCloudCredentials fallback", e);
+    log.warn('checkCloudCredentials fallback', { error: e instanceof Error ? e.message : String(e) });
     return { ok: false, missing: REQUIRED_CLOUD_SECRETS };
   }
 }
@@ -131,7 +126,9 @@ export async function resolveTransport(force = false): Promise<ResolvedTransport
         reason: `Modo oficial selecionado mas faltam secrets: ${creds.missing.join(", ")}. Usando Evolution como fallback.`,
         missingSecrets: creds.missing,
       };
-  if (resolved.degraded) console.warn("[whatsappAdapter] transport degraded —", resolved.reason);
+  if (resolved.degraded) {
+    log.warn('transport degraded', { reason: resolved.reason, missingSecrets: resolved.missingSecrets });
+  }
 
   cachedTransport = resolved;
   transportExpiresAt = now + 30_000;
@@ -205,7 +202,6 @@ export interface SendTemplateParams {
   remoteJid: string;
   name: string;
   language?: string;
-  // deno-lint-ignore no-explicit-any
   components?: any[];
 }
 
@@ -234,7 +230,6 @@ async function invokeCloud(body: Record<string, unknown>) {
   );
   if (error) throw error;
   if (data && typeof data === "object" && "error" in data) {
-    // deno-lint-ignore no-explicit-any
     throw new Error((data as any).error ?? "cloud_send_failed");
   }
   return data;
@@ -310,7 +305,6 @@ export async function sendAudio(params: SendAudioParams) {
 export async function sendSticker(params: SendStickerParams) {
   const { transport } = await resolveTransport();
   if (transport === "cloud") {
-    // Cloud API trata sticker como mídia genérica
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
       type: "sticker",
@@ -408,7 +402,6 @@ export async function sendTemplate(params: SendTemplateParams) {
 export async function sendPresence(params: PresenceParams) {
   const { transport } = await resolveTransport();
   if (transport === "cloud") {
-    // Cloud API não expõe presença "composing" — no-op silencioso.
     return { skipped: true, reason: "presence_unsupported_on_cloud_api" };
   }
   return invokeEvolution("send-presence", {
@@ -440,8 +433,6 @@ export async function markAsRead(params: MarkAsReadParams) {
 // ----- Webhooks de entrada --------------------------------------------------
 
 function projectFunctionsBase(): string {
-  // Use self-hosted URL if available, fallback to Cloud
-  // deno-lint-ignore no-explicit-any
   const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL ?? '';
   if (supabaseUrl && !supabaseUrl.includes('.supabase.co')) {
     return supabaseUrl.replace(/\/$/, "") + '/functions/v1';
@@ -465,8 +456,6 @@ export async function getActiveWebhookUrl(): Promise<string> {
   const { transport } = await resolveTransport();
   return transport === "cloud" ? getCloudWebhookUrl() : getEvolutionWebhookUrl();
 }
-
-// ----- Re-exports agrupados -------------------------------------------------
 
 /**
  * Façade agrupada para quem prefere `whatsapp.sendText(...)` ao invés de
