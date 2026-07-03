@@ -10,7 +10,10 @@ import tseslint from "typescript-eslint";
 import tailwind from "eslint-plugin-tailwindcss";
 
 export default tseslint.config(
-  { ignores: ["dist", "supabase/functions/**"] },
+  // `.eslintrc.tailwind.js` is an orphaned legacy config (never wired into this
+  // flat config) that holds TypeScript syntax in a .js file, so it fails to
+  // parse. Ignore it here instead of surfacing a spurious parse error.
+  { ignores: ["dist", "supabase/functions/**", ".eslintrc.tailwind.js"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

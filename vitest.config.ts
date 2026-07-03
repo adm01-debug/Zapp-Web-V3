@@ -8,6 +8,15 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // A suíte é grande (~2.1k testes / 131 arquivos). Rodar tudo num único
+    // processo acumula heap entre arquivos e estoura o limite (OOM). O pool
+    // 'forks' roda cada arquivo num processo filho que libera memória ao sair;
+    // limitar os forks mantém o pico de memória controlado para o gate poder
+    // bloquear de forma estável.
+    pool: 'forks',
+    poolOptions: {
+      forks: { minForks: 1, maxForks: 3 },
+    },
     // Env dummy para que módulos que importam o client real do Supabase não
     // lancem na importação. Testes que tocam a rede mockam o client mesmo assim.
     env: {
