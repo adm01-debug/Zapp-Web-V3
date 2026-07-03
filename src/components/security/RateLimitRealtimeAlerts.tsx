@@ -5,6 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('RateLimitRealtimeAlerts');
 
 interface SecurityAlert {
   id: string;
@@ -45,12 +48,14 @@ export function RateLimitRealtimeAlerts() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (data) {
-        setAlerts(data);
+      if (error) {
+        log.error('Failed to fetch security_alerts', error);
+        return;
       }
+      if (data) setAlerts(data);
     };
 
-    fetchAlerts();
+    void fetchAlerts();
 
     // Subscribe to new alerts
     const channel = supabase
@@ -70,31 +75,31 @@ export function RateLimitRealtimeAlerts() {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { void supabase.removeChannel(channel); };
   }, []);
 
   const playAlertSound = () => {
     try {
       const audio = new Audio('/notification.mp3');
       audio.volume = 0.5;
-      // Autoplay may be blocked before user interaction — ignore that specific rejection.
-      audio.play().catch(() => {});
+      // Autoplay may be blocked before user interaction — log at debug, not warn.
+      audio.play().catch((err: unknown) => {
+        log.debug('[RateLimitRealtimeAlerts] alert sound blocked by autoplay policy', err);
+      });
     } catch (e) {
-      // Audio unsupported/unavailable — alerts still work without the sound.
-      console.warn('[RateLimitRealtimeAlerts] could not play alert sound', e);
+      // Audio API unsupported or file unavailable — alerts still work without sound.
+      log.warn('[RateLimitRealtimeAlerts] could not create Audio element for alert sound', e);
     }
   };
 
   const handleDismiss = async (alertId: string) => {
     setDismissed(prev => new Set([...prev, alertId]));
     
-    // Mark as resolved in database
-    await supabase
+    const { error } = await supabase
       .from('security_alerts')
       .update({ is_resolved: true, resolved_at: new Date().toISOString() })
       .eq('id', alertId);
+    if (error) log.error('Failed to mark security alert as resolved', error);
   };
 
   const visibleAlerts = alerts.filter(a => !dismissed.has(a.id));
@@ -107,7 +112,7 @@ export function RateLimitRealtimeAlerts() {
     <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm">
       <AnimatePresence mode="popLayout">
         {visibleAlerts.slice(0, 3).map((alert) => {
-          const config = ALERT_CONFIG[alert.alert_type] || ALERT_CONFIG.default;
+          const config = ALERT_CONFIG[alert.alert_type] ?? ALERT_CONFIG.default;
           const Icon = config.icon;
 
           return (
@@ -116,7 +121,7 @@ export function RateLimitRealtimeAlerts() {
               initial={{ opacity: 0, x: 100, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 100, scale: 0.9 }}
-              className={`bg-card border rounded-lg shadow-lg p-4 border-l-4 ${SEVERITY_COLORS[alert.severity] || SEVERITY_COLORS.medium}`}
+              className={`bg-card border rounded-lg shadow-lg p-4 border-l-4 ${SEVERITY_COLORS[alert.severity] ?? SEVERITY_COLORS.medium}`}
             >
               <div className="flex items-start gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${config.bg}`}>
@@ -129,7 +134,7 @@ export function RateLimitRealtimeAlerts() {
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0"
-                      onClick={() => handleDismiss(alert.id)}
+                      onClick={() => void handleDismiss(alert.id)}
                     >
                       <X className="w-4 h-4" />
                     </Button>
