@@ -128,6 +128,16 @@ function isSafeIdent(s) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (bootError || !supabase) {
+    return new Response(
+      JSON.stringify({
+        error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
+        hint: "Configure os secrets EXTERNAL_SUPABASE_URL e EXTERNAL_SUPABASE_SERVICE_ROLE_KEY do FATOR X.",
+        data: [], count: 0,
+      }),
+      { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
+    );
+  }
   if (req.method === "GET") {
     return new Response(
       JSON.stringify({ ok: true, fn: "external-db-proxy", version: "1.5", ts: Date.now() }),
