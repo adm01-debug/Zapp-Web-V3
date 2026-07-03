@@ -4,46 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { log } from '@/lib/logger';
 import { recordQueryEvent, type Severity } from '@/lib/clientTelemetry';
-import {
-  CHUNK_RELOAD_SESSION_KEY,
-  CLOCK_SKEW_TOLERANCE_MS,
-  isChunkLoadError,
-} from '@/lib/lazyWithRetry';
+import { isChunkLoadError, triggerChunkReload } from '@/lib/lazyWithRetry';
 
-const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
-
+/**
+ * Returns true and triggers a hard reload when `error` is a chunk-load failure
+ * that falls outside the 30-second cooldown window.
+ *
+ * Implementation note: this is intentionally a thin wrapper around the two
+ * lazyWithRetry helpers so that all cooldown logic lives in a single place:
+ *
+ *   isChunkLoadError  — classifies the error by message patterns
+ *   triggerChunkReload — applies the cooldown guard and calls window.location.reload()
+ *
+ * Any change to the guard formula, cooldown duration, or clock-skew tolerance
+ * only needs to happen in lazyWithRetry.ts; this function picks it up for free.
+ */
 function detectAndReloadOnChunkError(error: Error): boolean {
-  const msg = (error?.message ?? '').toLowerCase();
-  const isChunkError =
-    msg.includes('failed to fetch dynamically imported module') ||
-    msg.includes('loading chunk') ||
-    msg.includes('importing a module script failed') ||
-    msg.includes('error loading dynamically imported module') ||
-    msg.includes('unable to preload css for');
-
-  if (!isChunkError) return false;
-
-  try {
-    const rawLast = sessionStorage.getItem(CHUNK_RELOAD_SESSION_KEY);
-    const parsed = Number(rawLast ?? '0');
-    const now = Date.now();
-    // FINDING 1+2 FIX: upper bound rejects 1e308 (isFinite but astronomical)
-    // and future timestamps written by extensions / DevTools.
-    // CLOCK_SKEW_TOLERANCE_MS is imported from lazyWithRetry.ts to prevent drift.
-    const last =
-      Number.isFinite(parsed) && parsed >= 0 && parsed <= now + CLOCK_SKEW_TOLERANCE_MS
-        ? parsed
-        : 0;
-    if (now - last > CHUNK_RELOAD_COOLDOWN_MS) {
-      sessionStorage.setItem(CHUNK_RELOAD_SESSION_KEY, String(now));
-      window.location.reload();
-      return true;
-    }
-  } catch {
-    window.location.reload();
-    return true;
-  }
-  return false;
+  if (!isChunkLoadError(error)) return false;
+  return triggerChunkReload();
 }
 
 /**
