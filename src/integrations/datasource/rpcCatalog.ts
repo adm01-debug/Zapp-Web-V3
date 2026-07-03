@@ -239,6 +239,78 @@ interface SyncInteractionParams {
   p_zapp_conversation_id?: string | null;
 }
 
+// ── Contacts module param shapes ──────────────────────────────────────────────
+
+interface GetContactConversationsParams {
+  p_contact_id: string;
+  p_limit?: number;
+}
+
+interface GetContactNotesParams {
+  p_contact_id: string;
+  p_limit?: number;
+}
+
+interface AddContactNoteParams {
+  p_contact_id: string;
+  p_content: string;
+  p_note_type?: string;
+  p_is_pinned?: boolean;
+}
+
+interface BulkUpdateLeadStatusParams {
+  p_contact_ids: string[];
+  p_status: string;
+}
+
+interface BulkAddTagParams {
+  p_contact_ids: string[];
+  p_tag: string;
+}
+
+interface FindDuplicateContactRow {
+  phone_normalized: string;
+  contact_ids: string[];
+  contact_names: string[];
+  contact_count?: number;
+}
+
+interface UpdateContactVersionedParams {
+  p_contact_id: string;
+  p_expected_version: number;
+  p_updates: Record<string, unknown>;
+}
+
+interface RestoreContactParams {
+  p_contact_id: string;
+}
+
+interface RpcLogServiceEventParams {
+  p_instance: string;
+  p_event_type: string;
+  p_message: string;
+  p_level?: string;
+  p_remote_jid?: string;
+  p_payload?: Record<string, unknown>;
+  p_metadata?: Record<string, unknown>;
+  p_performed_by?: string;
+}
+
+interface SendMessageV2Params {
+  p_remote_jid: string;
+  p_content: string;
+  p_message_type: string;
+  p_media_url?: string;
+  p_media_mimetype?: string;
+  /** DB default: 'wpp_pink_test'. Passe ACTIVE_WHATSAPP_INSTANCE explicitamente. */
+  p_instance?: string | null;
+}
+
+interface SendMessageV2Row {
+  success: boolean;
+  message: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Catalog
 // ─────────────────────────────────────────────────────────────────────────────
@@ -350,42 +422,32 @@ export const RPC = {
   }),
 
   // ── Contacts module: notes, audit, dashboards, bulk ops ────────────────────
-  getContactConversations: def<{ p_contact_id: string; p_limit?: number }, Record<string, unknown>[]>({
+  getContactConversations: def<GetContactConversationsParams, Record<string, unknown>[]>({
     name: 'get_contact_conversations',
     client: 'lovable',
   }),
 
-  getContactNotes: def<{ p_contact_id: string; p_limit?: number }, Record<string, unknown>[]>({
+  getContactNotes: def<GetContactNotesParams, Record<string, unknown>[]>({
     name: 'get_contact_notes',
     client: 'lovable',
   }),
 
-  addContactNote: def<{
-    p_contact_id: string;
-    p_content:    string;
-    p_note_type?: string;
-    p_is_pinned?: boolean;
-  }, Record<string, unknown>>({
+  addContactNote: def<AddContactNoteParams, Record<string, unknown>>({
     name: 'add_contact_note',
     client: 'lovable',
   }),
 
-  bulkUpdateLeadStatus: def<{ p_contact_ids: string[]; p_status: string }, unknown>({
+  bulkUpdateLeadStatus: def<BulkUpdateLeadStatusParams, unknown>({
     name: 'bulk_update_lead_status',
     client: 'lovable',
   }),
 
-  bulkAddTag: def<{ p_contact_ids: string[]; p_tag: string }, unknown>({
+  bulkAddTag: def<BulkAddTagParams, unknown>({
     name: 'bulk_add_tag',
     client: 'lovable',
   }),
 
-  findDuplicateContacts: def<FindDuplicateContactsParams, Array<{
-    phone_normalized: string;
-    contact_ids:      string[];
-    contact_names:    string[];
-    contact_count?:   number;
-  }}>({
+  findDuplicateContacts: def<FindDuplicateContactsParams, FindDuplicateContactRow[]>({
     name: 'find_duplicate_contacts',
     client: 'lovable',
   }),
@@ -400,16 +462,12 @@ export const RPC = {
     client: 'lovable',
   }),
 
-  updateContactVersioned: def<{
-    p_contact_id:       string;
-    p_expected_version: number;
-    p_updates:          Record<string, unknown>;
-  }, Record<string, unknown>>({
+  updateContactVersioned: def<UpdateContactVersionedParams, Record<string, unknown>>({
     name: 'update_contact_versioned',
     client: 'lovable',
   }),
 
-  restoreContact: def<{ p_contact_id: string }, Record<string, unknown>>({
+  restoreContact: def<RestoreContactParams, Record<string, unknown>>({
     name: 'restore_contact',
     client: 'lovable',
   }),
@@ -439,29 +497,12 @@ export const RPC = {
     client: 'lovable',
   }),
 
-  rpc_log_service_event: def<{
-    p_instance: string;
-    p_event_type: string;
-    p_message: string;
-    p_level?: string;
-    p_remote_jid?: string;
-    p_payload?: Record<string, unknown>;
-    p_metadata?: Record<string, unknown>;
-    p_performed_by?: string;
-  }, Record<string, unknown>>({
+  rpc_log_service_event: def<RpcLogServiceEventParams, Record<string, unknown>>({
     name: 'rpc_log_service_event',
     client: 'lovable',
   }),
 
-  send_message_v2: def<{
-    p_remote_jid: string;
-    p_content: string;
-    p_message_type: string;
-    p_media_url?: string;
-    p_media_mimetype?: string;
-    /** DB default: 'wpp_pink_test'. Passe ACTIVE_WHATSAPP_INSTANCE explicitamente. */
-    p_instance?: string | null;
-  }, { success: boolean; message: string }>({
+  send_message_v2: def<SendMessageV2Params, SendMessageV2Row>({
     name: 'send_message_v2',
     client: 'lovable',
   }),
