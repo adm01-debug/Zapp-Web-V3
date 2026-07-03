@@ -104,23 +104,55 @@ interface ListAuditLogParams {
   p_offset?: number;
 }
 
+/**
+ * Params para rpc_insert_message.
+ * IMPORTANTE: sempre passe p_instance explicitamente quando souber a instância.
+ * O DB tem DEFAULT 'wpp_pink_test', mas o TypeScript deve forçar a escolha.
+ */
 interface InsertMessageParams {
+  /** JID do destinatário (ex: '5511999999999@s.whatsapp.net') */
   p_remote_jid: string;
   p_content: string;
   p_message_type?: string;
   p_message_id?: string;
   p_from_me?: boolean;
+  /** Direção da mensagem. Default: 'outbound'. */
+  p_direction?: string;
+  /**
+   * Instância WhatsApp. Sempre passe ACTIVE_WHATSAPP_INSTANCE.
+   * DB default: 'wpp_pink_test'. NÃO omitir em produção.
+   */
+  p_instance?: string | null;
 }
 
+/**
+ * Params para rpc_upsert_contact.
+ * Reflete a assinatura completa da função SQL.
+ */
 interface UpsertContactParams {
   p_remote_jid: string;
+  /**
+   * Instância WhatsApp. DB default: 'wpp_pink_test'.
+   * Sempre passe ACTIVE_WHATSAPP_INSTANCE explicitamente.
+   */
   p_instance?: string | null;
   p_push_name?: string | null;
+  p_full_name?: string | null;
+  p_phone_number?: string | null;
+  p_email?: string | null;
+  p_company?: string | null;
+  p_role_title?: string | null;
+  p_lead_status?: string | null;
+  p_lead_source?: string | null;
+  p_lead_score?: number | null;
+  p_assigned_to?: string | null;
+  p_tags?: string[] | null;
   p_notes?: string | null;
 }
 
 interface DeleteContactParams {
   p_remote_jid: string;
+  /** DB default: 'wpp_pink_test'. Passe explicitamente. */
   p_instance?: string | null;
   p_performed_by: string;
 }
@@ -165,7 +197,7 @@ interface GlobalSearchParams {
   p_limit?: number;
 }
 
-// ── CRM 360 / Search avançado ──────────────────────────────────────────────
+// ── CRM 360 / Search avançado ─────────────────────────────────────────────────────
 
 export interface SearchContactsAdvancedParams {
   p_search?: string | null;
@@ -205,7 +237,7 @@ interface SyncInteractionParams {
 const def = <P, R>(d: RpcDefinition<P, R>) => d;
 
 export const RPC = {
-  // ── Reads ────────────────────────────────────────────────────────────────
+  // ── Reads ──────────────────────────────────────────────────────────────────
   // NOTA: Nenhum default de p_instance — null = todas as instâncias.
   // Passe p_instance explicitamente apenas quando precisar filtrar uma.
 
@@ -249,23 +281,29 @@ export const RPC = {
     client: 'lovable',
   }),
 
-  // ── Writes ───────────────────────────────────────────────────────────────
+  // ── Writes ──────────────────────────────────────────────────────────────────
+  // IMPORTANTE: sempre passe p_instance explicitamente (DB default é 'wpp_pink_test',
+  // mas o TypeScript deve documenter a escolha). Use ACTIVE_WHATSAPP_INSTANCE.
+
   insertMessage: def<InsertMessageParams, EvolutionMessage>({
     name: 'rpc_insert_message',
     client: 'lovable',
+    // p_instance: usar ACTIVE_WHATSAPP_INSTANCE no call site
   }),
 
   upsertContact: def<UpsertContactParams, EvolutionContact>({
     name: 'rpc_upsert_contact',
     client: 'lovable',
+    // p_instance: usar ACTIVE_WHATSAPP_INSTANCE no call site
   }),
 
   deleteContact: def<DeleteContactParams, boolean>({
     name: 'rpc_delete_contact',
     client: 'lovable',
+    // p_instance: usar ACTIVE_WHATSAPP_INSTANCE no call site
   }),
 
-  // ── Analytics / Search ───────────────────────────────────────────────────
+  // ── Analytics / Search ───────────────────────────────────────────────────────
   dashboardHome: def<DashboardHomeParams, unknown>({
     name: 'rpc_dashboard_home',
     client: 'lovable',
@@ -276,7 +314,7 @@ export const RPC = {
     client: 'lovable',
   }),
 
-  // ── CRM 360 / Search avançado ────────────────────────────────────────────
+  // ── CRM 360 / Search avançado ─────────────────────────────────────────────
   searchContactsAdvanced: def<SearchContactsAdvancedParams, unknown>({
     name: 'search_contacts_advanced',
     client: 'lovable',
@@ -302,7 +340,7 @@ export const RPC = {
     client: 'lovable',
   }),
 
-  // ── Contacts module: notes, audit, dashboards, bulk ops ─────────────────
+  // ── Contacts module: notes, audit, dashboards, bulk ops ────────────────────
   getContactConversations: def<{ p_contact_id: string; p_limit?: number }, Record<string, unknown>[]>({
     name: 'get_contact_conversations',
     client: 'lovable',
@@ -338,7 +376,7 @@ export const RPC = {
     contact_ids:      string[];
     contact_names:    string[];
     contact_count?:   number;
-  }>>({
+  }}>({
     name: 'find_duplicate_contacts',
     client: 'lovable',
   }),
@@ -412,6 +450,7 @@ export const RPC = {
     p_message_type: string;
     p_media_url?: string;
     p_media_mimetype?: string;
+    /** DB default: 'wpp_pink_test'. Passe ACTIVE_WHATSAPP_INSTANCE explicitamente. */
     p_instance?: string | null;
   }, { success: boolean; message: string }>({
     name: 'send_message_v2',
