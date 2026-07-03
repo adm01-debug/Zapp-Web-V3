@@ -64,6 +64,17 @@ export async function handleOutgoingWhatsAppMessage(
     if (claimed?.length) return;
   }
 
+  // Re-check before INSERT: a concurrent webhook that lost the placeholder race
+  // may have already inserted a row for this externalId between the initial
+  // dedup check (line ~18) and here. Without this guard both writers fall through
+  // to INSERT and produce a duplicate row.
+  const { data: raceCheck } = await supabase.from('messages')
+    .select('id')
+    .eq('external_id', externalId)
+    .eq('whatsapp_connection_id', connection.id)
+    .maybeSingle();
+  if (raceCheck) return;
+
   const { error: msgError } = await supabase.from('messages').insert({
     contact_id: contact.id, whatsapp_connection_id: connection.id, content: parsed.content,
     message_type: parsed.messageType, media_url: mediaUrl, sender: 'agent', external_id: externalId,
