@@ -139,7 +139,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       // Assinatura real: (p_connection_id, p_instance_name, p_status,
       //                   p_error_message, p_attempt_number, p_qr_generated, p_metadata)
       try {
-        await supabase.rpc('fn_log_reconnection_attempt', {
+        await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<unknown>)('fn_log_reconnection_attempt', {
           p_connection_id:  id,
           p_instance_name:  connection.instance_id,
           p_status:         status === 'success' ? 'connected' : 'failed',
