@@ -140,7 +140,7 @@ export default function HmacSelfTestPage() {
             resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
             dismissed_by: uid,
             is_read: true,
-          })
+          } as never)
           .eq('source', source)
           .is('resolved_at', null);
         if (resolveError) log.warn('warroom_alerts resolve failed', resolveError);
