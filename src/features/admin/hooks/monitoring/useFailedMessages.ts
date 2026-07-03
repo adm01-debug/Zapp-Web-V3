@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/features/auth';
+import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 import {
@@ -10,6 +11,8 @@ import {
   type RootCause,
   type RootCauseMeta,
 } from '@/lib/failureRootCause';
+
+const log = getLogger('useFailedMessages');
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
 
@@ -119,7 +122,6 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       });
       if (error) {
         if (isRlsDeniedError(error)) {
-          // Não quebra a lista — retorna vazio e deixa a UI mostrar mensagem clara.
           return { rows: [], total: 0, deniedReason: formatAdminError(error, 'a DLQ') };
         }
         throw error;
@@ -219,7 +221,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       });
       queryClient.invalidateQueries({ queryKey: ['dlq-audit-log'] });
     } catch (logErr) {
-      console.warn('[dlq] failed to log item action', action, logErr);
+      log.warn('Failed to log DLQ item action', { action, error: logErr instanceof Error ? logErr.message : String(logErr) });
     }
   };
 
@@ -267,7 +269,6 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const ids = Array.isArray(input) ? input : input.ids;
       const reason = Array.isArray(input) ? '' : (input.reason ?? '');
       if (ids.length === 0) return 0;
-      // No bulk RPC for retry — sequential calls, fast since they're just UPDATEs
       let n = 0;
       const succeededIds: string[] = [];
       for (const id of ids) {
@@ -313,12 +314,10 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
 
   const triggerReprocess = useMutation({
     mutationFn: async () => {
-      // Audit trail: register who triggered the manual reprocess. Best-effort —
-      // never blocks the actual reprocess invocation.
       try {
         await supabase.rpc('rpc_dlq_log_reprocess_trigger' as any, { p_source: 'panel' });
       } catch (logErr) {
-        console.warn('[dlq] failed to log reprocess trigger', logErr);
+        log.warn('Failed to log reprocess trigger', { error: logErr instanceof Error ? logErr.message : String(logErr) });
       }
       const { data, error } = await supabase.functions.invoke('reprocess-failed-messages', { method: 'POST' });
       if (error) throw error;
@@ -326,7 +325,6 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     },
     onSuccess: async (data) => {
       const processed = data?.processed ?? 0;
-      // Persist the result of the reprocess execution for audit trail.
       try {
         await supabase.rpc('rpc_dlq_log_reprocess_result' as any, {
           p_processed: processed,
@@ -338,7 +336,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         });
         queryClient.invalidateQueries({ queryKey: ['dlq-audit-log'] });
       } catch (logErr) {
-        console.warn('[dlq] failed to log reprocess result', logErr);
+        log.warn('Failed to log reprocess result', { error: logErr instanceof Error ? logErr.message : String(logErr) });
       }
       toast.success(processed === 0
         ? (data?.message ?? 'Nenhum item pendente.')
@@ -353,11 +351,8 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
 
   return {
     ...query,
-    /** Convenience: rows from data */
     rows: query.data?.rows ?? [],
-    /** Convenience: total_count from RPC */
     total: query.data?.total ?? 0,
-    /** Mensagem amigável quando a RLS bloquear (sem quebrar a UI). */
     deniedReason: query.data?.deniedReason ?? null,
     aggregates,
     retryNow,
