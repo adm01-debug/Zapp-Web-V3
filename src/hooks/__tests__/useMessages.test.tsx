@@ -21,6 +21,17 @@ vi.mock('@/lib/logger');
 
 import { useMessages } from '@/hooks/useMessages';
 
+// QUARANTINED (2026-07-03): this suite is stale and crashes the whole test run
+// with an OOM. The hook's API is `useMessages(remoteJid: string | null)`, but
+// these tests call `useMessages({ contactId })` — an object. `renderHook`
+// creates a new object every render, so the `[remoteJid]` effect dependency
+// changes identity each render, re-firing loadMessages in an infinite
+// re-render loop until the heap is exhausted. The mocks are also wrong (they
+// stub `supabase.from().select().eq().order().range()`, but the hook fetches
+// via `dbList(RPC.listMessagesLite)`). `@ts-nocheck` hid the object-vs-string
+// mismatch. Skipped rather than left to OOM the suite; needs a full rewrite
+// against the real string API + a dbList mock. See docs/HARDENING_SESSION.
+
 function makeQueryChain(data: any[] = [], error: any = null) {
   const rangeMock = vi.fn()
     .mockResolvedValueOnce({ data, error })
@@ -36,7 +47,7 @@ function makeQueryChain(data: any[] = [], error: any = null) {
   };
 }
 
-describe('useMessages', () => {
+describe.skip('useMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFrom.mockReturnValue(makeQueryChain());

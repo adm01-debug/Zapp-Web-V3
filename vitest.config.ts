@@ -17,6 +17,12 @@ export default defineConfig({
     poolOptions: {
       forks: { minForks: 1, maxForks: 3 },
     },
+    // Realtime/async tests use waitFor with timeouts up to 10s; the default 5s
+    // test timeout killed them first under slow scheduling, making them flaky.
+    // 15s gives those waitFors headroom without masking real hangs (the one
+    // test that actually hung — useMessages, an infinite re-render loop — is
+    // quarantined, not merely waited on).
+    testTimeout: 15000,
     // Env dummy para que módulos que importam o client real do Supabase não
     // lancem na importação. Testes que tocam a rede mockam o client mesmo assim.
     env: {
