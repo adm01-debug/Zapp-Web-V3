@@ -66,9 +66,12 @@ export async function handleOutgoingWhatsAppMessage(
   }
 
   // Re-check before INSERT: a concurrent webhook that lost the placeholder race
-  // may have already inserted a row for this externalId between the initial
-  // dedup check (line ~18) and here. Without this guard both writers fall through
-  // to INSERT and produce a duplicate row.
+  // may have already inserted a row for this externalId in the window between the
+  // initial dedup check (~line 18) and here. This SELECT reduces the chance of
+  // hitting the DB UNIQUE constraint, but it is not atomic — a sub-millisecond
+  // race between the SELECT and the upsert below is still possible. The
+  // upsert's ON CONFLICT DO NOTHING (ignoreDuplicates:true) is the final,
+  // fully atomic backstop: the DB rejects the second write at constraint level.
   const { data: raceCheck } = await supabase.from('messages')
     .select('id')
     .eq('external_id', externalId)
