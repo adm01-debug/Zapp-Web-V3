@@ -231,12 +231,25 @@ export function shouldUpdateStatus(currentStatus: string | null, newStatus: stri
   return newPriority > currentPriority;
 }
 
+/**
+ * Filtro PostgREST que casa uma conexão tanto pelo NOME roteável quanto pelo
+ * UUID interno da Evolution. Eventos de webhook chegam com o nome da instância,
+ * mas `whatsapp_connections.instance_id` guardava o nome em linhas legadas e o
+ * UUID nas novas (incidente wpp2 2026-07-04) — `instance_name` é a fonte da
+ * verdade e `instance_id` fica como fallback legado. Sanitiza o valor porque
+ * vírgula/parênteses/aspas são sintaxe do `.or()` do PostgREST.
+ */
+export function instanceOrFilter(instance: string): string {
+  const safe = String(instance).replace(/[",()\\]/g, '');
+  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
+}
+
 // deno-lint-ignore no-explicit-any
 export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
   const { data } = await supabase
     .from('whatsapp_connections')
     .select('id')
-    .eq('instance_id', instance)
+    .or(instanceOrFilter(instance))
     .maybeSingle();
   return data;
 }

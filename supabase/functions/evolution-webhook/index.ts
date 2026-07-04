@@ -6,6 +6,7 @@ import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
   sha256Hex, markEventProcessed, auditWebhookEvent, routeToDeadLetter,
+  instanceOrFilter,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
 import { parseMessageContent } from "../_shared/evolution-media.ts";
@@ -183,7 +184,7 @@ serve(async (req) => {
       if (qrCode) {
         await supabase.from('whatsapp_connections')
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
-          .eq('instance_id', instance);
+          .or(instanceOrFilter(instance));
       }
     }
 
