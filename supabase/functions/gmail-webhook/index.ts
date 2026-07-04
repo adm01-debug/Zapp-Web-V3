@@ -33,6 +33,16 @@ serve(async (req) => {
         if (authed instanceof Response) return authed;
 
         const { accountId } = body;
+
+        // Verify the authenticated user owns this gmail_accounts row.
+        const { data: accountCheck } = await supabase
+          .from('gmail_accounts')
+          .select('id')
+          .eq('id', accountId)
+          .eq('user_id', authed.user.id)
+          .maybeSingle();
+        if (!accountCheck) return json({ error: 'Conta não encontrada ou acesso negado' }, 403);
+
         const token = await getValidToken(supabase, accountId);
         if (!token) return json({ error: 'Token inválido' }, 401);
 
@@ -174,10 +184,15 @@ async function processHistory(
     }
   }
 
-  // Fetch and persist all new messages in parallel
-  await Promise.allSettled(
+  // Fetch and persist all new messages in parallel; log any individual failures.
+  const results = await Promise.allSettled(
     addedMessages.slice(0, 20).map(msgId => fetchAndPersistMessage(supabase, token, accountId, msgId))
   );
+  for (const r of results) {
+    if (r.status === 'rejected') {
+      console.error('[gmail-webhook] processHistory message failed:', r.reason instanceof Error ? r.reason.message : String(r.reason));
+    }
+  }
 }
 
 async function fetchAndPersistMessage(
