@@ -375,7 +375,7 @@ export default function AdminInboxSyncStatusPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => fetchAll()}
+            onClick={() => void fetchAll()}
             disabled={refreshing}
           >
             <RefreshCw className={`h-4 w-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
