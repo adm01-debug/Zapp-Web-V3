@@ -21,7 +21,7 @@ serve(async (req) => {
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   const authed = await requireUser(req);
-  if (authed instanceof Response) return json({ error: 'Unauthorized' }, 401);
+  if (authed instanceof Response) return authed;
 
   try {
     const body = await req.json().catch(() => ({}));
