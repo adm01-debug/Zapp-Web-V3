@@ -47,7 +47,7 @@ export const ContactActivityFeed: React.FC<{ contactId: string; maxItems?: numbe
       }
 
       // Audit log
-      const { data: audit , error: auditErr } = await (supabase.from('contact_audit_log' as any) as any).select('id,action,field_name,changed_at').eq('contact_id', contactId).order('changed_at', { ascending: false }).limit(30);
+      const { data: audit , error: auditErr } = await (supabase as any).from('contact_audit_log').select('id,action,field_name,changed_at').eq('contact_id', contactId).order('changed_at', { ascending: false }).limit(30);
       for (const e of (audit ?? []) as Record<string, unknown>[]) {
         const field = String(e.field_name ?? ''); const action = String(e.action ?? '');
         if (action === 'INSERT') { all.push({ id: `a-${e.id}`, type: 'edit', label: 'Contato criado', timestamp: String(e.changed_at) }); }

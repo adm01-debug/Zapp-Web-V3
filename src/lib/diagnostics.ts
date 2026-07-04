@@ -99,7 +99,7 @@ export async function runConnectionDiagnostics() {
         log('Data Read-back (RLS)', 'pass', { verified_id: verifyData.id });
         
         // Limpeza
-        await supabase.from('system_connections' as any).delete().eq('name', testName);
+        await (supabase as any).from('system_connections').delete().eq('name', testName);
         log('Cleanup', 'pass', 'Registro de teste removido.');
       }
     }

@@ -153,7 +153,7 @@ export async function sendMessageToContact(
   try {
     // Audit: Início da tentativa
     if (opts.conversationId) {
-      await supabase.from('conversation_audit_logs' as any).insert({
+      await (supabase as any).from('conversation_audit_logs').insert({
         conversation_id: opts.conversationId,
         event_type: 'send_attempt',
         status: 'starting',
@@ -172,12 +172,12 @@ export async function sendMessageToContact(
       log.warn('WhatsApp connection not active, message marked as failed');
       await dbFrom('messages').update({ status: 'failed', error_reason: 'Nenhuma conexão WhatsApp ativa disponível' }).eq('id', data.id);
       
-        await (supabase.from('conversation_audit_logs' as any).insert({
+        await (supabase as any).from('conversation_audit_logs').insert({
           conversation_id: opts.conversationId,
           event_type: 'failed',
           status: 'error',
           error_message: 'Nenhuma conexão WhatsApp ativa disponível'
-        }) as any);
+        });
       
       throw new Error('Nenhuma conexão WhatsApp ativa disponível');
     }
@@ -224,13 +224,13 @@ export async function sendMessageToContact(
           const sid = opts.optimisticId || data.id;
           emitSendStatus(sid, { status: 'retrying', attempt, totalRetries: total }, { contactId, source: 'messageSender' });
           
-            (supabase.from('conversation_audit_logs' as any).insert({
+            (supabase as any).from('conversation_audit_logs').insert({
               conversation_id: opts.conversationId,
               event_type: 'send_attempt',
               status: 'retrying',
               attempt_number: attempt,
               metadata: { totalRetries: total }
-            }) as any).then(() => null);
+            }).then(() => null);
 
           // Persist counters so the "2/3" indicator survives a page reload.
           // Fire-and-forget — never block the retry loop.
@@ -292,7 +292,7 @@ export async function sendMessageToContact(
     emitSendStatus(finalSid, { status: 'sent' }, { contactId, source: 'messageSender' });
 
     if (opts.conversationId) {
-      await supabase.from('conversation_audit_logs' as any).insert({
+      await (supabase as any).from('conversation_audit_logs').insert({
         conversation_id: opts.conversationId,
         event_type: 'delivered',
         status: 'success',
@@ -323,13 +323,13 @@ export async function sendMessageToContact(
       emitSendStatus(sid, { status: 'failed_retries', totalRetries: MAX_RETRIES, errorReason: reason }, { contactId, source: 'messageSender' });
     }
 
-      await (supabase.from('conversation_audit_logs' as any).insert({
+      await (supabase as any).from('conversation_audit_logs').insert({
         conversation_id: opts.conversationId,
         event_type: 'failed',
         status: 'error',
         error_message: reason,
         metadata: { authError: auth.isAuth, errorCode: auth.code }
-      }) as any);
+      });
     throw evolutionError;
   }
 

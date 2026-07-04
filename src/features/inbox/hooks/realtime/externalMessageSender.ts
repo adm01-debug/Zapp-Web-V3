@@ -190,12 +190,12 @@ export async function sendExternalAudio(
   });
 
   if (convId) {
-    void (supabase.from('conversation_audit_logs' as any).insert({
+    void (supabase as any).from('conversation_audit_logs').insert({
       conversation_id: convId,
       event_type: 'send_attempt',
       status: 'starting',
       metadata: { messageType: 'audio', isPtt: opts.isPtt ?? true }
-    } as any) as any);
+    });
   }
 
   const formData = new FormData();
@@ -270,12 +270,12 @@ export async function sendExternalAudio(
   optimistic.status = 'sent';
 
   if (convId) {
-    void (supabase.from('conversation_audit_logs' as any).insert({
+    void (supabase as any).from('conversation_audit_logs').insert({
       conversation_id: convId,
       event_type: 'delivered',
       status: 'success',
       metadata: { external_id: externalId }
-    } as any) as any);
+    });
   }
 
   return { optimistic, externalId };
