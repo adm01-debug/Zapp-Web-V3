@@ -1,5 +1,6 @@
 import { handleCors, jsonResponse, Logger, errorResponse } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUser } from "../_shared/auth.ts";
 
 /**
  * Endpoint to test VirusTotal connection and API Key
@@ -7,6 +8,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger("virustotal-test", req);
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 /**
  * MCP Server for Claude / AI Agents
@@ -8,6 +9,10 @@ import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
 serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
+
   const corsHeaders = getCorsHeaders(req);
 
   try {
