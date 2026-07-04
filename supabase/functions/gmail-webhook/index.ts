@@ -257,15 +257,33 @@ async function fetchAndPersistMessage(
   const msg = await msgRes.json();
   if (msg.error) {
     // 404: message deleted before ingestion — expected and harmless, skip silently.
-    // 429 / 5xx: transient Gmail errors (rate-limit, server fault) — throw plain Error so
-    //   processHistory holds history_id and Pub/Sub retries the batch.
-    // Other codes (400, 403, etc.): non-retryable — throw NonRetryableMessageError so
-    //   processHistory skips this message and advances history rather than stalling the account.
     if (msg.error.code === 404) return;
-    if (msg.error.code === 429 || msg.error.code >= 500) {
-      throw new Error(`Gmail API transient error for message ${messageId}: ${msg.error.code} ${msg.error.message ?? ''}`);
+
+    // Inspect the reason/status fields for fine-grained retryability classification.
+    // Coarse code-only checks misclassify retryable 401/403 variants as non-retryable,
+    // causing processHistory to skip those messages and advance history_id, permanently
+    // dropping emails that could have been recovered on the next Pub/Sub retry.
+    const reason = ((msg.error.errors?.[0]?.reason) ?? '').toLowerCase();
+    const status = ((msg.error.status) ?? '').toLowerCase();
+
+    // Transient: hold history_id so Pub/Sub retries and recovers the missed messages.
+    const isTransient =
+      msg.error.code === 401 ||                        // token expired — always retryable
+      msg.error.code === 429 ||                        // standard rate-limit header
+      msg.error.code >= 500 ||                         // server errors
+      reason === 'ratelimitexceeded' ||
+      reason === 'userratelimitexceeded' ||
+      reason === 'quotaexceeded' ||
+      status === 'unauthenticated' ||
+      status === 'resource_exhausted';
+
+    if (isTransient) {
+      throw new Error(`Gmail API transient error for message ${messageId}: ${msg.error.code} ${reason || (msg.error.message ?? '')}`);
     }
-    throw new NonRetryableMessageError(`Gmail API non-retryable error for message ${messageId}: ${msg.error.code} ${msg.error.message ?? ''}`);
+
+    // Non-retryable (e.g. insufficientPermissions, badRequest): skip as a poison pill so the
+    // account is not permanently stalled by a single bad message.
+    throw new NonRetryableMessageError(`Gmail API non-retryable error for message ${messageId}: ${msg.error.code} ${reason || (msg.error.message ?? '')}`);
   }
 
   const headers: Record<string, string> = {};
