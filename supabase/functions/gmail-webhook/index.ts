@@ -281,14 +281,16 @@ async function fetchAndPersistMessage(
     const status = ((msg.error.status) ?? '').toLowerCase();
 
     // Transient: hold history_id so Pub/Sub retries and recovers the missed messages.
+    // 401 is NOT blanket-transient — only the specific UNAUTHENTICATED status (token-expiry)
+    // qualifies. Blanket 401 classification causes persistent retry loops for account-level
+    // auth failures where the token stays valid but the API keeps rejecting the request.
     const isTransient =
-      msg.error.code === 401 ||                        // token expired — always retryable
       msg.error.code === 429 ||                        // standard rate-limit header
       msg.error.code >= 500 ||                         // server errors
       reason === 'ratelimitexceeded' ||
       reason === 'userratelimitexceeded' ||
       reason === 'quotaexceeded' ||
-      status === 'unauthenticated' ||
+      status === 'unauthenticated' ||                  // token expired — specific renewable failure
       status === 'resource_exhausted';
 
     if (isTransient) {
