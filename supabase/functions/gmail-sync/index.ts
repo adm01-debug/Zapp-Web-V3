@@ -62,9 +62,10 @@ serve(async (req) => {
         return json({ error: 'Failed to list Gmail threads' }, 400);
       }
 
-      // Fetch all thread details in parallel, then upsert each to Supabase
-      const threadResults = await Promise.allSettled(
-        (listData.threads ?? []).map(async (t: { id: string }) => {
+      // Fetch thread details in bounded batches of 5 to avoid Gmail API rate limits
+      const threadResults = await batchSettled(
+        listData.threads ?? [],
+        async (t: { id: string }) => {
           const tRes = await fetch(`${GMAIL_API}/threads/${t.id}?format=metadata&metadataHeaders=Subject,From,Date`, {
             headers: { Authorization: `Bearer ${token}` },
             signal: AbortSignal.timeout(10_000),
@@ -99,7 +100,8 @@ serve(async (req) => {
             .single();
 
           return { id: t.id, subject, snippet, fromHeader: fromH, lastActivity: dateH, unread: unread > 0, dbId: thread?.id };
-        })
+        },
+        5,
       );
 
       const threads = threadResults
@@ -124,8 +126,11 @@ serve(async (req) => {
       const listData = await listRes.json();
 
       const messages: Array<{ id: string }> = listData.messages ?? [];
-      const settled = await Promise.allSettled(
-        messages.map(m => fetchAndPersistMessage(supabase, token, accountId, m.id))
+      // Cap concurrency at 5 to avoid Gmail API rate limits on full sync
+      const settled = await batchSettled(
+        messages,
+        (m: { id: string }) => fetchAndPersistMessage(supabase, token, accountId, m.id),
+        5,
       );
       const syncedCount = settled.filter(r => r.status === 'fulfilled').length;
       const failedCount = settled.filter(r => r.status === 'rejected').length;
@@ -163,6 +168,21 @@ serve(async (req) => {
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────
+
+/** Run `fn` over `items` with at most `concurrency` items in flight at once. */
+async function batchSettled<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency: number,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.allSettled(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
 
 function headerMap(headers: Array<{name: string; value: string}>): Record<string, string> {
   const out: Record<string, string> = {};
