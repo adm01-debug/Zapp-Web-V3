@@ -12,28 +12,29 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
-
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
     const body  = await req.json();
     const { action, accountId } = body;
 
     // Verify the authenticated user owns this gmail_accounts row before proceeding.
-    const { data: accountCheck } = await supabase
+    const { data: accountCheck, error: accountCheckError } = await supabase
       .from('gmail_accounts')
       .select('id')
       .eq('id', accountId)
       .eq('user_id', authed.user.id)
       .maybeSingle();
+    if (accountCheckError) return json({ error: 'Internal server error' }, 500);
     if (!accountCheck) return json({ error: 'Conta não encontrada ou acesso negado' }, 403);
 
     // Obtém token válido (com auto-refresh)

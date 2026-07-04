@@ -12,18 +12,18 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
-
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
     const body     = await req.json();
     const { action, accountId } = body;
 
