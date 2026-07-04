@@ -76,7 +76,7 @@ export function useRouteRoles(path: string | undefined): AppRole[] | null {
       if (cancelled) return;
       const cached = cache.get(path) ?? null;
       setRoles(prev => (prev === cached ? prev : cached));
-    });
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };

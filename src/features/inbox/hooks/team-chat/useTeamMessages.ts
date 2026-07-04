@@ -121,7 +121,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
     if (lastReadRef.current === conversationId) return;
     lastReadRef.current = conversationId;
     const timeout = setTimeout(() => {
-      supabase.from('team_conversation_members').update({ last_read_at: new Date().toISOString() }).eq('conversation_id', conversationId).eq('profile_id', profile.id).then();
+      supabase.from('team_conversation_members').update({ last_read_at: new Date().toISOString() }).eq('conversation_id', conversationId).eq('profile_id', profile.id).then().catch(() => {});
     }, 500);
     return () => clearTimeout(timeout);
   }, [conversationId, profile]);

@@ -230,7 +230,7 @@ export async function sendMessageToContact(
               status: 'retrying',
               attempt_number: attempt,
               metadata: { totalRetries: total }
-            }).then(() => null);
+            }).then(() => null).catch(() => {});
 
           // Persist counters so the "2/3" indicator survives a page reload.
           // Fire-and-forget — never block the retry loop.

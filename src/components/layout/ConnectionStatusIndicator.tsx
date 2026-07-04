@@ -191,7 +191,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         { event: '*', schema: 'public', table: 'whatsapp_connections' },
         () => {
           // Invalidate shared cache so other consumers (senders, dialogs) see fresh data.
-          import('@/lib/whatsappConnectionsCache').then(m => m.invalidateWhatsappConnectionsCache());
+          import('@/lib/whatsappConnectionsCache').then(m => m.invalidateWhatsappConnectionsCache()).catch(() => {});
           fetchStatus();
         }
       )
