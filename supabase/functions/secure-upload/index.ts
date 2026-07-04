@@ -41,7 +41,8 @@ Deno.serve(async (req) => {
     // Restrict bucket to known-safe values; ignore any attacker-supplied name
     const requestedBucket = (formData.get("bucket") as string) || "whatsapp-media";
     const bucket = ALLOWED_BUCKETS.has(requestedBucket) ? requestedBucket : "whatsapp-media";
-    const rawPath = formData.get("path") as string | null;
+    const rawPathValue = formData.get("path");
+    const rawPath = typeof rawPathValue === "string" ? rawPathValue : null;
     // Strip ".." segments and leading slashes to prevent path traversal
     const customPath = rawPath ? rawPath.replace(/\.\./g, "").replace(/^\/+/, "") : null;
 

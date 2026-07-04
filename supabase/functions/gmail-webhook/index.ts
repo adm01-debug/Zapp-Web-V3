@@ -174,7 +174,7 @@ serve(async (req) => {
 
     return json({ error: 'Method not allowed' }, 405);
   } catch (err) {
-    console.error('[gmail-webhook]', err instanceof Error ? err.message : String(err));
+    console.error('[gmail-webhook]', err instanceof Error ? (err.stack ?? err.message) : String(err));
     return json({ error: 'Internal server error' }, 500);
   }
 });
