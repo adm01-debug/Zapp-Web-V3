@@ -82,6 +82,7 @@ serve(async (req) => {
           redirect_uri:  redirectUri,
           grant_type:    'authorization_code',
         }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       const tokens = await tokenRes.json();
@@ -92,6 +93,7 @@ serve(async (req) => {
       // Busca perfil do usuário
       const profileRes = await fetch(GOOGLE_USERINFO, {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       const profile = await profileRes.json();
 
@@ -150,6 +152,7 @@ serve(async (req) => {
           client_secret: clientSecret,
           grant_type:    'refresh_token',
         }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       const tokens = await tokenRes.json();
@@ -191,6 +194,7 @@ serve(async (req) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ token: account.access_token }),
+          signal: AbortSignal.timeout(10_000),
         });
       }
 
