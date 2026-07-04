@@ -11,8 +11,11 @@ export const EvolutionWebhookV1Schema = z.object({
   event: z.string(),
   instance: z.string(),
   data: z.record(z.any()).optional(),
-  sender: z.string().optional(),
-  apikey: z.string().optional(),
+  // Evolution v2.3.x envia `sender`/`apikey` como null em eventos emitidos antes
+  // da sessão autenticar (ex.: connection.update durante reconexão). `.optional()`
+  // sozinho rejeita null e derrubava todo connection.update com 422.
+  sender: z.string().nullish(),
+  apikey: z.string().nullish(),
 });
 
 /**

@@ -332,3 +332,7 @@ o oposto de excelência.
 ---
 
 _Gerado em 2026-07-03. Ferramentas: Portainer MCP, Evolution MCP, Supabase self-hosted MCP._
+
+> **Follow-up (sessão 2, 2026-07-04):** ver [`EVOLUTION_API_AUDIT_2026-07-04_followup.md`](./EVOLUTION_API_AUDIT_2026-07-04_followup.md) —
+> corrige a regressão 422/`contract_violation` que este fix de autenticação expôs (apikey `null` × Zod `.optional()`),
+> reduz o `log_statement` do PG14 e verifica em produção o estado de todos os itens acima.
