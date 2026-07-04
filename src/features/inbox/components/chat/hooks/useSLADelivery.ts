@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
@@ -13,7 +12,7 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
     if (!contactId || !messages.length) return;
     
     const checkDeliveryDelay = async () => {
-      const { data: customRule } = await supabase
+      const { data: customRule } = await (supabase as any)
         .from('sla_delivery_rules')
         .select('*')
         .eq('contact_id', contactId)

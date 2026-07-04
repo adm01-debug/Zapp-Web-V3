@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -75,8 +74,8 @@ export function useProviderPanel() {
       is_active: rest.is_active ?? true,
     };
     const op = id
-      ? supabase.from('provider_configs').update(data).eq('id', id)
-      : supabase.from('provider_configs').insert(data);
+      ? (supabase as any).from('provider_configs').update(data).eq('id', id)
+      : (supabase as any).from('provider_configs').insert(data);
     const { error } = await op;
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -88,7 +87,7 @@ export function useProviderPanel() {
   };
 
   const deleteProvider = async (id: string) => {
-    const { error } = await supabase.from('provider_configs').delete().eq('id', id);
+    const { error } = await (supabase as any).from('provider_configs').delete().eq('id', id);
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
       return;

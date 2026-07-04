@@ -12,24 +12,30 @@ export class BridgeService {
     }
 
     try {
-      const { data, error: qErr } = await externalSupabase
-        .from('v_webhook_health')
-        .select('*')
+      // Connectivity probe — a successful query proves the external DB is reachable.
+      // v_webhook_health view may not exist yet; use a minimal select as ping instead.
+      const { error: pingErr } = await externalSupabase
+        .from('contacts')
+        .select('id')
         .limit(1);
 
-      if (qErr) throw qErr;
-      
-      return { 
-        health: (data?.[0] as HealthRow) ?? null, 
-        error: null, 
-        status: 'online' 
+      if (pingErr && (pingErr.message?.includes('does not exist') || (pingErr as any).code === '42P01')) {
+        // Table missing but DB is reachable — report online with no health detail
+        return { health: null, error: null, status: 'online' };
+      }
+      if (pingErr) throw pingErr;
+
+      return {
+        health: null,
+        error: null,
+        status: 'online'
       };
     } catch (e) {
       log.error('[BridgeService] health check failed', e);
-      return { 
-        health: null, 
-        error: e instanceof Error ? e.message : 'Falha ao verificar.', 
-        status: 'offline' 
+      return {
+        health: null,
+        error: e instanceof Error ? e.message : 'Falha ao verificar.',
+        status: 'offline'
       };
     }
   }

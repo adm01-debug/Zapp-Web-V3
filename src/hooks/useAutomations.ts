@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getExternalSupabase } from "@/integrations/supabase/externalClient";
@@ -58,10 +57,10 @@ export function useAutomations({
     const load = async () => {
       try {
         const { data, error } = await supabase
-          .from('automation_rules')
-          .select("id,name,trigger_type,trigger_config,actions,is_active,priority")
+          .from('automations')
+          .select("id,name,trigger_type,trigger_config,actions,is_active")
           .eq("is_active", true)
-          .order("priority", { ascending: true });
+          .order("name", { ascending: true });
         
         if (error) throw error;
         if (!cancelled && data) rulesRef.current = data as AutomationRule[];
@@ -115,10 +114,10 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        const { data: contact } = await client.rpc("rpc_get_contact", {
+        const { data: contact } = await (client as any).rpc("rpc_get_contact", {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
-        } as any);
+        });
         const c: any = Array.isArray(contact) ? contact[0] : contact;
         currentTags = Array.isArray(c?.tags) ? c.tags.map((t: any) => String(t)) : [];
         if (prevTagsRef.current !== null) {
@@ -199,7 +198,7 @@ export function useAutomations({
         if (!matched) continue;
 
         // Registra execução respeitando cooldown (RPC)
-        const { data: execId , error: execIdErr } = await supabase.rpc(
+        const { data: execId , error: execIdErr } = await (supabase as any).rpc(
           "rpc_register_automation_execution",
           {
             p_rule_id: rule.id,
@@ -229,12 +228,12 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            await client.rpc("rpc_upsert_contact", {
+            await (client as any).rpc("rpc_upsert_contact", {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
-            } as any);
-            await supabase
+            });
+            await (supabase as any)
               .from('automation_executions')
               .update({
                 applied_tags: allTags,
@@ -248,11 +247,11 @@ export function useAutomations({
               .eq("id", execId);
           } catch (e: any) {
             log.warn("[automation] apply_tags/escalate failed", e);
-            await supabase.rpc("rpc_record_automation_error", {
+            await (supabase as any).rpc("rpc_record_automation_error", {
               p_execution_id: execId,
               p_error: String(e?.message ?? e),
-              p_context: { stage: "apply_tags_or_escalate", tags: allTags } as any,
-            } as any);
+              p_context: { stage: "apply_tags_or_escalate", tags: allTags },
+            });
           }
         }
 
@@ -273,19 +272,19 @@ export function useAutomations({
 
             // Auto envio
             if (actions.auto_send) {
-              const { data: exec , error: execErr } = await supabase
+              const { data: exec , error: execErr } = await (supabase as any)
                 .from('automation_executions')
                 .select("suggestion_text")
                 .eq("id", execId)
                 .maybeSingle();
               if (exec?.suggestion_text) {
-                await client.rpc("rpc_insert_message", {
+                await (client as any).rpc("rpc_insert_message", {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
                   p_message_type: "text",
-                } as any);
-                await supabase
+                });
+                await (supabase as any)
                   .from('automation_executions')
                   .update({ status: "executed", acted_at: new Date().toISOString() })
                   .eq("id", execId);
@@ -293,11 +292,11 @@ export function useAutomations({
             }
           } catch (e: any) {
             log.warn("[automation] suggest_reply failed", e);
-            await supabase.rpc("rpc_record_automation_error", {
+            await (supabase as any).rpc("rpc_record_automation_error", {
               p_execution_id: execId,
               p_error: String(e?.message ?? e),
-              p_context: { stage: "suggest_reply_or_autosend" } as any,
-            } as any);
+              p_context: { stage: "suggest_reply_or_autosend" },
+            });
           }
         }
       }

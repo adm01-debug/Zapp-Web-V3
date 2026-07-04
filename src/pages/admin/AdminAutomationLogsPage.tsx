@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,7 +91,7 @@ export default function AdminAutomationLogsPage() {
 
   const load = async () => {
     setLoading(true);
-    let q = supabase
+    let q = (supabase as any)
       .from('automation_executions')
       .select("*")
       .order("created_at", { ascending: false })
@@ -110,7 +109,11 @@ export default function AdminAutomationLogsPage() {
 
     const { data, error } = await q;
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      // Silently show empty state when table doesn't exist yet (pending migration)
+      const isMissing = error.message?.includes('does not exist') || (error as any).code === '42P01';
+      if (!isMissing) {
+        toast({ title: "Erro", description: error.message, variant: "destructive" });
+      }
       setRows([]);
     } else {
       setRows((data ?? []) as ExecutionRow[]);
@@ -120,7 +123,7 @@ export default function AdminAutomationLogsPage() {
 
   useEffect(() => {
     supabase
-      .from('automation_rules')
+      .from('automations')
       .select("id,name")
       .order("name")
       .then(({ data }) => setRules((data ?? []) as RuleLite[]));
@@ -136,7 +139,7 @@ export default function AdminAutomationLogsPage() {
       .channel("automation-executions-audit")
       .on(
         "postgres_changes",
-        { event: "*", schema: "zapp", table: "automation_executions" },
+        { event: "*", schema: "public", table: "automation_executions" },
         () => {
           if (page === 0) load();
         },

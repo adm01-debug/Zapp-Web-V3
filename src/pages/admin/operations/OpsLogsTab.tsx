@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -210,7 +209,7 @@ function PmlPanel() {
 
   const load = async () => {
     setLoading(true);
-    let q = supabase
+    let q = (supabase as any)
       .from('provider_message_log')
       .select(
         "id,provider,instance_name,direction,remote_jid,delivery_status,http_status,error_message,received_at",

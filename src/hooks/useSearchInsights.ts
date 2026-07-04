@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -39,7 +38,7 @@ export function useSearchInsights(days: number) {
   return useQuery<SearchInsights>({
     queryKey: ['search-insights', days],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_search_insights', { p_days: days });
+      const { data, error } = await (supabase as any).rpc('rpc_search_insights', { p_days: days });
       if (error) throw error;
       if (!data || typeof data !== 'object') return { ...EMPTY, window_days: days };
       return { ...EMPTY, ...(data as Partial<SearchInsights>), window_days: days };

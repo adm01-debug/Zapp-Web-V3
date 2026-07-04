@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -103,14 +102,9 @@ export default function BridgeStatusPage() {
       if (isExternalConfigured) {
         const extSupabase = getExternalSupabase();
         if (extSupabase) {
-          const { error: extError } = await extSupabase.from('evolution_stage_mapping').select('count').limit(1);
+          // Connectivity probe — a working query proves the external DB is reachable
+          const { error: extError } = await extSupabase.from('contacts').select('id').limit(1);
           externalOk = !extError;
-          
-          if (externalOk) {
-            // Get some quick stats if available
-            const { count } = await extSupabase.from('evolution_stage_mapping').select('*', { count: 'exact', head: true });
-            setInstanceCount(count || 0);
-          }
         }
       }
       setExternalDb(externalOk);
@@ -122,7 +116,7 @@ export default function BridgeStatusPage() {
 
       // 4. Check Recent Message Traffic
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count: msgCount, data: lastMsg } = await supabase
+      const { count: msgCount, data: lastMsg } = await (supabase as any)
         .from('provider_message_log')
         .select('received_at', { count: 'exact' })
         .gt('received_at', fiveMinsAgo)
@@ -172,7 +166,7 @@ export default function BridgeStatusPage() {
   }, [toast]);
 
   const fetchIncidents = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('system_health_incidents')
       .select('*')
       .order('started_at', { ascending: false })

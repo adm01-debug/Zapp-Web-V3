@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
@@ -22,6 +21,7 @@ const mockChannel = vi.fn(() => mockChannelInstance);
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (...args: any[]) => mockFrom(...args),
+    // @ts-expect-error spread of any[] into mock function
     channel: (...args: any[]) => mockChannel(...args),
     removeChannel: (...args: any[]) => mockRemoveChannel(...args),
     auth: {

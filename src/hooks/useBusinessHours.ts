@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -44,7 +43,7 @@ export function useBusinessHours(connectionId: string) {
   const { data: businessHours, isLoading: loadingHours, refetch: refetchHours } = useQuery({
     queryKey: ['business-hours', connectionId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('business_hours')
         .select('*')
         .eq('whatsapp_connection_id', connectionId)
@@ -88,7 +87,7 @@ export function useBusinessHours(connectionId: string) {
     mutationFn: async ({ hours, away }: { hours: BusinessHour[]; away: AwayMessage }) => {
       // Upsert business hours
       for (const hour of hours) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('business_hours')
           .upsert({
             whatsapp_connection_id: connectionId,

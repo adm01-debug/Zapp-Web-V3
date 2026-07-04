@@ -31,14 +31,14 @@ export function useConnectionsActions(
     const instanceName = isOfficial ? `official_${Date.now().toString(36)}` : whatsappConnectionService.generateInstanceName(newConnection.name);
     
     try {
-      const { data, error } = await (supabase.from('whatsapp_connections' as any).insert({
+      const { data, error } = await (supabase as any).from('whatsapp_connections').insert({
         name: newConnection.name,
         phone_number: newConnection.phone_number,
         instance_id: instanceName,
         status: 'disconnected',
         is_default: connections.length === 0,
-        api_type: newConnection.api_type as any,
-      }) as any).select().single();
+        api_type: newConnection.api_type,
+      }).select().single();
       
       if (error) throw error;
       
@@ -63,8 +63,8 @@ export function useConnectionsActions(
 
   const handleSetDefault = useCallback(async (id: string) => {
     try {
-      await (supabase.from('whatsapp_connections' as any).update({ is_default: false }) as any).neq('id', id);
-      const { error } = await (supabase.from('whatsapp_connections' as any).update({ is_default: true }) as any).eq('id', id);
+      await (supabase as any).from('whatsapp_connections').update({ is_default: false }).neq('id', id);
+      const { error } = await (supabase as any).from('whatsapp_connections').update({ is_default: true }).eq('id', id);
       if (error) throw error;
       setConnections(prev => prev.map(c => ({ ...c, is_default: c.id === id })));
       toast({ title: 'Conexão padrão atualizada' });
@@ -80,7 +80,7 @@ export function useConnectionsActions(
       if (evoName) {
         await deleteInstance(evoName).catch(e => log.warn('Failed to delete evolution instance:', e));
       }
-      const { error } = await supabase.from('whatsapp_connections' as any).delete().eq('id', connection.id);
+      const { error } = await (supabase as any).from('whatsapp_connections').delete().eq('id', connection.id);
       if (error) throw error;
       setConnections(prev => prev.filter(c => c.id !== connection.id));
       toast({ title: 'Conexão removida' });

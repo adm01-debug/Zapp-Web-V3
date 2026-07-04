@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
@@ -48,7 +47,7 @@ export function useSLAAlertPreferences() {
     }
     setIsLoading(true);
 
-    void supabase
+    void (supabase as any)
       .from('sla_alert_preferences')
       .select('enabled, alert_first_response, alert_resolution, severity_warning, severity_breached')
       .eq('user_id', user.id)
@@ -98,7 +97,7 @@ export function useSLAAlertPreferences() {
     async (next: SLAAlertPreferences) => {
       if (!user?.id) return { error: new Error('Not authenticated') };
       setIsSaving(true);
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('sla_alert_preferences')
         .upsert({ user_id: user.id, ...next }, { onConflict: 'user_id' });
       setIsSaving(false);

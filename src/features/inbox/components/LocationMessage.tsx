@@ -49,16 +49,25 @@ export function LocationMessageDisplay({ location, isSent }: LocationMessageDisp
       interactive: false,
     });
 
-    // Add marker
+    // Add marker — build via DOM API instead of innerHTML to avoid unsafe string interpolation
     const el = document.createElement('div');
     el.className = 'location-marker';
-    el.innerHTML = `
-      <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg ${location.isLive ? 'animate-pulse ring-4 ring-primary/30' : ''}">
-        <svg class="w-4 h-4 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-      </div>
-    `;
+
+    const inner = document.createElement('div');
+    inner.className = `w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg${location.isLive ? ' animate-pulse ring-4 ring-primary/30' : ''}`;
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'w-4 h-4 text-primary-foreground');
+    svg.setAttribute('fill', 'currentColor');
+    svg.setAttribute('viewBox', '0 0 24 24');
+
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z');
+
+    svg.appendChild(path);
+    inner.appendChild(svg);
+    el.appendChild(inner);
 
     marker.current = new mapboxgl.Marker(el)
       .setLngLat([location.longitude, location.latitude])

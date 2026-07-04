@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,7 +67,7 @@ export function OpsMetricsTab() {
   const fetchMetrics = useMemo(
     () => async () => {
       setLoading(true);
-      const { data: res, error } = await supabase.rpc("rpc_ops_metrics", {
+      const { data: res, error } = await (supabase as any).rpc("rpc_ops_metrics", {
         p_window_hours: Number(windowHours),
       });
       if (error) {

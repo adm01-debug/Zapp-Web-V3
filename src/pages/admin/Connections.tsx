@@ -198,8 +198,8 @@ export default function AdminConnectionsPage() {
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
       const { data, error, status, statusText } = existing
-        ? await supabase.from('system_connections' as any).update(payload).eq('id', existing.id).select()
-        : await supabase.from('system_connections' as any).insert(insertPayload).select();
+        ? await (supabase as any).from('system_connections').update(payload).eq('id', existing.id).select()
+        : await (supabase as any).from('system_connections').insert(insertPayload).select();
 
       if (error) {
         const msg = `Falha na escrita [Provider: ${payload.provider}]: Status ${status} (${statusText || 'Erro'}). Mensagem: ${error.message}${error.code ? ` (Code: ${error.code})` : ''}`;

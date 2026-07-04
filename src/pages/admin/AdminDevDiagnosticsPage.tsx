@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -34,7 +33,7 @@ export default function AdminDevDiagnosticsPage() {
 
   async function loadLogs() {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('dev_diagnostic_logs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -50,7 +49,7 @@ export default function AdminDevDiagnosticsPage() {
 
   async function logAccess() {
     if (!isDev) return;
-    await supabase.from('dev_diagnostic_logs').insert({
+    await (supabase as any).from('dev_diagnostic_logs').insert({
       action: 'Access Dev Diagnostics',
       category: 'Audit',
       details: { user_agent: navigator.userAgent, screen: `${window.innerWidth}x${window.innerHeight}` }

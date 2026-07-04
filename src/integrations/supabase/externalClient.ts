@@ -18,6 +18,9 @@
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from './client';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('externalClient');
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
 
@@ -69,8 +72,8 @@ if (!isExternalConfigured) {
   // Expected in production (single-database FATOR X): VITE_EXTERNAL_* are not
   // set; the main authenticated client is reused. Not an error — use debug level
   // to avoid polluting the console on every production session.
-  console.debug(
-    '[externalClient] VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).',
+  log.debug(
+    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).',
   );
 }
 
@@ -99,7 +102,7 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
     },
   });
 
-  console.log('[externalClient] Runtime config updated successfully');
+  log.info('Runtime config updated successfully');
 }
 
 export function getExternalSupabase(): SupabaseClient {

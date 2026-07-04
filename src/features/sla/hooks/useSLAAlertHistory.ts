@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,7 +19,7 @@ export interface SLAAlertHistoryEntry {
 const PAGE_SIZE = 100;
 
 async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('sla_history')
     .select(`
       id,
@@ -71,7 +70,7 @@ export function useSLAAlertHistory() {
 
   const resolveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('sla_history')
         .update({ is_resolved: true, resolved_at: new Date().toISOString() })
         .eq('id', id);

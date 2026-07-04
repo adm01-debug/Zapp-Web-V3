@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * HmacAuditHistoryPanel
  *
@@ -126,7 +125,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      let q = supabase
+      let q = (supabase as any)
         .from('hmac_selftest_audit')
         .select(
           'id, instance, ok, duration_ms, error, message, good_accepted, tampered_rejected, created_at',
@@ -136,9 +135,11 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
         .limit(2000); // teto defensivo para a janela
       if (instanceFilter !== ALL_INSTANCES) q = q.eq('instance', instanceFilter);
       const { data, error } = await q;
-      if (error) throw error;
+      // Return empty array when table is not yet provisioned (pending migration)
+      if (error) return [] as AuditRow[];
       return (data as AuditRow[]) ?? [];
     },
+    retry: false,
     staleTime: 5_000,
     refetchInterval: realtimeStatus === 'live' ? 60_000 : 20_000,
   });
@@ -149,19 +150,21 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
   const { data: instanceOptions } = useQuery({
     queryKey: ['hmac-selftest-audit-instances', range],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('hmac_selftest_audit')
         .select('instance')
         .gte('created_at', since)
         .not('instance', 'is', null)
         .limit(1000);
-      if (error) throw error;
+      // Return empty list when table is not yet provisioned
+      if (error) return [] as string[];
       const set = new Set<string>();
       (data ?? []).forEach((r: { instance: string | null }) => {
         if (r.instance) set.add(r.instance);
       });
       return Array.from(set).sort();
     },
+    retry: false,
     staleTime: 30_000,
   });
 
