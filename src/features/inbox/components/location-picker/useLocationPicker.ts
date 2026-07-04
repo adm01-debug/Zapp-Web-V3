@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
@@ -22,13 +23,15 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
-    if (open) {
-      supabase.functions.invoke('get-mapbox-token').then(({ data, error }) => {
-        if (!error && data?.token) setMapboxToken(data.token);
-      }).catch(err => log.error('Error fetching Mapbox token:', err));
-    }
+    if (!open) return;
+    let cancelled = false;
+    supabase.functions.invoke('get-mapbox-token').then(({ data, error }) => {
+      if (!cancelled && !error && data?.token) setMapboxToken(data.token);
+    }).catch(err => log.error('Error fetching Mapbox token:', err));
+    return () => { cancelled = true; };
   }, [open]);
 
   const updateMarker = useCallback((lng: number, lat: number) => {
@@ -48,16 +51,18 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
     try {
       const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&language=pt`);
       const data = await response.json();
+      if (!mountedRef.current) return;
       if (data.features?.length > 0) {
         setSelectedLocation({ lat, lng, name: data.features[0].text, address: data.features[0].place_name });
       } else {
         setSelectedLocation({ lat, lng });
       }
     } catch (error) {
+      if (!mountedRef.current) return;
       log.error('Error reverse geocoding:', error);
       setSelectedLocation({ lat, lng });
     }
-  }, [mapboxToken]);
+  }, [mapboxToken, mountedRef]);
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken || !open || activeTab !== 'map') return;
@@ -89,6 +94,7 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
     try {
       const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxToken}&language=pt&country=br`);
       const data = await response.json();
+      if (!mountedRef.current) return;
       if (data.features?.length > 0) {
         const [lng, lat] = data.features[0].center;
         updateMarker(lng, lat);
@@ -96,9 +102,9 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
       } else {
         toast({ title: 'Local não encontrado', description: 'Tente buscar por outro endereço.', variant: 'destructive' });
       }
-    } catch (error) { log.error('Error searching location:', error); }
-    finally { setIsSearching(false); }
-  }, [searchQuery, mapboxToken, updateMarker]);
+    } catch (error) { if (mountedRef.current) log.error('Error searching location:', error); }
+    finally { if (mountedRef.current) setIsSearching(false); }
+  }, [searchQuery, mapboxToken, updateMarker, mountedRef]);
 
   const reset = useCallback(() => {
     setSelectedLocation(null);
