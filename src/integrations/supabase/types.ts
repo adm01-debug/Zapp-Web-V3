@@ -7651,6 +7651,7 @@ export type Database = {
           health_status: string | null
           id: string
           instance_id: string | null
+          instance_name: string | null
           is_default: boolean | null
           is_plugged: boolean | null
           last_health_check: string | null
@@ -7679,6 +7680,7 @@ export type Database = {
           health_status?: string | null
           id?: string
           instance_id?: string | null
+          instance_name?: string | null
           is_default?: boolean | null
           is_plugged?: boolean | null
           last_health_check?: string | null
@@ -7707,6 +7709,7 @@ export type Database = {
           health_status?: string | null
           id?: string
           instance_id?: string | null
+          instance_name?: string | null
           is_default?: boolean | null
           is_plugged?: boolean | null
           last_health_check?: string | null
