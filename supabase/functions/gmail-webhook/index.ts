@@ -186,10 +186,10 @@ async function processHistory(
     }
   }
 
-  // Busca e persiste cada nova mensagem
-  for (const msgId of addedMessages.slice(0, 20)) {
-    await fetchAndPersistMessage(supabase, token, accountId, msgId);
-  }
+  // Fetch and persist all new messages in parallel
+  await Promise.allSettled(
+    addedMessages.slice(0, 20).map(msgId => fetchAndPersistMessage(supabase, token, accountId, msgId))
+  );
 }
 
 async function fetchAndPersistMessage(
