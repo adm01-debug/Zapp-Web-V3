@@ -13,6 +13,27 @@ interface BulkRequest {
   source?: string; // 'panel' | 'cron' | 'api'
 }
 
+interface QueueMeta {
+  max_wait_time_minutes: number;
+  sla_priority: string;
+  routing_weight: number;
+  auto_rebalance_enabled: boolean;
+  is_active: boolean;
+}
+
+interface ContactCandidate {
+  id: string;
+  queue_id: string;
+  assigned_to: string | null;
+  created_at: string;
+  queues: QueueMeta;
+}
+
+interface FilteredCandidate extends ContactCandidate {
+  waitingMin: number;
+  breached: boolean;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: getCorsHeaders(req) });
@@ -68,15 +89,15 @@ Deno.serve(async (req) => {
   }
 
   const now = Date.now();
-  const filtered = (candidates ?? [])
-    .filter((c: any) => c.queues?.is_active && c.queues?.auto_rebalance_enabled)
-    .map((c: any) => {
+  const filtered = (candidates as ContactCandidate[] ?? [])
+    .filter(c => c.queues?.is_active && c.queues?.auto_rebalance_enabled)
+    .map((c): FilteredCandidate => {
       const waitingMin = (now - new Date(c.created_at).getTime()) / 60000;
       const breached = waitingMin > c.queues.max_wait_time_minutes;
       return { ...c, waitingMin, breached };
     })
-    .filter((c: any) => c.assigned_to === null || c.breached)
-    .sort((a: any, b: any) => {
+    .filter(c => c.assigned_to === null || c.breached)
+    .sort((a, b) => {
       const order = { critical: 0, high: 1, medium: 2, low: 3 } as Record<string, number>;
       const pa = order[a.queues.sla_priority] ?? 2;
       const pb = order[b.queues.sla_priority] ?? 2;
