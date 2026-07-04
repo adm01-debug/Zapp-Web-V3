@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 type VitalName = 'LCP' | 'FID' | 'CLS' | 'INP' | 'TTFB';
 
@@ -20,6 +21,9 @@ const VALID_NAMES = new Set<VitalName>(['LCP', 'FID', 'CLS', 'INP', 'TTFB']);
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger('client-observability');
 
