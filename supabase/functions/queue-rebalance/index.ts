@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
     .from("contacts")
     .select("id, queue_id, assigned_to, created_at, queues!inner(max_wait_time_minutes, sla_priority, routing_weight, auto_rebalance_enabled, is_active)")
     .not("queue_id", "is", null)
+    .order("created_at", { ascending: true })
     .limit(limit * 10);
 
   if (candErr) {

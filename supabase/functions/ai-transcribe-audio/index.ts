@@ -1,7 +1,7 @@
 import { handleCors, errorResponse, jsonResponse, checkRateLimit, getClientIP, requireEnv, Logger } from "../_shared/validation.ts";
 import { TranscribeAudioSchema, parseBody } from "../_shared/schemas.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { requireUser, requireServiceRoleOnly } from "../_shared/auth.ts";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -95,8 +95,8 @@ Deno.serve(async (req) => {
 
   try {
     // Called both internally (evolution-webhook → service role) and from frontend (user JWT).
-    // requireServiceRoleOrCron uses constant-time comparison to prevent timing attacks.
-    const internalCheck = requireServiceRoleOrCron(req);
+    // requireServiceRoleOnly: internal callers bypass user auth; cron-secret is NOT accepted here.
+    const internalCheck = requireServiceRoleOnly(req);
     if (internalCheck !== null) {
       const authed = await requireUser(req);
       if (authed instanceof Response) return authed;

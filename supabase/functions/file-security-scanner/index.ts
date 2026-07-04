@@ -92,15 +92,19 @@ Deno.serve(async (req) => {
     const maxAttempts = 10;
 
     while (attempts < maxAttempts) {
-      const pollResponse = await fetch(
-        `https://www.virustotal.com/api/v3/analyses/${analysisId}`,
-        { headers: { "x-apikey": VIRUSTOTAL_API_KEY }, signal: AbortSignal.timeout(10_000) },
-      );
+      try {
+        const pollResponse = await fetch(
+          `https://www.virustotal.com/api/v3/analyses/${analysisId}`,
+          { headers: { "x-apikey": VIRUSTOTAL_API_KEY }, signal: AbortSignal.timeout(10_000) },
+        );
 
-      analysisResult = await pollResponse.json();
-      const status = analysisResult.data.attributes.status;
+        analysisResult = await pollResponse.json();
+        const status = analysisResult.data.attributes.status;
 
-      if (status === "completed") break;
+        if (status === "completed") break;
+      } catch (pollErr) {
+        log.warn("Poll attempt failed, retrying", { attempt: attempts + 1, error: pollErr instanceof Error ? pollErr.message : String(pollErr) });
+      }
 
       log.debug("Analysis still in progress...", { attempt: attempts + 1 });
       await new Promise((resolve) => setTimeout(resolve, 2000));
