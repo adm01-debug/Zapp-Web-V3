@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { emailApi, type EmailRevalidationJob } from '@/services/email/emailApi';
+
+const log = getLogger('AdminEmailAuditPage');
 
 export default function AdminEmailAuditPage() {
   const [logs, setLogs] = useState<EmailRevalidationJob[]>([]);
@@ -40,7 +43,7 @@ export default function AdminEmailAuditPage() {
       setLogs(data || []);
       setTotal(count || 0);
     } catch (error) {
-      console.error('Erro ao carregar auditoria:', error);
+      log.error('Error loading audit logs', error);
       toast.error('Erro ao carregar histórico de auditoria');
     } finally {
       setLoading(false);
@@ -58,7 +61,7 @@ export default function AdminEmailAuditPage() {
       toast.success('Novo job de revalidação agendado');
       loadAuditLogs();
     } catch (error) {
-      console.error('Erro ao repetir job:', error);
+      log.error('Error retrying job', error);
       toast.error('Erro ao agendar nova tentativa');
     }
   };

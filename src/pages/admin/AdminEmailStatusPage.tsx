@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,8 @@ import type { EmailHealthInfo, EmailFailure } from '@/services/email/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { emailApi, type EmailHealthSummary, type EmailRevalidationJob } from '@/services/email/emailApi';
+
+const log = getLogger('AdminEmailStatusPage');
 
 const castStatus = (status: string | null): EmailHealthInfo['status'] => {
   if (status && ['healthy', 'degraded', 'error'].includes(status)) {
@@ -64,7 +67,7 @@ export default function AdminEmailStatusPage() {
       });
       setFailuresData(dataFull.failuresResult || { items: [], total: 0 });
     } catch (error) {
-      console.error('Erro ao carregar saúde do Email:', error);
+      log.error('Error loading email health', error);
       toast.error('O serviço de telemetria do Email está indisponível.');
       
       try {
@@ -81,7 +84,7 @@ export default function AdminEmailStatusPage() {
           });
         }
       } catch (fallbackErr) {
-        console.error('Fallback falhou:', fallbackErr);
+        log.error('Email health fallback also failed', fallbackErr);
       }
     } finally {
       setLoading(false);

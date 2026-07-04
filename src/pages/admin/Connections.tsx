@@ -16,6 +16,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('Connections');
 import { motion, AnimatePresence } from 'framer-motion';
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
@@ -80,13 +83,13 @@ export default function AdminConnectionsPage() {
         setIsAdmin(hasAccess);
         
         if (!hasAccess) {
-          console.warn("Usuário logado sem permissão de admin/dev:", user.email);
+          log.warn('User logged in without admin/dev permission', { email: user.email });
         }
       } else {
         setIsAdmin(false);
       }
     } catch (e: any) {
-      console.error("Erro ao verificar roles ou conexão:", e);
+      log.error('Error checking roles or connection', e);
       setIsAdmin(false);
       toast({ 
         title: 'Erro de Conexão ou Acesso', 

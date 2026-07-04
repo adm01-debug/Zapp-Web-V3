@@ -1,5 +1,8 @@
 
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('EmailHealthRepository');
 
 export class EmailHealthRepository {
   async getRemoteSummary() {
@@ -8,7 +11,7 @@ export class EmailHealthRepository {
       if (error) throw error;
       return data;
     } catch (err) {
-      console.warn('[EmailHealthRepository] Error fetching summary:', err);
+      log.warn('Error fetching health summary', err);
       return null;
     }
   }
