@@ -1,10 +1,14 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ElevenLabsSFXSchema, parseBody } from "../_shared/schemas.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger("elevenlabs-sfx");
 
