@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getSecret } from '../_shared/mod.ts';
 import { requireUser } from '../_shared/auth.ts';
+import { timingSafeEqual } from '../_shared/hmac-validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +39,7 @@ serve(async (req) => {
           return json({ error: 'Webhook authentication not configured' }, 401);
         }
         const receivedToken = new URL(req.url).searchParams.get('token');
-        if (!receivedToken || receivedToken !== expectedToken) {
+        if (!receivedToken || !timingSafeEqual(receivedToken, expectedToken)) {
           return json({ error: 'Invalid or missing push token' }, 401);
         }
       }

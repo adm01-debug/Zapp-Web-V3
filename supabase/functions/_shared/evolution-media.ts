@@ -44,8 +44,11 @@ export function isSafeMediaCdnUrl(url: string): boolean {
   try {
     const { protocol, hostname } = new URL(url);
     if (protocol !== 'https:') return false;
-    const allowed = ['mmg.whatsapp.net', 'media.whatsapp.net', 'pps.whatsapp.net', 'media-gru', 'media-lga', 'media-ord', 'media-sea', 'media-iad', 'media-mia', 'media-dfw'];
-    return allowed.some(h => hostname === h || hostname.endsWith('.' + h) || hostname.startsWith(h));
+    const h = hostname.toLowerCase();
+    const exact = new Set(['mmg.whatsapp.net', 'media.whatsapp.net', 'pps.whatsapp.net', 'static.whatsapp.net']);
+    if (exact.has(h)) return true;
+    if (h.endsWith('.whatsapp.net') || h.endsWith('.whatsapp.com')) return true;
+    return false;
   } catch { return false; }
 }
 

@@ -60,7 +60,7 @@ export async function verifyHmacSignature(
  * Timing-safe string comparison to prevent timing attacks.
  * Compares strings in constant time regardless of where they differ.
  */
-function timingSafeEqual(a: string, b: string): boolean {
+export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) {
     // Still do a full comparison to maintain constant time
     let dummy = 0;
