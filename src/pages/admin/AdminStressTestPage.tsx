@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * AdminStressTestPage — painel admin para teste de carga multimídia do WhatsApp.
  *

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin: Histórico de Alertas.
  * Reads `warroom_alerts` (Lovable Cloud) — already populated by the war-room
