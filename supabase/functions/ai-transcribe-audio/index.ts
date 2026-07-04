@@ -33,7 +33,7 @@ async function downloadAudio(
           const { data, error } = await sb.storage.from(bucket).download(path);
           if (error || !data) {
             log.error("Storage download failed", { error: error?.message });
-            return { error: `Storage download failed: ${error?.message ?? "unknown"}` };
+            return { error: "Storage download failed" };
           }
           const buffer = await data.arrayBuffer();
           return { buffer, contentType: data.type || "audio/ogg" };

@@ -59,7 +59,10 @@ serve(async (req) => {
         .eq('is_active', true)
         .lt('token_expiry', new Date(Date.now() + 10 * 60_000).toISOString());
 
-      if (dbErr) return json({ error: dbErr.message }, 500);
+      if (dbErr) {
+        console.error('[gmail-token-refresh] DB error fetching accounts:', dbErr.message);
+        return json({ error: 'Internal server error' }, 500);
+      }
       if (!accounts || accounts.length === 0) {
         return json({ success: true, message: 'Nenhum token para renovar', refreshed: 0 });
       }
