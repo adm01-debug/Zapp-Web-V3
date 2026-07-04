@@ -11,11 +11,13 @@ export { z };
  * `sender`/`data` nulos) em eventos connection.update quando a instância
  * está desconectada/deslogada. `.nullish()` aceita undefined E null;
  * `.optional()` rejeita null e causava 422 contract_violation.
+ * NOTA 2: `data` pode chegar como ARRAY em eventos como labels.association
+ * e messages.set — z.record() rejeita arrays no Zod 3.22, por isso o union.
  */
 export const EvolutionWebhookV1Schema = z.object({
   event: z.string(),
   instance: z.string(),
-  data: z.record(z.any()).nullish(),
+  data: z.union([z.record(z.any()), z.array(z.any())]).nullish(),
   sender: z.string().nullish(),
   apikey: z.string().nullish(),
 });
