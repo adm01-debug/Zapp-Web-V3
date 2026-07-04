@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { File, Download, Trash2, Loader2, UploadCloud, EyeOff, Search as SearchIcon, Eye } from 'lucide-react';
@@ -13,7 +13,7 @@ interface TeamFilesProps {
   contactId: string;
 }
 
-export function TeamFiles({ contactId }: TeamFilesProps) {
+export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -215,4 +215,4 @@ export function TeamFiles({ contactId }: TeamFilesProps) {
       </div>
     </div>
   );
-}
+});

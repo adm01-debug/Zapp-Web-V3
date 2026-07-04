@@ -4,9 +4,11 @@ import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import { EmailLabelInfo as EmailLabel } from '@/types/gmail';
+import { getLogger } from '@/lib/logger';
 
 export type { EmailLabel };
 
+const log = getLogger('useEmailLabels');
 const supabase = _supabase as any;
 
 export const SYSTEM_LABELS: Array<{ id: string; name: string; icon: string; color: string }> = [
@@ -34,7 +36,7 @@ export function useEmailLabels(accountId: string | null) {
     );
 
     if (dbErr) {
-      console.warn(`[useEmailLabels][${requestId}] Falha ao carregar labels:`, dbErr.message);
+      log.warn('Email labels load error', dbErr.message);
       setError(`Não foi possível carregar as pastas do Email.`);
     } else {
       setLabels(emailMappers.labels(Array.isArray(data) ? data : []));

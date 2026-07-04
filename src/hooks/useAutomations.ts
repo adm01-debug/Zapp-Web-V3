@@ -303,7 +303,7 @@ export function useAutomations({
     } catch (err) {
       log.error("Error evaluating automations:", err);
     }
-  }, [remoteJid, instanceName]);
+  }, [remoteJid, instanceName, assignedTo]);
 
   useEffect(() => {
     if (!remoteJid) return;

@@ -20,14 +20,17 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import { type EmailMessage } from './gmail/gmailTypes';
 import { GMAIL_MOCKS } from './gmail/gmailMocks';
-import { 
-  EmailAccount, 
-  EmailTokenInfo, 
-  EmailThread, 
+import { getLogger } from '@/lib/logger';
+import {
+  EmailAccount,
+  EmailTokenInfo,
+  EmailThread,
   EmailSendParams,
   EmailLabel,
   SLAStatus
 } from '@/types/gmail';
+
+const log = getLogger('useEmail');
 
 export type { 
   EmailAccount, 
@@ -198,7 +201,7 @@ export function useEmail() {
         setMessages(GMAIL_MOCKS.messages.filter(m => m.thread_id === threadId));
       } else {
         const rid = (dbErr as any).requestId || 'N/A';
-        console.error(`[useEmail][${rid}] Erro ao carregar mensagens:`, dbErr);
+        log.error('Email messages load error', dbErr);
       }
     } else {
       setMessages(Array.isArray(data) ? data : []);
@@ -393,7 +396,7 @@ export function useEmail() {
         t.id === threadId ? { ...t, assigned_to: agentId } : t
       ));
     } else {
-      console.warn(`[useEmail][${requestId}] Falha ao atribuir thread:`, rpcErr.message);
+      log.warn('Email thread assign error', rpcErr.message);
     }
   }, []);
 
