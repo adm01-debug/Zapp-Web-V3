@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
       .select("id, name, scheduled_at")
       .eq("status", "scheduled")
       .lte("scheduled_at", now)
+      .order("scheduled_at", { ascending: true })
       .limit(20);
 
     if (error) {

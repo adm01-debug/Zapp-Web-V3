@@ -23,7 +23,8 @@ Deno.serve(async (req) => {
     const parsed = parseBody(SicoobBridgeReplySchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
-    const { contact_id, content, message_id, agent_id, created_at } = parsed.data;
+    const { contact_id, content, message_id, created_at } = parsed.data;
+    const agent_id = authed.user.id; // always use the authenticated user's own id
 
     // Get the contact to verify it's a sicoob_gifts contact
     const { data: contact } = await supabase
@@ -47,16 +48,14 @@ Deno.serve(async (req) => {
       return errorResponse('No Sicoob mapping found for this contact', 404, req);
     }
 
-    // Get agent name
+    // Get agent name — only look up the calling user's own profile to prevent IDOR
     let agentName = 'Vendedor';
-    if (agent_id) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', agent_id)
-        .single();
-      if (profile?.full_name) agentName = profile.full_name;
-    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', authed.user.id)
+      .single();
+    if (profile?.full_name) agentName = profile.full_name;
 
     // Forward to Sicoob Gifts
     const sicoobPayload = {
@@ -92,6 +91,10 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, sicoob_response: result }, 200, req);
 
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      log.error("Sicoob Gifts bridge timed out");
+      return errorResponse('Gateway timeout forwarding to Sicoob Gifts', 504, req);
+    }
     log.error("Error", { error: error instanceof Error ? error.message : String(error) });
     return errorResponse('Internal server error', 500, req);
   }
