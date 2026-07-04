@@ -31,12 +31,11 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("elevenlabs-voice");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const ip = getClientIP(req);
     const rl = checkRateLimit(`voice:${ip}`, 20, 60_000);
     if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
