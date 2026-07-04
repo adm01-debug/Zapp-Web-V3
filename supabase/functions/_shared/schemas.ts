@@ -31,6 +31,7 @@ export const AiConversationSummarySchema = z.object({
 /** Schema para sugestão de resposta (ai-suggest-reply) */
 export const AiSuggestReplySchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
+  contactName: z.string().max(200).optional().nullable(),
   conversationHistory: z.array(z.object({
     role: z.string(),
     content: z.string(),

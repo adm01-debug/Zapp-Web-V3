@@ -62,12 +62,12 @@ Deno.serve(async (req) => {
     const { error } = await supabase.from('query_telemetry').insert(rows);
     if (error) {
       log.error('failed inserting query_telemetry', { error: error.message });
-      return errorResponse(error.message, 500, req);
+      return errorResponse('Internal server error', 500, req);
     }
 
     return jsonResponse({ ok: true, accepted: rows.length }, 200, req);
   } catch (error: unknown) {
     log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Internal error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

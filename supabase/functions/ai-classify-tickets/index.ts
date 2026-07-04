@@ -97,6 +97,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ classified: results.length, results, summary }, 200, req);
   } catch (err: unknown) {
     log.error("Error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse(err instanceof Error ? err.message : "Erro interno", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       contact_id: body.contact_id,
     });
     return new Response(
-      JSON.stringify({ ok: false, error: insertError.message }),
+      JSON.stringify({ ok: false, error: "Failed to log failure" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

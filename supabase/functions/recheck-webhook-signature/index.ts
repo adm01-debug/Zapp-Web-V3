@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (evErr || !ev) {
       return new Response(
-        JSON.stringify({ error: evErr?.message ?? 'Event not found' }),
+        JSON.stringify({ error: 'Event not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : 'Internal error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }

@@ -33,7 +33,9 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
     const systemPrompt = tonePrompts[tone as string];
 
-    const firstName = contactName ? contactName.split(' ')[0] : null;
+    const sanitizeForPrompt = (s: string) => s.replace(/[\n\r\t"'`\\]/g, ' ').trim().slice(0, 50);
+    const rawFirst = contactName ? contactName.split(' ')[0] : null;
+    const firstName = rawFirst ? sanitizeForPrompt(rawFirst) : null;
     const humanizationRule = firstName && firstName !== 'Cliente'
       ? `\n- REGRA CRÍTICA DE HUMANIZAÇÃO: O nome do cliente é "${firstName}". A mensagem reescrita DEVE obrigatoriamente começar mencionando o nome "${firstName}" de forma natural e humana (ex: "${firstName}, entendi sua solicitação..." ou "${firstName}, vou verificar isso..."). O cliente JAMAIS deve perceber que a resposta foi gerada por IA. Isso é OBRIGATÓRIO.`
       : '';
@@ -78,6 +80,6 @@ Regras importantes:
     return jsonResponse({ enhanced: enhancedMessage }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : "Erro desconhecido", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Logger, checkRateLimit, getClientIP, getCorsHeaders, handleCors, authorizeRoles, errorResponse } from "../_shared/validation.ts";
 import { EVOLUTION_ENVELOPE_VERSION, proxyToEvolution, resolvePrivateBucketUrl } from "../_shared/evolution-api-proxy.ts";
@@ -9,7 +8,7 @@ import { isInstancePaused, recordAuthFailureAndMaybePause } from "../_shared/ins
 import { WEBHOOK_EVENTS } from "../_shared/evolution-sync-actions.ts";
 
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
@@ -169,7 +168,7 @@ serve(async (req) => {
       }
       return await proxy('/instance/create', 'POST', { instanceName: instance, qrcode: (body as any).qrcode ?? true, integration: (body as any).integration || 'WHATSAPP-BAILEYS', token: (body as any).token, number: (body as any).number, businessId: (body as any).businessId, wabaId: (body as any).wabaId, phoneNumberId: (body as any).phoneNumberId, webhook: (body as any).webhook, chatwoot: (body as any).chatwoot, typebot: (body as any).typebot, proxy: (body as any).proxy });
     }
-    if (action === 'list-instances') return await proxy(`/instance/fetchInstances${(body as any).instanceName ? `?instanceName=${(body as any).instanceName}` : ''}`, 'GET');
+    if (action === 'list-instances') return await proxy(`/instance/fetchInstances${(body as any).instanceName ? `?instanceName=${encodeURIComponent(String((body as any).instanceName))}` : ''}`, 'GET');
 
 
     if (action === 'connect') {
@@ -299,7 +298,7 @@ serve(async (req) => {
         .lt('next_retry_at', new Date().toISOString())
         .limit(10);
       
-      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+      if (error) return new Response(JSON.stringify({ error: 'Failed to fetch queue' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       
       const results = [];
       for (const item of failed) {
@@ -327,7 +326,8 @@ serve(async (req) => {
             results.push({ id: item.id, status: 'retry_scheduled', nextRetry });
           }
         } catch (e) {
-          results.push({ id: item.id, status: 'error', message: (e as Error).message });
+          console.error('[evolution-api] reprocess error:', e instanceof Error ? e.message : String(e));
+          results.push({ id: item.id, status: 'error' });
         }
       }
       return new Response(JSON.stringify({ success: true, processed: results.length, details: results }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -559,7 +559,7 @@ serve(async (req) => {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (err) {
-        return new Response(JSON.stringify({ ok: false, skipped: true, error: err instanceof Error ? err.message : 'proxy failed' }), {
+        return new Response(JSON.stringify({ ok: false, skipped: true, error: 'proxy error' }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -603,16 +603,16 @@ serve(async (req) => {
     if (action === 'edit-message') return await proxy(`/chat/updateMessage/${instance}`, 'PUT', body);
 
     if (action === 'create-group') return await proxy(`/group/create/${instance}`, 'POST', { subject: (body as any).subject, description: (body as any).description, participants: (body as any).participants });
-    if (action === 'list-groups') return await proxy(`/group/fetchAllGroups/${instance}?getParticipants=${(body as any).getParticipants ?? 'false'}`, 'GET');
-    if (action === 'group-info') return await proxy(`/group/findGroupInfos/${instance}?groupJid=${(body as any).groupJid}`, 'GET');
-    if (action === 'group-participants') return await proxy(`/group/participants/${instance}?groupJid=${(body as any).groupJid}`, 'GET');
+    if (action === 'list-groups') return await proxy(`/group/fetchAllGroups/${instance}?getParticipants=${encodeURIComponent(String((body as any).getParticipants ?? 'false'))}`, 'GET');
+    if (action === 'group-info') return await proxy(`/group/findGroupInfos/${instance}?groupJid=${encodeURIComponent(String((body as any).groupJid ?? ''))}`, 'GET');
+    if (action === 'group-participants') return await proxy(`/group/participants/${instance}?groupJid=${encodeURIComponent(String((body as any).groupJid ?? ''))}`, 'GET');
     if (action === 'update-group-name') return await proxy(`/group/updateGroupSubject/${instance}`, 'PUT', { groupJid: (body as any).groupJid, subject: (body as any).subject });
     if (action === 'update-group-description') return await proxy(`/group/updateGroupDescription/${instance}`, 'PUT', { groupJid: (body as any).groupJid, description: (body as any).description });
     if (action === 'update-participants') return await proxy(`/group/updateParticipant/${instance}`, 'PUT', { groupJid: (body as any).groupJid, action: (body as any).action, participants: (body as any).participants });
     if (action === 'update-group-setting') return await proxy(`/group/updateSetting/${instance}`, 'PUT', { groupJid: (body as any).groupJid, action: (body as any).action });
-    if (action === 'group-invite-code') return await proxy(`/group/inviteCode/${instance}?groupJid=${(body as any).groupJid}`, 'GET');
+    if (action === 'group-invite-code') return await proxy(`/group/inviteCode/${instance}?groupJid=${encodeURIComponent(String((body as any).groupJid ?? ''))}`, 'GET');
     if (action === 'revoke-invite-code') return await proxy(`/group/revokeInviteCode/${instance}`, 'PUT', { groupJid: (body as any).groupJid });
-    if (action === 'invite-info') return await proxy(`/group/inviteInfo/${instance}?inviteCode=${(body as any).inviteCode}`, 'GET');
+    if (action === 'invite-info') return await proxy(`/group/inviteInfo/${instance}?inviteCode=${encodeURIComponent(String((body as any).inviteCode ?? ''))}`, 'GET');
     if (action === 'accept-invite') return await proxy(`/group/acceptInviteCode/${instance}`, 'POST', { inviteCode: (body as any).inviteCode });
     if (action === 'leave-group') return await proxy(`/group/leaveGroup/${instance}`, 'DELETE', { groupJid: (body as any).groupJid });
     if (action === 'update-group-picture') return await proxy(`/group/updateGroupPicture/${instance}`, 'PUT', { groupJid: (body as any).groupJid, image: (body as any).image });
@@ -646,7 +646,7 @@ serve(async (req) => {
     if (action === 'update-profile-status') return await proxy(`/profile/updateProfileStatus/${instance}`, 'PUT', { status: (body as any).status });
     if (action === 'update-profile-picture') return await proxy(`/profile/updateProfilePicture/${instance}`, 'PUT', { picture: (body as any).picture });
     if (action === 'remove-profile-picture') return await proxy(`/profile/removeProfilePicture/${instance}`, 'DELETE');
-    if (action === 'fetch-profile-picture') return await proxy(`/profile/fetchProfilePicture/${instance}?number=${(body as any).number}`, 'GET');
+    if (action === 'fetch-profile-picture') return await proxy(`/profile/fetchProfilePicture/${instance}?number=${encodeURIComponent(String((body as any).number ?? ''))}`, 'GET');
     if (action === 'fetch-business-profile') return await proxy(`/profile/fetchBusinessProfile/${instance}`, 'POST', { number: (body as any).number });
     if (action === 'update-privacy') return await proxy(`/profile/updatePrivacySettings/${instance}`, 'PUT', { readreceipts: (body as any).readreceipts, profile: (body as any).profile, status: (body as any).status, online: (body as any).online, last: (body as any).last, groupadd: (body as any).groupadd });
 
@@ -660,7 +660,7 @@ serve(async (req) => {
     if (action === 'set-typebot') return await proxy(`/typebot/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, url: (body as any).url, typebot: (body as any).typebot, expire: (body as any).expire ?? 20, keywordFinish: (body as any).keywordFinish ?? '#fim', delayMessage: (body as any).delayMessage ?? 1000, unknownMessage: (body as any).unknownMessage, listeningFromMe: (body as any).listeningFromMe ?? false, stopBotFromMe: (body as any).stopBotFromMe ?? true, keepOpen: (body as any).keepOpen ?? false, debounceTime: (body as any).debounceTime ?? 10, triggerType: (body as any).triggerType, triggerOperator: (body as any).triggerOperator, triggerValue: (body as any).triggerValue });
     if (action === 'get-typebot') return await proxy(`/typebot/find/${instance}`, 'GET');
     if (action === 'delete-typebot') return await proxy(`/typebot/delete/${instance}`, 'DELETE');
-    if (action === 'typebot-sessions') return await proxy(`/typebot/fetchSessions/${instance}${(body as any).typebotId ? `?typebotId=${(body as any).typebotId}` : ''}`, 'GET');
+    if (action === 'typebot-sessions') return await proxy(`/typebot/fetchSessions/${instance}${(body as any).typebotId ? `?typebotId=${encodeURIComponent(String((body as any).typebotId))}` : ''}`, 'GET');
     if (action === 'typebot-change-status') return await proxy(`/typebot/changeStatus/${instance}`, 'POST', { remoteJid: (body as any).remoteJid, status: (body as any).status });
     if (action === 'start-typebot') return await proxy(`/typebot/startTypebot/${instance}`, 'POST', { remoteJid: (body as any).remoteJid, url: (body as any).url, typebot: (body as any).typebot, variables: (body as any).variables });
 
@@ -712,11 +712,10 @@ serve(async (req) => {
       status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    if (error.status) return errorResponse(error.message, error.status, req);
+    if (error.status) return errorResponse('Internal server error', error.status, req);
     const log = new Logger('evolution-api', req);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    log.error('Unhandled error', { error: message });
-    return new Response(JSON.stringify({ error: message }), {
+    log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

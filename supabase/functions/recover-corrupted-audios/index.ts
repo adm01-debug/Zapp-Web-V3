@@ -129,6 +129,6 @@ Deno.serve(async (req) => {
     }), { headers });
   } catch (err) {
     log.error("Error", { error: err instanceof Error ? err.message : String(err) });
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers });
   }
 });

@@ -42,28 +42,31 @@ Deno.serve(async (req) => {
 
     log.info("Analyzing churn risk", { contactCount: contacts.length });
 
-    const results = [];
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    for (const contact of contacts) {
-      const { data: lastMsg } = await adminClient
-        .from("messages")
-        .select("created_at")
-        .eq("contact_id", contact.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    const results = await Promise.all(contacts.map(async (contact) => {
+      const [lastMsgResult, recentCountResult, totalCountResult] = await Promise.all([
+        adminClient
+          .from("messages")
+          .select("created_at")
+          .eq("contact_id", contact.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        adminClient
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("contact_id", contact.id)
+          .gte("created_at", thirtyDaysAgo),
+        adminClient
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("contact_id", contact.id),
+      ]);
 
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { count: recentMsgCount } = await adminClient
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("contact_id", contact.id)
-        .gte("created_at", thirtyDaysAgo);
-
-      const { count: totalMsgCount } = await adminClient
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("contact_id", contact.id);
+      const lastMsg = lastMsgResult.data;
+      const recentMsgCount = recentCountResult.count;
+      const totalMsgCount = totalCountResult.count;
 
       const lastMessageAt = lastMsg?.created_at || contact.updated_at;
       const daysSinceLastMessage = Math.floor(
@@ -99,7 +102,7 @@ Deno.serve(async (req) => {
       if ((recentMsgCount || 0) === 0) reasons.push("Sem mensagens nos últimos 30 dias");
       if ((totalMsgCount || 0) <= 5) reasons.push("Baixo engajamento total");
 
-      results.push({
+      return {
         contactId: contact.id,
         name: contact.name,
         riskScore: Math.min(100, riskScore),
@@ -108,8 +111,8 @@ Deno.serve(async (req) => {
         recentMessageCount: recentMsgCount || 0,
         totalMessageCount: totalMsgCount || 0,
         reasons,
-      });
-    }
+      };
+    }));
 
     results.sort((a, b) => b.riskScore - a.riskScore);
 
@@ -117,6 +120,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ results }, 200, req);
   } catch (err: unknown) {
     log.error("Error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse(err instanceof Error ? err.message : "Erro interno", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

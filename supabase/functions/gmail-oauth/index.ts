@@ -114,7 +114,7 @@ serve(async (req) => {
         .single();
 
       if (upsertErr) {
-        return new Response(JSON.stringify({ error: upsertErr.message }), { status: 500, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: corsHeaders });
       }
 
       return new Response(
