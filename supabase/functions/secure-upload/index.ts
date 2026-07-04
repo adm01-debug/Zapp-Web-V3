@@ -11,6 +11,16 @@ import { requireUser } from "../_shared/auth.ts";
  */
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — OOM guard (F5b)
 const ALLOWED_BUCKETS = new Set(["whatsapp-media", "audio-messages"]);
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
+// Splits on '/', decodes percent-encoding, then drops empty / dot / dotdot segments.
+// Guards against ....// bypass that replace(/\.\./) leaves as traversal-ready slashes.
+const sanitizeStoragePath = (raw: string): string =>
+  raw
+    .split('/')
+    .flatMap(seg => { try { return [decodeURIComponent(seg)]; } catch { return [seg]; } })
+    .filter(seg => seg !== '' && seg !== '.' && seg !== '..')
+    .join('/');
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -43,8 +53,7 @@ Deno.serve(async (req) => {
     const bucket = ALLOWED_BUCKETS.has(requestedBucket) ? requestedBucket : "whatsapp-media";
     const rawPathValue = formData.get("path");
     const rawPath = typeof rawPathValue === "string" ? rawPathValue : null;
-    // Strip ".." segments and leading slashes to prevent path traversal
-    const customPath = rawPath ? rawPath.replace(/\.\./g, "").replace(/^\/+/, "") : null;
+    const customPath = rawPath ? sanitizeStoragePath(rawPath) || null : null;
 
     if (file && file.size > MAX_FILE_SIZE) {
       return securityErrorResponse(
@@ -58,6 +67,14 @@ Deno.serve(async (req) => {
       return securityErrorResponse(
         { code: "INVALID_INPUT", message: "Nenhum arquivo enviado.", details: { field: "file" } },
         400,
+        req,
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return securityErrorResponse(
+        { code: "FILE_TOO_LARGE", message: "Arquivo excede o tamanho máximo permitido de 50 MB." },
+        413,
         req,
       );
     }

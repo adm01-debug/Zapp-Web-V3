@@ -91,6 +91,7 @@ serve(async (req) => {
       const { messageIds, read } = body;
       if (!messageIds?.length) return json({ error: 'messageIds obrigatório' }, 400);
 
+      const failures: string[] = [];
       for (const msgId of messageIds) {
         const gmailRes = await fetch(`${GMAIL_API}/messages/${msgId}/modify`, {
           method: 'POST',
@@ -101,11 +102,11 @@ serve(async (req) => {
           ),
           signal: AbortSignal.timeout(10_000),
         });
-        if (!gmailRes.ok) continue;
+        if (!gmailRes.ok) { failures.push(msgId); continue; }
         await supabase.from('gmail_messages').update({ is_read: read }).eq('message_id', msgId).eq('account_id', accountId);
       }
 
-      return json({ success: true });
+      return json({ success: true, ...(failures.length ? { failed: failures } : {}) });
     }
 
     // ── trash — Mover para lixeira ─────────────────────────────────────
@@ -269,9 +270,10 @@ function buildMime(opts: {
   ].join('\r\n');
 
   const attachParts = opts.attachments.map(att => {
-    // Strip CR/LF to prevent MIME header injection (CWE-93)
-    const safeName = att.name.replace(/[\r\n]/g, '');
-    const safeMime = att.mimeType.replace(/[\r\n]/g, '');
+    // CWE-93: strip CR/LF, quotes, and backslashes to prevent MIME header injection.
+    // String() coercion guards against non-string att.name crashing replace().
+    const safeName = String(att.name ?? '').replace(/[\r\n"\\]/g, '');
+    const safeMime = String(att.mimeType ?? 'application/octet-stream').replace(/[\r\n"\\]/g, '');
     return [
       `--${boundary}`,
       `Content-Type: ${safeMime}; name="${safeName}"`,

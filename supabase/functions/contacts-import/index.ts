@@ -66,13 +66,13 @@ serve(async (req) => {
     const instanceName = String(rawInstanceName);
 
     // F12 security fix: verify the caller owns the WhatsApp connection they are importing into
-    const { data: ownedConn } = await supabase
+    const { data: ownedConn, error: connErr } = await supabase
       .from('whatsapp_connections')
       .select('id, instance_name')
       .eq('created_by', user.id)
       .eq('instance_name', instanceName)
       .maybeSingle();
-    if (!ownedConn) {
+    if (connErr || !ownedConn) {
       return new Response(
         JSON.stringify({ error: 'WhatsApp connection not found or not authorized' }),
         { status: 403, headers: JSON_CORS }

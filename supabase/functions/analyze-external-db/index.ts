@@ -137,6 +137,8 @@ Deno.serve(async (req) => {
           if (r.status === 'fulfilled' && r.value) {
             const [table, info] = r.value;
             results[table] = info;
+          } else if (r.status === 'rejected') {
+            console.error('[analyze-external-db] batch query rejected', r.reason);
           }
         }
       }

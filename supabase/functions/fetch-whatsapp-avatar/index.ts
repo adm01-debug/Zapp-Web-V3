@@ -18,18 +18,39 @@ import {
 } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
-// F1 security fix: SSRF allowlist — only fetch avatars from known WhatsApp CDN hosts
-const WHATSAPP_CDN_ALLOWLIST = [
-  'mmg.whatsapp.net', 'pps.whatsapp.net', 'static.whatsapp.net',
-  'media.whatsapp.net', 'media-mia3-1.cdn.whatsapp.net',
-  'media-gru2-1.cdn.whatsapp.net',
-];
-function isSafeAvatarUrl(rawUrl: string): boolean {
-  try {
-    const u = new URL(rawUrl);
-    if (u.protocol !== 'https:') return false;
-    return WHATSAPP_CDN_ALLOWLIST.some(h => u.hostname === h || u.hostname.endsWith('.' + h));
-  } catch { return false; }
+const ALLOWED_AVATAR_ORIGINS = new Set([
+  "mmg.whatsapp.net",
+  "media.whatsapp.net",
+  "pps.whatsapp.net",
+  "static.whatsapp.net",
+  "media-mia3-1.cdn.whatsapp.net",
+  "media-gru2-1.cdn.whatsapp.net",
+]);
+
+// F1 security fix: SSRF allowlist — only fetch avatars from known WhatsApp CDN hosts.
+// Also blocks private IPv4 ranges as defense-in-depth (allowlist makes them moot).
+function isSafeAvatarUrl(raw: string): boolean {
+  let parsed: URL;
+  try { parsed = new URL(raw); } catch { return false; }
+  if (parsed.protocol !== "https:") return false;
+
+  const host = parsed.hostname.toLowerCase();
+
+  // Allow only known WhatsApp CDN origins (exact match + subdomains)
+  const isAllowed = [...ALLOWED_AVATAR_ORIGINS].some(
+    h => host === h || host.endsWith("." + h)
+  );
+  if (!isAllowed) return false;
+
+  // Defense-in-depth: reject numeric IPv4 private ranges
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return false;
+    if (a === 169 && b === 254) return false;
+  }
+
+  return true;
 }
 
 Deno.serve(async (req) => {
@@ -114,6 +135,11 @@ Deno.serve(async (req) => {
     }
 
     // 3) Persiste no Storage para evitar expiração das URLs do WhatsApp.
+    if (!isSafeAvatarUrl(picUrl)) {
+      log.warn("Avatar URL failed SSRF check — skipping fetch", { picUrl });
+      return jsonResponse({ avatar_url: null }, 200, req);
+    }
+
     try {
       const imgResp = await fetch(picUrl, { signal: AbortSignal.timeout(8000) });
       if (imgResp.ok) {

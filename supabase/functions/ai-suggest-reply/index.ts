@@ -46,24 +46,34 @@ Deno.serve(async (req) => {
       }
 
       if (contactId) {
-        const { data: notes } = await supabase
-          .from('contact_notes')
-          .select('content')
-          .eq('contact_id', contactId)
-          .order('created_at', { ascending: false })
-          .limit(5);
+        // Verify the contact belongs to this user before fetching its data
+        const { data: ownedContact } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('id', contactId)
+          .eq('user_id', userId)
+          .maybeSingle();
 
-        if (notes && notes.length > 0) {
-          knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notes.map((n: { content: string }) => n.content).join('\n')}`;
-        }
+        if (ownedContact) {
+          const { data: notes } = await supabase
+            .from('contact_notes')
+            .select('content')
+            .eq('contact_id', contactId)
+            .order('created_at', { ascending: false })
+            .limit(5);
 
-        const { data: customFields } = await supabase
-          .from('contact_custom_fields')
-          .select('field_name, field_value')
-          .eq('contact_id', contactId);
+          if (notes && notes.length > 0) {
+            knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notes.map((n: { content: string }) => n.content).join('\n')}`;
+          }
 
-        if (customFields && customFields.length > 0) {
-          knowledgeContext += `\n\nDADOS DO CONTATO:\n${customFields.map((f: { field_name: string; field_value: string | null }) => `${f.field_name}: ${f.field_value}`).join('\n')}`;
+          const { data: customFields } = await supabase
+            .from('contact_custom_fields')
+            .select('field_name, field_value')
+            .eq('contact_id', contactId);
+
+          if (customFields && customFields.length > 0) {
+            knowledgeContext += `\n\nDADOS DO CONTATO:\n${customFields.map((f: { field_name: string; field_value: string | null }) => `${f.field_name}: ${f.field_value}`).join('\n')}`;
+          }
         }
       }
     } catch (e) {
