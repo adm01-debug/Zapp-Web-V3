@@ -3,7 +3,8 @@ import {
   sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger,
 } from "../_shared/validation.ts";
 import { AiEnhanceMessageSchema, parseBody } from "../_shared/schemas.ts";
-import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { callAiWithTracking } from "../_shared/ai-usage.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const tonePrompts: Record<string, string> = {
   professional: "Reescreva a mensagem abaixo de forma mais profissional, clara e educada. Mantenha o mesmo significado mas use linguagem corporativa e polida.",
@@ -18,8 +19,11 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
+
   const log = new Logger("ai-enhance-message");
-  const userId = extractUserIdFromRequest(req);
+  const userId = authed.user.id;
 
   try {
     const ip = getClientIP(req);
