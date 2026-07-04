@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const provider = await getProvider(supabase as any, use_for as string, provider_id);
+    const provider = await getProvider(supabase, use_for as string, provider_id);
     const providerType = provider?.provider_type || 'lovable_ai';
     const providerName = provider?.name || 'Lovable AI';
 
