@@ -1,0 +1,80 @@
+// Evolution Follow-up Processor v3.0
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+const INSTANCE_NAME = Deno.env.get("EVOLUTION_INSTANCE") || "wpp2";
+
+function renderContent(t: string, c: any, deal?: any): string {
+  let r = t;
+  const fn = (c.full_name || c.push_name || "").split(" ")[0] || "Cliente";
+  r = r.replace(/\{\{\s*nome\s*\}\}/gi, fn).replace(/\{\{\s*telefone\s*\}\}/gi, c.phone_number || "");
+  if (deal) {
+    r = r.replace(/\{\{\s*titulo\s*\}\}/gi, deal.title || "")
+      .replace(/\{\{\s*valor\s*\}\}/gi, deal.value ? `R$ ${Number(deal.value).toFixed(2)}` : "")
+      .replace(/\{\{\s*estagio\s*\}\}/gi, deal.stage || "");
+  }
+  const now = new Date();
+  r = r.replace(/\{\{\s*data\s*\}\}/gi, now.toLocaleDateString("pt-BR"))
+    .replace(/\{\{\s*hora\s*\}\}/gi, now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }))
+    .replace(/\{\{\s*\w+\s*\}\}/g, "").replace(/\s+/g, " ").trim();
+  return r;
+}
+
+async function setStatus(id: string, status: string, error?: string) {
+  const u: any = { status };
+  if (status === "queued") u.sent_at = new Date().toISOString();
+  if (error) u.error_message = error.slice(0, 500);
+  await supabase.from("evolution_followups").update(u).eq("id", id);
+}
+
+async function processFollowUps() {
+  let processed = 0, queued = 0, cancelled = 0, failed = 0;
+  const { data: ups } = await supabase.from("evolution_followups").select("*").eq("status", "pending").lte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(50);
+  if (!ups?.length) return { processed, queued, cancelled, failed };
+
+  for (const fu of ups) {
+    processed++;
+    try {
+      const { data: contact } = await supabase.from("evolution_contacts").select("id, remote_jid, full_name, phone_number, push_name").eq("id", fu.contact_id).maybeSingle();
+      if (!contact) { await setStatus(fu.id, "failed", "contact not found"); failed++; continue; }
+
+      // hasRecentInbound
+      const since = new Date(Date.now() - 86400000).toISOString();
+      const { data: msgs } = await supabase.from("evolution_messages").select("id").eq("contact_id", contact.id).eq("from_me", false).gte("created_at", since).limit(1);
+      if (msgs?.length) { await setStatus(fu.id, "cancelled", "responded within 24h"); cancelled++; continue; }
+
+      let content = fu.custom_message || "";
+      if (!content && fu.template_id) {
+        const { data: tpl } = await supabase.from("evolution_message_templates").select("*").eq("id", fu.template_id).maybeSingle();
+        if (!tpl) { await setStatus(fu.id, "failed", "template not found"); failed++; continue; }
+        if (tpl.is_active === false) { await setStatus(fu.id, "failed", "template inactive"); failed++; continue; }
+        if (tpl.approval_status && tpl.approval_status !== "approved") { await setStatus(fu.id, "failed", "not approved"); failed++; continue; }
+        const { data: deal } = fu.deal_id ? await supabase.from("evolution_deals").select("*").eq("id", fu.deal_id).maybeSingle() : { data: null };
+        content = renderContent(tpl.content, contact, deal);
+        if (tpl.footer_text) content = `${content}\n\n${tpl.footer_text}`;
+      }
+      if (!content) { await setStatus(fu.id, "failed", "no content"); failed++; continue; }
+
+      const { error: qerr } = await supabase.from("evolution_message_queue").insert({
+        remote_jid: contact.remote_jid, instance_name: fu.instance_name || INSTANCE_NAME,
+        message_type: "text", content, template_id: fu.template_id, priority: 5,
+        status: "pending", source: "followup_processor",
+        metadata: { ...(fu.metadata || {}), followup_id: fu.id, followup_type: fu.followup_type }
+      });
+      if (qerr) { await setStatus(fu.id, "failed", qerr.message); failed++; }
+      else { await setStatus(fu.id, "queued"); queued++; }
+    } catch (e) { await setStatus(fu.id, "failed", (e as Error).message); failed++; }
+  }
+  return { processed, queued, cancelled, failed };
+}
+
+Deno.serve(async (req: Request) => {
+  const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  try {
+    const start = Date.now();
+    const result = await processFollowUps();
+    await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "followup_processing", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).then(()=>{},()=>{});
+    return new Response(JSON.stringify({ success: true, version: "v3", ...result, duration_ms: Date.now() - start, timestamp: new Date().toISOString() }), { headers: { ...cors, "Content-Type": "application/json" } });
+  } catch (e) { return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } }); }
+});
