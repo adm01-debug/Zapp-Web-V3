@@ -44,6 +44,7 @@ serve(async (req) => {
 
       const listRes = await fetch(`${GMAIL_API}/threads?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       const listData = await listRes.json();
       if (listData.error) {
@@ -56,6 +57,7 @@ serve(async (req) => {
         (listData.threads ?? []).map(async (t: { id: string }) => {
           const tRes = await fetch(`${GMAIL_API}/threads/${t.id}?format=metadata&metadataHeaders=Subject,From,Date`, {
             headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(10_000),
           });
           const tData = await tRes.json();
           if (tData.error) return null;
@@ -107,6 +109,7 @@ serve(async (req) => {
 
       const listRes = await fetch(`${GMAIL_API}/messages?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       const listData = await listRes.json();
 
@@ -122,6 +125,7 @@ serve(async (req) => {
     if (action === 'syncLabels') {
       const lblRes = await fetch(`${GMAIL_API}/labels`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       const lblData = await lblRes.json();
 
@@ -180,6 +184,7 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
       client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
       grant_type:    'refresh_token',
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   const tokens = await tokenRes.json();
   if (tokens.error) { await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId); return null; }
@@ -197,6 +202,7 @@ async function fetchAndPersistMessage(
 ): Promise<void> {
   const msgRes = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
   });
   const msg = await msgRes.json();
   if (msg.error) return;
