@@ -5,12 +5,12 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("elevenlabs-sts");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
 
     const formData = await req.formData();
