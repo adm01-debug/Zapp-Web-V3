@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     const instanceLooksLikeUuid = (v: unknown): boolean => typeof v === 'string' && UUID_RE.test(v.trim());
     const resolveInstanceNameById = async (id: string): Promise<string | null> => {
       try {
-        const r = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, { headers: { apikey: evolutionApiKey } });
+        const r = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, { headers: { apikey: evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
         if (!r.ok) return null;
         const list = await r.json();
         if (!Array.isArray(list)) return null;
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       let connectUrl = `${evolutionApiUrl}/instance/connect/${instance}`;
 
       const doConnect = async () => {
-        const response = await fetch(connectUrl, { method: 'GET', headers: { 'apikey': evolutionApiKey } });
+        const response = await fetch(connectUrl, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
         const text = await response.text();
         let data: Record<string, unknown> = {};
         try { data = text ? JSON.parse(text) as Record<string, unknown> : {}; } catch { data = { raw: text }; }
@@ -230,6 +230,7 @@ Deno.serve(async (req) => {
         const createResponse = await fetch(`${evolutionApiUrl}/instance/create`, {
           method: 'POST',
           headers: { 'apikey': evolutionApiKey, 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(15_000),
           body: JSON.stringify({
             instanceName: instance,
             qrcode: (body as Record<string, unknown>).qrcode ?? true,
@@ -310,7 +311,8 @@ Deno.serve(async (req) => {
           const resp = await fetch(webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
-            body: JSON.stringify(item.payload)
+            body: JSON.stringify(item.payload),
+            signal: AbortSignal.timeout(15_000),
           });
           
           if (resp.ok) {
@@ -334,7 +336,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'status') {
-      const response = await fetch(`${evolutionApiUrl}/instance/connectionState/${instance}`, { method: 'GET', headers: { 'apikey': evolutionApiKey } });
+      const response = await fetch(`${evolutionApiUrl}/instance/connectionState/${instance}`, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
       const text = await response.text();
       let data: Record<string, unknown> = {};
       try { data = text ? JSON.parse(text) as Record<string, unknown> : {}; } catch { data = { raw: text }; }
@@ -391,9 +393,10 @@ Deno.serve(async (req) => {
       while (attempts < MAX_ATTEMPTS) {
         attempts++;
         try {
-          const response = await fetch(`${evolutionApiUrl}/instance/logout/${instance}`, { 
-            method: 'DELETE', 
-            headers: { 'apikey': evolutionApiKey } 
+          const response = await fetch(`${evolutionApiUrl}/instance/logout/${instance}`, {
+            method: 'DELETE',
+            headers: { 'apikey': evolutionApiKey },
+            signal: AbortSignal.timeout(10_000),
           });
           upstreamStatus = response.status;
           try { 
