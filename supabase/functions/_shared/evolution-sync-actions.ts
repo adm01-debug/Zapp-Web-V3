@@ -1,10 +1,21 @@
 // Shared sync action handlers for evolution-sync/index.ts
 
 import { instanceOrFilter } from "./evolution-helpers.ts";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// deno-lint-ignore no-explicit-any
+type EvolutionRawMsg = {
+  conversation?: string;
+  extendedTextMessage?: { text?: string } | null;
+  imageMessage?: { caption?: string } | null;
+  videoMessage?: { caption?: string } | null;
+  audioMessage?: unknown;
+  documentMessage?: { fileName?: string } | null;
+  stickerMessage?: unknown;
+  reactionMessage?: unknown;
+  [key: string]: unknown;
+};
 export async function syncContacts(
-  supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, corsHeaders: Record<string, string>, page: number, offset: number
 ): Promise<Response> {
   console.log(`[Sync] Fetching contacts from instance ${instanceName}`);
@@ -66,9 +77,8 @@ export async function syncContacts(
   return jsonRes({ success: true, synced, skipped, page, totalFetched: contacts.length, hasMore: contacts.length >= offset }, corsHeaders);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function syncMessages(
-  supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, contactPhone: string, corsHeaders: Record<string, string>
 ): Promise<Response> {
   if (!contactPhone) throw new Error('contactPhone is required');
@@ -117,9 +127,8 @@ export async function syncMessages(
   return jsonRes({ success: true, synced, totalFetched: messages.length }, corsHeaders);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function syncAllMessages(
-  supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, messagesPerContact: number, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const { data: conn } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
@@ -187,7 +196,6 @@ export async function syncAllMessages(
   return jsonRes({ success: true, totalSynced, totalSkipped, totalErrors, totalContacts: allContacts.length }, corsHeaders);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function setupWebhook(
   evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, supabaseUrl: string, webhookUrlOverride: string | undefined, corsHeaders: Record<string, string>
@@ -206,8 +214,7 @@ export async function setupWebhook(
   });
 }
 
-// deno-lint-ignore no-explicit-any
-export async function cleanupMock(supabase: any, corsHeaders: Record<string, string>): Promise<Response> {
+export async function cleanupMock(supabase: SupabaseClient, corsHeaders: Record<string, string>): Promise<Response> {
   const { data: mockContacts } = await supabase.from('contacts').select('id').like('id', 'c1000001-%');
   if (mockContacts?.length) {
     const mockIds = mockContacts.map((c: { id: string }) => c.id);
@@ -220,9 +227,8 @@ export async function cleanupMock(supabase: any, corsHeaders: Record<string, str
   return jsonRes({ success: true, removed: 0, message: 'No mock data found' }, corsHeaders);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function fullSync(
-  supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, supabaseUrl: string, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const results: Record<string, unknown> = {};
@@ -314,8 +320,7 @@ export const WEBHOOK_EVENTS = [
   'TYPEBOT_START', 'TYPEBOT_CHANGE_STATUS',
 ];
 
-// deno-lint-ignore no-explicit-any
-function parseEvolutionMessage(messageObj: any): { content: string; messageType: string; shouldSkip?: boolean } {
+function parseEvolutionMessage(messageObj: EvolutionRawMsg): { content: string; messageType: string; shouldSkip?: boolean } {
   if (messageObj.conversation) return { content: messageObj.conversation, messageType: 'text' };
   if (messageObj.extendedTextMessage?.text) return { content: messageObj.extendedTextMessage.text, messageType: 'text' };
   if (messageObj.imageMessage) return { content: messageObj.imageMessage.caption || '[Imagem]', messageType: 'image' };
