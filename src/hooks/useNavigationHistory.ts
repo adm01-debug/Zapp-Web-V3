@@ -54,22 +54,6 @@ export function useNavigationHistory(defaultView = 'inbox'): NavigationHistoryRe
 
   const currentView = state.entries[state.index]?.viewId ?? defaultView;
 
-  // Sync hash → state on browser back/forward
-  useEffect(() => {
-    const onHashChange = () => {
-      if (isInternalNav.current) {
-        isInternalNav.current = false;
-        return;
-      }
-      const hash = window.location.hash.replace('#', '');
-      if (hash && hash !== currentView && !RESERVED_HASHES.has(hash)) {
-        navigateTo(hash);
-      }
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, [currentView, navigateTo]);
-
   const syncHash = useCallback((viewId: string) => {
     isInternalNav.current = true;
     window.history.pushState(null, '', `#${viewId}`);
@@ -93,6 +77,22 @@ export function useNavigationHistory(defaultView = 'inbox'): NavigationHistoryRe
       return { entries: newEntries, index: newIndex };
     });
   }, [syncHash]);
+
+  // Sync hash → state on browser back/forward
+  useEffect(() => {
+    const onHashChange = () => {
+      if (isInternalNav.current) {
+        isInternalNav.current = false;
+        return;
+      }
+      const hash = window.location.hash.replace('#', '');
+      if (hash && hash !== currentView && !RESERVED_HASHES.has(hash)) {
+        navigateTo(hash);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [currentView, navigateTo]);
 
   const goBack = useCallback(() => {
     setState(prev => {
