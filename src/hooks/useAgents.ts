@@ -100,8 +100,8 @@ export function useAgents(workspaceId?: string) {
   const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
-      let q: any = (supabase as any)
-        .from('agents')
+      let q = supabase
+        .from('agents' as any)
         .select('id,user_id,name,mission,persona,avatar_emoji,model,status,version,config,tags,is_template,template_category,workspace_id,created_at,updated_at')
         .not('status', 'in', '("deprecated","archived")')
         .order('updated_at', { ascending: false });
@@ -110,7 +110,7 @@ export function useAgents(workspaceId?: string) {
 
       const { data, error } = await q;
       if (error) throw error;
-      setAgents((data ?? []).map((r: any) => mapRow(r)));
+      setAgents(((data ?? []) as Record<string, unknown>[]).map((r) => mapRow(r)));
     } catch (err) {
       log.error('Error loading agents', err);
     } finally { setLoading(false); }
@@ -121,8 +121,8 @@ export function useAgents(workspaceId?: string) {
   // ── Promote to production ────────────────────────────────────────────
 
   const promoteToProduction = useCallback(async (id: string) => {
-    const { error } = await (supabase as any)
-      .from('agents')
+    const { error } = await supabase
+      .from('agents' as any)
       .update({ status: 'production', updated_at: new Date().toISOString() })
       .eq('id', id);
 
@@ -134,8 +134,8 @@ export function useAgents(workspaceId?: string) {
   // ── Deprecate ────────────────────────────────────────────────────────
 
   const deprecateAgent = useCallback(async (id: string) => {
-    const { error } = await (supabase as any)
-      .from('agents')
+    const { error } = await supabase
+      .from('agents' as any)
       .update({ status: 'deprecated', updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) throw error;
@@ -146,7 +146,7 @@ export function useAgents(workspaceId?: string) {
   // ── Smart assign ─────────────────────────────────────────────────────
 
   const smartAssignToConversation = useCallback(async (conversationId: string) => {
-    const { data, error } = await (supabase as any).rpc('smart_assign_conversation', {
+    const { data, error } = await supabase.rpc('smart_assign_conversation' as any, {
       p_conversation_id: conversationId,
       p_workspace_id:    workspaceId ?? null,
     });

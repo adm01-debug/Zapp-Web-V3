@@ -233,8 +233,8 @@ export function useAutomations({
               p_instance: instanceName,
               p_tags: allTags,
             });
-            await (supabase as any)
-              .from('automation_executions')
+            await supabase
+              .from('automation_executions' as any)
               .update({
                 applied_tags: allTags,
                 trigger_payload: {
@@ -247,7 +247,7 @@ export function useAutomations({
               .eq("id", execId);
           } catch (e: any) {
             log.warn("[automation] apply_tags/escalate failed", e);
-            await (supabase as any).rpc("rpc_record_automation_error", {
+            await supabase.rpc("rpc_record_automation_error" as any, {
               p_execution_id: execId,
               p_error: String(e?.message ?? e),
               p_context: { stage: "apply_tags_or_escalate", tags: allTags },
@@ -272,8 +272,8 @@ export function useAutomations({
 
             // Auto envio
             if (actions.auto_send) {
-              const { data: exec , error: execErr } = await (supabase as any)
-                .from('automation_executions')
+              const { data: exec , error: execErr } = await supabase
+                .from('automation_executions' as any)
                 .select("suggestion_text")
                 .eq("id", execId)
                 .maybeSingle();
@@ -292,7 +292,7 @@ export function useAutomations({
             }
           } catch (e: any) {
             log.warn("[automation] suggest_reply failed", e);
-            await (supabase as any).rpc("rpc_record_automation_error", {
+            await supabase.rpc("rpc_record_automation_error" as any, {
               p_execution_id: execId,
               p_error: String(e?.message ?? e),
               p_context: { stage: "suggest_reply_or_autosend" },

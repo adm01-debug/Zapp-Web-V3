@@ -45,7 +45,7 @@ export type EmailTokenStatus = 'valid' | 'expiring_soon' | 'expired' | 'no_token
 export type EmailWatchStatus = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
 export type TokenStatus = EmailTokenStatus;
 
-const supabase = _supabase as any;
+const supabase = _supabase;
 
 /**
  * IDs vindos do fallback GMAIL_MOCKS (ex.: 'mock-account-123') não existem no
@@ -234,7 +234,7 @@ export function useEmail() {
     setIsSyncing(true);
     setError(null);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-sync', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
         body: { action: 'syncInbox', accountId: id, maxResults: 100 },
       });
 
@@ -259,7 +259,7 @@ export function useEmail() {
     if (!id || isMockId(id)) return;
 
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-oauth', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
         body: { action: 'refreshToken', accountId: id },
       });
 
@@ -281,7 +281,7 @@ export function useEmail() {
     if (!id || isMockId(id)) return;
 
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-webhook', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-webhook', {
         body: { action: 'renewWatch', accountId: id },
       });
 
@@ -302,7 +302,7 @@ export function useEmail() {
 
     setIsSending(true);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-send', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-send', {
         body: {
           action: 'send',
           accountId: activeAccountId,
@@ -426,7 +426,7 @@ export function useEmail() {
 
     setError(null);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-oauth', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
         body: { action: 'getAuthUrl' },
       });
 
@@ -476,14 +476,14 @@ export function useEmail() {
         const { code } = event.data;
         if (!code) { oauthInFlightRef.current = false; return; }
 
-        const { data: { user } } = await (supabase as any).auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           setError('Sessão expirada. Faça login novamente.');
           oauthInFlightRef.current = false;
           return;
         }
 
-        const { data: exchangeData, error: exchangeErr } = await (supabase as any).functions.invoke('gmail-oauth', {
+        const { data: exchangeData, error: exchangeErr } = await supabase.functions.invoke('gmail-oauth', {
           body: { action: 'exchangeCode', code, userId: user.id },
         });
 
@@ -531,7 +531,7 @@ export function useEmail() {
     // A view public.email_threads não emite eventos WAL. Assinamos a tabela-base
     // email_app.email_threads (presente na publication supabase_realtime) e
     // adaptamos o payload ao shape da view via mapBaseThreadRow.
-    const channel = (supabase as any)
+    const channel = supabase
       .channel(`email-threads-${activeAccountId}`)
       .on('postgres_changes', {
         event:  '*',
@@ -553,7 +553,7 @@ export function useEmail() {
       })
       .subscribe();
 
-    return () => { (supabase as any).removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); };
   }, [activeAccountId]);
 
   // ── Token check automático (a cada 5 minutos) ──────────────────────────
