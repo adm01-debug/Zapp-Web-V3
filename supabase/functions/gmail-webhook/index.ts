@@ -140,6 +140,14 @@ serve(async (req) => {
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
+// Marks a Gmail message error that is deterministically non-retryable (e.g. 400 Bad Request,
+// 403 Permission Denied). processHistory skips these so history_id can advance and the
+// account is not permanently stalled. Transient errors (network, 429, 5xx) are thrown as
+// plain Error so Pub/Sub retries the batch without advancing history_id.
+class NonRetryableMessageError extends Error {
+  constructor(msg: string) { super(msg); this.name = 'NonRetryableMessageError'; }
+}
+
 async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
   const { data: acc } = await supabase
     .from('gmail_accounts')
@@ -209,22 +217,30 @@ async function processHistory(
     }
   }
 
-  // Fetch and persist all new messages in parallel. Individual failures are logged and skipped
-  // to prevent a poison-message loop where one deterministically-bad message (e.g. oversized
-  // payload, unexpected schema) causes infinite Pub/Sub retries and stalls all subsequent
-  // ingestion for the account. Only throw when ALL messages fail — that signals a systemic
-  // issue (auth revoked, network partition) where holding the history position is correct.
+  // Fetch and persist all new messages in parallel.
+  // Error taxonomy drives whether history_id advances:
+  //   NonRetryableMessageError → poison-pill (bad request, permission denied) — skip and advance.
+  //   Any other error (network timeout, AbortError, Gmail 429/5xx) → transient — throw so
+  //   Pub/Sub retries the push notification and history_id is held in place, preventing data loss.
   const results = await Promise.allSettled(
     addedMessages.slice(0, 20).map(msgId => fetchAndPersistMessage(supabase, token, accountId, msgId))
   );
   const failures = results.filter(r => r.status === 'rejected');
+  const transientFailures = failures.filter(f => !(f.reason instanceof NonRetryableMessageError));
   for (const r of results) {
     if (r.status === 'rejected') {
-      console.error('[gmail-webhook] processHistory message failed:', r.reason instanceof Error ? r.reason.message : String(r.reason));
+      const isPoison = r.reason instanceof NonRetryableMessageError;
+      (isPoison ? console.warn : console.error)(
+        '[gmail-webhook] processHistory message failed:',
+        r.reason instanceof Error ? r.reason.message : String(r.reason),
+      );
     }
   }
-  if (failures.length > 0 && failures.length === results.length) {
-    throw new Error(`All ${results.length}/${results.length} messages failed to ingest — systemic failure`);
+  // Transient failures: hold history_id so Pub/Sub can retry and recover the missed messages.
+  // Non-retryable poison-pill failures: already skipped inside fetchAndPersistMessage or
+  // thrown as NonRetryableMessageError; do not stall the account for deterministically bad msgs.
+  if (transientFailures.length > 0) {
+    throw new Error(`${transientFailures.length}/${results.length} messages had transient failures — deferring to Pub/Sub retry`);
   }
 }
 
@@ -240,11 +256,16 @@ async function fetchAndPersistMessage(
   });
   const msg = await msgRes.json();
   if (msg.error) {
-    // 404 = message deleted before ingestion — expected and harmless, skip silently.
-    // All other Gmail API errors are transient (auth, rate-limit, server) — throw so
-    // processHistory can decide whether to retry the batch.
+    // 404: message deleted before ingestion — expected and harmless, skip silently.
+    // 429 / 5xx: transient Gmail errors (rate-limit, server fault) — throw plain Error so
+    //   processHistory holds history_id and Pub/Sub retries the batch.
+    // Other codes (400, 403, etc.): non-retryable — throw NonRetryableMessageError so
+    //   processHistory skips this message and advances history rather than stalling the account.
     if (msg.error.code === 404) return;
-    throw new Error(`Gmail API error for message ${messageId}: ${msg.error.code} ${msg.error.message ?? ''}`);
+    if (msg.error.code === 429 || msg.error.code >= 500) {
+      throw new Error(`Gmail API transient error for message ${messageId}: ${msg.error.code} ${msg.error.message ?? ''}`);
+    }
+    throw new NonRetryableMessageError(`Gmail API non-retryable error for message ${messageId}: ${msg.error.code} ${msg.error.message ?? ''}`);
   }
 
   const headers: Record<string, string> = {};
