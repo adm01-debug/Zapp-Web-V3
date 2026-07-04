@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
 import { type ConversationWithMessages, type ConversationContact, type RealtimeMessage } from '@/features/inbox';
 import { useAuth } from '@/features/auth';
@@ -55,13 +55,17 @@ export function useRealtimeInbox() {
   // 4. Offline Cache
   const { conversations: cachedConversations, usingCache } = useOfflineCache(conversations, loading);
 
-  // Seed avatar cache
+  // Seed avatar cache — only once per contact ID to avoid redundant calls when
+  // the conversations array gets a new reference without data changes.
+  const seededAvatarsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (conversations && conversations.length > 0) {
-      conversations.forEach(c => {
-        if (c.contact.avatar_url) seedAvatarCache(c.contact.id, c.contact.avatar_url);
-      });
-    }
+    if (!conversations || conversations.length === 0) return;
+    conversations.forEach(c => {
+      if (c.contact.avatar_url && !seededAvatarsRef.current.has(c.contact.id)) {
+        seedAvatarCache(c.contact.id, c.contact.avatar_url);
+        seededAvatarsRef.current.add(c.contact.id);
+      }
+    });
   }, [conversations]);
 
   // Load fallback contact if not found in list
