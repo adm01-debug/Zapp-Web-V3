@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
@@ -106,7 +105,7 @@ export function useUserSettings() {
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('user_settings')
           .select('*')
           .eq('user_id', user.id)
@@ -206,7 +205,7 @@ export function useUserSettings() {
         global_sla_notification_message: settings.global_sla_notification_message,
       };
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_settings')
         .upsert(settingsData, { onConflict: 'user_id' });
 

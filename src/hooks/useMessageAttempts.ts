@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMessageAttempts — hidrata o histórico de tentativas de envio (DLQ) para
  * uma mensagem específica.
@@ -55,7 +54,7 @@ export function useMessageAttempts(
 
       // Tentativa primária: idempotency_key padrão `msg:<id>`.
       const primaryKey = `msg:${messageRowId}`;
-      const { data: byKey, error: keyErr } = await supabase
+      const { data: byKey, error: keyErr } = await (supabase as any)
         .from('failed_messages')
         .select(
           'id,status,retry_count,max_retries,error_code,error_message,http_status,last_retry_reason,last_attempt_at,next_attempt_at,succeeded_at,created_at,updated_at',
@@ -72,7 +71,7 @@ export function useMessageAttempts(
       if (byKey) return byKey as MessageAttemptRow;
 
       // Fallback: payload->>'message_id' (reprocessos legados).
-      const { data: byPayload, error: pErr } = await supabase
+      const { data: byPayload, error: pErr } = await (supabase as any)
         .from('failed_messages')
         .select(
           'id,status,retry_count,max_retries,error_code,error_message,http_status,last_retry_reason,last_attempt_at,next_attempt_at,succeeded_at,created_at,updated_at',

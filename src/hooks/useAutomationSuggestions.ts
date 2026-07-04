@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getExternalSupabase } from "@/integrations/supabase/externalClient";
@@ -31,7 +30,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('automation_executions')
       .select(
         "id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)",
@@ -78,7 +77,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   }, [remoteJid, refresh]);
 
   const accept = useCallback(async (id: string) => {
-    await supabase
+    await (supabase as any)
       .from('automation_executions')
       .update({ status: "accepted", acted_at: new Date().toISOString() })
       .eq("id", id);
@@ -86,7 +85,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   }, [refresh]);
 
   const dismiss = useCallback(async (id: string) => {
-    await supabase
+    await (supabase as any)
       .from('automation_executions')
       .update({ status: "dismissed", acted_at: new Date().toISOString() })
       .eq("id", id);
@@ -108,7 +107,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
           p_instance: sugg.instance_name,
           p_tags: [sugg.recommended_tag],
         });
-        await supabase
+        await (supabase as any)
           .from('automation_executions')
           .update({ applied_tags: [sugg.recommended_tag] })
           .eq("id", id);
