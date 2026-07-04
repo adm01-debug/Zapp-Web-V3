@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error(`[whatsapp-cloud-webhook][${rid}] error`, e);
     return new Response(
-      JSON.stringify({ ok: false, error: String(e), requestId: rid }),
+      JSON.stringify({ ok: false, requestId: rid }),
       {
         status: 200, // ack para evitar retry-storm da Meta
         headers: { ...corsHeaders, "Content-Type": "application/json" },
