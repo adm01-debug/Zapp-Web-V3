@@ -113,8 +113,17 @@ Deno.serve(async (req) => {
   const results: ProviderResult[] = settled
     .map(r => (r.status === "fulfilled" ? r.value : null))
     .filter((v): v is ProviderResult => v !== null);
+  const errors = settled
+    .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+    .map(r => r.reason instanceof Error ? r.reason.message : String(r.reason));
+  if (errors.length > 0) console.error('[provider-healthcheck] rejected tasks:', errors);
 
-  return new Response(JSON.stringify({ checked: results.length, results, finished_at: new Date().toISOString() }), {
+  return new Response(JSON.stringify({
+    checked: results.length,
+    results,
+    errors: errors.length > 0 ? errors : undefined,
+    finished_at: new Date().toISOString(),
+  }), {
     status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
