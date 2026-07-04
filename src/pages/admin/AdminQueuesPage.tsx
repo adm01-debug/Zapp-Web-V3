@@ -69,13 +69,13 @@ export default function AdminQueuesPage() {
   const load = async () => {
     setLoading(true);
     const [q, m, s, p, d, c, cq] = await Promise.all([
-      supabase.from('queues').select("*").order("priority", { ascending: false }),
+      (supabase as any).from('queues').select("*").order("priority", { ascending: false }),
       supabase.from('queue_members').select("id,queue_id,profile_id,profile:profiles(id,name,avatar_url)"),
       supabase.from('queue_skill_requirements').select("*"),
       supabase.from('profiles').select("id,name,avatar_url").eq("is_active", true).order("name"),
       supabase.from('departments').select("id,name").order("name"),
-      supabase.from('service_channels').select("id,name,channel_type,default_queue_id").neq("status", "archived").order("name"),
-      supabase.from('channel_queues').select("*"),
+      (supabase as any).from('service_channels').select("id,name,channel_type,default_queue_id").neq("status", "archived").order("name"),
+      (supabase as any).from('channel_queues').select("*"),
     ]);
     setQueues((q.data ?? []) as Queue[]);
     setMembers((m.data ?? []) as unknown as QueueMember[]);
@@ -109,8 +109,8 @@ export default function AdminQueuesPage() {
       overflow_queue_id: editing.overflow_queue_id ?? null,
     };
     const { error } = editing.id
-      ? await supabase.from('queues').update(payload).eq("id", editing.id)
-      : await supabase.from('queues').insert(payload as never);
+      ? await (supabase as any).from('queues').update(payload).eq("id", editing.id)
+      : await (supabase as any).from('queues').insert(payload);
     if (error) {
       toast({ title: "Erro ao salvar fila", description: error.message, variant: "destructive" });
       return;

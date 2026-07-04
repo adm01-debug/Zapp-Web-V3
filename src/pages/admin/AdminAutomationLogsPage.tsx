@@ -91,7 +91,7 @@ export default function AdminAutomationLogsPage() {
 
   const load = async () => {
     setLoading(true);
-    let q = supabase
+    let q = (supabase as any)
       .from('automation_executions')
       .select("*")
       .order("created_at", { ascending: false })

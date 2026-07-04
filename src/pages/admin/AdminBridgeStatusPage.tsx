@@ -116,7 +116,7 @@ export default function BridgeStatusPage() {
 
       // 4. Check Recent Message Traffic
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count: msgCount, data: lastMsg } = await supabase
+      const { count: msgCount, data: lastMsg } = await (supabase as any)
         .from('provider_message_log')
         .select('received_at', { count: 'exact' })
         .gt('received_at', fiveMinsAgo)
@@ -166,7 +166,7 @@ export default function BridgeStatusPage() {
   }, [toast]);
 
   const fetchIncidents = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('system_health_incidents')
       .select('*')
       .order('started_at', { ascending: false })

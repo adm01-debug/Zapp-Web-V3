@@ -111,11 +111,11 @@ export default function AdminAutomationsPage() {
   const load = async () => {
     setLoading(true);
     const [{ data: rulesData, error }, { data: chs }, { data: deps }] = await Promise.all([
-      supabase
+      (supabase as any)
         .from('automations')
         .select("*")
         .order("name", { ascending: true }),
-      supabase.from('service_channels').select("id,name").order("name"),
+      (supabase as any).from('service_channels').select("id,name").order("name"),
       supabase.from('departments').select("id,name").order("name"),
     ]);
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -184,8 +184,8 @@ export default function AdminAutomationsPage() {
       department_id: editing.department_id || null,
     };
     const op = editing.id
-      ? supabase.from('automations').update(payload).eq("id", editing.id)
-      : supabase.from('automations').insert(payload);
+      ? (supabase as any).from('automations').update(payload).eq("id", editing.id)
+      : (supabase as any).from('automations').insert(payload);
     const { error } = await op;
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });

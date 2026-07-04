@@ -66,6 +66,7 @@ describe('useBusinessHours', () => {
     const { result } = renderHook(() => useBusinessHours('wc1'), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     const sunday = result.current.businessHours?.find((h: any) => h.day_of_week === 0);
+    // @ts-expect-error is_open not in generated Supabase types but exists at runtime
     expect(sunday?.is_open).toBe(false);
   });
 });

@@ -64,7 +64,7 @@ export function useMediaUploadQueue(contactId: string) {
   const persist = useCallback(async (id: string, partial: Partial<MediaUploadItem>) => {
     try {
       const { file, ...updateData } = partial; // Don't try to persist File object
-      await supabase.from('media_upload_queue').update(updateData as any).eq('id', id);
+      await (supabase as any).from('media_upload_queue').update(updateData as any).eq('id', id);
     } catch (err) {
       log.error('[MediaQueue] persist failed', err);
     }
@@ -196,7 +196,7 @@ export function useMediaUploadQueue(contactId: string) {
       }
 
       try {
-        const { error: dbError } = await supabase.from('media_upload_queue').insert({
+        const { error: dbError } = await (supabase as any).from('media_upload_queue').insert({
           id: item.id,
           contact_id: contactId,
           file_name: item.fileName,
