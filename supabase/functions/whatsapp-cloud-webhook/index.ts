@@ -160,9 +160,20 @@ Deno.serve(async (req) => {
         );
       }
     }
+  } else if (STRICT_MODE) {
+    // Secret not configured: in strict mode reject all requests rather than
+    // processing unauthenticated payloads. Operator must set the env var.
+    console.error(
+      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — rejecting in strict mode`,
+    );
+    void recordPing("invalid_signature", { rid, reason: "no_secret_configured", strict: true });
+    return new Response(
+      JSON.stringify({ error: "webhook_not_configured", requestId: rid }),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } else {
     console.warn(
-      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — signature validation skipped`,
+      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — signature validation skipped (non-strict)`,
     );
   }
 

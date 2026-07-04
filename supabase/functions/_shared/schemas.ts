@@ -47,6 +47,36 @@ export const DetectNewDeviceSchema = z.object({
   device_name: z.string().min(1).max(200),
 });
 
+/** Validates that image_url is a safe HTTPS URL (not private IPs or metadata endpoints) */
+function isSafeHttpsUrl(url: string): boolean {
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname;
+  if (
+    host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0' ||
+    /^127\./.test(host) || /^169\.254\./.test(host) ||
+    /^10\./.test(host) || /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  ) return false;
+  return true;
+}
+
+const safeImageUrlSchema = z.string().url().refine(isSafeHttpsUrl, {
+  message: 'image_url must be a public HTTPS URL',
+});
+
+/** Schema para classificação de emoji customizado (classify-emoji) */
+export const ClassifyEmojiSchema = z.object({
+  image_url: safeImageUrlSchema.optional().nullable(),
+  file_name: z.string().max(255).optional().nullable(),
+});
+
+/** Schema para classificação de sticker (classify-sticker) */
+export const ClassifyStickerSchema = z.object({
+  image_url: safeImageUrlSchema.optional().nullable(),
+});
+
 /** Helper para parse seguro */
 export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {
   const result = schema.safeParse(body);

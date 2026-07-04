@@ -24,7 +24,19 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'full-diagnostic';
-    const instanceName = body.instanceName;
+    const rawInstanceName: unknown = body.instanceName;
+
+    // Validate instanceName to prevent path traversal in Evolution API URLs
+    const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+    if (rawInstanceName !== undefined && rawInstanceName !== null) {
+      if (typeof rawInstanceName !== 'string' || !INSTANCE_RE.test(rawInstanceName)) {
+        return new Response(
+          JSON.stringify({ error: 'instanceName contains invalid characters' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    const instanceName = rawInstanceName as string | undefined;
 
     const results: Record<string, unknown> = { timestamp: new Date().toISOString(), action };
 
