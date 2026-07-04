@@ -161,7 +161,7 @@ export function WhatsAppTemplatesManager() {
               <Label>Conteúdo do Template</Label>
               <Textarea value={editingTemplate.content || ''} onChange={(e) => handleContentChange(e.target.value)} rows={6} placeholder="Olá {{1}}, seu pedido {{2}} foi confirmado!" />
               <div className="flex items-center gap-2 text-xs text-muted-foreground"><Variable className="w-3 h-3" />Use {"{{1}}"}, {"{{2}}"}, etc. para variáveis dinâmicas</div>
-              {(editingTemplate.variables?.length || 0) > 0 && <div className="flex gap-1 flex-wrap mt-1">{editingTemplate.variables?.map((v, i) => <Badge key={i} variant="secondary" className="text-xs">{v}</Badge>)}</div>}
+              {(editingTemplate.variables?.length || 0) > 0 && <div className="flex gap-1 flex-wrap mt-1">{editingTemplate.variables?.map((v) => <Badge key={v} variant="secondary" className="text-xs">{v}</Badge>)}</div>}
             </div>
             <div className="space-y-2"><Label>Rodapé (opcional)</Label><Input value={editingTemplate.footer_text || ''} onChange={(e) => setEditingTemplate(prev => ({ ...prev, footer_text: e.target.value }))} placeholder="Texto do rodapé" /></div>
           </div>

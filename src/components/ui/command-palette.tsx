@@ -149,7 +149,7 @@ export function CommandPalette({
                         <span className="text-muted-foreground group-hover:text-foreground transition-colors">{cmd.icon}</span>
                         <div><span className="text-sm font-medium">{cmd.title}</span>{cmd.description && <p className="text-xs text-muted-foreground">{cmd.description}</p>}</div>
                       </div>
-                      {cmd.shortcut && <div className="flex gap-1">{cmd.shortcut.map((k, i) => <kbd key={i} className="px-1.5 py-0.5 bg-muted rounded text-[10px]  text-muted-foreground">{k}</kbd>)}</div>}
+                      {cmd.shortcut && <div className="flex gap-1">{cmd.shortcut.map((k, i) => <kbd key={`${k}-${i}`} className="px-1.5 py-0.5 bg-muted rounded text-[10px]  text-muted-foreground">{k}</kbd>)}</div>}
                     </button>
                   ))}
                 </div>

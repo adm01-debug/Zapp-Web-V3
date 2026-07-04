@@ -179,7 +179,7 @@ export function ContactDetailCard({ contact }: { contact: Contact360Contact }) {
       <InfoRow label="Sentimento" value={contact.sentiment} />
       <InfoRow label="Estágio" value={contact.relationship_stage} icon={Star} />
       <InfoRow label="Fonte" value={contact.source} />
-      {contact.tags && contact.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{contact.tags.map((tag, i) => <Badge key={i} variant="outline" className="text-[9px] px-1.5 py-0">{tag}</Badge>)}</div>}
+      {contact.tags && contact.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{contact.tags.map((tag) => <Badge key={tag} variant="outline" className="text-[9px] px-1.5 py-0">{tag}</Badge>)}</div>}
       {contact.notes && <div className="text-[10px] text-muted-foreground bg-muted/10 rounded-md p-1.5 mt-1">{contact.notes}</div>}
     </div>
   );
@@ -260,15 +260,15 @@ export function ContactChannels({ phones, emails }: { phones: Contact360Data['co
   if (!phones?.length && !emails?.length) return null;
   return (
     <div className="space-y-1 text-xs">
-      {phones?.map((p, i) => (
-        <div key={i} className="flex items-center gap-1.5 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" onClick={() => { navigator.clipboard.writeText(p.numero_e164 || p.numero); toast.success('Copiado!'); }}>
+      {phones?.map((p) => (
+        <div key={p.numero_e164 || p.numero} className="flex items-center gap-1.5 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" onClick={() => { navigator.clipboard.writeText(p.numero_e164 || p.numero); toast.success('Copiado!'); }}>
           <Phone className="w-3 h-3" /><span>{p.numero_e164 || p.numero}</span>
           {p.is_whatsapp && <Badge variant="outline" className="text-[9px] py-0 px-1">WA</Badge>}
           {p.is_primary && <Badge variant="outline" className="text-[9px] py-0 px-1 bg-primary/10">P</Badge>}
         </div>
       ))}
-      {emails?.map((e, i) => (
-        <div key={i} className="flex items-center gap-1.5 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" onClick={() => { navigator.clipboard.writeText(e.email); toast.success('Copiado!'); }}>
+      {emails?.map((e) => (
+        <div key={e.email} className="flex items-center gap-1.5 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" onClick={() => { navigator.clipboard.writeText(e.email); toast.success('Copiado!'); }}>
           <Mail className="w-3 h-3" /><span className="truncate">{e.email}</span>
           {e.is_primary && <Badge variant="outline" className="text-[9px] py-0 px-1 bg-primary/10">P</Badge>}
         </div>
@@ -295,10 +295,10 @@ export function BehaviorRadar({ decisionPower, formalityLevel, discProfile }: { 
   return (
     <svg viewBox="0 0 96 96" className="w-full h-full">
       <polygon points={gridPoly} fill="none" stroke="hsl(var(--muted))" strokeWidth="0.5" opacity="0.4" />
-      {axes.map((a, i) => { const ep = getPoint(a.angle, 1); return <line key={i} x1={cx} y1={cy} x2={ep.x} y2={ep.y} stroke="hsl(var(--muted))" strokeWidth="0.5" opacity="0.3" />; })}
+      {axes.map((a) => { const ep = getPoint(a.angle, 1); return <line key={a.label} x1={cx} y1={cy} x2={ep.x} y2={ep.y} stroke="hsl(var(--muted))" strokeWidth="0.5" opacity="0.3" />; })}
       <motion.polygon points={poly} fill="hsl(var(--primary))" fillOpacity="0.15" stroke="hsl(var(--primary))" strokeWidth="1.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }} />
-      {points.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="hsl(var(--primary))" />)}
-      {axes.map((a, i) => { const lp = getPoint(a.angle, 1.25); return <text key={i} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="central" className="text-[8px] fill-muted-foreground font-medium">{a.label}</text>; })}
+      {axes.map((a) => { const p = getPoint(a.angle, a.value); return <circle key={a.label} cx={p.x} cy={p.y} r="2.5" fill="hsl(var(--primary))" />; })}
+      {axes.map((a) => { const lp = getPoint(a.angle, 1.25); return <text key={a.label} x={lp.x} y={lp.y} textAnchor="middle" dominantBaseline="central" className="text-[8px] fill-muted-foreground font-medium">{a.label}</text>; })}
     </svg>
   );
 }
