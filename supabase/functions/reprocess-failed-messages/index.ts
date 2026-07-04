@@ -54,12 +54,29 @@ Deno.serve(async (req) => {
     const attempt = row.retry_count + 1;
     try {
       const payload = row.payload as Record<string, unknown>;
-      const path = (payload.__path as string) || '/message/sendText';
+      const rawPath = (payload.__path as string) || '/message/sendText';
       const idemKey = typeof payload.__idemKey === 'string' ? payload.__idemKey : null;
-      const instance = row.instance_name;
+      const instance = row.instance_name as string;
       const body = { ...payload };
       delete (body as Record<string, unknown>).__path;
       delete (body as Record<string, unknown>).__idemKey;
+
+      // Validate path and instance to prevent SSRF via malicious DB rows.
+      const SAFE_PATH_RE = /^\/[a-zA-Z0-9/_-]{1,128}$/;
+      const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+      if (!SAFE_PATH_RE.test(rawPath) || !INSTANCE_RE.test(instance ?? '')) {
+        console.error('[dlq-reprocess] unsafe path or instance, abandoning row', { id: row.id });
+        await supabase.from('failed_messages').update({
+          status: 'abandoned',
+          retry_count: attempt,
+          last_attempt_at: new Date().toISOString(),
+          error_message: 'unsafe path or instance_name rejected',
+        }).eq('id', row.id);
+        abandoned++;
+        continue;
+      }
+      const path = rawPath;
+
       console.info('[dlq-reprocess]', JSON.stringify({
         id: row.id, instance, path, attempt, max: row.max_retries, hasIdem: !!idemKey,
       }));
