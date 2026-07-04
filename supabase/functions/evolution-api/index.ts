@@ -413,7 +413,8 @@ Deno.serve(async (req) => {
           // Wait 500ms before retry
           await new Promise(r => setTimeout(r, 500));
         } catch (e) {
-          data = { message: (e as Error).message };
+          console.error('[evolution-api] disconnect fetch error:', (e as Error).message);
+          data = { message: 'Upstream request failed' };
           if (attempts >= MAX_ATTEMPTS) break;
           await new Promise(r => setTimeout(r, 500));
         }
