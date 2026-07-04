@@ -239,8 +239,11 @@ async function processHistory(
     }
   }
 
-  // Fetch and persist all new messages in parallel; throw if any fail so history does not advance
-  // and Gmail retries the push notification — prevents permanent message gaps.
+  // Fetch and persist all new messages in parallel. Individual failures are logged and skipped
+  // to prevent a poison-message loop where one deterministically-bad message (e.g. oversized
+  // payload, unexpected schema) causes infinite Pub/Sub retries and stalls all subsequent
+  // ingestion for the account. Only throw when ALL messages fail — that signals a systemic
+  // issue (auth revoked, network partition) where holding the history position is correct.
   const results = await Promise.allSettled(
     addedMessages.slice(0, 20).map(msgId => fetchAndPersistMessage(supabase, token, accountId, msgId))
   );
@@ -250,8 +253,8 @@ async function processHistory(
       console.error('[gmail-webhook] processHistory message failed:', r.reason instanceof Error ? r.reason.message : String(r.reason));
     }
   }
-  if (failures.length > 0) {
-    throw new Error(`${failures.length}/${results.length} messages failed to ingest`);
+  if (failures.length > 0 && failures.length === results.length) {
+    throw new Error(`All ${results.length}/${results.length} messages failed to ingest — systemic failure`);
   }
 }
 
@@ -266,7 +269,13 @@ async function fetchAndPersistMessage(
     signal: AbortSignal.timeout(10_000),
   });
   const msg = await msgRes.json();
-  if (msg.error) return;
+  if (msg.error) {
+    // 404 = message deleted before ingestion — expected and harmless, skip silently.
+    // All other Gmail API errors are transient (auth, rate-limit, server) — throw so
+    // processHistory can decide whether to retry the batch.
+    if (msg.error.code === 404) return;
+    throw new Error(`Gmail API error for message ${messageId}: ${msg.error.code} ${msg.error.message ?? ''}`);
+  }
 
   const headers: Record<string, string> = {};
   for (const h of msg.payload?.headers ?? []) {
