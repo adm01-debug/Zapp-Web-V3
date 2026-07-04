@@ -120,11 +120,12 @@ export async function handleMessagesUpdate(supabase: any, instance: string, data
         }
 
         if (contactId) {
-          await supabase.from('messages').insert({
+          const { error: fallbackErr } = await supabase.from('messages').upsert({
             content: '[Mensagem recebida]', message_type: 'text', sender: 'contact',
             external_id: key.id, status: newStatus, status_updated_at: now, created_at: now,
             contact_id: contactId, whatsapp_connection_id: connection.id,
-          });
+          }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true });
+          if (fallbackErr) console.error(`[UPDATE] Fallback insert error for ${key.id}:`, fallbackErr);
         }
       }
     }
@@ -154,11 +155,12 @@ export async function handleMessagesDelete(supabase: any, instance: string, data
         if (phone) { const contact = await getContactByPhone(supabase, phone, connection.id); contactId = contact?.id ?? null; }
       }
 
-      await supabase.from('messages').insert({
+      const { error: fallbackErr } = await supabase.from('messages').upsert({
         content: '[Mensagem apagada]', message_type: 'text', sender: 'contact',
         external_id: key.id, status: 'deleted', is_deleted: true, status_updated_at: now,
         created_at: now, contact_id: contactId, whatsapp_connection_id: connection.id,
-      });
+      }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true });
+      if (fallbackErr) console.error(`[DELETE] Fallback insert error for ${key.id}:`, fallbackErr);
     }
     console.log(`Message deleted: ${key.id}`);
   }
@@ -202,11 +204,14 @@ export async function handleMessagesSet(supabase: any, instance: string, data: u
     if (!content && messageType === 'text') { skipped++; continue; }
 
     const ts = (entry.messageTimestamp as number) ? new Date((entry.messageTimestamp as number) * 1000).toISOString() : new Date().toISOString();
-    await supabase.from('messages').insert({
+    const { data: syncedMsg, error: syncErr } = await supabase.from('messages').upsert({
       content, message_type: messageType, sender: key.fromMe ? 'agent' : 'contact',
       external_id: key.id, contact_id: contact.id, whatsapp_connection_id: connection.id,
       status: key.fromMe ? 'sent' : 'received', is_read: !!key.fromMe, created_at: ts,
-    });
+      status_updated_at: ts,
+    }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true }).select('id').maybeSingle();
+    if (syncErr) { console.error('[SET] Insert error:', syncErr); skipped++; continue; }
+    if (!syncedMsg) { skipped++; continue; } // ON CONFLICT DO NOTHING: already exists
     synced++;
   }
   console.log(`messages.set: synced ${synced}, skipped ${skipped} for ${instance}`);

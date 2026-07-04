@@ -172,25 +172,28 @@ export async function handleIncomingMessage(
   if (existingMessage?.id) {
     const preservedStatus = existingMessage.status && existingMessage.status !== 'received' ? existingMessage.status : 'received';
     const preservedContent = existingMessage.status === 'deleted' ? (existingMessage.content || '[Mensagem apagada]') : content;
+    const statusChanged = preservedStatus !== existingMessage.status;
     await supabase.from('messages').update({
       contact_id: contact.id, whatsapp_connection_id: connection.id, content: preservedContent,
       message_type: messageType, media_url: mediaUrl, sender: 'contact', created_at: messageCreatedAt, status: preservedStatus,
+      ...(statusChanged ? { status_updated_at: new Date().toISOString() } : {}),
     }).eq('id', existingMessage.id);
     if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, existingMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
     return;
   }
 
-  const { data: insertedMessage, error: msgError } = await supabase.from('messages').insert({
+  const { data: insertedMessage, error: msgError } = await supabase.from('messages').upsert({
     contact_id: contact.id, whatsapp_connection_id: connection.id, content,
     message_type: messageType, media_url: mediaUrl, sender: 'contact', external_id: key.id,
-    status: 'received', created_at: messageCreatedAt,
-  }).select('id').single();
+    status: 'received', created_at: messageCreatedAt, status_updated_at: new Date().toISOString(),
+  }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true }).select('id').maybeSingle();
 
   if (msgError) {
     console.error('Error inserting message:', { msgError, externalId: key.id, bestJid, phone, messageType, content });
     return;
   }
-  if (messageType === 'audio' && mediaUrl && insertedMessage) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
+  if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
+  if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
 }
 
 // deno-lint-ignore no-explicit-any
