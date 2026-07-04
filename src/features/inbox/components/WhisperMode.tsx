@@ -84,7 +84,7 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
     if (!contactIsUUID) return;
     const channel = supabase
       .channel(`whisper-${contactId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'whisper_messages', filter: `contact_id=eq.${contactId}` }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${contactId}` }, () => {
         queryClient.invalidateQueries({ queryKey: ['whispers', contactId] });
         setIsExpanded(true);
       })
