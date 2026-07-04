@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
-import { requireUser } from "../_shared/auth.ts";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 /**
  * 3-layer health check para conexões Evolution.
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
   const xCron = req.headers.get('x-cron-secret') ?? '';
   const isInternalCaller = (serviceKey && bearer === serviceKey) || (cronSecret && xCron === cronSecret);
   if (!isInternalCaller) {
-    const authed = await requireUser(req);
+    const authed = await requireAdminOrSupervisor(req);
     if (authed instanceof Response) return authed;
   }
 
