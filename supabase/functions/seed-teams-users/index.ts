@@ -1,8 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
 import { corsHeaders } from "../_shared/validation.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   try {
     const supabase = createClient(

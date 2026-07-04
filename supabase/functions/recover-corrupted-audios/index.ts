@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -38,6 +39,9 @@ async function getMediaBase64(instanceName: string, messageId: string): Promise<
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
   const log = new Logger("recover-corrupted-audios");

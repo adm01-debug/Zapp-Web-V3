@@ -1,10 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   const log = new Logger("migrate-media-storage");
 
