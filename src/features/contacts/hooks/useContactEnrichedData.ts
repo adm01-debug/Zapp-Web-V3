@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 export interface EnrichedContactData {
   company: string | null;
@@ -28,8 +29,6 @@ export interface SLAInfo {
   resolved_at: string | null;
 }
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * Extracts the digits from a WhatsApp JID (e.g. "5511999999999@s.whatsapp.net" -> "5511999999999").
  * Returns null when the input doesn't look like a JID.
@@ -46,10 +45,13 @@ function jidToPhone(value: string): string | null {
  *   - a real UUID (returned as-is)
  *   - a WhatsApp JID coming from FATOR X (looked up by phone)
  * Returns `null` when no local contact exists — callers must skip enriched queries in that case.
+ *
+ * DRY FIX: uses isValidUUID from @/utils/uuid instead of an inline UUID_REGEX.
  */
 async function resolveLocalContactId(identifier: string): Promise<string | null> {
   if (!identifier) return null;
-  if (UUID_REGEX.test(identifier)) return identifier;
+  // DRY: delegate UUID check to the canonical helper
+  if (isValidUUID(identifier)) return identifier;
 
   const phone = jidToPhone(identifier);
   if (!phone) return null;
