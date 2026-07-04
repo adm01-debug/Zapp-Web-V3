@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
             use_speaker_boost: true,
           },
         }),
+        signal: AbortSignal.timeout(30_000),
       }
     );
 
