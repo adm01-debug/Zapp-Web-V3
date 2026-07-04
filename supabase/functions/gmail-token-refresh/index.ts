@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 /**
  * gmail-token-refresh — Renovação automática de tokens Gmail
@@ -26,6 +27,9 @@ const GMAIL_WATCH_URL  = 'https://gmail.googleapis.com/gmail/v1/users/me/watch';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const authDenied = requireServiceRoleOrCron(req);
+  if (authDenied) return authDenied;
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
