@@ -156,7 +156,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     if (originalUrl) {
       try {
         const hash = await buildFileHash(originalUrl);
-        const { data: cacheRow } = await supabase
+        const { data: cacheRow } = await (supabase as any)
           .from('media_cache')
           .select('storage_path')
           .eq('file_hash', hash)
