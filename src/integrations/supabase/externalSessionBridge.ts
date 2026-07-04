@@ -1,0 +1,149 @@
+/**
+ * External Session Bridge — FATOR X (Dual-session hardening)
+ *
+ * Mantém a sessão do `externalSupabase` (self-hosted) espelhada com a sessão
+ * do client principal (Lovable Cloud). Estratégia:
+ *
+ *  - Login email/senha: `mirrorExternalSignIn` é chamado pelo `authService`
+ *    (a senha só existe nesse momento). Se o usuário não existe no external,
+ *    faz auto-provisionamento via `signUp` e depois `signIn`.
+ *  - Login social / magic link: `onAuthStateChange` capta `SIGNED_IN` sem
+ *    credenciais — apenas registra warning (dual-session não é possível sem
+ *    senha; leituras dependerão do fallback anon do external).
+ *  - Logout: propagado nos dois lados.
+ *  - Refresh: cada client mantém o próprio (`autoRefreshToken: true`).
+ *  - Falhas do external NUNCA bloqueiam o principal (catch silencioso + log).
+ */
+import type { AuthError } from '@supabase/supabase-js';
+import { supabase } from './client';
+import { externalSupabase, isExternalConfigured } from './externalClient';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('externalSessionBridge');
+
+let bridgeInstalled = false;
+let socialWarningEmitted = false;
+
+/** Erros do GoTrue que indicam "usuário não existe" e permitem auto-signup. */
+function isUserNotFound(err: AuthError | null): boolean {
+  if (!err) return false;
+  const msg = err.message?.toLowerCase() ?? '';
+  return (
+    msg.includes('invalid login credentials') ||
+    msg.includes('user not found') ||
+    msg.includes('email not confirmed') === false && msg.includes('not found')
+  );
+}
+
+/**
+ * Faz login no external com as mesmas credenciais do principal.
+ * Se o usuário não existir no external, faz auto-provisionamento (signUp + signIn).
+ * Silencioso em erro — não deve derrubar o fluxo principal.
+ */
+export async function mirrorExternalSignIn(email: string, password: string): Promise<void> {
+  if (!isExternalConfigured) return;
+  try {
+    const { error } = await externalSupabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      log.debug('external mirror sign-in ok', { email });
+      return;
+    }
+
+    if (isUserNotFound(error)) {
+      log.info('external user ausente — provisionando via signUp', { email });
+      const { error: signUpErr } = await externalSupabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/` },
+      });
+      if (signUpErr) {
+        log.warn('external auto-signup falhou', { message: signUpErr.message });
+        return;
+      }
+      const { error: retryErr } = await externalSupabase.auth.signInWithPassword({ email, password });
+      if (retryErr) {
+        log.warn('external sign-in após provisionamento falhou', { message: retryErr.message });
+      } else {
+        log.info('external provisionado e autenticado', { email });
+      }
+      return;
+    }
+
+    log.warn('external mirror sign-in falhou', { message: error.message });
+  } catch (e) {
+    log.warn('external mirror sign-in exception', { err: (e as Error).message });
+  }
+}
+
+/** Logout no external — silencioso em erro. */
+export async function mirrorExternalSignOut(): Promise<void> {
+  if (!isExternalConfigured) return;
+  try {
+    await externalSupabase.auth.signOut();
+  } catch (e) {
+    log.warn('external sign-out exception', { err: (e as Error).message });
+  }
+}
+
+/**
+ * Instala listener global no client principal. Idempotente.
+ * Deve ser chamado 1x no boot (main.tsx).
+ */
+export function registerExternalSessionBridge(): void {
+  if (bridgeInstalled) return;
+  bridgeInstalled = true;
+
+  if (!isExternalConfigured) {
+    log.debug('external não configurado — bridge no-op');
+    return;
+  }
+
+  // Hidratação inicial: se principal está logado mas external não, avisa
+  // (não temos senha em memória — só um novo signIn ou login social resolve).
+  void (async () => {
+    try {
+      const [{ data: mainSess }, { data: extSess }] = await Promise.all([
+        supabase.auth.getSession(),
+        externalSupabase.auth.getSession(),
+      ]);
+      if (mainSess.session && !extSess.session) {
+        log.warn(
+          'sessão principal ativa sem sessão external — usuário precisa refazer login para hidratar dual-session',
+        );
+      }
+    } catch (e) {
+      log.debug('hidratação inicial falhou', { err: (e as Error).message });
+    }
+  })();
+
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    try {
+      if (event === 'SIGNED_OUT') {
+        await mirrorExternalSignOut();
+        socialWarningEmitted = false;
+        return;
+      }
+
+      if (event === 'SIGNED_IN' && session) {
+        // Se o external já tem sessão válida, nada a fazer (foi feito via authService).
+        const { data } = await externalSupabase.auth.getSession();
+        if (data.session?.user?.email === session.user.email) return;
+
+        // Sem senha em mãos (login social / magic link / recovery).
+        if (!socialWarningEmitted) {
+          socialWarningEmitted = true;
+          log.warn(
+            'SIGNED_IN sem credenciais (social/OAuth) — dual-session external indisponível para este usuário até login por senha',
+            { provider: session.user.app_metadata?.provider },
+          );
+        }
+      }
+
+      // TOKEN_REFRESHED / USER_UPDATED: cada client gerencia o próprio refresh.
+    } catch (e) {
+      log.debug('onAuthStateChange handler exception', { err: (e as Error).message });
+    }
+  });
+
+  log.info('external session bridge instalado');
+}
