@@ -1,8 +1,13 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { errorResponse } from "./cors.ts";
 
-// deno-lint-ignore no-explicit-any
-export function createSupabaseClients(authHeader: string): { supabase: any; supabaseAdmin: any } {
+interface LegacyAuthUser {
+  id: string;
+  email: string | undefined;
+  role: string | undefined;
+}
+
+export function createSupabaseClients(authHeader: string): { supabase: SupabaseClient; supabaseAdmin: SupabaseClient } {
   const url = Deno.env.get('SUPABASE_URL');
   const anon = Deno.env.get('SUPABASE_ANON_KEY');
   const svc = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -14,10 +19,8 @@ export function createSupabaseClients(authHeader: string): { supabase: any; supa
 
 export async function authenticateRequest(
   req: Request,
-  // deno-lint-ignore no-explicit-any
   options: Record<string, unknown> = {},
-// deno-lint-ignore no-explicit-any
-): Promise<{ user: any; supabase: any; supabaseAdmin: any; error: Response | null }> {
+): Promise<{ user: LegacyAuthUser | null; supabase: SupabaseClient | null; supabaseAdmin: SupabaseClient | null; error: Response | null }> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return {

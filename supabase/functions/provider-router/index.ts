@@ -32,6 +32,14 @@ interface ProviderConfig {
   is_active: boolean;
 }
 
+interface ChannelRoute {
+  id: string;
+  current_provider_id: string | null;
+  primary: ProviderConfig | null;
+  fallback: ProviderConfig | null;
+  [key: string]: unknown;
+}
+
 const ENDPOINTS: Record<string, Record<Action, { method: string; path: string }>> = {
   evolution: {
     sendText:  { method: "POST", path: "/message/sendText/{instance}" },
@@ -160,9 +168,10 @@ Deno.serve(async (req) => {
   }
 
   const candidates: ProviderConfig[] = [];
-  const current = (route as any).current_provider_id as string | null;
-  const primary = (route as any).primary as ProviderConfig | null;
-  const fallback = (route as any).fallback as ProviderConfig | null;
+  const typedRoute = route as unknown as ChannelRoute;
+  const current = typedRoute.current_provider_id;
+  const primary = typedRoute.primary;
+  const fallback = typedRoute.fallback;
 
   // Ordem de tentativa: provedor atual (se ainda válido), primário, fallback
   if (current && primary && current === primary.id) {
@@ -230,7 +239,7 @@ Deno.serve(async (req) => {
         await admin.from("channel_provider_routes").update({
           current_provider_id: provider.id,
           switched_reason: i === 0 ? "primary_recovered" : `fallback_to_${provider.name}: ${lastError ?? "n/a"}`,
-        }).eq("id", (route as any).id);
+        }).eq("id", typedRoute.id);
       }
 
       await admin.from("provider_configs").update({

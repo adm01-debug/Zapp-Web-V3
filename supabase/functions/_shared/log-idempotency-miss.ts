@@ -14,8 +14,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
-// deno-lint-ignore no-explicit-any
-let cached: any = null;
+let cached: ReturnType<typeof createClient> | null | false = null;
 
 function getExternalServiceClient() {
   if (cached === null) {

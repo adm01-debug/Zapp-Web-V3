@@ -19,8 +19,7 @@ const TTL_HOURS = 24;
 const KEY_MIN = 8;
 const KEY_MAX = 200;
 
-// deno-lint-ignore no-explicit-any
-let cached: any = null;
+let cached: ReturnType<typeof createClient> | null = null;
 function getServiceClient() {
   if (cached) return cached;
   const url = Deno.env.get('SUPABASE_URL');
