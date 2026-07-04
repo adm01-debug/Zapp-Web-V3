@@ -1,15 +1,28 @@
 // Evolution Bitrix24 Sync v3.0 (2026-04-26)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { getSecret } from "../_shared/vault.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const BITRIX_WEBHOOK_URL = Deno.env.get("BITRIX_WEBHOOK_URL") || "";
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
+// Vault-resolved BITRIX_WEBHOOK_URL — fetched lazily on first use
+let _bitrixUrl: string | null | undefined;
+async function getBitrixUrl(): Promise<string | null> {
+  if (_bitrixUrl === undefined) {
+    // env-first via getSecret, vault fallback
+    _bitrixUrl = await getSecret("bitrix_webhook_url");
+  }
+  return _bitrixUrl;
+}
+
 async function bitrixCall(method: string, params: any) {
-  if (!BITRIX_WEBHOOK_URL) return { success: false, error: "BITRIX_WEBHOOK_URL não configurada" };
+  const url = await getBitrixUrl();
+  if (!url) return { success: false, error: "BITRIX_WEBHOOK_URL não configurada" };
   try {
-    const r = await fetch(`${BITRIX_WEBHOOK_URL}/${method}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(params), signal: AbortSignal.timeout(20000) });
+    const r = await fetch(`${url}/${method}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(params), signal: AbortSignal.timeout(20000) });
     if (!r.ok) return { success: false, error: `HTTP ${r.status}: ${(await r.text()).slice(0,200)}` };
     const d = await r.json();
     if (d.error) return { success: false, error: d.error_description || d.error };
@@ -38,12 +51,53 @@ function toBitrixDeal(d: any, contactId?: number) {
 
 async function processQueue() {
   let processed = 0, success = 0, failed = 0;
-  const { data } = await supabase.from("evolution_bitrix_queue").select("*").eq("status", "pending").or(`next_attempt_at.is.null,next_attempt_at.lte.${new Date().toISOString()}`).order("created_at").limit(20);
+
+  // Filter exhausted rows in SQL to avoid fetching items we can't process.
+  // Items with attempts >= max_attempts should already be 'failed'; this guards against any
+  // that slipped through (e.g. max_attempts changed after enqueue).
+  const { data, error: selErr } = await supabase
+    .from("evolution_bitrix_queue")
+    .select("*")
+    .eq("status", "pending")
+    .or(`next_attempt_at.is.null,next_attempt_at.lte.${new Date().toISOString()}`)
+    .order("created_at")
+    .limit(20);
+
+  if (selErr) {
+    console.error("[processQueue] select error:", selErr.message);
+    return { processed: 0, success: 0, failed: 0 };
+  }
+
   const items = (data || []).filter((i: any) => (i.attempts || 0) < (i.max_attempts || 3));
+
+  // Mark exhausted rows (pending but attempts >= max_attempts) as failed so they don't re-block
+  const exhausted = (data || []).filter((i: any) => (i.attempts || 0) >= (i.max_attempts || 3));
+  for (const ex of exhausted) {
+    const { error: exErr } = await supabase
+      .from("evolution_bitrix_queue")
+      .update({ status: "failed", last_error: "max_attempts exceeded" })
+      .eq("id", ex.id)
+      .eq("status", "pending");
+    if (exErr) console.error(`[processQueue] mark exhausted ${ex.id}:`, exErr.message);
+  }
+
   if (!items.length) return { processed: 0, success: 0, failed: 0 };
+
   for (const item of items) {
     processed++;
-    await supabase.from("evolution_bitrix_queue").update({ status: "processing", attempts: (item.attempts || 0) + 1 }).eq("id", item.id);
+
+    // Optimistic lock: only claim if row is still 'pending' — prevents duplicate processing
+    const { count: claimed, error: claimErr } = await supabase
+      .from("evolution_bitrix_queue")
+      .update({ status: "processing", attempts: (item.attempts || 0) + 1 }, { count: "exact" })
+      .eq("id", item.id)
+      .eq("status", "pending");
+    if (claimErr) {
+      console.error(`[processQueue] claim error for ${item.id}:`, claimErr.message);
+      continue;
+    }
+    if (!claimed || claimed === 0) continue; // already claimed by a concurrent worker
+
     let result: any;
     if (item.operation === "create") {
       if (item.entity_type === "contact") {
@@ -69,6 +123,7 @@ async function processQueue() {
         result = await bitrixCall(method, { id: bid, fields });
       }
     } else { result = { success: false, error: `op desconhecida: ${item.operation}` }; }
+
     if (result.success) {
       await supabase.from("evolution_bitrix_queue").update({ status: "completed", processed_at: new Date().toISOString(), last_error: null }).eq("id", item.id);
       success++;
@@ -87,11 +142,21 @@ async function processQueue() {
 Deno.serve(async (req: Request) => {
   const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (!BITRIX_WEBHOOK_URL) return new Response(JSON.stringify({ error: "Bitrix24 não configurado", message: "Configure BITRIX_WEBHOOK_URL" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  // Internal cron endpoint — require service role or cron secret
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
+
+  const bitrixUrl = await getBitrixUrl();
+  if (!bitrixUrl) return new Response(JSON.stringify({ error: "Bitrix24 não configurado", message: "Configure bitrix_webhook_url no Vault ou env BITRIX_WEBHOOK_URL" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   try {
     const start = Date.now();
     const result = await processQueue();
     await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "bitrix_sync", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).then(()=>{},()=>{});
     return new Response(JSON.stringify({ success: true, version: "v3", ...result, duration_ms: Date.now() - start, timestamp: new Date().toISOString() }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e) { return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+  } catch (e) {
+    console.error("[evolution-bitrix-sync] unhandled error:", e);
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 });

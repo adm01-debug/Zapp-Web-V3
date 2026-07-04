@@ -8,6 +8,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -52,6 +53,11 @@ interface QueuedMessage {
 }
 
 interface SendResult { success: boolean; messageId?: string; error?: string; http_status?: number; }
+
+/** Escape regex metacharacters in template variable keys to prevent injection. */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 function normalizeNumber(remoteJid: string): string {
   return remoteJid.replace("@s.whatsapp.net", "").replace("@c.us", "").replace("@g.us", "");
@@ -133,7 +139,8 @@ async function renderTemplate(
     if (name) allVars.nome = name;
   }
   for (const [k, v] of Object.entries(allVars)) {
-    const re = new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, "gi");
+    // escapeRegex prevents metacharacter injection via variable keys
+    const re = new RegExp(`\\{\\{\\s*${escapeRegex(k)}\\s*\\}\\}`, "gi");
     out = out.replace(re, v);
   }
   out = out.replace(/\{\{\s*\w+\s*\}\}/g, "");
@@ -160,6 +167,8 @@ async function sendTemplateMessage(msg: QueuedMessage, instance: string): Promis
   if (!tpl.content) return { success: false, error: `template has no content: ${tpl.name}` };
 
   let text = await renderTemplate(tpl.content, msg.template_vars, msg.remote_jid);
+  // Guard against rendering an empty string — send nothing rather than a blank message
+  if (!text) return { success: false, error: `template rendered to empty string: ${tpl.name}` };
   if (tpl.footer_text) text = `${text}\n\n${tpl.footer_text}`;
   return sendTextMessage(msg.remote_jid, text, instance);
 }
@@ -197,21 +206,24 @@ async function processMessage(message: QueuedMessage): Promise<SendResult> {
 async function markSent(messageId: string, result: SendResult): Promise<void> {
   const update: Record<string, any> = { status: "sent", sent_at: new Date().toISOString() };
   if (result.messageId) update.whatsapp_message_id = result.messageId;
-  await supabase.from("evolution_message_queue").update(update).eq("id", messageId);
+  const { error } = await supabase.from("evolution_message_queue").update(update).eq("id", messageId);
+  if (error) console.error(`[markSent] ${messageId}:`, error.message);
 }
 
 async function markFailed(messageId: string, result: SendResult): Promise<void> {
-  await supabase.from("evolution_message_queue").update({
+  const { error } = await supabase.from("evolution_message_queue").update({
     status: "failed",
     error_message: result.error?.slice(0, 1000) ?? "unknown error",
   }).eq("id", messageId);
+  if (error) console.error(`[markFailed] ${messageId}:`, error.message);
 }
 
 async function markPending(messageId: string, lastError?: string): Promise<void> {
   // v6: preserva error_message no retry pra debug
   const update: Record<string, any> = { status: "pending" };
   if (lastError) update.error_message = lastError.slice(0, 1000);
-  await supabase.from("evolution_message_queue").update(update).eq("id", messageId);
+  const { error } = await supabase.from("evolution_message_queue").update(update).eq("id", messageId);
+  if (error) console.error(`[markPending] ${messageId}:`, error.message);
 }
 
 async function processQueue(): Promise<{
@@ -227,7 +239,8 @@ async function processQueue(): Promise<{
     .select("*")
     .eq("status", "pending")
     .or(`scheduled_at.is.null,scheduled_at.lte.${new Date().toISOString()}`)
-    .order("priority", { ascending: false })
+    // nullsFirst:false ensures NULLs sort after explicit priorities, preserving intended order
+    .order("priority", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: true })
     .limit(BATCH_SIZE);
 
@@ -255,7 +268,18 @@ async function processQueue(): Promise<{
     }
     processed++;
 
-    const result = await processMessage(m);
+    let result: SendResult;
+    try {
+      result = await processMessage(m);
+    } catch (e) {
+      // Unexpected exception — return row to pending so the next cycle can retry
+      const msg = (e as Error).message;
+      console.error(`[processQueue] unexpected error processing ${m.id}:`, msg);
+      await markPending(m.id, msg);
+      retried++;
+      continue;
+    }
+
     if (result.success) {
       await markSent(m.id, result);
       sent++;
@@ -279,6 +303,11 @@ Deno.serve(async (request: Request) => {
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
   };
   if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Internal cron endpoint — require service role or cron secret
+  const authErr = requireServiceRoleOrCron(request);
+  if (authErr) return authErr;
+
   try {
     console.log(`[${new Date().toISOString()}] evolution-sender v6 fired`);
     const result = await processQueue();
@@ -298,7 +327,7 @@ Deno.serve(async (request: Request) => {
   } catch (error) {
     console.error("evolution-sender v6 error:", error);
     return new Response(JSON.stringify({
-      error: "Internal server error", message: (error as Error).message,
+      error: "Internal server error",
     }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

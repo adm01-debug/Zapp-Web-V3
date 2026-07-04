@@ -1,6 +1,8 @@
 // Evolution Templates v5.0
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, x-api-key", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
 
@@ -19,10 +21,16 @@ async function getConfig() {
 
 function normalizeNumber(jid: string) { return jid.replace("@s.whatsapp.net","").replace("@c.us","").replace("@g.us",""); }
 
+/** Escape regex metacharacters in variable keys to prevent injection. */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function replaceVars(content: string, vars: any) {
   let r = content;
   for (const [k, v] of Object.entries(vars || {})) {
-    r = r.replace(new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, "gi"), String(v ?? ""));
+    // escapeRegex prevents template variable keys from being interpreted as regex patterns
+    r = r.replace(new RegExp(`\\{\\{\\s*${escapeRegex(k)}\\s*\\}\\}`, "gi"), String(v ?? ""));
   }
   return r.replace(/\{\{\s*\w+\s*\}\}/g, "").replace(/\s+/g, " ").trim();
 }
@@ -48,14 +56,23 @@ function validate(tpl: any) {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
+  // Internal endpoint — require service role or cron secret
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
+
   try {
     const url = new URL(req.url);
     if (req.method === "GET") {
       const cat = url.searchParams.get("category") || undefined;
       let q = supabase.from("evolution_message_templates").select("*").eq("is_active", true).order("usage_count", { ascending: false });
       if (cat) q = q.eq("category", cat);
-      const { data } = await q;
-      return new Response(JSON.stringify({ success: true, templates: data }), { headers: { ...cors, "Content-Type": "application/json" } });
+      const { data, error } = await q;
+      if (error) {
+        console.error("[evolution-templates] GET templates error:", error.message);
+        return new Response(JSON.stringify({ success: false, error: "Failed to fetch templates" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ success: true, templates: data ?? [] }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
@@ -69,12 +86,16 @@ Deno.serve(async (req: Request) => {
         const message = replaceVars(tpl.content, variables || {});
         const result = await sendMsg(remote_jid, message);
         const cfg = await getConfig();
-        await supabase.from("evolution_message_queue").insert({
+        const { error: insertErr } = await supabase.from("evolution_message_queue").insert({
           remote_jid, instance_name: cfg.instance, message_type: "template", content: message, template_id: tpl.id,
           status: result.ok ? "sent" : "failed", error_message: result.ok ? null : `HTTP ${result.status}`,
           source: "evolution-templates-direct", attempts: 1, max_attempts: 1, sent_at: result.ok ? new Date().toISOString() : null
-        }).then(()=>{},()=>{});
-        if (result.ok) await supabase.rpc("fn_use_template", { p_template_id: tpl.id, p_remote_jid: remote_jid, p_variables: variables }).then(()=>{},()=>{});
+        });
+        if (insertErr) console.error("[evolution-templates] queue insert error:", insertErr.message);
+        if (result.ok) {
+          const { error: rpcErr } = await supabase.rpc("fn_use_template", { p_template_id: tpl.id, p_remote_jid: remote_jid, p_variables: variables });
+          if (rpcErr) console.error("[evolution-templates] fn_use_template error:", rpcErr.message);
+        }
         return new Response(JSON.stringify({ success: result.ok, template_id: tpl.id, message_sent: message, sent: result.ok, http_status: result.status }), { status: result.ok ? 200 : 502, headers: { ...cors, "Content-Type": "application/json" } });
       }
       if (action === "preview") {
@@ -85,5 +106,8 @@ Deno.serve(async (req: Request) => {
       }
     }
     return new Response(JSON.stringify({ error: "Endpoint não encontrado" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
-  } catch (e) { return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } }); }
+  } catch (e) {
+    console.error("[evolution-templates] unhandled error:", e);
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+  }
 });

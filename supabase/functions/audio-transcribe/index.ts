@@ -1,6 +1,6 @@
 // audio-transcribe v2.0 (Self-Hosted, vault-aware) — migrado de Cloud Fator X
 // Mudanças: lê HF_API_TOKEN via getSecret() (env-first + vault fallback)
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import {
   handleCorsPreflight, jsonResponse, errorResponse,
   authenticateRequest,
@@ -23,6 +23,42 @@ const TranscribeInput = z.object({
 }).refine(d => d.audio_base64 || d.audio_url, {
   message: 'Either audio_base64 or audio_url is required',
 });
+
+/**
+ * Stream a remote audio URL into a Uint8Array while enforcing the byte cap.
+ * Avoids buffering the entire response in memory before checking size.
+ */
+async function fetchAudioWithCap(url: string, maxBytes: number): Promise<Uint8Array | null> {
+  const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  if (!resp.ok || !resp.body) return null;
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  const reader = resp.body.getReader();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        reader.cancel();
+        return null; // signal oversized
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const combined = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return combined;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
@@ -65,34 +101,53 @@ serve(async (req) => {
       return errorResponse(req, 'HF_API_TOKEN not configured (set env var or populate vault.secrets[hf_api_token])', 503);
     }
 
-    // Carrega audio bytes
-    let audioBytes;
+    // Carrega audio bytes — enforce cap BEFORE buffering to prevent memory exhaustion
+    let audioBytes: Uint8Array;
     if (audio_base64) {
       const raw = atob(audio_base64);
+      if (raw.length > MAX_AUDIO_BYTES) {
+        return errorResponse(req, 'Audio file exceeds 25MB limit', 413);
+      }
       audioBytes = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) audioBytes[i] = raw.charCodeAt(i);
     } else if (audio_url) {
-      const resp = await fetch(audio_url, { signal: AbortSignal.timeout(15000) });
-      if (!resp.ok) return errorResponse(req, `Failed to fetch audio: ${resp.status}`, 400);
-      audioBytes = new Uint8Array(await resp.arrayBuffer());
+      const fetched = await fetchAudioWithCap(audio_url, MAX_AUDIO_BYTES);
+      if (fetched === null) {
+        return errorResponse(req, 'Audio fetch failed or file exceeds 25MB limit', 413);
+      }
+      audioBytes = fetched;
     } else {
       return errorResponse(req, 'No audio provided', 400);
     }
 
-    if (audioBytes.length > MAX_AUDIO_BYTES) {
-      return errorResponse(req, 'Audio file exceeds 25MB limit', 413);
-    }
-
-    // Chama HF Whisper
+    // Chama HF Whisper — pass task parameter to enable translation
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), WHISPER_TIMEOUT_MS);
 
+    // Build HF Inference API parameters
+    // action='translate' instructs Whisper to translate to English regardless of source language
+    const hfParams: Record<string, unknown> = {};
+    if (action === 'translate') {
+      hfParams.task = 'translation';
+    }
+    if (format !== 'text') {
+      hfParams.return_timestamps = true;
+    }
+
     try {
       const hfUrl = `https://router.huggingface.co/hf-inference/models/${WHISPER_MODEL}`;
+
+      // Send parameters alongside the audio blob
+      const formData = new FormData();
+      formData.append('inputs', new Blob([audioBytes], { type: 'audio/wav' }), 'audio.wav');
+      if (Object.keys(hfParams).length > 0) {
+        formData.append('parameters', JSON.stringify(hfParams));
+      }
+
       const resp = await fetch(hfUrl, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'audio/wav' },
-        body: audioBytes,
+        headers: { 'Authorization': `Bearer ${hfToken}` },
+        body: formData,
         signal: controller.signal,
       });
       clearTimeout(timeout);
