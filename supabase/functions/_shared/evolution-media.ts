@@ -1,4 +1,5 @@
 // Shared media persistence helpers for Evolution API functions
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isRecord } from "./evolution-helpers.ts";
 
 export function isValidMediaBytes(bytes: Uint8Array, messageType: string): boolean {
@@ -39,9 +40,8 @@ function detectExtension(respContentType: string, defaultExt: string): string {
   return defaultExt;
 }
 
-// deno-lint-ignore no-explicit-any
 export async function persistMediaToStorage(
-  supabase: any,
+  supabase: SupabaseClient,
   cdnUrl: string,
   messageType: string,
   messageId: string,
@@ -79,9 +79,8 @@ export async function persistMediaToStorage(
   } catch (err) { console.error(`[MEDIA] persistMediaToStorage error:`, err); return null; }
 }
 
-// deno-lint-ignore no-explicit-any
 export async function persistMediaViaApi(
-  supabase: any,
+  supabase: SupabaseClient,
   instance: string,
   data: Record<string, unknown>,
   messageType: string,

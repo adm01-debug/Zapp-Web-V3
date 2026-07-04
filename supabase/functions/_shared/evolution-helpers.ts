@@ -1,4 +1,5 @@
 // Shared helpers for Evolution API webhook and sync functions
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export interface WebhookPayload {
   event: string;
@@ -42,8 +43,7 @@ export async function sha256Hex(input: string): Promise<string> {
 // Marks an event as processed. Returns true if this is the first time (caller should process),
 // false if a prior row already exists (caller should treat as duplicate). Non-unique errors are
 // treated as "new" so the handler is never blocked by audit-infra failure.
-// deno-lint-ignore no-explicit-any
-export async function markEventProcessed(supabase: any, eventId: string, instance: string, eventType: string): Promise<boolean> {
+export async function markEventProcessed(supabase: SupabaseClient, eventId: string, instance: string, eventType: string): Promise<boolean> {
   const { error } = await supabase.from('webhook_events_processed').insert({
     event_id: eventId, instance, event_type: eventType,
   });
@@ -62,8 +62,7 @@ export interface WebhookAuditRow {
   error_message?: string | null;
 }
 
-// deno-lint-ignore no-explicit-any
-export async function auditWebhookEvent(supabase: any, row: WebhookAuditRow): Promise<void> {
+export async function auditWebhookEvent(supabase: SupabaseClient, row: WebhookAuditRow): Promise<void> {
   try { await supabase.from('webhook_audit_log').insert(row); } catch (e) {
     console.warn('[audit] insert failed:', (e as Error).message ?? String(e));
   }
@@ -91,8 +90,7 @@ export interface DeadLetterInput {
 //
 // Best-effort by design: a DLQ failure must NEVER bubble up and turn the
 // caller's 200 into a 5xx, so everything here is swallowed-and-logged.
-// deno-lint-ignore no-explicit-any
-export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
+export async function routeToDeadLetter(supabase: SupabaseClient, input: DeadLetterInput): Promise<void> {
   try {
     const { error } = await supabase.from('evolution_webhook_dlq').insert({
       event_type: input.event_type || 'unknown',
@@ -244,8 +242,7 @@ export function instanceOrFilter(instance: string): string {
   return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
 }
 
-// deno-lint-ignore no-explicit-any
-export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
+export async function getConnectionByInstance(supabase: SupabaseClient, instance: string): Promise<{ id: string } | null> {
   const { data } = await supabase
     .from('whatsapp_connections')
     .select('id')
@@ -254,9 +251,8 @@ export async function getConnectionByInstance(supabase: any, instance: string): 
   return data;
 }
 
-// deno-lint-ignore no-explicit-any
 export async function getContactByPhone(
-  supabase: any,
+  supabase: SupabaseClient,
   phone: string,
   connectionId: string
 ): Promise<{ id: string; avatar_url: string | null; assigned_to: string | null; name: string | null } | null> {
@@ -322,8 +318,7 @@ export async function fetchProfilePicFromApi(instance: string, phone: string): P
   } catch { return null; }
 }
 
-// deno-lint-ignore no-explicit-any
-export async function persistProfilePicture(supabase: any, phone: string, profilePicUrl: string): Promise<string | null> {
+export async function persistProfilePicture(supabase: SupabaseClient, phone: string, profilePicUrl: string): Promise<string | null> {
   try {
     const response = await fetch(profilePicUrl, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) return null;
@@ -349,8 +344,7 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
   } catch (err) { console.error('Avatar persist error:', err); return null; }
 }
 
-// deno-lint-ignore no-explicit-any
-export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
+export async function handleReactionEvent(supabase: SupabaseClient, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';
   const reactKey = reactionMessage.key as Record<string, unknown> | undefined;
   if (!reactKey?.id) return;
