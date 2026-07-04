@@ -65,9 +65,9 @@ export function TextReveal({ text, className, delay = 0 }: TextRevealProps) {
       {words.map((word, i) => {
         const start = i / words.length;
         const end = start + (1 / words.length);
-        
+
         return (
-          <Word key={i} progress={scrollYProgress} range={[start, end]}>
+          <Word key={`${word}-${i}`} progress={scrollYProgress} range={[start, end]}>
             {word}
           </Word>
         );

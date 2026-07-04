@@ -329,8 +329,8 @@ export default function AdminWhatsAppModePage() {
                 <details className="rounded-lg border p-3">
                   <summary className="text-xs font-medium cursor-pointer">Atividade recente (últimos 10 pings)</summary>
                   <ul className="mt-2 space-y-1.5 max-h-48 overflow-y-auto">
-                    {verify.delivery.recent.map((p, i) => (
-                      <li key={i} className="text-[11px] flex items-center justify-between gap-2 ">
+                    {verify.delivery.recent.map((p) => (
+                      <li key={`${p.kind}-${p.created_at}`} className="text-[11px] flex items-center justify-between gap-2 ">
                         <span className="flex items-center gap-2">
                           <Badge
                             variant={p.kind === "event" ? "default" : p.kind.startsWith("invalid") ? "destructive" : "secondary"}

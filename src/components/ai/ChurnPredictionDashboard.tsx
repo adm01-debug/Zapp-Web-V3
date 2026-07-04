@@ -223,8 +223,8 @@ export function ChurnPredictionDashboard() {
                         {risk.daysSinceLastMessage}d sem contato
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1 justify-end">
-                        {risk.reasons.slice(0, 2).map((reason, i) => (
-                          <Badge key={i} variant="outline" className="text-[10px] px-1 py-0">
+                        {risk.reasons.slice(0, 2).map((reason) => (
+                          <Badge key={reason} variant="outline" className="text-[10px] px-1 py-0">
                             {reason.length > 25 ? reason.substring(0, 25) + '...' : reason}
                           </Badge>
                         ))}

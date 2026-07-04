@@ -95,7 +95,7 @@ export function WhatsAppTemplatesManager() {
                         <TableCell><Badge className={cn('text-xs gap-1', statusInfo.className)}><StatusIcon className="w-3 h-3" />{statusInfo.label}</Badge></TableCell>
                         <TableCell>
                           {(template.variables?.length || 0) > 0 ? (
-                            <div className="flex gap-1">{template.variables?.map((v: string, i: number) => <Badge key={i} variant="outline" className="text-xs">{v}</Badge>)}</div>
+                            <div className="flex gap-1">{template.variables?.map((v: string) => <Badge key={v} variant="outline" className="text-xs">{v}</Badge>)}</div>
                           ) : <span className="text-xs text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-right">
@@ -183,8 +183,8 @@ export function WhatsAppTemplatesManager() {
               {(previewTemplate.variables?.length || 0) > 0 && (
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Valores das variáveis:</Label>
-                  {previewTemplate.variables?.map((v: string, i: number) => (
-                    <div key={i} className="flex items-center gap-2">
+                  {previewTemplate.variables?.map((v: string) => (
+                    <div key={v} className="flex items-center gap-2">
                       <Badge variant="outline" className="shrink-0">{v}</Badge>
                       <Input value={previewVariables[v] || ''} onChange={(e) => setPreviewVariables(prev => ({ ...prev, [v]: e.target.value }))} placeholder={`Valor para ${v}`} className="flex-1" />
                     </div>

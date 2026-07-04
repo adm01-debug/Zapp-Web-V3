@@ -180,7 +180,7 @@ export function CommandPalette({
                           </div>
                           <div className="flex items-center gap-2">
                             {item.badge && <Badge variant="secondary" className="text-[10px]">{item.badge}</Badge>}
-                            {item.shortcut && <div className="flex gap-1">{item.shortcut.map((k, i) => <kbd key={i} className="px-1.5 py-0.5 bg-muted rounded text-[10px]  text-muted-foreground">{k}</kbd>)}</div>}
+                            {item.shortcut && <div className="flex gap-1">{item.shortcut.map((k, i) => <kbd key={`${k}-${i}`} className="px-1.5 py-0.5 bg-muted rounded text-[10px]  text-muted-foreground">{k}</kbd>)}</div>}
                           </div>
                         </motion.button>
                       );
