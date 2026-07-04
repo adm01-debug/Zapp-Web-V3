@@ -261,7 +261,14 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         suggestion = ai.reply || template || "";
         recommendedTag = ai.recommended_tag;
       } catch (e) {
-        if (e instanceof Response) return e; // 429/402 com payload já formatado
+        if (e instanceof Response) {
+          // Re-wrap with CORS headers so browsers receive the 429/402 error properly
+          const body = await e.text();
+          return new Response(body, {
+            status: e.status,
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+          });
+        }
         throw e;
       }
     }
