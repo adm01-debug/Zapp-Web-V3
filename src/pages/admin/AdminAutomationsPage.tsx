@@ -129,7 +129,7 @@ export default function AdminAutomationsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
 
   const channelMap = useMemo(
     () => Object.fromEntries(channels.map((c) => [c.id, c.name])),

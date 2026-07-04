@@ -321,8 +321,11 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                     </tr>
                   </thead>
                   <tbody>
-                    {result.rows.map((row, i) => (
-                      <tr key={i} className="border-t hover:bg-muted/50">
+                    {result.rows.map((row, i) => {
+                      const rowRec = row as Record<string, unknown>;
+                      const rowKey = String(rowRec.id ?? rowRec.uuid ?? i);
+                      return (
+                      <tr key={rowKey} className="border-t hover:bg-muted/50">
                         {columns.map((c) => {
                           const v = (row as Record<string, unknown>)?.[c];
                           const isObj = v != null && typeof v === 'object';
@@ -335,7 +338,8 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                           );
                         })}
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

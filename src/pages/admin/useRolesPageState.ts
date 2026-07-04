@@ -53,8 +53,8 @@ export function useRolesPageState() {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
-  useEffect(() => { if (showAddDialog) fetchAvailableUsers(); }, [showAddDialog, users]);
+  useEffect(() => { void fetchUsers(); }, []);
+  useEffect(() => { if (showAddDialog) void fetchAvailableUsers(); }, [showAddDialog, users]);
 
   const handleAddRole = async () => {
     if (!selectedUser || !selectedRole) return;

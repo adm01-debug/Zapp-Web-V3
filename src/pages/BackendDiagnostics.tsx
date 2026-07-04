@@ -84,7 +84,7 @@ export default function BackendDiagnostics() {
   }
 
   useEffect(() => {
-    runChecks();
+    void runChecks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

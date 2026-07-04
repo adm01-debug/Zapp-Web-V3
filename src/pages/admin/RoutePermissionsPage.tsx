@@ -62,7 +62,7 @@ export default function RoutePermissionsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();

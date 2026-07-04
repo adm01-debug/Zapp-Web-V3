@@ -91,7 +91,7 @@ export default function AdminQueuesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
 
   const save = async () => {
     if (!editing?.name) {

@@ -37,6 +37,7 @@ class ValidationLogger {
   }
 
   private setupInterceptors() {
+    if (import.meta.env.PROD) return;
     // eslint-disable-next-line no-console
     const originalLog = console.log;
     // eslint-disable-next-line no-console

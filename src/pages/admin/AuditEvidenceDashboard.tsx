@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, ShieldCheck, FileText, CheckCircle2 } from 'lucide-react';
@@ -39,8 +38,8 @@ const AuditEvidenceDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {evidences.map((ev, i) => (
-          <Card key={i} className="border-l-4 border-l-primary">
+        {evidences.map((ev) => (
+          <Card key={`${ev.module}-${ev.feature}`} className="border-l-4 border-l-primary">
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <Badge variant="secondary">{ev.module}</Badge>
