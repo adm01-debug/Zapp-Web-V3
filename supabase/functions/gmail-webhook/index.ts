@@ -308,16 +308,32 @@ async function fetchAndPersistMessage(
   const isSent       = labelIds.includes('SENT');
   const hasAttach    = !!(msg.payload?.parts ?? []).some((p: Record<string, unknown>) => p.filename);
 
-  // Upsert gmail_threads — omit unread_count here to avoid last-write-wins
-  // clobbering when concurrent messages for the same thread are processed.
-  const { data: thread } = await supabase.from('gmail_threads').upsert({
-    account_id:       accountId,
-    thread_id:        threadId,
+  // Step 1: insert the thread row if it doesn't exist yet (no-op on conflict).
+  await supabase.from('gmail_threads').upsert({
+    account_id:      accountId,
+    thread_id:       threadId,
     subject,
     snippet,
-    label_ids:        labelIds,
-    last_message_at:  date,
-  }, { onConflict: 'account_id,thread_id' }).select('id').single();
+    label_ids:       labelIds,
+    last_message_at: date,
+  }, { onConflict: 'account_id,thread_id', ignoreDuplicates: true });
+
+  // Step 2: update metadata only when this message is strictly more recent.
+  // PostgreSQL row-level locking serialises concurrent writers; the WHERE
+  // predicate guarantees the newest timestamp always wins, preventing an older
+  // parallel message from clobbering subject / snippet / last_message_at.
+  await supabase.from('gmail_threads')
+    .update({ subject, snippet, label_ids: labelIds, last_message_at: date })
+    .eq('account_id', accountId)
+    .eq('thread_id', threadId)
+    .lt('last_message_at', date);
+
+  // Step 3: fetch the row id needed for the message upsert below.
+  const { data: thread } = await supabase.from('gmail_threads')
+    .select('id')
+    .eq('account_id', accountId)
+    .eq('thread_id', threadId)
+    .single();
 
   if (!thread) return;
 
