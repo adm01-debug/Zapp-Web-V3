@@ -13,15 +13,15 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const serviceOk = requireServiceRoleOrCron(req);
-  if (serviceOk !== null) {
-    const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
-  }
-
   const log = new Logger("classify-sticker");
 
   try {
+    const serviceOk = requireServiceRoleOrCron(req);
+    if (serviceOk !== null) {
+      const authed = await requireUser(req);
+      if (authed instanceof Response) return authed;
+    }
+
     const parsed = parseBody(ClassifyStickerSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 

@@ -20,10 +20,10 @@ serve(async (req) => {
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const body = await req.json().catch(() => ({}));
 
     // Verifica se há accountId para usar gmail-send

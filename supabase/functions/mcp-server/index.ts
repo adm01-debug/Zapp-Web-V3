@@ -10,12 +10,12 @@ serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const corsHeaders = getCorsHeaders(req);
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const url = new URL(req.url);
     const body = await req.json().catch(() => ({}));
 

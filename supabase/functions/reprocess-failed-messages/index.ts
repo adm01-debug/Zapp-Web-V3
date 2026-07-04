@@ -14,24 +14,25 @@ const MAX_BATCH = 25;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  // Accept internal (service role / cron) or admin/supervisor user JWTs.
-  const internalDenied = requireServiceRoleOrCron(req);
-  if (internalDenied) {
-    const authed = await requireAdminOrSupervisor(req);
-    if (authed instanceof Response) return authed;
-  }
+  try {
+    // Accept internal (service role / cron) or admin/supervisor user JWTs.
+    const internalDenied = requireServiceRoleOrCron(req);
+    if (internalDenied) {
+      const authed = await requireAdminOrSupervisor(req);
+      if (authed instanceof Response) return authed;
+    }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, serviceKey);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, serviceKey);
 
-  const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-  const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-  if (!evolutionUrl || !evolutionKey) {
-    return json({ error: true, message: 'Evolution credentials missing' }, 500);
-  }
+    const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
+    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
+    if (!evolutionUrl || !evolutionKey) {
+      return json({ error: true, message: 'Evolution credentials missing' }, 500);
+    }
 
-  const { data: rows, error } = await supabase
+    const { data: rows, error } = await supabase
     .from('failed_messages')
     .select('*')
     .in('status', ['pending', 'retrying'])
@@ -128,7 +129,11 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ processed: rows.length, succeeded, failed, abandoned });
+    return json({ processed: rows.length, succeeded, failed, abandoned });
+  } catch (err) {
+    console.error('[reprocess-failed-messages] unhandled error:', err instanceof Error ? err.message : String(err));
+    return json({ error: true, message: 'Internal server error' }, 500);
+  }
 });
 
 function json(data: unknown, status = 200) {
