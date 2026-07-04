@@ -137,6 +137,7 @@ serve(async (req) => {
           refresh_token: account.refresh_token,
           grant_type:    'refresh_token',
         }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!tokenRes.ok) {
@@ -210,6 +211,7 @@ async function refreshOneAccount(
         refresh_token: account.refresh_token,
         grant_type:    'refresh_token',
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!tokenRes.ok) {
@@ -239,6 +241,7 @@ async function refreshOneAccount(
           method: 'POST',
           headers: { Authorization: `Bearer ${tokens.access_token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ topicName: pubSubTopic, labelIds: ['INBOX'], labelFilterBehavior: 'INCLUDE' }),
+          signal: AbortSignal.timeout(10_000),
         });
         if (watchRes.ok) {
           const watchData = await watchRes.json();

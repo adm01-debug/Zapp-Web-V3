@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     const emailHtml = buildReportEmail(reportData);
 
     if (resendApiKey && report.recipients?.length > 0) {
-      await Promise.allSettled(
+      const emailResults = await Promise.allSettled(
         report.recipients.map(async (recipient: string) => {
           const emailResponse = await fetch("https://api.resend.com/emails", {
             method: "POST",
@@ -108,6 +108,12 @@ Deno.serve(async (req) => {
           if (!emailResponse.ok) log.error(`Failed to send to ${recipient}`, { error: await emailResponse.text() });
         })
       );
+      const emailFailures = emailResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      if (emailFailures.length > 0) {
+        log.error(`${emailFailures.length} email(s) failed`, {
+          errors: emailFailures.map(r => r.reason instanceof Error ? r.reason.message : String(r.reason)),
+        });
+      }
     }
 
     const nextSendAt = calculateNextSend(report.frequency);
