@@ -13,7 +13,15 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
   // Admin/supervisor-only — destructive sync ops cannot be triggered anonymously.
-  const authed = await requireAdminOrSupervisor(req);
+  let authed: Awaited<ReturnType<typeof requireAdminOrSupervisor>>;
+  try {
+    authed = await requireAdminOrSupervisor(req);
+  } catch (err: unknown) {
+    console.error('[Sync] Auth error:', err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   if (authed instanceof Response) return authed;
 
   const evolutionApiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
