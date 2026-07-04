@@ -268,7 +268,8 @@ async function fetchAndPersistMessage(
   const isSent       = labelIds.includes('SENT');
   const hasAttach    = !!(msg.payload?.parts ?? []).some((p: Record<string, unknown>) => p.filename);
 
-  // Upsert gmail_threads
+  // Upsert gmail_threads — omit unread_count here to avoid last-write-wins
+  // clobbering when concurrent messages for the same thread are processed.
   const { data: thread } = await supabase.from('gmail_threads').upsert({
     account_id:       accountId,
     thread_id:        threadId,
@@ -276,7 +277,6 @@ async function fetchAndPersistMessage(
     snippet,
     label_ids:        labelIds,
     last_message_at:  date,
-    unread_count:     isRead ? 0 : 1,
   }, { onConflict: 'account_id,thread_id' }).select('id').single();
 
   if (!thread) return;
@@ -301,4 +301,18 @@ async function fetchAndPersistMessage(
     has_attachments: hasAttach,
     internal_date:  date,
   }, { onConflict: 'account_id,message_id' });
+
+  // Recompute unread_count from actual message records — avoids the literal
+  // 0/1 last-write-wins race when concurrent messages share the same thread.
+  const { count: unreadCount } = await supabase
+    .from('gmail_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('thread_id_ref', thread.id)
+    .eq('is_read', false);
+
+  if (unreadCount !== null) {
+    await supabase.from('gmail_threads')
+      .update({ unread_count: unreadCount })
+      .eq('id', thread.id);
+  }
 }
