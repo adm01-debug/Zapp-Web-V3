@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,9 @@ export default function AdminEmailAuditPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const loadAuditLogs = async () => {
     setLoading(true);
     try {
@@ -40,13 +43,14 @@ export default function AdminEmailAuditPage() {
       });
 
       if (error) throw error;
+      if (!mountedRef.current) return;
       setLogs(data || []);
       setTotal(count || 0);
     } catch (error) {
       log.error('Error loading audit logs', error);
       toast.error('Erro ao carregar histórico de auditoria');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

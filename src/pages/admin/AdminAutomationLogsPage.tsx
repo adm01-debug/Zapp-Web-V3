@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,9 @@ export default function AdminAutomationLogsPage() {
 
   const [detail, setDetail] = useState<ExecutionRow | null>(null);
 
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const load = async () => {
     setLoading(true);
     let q = (supabase as any)
@@ -108,6 +111,7 @@ export default function AdminAutomationLogsPage() {
     }
 
     const { data, error } = await q;
+    if (!mountedRef.current) return;
     if (error) {
       // Silently show empty state when table doesn't exist yet (pending migration)
       const isMissing = error.message?.includes('does not exist') || (error as any).code === '42P01';
@@ -126,7 +130,7 @@ export default function AdminAutomationLogsPage() {
       .from('automations')
       .select("id,name")
       .order("name")
-      .then(({ data }) => setRules((data ?? []) as RuleLite[]));
+      .then(({ data }) => { if (mountedRef.current) setRules((data ?? []) as RuleLite[]); });
   }, []);
 
   useEffect(() => {

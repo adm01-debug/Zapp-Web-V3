@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, ShieldAlert, RefreshCw, AlertTriangle } from "lucide-react";
@@ -34,6 +34,9 @@ export default function AdminFailedAuthMessagesPage() {
   const [from, setFrom] = useState<Date | undefined>(undefined);
   const [to, setTo] = useState<Date | undefined>(undefined);
 
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const load = async () => {
     setLoading(true);
     let query = supabase
@@ -54,6 +57,7 @@ export default function AdminFailedAuthMessagesPage() {
     }
 
     const { data, error } = await query;
+    if (!mountedRef.current) return;
     if (error) {
       toast({
         title: "Erro ao carregar falhas",

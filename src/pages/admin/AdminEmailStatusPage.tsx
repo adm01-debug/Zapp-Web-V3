@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,9 @@ export default function AdminEmailStatusPage() {
   });
   const [failuresData, setFailuresData] = useState<{ items: EmailFailure[], total: number }>({ items: [], total: 0 });
 
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const loadHealth = async () => {
     setLoading(true);
     try {
@@ -53,7 +56,8 @@ export default function AdminEmailStatusPage() {
       const dataFull = await fetchResponse.json();
       
       if (!fetchResponse.ok) throw new Error(dataFull.error || 'Erro na Edge Function');
-      
+
+      if (!mountedRef.current) return;
       setHealth({
         status: castStatus(dataFull.status),
         lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
@@ -75,6 +79,7 @@ export default function AdminEmailStatusPage() {
         if (summaryError) throw summaryError;
           
         if (summary) {
+          if (!mountedRef.current) return;
           setHealth({
             status: castStatus(summary.status),
             lastValidation: summary.last_validation ? new Date(summary.last_validation) : null,
@@ -87,7 +92,7 @@ export default function AdminEmailStatusPage() {
         log.error('Email health fallback also failed', fallbackErr);
       }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

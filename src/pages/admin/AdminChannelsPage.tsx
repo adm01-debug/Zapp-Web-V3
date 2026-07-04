@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +99,9 @@ export default function AdminChannelsPage() {
   >(null);
   const [actionReason, setActionReason] = useState("");
 
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -113,6 +116,7 @@ export default function AdminChannelsPage() {
         supabase.from('queues').select("id,name,color").order("name"),
         supabase.from('whatsapp_connections').select("id,name,phone_number").order("name"),
       ]);
+      if (!mountedRef.current) return;
       if (chRes.error) throw new Error(chRes.error.message);
       setChannels((chRes.data ?? []) as ServiceChannel[]);
       setQueues((qRes.data ?? []) as QueueOption[]);
@@ -121,7 +125,7 @@ export default function AdminChannelsPage() {
       log.error("Load service channels failed", e);
       toast({ title: "Erro ao carregar canais", description: (e as Error).message, variant: "destructive" });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,9 @@ export default function AdminQueuesPage() {
   const [newMemberId, setNewMemberId] = useState<string>("");
   const [newChannelId, setNewChannelId] = useState<string>("");
 
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const load = async () => {
     setLoading(true);
     const [q, m, s, p, d, c, cq] = await Promise.all([
@@ -77,6 +80,7 @@ export default function AdminQueuesPage() {
       (supabase as any).from('service_channels').select("id,name,channel_type,default_queue_id").neq("status", "archived").order("name"),
       (supabase as any).from('channel_queues').select("*"),
     ]);
+    if (!mountedRef.current) return;
     setQueues((q.data ?? []) as Queue[]);
     setMembers((m.data ?? []) as unknown as QueueMember[]);
     setSkills((s.data ?? []) as QueueSkill[]);

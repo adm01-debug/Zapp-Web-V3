@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -108,6 +108,9 @@ export default function AdminAutomationsPage() {
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const load = async () => {
     setLoading(true);
     const [{ data: rulesData, error }, { data: chs }, { data: deps }] = await Promise.all([
@@ -118,6 +121,7 @@ export default function AdminAutomationsPage() {
       (supabase as any).from('service_channels').select("id,name").order("name"),
       supabase.from('departments').select("id,name").order("name"),
     ]);
+    if (!mountedRef.current) return;
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     setRules((rulesData ?? []) as Rule[]);
     setChannels((chs ?? []) as Channel[]);
