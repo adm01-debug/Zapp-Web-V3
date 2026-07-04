@@ -219,11 +219,14 @@ Deno.serve(async (req) => {
 
     try {
       const { data, error } = await supabase.rpc(rpc, params);
-      if (error) return jsonResponse({ error: error.message, cid, rid, data: null }, 400);
+      if (error) {
+        console.error('[external-db-proxy] rpc error', { rpc, cid, code: error.code, message: error.message });
+        return jsonResponse({ error: "Database operation failed", cid, rid, data: null }, 500);
+      }
       return jsonResponse({ ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "RPC failed";
-      return jsonResponse({ error: message, cid, rid, data: null }, 500);
+      console.error('[external-db-proxy] rpc exception', { rpc, cid, message: error instanceof Error ? error.message : String(error) });
+      return jsonResponse({ error: "Database operation failed", cid, rid, data: null }, 500);
     }
   }
 
@@ -294,7 +297,8 @@ Deno.serve(async (req) => {
           latency_ms: Date.now() - start,
         }, 503);
       }
-      return jsonResponse({ error: err.message, code: err.code, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
+      console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
+      return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
     }
 
     return jsonResponse({
@@ -310,7 +314,7 @@ Deno.serve(async (req) => {
       latency_ms: Date.now() - start,
     }, 200);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Query failed";
-    return jsonResponse({ error: message, cid, rid, data: [], count: 0 }, 500);
+    console.error('[external-db-proxy] query exception', { schema, table, message: error instanceof Error ? error.message : String(error), cid });
+    return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0 }, 500);
   }
 });
