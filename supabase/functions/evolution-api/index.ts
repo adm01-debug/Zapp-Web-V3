@@ -40,8 +40,14 @@ Deno.serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // All actions require an authenticated user
-  {
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/').filter(Boolean);
+  const pathAction = pathParts[pathParts.length - 1];
+
+  // Routes that call authorizeRoles() handle their own auth+role check — skip the
+  // redundant top-level getUser() for those to avoid a double round-trip to Auth.
+  const ROLE_GUARDED_ACTIONS = new Set(['create-instance', 'delete-instance', 'reprocess-failed-webhooks']);
+  if (!ROLE_GUARDED_ACTIONS.has(pathAction)) {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const authHeader = req.headers.get('Authorization') || '';
     const userClient = createClient(supabaseUrl, anonKey, {
@@ -55,10 +61,6 @@ Deno.serve(async (req) => {
       });
     }
   }
-
-  const url = new URL(req.url);
-  const pathParts = url.pathname.split('/').filter(Boolean);
-  const pathAction = pathParts[pathParts.length - 1];
 
   const SEND_PER_INSTANCE_PER_MIN = Number(Deno.env.get('EVOLUTION_SEND_RATE_PER_INSTANCE') ?? '60');
 

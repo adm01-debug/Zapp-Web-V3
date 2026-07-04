@@ -76,21 +76,25 @@ Deno.serve(async (req) => {
       const batch = knownTables.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.allSettled(
         batch.map(async (table) => {
-          const { data, error, count } = await withTimeout(
-            ext.from(table).select('*', { count: 'exact' }).limit(3),
-            5000
-          );
-          if (!error && data) {
-            return {
-              table,
-              exists: true,
-              count: count,
-              sample: data,
-              columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [],
-            };
+          try {
+            const { data, error, count } = await withTimeout(
+              ext.from(table).select('*', { count: 'exact' }).limit(3),
+              5000
+            );
+            if (!error && data) {
+              return {
+                table,
+                exists: true,
+                count: count,
+                sample: data,
+                columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [],
+              };
+            }
+            return null;
+          } catch (e) {
+            if (e instanceof Error && e.message.includes('timeout')) timedOut.push(table);
+            return null;
           }
-          if (error?.message?.includes('timeout')) timedOut.push(table);
-          return null;
         })
       );
 

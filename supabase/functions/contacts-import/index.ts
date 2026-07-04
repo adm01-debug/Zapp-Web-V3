@@ -72,7 +72,10 @@ serve(async (req) => {
       .eq('instance_name', instanceName)
       .eq('user_id', user.id)
       .maybeSingle();
-    if (connErr || !ownedConn) {
+    if (connErr) {
+      return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_CORS });
+    }
+    if (!ownedConn) {
       return new Response(JSON.stringify({ error: 'Instance not found or access denied' }), { status: 403, headers: JSON_CORS });
     }
 

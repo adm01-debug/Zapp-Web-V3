@@ -39,21 +39,31 @@ Deno.serve(async (req) => {
         ?.filter(f => new Date(f.created_at) < oneDayAgo)
         .map(f => f.name) || [];
 
-      // Build set of file names currently referenced in evolution_messages to avoid deleting active files
+      // Build set of file names currently referenced in evolution_messages to avoid deleting active files.
+      // Query by storage path suffix (not full URL) so custom domains, CDN rewrites, and URL encoding
+      // differences don't cause false-orphan classifications.
       let referencedNames = new Set<string>();
       if (candidateFiles.length > 0) {
-        const candidateUrls = candidateFiles.map(
-          name => `${supabaseUrl}/storage/v1/object/public/${bucketName}/${name}`
-        );
-        const { data: refRows } = await supabase
+        const bucketPathSegment = `/${bucketName}/`;
+        const { data: refRows, error: refError } = await supabase
           .from("evolution_messages")
           .select("media_url")
-          .in("media_url", candidateUrls);
+          .like("media_url", `%${bucketPathSegment}%`);
+        if (refError) {
+          log.error(`Erro ao consultar referências em ${bucketName}`, { error: refError.message });
+          results[bucketName] = { error: "reference_lookup_failed" };
+          continue;
+        }
         if (refRows) {
+          const candidateSet = new Set(candidateFiles);
           for (const row of refRows) {
             if (row.media_url) {
-              const parts = (row.media_url as string).split(`/${bucketName}/`);
-              if (parts.length > 1) referencedNames.add(parts[1]);
+              const parts = (row.media_url as string).split(bucketPathSegment);
+              if (parts.length > 1) {
+                // Take only the first path segment (filename) to ignore query strings
+                const fileName = parts[parts.length - 1].split('?')[0].split('#')[0];
+                if (candidateSet.has(fileName)) referencedNames.add(fileName);
+              }
             }
           }
         }

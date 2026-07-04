@@ -59,9 +59,10 @@ async function downloadAudio(
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     host === "[::1]" ||
-    host.startsWith("[fe80:") ||
-    host.startsWith("[fc00:") ||
-    host.startsWith("[fd");
+    host.startsWith("[::ffff:") ||        // IPv4-mapped IPv6
+    /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
+    host.startsWith("[fc") ||              // ULA fc00::/7 (fc+fd)
+    host.startsWith("[fd");                // ULA fd00::/8
   if (isPrivate) return { error: "Audio URL is not allowed" };
 
   const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000) });
