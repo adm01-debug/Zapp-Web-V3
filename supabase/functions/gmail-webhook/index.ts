@@ -58,6 +58,7 @@ serve(async (req) => {
             labelIds: ['INBOX'],
             labelFilterBehavior: 'INCLUDE',
           }),
+          signal: AbortSignal.timeout(15_000),
         });
 
         const watchData = await watchRes.json();
@@ -149,6 +150,7 @@ async function ensureFreshToken(
       client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
       grant_type:    'refresh_token',
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   const tokens = await tokenRes.json();
@@ -174,7 +176,7 @@ async function processHistory(
 ): Promise<void> {
   const histRes = await fetch(
     `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
   );
   const histData = await histRes.json();
   if (histData.error) return;
@@ -200,6 +202,7 @@ async function fetchAndPersistMessage(
 ): Promise<void> {
   const msgRes = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
   });
   const msg = await msgRes.json();
   if (msg.error) return;
