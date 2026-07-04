@@ -186,8 +186,7 @@ Deno.serve(async (req) => {
       speakers: data.speakers || [],
     }, 200, req);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: msg });
-    return errorResponse("Transcription failed", 500, req); // generic — F7 info-disclosure fix
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

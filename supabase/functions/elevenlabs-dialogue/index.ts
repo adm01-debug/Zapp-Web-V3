@@ -48,8 +48,7 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'audio/mpeg' },
     });
   } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse('Internal server error', 500, req);
   }
 });
