@@ -149,7 +149,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     if (!mountedRef.current) return;
     const rows: ConnectionRow[] = (data ?? []).map(r => ({
       id: r.id,
-      instance_id: r.instance_id ?? '',
+      instance_id: r.instance_id || r.id,
       instance_name: r.instance_name ?? null,
       name: r.name ?? null,
       phone_number: r.phone_number,

@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const { contactIds } = parsed.data;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: contacts } = await adminClient
+    const { data: contacts } = await callerClient
       .from("contacts")
       .select("id, name, phone, created_at, updated_at")
       .in("id", contactIds);

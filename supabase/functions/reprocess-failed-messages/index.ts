@@ -62,8 +62,10 @@ Deno.serve(async (req) => {
       delete (body as Record<string, unknown>).__idemKey;
 
       // Validate path and instance to prevent SSRF via malicious DB rows.
-      const SAFE_PATH_RE = /^\/[a-zA-Z0-9/_-]{1,128}$/;
-      const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+      // Path is narrowed to /message/* sub-paths — the only paths the DLQ is meant to retry.
+      const SAFE_PATH_RE = /^\/message\/[a-zA-Z0-9/_-]{1,64}$/;
+      // Instance names may include dots (e.g. provider-assigned IDs like "tenant.v1.abc123").
+      const INSTANCE_RE = /^[a-zA-Z0-9._-]{1,128}$/;
       if (!SAFE_PATH_RE.test(rawPath) || !INSTANCE_RE.test(instance ?? '')) {
         console.error('[dlq-reprocess] unsafe path or instance, abandoning row', { id: row.id });
         await supabase.from('failed_messages').update({
