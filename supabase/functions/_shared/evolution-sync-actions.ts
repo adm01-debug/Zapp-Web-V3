@@ -298,7 +298,10 @@ export async function fullSync(
       signal: AbortSignal.timeout(10_000),
     });
     results.webhook = { success: webhookResponse.ok, url: webhookUrl };
-  } catch (e) { results.webhook = { success: false, error: String(e) }; }
+  } catch (e) {
+    console.error('[fullSync] webhook setup error:', e instanceof Error ? e.message : String(e));
+    results.webhook = { success: false, error: 'webhook setup failed' };
+  }
 
   return jsonRes({ success: true, results }, corsHeaders);
 }
