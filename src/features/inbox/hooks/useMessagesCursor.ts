@@ -167,9 +167,7 @@ export function useMessagesCursor({
     } else {
       setLoading(false);
     }
-    // We deliberately depend on the primitives, not loadFirstPage identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remoteJid, instanceName, enabled]);
+  }, [remoteJid, instanceName, enabled, loadFirstPage]);
 
   const loadOlder = useCallback(async () => {
     if (!remoteJid || !hasMoreOlder || inFlightRef.current) return;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,7 +92,7 @@ export default function AdminAutomationLogsPage() {
 
   const mountedRef = useMountedRef();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     let q = (supabase as any)
       .from('automation_executions')
@@ -123,7 +123,7 @@ export default function AdminAutomationLogsPage() {
       setRows((data ?? []) as ExecutionRow[]);
     }
     setLoading(false);
-  };
+  }, [page, filterRule, filterStatus, filterJid, filterFrom, filterTo, toast]);
 
   useEffect(() => {
     supabase
@@ -134,8 +134,8 @@ export default function AdminAutomationLogsPage() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [filterRule, filterStatus, filterJid, filterFrom, filterTo, page]);
+    void load();
+  }, [load]);
 
   // Realtime: novas execuções aparecem no topo
   useEffect(() => {
@@ -145,15 +145,14 @@ export default function AdminAutomationLogsPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "automation_executions" },
         () => {
-          if (page === 0) load();
+          if (page === 0) void load();
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, load]);
 
   const ruleNameById = useMemo(
     () => Object.fromEntries(rules.map((r) => [r.id, r.name])),
