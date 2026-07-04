@@ -19,7 +19,15 @@ Deno.serve(async (req) => {
     const modelId = formData.get('modelId') as string;
 
     if (!audioFile) return errorResponse('Audio file is required', 400, req);
-    if (!voiceId || voiceId.length > 100) return errorResponse('Valid voice ID is required', 400, req);
+    // Restrict to alphanumeric + hyphen/underscore — ElevenLabs voice IDs are hex-alphanumeric;
+    // path characters (/, ., ?) would otherwise traverse or inject query params.
+    if (!voiceId || !/^[a-zA-Z0-9_-]{1,100}$/.test(voiceId)) {
+      return errorResponse('Valid voice ID is required', 400, req);
+    }
+    // Model IDs: same character constraint, not in URL path but defensive.
+    if (modelId && !/^[a-zA-Z0-9_-]{1,100}$/.test(modelId)) {
+      return errorResponse('Invalid model ID', 400, req);
+    }
 
     const selectedModel = (modelId && modelId.length <= 100) ? modelId : 'eleven_multilingual_sts_v2';
 
@@ -30,7 +38,7 @@ Deno.serve(async (req) => {
     apiFormData.append('model_id', selectedModel);
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/speech-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
       {
         method: 'POST',
         headers: { 'xi-api-key': ELEVENLABS_API_KEY },

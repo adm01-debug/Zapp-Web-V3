@@ -26,11 +26,13 @@ Deno.serve(async (req) => {
     const { contact_id, content, message_id, created_at } = parsed.data;
     const agent_id = authed.user.id; // always use the authenticated user's own id
 
-    // Get the contact to verify it's a sicoob_gifts contact
+    // Get the contact — verify it belongs to the calling user AND is a sicoob_gifts contact.
+    // Without the user_id filter an authenticated user could supply any contact_id (IDOR).
     const { data: contact } = await supabase
       .from('contacts')
       .select('id, name, contact_type, channel_type')
       .eq('id', contact_id)
+      .eq('user_id', authed.user.id)
       .single();
 
     if (!contact || contact.contact_type !== 'sicoob_gifts') {
