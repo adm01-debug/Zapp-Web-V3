@@ -4,6 +4,7 @@
  * Uses find_duplicate_contacts(), merge_contacts(), bulk_auto_merge_duplicates() RPCs.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
 
@@ -43,6 +44,7 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
   workspaceId: instanceName, onMergeComplete,
 }) => {
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
   const [groups,    setGroups]    = useState<DuplicateGroup[]>([]);
   const [report,    setReport]    = useState<DuplicateReport | null>(null);
   const [loading,   setLoading]   = useState(false);
@@ -62,14 +64,16 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
       if (groupsRes.error) throw groupsRes.error;
       if (reportRes.error) throw reportRes.error;
 
+      if (!mountedRef.current) return;
       setGroups((groupsRes.data ?? []) as unknown as DuplicateGroup[]);
       setReport((reportRes.data ?? null) as unknown as DuplicateReport | null);
       setDone(true);
     } catch (err) {
+      if (!mountedRef.current) return;
       log.error('Failed to load duplicate contacts', err);
       toast({ title: 'Erro ao verificar duplicatas', description: String(err), variant: 'destructive' });
-    } finally { setLoading(false); }
-  }, [instanceName, toast]);
+    } finally { if (mountedRef.current) setLoading(false); }
+  }, [instanceName, toast, mountedRef]);
 
   useEffect(() => { scan(); }, [scan]);
 

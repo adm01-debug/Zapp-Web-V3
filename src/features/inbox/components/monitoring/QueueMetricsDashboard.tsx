@@ -22,19 +22,21 @@ export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = ({ me
   const [loadingSts, setLoadingSts] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchSTS = async () => {
       try {
         const { data, error } = await supabase
           .from('sts_performance_metrics' as any)
           .select('*');
-        if (!error && data) setStsMetrics(data);
+        if (!cancelled && !error && data) setStsMetrics(data);
       } catch (err) {
-        log.error('Failed to fetch STS metrics', err);
+        if (!cancelled) log.error('Failed to fetch STS metrics', err);
       } finally {
-        setLoadingSts(false);
+        if (!cancelled) setLoadingSts(false);
       }
     };
     fetchSTS();
+    return () => { cancelled = true; };
   }, []);
   const typeData = useMemo(() => {
     return Object.entries(metrics.byType).map(([type, data]) => ({

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useMountedRef } from "@/hooks/useMountedRef";
 import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,7 @@ type BridgeStatus = "online" | "degraded" | "offline" | "loading";
 
 export default function BridgeStatusPage() {
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<BridgeStatus>("loading");
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
@@ -126,7 +128,7 @@ export default function BridgeStatusPage() {
         .order('received_at', { ascending: false })
         .limit(1);
       
-      setRecentTraffic({
+      if (mountedRef.current) setRecentTraffic({
         count: msgCount || 0,
         last_at: lastMsg?.[0]?.received_at || null
       });
@@ -137,11 +139,12 @@ export default function BridgeStatusPage() {
           .from('v_alerts_active' as any)
           .select('*')
           .limit(5);
-        setActiveAlerts(alerts || []);
+        if (mountedRef.current) setActiveAlerts(alerts || []);
       } catch (e) {
-        setActiveAlerts([]);
+        if (mountedRef.current) setActiveAlerts([]);
       }
 
+      if (!mountedRef.current) return;
       // Determine Overall Status
       if (!internalError && (externalOk && !transport.degraded)) {
         setStatus("online");
@@ -153,6 +156,7 @@ export default function BridgeStatusPage() {
 
       setLastCheck(new Date());
     } catch (error: any) {
+      if (!mountedRef.current) return;
       log.error('Health check failed', error);
       setStatus("offline");
       toast({
@@ -164,9 +168,9 @@ export default function BridgeStatusPage() {
       const elapsed = Date.now() - startTime;
       const minWait = 600;
       if (elapsed < minWait) await new Promise(resolve => setTimeout(resolve, minWait - elapsed));
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [toast]);
+  }, [toast, mountedRef]);
 
   const fetchIncidents = useCallback(async () => {
     const { data } = await (supabase as any)
@@ -174,8 +178,8 @@ export default function BridgeStatusPage() {
       .select('*')
       .order('started_at', { ascending: false })
       .limit(10);
-    setIncidents(data || []);
-  }, []);
+    if (mountedRef.current) setIncidents(data || []);
+  }, [mountedRef]);
 
   useEffect(() => {
     checkHealth();

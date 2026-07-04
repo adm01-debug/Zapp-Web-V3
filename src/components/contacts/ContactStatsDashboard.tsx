@@ -4,6 +4,7 @@
  * Shows: total contacts, lead status distribution, LGPD compliance rate, duplicates.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Card, CardContent } from '@/components/ui/card';
 import { getLogger } from '@/lib/logger';
 
@@ -54,6 +55,7 @@ interface Props { instanceName?: string; compact?: boolean; }
 export const ContactStatsDashboard: React.FC<Props> = ({
   instanceName = 'wpp2', compact = false,
 }) => {
+  const mountedRef = useMountedRef();
   const [stats,    setStats]    = useState<ContactStats | null>(null);
   const [lgpd,     setLgpd]     = useState<LGPDStats | null>(null);
   const [dupes,    setDupes]    = useState(0);
@@ -68,13 +70,15 @@ export const ContactStatsDashboard: React.FC<Props> = ({
         dbRpc(RPC.getDuplicateReport, { p_instance_name: instanceName }),
       ]);
 
+      if (!mountedRef.current) return;
       if (statsRes.data) setStats(statsRes.data as unknown as ContactStats);
       if (lgpdRes.data)  setLgpd(lgpdRes.data as unknown as LGPDStats);
       if (dupesRes.data) setDupes((dupesRes.data as Record<string, number>).total_duplicate_groups ?? 0);
     } catch (err) {
+      if (!mountedRef.current) return;
       log.error('Failed to load contact stats', err);
-    } finally { setLoading(false); }
-  }, [instanceName]);
+    } finally { if (mountedRef.current) setLoading(false); }
+  }, [instanceName, mountedRef]);
 
   useEffect(() => { load(); }, [load]);
 

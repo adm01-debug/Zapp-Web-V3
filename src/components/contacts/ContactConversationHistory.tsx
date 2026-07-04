@@ -44,6 +44,7 @@ export const ContactConversationHistory: React.FC<ContactConversationHistoryProp
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setIsLoading(true);
       try {
@@ -55,14 +56,15 @@ export const ContactConversationHistory: React.FC<ContactConversationHistoryProp
           .limit(maxItems);
 
         if (error) throw error;
-        setConversations((data as ConversationSummary[]) ?? []);
+        if (!cancelled) setConversations((data as ConversationSummary[]) ?? []);
       } catch (err) {
-        log.error('Failed to load conversation history', err);
+        if (!cancelled) log.error('Failed to load conversation history', err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
     load();
+    return () => { cancelled = true; };
   }, [contactId, workspaceId, maxItems]);
 
   if (isLoading) {

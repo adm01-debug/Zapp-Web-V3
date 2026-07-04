@@ -4,6 +4,7 @@
  * Accessible via Settings → Contatos → Lixeira
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
 
@@ -62,6 +63,7 @@ interface ContactsRecycleBinProps {
 export const ContactsRecycleBin: React.FC<ContactsRecycleBinProps> = ({ workspaceId }) => {
   const { toast }   = useToast();
   const { profile } = useAuth();
+  const mountedRef  = useMountedRef();
   const [contacts,  setContacts]  = useState<DeletedContact[]>([]);
   const [filtered,  setFiltered]  = useState<DeletedContact[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -94,15 +96,17 @@ export const ContactsRecycleBin: React.FC<ContactsRecycleBinProps> = ({ workspac
         days_remaining: daysRemaining(c.deleted_at),
       }));
 
+      if (!mountedRef.current) return;
       setContacts(enriched);
       setFiltered(enriched);
     } catch (err) {
+      if (!mountedRef.current) return;
       log.error('Failed to load contacts recycle bin', err);
       toast({ title: 'Erro ao carregar lixeira', variant: 'destructive' });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [workspaceId, toast]);
+  }, [workspaceId, toast, mountedRef]);
 
   useEffect(() => {
     loadDeletedContacts();
