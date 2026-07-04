@@ -174,31 +174,34 @@ export function ConversationListSidebar({ inbox, inboxFilters, bulkActions, pull
           )}
         </div>
 
-        <div className={cn("transition-all duration-300", density === 'compact' ? "scale-[0.96] origin-top" : "")}>
-          <TicketTabs
-            conversations={inbox.allConversations || inbox.conversations}
-            mainTab={inboxFilters.mainTab}
-            subTab={inboxFilters.subTab}
-            onMainTabChange={inboxFilters.setMainTab}
-            onSubTabChange={inboxFilters.setSubTab}
-            showAll={inboxFilters.showAll}
-            onShowAllChange={inboxFilters.setShowAll}
-            scope={inboxFilters.scope}
-            onScopeChange={inboxFilters.setScope}
-            selectedQueueId={inboxFilters.selectedQueueId}
-            onQueueChange={inboxFilters.setSelectedQueueId}
-            contactType={inboxFilters.selectedContactType}
-            onContactTypeChange={inboxFilters.handleContactTypeChange}
-            selectedAgentId={inboxFilters.filters.agentId}
-            onAgentChange={(agentId) => inboxFilters.setFilters({ ...inboxFilters.filters, agentId })}
-            departmentAgentIds={inboxFilters.departmentAgentIds}
-          />
-        </div>
+        <ErrorBoundary fallback={<div className="p-2 text-xs text-muted-foreground text-center">Erro ao carregar abas</div>}>
+          <div className={cn("transition-all duration-300", density === 'compact' ? "scale-[0.96] origin-top" : "")}>
+            <TicketTabs
+              conversations={inbox.allConversations || inbox.conversations}
+              mainTab={inboxFilters.mainTab}
+              subTab={inboxFilters.subTab}
+              onMainTabChange={inboxFilters.setMainTab}
+              onSubTabChange={inboxFilters.setSubTab}
+              showAll={inboxFilters.showAll}
+              onShowAllChange={inboxFilters.setShowAll}
+              scope={inboxFilters.scope}
+              onScopeChange={inboxFilters.setScope}
+              selectedQueueId={inboxFilters.selectedQueueId}
+              onQueueChange={inboxFilters.setSelectedQueueId}
+              contactType={inboxFilters.selectedContactType}
+              onContactTypeChange={inboxFilters.handleContactTypeChange}
+              selectedAgentId={inboxFilters.filters.agentId}
+              onAgentChange={(agentId) => inboxFilters.setFilters({ ...inboxFilters.filters, agentId })}
+              departmentAgentIds={inboxFilters.departmentAgentIds}
+            />
+          </div>
+        </ErrorBoundary>
 
-
-        <div className={cn("transition-all duration-300", density === 'compact' ? "scale-[0.96] origin-top -mt-1" : "")}>
-          <InboxFilters filters={inboxFilters.filters} onFiltersChange={inboxFilters.setFilters} />
-        </div>
+        <ErrorBoundary fallback={<div className="p-2 text-xs text-muted-foreground text-center">Erro ao carregar filtros</div>}>
+          <div className={cn("transition-all duration-300", density === 'compact' ? "scale-[0.96] origin-top -mt-1" : "")}>
+            <InboxFilters filters={inboxFilters.filters} onFiltersChange={inboxFilters.setFilters} />
+          </div>
+        </ErrorBoundary>
       </div>
 
       {isMobile && (
