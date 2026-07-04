@@ -18,6 +18,38 @@ import {
 } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
+const ALLOWED_AVATAR_ORIGINS = new Set([
+  "mmg.whatsapp.net",
+  "media.whatsapp.net",
+  "pps.whatsapp.net",
+  "static.whatsapp.net",
+]);
+
+// Blocks SSRF via private/loopback IPv4 and IPv6 in the Evolution API response URL.
+function isSafeAvatarUrl(raw: string): boolean {
+  let parsed: URL;
+  try { parsed = new URL(raw); } catch { return false; }
+  if (parsed.protocol !== "https:") return false;
+
+  const host = parsed.hostname.toLowerCase();
+
+  // Allow only known WhatsApp CDN origins
+  if (!ALLOWED_AVATAR_ORIGINS.has(host)) return false;
+
+  // Reject IPv4-mapped or bracket-enclosed IPv6
+  if (host.startsWith("[")) return false;
+
+  // Reject numeric IPv4 private ranges
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return false;
+    if (a === 169 && b === 254) return false;
+  }
+
+  return true;
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -95,6 +127,11 @@ Deno.serve(async (req) => {
     if (!picUrl) return jsonResponse({ avatar_url: null }, 200, req);
 
     // 3) Persiste no Storage para evitar expiração das URLs do WhatsApp.
+    if (!isSafeAvatarUrl(picUrl)) {
+      log.warn("Avatar URL failed SSRF check — skipping fetch", { picUrl });
+      return jsonResponse({ avatar_url: null }, 200, req);
+    }
+
     try {
       const imgResp = await fetch(picUrl, { signal: AbortSignal.timeout(8000) });
       if (imgResp.ok) {

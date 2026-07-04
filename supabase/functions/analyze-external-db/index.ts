@@ -67,30 +67,41 @@ Deno.serve(async (req) => {
       return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
     };
 
-    // Check all tables in parallel with individual 5s timeouts — avoids 50× sequential RTT
-    const tableChecks = await Promise.allSettled(
-      knownTables.map(async (table) => {
-        const { data, error, count } = await withTimeout(
-          ext.from(table).select('*', { count: 'exact' }).limit(3),
-          5000
-        );
-        if (!error && data) {
-          return {
-            table,
-            exists: true,
-            count: count,
-            sample: data,
-            columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [],
-          };
-        }
-        return null;
-      })
-    );
+    // Check tables in batches of 8 to avoid saturating the external DB connection pool.
+    // Unbounded concurrency (43+ parallel queries) can cause connection exhaustion.
+    const BATCH_SIZE = 8;
+    const timedOut: string[] = [];
 
-    for (const result of tableChecks) {
-      if (result.status === 'fulfilled' && result.value) {
-        const { table, ...rest } = result.value;
-        results[table] = rest;
+    for (let i = 0; i < knownTables.length; i += BATCH_SIZE) {
+      const batch = knownTables.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (table) => {
+          const { data, error, count } = await withTimeout(
+            ext.from(table).select('*', { count: 'exact' }).limit(3),
+            5000
+          );
+          if (!error && data) {
+            return {
+              table,
+              exists: true,
+              count: count,
+              sample: data,
+              columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [],
+            };
+          }
+          if (error?.message?.includes('timeout')) timedOut.push(table);
+          return null;
+        })
+      );
+
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          const { table, ...rest } = result.value;
+          results[table] = rest;
+        } else if (result.status === 'rejected') {
+          // Surface per-batch rejections (e.g. network error during batch)
+          console.error('[analyze-external-db] batch query rejected', result.reason);
+        }
       }
     }
 
@@ -107,6 +118,7 @@ Deno.serve(async (req) => {
       table_count: Object.keys(results).length,
       details: results,
       discovered_tables: discoveredTables,
+      timed_out: timedOut,
       timestamp: new Date().toISOString()
     }, null, 2), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

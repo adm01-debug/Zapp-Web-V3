@@ -40,7 +40,7 @@ function detectExtension(respContentType: string, defaultExt: string): string {
   return defaultExt;
 }
 
-function isSafeMediaCdnUrl(url: string): boolean {
+export function isSafeMediaCdnUrl(url: string): boolean {
   try {
     const { protocol, hostname } = new URL(url);
     if (protocol !== 'https:') return false;

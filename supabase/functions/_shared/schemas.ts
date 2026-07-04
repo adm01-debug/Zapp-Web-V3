@@ -52,12 +52,15 @@ function isSafeHttpsUrl(url: string): boolean {
   let parsed: URL;
   try { parsed = new URL(url); } catch { return false; }
   if (parsed.protocol !== 'https:') return false;
-  const host = parsed.hostname;
+  const host = parsed.hostname.toLowerCase();
   if (
     host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0' ||
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    // IPv6 loopback, link-local, and unique-local (ULA)
+    host === '[::1]' || host.startsWith('[fe80:') ||
+    host.startsWith('[fc00:') || host.startsWith('[fd')
   ) return false;
   return true;
 }

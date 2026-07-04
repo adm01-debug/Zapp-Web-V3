@@ -28,15 +28,15 @@ serve(async (req) => {
 
     // Verifica se há accountId para usar gmail-send
     if (body.accountId) {
-      // Delega para gmail-send
+      // Delega para gmail-send usando o token do usuário (não service role),
+      // para que gmail-send possa verificar a propriedade da conta Gmail.
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
       const res = await fetch(`${supabaseUrl}/functions/v1/gmail-send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceKey}`,
+          'Authorization': req.headers.get('Authorization') || '',
         },
         body: JSON.stringify({ ...body, action: body.action ?? 'send' }),
         signal: AbortSignal.timeout(15_000),
@@ -52,7 +52,8 @@ serve(async (req) => {
       return json({ error: 'Nenhum provedor de email configurado. Forneça accountId para usar Gmail ou configure RESEND_API_KEY.' }, 503);
     }
 
-    const { to, subject, html, from = 'noreply@zappweb.app' } = body;
+    const { to, subject, html } = body;
+    const from = 'noreply@zappweb.app';
     if (!to || !subject || !html) {
       return json({ error: 'to, subject e html são obrigatórios' }, 400);
     }

@@ -64,6 +64,18 @@ serve(async (req) => {
     }
     const instanceName = String(rawInstanceName);
 
+    // Verify that the authenticated user owns a connection with this instance name.
+    // Without this check, any valid user could import contacts into another user's instance.
+    const { data: ownedConn, error: connErr } = await supabase
+      .from('whatsapp_connections')
+      .select('id')
+      .eq('instance_name', instanceName)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (connErr || !ownedConn) {
+      return new Response(JSON.stringify({ error: 'Instance not found or access denied' }), { status: 403, headers: JSON_CORS });
+    }
+
     let inserted = 0, skipped = 0;
     const errors: { row: number; error: string }[] = [];
     const startTime = Date.now();

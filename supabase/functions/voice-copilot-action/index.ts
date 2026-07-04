@@ -20,9 +20,10 @@ Deno.serve(async (req) => {
     if (!action || typeof action !== 'string') {
       return errorResponse('action must be a non-empty string', 400, req);
     }
-    if (!params || typeof params !== 'object' || Array.isArray(params)) {
-      return errorResponse('params must be an object', 400, req);
-    }
+    // params is optional for actions like get_dashboard_metrics, list_agents, get_queue_status
+    const safeParams = (params !== undefined && params !== null && typeof params === 'object' && !Array.isArray(params))
+      ? params
+      : {};
 
     log.info("Processing voice action", { action });
 
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'search_contacts': {
-        const { query } = params as Record<string, unknown>;
+        const { query } = safeParams as Record<string, unknown>;
         // Sanitize input: remove SQL wildcards and special chars
         const sanitized = String(query || '').replace(/[%_\\]/g, '').trim();
         if (!sanitized) {
@@ -49,17 +50,18 @@ Deno.serve(async (req) => {
       }
 
       case 'get_conversation_summary': {
-        const { contactId } = params as Record<string, unknown>;
+        const { contactId } = safeParams as Record<string, unknown>;
         if (!contactId || typeof contactId !== 'string') {
           return errorResponse('contactId is required', 400, req);
         }
         // Verify ownership before reading
-        const { data: contactCheck } = await supabase
+        const { data: contactCheck, error: contactCheckError } = await supabase
           .from('contacts')
           .select('id')
           .eq('id', contactId)
           .eq('user_id', authed.user.id)
           .maybeSingle();
+        if (contactCheckError) return errorResponse('Database error', 500, req);
         if (!contactCheck) {
           result = { summary: 'Nenhuma análise disponível para este contato.' };
           break;
@@ -99,7 +101,7 @@ Deno.serve(async (req) => {
       }
 
       case 'assign_conversation': {
-        const { contactId, agentName } = params as Record<string, unknown>;
+        const { contactId, agentName } = safeParams as Record<string, unknown>;
         if (!contactId || typeof contactId !== 'string') {
           return errorResponse('contactId is required', 400, req);
         }
@@ -107,12 +109,13 @@ Deno.serve(async (req) => {
           return errorResponse('agentName is required', 400, req);
         }
         // Verify the caller owns this contact before mutating it
-        const { data: ownedContact } = await supabase
+        const { data: ownedContact, error: ownedContactError } = await supabase
           .from('contacts')
           .select('id')
           .eq('id', contactId)
           .eq('user_id', authed.user.id)
           .maybeSingle();
+        if (ownedContactError) return errorResponse('Database error', 500, req);
         if (!ownedContact) {
           result = { success: false, message: 'Contato não encontrado.' };
           break;
@@ -144,7 +147,7 @@ Deno.serve(async (req) => {
       }
 
       case 'create_note': {
-        const { contactId, content } = params as Record<string, unknown>;
+        const { contactId, content } = safeParams as Record<string, unknown>;
         if (!contactId || typeof contactId !== 'string') {
           return errorResponse('contactId is required', 400, req);
         }
@@ -152,12 +155,13 @@ Deno.serve(async (req) => {
           return errorResponse('content is required', 400, req);
         }
         // Verify the caller owns this contact before inserting a note
-        const { data: ownedContact } = await supabase
+        const { data: ownedContact, error: ownedContactErr } = await supabase
           .from('contacts')
           .select('id')
           .eq('id', contactId)
           .eq('user_id', authed.user.id)
           .maybeSingle();
+        if (ownedContactErr) return errorResponse('Database error', 500, req);
         if (!ownedContact) {
           result = { success: false, message: 'Contato não encontrado.' };
           break;

@@ -40,6 +40,22 @@ Deno.serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+  // All actions require an authenticated user
+  {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const authHeader = req.headers.get('Authorization') || '';
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: { user: _u }, error: _e } = await userClient.auth.getUser();
+    if (_e || !_u) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   const url = new URL(req.url);
   const pathParts = url.pathname.split('/').filter(Boolean);
   const pathAction = pathParts[pathParts.length - 1];
@@ -90,6 +106,14 @@ Deno.serve(async (req) => {
       instance = (body as FormData).get('instanceName') as string || (body as FormData).get('instance') as string;
     } else {
       instance = (body as Record<string, unknown>).instanceName as string || (body as Record<string, unknown>).instance as string;
+    }
+
+    // Prevent path traversal: instance names must be safe identifiers only
+    const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,128}$/;
+    if (instance && !INSTANCE_RE.test(instance)) {
+      return new Response(JSON.stringify({ error: 'Invalid instance name' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Guarda anti-"instância fantasma" (incidente wpp2 2026-07-04): as rotas da
@@ -278,6 +302,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'reprocess-failed-webhooks') {
+      await authorizeRoles(req, supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, ['admin', 'dev']);
       const { data: failed, error } = await supabase
         .from('webhook_reprocess_queue')
         .select('*')

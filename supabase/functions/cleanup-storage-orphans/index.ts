@@ -35,12 +35,34 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const filesToDelete = files
+      const candidateFiles = files
         ?.filter(f => new Date(f.created_at) < oneDayAgo)
         .map(f => f.name) || [];
 
+      // Build set of file names currently referenced in evolution_messages to avoid deleting active files
+      let referencedNames = new Set<string>();
+      if (candidateFiles.length > 0) {
+        const candidateUrls = candidateFiles.map(
+          name => `${supabaseUrl}/storage/v1/object/public/${bucketName}/${name}`
+        );
+        const { data: refRows } = await supabase
+          .from("evolution_messages")
+          .select("media_url")
+          .in("media_url", candidateUrls);
+        if (refRows) {
+          for (const row of refRows) {
+            if (row.media_url) {
+              const parts = (row.media_url as string).split(`/${bucketName}/`);
+              if (parts.length > 1) referencedNames.add(parts[1]);
+            }
+          }
+        }
+      }
+
+      const filesToDelete = candidateFiles.filter(name => !referencedNames.has(name));
+
       if (filesToDelete.length > 0) {
-        log.info(`Deletando ${filesToDelete.length} arquivos antigos de ${bucketName}`);
+        log.info(`Deletando ${filesToDelete.length} arquivos órfãos de ${bucketName} (${candidateFiles.length - filesToDelete.length} referenciados ignorados)`);
         const { data, error: deleteError } = await supabase.storage.from(bucketName).remove(filesToDelete);
         
         if (deleteError) {

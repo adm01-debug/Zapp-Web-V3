@@ -43,10 +43,26 @@ async function downloadAudio(
     }
   }
 
-  // Fallback: direct HTTP fetch — only allow HTTPS to prevent SSRF to internal endpoints
+  // Fallback: direct HTTP fetch — full SSRF blocklist (protocol + private IPv4/IPv6 ranges)
   let parsedUrl: URL;
   try { parsedUrl = new URL(audioUrl); } catch { return { error: "Invalid audio URL" }; }
   if (parsedUrl.protocol !== "https:") return { error: "Audio URL must use HTTPS" };
+
+  const host = parsedUrl.hostname.toLowerCase();
+  const isPrivate =
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host === "0.0.0.0" ||
+    /^127\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    host === "[::1]" ||
+    host.startsWith("[fe80:") ||
+    host.startsWith("[fc00:") ||
+    host.startsWith("[fd");
+  if (isPrivate) return { error: "Audio URL is not allowed" };
 
   const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) {
@@ -72,7 +88,10 @@ async function downloadAudio(
       }
       chunks.push(chunk);
     }
-  } catch (e) { return { error: `Download interrupted: ${e instanceof Error ? e.message : "unknown"}` }; }
+  } catch (e) {
+    log.error("Stream read interrupted", { error: e instanceof Error ? e.message : String(e) });
+    return { error: "Download failed" };
+  }
   const buffer = new Uint8Array(totalBytes);
   let offset = 0;
   for (const c of chunks) { buffer.set(c, offset); offset += c.byteLength; }
@@ -109,7 +128,11 @@ Deno.serve(async (req) => {
     // Download audio (prefers service-role storage download for own URLs)
     const downloadResult = await downloadAudio(audioUrl, log);
     if ("error" in downloadResult) {
-      return errorResponse(downloadResult.error, 400, req);
+      // Server-side download failures get 500; client-supplied bad URLs get 400
+      const isClientError = downloadResult.error.startsWith("Invalid") ||
+        downloadResult.error.startsWith("Audio URL") ||
+        downloadResult.error.startsWith("Audio file too large");
+      return errorResponse(downloadResult.error, isClientError ? 400 : 500, req);
     }
 
     const { buffer: audioBuffer, contentType } = downloadResult;

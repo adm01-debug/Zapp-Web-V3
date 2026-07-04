@@ -31,10 +31,15 @@ Deno.serve(async (req) => {
     const { contactIds } = parsed.data;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: contacts } = await callerClient
+    const { data: contacts, error: contactsError } = await callerClient
       .from("contacts")
       .select("id, name, phone, created_at, updated_at")
       .in("id", contactIds);
+
+    if (contactsError) {
+      log.error("Failed to fetch contacts", { error: contactsError.message });
+      return errorResponse("Database error fetching contacts", 500, req);
+    }
 
     if (!contacts || contacts.length === 0) {
       return jsonResponse({ results: [], message: "Nenhum contato encontrado" }, 200, req);

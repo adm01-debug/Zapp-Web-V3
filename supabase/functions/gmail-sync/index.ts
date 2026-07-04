@@ -125,11 +125,17 @@ serve(async (req) => {
         headers: { Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(10_000),
       });
+
+      if (!listRes.ok) {
+        console.error('[gmail-sync] syncFull list HTTP error', listRes.status);
+        return json({ error: 'Failed to list Gmail messages' }, 502);
+      }
+
       const listData = await listRes.json().catch(() => ({}));
 
       if (listData.error) {
         console.error('[gmail-sync] syncFull list error', listData.error);
-        return json({ error: 'Failed to list Gmail messages', detail: listData.error?.message }, 400);
+        return json({ error: 'Failed to list Gmail messages' }, 502);
       }
 
       const messages: Array<{ id: string }> = listData.messages ?? [];

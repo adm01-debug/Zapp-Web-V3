@@ -33,8 +33,8 @@ function isSafeAudioUrl(raw: string): boolean {
   let parsed: URL;
   try { parsed = new URL(raw); } catch { return false; }
   if (parsed.protocol !== 'https:') return false;
-  const host = parsed.hostname;
-  // Block loopback, link-local, private, and metadata service addresses
+  const host = parsed.hostname.toLowerCase();
+  // Block loopback, link-local, private, and metadata service addresses (IPv4 + IPv6)
   if (
     host === 'localhost' ||
     host.endsWith('.localhost') ||
@@ -43,7 +43,12 @@ function isSafeAudioUrl(raw: string): boolean {
     /^169\.254\./.test(host) ||  // AWS/GCP/Azure metadata
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    // IPv6 loopback, link-local, and unique-local (ULA)
+    host === '[::1]' ||
+    host.startsWith('[fe80:') ||   // link-local
+    host.startsWith('[fc00:') ||   // ULA
+    host.startsWith('[fd')         // ULA (fd00::/8)
   ) return false;
   return true;
 }
