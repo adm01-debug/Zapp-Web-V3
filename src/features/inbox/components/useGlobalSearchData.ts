@@ -60,7 +60,7 @@ export function useGlobalSearchData(open: boolean) {
     if (open) {
       supabase.from('tags').select('id, name, color').order('name').then(({ data }) => {
         if (data) setAllTags(data);
-      }).catch(() => {});
+      }, () => {});
     }
   }, [open]);
 

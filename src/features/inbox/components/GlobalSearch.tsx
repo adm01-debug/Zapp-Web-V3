@@ -61,7 +61,7 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
           p_result_id: result.id,
           p_result_type: result.type,
         })
-        .then(({ error }) => { if (error) log.warn('rpc_record_search_click failed', error); }).catch(() => {});
+        .then(({ error }) => { if (error) log.warn('rpc_record_search_click failed', error); }, () => {});
     }
     onSelectResult(result);
     onOpenChange(false);

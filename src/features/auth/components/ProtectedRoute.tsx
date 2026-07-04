@@ -54,7 +54,7 @@ export function ProtectedRoute({
           setHasPermission(data === true);
         }
         setPermissionChecking(false);
-      }).catch((err) => {
+      }, (err) => {
         if (!isMounted) return;
         log.error('Permission check threw:', err);
         setHasPermission(false);
