@@ -1,6 +1,7 @@
 import { handleCors, errorResponse, jsonResponse, checkRateLimit, getClientIP, requireEnv, Logger } from "../_shared/validation.ts";
 import { TranscribeAudioSchema, parseBody } from "../_shared/schemas.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireUser } from "../_shared/auth.ts";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -63,6 +64,15 @@ async function downloadAudio(
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  // Called both internally (evolution-webhook → service role) and from frontend (user JWT).
+  const bearer = req.headers.get("Authorization")?.slice(7).trim();
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const isInternal = bearer && serviceKey && bearer === serviceKey;
+  if (!isInternal) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+  }
 
   const log = new Logger("ai-transcribe-audio");
 

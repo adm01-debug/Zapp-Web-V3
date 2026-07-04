@@ -1,14 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { handleCors, errorResponse, jsonResponse, checkRateLimit, getClientIP, requireEnv, Logger } from "../_shared/validation.ts";
 import { AiSuggestReplySchema, parseBody } from "../_shared/schemas.ts";
-import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { callAiWithTracking } from "../_shared/ai-usage.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
+
   const log = new Logger("ai-suggest-reply");
-  const userId = extractUserIdFromRequest(req);
+  const userId = authed.user.id;
 
   try {
     const ip = getClientIP(req);
