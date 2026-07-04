@@ -82,19 +82,24 @@ export async function refreshAccessToken(
   const clientId     = Deno.env.get('GOOGLE_CLIENT_ID')!;
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
 
-  const res = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      refresh_token: refreshToken,
-      client_id:     clientId,
-      client_secret: clientSecret,
-      grant_type:    'refresh_token',
-    }),
-    signal: AbortSignal.timeout(10_000),
-  });
-
-  const tokens = await res.json();
+  let tokens: Record<string, unknown>;
+  try {
+    const res = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        refresh_token: refreshToken,
+        client_id:     clientId,
+        client_secret: clientSecret,
+        grant_type:    'refresh_token',
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    tokens = await res.json();
+  } catch (err) {
+    console.warn('[gmail-helpers] refreshAccessToken network/parse error', err instanceof Error ? err.message : String(err));
+    return null;
+  }
 
   if (tokens.error) {
     // refresh_token inválido ou revogado → desativar conta
@@ -285,7 +290,8 @@ export async function fetchGmailMessage(
     headers: { Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000),
   });
-  return await res.json();
+  if (!res.ok) return { error: { code: res.status, message: res.statusText } };
+  return await res.json().catch(() => ({ error: { code: res.status, message: 'invalid JSON' } }));
 }
 
 export async function fetchGmailHistory(
@@ -296,7 +302,8 @@ export async function fetchGmailHistory(
     `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
     { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
   );
-  const data = await res.json();
+  if (!res.ok) return { addedMessageIds: [] };
+  const data = await res.json().catch(() => ({}));
   if (data.error) return { addedMessageIds: [] };
 
   const addedMessageIds: string[] = [];
