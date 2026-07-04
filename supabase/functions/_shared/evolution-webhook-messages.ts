@@ -242,9 +242,18 @@ export async function handleStickerMedia(
   const b64Direct = (data.base64 as string) || ((message?.stickerMessage as Record<string, unknown>)?.base64 as string);
   if (b64Direct) mediaUrl = await uploadBase64Sticker(b64Direct);
 
+  function isSafeMediaUrl(url: string): boolean {
+    try {
+      const { protocol, hostname } = new URL(url);
+      if (protocol !== 'https:') return false;
+      const allowed = ['mmg.whatsapp.net', 'media.whatsapp.net', 'pps.whatsapp.net'];
+      return allowed.some(h => hostname === h || hostname.endsWith('.' + h));
+    } catch { return false; }
+  }
+
   if (!mediaUrl) {
     const directMediaUrl = (data.mediaUrl as string) || ((message?.stickerMessage as Record<string, unknown>)?.mediaUrl as string);
-    if (directMediaUrl && directMediaUrl.startsWith('http')) {
+    if (directMediaUrl && isSafeMediaUrl(directMediaUrl)) {
       try {
         const resp = await fetch(directMediaUrl, { signal: AbortSignal.timeout(10000) });
         if (resp.ok) {

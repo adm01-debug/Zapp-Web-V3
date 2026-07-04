@@ -19,13 +19,13 @@ export interface ContractError {
 /** Schema para análise de conversa (ai-conversation-summary) */
 export const AiConversationSummarySchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
-  contactName: z.string().optional().nullable(),
+  contactName: z.string().max(200).optional().nullable(),
   messages: z.array(z.object({
     role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
-    content: z.string(),
-    sender: z.string().optional(),
-    timestamp: z.string().optional(),
-  })).min(1, "Lista de mensagens vazia"),
+    content: z.string().max(10000),
+    sender: z.string().max(200).optional(),
+    timestamp: z.string().max(50).optional(),
+  })).min(1, "Lista de mensagens vazia").max(200),
 });
 
 /** Schema para sugestão de resposta (ai-suggest-reply) */
@@ -33,10 +33,10 @@ export const AiSuggestReplySchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
   contactName: z.string().max(200).optional().nullable(),
   conversationHistory: z.array(z.object({
-    role: z.string(),
-    content: z.string(),
-  })),
-  context: z.string().optional(),
+    role: z.string().max(20),
+    content: z.string().max(10000),
+  })).max(50),
+  context: z.string().max(2000).optional(),
 });
 
 /** Schema para detecção de novo dispositivo (detect-new-device) */

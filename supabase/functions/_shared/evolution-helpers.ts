@@ -307,7 +307,7 @@ export async function fetchProfilePicFromApi(instance: string, phone: string): P
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
     if (!evolutionUrl || !evolutionKey) return null;
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
-    const resp = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${instance}`, {
+    const resp = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instance)}`, {
       method: 'POST',
       headers: { 'apikey': evolutionKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({ number: phone }),
@@ -319,7 +319,17 @@ export async function fetchProfilePicFromApi(instance: string, phone: string): P
   } catch { return null; }
 }
 
+function isSafeProfilePicUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url);
+    if (protocol !== 'https:') return false;
+    const allowed = ['pps.whatsapp.net', 'mmg.whatsapp.net', 'media.whatsapp.net'];
+    return allowed.some(h => hostname === h || hostname.endsWith('.' + h));
+  } catch { return false; }
+}
+
 export async function persistProfilePicture(supabase: SupabaseClient, phone: string, profilePicUrl: string): Promise<string | null> {
+  if (!isSafeProfilePicUrl(profilePicUrl)) return null;
   try {
     const response = await fetch(profilePicUrl, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) return null;
