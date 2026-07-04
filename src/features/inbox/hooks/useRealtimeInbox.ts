@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import { useMessages } from '@/features/inbox';
 import { type ConversationWithMessages, type ConversationContact, type RealtimeMessage } from '@/features/inbox';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,13 +7,13 @@ import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
 import { seedAvatarCache } from '@/features/inbox';
+import { isValidUUID } from '@/utils/uuid';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useMessageQueue, QueueItem } from './useMessageQueue';
 import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
-import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('useRealtimeInbox');
 
@@ -122,13 +121,13 @@ export function useRealtimeInbox() {
   useEffect(() => {
     if (!selectedContactId || !profile?.id) { setWhisperCount(0); return; }
 
-    // ── UUID guard ─────────────────────────────────────────────────────────────────────
+    // ── UUID guard ──────────────────────────────────────────────────────────
     // whisper_messages.contact_id is a uuid column. When USE_EXTERNAL_DB=true,
     // selectedContactId may be a WhatsApp JID / phone number (e.g. "551146375517")
     // instead of a UUID. PostgREST returns 400 "invalid input syntax for type uuid"
     // when a non-UUID string is used as a filter on a uuid column.
     // Skip both the count query and the realtime subscription in that case.
-    // DRY FIX: uses isValidUUID from @/utils/uuid instead of inline regex.
+
     if (!isValidUUID(selectedContactId)) {
       log.debug(
         '[whisperCount] selectedContactId is not a UUID — skipping whisper query (likely a WhatsApp JID)',
@@ -145,7 +144,7 @@ export function useRealtimeInbox() {
     };
     fetchWhisperCount();
 
-    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'zapp', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => fetchWhisperCount()).subscribe();
+    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => fetchWhisperCount()).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [selectedContactId, profile?.id]);
 
