@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, User } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 /**
  * Shared validation, security, and logging utilities for Edge Functions.
@@ -329,7 +329,7 @@ export function jsonResponse(data: unknown, status = 200, req?: Request) {
 export function contractErrorResponse(
   code: string,
   message: string,
-  issues: any[] = [],
+  issues: { path?: (string | number)[]; message?: string }[] = [],
   requestId?: string,
   req?: Request
 ) {
@@ -432,7 +432,7 @@ export async function authorizeRoles(
   supabaseUrl: string,
   supabaseAnonKey: string,
   requiredRoles: string[] = ['admin', 'dev']
-): Promise<{ user: any; roles: string[] }> {
+): Promise<{ user: User; roles: string[] }> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) throw { message: "Não autorizado", status: 401 };
 

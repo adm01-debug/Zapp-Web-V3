@@ -10,8 +10,9 @@
 //
 // Migration da RPC: supabase/migrations (increment_webhook_rate_limit).
 
-// deno-lint-ignore no-explicit-any
-export async function checkRateLimit(supabase: any, {
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+export async function checkRateLimit(supabase: SupabaseClient, {
   instanceId,
   eventType,
   limit = 100, // events per window
