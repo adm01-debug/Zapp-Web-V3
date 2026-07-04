@@ -64,6 +64,7 @@ async function callGraph(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   });
   const text = await res.text();
   let parsed: unknown = text;
@@ -137,7 +138,7 @@ Deno.serve(async (req) => {
   // PING / status
   if (action === 'ping' || action === 'status' || action === 'instance-info') {
     const url = `https://graph.facebook.com/${creds.graph_api_version}/${creds.phone_number_id}?fields=display_phone_number,verified_name,quality_rating`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${creds.access_token}` } });
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${creds.access_token}` }, signal: AbortSignal.timeout(10_000) });
     const data = await res.json().catch(() => ({}));
     return jsonResponse({ ok: res.ok, status: res.status, data }, 200, req);
   }
@@ -223,6 +224,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { Authorization: `Bearer ${creds.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ messaging_product: 'whatsapp', status: 'read', message_id: wamid }),
+        signal: AbortSignal.timeout(10_000),
       });
       const data = await res.json().catch(() => ({}));
       return jsonResponse({ ok: res.ok, status: res.status, data }, 200, req);

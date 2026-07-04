@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
   } else {
     const t0 = performance.now();
     try {
-      const r = await fetch(handshakeUrl, { method: "GET" });
+      const r = await fetch(handshakeUrl, { method: "GET", signal: AbortSignal.timeout(10_000) });
       const text = await r.text();
       handshake = {
         status: r.ok && text === challenge ? "pass" : "fail",
