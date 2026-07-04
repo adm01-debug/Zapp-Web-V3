@@ -139,7 +139,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       throw new Error(`AI gateway error [${response.status}]`);
     }
 
-    const content = (data as any).choices?.[0]?.message?.content;
+    const content = (data?.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content;
 
     let suggestions;
     try {

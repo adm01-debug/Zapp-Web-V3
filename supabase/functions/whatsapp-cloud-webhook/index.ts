@@ -12,6 +12,22 @@ import { contractErrorResponse } from "../_shared/validation.ts";
 import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import { markEventProcessed } from "../_shared/evolution-helpers.ts";
 
+interface MetaWAMessage {
+  from: string;
+  id: string;
+  type?: string;
+  timestamp?: string;
+  text?: { body?: string };
+  image?: { caption?: string };
+  video?: { caption?: string };
+  document?: { filename?: string };
+  [key: string]: unknown;
+}
+interface MetaWAContact {
+  wa_id?: string;
+  profile?: { name?: string };
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -67,7 +83,7 @@ async function isDuplicate(messageId: string): Promise<boolean> {
   return !isNew;
 }
 
-async function persistInbound(message: any, contact: any) {
+async function persistInbound(message: MetaWAMessage, contact: MetaWAContact | undefined) {
   if (!externalClient) return;
   const remoteJid = jidFromPhone(message.from);
   const content =
@@ -150,7 +166,7 @@ Deno.serve(async (req) => {
     );
   }
 
-  let body: any;
+  let body: unknown;
   try {
     body = JSON.parse(rawBody);
   } catch {
@@ -199,7 +215,7 @@ Deno.serve(async (req) => {
             duplicates++;
             continue;
           }
-          const contact = contacts.find((c: any) => c?.wa_id === msg?.from);
+          const contact = (contacts as MetaWAContact[]).find((c) => c?.wa_id === msg?.from);
           try {
             await persistInbound(msg, contact);
             processed++;

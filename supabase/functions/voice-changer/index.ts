@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     }
 
     const startTime = Date.now();
-    const telemetryData: any = {
+    const telemetryData: Record<string, unknown> & { metadata: Record<string, unknown>; error_type?: string } = {
       task_id: taskId,
       input_size_bytes: audioData.size,
       metadata: { preset: voicePreset, is_retry: false }
@@ -243,21 +243,21 @@ Deno.serve(async (req) => {
         },
       });
 
-    } catch (innerErr: any) {
+    } catch (innerErr: unknown) {
       telemetryData.error_type = 'EXCEPTION';
-      telemetryData.metadata.error = innerErr.message;
+      telemetryData.metadata.error = innerErr instanceof Error ? innerErr.message : String(innerErr);
       await supabaseClient.from('sts_telemetry').insert(telemetryData);
       
       if (taskId) {
         await supabaseClient
           .from('voice_conversion_queue')
-          .update({ status: 'failed', error_message: innerErr.message })
+          .update({ status: 'failed', error_message: innerErr instanceof Error ? innerErr.message : String(innerErr) })
           .eq('id', taskId);
       }
       throw innerErr;
     }
-  } catch (err: any) {
-    log.error("Global Voice Changer Error", { error: err.message });
+  } catch (err: unknown) {
+    log.error("Global Voice Changer Error", { error: err instanceof Error ? err.message : String(err) });
     return errorResponse('Internal server error', 500, req);
   }
 });
