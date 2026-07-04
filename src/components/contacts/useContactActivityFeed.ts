@@ -5,7 +5,10 @@
  * Uses Supabase Realtime to push live updates.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+const log = getLogger('useContactActivityFeed');
+
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import { sanitizeText } from '@/lib/sanitize';
 import { formatPhoneForDisplay } from '@/lib/phoneUtils';
 
@@ -149,7 +152,7 @@ export function useContactActivityFeed({
 
       setActivities(items.slice(0, limit));
     } catch (err) {
-      console.error('[useContactActivityFeed]', err);
+      log.error('Failed to load contact activity feed', err);
     } finally {
       setLoading(false);
     }

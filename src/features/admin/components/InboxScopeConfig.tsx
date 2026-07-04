@@ -1,4 +1,7 @@
 import { useState, useMemo } from 'react';
+import { getLogger } from '@/lib/logger';
+const log = getLogger('InboxScopeConfig');
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Shield, Eye, Lock, Loader2, Info, Instagram, Globe, MessageSquare, Plus, Trash2, Settings2, Sparkles, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -119,7 +122,7 @@ export function InboxScopeConfig() {
         toast.success(`Permissão ${permissionName} adicionada a ${role}`);
       }
     } catch (err) {
-      console.error(err);
+      log.error('InboxScopeConfig error', err);
       toast.error('Falha ao atualizar permissão');
     } finally {
       setUpdating(null);

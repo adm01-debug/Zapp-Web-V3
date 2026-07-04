@@ -4,7 +4,10 @@
  * Uses find_duplicate_contacts(), merge_contacts(), bulk_auto_merge_duplicates() RPCs.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+const log = getLogger('DuplicateContactsPanel');
+
 import { Button } from '@/components/ui/button';
+import { getLogger } from '@/lib/logger';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
@@ -62,7 +65,7 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
       setReport((reportRes.data ?? null) as unknown as DuplicateReport | null);
       setDone(true);
     } catch (err) {
-      console.error('[DuplicateContactsPanel]', err);
+      log.error('Failed to load duplicate contacts', err);
       toast({ title: 'Erro ao verificar duplicatas', description: String(err), variant: 'destructive' });
     } finally { setLoading(false); }
   }, [instanceName, toast]);

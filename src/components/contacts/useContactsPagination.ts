@@ -10,7 +10,10 @@
  * - Supports sort by: name, created_at, last_seen_at
  */
 import { useState, useCallback, useRef } from 'react';
+const log = getLogger('useContactsPagination');
+
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -109,7 +112,7 @@ export function useContactsPagination(workspaceId: string) {
         offsetRef.current = PAGE_SIZE;
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
-          console.error('[useContactsPagination] loadContacts error:', err);
+          log.error('Failed to load contacts page', err);
           setContacts([]);
         }
       } finally {
@@ -158,7 +161,7 @@ export function useContactsPagination(workspaceId: string) {
       setHasMore(data.length === PAGE_SIZE);
       offsetRef.current = offset + PAGE_SIZE;
     } catch (err) {
-      console.error('[useContactsPagination] loadMore error:', err);
+      log.error('Failed to load more contacts', err);
     } finally {
       setLoadingMore(false);
     }

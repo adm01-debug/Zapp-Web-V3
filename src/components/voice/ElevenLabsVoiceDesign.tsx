@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { getLogger } from '@/lib/logger';
+const log = getLogger('ElevenLabsVoiceDesign');
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +46,7 @@ export function ElevenLabsVoiceDesign() {
         setVoices(data?.voices || []);
         if (data?.voices?.length > 0) setSelectedVoice(data.voices[0].voice_id);
       } catch (err) {
-        console.error('Error fetching voices:', err);
+        log.error('Failed to fetch ElevenLabs voices', err);
         toast.error('Não foi possível carregar as vozes do ElevenLabs.');
       } finally {
         setLoading(false);
@@ -72,7 +75,7 @@ export function ElevenLabsVoiceDesign() {
       audio.play();
       toast.success('Áudio gerado com sucesso!');
     } catch (err) {
-      console.error('Error generating voice:', err);
+      log.error('Failed to generate voice', err);
       toast.error('Erro ao gerar áudio.');
     } finally {
       setLoading(false);

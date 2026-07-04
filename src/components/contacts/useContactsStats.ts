@@ -4,7 +4,10 @@
  * Shows: total, no consent, duplicates suspect, birthdays today.
  */
 import { useState, useEffect, useCallback } from 'react';
+const log = getLogger('useContactsStats');
+
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import { dbFrom, dbTable } from '@/integrations/datasource/db';
 
 // ── Hook ───────────────────────────────────────────────────────────────────
@@ -65,7 +68,7 @@ export function useContactsStats(workspaceId: string) {
         deletedPending: deletedRes.count ?? 0,
       });
     } catch (err) {
-      console.error('[useContactsStats]', err);
+      log.error('Failed to load contacts stats', err);
     } finally {
       setLoading(false);
     }

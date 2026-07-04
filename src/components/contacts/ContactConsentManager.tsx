@@ -77,7 +77,7 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
         duration: 3_000,
       });
     } catch (err) {
-      console.error('[ContactConsentManager]', err);
+      log.error('Failed to update consent', err);
       toast({
         title: '❌ Erro ao salvar consentimento',
         description: 'Tente novamente.',

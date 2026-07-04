@@ -10,6 +10,9 @@
  * - Expandable list with merge action placeholder
  */
 import React, { useState, useEffect } from 'react';
+import { getLogger } from '@/lib/logger';
+const log = getLogger('ContactDuplicateIndicator');
+
 import { Users, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { contactsDB, type ExternalContact } from '@/lib/contactsDB';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
@@ -49,7 +52,7 @@ export function ContactDuplicateIndicator({
         setDuplicates(results.filter((c) => c.id !== contactId));
       })
       .catch((err) => {
-        if (!cancelled) console.error('[DuplicateIndicator]', err);
+        if (!cancelled) log.error('Failed to check for duplicates', err);
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);

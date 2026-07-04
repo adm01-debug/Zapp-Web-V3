@@ -4,7 +4,10 @@
  * Shows consent rate, opt-outs, missing consents.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+const log = getLogger('LGPDComplianceDashboard');
+
 import { Button } from '@/components/ui/button';
+import { getLogger } from '@/lib/logger';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -48,7 +51,7 @@ export const LGPDComplianceDashboard: React.FC<LGPDComplianceDashboardProps> = (
       if (error) throw error;
       setStats((data ?? null) as unknown as ComplianceStats | null);
     } catch (err) {
-      console.error('[LGPDComplianceDashboard]', err);
+      log.error('Failed to load LGPD compliance stats', err);
     } finally {
       setLoading(false);
     }

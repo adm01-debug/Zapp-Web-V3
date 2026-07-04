@@ -4,7 +4,10 @@
  * Shows contacts deleted in the last 30 days.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+const log = getLogger('ContactRecycleBin');
+
 import { Button } from '@/components/ui/button';
+import { getLogger } from '@/lib/logger';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -60,7 +63,7 @@ export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({ workspaceI
       if (error) throw error;
       setContacts((data ?? []) as DeletedContact[]);
     } catch (err) {
-      console.error('[ContactRecycleBin]', err);
+      log.error('Failed to load recycle bin', err);
     } finally { setLoading(false); }
   }, [instanceName]);
 

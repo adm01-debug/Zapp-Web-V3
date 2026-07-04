@@ -4,7 +4,10 @@
  * Shows: total contacts, lead status distribution, LGPD compliance rate, duplicates.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+const log = getLogger('ContactStatsDashboard');
+
 import { Card, CardContent } from '@/components/ui/card';
+import { getLogger } from '@/lib/logger';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -68,7 +71,7 @@ export const ContactStatsDashboard: React.FC<Props> = ({
       if (lgpdRes.data)  setLgpd(lgpdRes.data as unknown as LGPDStats);
       if (dupesRes.data) setDupes((dupesRes.data as Record<string, number>).total_duplicate_groups ?? 0);
     } catch (err) {
-      console.error('[ContactStatsDashboard]', err);
+      log.error('Failed to load contact stats', err);
     } finally { setLoading(false); }
   }, [instanceName]);
 

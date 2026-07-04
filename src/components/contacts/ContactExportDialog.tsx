@@ -5,6 +5,9 @@
  * CSV injection prevention + UTF-8 BOM for Excel.
  */
 import React, { useState } from 'react';
+const log = getLogger('ContactExportDialog');
+
+import { getLogger } from '@/lib/logger';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -141,7 +144,7 @@ export const ContactExportDialog: React.FC<Props> = ({
       });
       onOpenChange(false);
     } catch (err) {
-      console.error('[ContactExportDialog]', err);
+      log.error('Failed to export contacts', err);
       toast({ title: 'Erro ao exportar', description: String(err), variant: 'destructive' });
     } finally {
       setLoading(false);

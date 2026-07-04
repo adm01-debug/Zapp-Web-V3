@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { getLogger } from '@/lib/logger';
+const log = getLogger('WhatsAppProviderConfig');
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -45,7 +48,7 @@ export default function WhatsAppProviderConfig() {
         setBaseUrl(config.base_url || '');
       }
     } catch (err) {
-      console.warn('Configuração inicial não encontrada.');
+      log.warn('Initial WhatsApp provider config not found');
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
+const log = getLogger('ContactMergeDialog');
+
+import { getLogger } from '@/lib/logger';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogFooter, DialogDescription,
@@ -227,7 +230,7 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
       onMergeComplete(primaryContact.id);
       onOpenChange(false);
     } catch (err) {
-      console.error('[ContactMergeDialog]', err);
+      log.error('Failed to merge contacts', err);
       toast({ title: 'Erro ao mesclar', description: 'Tente novamente.', variant: 'destructive' });
     } finally {
       setLoading(false);

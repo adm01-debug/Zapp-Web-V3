@@ -3,7 +3,10 @@
  * Real activity timeline using evolution_conversations + contact_audit_log.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+const log = getLogger('ContactActivityFeed');
+
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, FileText, Shield, RotateCcw, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
@@ -61,7 +64,7 @@ export const ContactActivityFeed: React.FC<{ contactId: string; maxItems?: numbe
 
       all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setActivities(all.slice(0, maxItems));
-    } catch (err) { console.error('[ContactActivityFeed]', err); }
+    } catch (err) { log.error('Failed to load activity feed', err); }
     finally { setLoading(false); }
   }, [contactId, maxItems]);
 

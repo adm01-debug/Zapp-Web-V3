@@ -4,7 +4,10 @@
  * Accessible via Settings → Contatos → Lixeira
  */
 import React, { useEffect, useState, useCallback } from 'react';
+const log = getLogger('ContactsRecycleBin');
+
 import { Button } from '@/components/ui/button';
+import { getLogger } from '@/lib/logger';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -93,7 +96,7 @@ export const ContactsRecycleBin: React.FC<ContactsRecycleBinProps> = ({ workspac
       setContacts(enriched);
       setFiltered(enriched);
     } catch (err) {
-      console.error('[ContactsRecycleBin]', err);
+      log.error('Failed to load contacts recycle bin', err);
       toast({ title: 'Erro ao carregar lixeira', variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -138,7 +141,7 @@ export const ContactsRecycleBin: React.FC<ContactsRecycleBinProps> = ({ workspac
         duration: 4_000,
       });
     } catch (err) {
-      console.error('[ContactsRecycleBin] restore failed:', err);
+      log.error('Failed to restore contact', err);
       toast({
         title: 'Erro ao restaurar',
         description: (err as Error).message?.includes('30-day')

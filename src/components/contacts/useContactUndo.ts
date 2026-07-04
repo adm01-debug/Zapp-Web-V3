@@ -11,7 +11,10 @@
  * This is a classic "pending delete" / "optimistic UI" pattern.
  */
 import { useRef, useCallback } from 'react';
+const log = getLogger('useContactUndo');
+
 import { useToast } from '@/hooks/use-toast';
+import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 const UNDO_WINDOW_MS = 5_000; // 5 seconds
@@ -97,7 +100,7 @@ export function useContactUndo(options: UseContactUndoOptions = {}) {
           }
           options.onCommitted?.(contactIds);
         } catch (err) {
-          console.error('[useContactUndo] Commit failed:', err);
+          log.error('Failed to commit bulk delete', err);
           // If commit fails, restore UI state
           options.onUndone?.(contactIds);
           toast({
@@ -134,7 +137,7 @@ export function useContactUndo(options: UseContactUndoOptions = {}) {
         });
         options.onCommitted?.([contactId]);
       } catch (err) {
-        console.error('[useContactUndo] hardDelete failed:', err);
+        log.error('Failed to hard delete contacts', err);
         toast({
           title: '❌ Erro ao excluir contato',
           description: 'Tente novamente.',

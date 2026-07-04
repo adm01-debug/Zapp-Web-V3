@@ -4,7 +4,10 @@
  * Solves Gap #7: No links to previous conversations in the activity feed.
  */
 import React, { useEffect, useState } from 'react';
+const log = getLogger('ContactConversationHistory');
+
 import { Badge } from '@/components/ui/badge';
+import { getLogger } from '@/lib/logger';
 import { MessageCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
 import { formatDistanceToNow } from 'date-fns';
@@ -53,7 +56,7 @@ export const ContactConversationHistory: React.FC<ContactConversationHistoryProp
         if (error) throw error;
         setConversations((data as ConversationSummary[]) ?? []);
       } catch (err) {
-        console.error('[ConversationHistory] Load failed:', err);
+        log.error('Failed to load conversation history', err);
       } finally {
         setIsLoading(false);
       }

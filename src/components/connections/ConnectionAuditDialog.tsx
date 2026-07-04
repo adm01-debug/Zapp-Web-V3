@@ -1,4 +1,7 @@
+const log = getLogger('ConnectionAuditDialog');
+
 import { useState, useEffect } from 'react';
+import { getLogger } from '@/lib/logger';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -45,7 +48,7 @@ export function ConnectionAuditDialog({ open, onOpenChange, instanceId, connecti
       if (error) throw error;
       setLogs(data || []);
     } catch (err) {
-      console.error('Error fetching audit logs:', err);
+      log.error('Failed to fetch connection audit logs', err);
     } finally {
       setLoading(false);
     }

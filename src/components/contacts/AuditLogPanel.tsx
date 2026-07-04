@@ -4,7 +4,10 @@
  * Adapts to actual schema: field_name/old_value/new_value columns.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+const log = getLogger('AuditLogPanel');
+
 import { Badge } from '@/components/ui/badge';
+import { getLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { History, RefreshCw, ChevronDown, ChevronUp, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,7 +63,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
         .limit(maxEntries);
 
       setEntries((data ?? []) as AuditEntry[]);
-    } catch (err) { console.error('[AuditLogPanel]', err); }
+    } catch (err) { log.error('Failed to load audit log', err); }
     finally { setLoading(false); }
   }, [contactId, maxEntries]);
 
