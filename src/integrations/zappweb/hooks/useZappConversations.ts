@@ -49,7 +49,7 @@ export function useZappConversations(opts: Options = {}) {
   }, [instance, status, limit]);
 
   useEffect(() => {
-    fetchAll();
+    void fetchAll();
     const ch = zappSupabase
       .channel(`zapp:conversations:${instance}`)
       .on(

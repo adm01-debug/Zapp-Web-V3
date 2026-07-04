@@ -34,8 +34,8 @@ export function useForwardMessage(
 
   useEffect(() => {
     if (open) {
-      fetchContacts();
-      fetchGroups();
+      void fetchContacts();
+      void fetchGroups();
     }
   }, [open]);
 

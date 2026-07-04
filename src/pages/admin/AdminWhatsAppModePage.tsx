@@ -120,8 +120,8 @@ export default function AdminWhatsAppModePage() {
 
   useEffect(() => {
     document.title = "Modo WhatsApp — Configurações";
-    refresh();
-    refreshSecrets();
+    void refresh();
+    void refreshSecrets();
   }, [refresh, refreshSecrets]);
 
   const handleToggle = async (checked: boolean) => {

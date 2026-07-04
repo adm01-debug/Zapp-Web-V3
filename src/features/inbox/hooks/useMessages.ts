@@ -89,7 +89,7 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
   useEffect(() => {
     if (enabled && contactId !== previousContactIdRef.current) {
       previousContactIdRef.current = contactId;
-      fetchMessages();
+      void fetchMessages();
     }
   }, [contactId, enabled, fetchMessages]);
 

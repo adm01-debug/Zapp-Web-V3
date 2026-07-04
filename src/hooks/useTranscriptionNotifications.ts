@@ -26,7 +26,7 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
 
   useEffect(() => {
     // Request notification permission on mount
-    requestNotificationPermission();
+    void requestNotificationPermission();
   }, []);
 
   useEffect(() => {

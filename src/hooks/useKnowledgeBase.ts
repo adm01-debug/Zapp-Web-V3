@@ -58,14 +58,14 @@ export function useKnowledgeBase() {
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return false; }
       toast({ title: 'Artigo criado!' });
     }
-    fetchData();
+    void fetchData();
     return true;
   }, [fetchData]);
 
   const deleteArticle = useCallback(async (id: string) => {
     await supabase.from('knowledge_base_articles').delete().eq('id', id);
     toast({ title: 'Artigo removido' });
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   const uploadFile = useCallback(async (file: File) => {
@@ -75,7 +75,7 @@ export function useKnowledgeBase() {
     const { data: signedData , error: signedDataErr } = await supabase.storage.from('whatsapp-media').createSignedUrl(fileName, 86400);
     await supabase.from('knowledge_base_files').insert({ file_name: file.name, file_url: signedData?.signedUrl || '', file_type: file.type, file_size: file.size });
     toast({ title: 'Arquivo enviado!', description: file.name });
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   return { articles, files, loading, fetchData, saveArticle, deleteArticle, uploadFile };

@@ -40,7 +40,7 @@ export function useEmailAccounts(): UseEmailAccountsReturn {
   }, []);
 
   useEffect(() => {
-    fetch();
+    void fetch();
 
     const channel = supabase
       .channel('email-accounts-changes')

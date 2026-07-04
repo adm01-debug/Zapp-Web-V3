@@ -97,7 +97,7 @@ export default function AdminEmailStatusPage() {
   };
 
   useEffect(() => {
-    loadHealth();
+    void loadHealth();
 
     const channel = supabase
       .channel('email-admin-status')

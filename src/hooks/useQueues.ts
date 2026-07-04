@@ -264,7 +264,7 @@ export function useQueues() {
   };
 
   useEffect(() => {
-    fetchQueues();
+    void fetchQueues();
 
     // Subscribe to realtime changes — unique channel name per hook instance
     // to avoid "cannot add 'postgres_changes' callbacks after subscribe()" when

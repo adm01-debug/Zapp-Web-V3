@@ -76,7 +76,7 @@ export default function AdminStressTestPage() {
       const { data } = await supabase.from('queues').select('id, name').order('name');
       setQueues(data || []);
     };
-    fetchQueues();
+    void fetchQueues();
   }, []);
 
   const evo = useEvolutionApi();

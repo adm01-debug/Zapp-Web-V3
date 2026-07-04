@@ -297,7 +297,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // Carga inicial
   useEffect(() => {
-    loadAccounts();
+    void loadAccounts();
   }, [loadAccounts]);
 
   // Realtime: recarregar quando conta muda

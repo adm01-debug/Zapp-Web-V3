@@ -10,7 +10,7 @@
  * - Recent interactions from interactions table
  * - Relationship stage and score
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Building2, ExternalLink, Users, TrendingUp, MessageSquare } from 'lucide-react';
 import { getLogger } from '@/lib/logger';
 

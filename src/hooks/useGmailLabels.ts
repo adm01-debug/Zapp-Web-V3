@@ -87,7 +87,7 @@ export function useEmailLabels(accountId: string | null) {
   const allLabels = [...systemLabels, ...userLabels];
 
   useEffect(() => {
-    if (accountId) loadLabels();
+    if (accountId) void loadLabels();
   }, [accountId, loadLabels]);
 
   return {

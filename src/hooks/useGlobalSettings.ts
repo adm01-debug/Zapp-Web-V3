@@ -66,7 +66,7 @@ export function useGlobalSettings() {
   }, []);
 
   useEffect(() => {
-    fetchSettings();
+    void fetchSettings();
   }, [fetchSettings]);
 
   const getSetting = useCallback((key: string): string | null => {

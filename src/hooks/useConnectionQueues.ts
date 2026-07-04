@@ -31,7 +31,7 @@ export function useConnectionQueues(connectionId?: string) {
   }, [connectionId]);
 
   useEffect(() => {
-    fetchQueues();
+    void fetchQueues();
   }, [fetchQueues]);
 
   const addQueue = useCallback(async (queueId: string) => {

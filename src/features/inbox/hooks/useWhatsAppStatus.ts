@@ -51,7 +51,7 @@ export function useWhatsAppStatus(phone: string | undefined): WhatsAppStatusData
   }, [phone]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   return {

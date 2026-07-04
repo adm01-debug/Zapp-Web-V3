@@ -35,7 +35,7 @@ export function useMessageQueue(instanceName: string = 'wpp2') {
   useEffect(() => {
     queueRef.current = [...pendingMessages];
     if (pendingMessages.length > 0) {
-      processQueue();
+      void processQueue();
     }
   }, []);
 

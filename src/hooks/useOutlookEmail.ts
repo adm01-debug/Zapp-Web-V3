@@ -75,7 +75,7 @@ export function useOutlookEmail() {
   }, [activeAccountId, mountedRef]);
 
   useEffect(() => {
-    loadAccounts();
+    void loadAccounts();
   }, [loadAccounts]);
 
   // Iniciar fluxo OAuth com Microsoft

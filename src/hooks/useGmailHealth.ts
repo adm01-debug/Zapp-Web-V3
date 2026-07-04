@@ -48,7 +48,7 @@ export function useEmailHealth() {
   };
 
   useEffect(() => {
-    loadHealth();
+    void loadHealth();
     const interval = setInterval(loadHealth, 30000); // 30s
     return () => clearInterval(interval);
   }, [loadHealth]);

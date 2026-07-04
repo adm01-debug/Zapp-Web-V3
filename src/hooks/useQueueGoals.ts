@@ -30,7 +30,7 @@ export function useQueueGoals() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchGoals();
+    void fetchGoals();
 
     const channel = supabase
       .channel('queue-goals-changes')

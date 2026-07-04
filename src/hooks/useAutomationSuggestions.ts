@@ -64,7 +64,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   }, [remoteJid]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
     if (!remoteJid) return;
     const ch = supabase
       .channel(`automation-exec-${remoteJid}`)
@@ -87,7 +87,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       .from('automation_executions')
       .update({ status: "accepted", acted_at: new Date().toISOString() })
       .eq("id", id);
-    refresh();
+    void refresh();
   }, [refresh]);
 
   const dismiss = useCallback(async (id: string) => {
@@ -95,7 +95,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       .from('automation_executions')
       .update({ status: "dismissed", acted_at: new Date().toISOString() })
       .eq("id", id);
-    refresh();
+    void refresh();
   }, [refresh]);
 
   /**

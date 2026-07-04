@@ -100,8 +100,8 @@ export default function AdminConnectionsPage() {
   };
 
   useEffect(() => {
-    fetchConnections();
-    checkAdminStatus();
+    void fetchConnections();
+    void checkAdminStatus();
 
     // Revalida ao focar na aba do navegador para garantir que o acesso ainda é válido
     const handleFocus = () => checkAdminStatus();
@@ -111,8 +111,8 @@ export default function AdminConnectionsPage() {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    checkAdminStatus();
-    fetchConnections();
+    void checkAdminStatus();
+    void fetchConnections();
   };
 
   async function fetchConnections() {
