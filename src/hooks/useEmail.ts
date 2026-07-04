@@ -489,8 +489,8 @@ export function useEmail() {
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          setError('Sessão expirada. Faça login novamente.');
           oauthInFlightRef.current = false;
+          if (mountedRef.current) setError('Sessão expirada. Faça login novamente.');
           return;
         }
 
@@ -499,8 +499,8 @@ export function useEmail() {
         });
 
         if (exchangeErr || !exchangeData?.success) {
-          setError('Falha na autenticação Google. Tente novamente.');
           oauthInFlightRef.current = false;
+          if (mountedRef.current) setError('Falha na autenticação Google. Tente novamente.');
           return;
         }
 

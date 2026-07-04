@@ -40,6 +40,13 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
     };
   }, [convertedAudioUrl]);
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const stopPlayback = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -50,12 +57,16 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
 
   const cleanup = useCallback(() => {
     stopPlayback();
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
     if (convertedAudioUrl) {
       // Don't revoke here if we want to keep it while the popover is open
-      // URL.revokeObjectURL(convertedAudioUrl); 
+      // URL.revokeObjectURL(convertedAudioUrl);
       setConvertedAudioUrl(null);
     }
-  }, [stopPlayback]);
+  }, [stopPlayback, convertedAudioUrl]);
 
   const handleConvert = async (voice: ElevenLabsVoice, retryCount = 0) => {
     // Check if it's a "cloned" voice (placeholder logic - usually based on ID prefix or metadata)
@@ -109,7 +120,7 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
       // 2. Start STS via Edge Function
       const progressSteps = [15, 40, 65, 85];
       let currentStep = 0;
-      const progressInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         if (currentStep < progressSteps.length) {
           setConversionProgress(progressSteps[currentStep]);
           currentStep++;
@@ -134,7 +145,7 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
         }
       );
 
-      clearInterval(progressInterval);
+      if (!mountedRef.current) return;
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Erro na conversão' }));
@@ -143,6 +154,7 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
 
       setConversionProgress(100);
       const blob = await response.blob();
+      if (!mountedRef.current) return;
       const url = URL.createObjectURL(blob);
       setConvertedAudioUrl(url);
 
@@ -192,8 +204,14 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
       });
       setSelectedVoice(null);
     } finally {
-      setIsConverting(false);
-      setConversionProgress(0);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      if (mountedRef.current) {
+        setIsConverting(false);
+        setConversionProgress(0);
+      }
     }
   };
 

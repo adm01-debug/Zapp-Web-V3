@@ -12,7 +12,7 @@ export function useConnectionAlertsPush() {
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    (async () => {
+    void (async () => {
       const { data: auth , error } = await supabase.auth.getUser();
       if (cancelled || !auth.user) return;
 
