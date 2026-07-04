@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: fetchHeaders,
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15_000),
       });
       const respText = await resp.text();
 
