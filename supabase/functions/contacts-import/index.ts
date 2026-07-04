@@ -11,6 +11,7 @@ const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+const JSON_CORS = { ...CORS, 'Content-Type': 'application/json' };
 
 const VALID_DDDS = new Set([11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99]);
 
@@ -35,7 +36,7 @@ serve(async (req) => {
 
   try {
     const auth = req.headers.get('Authorization');
-    if (!auth) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+    if (!auth) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_CORS });
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -44,7 +45,7 @@ serve(async (req) => {
     );
 
     const { data: { user }, error: authErr } = await supabase.auth.getUser(auth.replace('Bearer ', ''));
-    if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: CORS });
+    if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: JSON_CORS });
 
     const { rows = [], workspace_id: instanceName } = await req.json();
     const resolvedInstance = instanceName ?? 'wpp2';
@@ -59,12 +60,12 @@ serve(async (req) => {
     if (!ownedConn) {
       return new Response(
         JSON.stringify({ error: 'WhatsApp connection not found or not authorized' }),
-        { status: 403, headers: CORS }
+        { status: 403, headers: JSON_CORS }
       );
     }
 
-    if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: CORS });
-    if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: CORS });
+    if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: JSON_CORS });
+    if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: JSON_CORS });
 
     let inserted = 0, skipped = 0;
     const errors: { row: number; error: string }[] = [];
@@ -111,11 +112,11 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ inserted, updated: 0, skipped, errors: errors.slice(0, 50), total_processed: rows.length, duration_ms: Date.now() - startTime }),
-      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
+      { status: 200, headers: JSON_CORS }
     );
 
   } catch (err) {
     console.error('[contacts-import] unexpected error', err instanceof Error ? err.message : String(err));
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: CORS });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_CORS });
   }
 });
