@@ -6,14 +6,16 @@ export { z };
 
 /**
  * Evolution Webhook V1 Schema
+ *
+ * NOTA: Evolution API 2.3.x envia `apikey: null` (e ocasionalmente
+ * `sender`/`data` nulos) em eventos connection.update quando a instância
+ * está desconectada/deslogada. `.nullish()` aceita undefined E null;
+ * `.optional()` rejeita null e causava 422 contract_violation.
  */
 export const EvolutionWebhookV1Schema = z.object({
   event: z.string(),
   instance: z.string(),
-  data: z.record(z.any()).optional(),
-  // Evolution v2.3.x envia `sender`/`apikey` como null em eventos emitidos antes
-  // da sessão autenticar (ex.: connection.update durante reconexão). `.optional()`
-  // sozinho rejeita null e derrubava todo connection.update com 422.
+  data: z.record(z.any()).nullish(),
   sender: z.string().nullish(),
   apikey: z.string().nullish(),
 });
