@@ -27,6 +27,15 @@ serve(async (req) => {
     const body     = await req.json();
     const { action, accountId } = body;
 
+    // Verify the authenticated user owns this gmail_accounts row before proceeding.
+    const { data: accountCheck } = await supabase
+      .from('gmail_accounts')
+      .select('id')
+      .eq('id', accountId)
+      .eq('user_id', authed.user.id)
+      .maybeSingle();
+    if (!accountCheck) return json({ error: 'Conta não encontrada ou acesso negado' }, 403);
+
     const token = await getValidToken(supabase, accountId);
     if (!token) return json({ error: 'Token inválido' }, 401);
 
