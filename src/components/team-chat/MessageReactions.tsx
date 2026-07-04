@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { SmilePlus } from 'lucide-react';
@@ -21,13 +21,13 @@ interface Props {
   onToggle: (emoji: string) => void;
 }
 
-export function MessageReactions({ messageId, reactions, isMine, isToggling, onToggle }: Props) {
+export const MessageReactions = memo(function MessageReactions({ messageId, reactions, isMine, isToggling, onToggle }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const handlePick = (emoji: string) => {
+  const handlePick = useCallback((emoji: string) => {
     onToggle(emoji);
     setPickerOpen(false);
-  };
+  }, [onToggle]);
 
   return (
     <div 
@@ -103,9 +103,9 @@ export function MessageReactions({ messageId, reactions, isMine, isToggling, onT
       </Popover>
     </div>
   );
-}
+});
 
-export function TeamQuickReactionBar({
+export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
   messageId,
   isMine,
   onToggle,
@@ -194,4 +194,4 @@ export function TeamQuickReactionBar({
       </motion.div>
     </div>
   );
-}
+});

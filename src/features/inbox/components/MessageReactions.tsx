@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { memo, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -22,7 +22,7 @@ interface MessageReactionsProps {
   disableRealtime?: boolean;
 }
 
-export function MessageReactions({
+export const MessageReactions = memo(function MessageReactions({
   messageId,
   isSent,
   showExtended = false,
@@ -211,13 +211,13 @@ export function MessageReactions({
       </Popover>
     </div>
   );
-}
+});
 
 interface QuickReactionBarProps extends MessageReactionsProps {
   forceShow?: boolean;
 }
 
-export function QuickReactionBar({
+export const QuickReactionBar = memo(function QuickReactionBar({
   messageId,
   isSent,
   instanceName,
@@ -344,4 +344,4 @@ export function QuickReactionBar({
       </motion.div>
     </div>
   );
-}
+});

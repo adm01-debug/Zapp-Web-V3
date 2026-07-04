@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -23,7 +23,7 @@ interface VoiceChangerProps {
   initialTaskId?: string | null;
 }
 
-export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, messageId, conversationId, initialTaskId }: VoiceChangerProps) {
+export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, messageId, conversationId, initialTaskId }: VoiceChangerProps) {
   const [open, setOpen] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<ElevenLabsVoice | null>(null);
   const [isConverting, setIsConverting] = useState(false);
@@ -197,15 +197,14 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
     }
   };
 
-  const proceedWithClonedVoice = () => {
+  const proceedWithClonedVoice = useCallback(() => {
     setShowCloneWarning(false);
     if (selectedVoice) handleConvert(selectedVoice);
-  };
+  }, [selectedVoice, handleConvert]);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     if (!convertedAudioUrl) return;
 
-    // Fetch the converted audio as blob and pass it up
     fetch(convertedAudioUrl)
       .then(r => r.blob())
       .then(blob => {
@@ -214,9 +213,9 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
         cleanup();
         toast.success('Áudio com voz alterada pronto para envio!');
       });
-  };
+  }, [convertedAudioUrl, onVoiceChanged, cleanup]);
 
-  const togglePlayback = () => {
+  const togglePlayback = useCallback(() => {
     if (!audioRef.current || !convertedAudioUrl) return;
     if (isPlaying) {
       audioRef.current.pause();
@@ -225,7 +224,7 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       audioRef.current.play();
       setIsPlaying(true);
     }
-  };
+  }, [convertedAudioUrl, isPlaying]);
 
   return (
     <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) cleanup(); }}>
@@ -373,4 +372,4 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       </PopoverContent>
     </Popover>
   );
-}
+});
