@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
 
         const lookup = await fetch(`https://www.virustotal.com/api/v3/files/${sha256}`, {
           headers: { "x-apikey": vtApiKey },
+          signal: AbortSignal.timeout(10_000),
         });
 
         if (lookup.ok) {
