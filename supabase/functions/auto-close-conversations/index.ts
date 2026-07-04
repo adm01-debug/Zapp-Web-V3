@@ -1,9 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { getCorsHeaders, handleCors, jsonResponse, errorResponse, Logger } from '../_shared/validation.ts';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
 
   const log = new Logger('auto-close-conversations');
 

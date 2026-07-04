@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const parsed = parseBody(AiSuggestReplySchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
-    const { messages, contactName, contactId, context } = parsed.data;
+    const { conversationHistory, contactName, contactId, context } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
 
     // Fetch Knowledge Base articles for context
@@ -69,7 +69,8 @@ Deno.serve(async (req) => {
 
     log.info("Generating reply suggestions", { contactName, kbContext: knowledgeContext.length > 0 });
 
-    const firstName = contactName ? contactName.split(' ')[0] : null;
+    const sanitizeForPrompt = (s: string) => s.replace(/[\n\r\t"'`\\]/g, ' ').trim().slice(0, 50);
+    const firstName = contactName ? sanitizeForPrompt(contactName.split(' ')[0]) : null;
 
     const systemPrompt = `Você é um Copilot de IA especializado em comunicação empresarial via WhatsApp de uma empresa distribuidora/comercial.
 
@@ -106,12 +107,12 @@ Responda APENAS em formato JSON com a seguinte estrutura:
   ]
 }`;
 
-    const conversationHistory = Array.isArray(messages)
-      ? messages.slice(-20).map((m) => ({
-          role: m.sender === 'agent' ? 'assistant' : 'user',
-          content: String(m.content || ''),
-        }))
-      : [];
+    const normalizedHistory = (Array.isArray(conversationHistory) ? conversationHistory : [])
+      .slice(-20)
+      .map((m) => ({
+        role: m.role === 'agent' || m.role === 'assistant' ? 'assistant' : 'user',
+        content: String(m.content || ''),
+      }));
 
     const { response, data } = await callAiWithTracking({
       functionName: 'ai-suggest-reply',
@@ -121,7 +122,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          ...conversationHistory,
+          ...normalizedHistory,
           { role: "user", content: "Gere 3 sugestões de resposta contextualizadas para a última mensagem do cliente." }
         ],
         temperature: 0.7,
@@ -158,8 +159,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
     log.done(200);
     return jsonResponse(suggestions, 200, req);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse("Internal server error", 500, req);
   }
 });

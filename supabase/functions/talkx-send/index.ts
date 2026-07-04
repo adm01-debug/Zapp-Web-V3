@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     log.error("Talk X error", { error: err instanceof Error ? err.message : String(err) });
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers }
     );
   }

@@ -119,16 +119,30 @@ Responda APENAS em JSON:
     }
 
     if (validContactId && result.tags?.length > 0) {
-      await supabase.from('ai_conversation_tags').delete().eq('contact_id', validContactId);
+      const tagRows = result.tags.map((t: { name: string; confidence: number }) => ({
+        contact_id: validContactId,
+        tag_name: sanitizeString(t.name, 100) || 'unknown',
+        confidence: Math.min(Math.max(Number(t.confidence) || 0, 0), 1),
+        source: 'ai',
+      }));
+      const newTagNames = tagRows.map((r: { tag_name: string }) => r.tag_name);
 
-      await supabase.from('ai_conversation_tags').insert(
-        result.tags.map((t: { name: string; confidence: number }) => ({
-          contact_id: validContactId,
-          tag_name: sanitizeString(t.name, 100) || 'unknown',
-          confidence: Math.min(Math.max(Number(t.confidence) || 0, 0), 1),
-          source: 'ai',
-        }))
-      );
+      // Insert new tags first; only remove stale ones if insert succeeds.
+      // This prevents a window where the contact has zero tags.
+      const { error: insertErr } = await supabase
+        .from('ai_conversation_tags')
+        .upsert(tagRows, { onConflict: 'contact_id,tag_name', ignoreDuplicates: false });
+
+      if (insertErr) {
+        log.warn("Failed to upsert tags, preserving existing", { error: insertErr.message });
+      } else {
+        // Remove old tags that are no longer in the new set
+        await supabase
+          .from('ai_conversation_tags')
+          .delete()
+          .eq('contact_id', validContactId)
+          .not('tag_name', 'in', `(${newTagNames.map((n: string) => `"${n}"`).join(',')})`);
+      }
     }
 
     if (validContactId) {
@@ -172,6 +186,6 @@ Responda APENAS em JSON:
     return jsonResponse(result, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : "Unknown error", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

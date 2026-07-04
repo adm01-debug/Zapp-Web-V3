@@ -89,6 +89,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     log.error("Error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Unknown error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

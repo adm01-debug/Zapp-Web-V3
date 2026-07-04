@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
     if (error) {
       log.error("Error fetching scheduled campaigns", { error: error.message });
-      return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });
+      return new Response(JSON.stringify({ error: "Failed to fetch scheduled campaigns" }), { status: 500, headers });
     }
 
     if (!dueCampaigns || dueCampaigns.length === 0) {
@@ -44,6 +44,20 @@ Deno.serve(async (req) => {
     const results = [];
 
     for (const campaign of dueCampaigns) {
+      // Atomic claim: only proceed if we can flip status from 'scheduled' → 'processing'.
+      // Concurrent cron invocations will fail this update and skip the campaign.
+      const { count: claimed } = await supabase
+        .from("talkx_campaigns")
+        .update({ status: "processing" })
+        .eq("id", campaign.id)
+        .eq("status", "scheduled")
+        .select("id", { count: "exact", head: true });
+
+      if (!claimed || claimed === 0) {
+        log.info(`Campaign ${campaign.id} already claimed by another invocation, skipping`);
+        continue;
+      }
+
       try {
         const response = await fetch(
           `${supabaseUrl}/functions/v1/talkx-send`,
@@ -58,7 +72,9 @@ Deno.serve(async (req) => {
         log.info(`Scheduled campaign started: ${campaign.name} (${campaign.id})`);
       } catch (err) {
         log.error(`Failed to start campaign ${campaign.id}`, { error: err instanceof Error ? err.message : String(err) });
-        results.push({ campaignId: campaign.id, name: campaign.name, success: false, error: err instanceof Error ? err.message : "Unknown error" });
+        // Revert status so the campaign can be retried on the next cron tick
+        await supabase.from("talkx_campaigns").update({ status: "scheduled" }).eq("id", campaign.id);
+        results.push({ campaignId: campaign.id, name: campaign.name, success: false, error: "Failed to start campaign" });
       }
     }
 
@@ -76,7 +92,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     log.error("Scheduler error", { error: err instanceof Error ? err.message : String(err) });
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers }
     );
   }

@@ -133,8 +133,7 @@ Deno.serve(async (req) => {
     log.done(200, { userId: newUser.user?.id });
     return jsonResponse({ success: true, user_id: newUser.user?.id }, 200, req);
   } catch (err: any) {
-    if (err.status) return errorResponse(err.message, err.status, req);
     log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse(err instanceof Error ? err.message : "Erro interno", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

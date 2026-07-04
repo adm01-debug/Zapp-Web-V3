@@ -1,5 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * lgpd-scheduled-jobs — Jobs agendados de conformidade com LGPD
@@ -11,15 +12,23 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  * 4. Atualizar hashes de deduplicação de contatos
  *
  * Chamado via pg_cron diariamente às 02:00 UTC.
+ * Requer service-role bearer OU x-cron-secret.
  */
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: getCorsHeaders(req) });
+  }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
+      status: 405,
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    });
+  }
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -29,7 +38,7 @@ serve(async (req) => {
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
       status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
 
   const startTime = Date.now();
@@ -54,6 +63,10 @@ serve(async (req) => {
           .is('pii_masked_at', null)
           .limit(200);
 
+        if (fetchErr) {
+          console.error('[lgpd] Error fetching anonymize candidates', fetchErr.message);
+        }
+
         if (!fetchErr && toAnonymize?.length) {
           let anonymizedCount = 0;
 
@@ -61,7 +74,7 @@ serve(async (req) => {
             const { error: updateErr } = await supabase
               .from('evolution_contacts')
               .update({
-                full_name:           `[Anonimizado]`,
+                full_name:           '[Anonimizado]',
                 email:               null,
                 push_name:           null,
                 profile_picture_url: null,
@@ -79,6 +92,8 @@ serve(async (req) => {
                 action: 'pii_anonymized',
                 metadata: { reason: 'lgpd_deletion_request_30d' },
               }).catch(() => {});
+            } else {
+              console.error('[lgpd] Failed to anonymize contact', contact.id, updateErr.message);
             }
           }
 
@@ -95,7 +110,6 @@ serve(async (req) => {
       const retentionDays = parseInt(await getConfig(supabase, 'lgpd.data_retention_days', '730'));
       const expirationDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
 
-      // Contar antes de deletar para o relatório
       const { count: countBefore } = await supabase
         .from('evolution_webhook_events')
         .select('id', { count: 'exact', head: true })
@@ -128,12 +142,15 @@ serve(async (req) => {
 
     // ── Job 3: Atualizar dedup hashes de contatos ─────────────────────────
     if (!job || job === 'update_dedup_hashes') {
-      // Atualiza hashes para contatos sem hash ou com hash nulo
       const { data: contacts, error: hashFetchErr } = await supabase
         .from('evolution_contacts')
         .select('id, phone_number, email, full_name')
         .is('dedup_hash', null)
         .limit(5000);
+
+      if (hashFetchErr) {
+        console.error('[lgpd] Error fetching contacts for dedup', hashFetchErr.message);
+      }
 
       if (!hashFetchErr && contacts?.length) {
         let updated = 0;
@@ -144,12 +161,12 @@ serve(async (req) => {
             (c.full_name ?? '').toLowerCase()
           );
 
-          await supabase
+          const { error: hashErr } = await supabase
             .from('evolution_contacts')
             .update({ dedup_hash: hash })
-            .eq('id', c.id)
-            .catch(() => {});
-          updated++;
+            .eq('id', c.id);
+
+          if (!hashErr) updated++;
         }
         report['dedup_hashes_updated'] = updated;
         console.log(`[lgpd] Dedup hashes atualizados: ${updated}`);
@@ -171,14 +188,14 @@ serve(async (req) => {
       ]);
 
       report['compliance_report'] = {
-        total_contacts:         total.count ?? 0,
-        pending_deletion:       pendingDeletion.count ?? 0,
-        already_anonymized:     masked.count ?? 0,
-        with_lgpd_consent:      lgpdConsented.count ?? 0,
-        compliance_rate_pct:    total.count
+        total_contacts:      total.count ?? 0,
+        pending_deletion:    pendingDeletion.count ?? 0,
+        already_anonymized:  masked.count ?? 0,
+        with_lgpd_consent:   lgpdConsented.count ?? 0,
+        compliance_rate_pct: total.count
           ? Math.round(((lgpdConsented.count ?? 0) / total.count) * 100)
           : 100,
-        generated_at:           new Date().toISOString(),
+        generated_at: new Date().toISOString(),
       };
     }
 
@@ -189,17 +206,16 @@ serve(async (req) => {
     report['job']          = job ?? 'all';
 
     await supabase.from('migration_audit').insert({
-      operation:   'lgpd_scheduled_job',
-      table_name:  'lgpd_scheduled_jobs',
-      new_data:    report,
+      operation:  'lgpd_scheduled_job',
+      table_name: 'lgpd_scheduled_jobs',
+      new_data:   report,
     }).catch(() => {});
 
     return json(report);
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[lgpd-scheduled-jobs]', msg);
-    return json({ error: msg, status: 'failed', elapsed_ms: Date.now() - startTime }, 500);
+    console.error('[lgpd-scheduled-jobs]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error', status: 'failed', elapsed_ms: Date.now() - startTime }, 500);
   }
 });
 

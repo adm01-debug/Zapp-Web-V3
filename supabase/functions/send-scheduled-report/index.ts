@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, reportData }, 200, req);
   } catch (error) {
     log.error("Error sending report", { error: (error as Error).message });
-    return errorResponse((error as Error).message, 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });
 

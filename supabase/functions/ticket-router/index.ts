@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
   if (resolveErr) {
     console.error("[ticket-router] resolve error", resolveErr);
     return new Response(
-      JSON.stringify({ error: "resolve_failed", detail: resolveErr.message }),
+      JSON.stringify({ error: "resolve_failed" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
