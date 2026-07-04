@@ -93,6 +93,27 @@ serve(async (req) => {
       instance = (body as Record<string, unknown>).instanceName as string || (body as Record<string, unknown>).instance as string;
     }
 
+    // Guarda anti-"instância fantasma" (incidente wpp2 2026-07-04): as rotas da
+    // Evolution usam o NOME da instância; um UUID aqui é quase sempre o
+    // instance_id interno enviado por engano pelo cliente. Auto-criar com esse
+    // "nome" sequestra o pareamento do telefone para fora do pipeline.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const instanceLooksLikeUuid = (v: unknown): boolean => typeof v === 'string' && UUID_RE.test(v.trim());
+    const resolveInstanceNameById = async (id: string): Promise<string | null> => {
+      try {
+        const r = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, { headers: { apikey: evolutionApiKey } });
+        if (!r.ok) return null;
+        const list = await r.json();
+        if (!Array.isArray(list)) return null;
+        const found = list.find((i: Record<string, unknown>) => i?.id === id
+          || (i?.instance as Record<string, unknown> | undefined)?.instanceId === id) as Record<string, unknown> | undefined;
+        const name = (found?.name ?? (found?.instance as Record<string, unknown> | undefined)?.instanceName) as string | undefined;
+        return name && !UUID_RE.test(name) ? name : null;
+      } catch {
+        return null;
+      }
+    };
+
     const READ_ONLY_INSTANCE_ACTIONS = new Set([
       'list-instances', 'instance-info', 'status', 'get-settings', 'get-webhook',
     ]);
@@ -121,13 +142,24 @@ serve(async (req) => {
 
     if (action === 'create-instance') {
       await authorizeRoles(req, supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, ['admin', 'dev']);
+      if (instanceLooksLikeUuid(instance)) {
+        const resolved = await resolveInstanceNameById(String(instance));
+        return new Response(JSON.stringify({
+          version: EVOLUTION_ENVELOPE_VERSION,
+          error: true,
+          status: 422,
+          code: 'INSTANCE_NAME_IS_UUID',
+          message: `Nome de instância "${instance}" é um UUID — provavelmente o instance_id interno da conexão. ${resolved ? `A instância Evolution correspondente chama-se "${resolved}".` : 'Use o campo instance_name da conexão.'} Criação bloqueada para evitar instância fantasma.`,
+          resolvedInstanceName: resolved,
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       return await proxy('/instance/create', 'POST', { instanceName: instance, qrcode: (body as any).qrcode ?? true, integration: (body as any).integration || 'WHATSAPP-BAILEYS', token: (body as any).token, number: (body as any).number, businessId: (body as any).businessId, wabaId: (body as any).wabaId, phoneNumberId: (body as any).phoneNumberId, webhook: (body as any).webhook, chatwoot: (body as any).chatwoot, typebot: (body as any).typebot, proxy: (body as any).proxy });
     }
     if (action === 'list-instances') return await proxy(`/instance/fetchInstances${(body as any).instanceName ? `?instanceName=${(body as any).instanceName}` : ''}`, 'GET');
 
 
     if (action === 'connect') {
-      const connectUrl = `${evolutionApiUrl}/instance/connect/${instance}`;
+      let connectUrl = `${evolutionApiUrl}/instance/connect/${instance}`;
 
       const doConnect = async () => {
         const response = await fetch(connectUrl, { method: 'GET', headers: { 'apikey': evolutionApiKey } });
@@ -159,7 +191,29 @@ serve(async (req) => {
         : String(data?.response?.message ?? data?.message ?? '');
       const missingInstance = response.status === 404 && /does not exist|not found/i.test(rawMessages);
 
-      if (missingInstance) {
+      if (missingInstance && instanceLooksLikeUuid(instance)) {
+        // O chamador enviou o UUID interno (instance_id) em vez do NOME da
+        // instância. Auto-criar aqui geraria uma instância fantasma cujo nome é
+        // o UUID (incidente wpp2 2026-07-04: telefone pareado fora do pipeline).
+        const resolved = await resolveInstanceNameById(String(instance));
+        if (!resolved) {
+          return new Response(JSON.stringify({
+            version: EVOLUTION_ENVELOPE_VERSION,
+            error: true,
+            status: 422,
+            code: 'INSTANCE_NAME_IS_UUID',
+            message: `"${instance}" parece ser o UUID interno da Evolution, não o nome da instância. Use whatsapp_connections.instance_name. Criação automática bloqueada para evitar instância fantasma.`,
+          }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        console.warn(`[evolution-api][connect] instanceName era UUID; resolvido para "${resolved}" via fetchInstances (auto-heal, sem create).`);
+        instance = resolved;
+        connectUrl = `${evolutionApiUrl}/instance/connect/${resolved}`;
+        ({ response, data } = await doConnect());
+        if (response.status === 401 || response.status === 403) {
+          recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'connect' });
+          return buildAuthError(response.status, data, 'connect');
+        }
+      } else if (missingInstance) {
         const createResponse = await fetch(`${evolutionApiUrl}/instance/create`, {
           method: 'POST',
           headers: { 'apikey': evolutionApiKey, 'Content-Type': 'application/json' },

@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 const log = getLogger('ConnectionStatusIndicator');
 const RECONNECT_COOLDOWN_MS = 30_000;
@@ -37,6 +38,7 @@ const loadSelected = (): string | null => {
 interface ConnectionRow {
   id: string;
   instance_id: string;
+  instance_name: string | null;
   phone_number: string | null;
   status: string;
 }
@@ -136,7 +138,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     }
     const { data, error } = await supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, phone_number, status');
+      .select('id, instance_id, instance_name, phone_number, status');
     if (error) {
       log.warn('Failed to fetch connections', { error: error.message });
       return;
@@ -200,9 +202,18 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       return { ok: false, skipped: true };
     }
     cooldownRef.current.set(conn.instance_id, now);
+    // Evolution API roteia por NOME; o UUID (instance_id) gera 404 + auto-create
+    // de instância fantasma (incidente wpp2 2026-07-04). Sem nome → não chamar.
+    const instanceName = evolutionInstanceName(conn);
+    if (!instanceName) {
+      const msg = 'Conexão sem instance_name cadastrado — reconexão automática bloqueada.';
+      if (!opts.silent) toast.error(msg);
+      log.warn(msg, { instance_id: conn.instance_id });
+      return { ok: false, error: msg };
+    }
     try {
       const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'connect', instanceName: conn.instance_id },
+        body: { action: 'connect', instanceName },
       });
       if (error) throw new Error(error.message || 'Falha ao invocar evolution-api');
       if (data?.error === true) {

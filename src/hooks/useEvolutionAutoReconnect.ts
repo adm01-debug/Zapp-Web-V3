@@ -4,6 +4,7 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { getLogger } from '@/lib/logger';
 import { useQueryClient } from '@tanstack/react-query';
 import { eventBus } from '@/lib/eventBus';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 const log = getLogger('useEvolutionAutoReconnect');
 
@@ -17,6 +18,7 @@ interface WhatsAppConnection {
   id: string;
   name: string;
   instance_id: string;
+  instance_name?: string | null;
   status: string;
   health_reason: string | null;
   auto_reconnect_enabled: boolean;
@@ -97,6 +99,14 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
         return;
       }
 
+      // Evolution API roteia por NOME de instância; o UUID (instance_id) gera 404
+      // e pode disparar auto-create de instância fantasma (incidente wpp2 2026-07-04).
+      const evoInstanceName = evolutionInstanceName(connection);
+      if (!evoInstanceName) {
+        log.warn(`Auto-reconnect bloqueado: conexão "${connection.name}" sem instance_name`, { id });
+        return;
+      }
+
       log.info(`Auto-reconnecting ${connection.name}`, { attempt: attempts + 1 });
       lastAttemptTime.current[id] = now;
       attemptMap.current[id]      = attempts + 1;
@@ -105,10 +115,10 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       let errorMsg: string | null             = null;
 
       try {
-        await restartInstance(connection.instance_id);
+        await restartInstance(evoInstanceName);
         await new Promise<void>(r => setTimeout(r, 5_000));
         await supabase.functions.invoke('connection-health-check', {
-          body: { instanceName: connection.instance_id },
+          body: { instanceName: evoInstanceName },
         });
       } catch (err: unknown) {
         attemptStatus = 'failed';
@@ -121,7 +131,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
             `Credential error (HTTP ${httpStatus}) for ${connection.name} — aborting reconnect cycle`,
           );
           eventBus.emit('connection:credential-error', {
-            instanceName: connection.instance_id,
+            instanceName: evoInstanceName,
             connectionName: connection.name,
             status: httpStatus,
           });
@@ -137,7 +147,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       try {
         await (supabase.rpc as unknown as (n: string, a: unknown) => Promise<unknown>)('fn_log_reconnection_attempt', {
           p_connection_id:  null,                     // Bug 7 fix: FK ref vazia
-          p_instance_name:  connection.instance_id,
+          p_instance_name:  evoInstanceName,
           p_status:         attemptStatus,             // Bug 6 fix: 'success'|'failed'
           p_error_message:  errorMsg,
           p_attempt_number: attempts + 1,
