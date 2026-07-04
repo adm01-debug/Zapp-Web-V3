@@ -105,10 +105,20 @@ Deno.serve(async (req) => {
       }
 
       case 'create_note': {
-        const { contactId, content, authorId } = params;
+        const { contactId, content } = params;
+        // Resolve the profile for the authenticated user — never trust params.authorId.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', authed.user.id)
+          .maybeSingle();
+        if (!profile) {
+          result = { success: false, message: 'Perfil do usuário não encontrado.' };
+          break;
+        }
         const { error } = await supabase
           .from('contact_notes')
-          .insert({ contact_id: contactId, content, author_id: authorId });
+          .insert({ contact_id: contactId, content, author_id: profile.id });
         result = error
           ? { success: false, message: 'Erro ao criar nota.' }
           : { success: true, message: 'Nota criada com sucesso.' };
