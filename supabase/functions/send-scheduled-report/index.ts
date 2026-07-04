@@ -105,7 +105,11 @@ Deno.serve(async (req) => {
             }),
             signal: AbortSignal.timeout(15_000),
           });
-          if (!emailResponse.ok) log.error(`Failed to send to ${recipient}`, { error: await emailResponse.text() });
+          if (!emailResponse.ok) {
+            const errText = await emailResponse.text();
+            log.error(`Failed to send to ${recipient}`, { error: errText });
+            throw new Error(`Resend API error ${emailResponse.status}`);
+          }
         })
       );
       const emailFailures = emailResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');

@@ -71,9 +71,15 @@ serve(async (req) => {
         return json({ success: true, message: 'Nenhum token para renovar', refreshed: 0 });
       }
 
-      const settled = await Promise.allSettled(
-        accounts.map(account => refreshOneAccount(supabase, account, clientId, clientSecret, pubSubTopic))
-      );
+      const BATCH_SIZE = 10;
+      const settled: PromiseSettledResult<{ email: string; status: string; error?: string }>[] = [];
+      for (let i = 0; i < accounts.length; i += BATCH_SIZE) {
+        const batch = accounts.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.allSettled(
+          batch.map(account => refreshOneAccount(supabase, account, clientId, clientSecret, pubSubTopic))
+        );
+        settled.push(...batchResults);
+      }
 
       let refreshed = 0;
       let failed    = 0;
@@ -185,7 +191,7 @@ serve(async (req) => {
     return json({ error: `Ação desconhecida: ${action}` }, 400);
 
   } catch (err) {
-    console.error('[gmail-token-refresh]', err instanceof Error ? err.message : String(err));
+    console.error('[gmail-token-refresh]', err instanceof Error ? (err.stack ?? err.message) : String(err));
     return json({ error: 'Internal server error' }, 500);
   }
 });
