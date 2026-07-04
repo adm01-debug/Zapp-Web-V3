@@ -43,7 +43,8 @@ serve(async (req) => {
 
     // ── listThreads ────────────────────────────────────────────────────
     if (action === 'listThreads' || !action) {
-      const { labelIds = ['INBOX'], q = '', maxResults = 20, pageToken } = body;
+      const { labelIds = ['INBOX'], q = '', pageToken } = body;
+      const maxResults = Math.min(Math.max(1, Number(body.maxResults) || 20), 50);
 
       const params = new URLSearchParams({
         maxResults: String(maxResults),
@@ -113,7 +114,8 @@ serve(async (req) => {
 
     // ── syncFull — sincronização completa inicial ──────────────────────
     if (action === 'syncFull') {
-      const { maxResults = 50, labelIds = ['INBOX'] } = body;
+      const { labelIds = ['INBOX'] } = body;
+      const maxResults = Math.min(Math.max(1, Number(body.maxResults) || 50), 100);
       const params = new URLSearchParams({
         maxResults: String(maxResults),
         ...(labelIds.length ? { labelIds: labelIds.join(',') } : {}),
