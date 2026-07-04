@@ -97,6 +97,7 @@ serve(async (req) => {
           grant_type:   'authorization_code',
           scope:        SCOPES,
         }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!tokenRes.ok) {
@@ -109,6 +110,7 @@ serve(async (req) => {
       // Buscar informações do usuário via Graph API
       const profileRes = await fetch(`${GRAPH_BASE}/me?$select=mail,displayName,userPrincipalName`, {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       const profile = profileRes.ok ? await profileRes.json() : {};
@@ -165,6 +167,7 @@ serve(async (req) => {
 
       const msgsRes = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!msgsRes.ok) return json({ error: 'Falha ao buscar mensagens' }, 502);
@@ -214,6 +217,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ message, saveToSentItems: true }),
+        signal: AbortSignal.timeout(15_000),
       });
 
       if (!sendRes.ok) {
@@ -247,6 +251,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isRead }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       return json({ success: true });
@@ -270,6 +275,7 @@ serve(async (req) => {
 
       const msgRes = await fetch(`${GRAPH_BASE}/me/messages/${messageId}?$select=id,subject,body,from,toRecipients,ccRecipients,receivedDateTime,isRead`, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!msgRes.ok) return json({ error: 'Mensagem não encontrada' }, 404);
@@ -327,6 +333,7 @@ async function refreshTokenIfNeeded(
       grant_type:   'refresh_token',
       scope:        SCOPES,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) return creds.access_token;
