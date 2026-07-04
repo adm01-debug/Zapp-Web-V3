@@ -54,8 +54,13 @@ serve(async (req) => {
 
         const watchRes = await fetch(`${GMAIL_API}/watch`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topicName: PUBSUB_TOPIC, labelIds: ['INBOX'] }),
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topicName: PUBSUB_TOPIC,
+            labelIds: ['INBOX'],
+            labelFilterBehavior: 'INCLUDE',
+          }),
+          signal: AbortSignal.timeout(15_000),
         });
         const watchData = await watchRes.json();
         if (watchData.error) {
@@ -187,6 +192,7 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
       client_id: clientId,
       client_secret: clientSecret,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!refreshRes.ok) return null;
@@ -210,7 +216,7 @@ async function processHistory(
 ): Promise<void> {
   const histRes = await fetch(
     `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
   );
   const histData = await histRes.json();
   if (histData.error) return;
@@ -236,6 +242,7 @@ async function fetchAndPersistMessage(
 ): Promise<void> {
   const msgRes = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
   });
   const msg = await msgRes.json();
   if (msg.error) return;
