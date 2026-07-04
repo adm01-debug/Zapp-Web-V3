@@ -25,6 +25,9 @@ import { buildFileHash as calculateFileHash } from '@/lib/crypto';
 const log = getLogger('externalMessageSender');
 const DEFAULT_INSTANCE = 'wpp2';
 
+// Audit helper — fire-and-forget but surfaces failures to the logger instead of silently dropping them.
+const logAudit = (def, params) => dbInsert(def, params).catch(err => log.warn('[audit] log failed', err));
+
 /**
  * SendError — Error enriquecido com o motivo bruto do upstream para que
  * o `SendErrorBanner` possa oferecer "Ver detalhes" sem perder a frase
@@ -96,7 +99,7 @@ export async function sendExternalText(
   const optimistic = makeOptimisticBubble(remoteJid, content, { contactAvatar: opts.contactAvatar });
 
   // Log de auditoria (FATOR X)
-  void dbInsert(RPC.rpc_log_service_event, {
+  logAudit(RPC.rpc_log_service_event, {
     p_instance: instance,
     p_event_type: 'message_send',
     p_message: `Enviando texto para ${phone}`,
@@ -117,7 +120,7 @@ export async function sendExternalText(
     log.error('evolution-api send-text failed', error);
     const info = parseEvolutionError(error);
     
-    void dbInsert(RPC.rpc_log_service_event, {
+    logAudit(RPC.rpc_log_service_event, {
       p_instance: instance,
       p_event_type: 'error',
       p_level: 'error',
@@ -135,7 +138,7 @@ export async function sendExternalText(
     log.error('evolution-api send-text error envelope', envelope);
     const info = parseEvolutionError(envelope);
     
-    void dbInsert(RPC.rpc_log_service_event, {
+    logAudit(RPC.rpc_log_service_event, {
       p_instance: instance,
       p_event_type: 'error',
       p_level: 'error',
@@ -222,7 +225,7 @@ export async function sendExternalAudio(
     log.error('evolution-api send-audio failed', error);
     const info = parseEvolutionError(error);
     
-    void dbInsert(RPC.logOutboundEvent, {
+    logAudit(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
       p_message_type: 'audio',
       p_instance_name: instance,
@@ -240,7 +243,7 @@ export async function sendExternalAudio(
     log.error('evolution-api send-audio error envelope', envelope);
     const info = parseEvolutionError(envelope);
 
-    void dbInsert(RPC.logOutboundEvent, {
+    logAudit(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
       p_message_type: 'audio',
       p_instance_name: instance,
@@ -255,7 +258,7 @@ export async function sendExternalAudio(
 
   const externalId = envelope?.key?.id ?? null;
 
-  void dbInsert(RPC.logOutboundEvent, {
+  logAudit(RPC.logOutboundEvent, {
     p_conversation_id: remoteJid,
     p_message_type: 'audio',
     p_instance_name: instance,
@@ -395,7 +398,7 @@ export async function sendExternalPtv(
     log.error('evolution-api send-ptv failed', error);
     const info = parseEvolutionError(error);
 
-    void dbInsert(RPC.logOutboundEvent, {
+    logAudit(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
       p_message_type: 'video_ptv',
       p_instance_name: instance,
@@ -413,7 +416,7 @@ export async function sendExternalPtv(
     log.error('evolution-api send-ptv error envelope', envelope);
     const info = parseEvolutionError(envelope);
 
-    void dbInsert(RPC.logOutboundEvent, {
+    logAudit(RPC.logOutboundEvent, {
       p_conversation_id: remoteJid,
       p_message_type: 'video_ptv',
       p_instance_name: instance,
@@ -428,7 +431,7 @@ export async function sendExternalPtv(
 
   const externalId = envelope?.key?.id ?? null;
 
-  void dbInsert(RPC.logOutboundEvent, {
+  logAudit(RPC.logOutboundEvent, {
     p_conversation_id: remoteJid,
     p_message_type: 'video_ptv',
     p_instance_name: instance,
