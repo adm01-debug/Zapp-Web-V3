@@ -225,14 +225,11 @@ Deno.serve(async (req) => {
         r.status,
         JSON.stringify(r.data).slice(0, 500)
       );
-      return jsonResponse(
-        { error: "graph_error", status: r.status, details: r.data },
-        502
-      );
+      return jsonResponse({ error: "graph_error" }, 502);
     }
-    // deno-lint-ignore no-explicit-any
-    const waMsgId = (r.data as any)?.messages?.[0]?.id ?? null;
-    return jsonResponse({ ok: true, messageId: waMsgId, raw: r.data });
+    const data = r.data as { messages?: { id: string }[] };
+    const waMsgId = data?.messages?.[0]?.id ?? null;
+    return jsonResponse({ ok: true, messageId: waMsgId });
   } catch (e) {
     console.error("[whatsapp-cloud-send] fetch error", e);
     return jsonResponse({ error: "fetch_error" }, 502);
