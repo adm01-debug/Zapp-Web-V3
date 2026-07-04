@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Activity, RefreshCw, TrendingUp, Database, Trash2, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,11 @@ export function PerformanceMonitor() {
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState('24');
   const { history: dbHistory, saveSnapshot, loadHistory, clearOldSnapshots } = usePerformanceSnapshots();
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const collectMetrics = useCallback(async () => {
     setLoading(true);
@@ -82,7 +87,7 @@ export function PerformanceMonitor() {
       overall_score: overallScore,
     });
 
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   }, [saveSnapshot]);
 
   useEffect(() => {

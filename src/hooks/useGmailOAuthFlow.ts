@@ -45,6 +45,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   const refreshingRef = useRef<Set<string>>(new Set());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const oauthInFlightRef = useRef(false);
+  const oauthCleanupRef = useRef<(() => void) | null>(null);
 
   // ── Carrega contas ──────────────────────────────────────────────────
 
@@ -199,7 +200,9 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         const cleanupListeners = () => {
           window.removeEventListener('message', onMessage);
           if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
+          oauthCleanupRef.current = null;
         };
+        oauthCleanupRef.current = cleanupListeners;
 
         // Listener para message do popup.
         // Protocolo real do backend gmail-oauth (callback GET):
@@ -333,6 +336,11 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accounts.map(a => a.id).join(',')]);
+
+  // Cleanup OAuth listeners if component unmounts mid-flow
+  useEffect(() => {
+    return () => { oauthCleanupRef.current?.(); };
+  }, []);
 
   return {
     accounts,

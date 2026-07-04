@@ -99,7 +99,7 @@ export function useRealtimeSentimentAlerts() {
         },
         (payload) => {
           log.debug('Realtime payload', { payload });
-          handleNewAlert(payload.new as SentimentAlertPayload);
+          void handleNewAlert(payload.new as SentimentAlertPayload);
         }
       )
       .subscribe((status) => {

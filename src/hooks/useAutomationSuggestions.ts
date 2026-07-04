@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getExternalSupabase } from "@/integrations/supabase/externalClient";
 import { toast } from "@/hooks/use-toast";
@@ -23,6 +23,11 @@ export interface AutomationSuggestion {
 export function useAutomationSuggestions(remoteJid: string | null) {
   const [suggestions, setSuggestions] = useState<AutomationSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!remoteJid) {
@@ -40,6 +45,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       .not("suggestion_text", "is", null)
       .order("created_at", { ascending: false })
       .limit(5);
+    if (!mountedRef.current) return;
     setSuggestions(
       ((data ?? []) as any[]).map((r) => ({
         id: r.id,
@@ -67,7 +73,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         { event: "*", schema: "public", table: "automation_executions" },
         (payload) => {
           const row = (payload.new ?? payload.old) as any;
-          if (row?.remote_jid === remoteJid) refresh();
+          if (row?.remote_jid === remoteJid) void refresh();
         },
       )
       .subscribe();

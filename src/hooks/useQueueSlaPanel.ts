@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -32,6 +32,11 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
@@ -41,6 +46,7 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
       p_channel_type: filters.channel_type,
       p_sla_status: filters.sla_status,
     });
+    if (!mountedRef.current) return;
     if (error) {
       setError(error.message);
       setRows([]);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -41,6 +41,11 @@ export function useProviderPanel() {
   const [loading, setLoading] = useState(true);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const { toast } = useToast();
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchPanel = useCallback(async () => {
     setLoading(true);
@@ -52,6 +57,7 @@ export function useProviderPanel() {
         p_limit: 100,
       }),
     ]);
+    if (!mountedRef.current) return;
     setRows((panelData as ProviderRow[]) ?? []);
     setLogs((logsData as ProviderLog[]) ?? []);
     setLoading(false);

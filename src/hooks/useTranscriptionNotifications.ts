@@ -42,7 +42,7 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
           schema: 'evo',
           table: 'evolution_messages',
         },
-        wrapMessagesHandler<{ new: Record<string, unknown>; old?: Record<string, unknown> }>('useTranscriptionNotifications', async (payload) => {
+        wrapMessagesHandler<{ new: Record<string, unknown>; old?: Record<string, unknown> }>('useTranscriptionNotifications', (payload) => {
           const newData = payload.new as { id: string; transcription_status?: string; transcription?: string; contact_id?: string };
           const oldData = payload.old as { transcription_status?: string } | undefined;
 
@@ -56,51 +56,48 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
             // Mark as processed to avoid duplicate notifications
             processedIdsRef.current.add(newData.id);
 
-            // Check quiet hours
-            if (isQuietHours()) {
-              return;
-            }
+            void (async () => {
+              // Check quiet hours
+              if (isQuietHours()) return;
 
-            // Get contact name
-            let contactName = 'Contato';
-            if (newData.contact_id) {
-              const { data: contact , error } = await supabase
-                .from('contacts')
-                .select('name')
-                .eq('id', newData.contact_id)
-                .single();
-              
-              if (contact?.name) {
-                contactName = contact.name;
+              // Get contact name
+              let contactName = 'Contato';
+              if (newData.contact_id) {
+                const { data: contact } = await supabase
+                  .from('contacts')
+                  .select('name')
+                  .eq('id', newData.contact_id)
+                  .single();
+                if (contact?.name) contactName = contact.name;
               }
-            }
 
-            // Truncate transcription for preview
-            const transcriptionPreview = newData.transcription.length > 100
-              ? newData.transcription.slice(0, 100) + '...'
-              : newData.transcription;
+              // Truncate transcription for preview
+              const transcriptionPreview = newData.transcription!.length > 100
+                ? newData.transcription!.slice(0, 100) + '...'
+                : newData.transcription!;
 
-            // Show toast notification
-            if (showToast) {
-              toast({
-                title: '🎙️ Áudio transcrito',
-                description: `${contactName}: "${transcriptionPreview}"`,
-                duration: 5000,
-              });
-            }
+              // Show toast notification
+              if (showToast) {
+                toast({
+                  title: '🎙️ Áudio transcrito',
+                  description: `${contactName}: "${transcriptionPreview}"`,
+                  duration: 5000,
+                });
+              }
 
-            // Play sound
-            if (playSound && settings.soundEnabled) {
-              playNotificationSound('message');
-            }
+              // Play sound
+              if (playSound && settings.soundEnabled) {
+                playNotificationSound('message');
+              }
 
-            // Show browser notification
-            if (showBrowserNotif && settings.browserNotifications) {
-              showBrowserNotification(
-                'Áudio transcrito',
-                `${contactName}: "${transcriptionPreview}"`,
-              );
-            }
+              // Show browser notification
+              if (showBrowserNotif && settings.browserNotifications) {
+                showBrowserNotification(
+                  'Áudio transcrito',
+                  `${contactName}: "${transcriptionPreview}"`,
+                );
+              }
+            })();
           }
         })
       )

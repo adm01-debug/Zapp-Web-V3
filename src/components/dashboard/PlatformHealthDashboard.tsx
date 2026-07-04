@@ -3,7 +3,7 @@
  * Global platform health dashboard using get_platform_health() RPC.
  * One call returns contacts + conversations + messages + webhooks KPIs.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -64,6 +64,11 @@ export const PlatformHealthDashboard: React.FC<Props> = ({
   const [data,    setData]    = useState<PlatformHealth | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,12 +77,13 @@ export const PlatformHealthDashboard: React.FC<Props> = ({
         p_instance_name: instanceName,
         p_days: 1,
       });
+      if (!mountedRef.current) return;
       if (error) throw error;
       setData(health as unknown as PlatformHealth);
       setLastUpdated(new Date());
     } catch (err) {
       log.error('Failed to load platform health', err);
-    } finally { setLoading(false); }
+    } finally { if (mountedRef.current) setLoading(false); }
   }, [instanceName]);
 
   useEffect(() => {
