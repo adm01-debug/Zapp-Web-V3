@@ -48,10 +48,16 @@ Deno.serve(async (req) => {
         const { data: refRows, error: refError } = await supabase
           .from("evolution_messages")
           .select("media_url")
-          .like("media_url", `%${bucketPathSegment}%`);
+          .like("media_url", `%${bucketPathSegment}%`)
+          .limit(10_000);
         if (refError) {
           log.error(`Erro ao consultar referências em ${bucketName}`, { error: refError.message });
           results[bucketName] = { error: "reference_lookup_failed" };
+          continue;
+        }
+        if (refRows && refRows.length >= 10_000) {
+          log.warn(`Referência lookup atingiu limite de 10k para ${bucketName} — pulando deleção para evitar falsos órfãos`);
+          results[bucketName] = { skipped: "reference_limit_reached" };
           continue;
         }
         if (refRows) {

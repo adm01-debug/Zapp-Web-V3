@@ -90,9 +90,11 @@ Deno.serve(async (req) => {
                 columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [],
               };
             }
+            if (error?.message?.includes('timeout')) timedOut.push(table);
             return null;
           } catch (e) {
             if (e instanceof Error && e.message.includes('timeout')) timedOut.push(table);
+            else console.error(`[analyze-external-db] query error for ${table}:`, e);
             return null;
           }
         })

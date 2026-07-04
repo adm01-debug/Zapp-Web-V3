@@ -1,25 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
-
-function isSafeAvatarUrl(raw: unknown): boolean {
-  if (typeof raw !== 'string') return false;
-  let parsed: URL;
-  try { parsed = new URL(raw); } catch { return false; }
-  if (parsed.protocol !== 'https:') return false;
-  const host = parsed.hostname.toLowerCase();
-  if (
-    host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0' ||
-    /^127\./.test(host) || /^169\.254\./.test(host) ||
-    /^10\./.test(host) || /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, ULA, and IPv4-mapped
-    host === '[::1]' || host.startsWith('[::ffff:') ||        // IPv4-mapped IPv6
-    /^\[fe[89ab][0-9a-f]:/i.test(host) ||                    // link-local fe80::/10
-    host.startsWith('[fc') || host.startsWith('[fd')          // ULA fc00::/7
-  ) return false;
-  return true;
-}
+import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -84,12 +66,12 @@ Deno.serve(async (req) => {
           const picUrl = result?.profilePictureUrl || result?.picture || result?.url || null;
           if (!picUrl) { failed++; return; }
 
-          if (!isSafeAvatarUrl(picUrl)) {
+          if (!isSafeMediaCdnUrl(picUrl)) {
             log.error('Unsafe avatar URL from Evolution API, skipping', { contactId: contact.id });
             failed++;
             return;
           }
-          const imgResp = await fetch(picUrl, { signal: AbortSignal.timeout(8000) });
+          const imgResp = await fetch(picUrl, { signal: AbortSignal.timeout(8000), redirect: 'error' });
           if (!imgResp.ok) { failed++; return; }
           const blob = await imgResp.arrayBuffer();
           const bytes = new Uint8Array(blob);
