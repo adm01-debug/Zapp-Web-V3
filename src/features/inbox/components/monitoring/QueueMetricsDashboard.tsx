@@ -17,7 +17,7 @@ interface QueueMetricsDashboardProps {
 const log = getLogger('QueueMetricsDashboard');
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = ({ metrics }) => {
+export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React.memo(({ metrics }) => {
   const [stsMetrics, setStsMetrics] = useState<any[]>([]);
   const [loadingSts, setLoadingSts] = useState(true);
 
@@ -254,4 +254,5 @@ export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = ({ me
       </Card>
     </div>
   );
-};
+});
+QueueMetricsDashboard.displayName = 'QueueMetricsDashboard';
