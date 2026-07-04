@@ -69,6 +69,7 @@ async function callGraph(path: string, payload: Record<string, unknown>) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15_000),
   });
   const data = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, data };
