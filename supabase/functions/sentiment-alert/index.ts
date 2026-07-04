@@ -120,6 +120,7 @@ Deno.serve(async (req) => {
               <p style="color:#9ca3af;font-size:12px;margin-top:24px">Alerta automático do sistema de análise de conversas.</p>
             </div>`,
           }),
+          signal: AbortSignal.timeout(15_000),
         });
         emailSent = emailResponse.ok;
       } catch (emailError) {
