@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMediaUrl — auto-refresh de URLs WhatsApp expiradas.
  *
@@ -193,7 +192,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         // Audit & Cache Persistence
         try {
           const hash = await buildFileHash(dataUrl);
-          await supabase.from('media_cache').upsert({
+          await (supabase as any).from('media_cache').upsert({
             file_hash: hash,
             storage_path: dataUrl, // Em cenários reais, enviaríamos para o storage e salvaríamos a URL
             mime_type: mime,

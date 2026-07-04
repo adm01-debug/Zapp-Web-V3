@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Carrega o histórico completo de envio de uma mensagem para o painel
  * de debug: linha do tempo de tentativas (retry_metrics.retry_reasons),
@@ -73,7 +72,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .eq('entity_id', messageId)
           .order('created_at', { ascending: false })
           .limit(20),
-        supabase
+        (supabase as any)
           .from('outbound_delivery_audit')
           .select('*')
           .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
