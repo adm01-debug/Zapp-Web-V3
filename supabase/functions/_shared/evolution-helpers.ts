@@ -1,5 +1,6 @@
 // Shared helpers for Evolution API webhook and sync functions
 declare const Deno: { env: { get(key: string): string | undefined } };
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export interface WebhookPayload {
   event: string;
@@ -43,8 +44,7 @@ export async function sha256Hex(input: string): Promise<string> {
 // Marks an event as processed. Returns true if this is the first time (caller should process),
 // false if a prior row already exists (caller should treat as duplicate). Non-unique errors are
 // treated as "new" so the handler is never blocked by audit-infra failure.
-// deno-lint-ignore no-explicit-any
-export async function markEventProcessed(supabase: any, eventId: string, instance: string, eventType: string): Promise<boolean> {
+export async function markEventProcessed(supabase: SupabaseClient, eventId: string, instance: string, eventType: string): Promise<boolean> {
   const { error } = await supabase.from('webhook_events_processed').insert({
     event_id: eventId, instance, event_type: eventType,
   });
@@ -63,12 +63,58 @@ export interface WebhookAuditRow {
   error_message?: string | null;
 }
 
-// deno-lint-ignore no-explicit-any
-export async function auditWebhookEvent(supabase: any, row: WebhookAuditRow): Promise<void> {
+export async function auditWebhookEvent(supabase: SupabaseClient, row: WebhookAuditRow): Promise<void> {
   try { await supabase.from('webhook_audit_log').insert(row); } catch (e) {
     console.warn('[audit] insert failed:', (e as Error).message ?? String(e));
   }
 }
+
+export interface DeadLetterInput {
+  event_type: string;
+  instance: string;
+  remote_jid?: string | null;
+  /** The parsed webhook payload/data so the reconcile cron can replay it. */
+  payload: unknown;
+  error_message: string;
+  error_stack?: string | null;
+  request_id?: string | null;
+}
+
+// Routes a webhook event whose handler threw into the Evolution dead-letter
+// queue so it can be retried/inspected instead of being silently dropped.
+//
+// Context: the webhook marks an event as processed (idempotency) BEFORE the
+// handler runs and returns 200 even on handler failure (so Evolution does not
+// retry-storm). Without this, a handler error means permanent, unalarmed data
+// loss — the exact mechanism behind the wpp2 gap during the WhatsApp LID
+// migration. Landing the event in the DLQ makes the loss recoverable.
+//
+// Best-effort by design: a DLQ failure must NEVER bubble up and turn the
+// caller's 200 into a 5xx, so everything here is swallowed-and-logged.
+export async function routeToDeadLetter(supabase: SupabaseClient, input: DeadLetterInput): Promise<void> {
+  try {
+    const { error } = await supabase.from('evolution_webhook_dlq').insert({
+      event_type: input.event_type || 'unknown',
+      instance_name: input.instance || 'unknown',
+      remote_jid: input.remote_jid ?? null,
+      payload: (input.payload ?? {}) as Record<string, unknown>,
+      error_message: (input.error_message || 'handler_error').slice(0, 2000),
+      error_stack: input.error_stack ? input.error_stack.slice(0, 8000) : null,
+      status: 'pending',
+      retry_count: 0,
+      // Stagger the first retry so a transient dependency (DB/API) has time to
+      // recover before the reconcile cron picks the row up.
+      next_retry_at: new Date(Date.now() + 60_000).toISOString(),
+      last_request_id: input.request_id ?? null,
+    });
+    if (error) {
+      console.warn('[dlq] insert failed:', error.message ?? error.code ?? String(error));
+    }
+  } catch (e) {
+    console.warn('[dlq] insert threw:', (e as Error).message ?? String(e));
+  }
+}
+
 
 export function toEventRecords(data: unknown, collectionKeys: string[] = []): Record<string, unknown>[] {
   if (Array.isArray(data)) return data.filter(isRecord);
@@ -185,8 +231,20 @@ export function shouldUpdateStatus(currentStatus: string | null, newStatus: stri
   return newPriority > currentPriority;
 }
 
-// deno-lint-ignore no-explicit-any
-export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
+/**
+ * Filtro PostgREST que casa uma conexão tanto pelo NOME roteável quanto pelo
+ * UUID interno da Evolution. Eventos de webhook chegam com o nome da instância,
+ * mas `whatsapp_connections.instance_id` guardava o nome em linhas legadas e o
+ * UUID nas novas (incidente wpp2 2026-07-04) — `instance_name` é a fonte da
+ * verdade e `instance_id` fica como fallback legado. Sanitiza o valor porque
+ * vírgula/parênteses/aspas são sintaxe do `.or()` do PostgREST.
+ */
+export function instanceOrFilter(instance: string): string {
+  const safe = String(instance).replace(/[",()\\]/g, '');
+  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
+}
+
+export async function getConnectionByInstance(supabase: SupabaseClient, instance: string): Promise<{ id: string } | null> {
   const { data } = await supabase
     .from('whatsapp_connections')
     .select('id')
@@ -195,9 +253,8 @@ export async function getConnectionByInstance(supabase: any, instance: string): 
   return data;
 }
 
-// deno-lint-ignore no-explicit-any
 export async function getContactByPhone(
-  supabase: any,
+  supabase: SupabaseClient,
   phone: string,
   connectionId: string
 ): Promise<{ id: string; avatar_url: string | null; assigned_to: string | null; name: string | null } | null> {
@@ -264,8 +321,7 @@ export async function fetchProfilePicFromApi(instance: string, phone: string): P
   } catch { return null; }
 }
 
-// deno-lint-ignore no-explicit-any
-export async function persistProfilePicture(supabase: any, phone: string, profilePicUrl: string): Promise<string | null> {
+export async function persistProfilePicture(supabase: SupabaseClient, phone: string, profilePicUrl: string): Promise<string | null> {
   try {
     const response = await fetch(profilePicUrl, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) return null;
@@ -291,41 +347,7 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
   } catch (err) { console.error('Avatar persist error:', err); return null; }
 }
 
-export function instanceOrFilter(instance: string): string {
-  // Strip chars that are significant in PostgREST filter syntax to prevent injection.
-  // Allowed: alphanumeric, hyphen, underscore, dot (Evolution instance names use these).
-  const escaped = instance.replace(/[^a-zA-Z0-9._-]/g, '');
-  return `instance_id.eq.${escaped},instance_name.eq.${escaped}`;
-}
-
-export interface DeadLetterInput {
-  event_type?: string | null;
-  instance?: string | null;
-  payload?: unknown;
-  error_message?: string | null;
-  error_stack?: string | null;
-  request_id?: string | null;
-}
-
-// deno-lint-ignore no-explicit-any
-export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
-  try {
-    await supabase.from('webhook_dead_letter').insert({
-      event_type: input.event_type ?? null,
-      instance: input.instance ?? null,
-      payload: input.payload ?? null,
-      error_message: input.error_message ?? null,
-      error_stack: input.error_stack ?? null,
-      request_id: input.request_id ?? null,
-      created_at: new Date().toISOString(),
-    });
-  } catch (e) {
-    console.warn('[dead-letter] insert failed:', (e as Error).message ?? String(e));
-  }
-}
-
-// deno-lint-ignore no-explicit-any
-export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
+export async function handleReactionEvent(supabase: SupabaseClient, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';
   const reactKey = reactionMessage.key as Record<string, unknown> | undefined;
   if (!reactKey?.id) return;
