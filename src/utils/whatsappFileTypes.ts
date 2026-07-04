@@ -108,7 +108,7 @@ export const validateFile = (file: File): FileValidationResult => {
   const fileSizeMB = file.size / (1024 * 1024);
 
   // Find matching file type config
-  for (const [key, config] of Object.entries(WHATSAPP_FILE_TYPES)) {
+  for (const [_key, config] of Object.entries(WHATSAPP_FILE_TYPES)) {
     const matchesMime = config.mimeTypes.includes(mimeType);
     const matchesExt = config.extensions.includes(extension);
 
