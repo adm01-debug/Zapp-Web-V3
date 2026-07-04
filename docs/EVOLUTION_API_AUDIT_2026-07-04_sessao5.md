@@ -26,7 +26,7 @@
 
 ### 🔴 S5-1 — INCIDENTE NOVO E CRÍTICO: linha principal re-pareada na instância ERRADA
 
-**O que aconteceu:** às **10:29:42 UTC de hoje** o número principal **551146375517** foi
+**O que aconteceu:** às **10:29:42 UTC de hoje** o número principal **5511••••5517** foi
 re-pareado via QR — mas numa **instância nova** criada com o nome
 `d8e07e44-1aac-45a2-a1d9-bebe1deeb355` (que é exatamente o **UUID interno da instância `wpp2`**,
 provavelmente colado por engano no campo "nome" ao criar a instância no Manager).
@@ -35,9 +35,9 @@ provavelmente colado por engano no campo "nome" ao criar a instância no Manager
 
 | Instância | Status | Número | Problema |
 |---|---|---|---|
-| `wpp2` (a oficial) | `connecting`, loop 401 desde 03/07 16:40 UTC | 551146375517 | Sessão morta — o pareamento agora pertence à instância nova |
-| `d8e07e44-1aac-…` (fantasma) | **`open`** — sincronizando histórico | 551146375517 | **Fora de TODO o pipeline** (ver abaixo) |
-| `wpp_pink_test` | `open`, saudável | 556484450900 | — |
+| `wpp2` (a oficial) | `connecting`, loop 401 desde 03/07 16:40 UTC | 5511••••5517 | Sessão morta — o pareamento agora pertence à instância nova |
+| `d8e07e44-1aac-…` (fantasma) | **`open`** — sincronizando histórico | 5511••••5517 | **Fora de TODO o pipeline** (ver abaixo) |
+| `wpp_pink_test` | `open`, saudável | 5564••••0900 | — |
 
 **Por que é crítico — a instância fantasma está invisível para o sistema:**
 
@@ -64,7 +64,7 @@ para conectar a `wpp2` correta **antes** de remover o fantasma:
 
 1. **Conectar a `wpp2`** (Manager em `https://evolution.atomicabr.com.br/manager` → instância
    `wpp2` → Connect, ou `GET /instance/connect/wpp2`) → QR gerado.
-2. **Escanear o QR com o aparelho** da linha 551146375517
+2. **Escanear o QR com o aparelho** da linha 5511••••5517
    (WhatsApp → Aparelhos conectados → Conectar aparelho). Isso cria um **segundo** pareamento,
    sem derrubar o atual.
 3. **Validar** (2–3 min): `wpp2` com `connectionStatus=open`; watchdog logando `state=open`;

@@ -1,0 +1,73 @@
+version: "3.7"
+
+# 2026-07-04 (sessão 5, fix N5): DATABASE_URL saiu do env em texto puro e virou o
+# Docker secret supabase_db_url_v1 (lido no entrypoint). Rotação de senha só exige
+# criar secret _v2 e trocar a referência aqui.
+# Healthcheck: 127.0.0.1 explícito (wget resolvia localhost -> ::1 e o Node escuta só IPv4).
+
+services:
+  supabase-db-mcp:
+    image: supabase-db-mcp-server:latest
+    networks:
+      - AtomicaBRNet
+    secrets:
+      - supabase_db_url_v1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export DATABASE_URL=$(cat /run/secrets/supabase_db_url_v1)
+        exec docker-entrypoint.sh node dist/index.js
+    environment:
+      - TRANSPORT=http
+      - PORT=3100
+      - HOST=0.0.0.0
+      - POOL_MAX=20
+      - POOL_MIN=2
+      - POOL_IDLE_TIMEOUT=30000
+      - POOL_CONNECTION_TIMEOUT=10000
+      - QUERY_TIMEOUT_MS=30000
+      - DATABASE_SSL=false
+      - RATE_LIMIT_RPM=300
+      - CORS_ORIGIN=*
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.supabase-db-mcp.rule=Host(`supabase-mcp.atomicabr.com.br`)
+        - traefik.http.services.supabase-db-mcp.loadbalancer.server.port=3100
+        - traefik.http.routers.supabase-db-mcp.service=supabase-db-mcp
+        - traefik.http.routers.supabase-db-mcp.entrypoints=websecure
+        - traefik.http.routers.supabase-db-mcp.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.supabase-db-mcp.tls=true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3100/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+secrets:
+  supabase_db_url_v1:
+    external: true
+
+networks:
+  AtomicaBRNet:
+    external: true
+    name: AtomicaBRNet
