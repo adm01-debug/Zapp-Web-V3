@@ -4,11 +4,12 @@
  * Shows: total, no consent, duplicates suspect, birthdays today.
  */
 import { useState, useEffect, useCallback } from 'react';
-const log = getLogger('useContactsStats');
-
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+
 import { dbFrom, dbTable } from '@/integrations/datasource/db';
+
+const log = getLogger('useContactsStats');
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 

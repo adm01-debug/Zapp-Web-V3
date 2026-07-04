@@ -4,15 +4,16 @@
  * Solves Gap #7: No links to previous conversations in the activity feed.
  */
 import React, { useEffect, useState } from 'react';
-const log = getLogger('ContactConversationHistory');
-
 import { Badge } from '@/components/ui/badge';
 import { getLogger } from '@/lib/logger';
+
 import { MessageCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const log = getLogger('ContactConversationHistory');
 
 interface ConversationSummary {
   id: string;

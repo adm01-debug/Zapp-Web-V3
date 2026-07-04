@@ -4,14 +4,15 @@
  * Adapts to actual schema: field_name/old_value/new_value columns.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-const log = getLogger('AuditLogPanel');
-
 import { Badge } from '@/components/ui/badge';
 import { getLogger } from '@/lib/logger';
+
 import { Button } from '@/components/ui/button';
 import { History, RefreshCw, ChevronDown, ChevronUp, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeText } from '@/lib/sanitize';
+
+const log = getLogger('AuditLogPanel');
 
 interface AuditEntry {
   id:         string;

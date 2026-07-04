@@ -4,10 +4,9 @@
  * Accessible via Settings → Contatos → Lixeira
  */
 import React, { useEffect, useState, useCallback } from 'react';
-const log = getLogger('ContactsRecycleBin');
-
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -19,6 +18,8 @@ import { sanitizeText } from '@/lib/sanitize';
 import { useAuth } from '@/features/auth';
 import { dbFrom, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
+
+const log = getLogger('ContactsRecycleBin');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

@@ -11,13 +11,14 @@
  * - Relationship stage and score
  */
 import React, { useState, useEffect } from 'react';
-const log = getLogger('ContactBitrix24Panel');
-
 import { Building2, ExternalLink, Users, TrendingUp, MessageSquare } from 'lucide-react';
 import { getLogger } from '@/lib/logger';
+
 import { type ExternalContact } from '@/lib/contactsDB';
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { Badge } from '@/components/ui/badge';
+
+const log = getLogger('ContactBitrix24Panel');
 
 interface ContactBitrix24PanelProps {
   contact: ExternalContact | null;

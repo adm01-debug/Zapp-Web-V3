@@ -11,11 +11,12 @@
  * This is a classic "pending delete" / "optimistic UI" pattern.
  */
 import { useRef, useCallback } from 'react';
-const log = getLogger('useContactUndo');
-
 import { useToast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
+
 import { supabase } from '@/integrations/supabase/client';
+
+const log = getLogger('useContactUndo');
 
 const UNDO_WINDOW_MS = 5_000; // 5 seconds
 

@@ -6,15 +6,16 @@
  * Shows in the contact detail view (tab or accordion section).
  */
 import React, { useEffect, useState, useCallback } from 'react';
-const log = getLogger('ContactAuditLogPanel');
-
 import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Shield, Clock, User, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const log = getLogger('ContactAuditLogPanel');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

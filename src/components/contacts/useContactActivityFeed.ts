@@ -5,12 +5,13 @@
  * Uses Supabase Realtime to push live updates.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-const log = getLogger('useContactActivityFeed');
-
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+
 import { sanitizeText } from '@/lib/sanitize';
 import { formatPhoneForDisplay } from '@/lib/phoneUtils';
+
+const log = getLogger('useContactActivityFeed');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -180,7 +181,7 @@ export function useContactActivityFeed({
       .subscribe();
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
   }, [contactId, realtime, fetchActivities]);
 

@@ -1,7 +1,6 @@
-const log = getLogger('ConnectionAuditDialog');
-
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -10,6 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle, CheckCircle2, Info, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+const log = getLogger('ConnectionAuditDialog');
 
 interface AuditLog {
   id: string;

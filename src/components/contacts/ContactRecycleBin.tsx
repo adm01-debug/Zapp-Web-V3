@@ -4,10 +4,9 @@
  * Shows contacts deleted in the last 30 days.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-const log = getLogger('ContactRecycleBin');
-
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -17,6 +16,8 @@ import { dbFrom, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { sanitizeText } from '@/lib/sanitize';
 import { formatPhoneForDisplay } from '@/lib/phoneUtils';
+
+const log = getLogger('ContactRecycleBin');
 
 interface DeletedContact {
   id:              string;

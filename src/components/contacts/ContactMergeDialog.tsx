@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-const log = getLogger('ContactMergeDialog');
-
 import { getLogger } from '@/lib/logger';
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogFooter, DialogDescription,
@@ -17,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 import { cn } from '@/lib/utils';
+
+const log = getLogger('ContactMergeDialog');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

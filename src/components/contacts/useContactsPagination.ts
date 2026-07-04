@@ -10,12 +10,13 @@
  * - Supports sort by: name, created_at, last_seen_at
  */
 import { useState, useCallback, useRef } from 'react';
-const log = getLogger('useContactsPagination');
-
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const log = getLogger('useContactsPagination');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

@@ -5,11 +5,12 @@
  * Checks phone + email against existing contacts and warns the user
  * before they save — preventing duplicates at the source.
  */
-const log = getLogger('useContactDuplicateDetector');
-
 import { useState, useCallback, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
+
 import { supabase } from '@/integrations/supabase/client';
+
+const log = getLogger('useContactDuplicateDetector');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

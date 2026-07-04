@@ -3,13 +3,14 @@
  * Real activity timeline using evolution_conversations + contact_audit_log.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-const log = getLogger('ContactActivityFeed');
-
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+
 import { Button } from '@/components/ui/button';
 import { MessageCircle, FileText, Shield, RotateCcw, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
+
+const log = getLogger('ContactActivityFeed');
 
 interface Activity { id: string; type: string; label: string; detail?: string; timestamp: string; }
 

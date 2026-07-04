@@ -4,10 +4,9 @@
  * Shows: total contacts, lead status distribution, LGPD compliance rate, duplicates.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-const log = getLogger('ContactStatsDashboard');
-
 import { Card, CardContent } from '@/components/ui/card';
 import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +15,8 @@ import {
 } from 'lucide-react';
 import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
+
+const log = getLogger('ContactStatsDashboard');
 
 interface ContactStats {
   total_active:         number;

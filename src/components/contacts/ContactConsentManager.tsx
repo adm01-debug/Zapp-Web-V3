@@ -8,12 +8,15 @@ import { Shield, AlertTriangle, CheckCircle2, XCircle, Info } from 'lucide-react
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
+import { getLogger } from '@/lib/logger';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+
+const log = getLogger('ContactConsentManager');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

@@ -4,10 +4,9 @@
  * Uses find_duplicate_contacts(), merge_contacts(), bulk_auto_merge_duplicates() RPCs.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-const log = getLogger('DuplicateContactsPanel');
-
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
@@ -18,6 +17,8 @@ import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { sanitizeText } from '@/lib/sanitize';
 import { formatPhoneForDisplay } from '@/lib/phoneUtils';
+
+const log = getLogger('DuplicateContactsPanel');
 
 interface DuplicateGroup {
   phone_normalized: string;
