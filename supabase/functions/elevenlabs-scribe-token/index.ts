@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
     const response = await fetch('https://api.elevenlabs.io/v1/single-use-token/realtime_scribe', {
       method: 'POST',
       headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
