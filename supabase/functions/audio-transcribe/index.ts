@@ -25,6 +25,30 @@ const TranscribeInput = z.object({
 });
 
 /**
+ * Returns true only for HTTPS URLs pointing outside link-local / loopback /
+ * metadata ranges. Prevents SSRF to AWS metadata (169.254.169.254), internal
+ * services, or non-HTTP protocols.
+ */
+function isSafeAudioUrl(raw: string): boolean {
+  let parsed: URL;
+  try { parsed = new URL(raw); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname;
+  // Block loopback, link-local, private, and metadata service addresses
+  if (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === '0.0.0.0' ||
+    /^127\./.test(host) ||
+    /^169\.254\./.test(host) ||  // AWS/GCP/Azure metadata
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  ) return false;
+  return true;
+}
+
+/**
  * Stream a remote audio URL into a Uint8Array while enforcing the byte cap.
  * Avoids buffering the entire response in memory before checking size.
  */
@@ -111,6 +135,9 @@ serve(async (req) => {
       audioBytes = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) audioBytes[i] = raw.charCodeAt(i);
     } else if (audio_url) {
+      if (!isSafeAudioUrl(audio_url)) {
+        return errorResponse(req, 'Invalid or disallowed audio URL', 400);
+      }
       const fetched = await fetchAudioWithCap(audio_url, MAX_AUDIO_BYTES);
       if (fetched === null) {
         return errorResponse(req, 'Audio fetch failed or file exceeds 25MB limit', 413);
@@ -154,7 +181,10 @@ serve(async (req) => {
 
       if (!resp.ok) {
         const errText = await resp.text();
-        return errorResponse(req, `Whisper API error: ${errText.slice(0, 500)}`, resp.status);
+        console.error('[audio-transcribe] HuggingFace Whisper error', { status: resp.status, detail: errText.slice(0, 500) });
+        if (resp.status === 429) return errorResponse(req, 'Transcription rate limit exceeded', 429);
+        if (resp.status === 503) return errorResponse(req, 'Transcription service temporarily unavailable', 503);
+        return errorResponse(req, 'Audio transcription failed', 502);
       }
 
       const result = await resp.json();

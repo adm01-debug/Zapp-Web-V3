@@ -63,12 +63,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, message: "Solicitação rejeitada" }, 200, req);
     }
 
-    // Approve: Generate password reset link
+    // Approve: Generate password reset link.
+    // Use a server-configured URL — never the client-supplied Origin header,
+    // which can be forged to redirect the reset link to an attacker-controlled domain.
+    const appUrl = Deno.env.get("APP_URL") || supabaseUrl;
     const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
       email: resetRequest.email,
       options: {
-        redirectTo: `${req.headers.get("origin") || supabaseUrl}/reset-password`,
+        redirectTo: `${appUrl}/reset-password`,
       },
     });
 
@@ -79,8 +82,9 @@ Deno.serve(async (req) => {
 
     const expiresAt = new Date(Date.now() + 3600000).toISOString();
 
-    // Update request status
-    const { error: updateError } = await supabaseAdmin
+    // Update request status atomically — add .eq("status","pending") so a concurrent
+    // approval can't double-process the same request (TOCTOU guard).
+    const { count: updatedCount, error: updateError } = await supabaseAdmin
       .from("password_reset_requests")
       .update({
         status: "approved",
@@ -89,17 +93,27 @@ Deno.serve(async (req) => {
         token_expires_at: expiresAt,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", requestId);
+      .eq("id", requestId)
+      .eq("status", "pending")
+      .select("id", { count: "exact", head: true });
 
     if (updateError) throw updateError;
+    if (!updatedCount || updatedCount === 0) {
+      return errorResponse("Request already processed", 409, req);
+    }
 
-    // Store token hash in isolated table via SECURITY DEFINER function
+    // Store token hash in isolated table via SECURITY DEFINER function.
+    // Check the result — if the RPC fails the reset link can't be used.
     if (resetData.properties?.hashed_token) {
-      await supabaseAdmin.rpc("store_reset_token", {
+      const { error: rpcError } = await supabaseAdmin.rpc("store_reset_token", {
         p_request_id: requestId,
         p_token: resetData.properties.hashed_token,
         p_expires_at: expiresAt,
       });
+      if (rpcError) {
+        log.error("store_reset_token RPC failed", { error: rpcError.message });
+        throw new Error("Failed to store reset token");
+      }
     }
 
     log.done(200, { action: "approved" });

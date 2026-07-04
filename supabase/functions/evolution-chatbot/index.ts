@@ -77,7 +77,11 @@ async function getContact(remoteJid: string) {
 async function checkRateLimit(remoteJid: string) {
   const since = new Date(Date.now() - 3600000).toISOString();
   const { count, error } = await supabase.from("evolution_chatbot_responses").select("*", { count: "exact", head: true }).eq("remote_jid", remoteJid).gte("created_at", since);
-  if (error) return { ok: false, remaining: 0 };
+  // Fail open on DB error — a transient failure must not block every user (DoS).
+  if (error) {
+    console.warn('[evolution-chatbot] rate limit DB check failed — failing open', error.message);
+    return { ok: true, remaining: 30 };
+  }
   return { ok: (30 - (count || 0)) > 0, remaining: 30 - (count || 0) };
 }
 
