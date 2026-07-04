@@ -12,9 +12,10 @@ Deno.test("Contract: Evolution Webhook V1 valid", () => {
 });
 
 Deno.test("Contract: Evolution Webhook V1 aceita apikey/sender null (connection.update em reconexão)", () => {
-  // Payload real observado em produção (Evolution v2.3.7, wpp2 em loop de
-  // reconexão): apikey vem null antes da sessão autenticar. Regressão do
-  // incidente 422/contract_violation de 2026-07-03.
+  // Estrutura real observada em produção (Evolution v2.3.7, wpp2 em loop de
+  // reconexão): apikey vem null antes da sessão autenticar. URLs/hosts foram
+  // anonimizados (example.com); os campos e tipos são idênticos ao payload
+  // original. Regressão do incidente 422/contract_violation de 2026-07-03.
   const payload = {
     event: "connection.update",
     instance: "wpp2",
