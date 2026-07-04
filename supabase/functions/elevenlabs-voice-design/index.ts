@@ -75,8 +75,7 @@ Deno.serve(async (req) => {
     log.done(200);
     return jsonResponse(data, 200, req);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

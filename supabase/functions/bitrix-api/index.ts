@@ -219,8 +219,7 @@ Deno.serve(async (req) => {
 
     return errorResponse('Endpoint não definido', 400, req);
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido';
-    log.error('Unhandled error', { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });
