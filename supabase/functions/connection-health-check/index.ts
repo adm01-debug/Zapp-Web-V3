@@ -116,6 +116,51 @@ function evaluateHealth(a: EvalArgs): EvalResult {
 // Exposto para testes
 export { evaluateHealth };
 
+// ── Roteamento por NOME de instância (incidente wpp2 2026-07-04) ──────────────
+// A Evolution API roteia todas as rotas pelo NOME; `instance_id` guarda o UUID
+// interno (linhas novas) ou o nome (linhas legadas). Usar o UUID gera 404 e
+// desativa silenciosamente as 3 camadas do health-check.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function routableInstanceName(conn: { instance_name?: string | null; instance_id?: string | null }): string | null {
+  const name = conn.instance_name?.trim();
+  if (name && !UUID_RE.test(name)) return name;
+  const legacy = conn.instance_id?.trim();
+  if (legacy && !UUID_RE.test(legacy)) return legacy;
+  return null;
+}
+
+/** Filtro PostgREST nome-OU-uuid para o alvo do "Verificar agora". */
+function instanceOrFilter(instance: string): string {
+  const safe = String(instance).replace(/[",()\\]/g, '');
+  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
+}
+
+interface EvoInstanceSummary { name: string | null; ownerJid: string | null; state: string | null }
+
+/** Snapshot de todas as instâncias — base do detector de instância fantasma. */
+async function fetchAllInstances(baseUrl: string, key: string, log: Logger): Promise<EvoInstanceSummary[]> {
+  try {
+    const r = await fetch(`${baseUrl}/instance/fetchInstances`, {
+      headers: { 'apikey': key }, signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) { await r.text(); return []; }
+    const arr = await r.json();
+    if (!Array.isArray(arr)) return [];
+    return arr.map((i: Record<string, unknown>) => {
+      const inner = (i?.instance ?? {}) as Record<string, unknown>;
+      return {
+        name: (i?.name ?? inner?.instanceName ?? null) as string | null,
+        ownerJid: (i?.ownerJid ?? inner?.ownerJid ?? inner?.owner ?? null) as string | null,
+        state: (i?.connectionStatus ?? inner?.state ?? null) as string | null,
+      };
+    });
+  } catch (e) {
+    log.warn('fetchAllInstances threw (ghost detector skipped)', { error: e instanceof Error ? e.message : String(e) });
+    return [];
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -152,17 +197,30 @@ Deno.serve(async (req) => {
 
     let query = supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, status, phone_number, health_status, health_reason');
-    if (onlyInstance) query = query.eq('instance_id', onlyInstance);
+      .select('id, instance_id, instance_name, status, phone_number, owner_jid, health_status, health_reason');
+    // Aceita tanto o nome roteável (front pós-fix) quanto o UUID legado.
+    if (onlyInstance) query = query.or(instanceOrFilter(onlyInstance));
 
     const { data: connections, error: connError } = await query;
     if (connError || !connections) return errorResponse('Failed to fetch connections', 500, req);
+
+    // Detector de instância fantasma: snapshot único de todas as instâncias.
+    const allInstances = await fetchAllInstances(baseUrl, evolutionKey, log);
 
     const results = [];
     const alertsToCreate: Array<{ connection_id: string; instance_id: string; phone: string | null; reason: 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' }> = [];
 
     for (const conn of connections) {
-      if (!conn.instance_id) continue;
+      // Roteamento SEMPRE pelo nome — o UUID em instance_id gera 404 na Evolution
+      // e desativava silenciosamente as 3 camadas (incidente wpp2 2026-07-04).
+      const evoName = routableInstanceName(conn);
+      if (!evoName) {
+        if (conn.instance_id || conn.instance_name) {
+          log.warn('connection sem nome roteável — health-check pulado', { id: conn.id, instance_id: conn.instance_id });
+          results.push({ instance_id: conn.instance_id, instance_name: conn.instance_name ?? null, status: 'error', reason: 'missing_instance_name' });
+        }
+        continue;
+      }
       const start = performance.now();
       let socketState: string | null = null;
       let httpErrorMessage: string | null = null;
@@ -170,7 +228,7 @@ Deno.serve(async (req) => {
 
       // Layer 1
       try {
-        const resp = await fetch(`${baseUrl}/instance/connectionState/${conn.instance_id}`, {
+        const resp = await fetch(`${baseUrl}/instance/connectionState/${encodeURIComponent(evoName)}`, {
           method: 'GET', headers: { 'apikey': evolutionKey },
           signal: AbortSignal.timeout(10000),
         });
@@ -194,9 +252,9 @@ Deno.serve(async (req) => {
       let lastActivityAt: Date | null = null;
       if (socketState === 'open') {
         const [owner, activity] = await Promise.all([
-          fetchOwnerJid(baseUrl, evolutionKey, conn.instance_id, log),
+          fetchOwnerJid(baseUrl, evolutionKey, evoName, log),
           externalUrl && externalKey
-            ? fetchLastActivityAt(externalUrl, externalKey, conn.instance_id, log)
+            ? fetchLastActivityAt(externalUrl, externalKey, evoName, log)
             : Promise.resolve(null),
         ]);
         ownerJid = owner;
@@ -210,9 +268,38 @@ Deno.serve(async (req) => {
         now: new Date(),
       });
 
+      // Detector de instância fantasma: a MESMA conta WhatsApp (ownerJid) pareada
+      // e "open" numa instância cujo nome difere do roteável desta conexão.
+      const expectedOwner = (conn.owner_jid as string | null) ?? null;
+      const ghost = allInstances.find((i) =>
+        i.state === 'open' && i.name && i.name !== evoName && i.ownerJid &&
+        ((expectedOwner && i.ownerJid === expectedOwner) ||
+         (conn.phone_number && i.ownerJid.startsWith(String(conn.phone_number)))));
+      if (ghost) {
+        const title = `👻 Instância fantasma detectada para ${evoName}`;
+        try {
+          const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+          const { data: recent } = await supabase.from('warroom_alerts')
+            .select('id').eq('title', title).gte('created_at', sixHoursAgo).limit(1);
+          if (!recent || recent.length === 0) {
+            await supabase.from('warroom_alerts').insert({
+              alert_type: 'critical',
+              title,
+              message: `O número ${conn.phone_number ?? expectedOwner ?? '?'} está pareado e ATIVO na instância "${ghost.name}", mas esta conexão roteia por "${evoName}". Eventos/envios não fluem pelo pipeline. Runbook: docs/EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md §4.`,
+              source: 'connection_health',
+            });
+          }
+        } catch (e) {
+          log.warn('ghost alert failed', { error: e instanceof Error ? e.message : String(e) });
+        }
+        log.warn('GHOST INSTANCE detected', { expected: evoName, ghost: ghost.name });
+      }
+
       await persistResult(supabase, conn, evalResult, responseTime, httpErrorMessage, alertsToCreate, log, ownerJid);
       results.push({
         instance_id: conn.instance_id,
+        instance_name: evoName,
+        ghost_instance: ghost?.name ?? null,
         socket_state: socketState,
         owner_jid: ownerJid ? ownerJid.split('@')[0] : null, // sem @s.whatsapp.net no payload de retorno
         last_activity_at: lastActivityAt?.toISOString() ?? null,

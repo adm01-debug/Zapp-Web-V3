@@ -1,5 +1,7 @@
 // Shared sync action handlers for evolution-sync/index.ts
 
+import { instanceOrFilter } from "./evolution-helpers.ts";
+
 // deno-lint-ignore no-explicit-any
 export async function syncContacts(
   supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
@@ -33,10 +35,10 @@ export async function syncContacts(
     return jsonRes({ success: true, message: 'No more contacts to sync', synced: 0, page }, corsHeaders);
   }
 
-  let { data: connection } = await supabase.from('whatsapp_connections').select('id').eq('instance_id', instanceName).maybeSingle();
+  let { data: connection } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
   if (!connection) {
     const { data: newConn } = await supabase.from('whatsapp_connections')
-      .insert({ name: instanceName, instance_id: instanceName, status: 'connected', phone_number: '' })
+      .insert({ name: instanceName, instance_name: instanceName, instance_id: instanceName, status: 'connected', phone_number: '' })
       .select('id').single();
     connection = newConn;
   }
@@ -83,7 +85,7 @@ export async function syncMessages(
   const messagesData = await messagesResponse.json();
   const messages = Array.isArray(messagesData) ? messagesData : messagesData.messages || [];
 
-  const { data: connection2 } = await supabase.from('whatsapp_connections').select('id').eq('instance_id', instanceName).maybeSingle();
+  const { data: connection2 } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
   if (!connection2) throw new Error('WhatsApp connection not found');
 
   const phone = contactPhone.replace('@s.whatsapp.net', '');
@@ -120,7 +122,7 @@ export async function syncAllMessages(
   supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, messagesPerContact: number, corsHeaders: Record<string, string>
 ): Promise<Response> {
-  const { data: conn } = await supabase.from('whatsapp_connections').select('id').eq('instance_id', instanceName).maybeSingle();
+  const { data: conn } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
   if (!conn) throw new Error('WhatsApp connection not found for instance ' + instanceName);
 
   const { data: allContacts, error: contactsErr } = await supabase.from('contacts').select('id, phone')
@@ -239,10 +241,10 @@ export async function fullSync(
   }
 
   // Connection
-  let { data: conn } = await supabase.from('whatsapp_connections').select('id').eq('instance_id', instanceName).maybeSingle();
+  let { data: conn } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
   if (!conn) {
     const { data: newConn } = await supabase.from('whatsapp_connections')
-      .insert({ name: instanceName, instance_id: instanceName, status: 'connected', phone_number: '' })
+      .insert({ name: instanceName, instance_name: instanceName, instance_id: instanceName, status: 'connected', phone_number: '' })
       .select('id').single();
     conn = newConn;
   }
