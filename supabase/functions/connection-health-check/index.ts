@@ -328,8 +328,8 @@ Deno.serve(async (req) => {
         .from('connection_alert_preferences')
         .select('user_id, alert_on_degraded, alert_on_disconnected, push_enabled');
       optInUserIds = (prefs ?? [])
-        .filter((p: any) => p.push_enabled && (p.alert_on_degraded || p.alert_on_disconnected))
-        .map((p: any) => p.user_id);
+        .filter((p: { push_enabled: boolean; alert_on_degraded: boolean; alert_on_disconnected: boolean }) => p.push_enabled && (p.alert_on_degraded || p.alert_on_disconnected))
+        .map((p: { user_id: string }) => p.user_id);
     }
 
     for (const alert of alertsToCreate) {
@@ -376,8 +376,7 @@ Deno.serve(async (req) => {
 });
 
 async function persistResult(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   conn: { id: string; instance_id: string; status: string; health_status: string | null; phone_number: string | null },
   evalResult: EvalResult,
   responseTime: number,
@@ -426,7 +425,7 @@ async function persistResult(
           connection_id: conn.id,
           instance_id: conn.instance_id,
           phone: conn.phone_number,
-          reason: (evalResult.reason as any) || 'disconnected',
+          reason: (evalResult.reason as 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' | null) || 'disconnected',
         });
       }
     }
@@ -447,7 +446,7 @@ async function persistResult(
       connection_id: conn.id,
       instance_id: conn.instance_id,
       phone: conn.phone_number,
-      reason: (evalResult.reason as any) || 'degraded',
+      reason: (evalResult.reason as 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' | null) || 'degraded',
     });
   }
 

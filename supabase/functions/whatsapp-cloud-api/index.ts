@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
     messageId: wamid,
     raw: data,
   }, 200, req);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[whatsapp-cloud-api] Global Error:", error);
     return errorResponse('Internal server error', 500, req);
   }

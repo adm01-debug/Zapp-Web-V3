@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const startTime = Date.now();
-  const status: any = {
+  const status: { status: string; timestamp: string; version: string; checks: Record<string, unknown>; response_time_ms?: number } = {
     status: "healthy",
     timestamp: new Date().toISOString(),
     version: "1.0.0",
