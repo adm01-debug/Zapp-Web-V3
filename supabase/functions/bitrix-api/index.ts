@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
             filter: filters || {},
             select: ['ID', 'NAME', 'LAST_NAME', 'EMAIL', 'PHONE', 'COMPANY_ID', 'POST'],
           }),
+          signal: AbortSignal.timeout(15_000),
         });
         const contactsData = await contactsResponse.json();
 
@@ -170,6 +171,7 @@ Deno.serve(async (req) => {
               POST: data?.jobTitle,
             },
           }),
+          signal: AbortSignal.timeout(15_000),
         });
         const pushData = await pushResponse.json();
         log.done(200);
@@ -190,6 +192,7 @@ Deno.serve(async (req) => {
               UF_CRM_WHATSAPP_CONTACT_ID: data?.contactId,
             },
           }),
+          signal: AbortSignal.timeout(15_000),
         });
         const leadData = await leadResponse.json();
         log.done(200);
@@ -205,6 +208,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(15_000),
       });
       const responseData = await bitrixResponse.json();
 
