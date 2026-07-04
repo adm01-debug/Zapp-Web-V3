@@ -46,12 +46,12 @@ export function useEmailAccounts(): UseEmailAccountsReturn {
       .channel('email-accounts-changes')
       .on('postgres_changes', {
         event: '*',
-        schema: 'public',
+        schema: 'email_app',
         table: 'email_accounts',
       }, fetch)
       .on('postgres_changes', {
         event: '*',
-        schema: 'public',
+        schema: 'email_app',
         table: 'imap_smtp_accounts',
       }, fetch)
       .subscribe();

@@ -100,7 +100,7 @@ export function useAgentPresence({
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'agent_presence',
           filter: `workspace_id=eq.${workspaceId}`,
         },

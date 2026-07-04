@@ -145,7 +145,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
       .channel('retry_resolution_alerts')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
         (payload) => {
           const next = payload.new as MessageRowMinimal | null;
           const prev = payload.old as MessageRowMinimal | null;

@@ -43,14 +43,14 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
       .channel(`talkx-monitor-${campaignId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'talkx_campaigns', filter: `id=eq.${campaignId}` },
+        { event: 'UPDATE', schema: 'zapp', table: 'talkx_campaigns', filter: `id=eq.${campaignId}` },
         (payload) => {
           setCampaign(payload.new as TalkXCampaign);
         }
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'talkx_recipients', filter: `campaign_id=eq.${campaignId}` },
+        { event: '*', schema: 'zapp', table: 'talkx_recipients', filter: `campaign_id=eq.${campaignId}` },
         () => {
           setRecipientsKey((k) => k + 1);
         }

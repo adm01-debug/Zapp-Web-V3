@@ -300,7 +300,7 @@ export function useEmailTracking() {
       .channel('email-tracking-events')
       .on('postgres_changes', {
         event:  'INSERT',
-        schema: 'public',
+        schema: 'email_app',
         table:  'email_tracking_events',
       }, () => {
         // Recarregar dados quando nova abertura é detectada

@@ -303,7 +303,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       .channel('email_accounts_changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'email_accounts' },
+        { event: '*', schema: 'email_app', table: 'email_accounts' },
         () => loadAccounts()
       )
       .subscribe();

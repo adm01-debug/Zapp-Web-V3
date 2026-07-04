@@ -187,7 +187,7 @@ export default function BridgeStatusPage() {
     // Configura Subscriptions Real-time
     const trafficSub = supabase
       .channel('traffic-changes')
-      .on('postgres_changes' as any, { event: 'INSERT', schema: 'public', table: 'provider_message_log' }, () => {
+      .on('postgres_changes' as any, { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' }, () => {
         setRecentTraffic(prev => ({ ...prev, count: prev.count + 1, last_at: new Date().toISOString() }));
       })
       .subscribe();

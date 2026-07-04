@@ -81,7 +81,7 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
     if (messages.length === 0) return;
     const channel = supabase
       .channel(`chat-updates-shared`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (payload) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' }, (payload) => {
         const updatedMsg = payload.new as { id: string };
         if (updatedMsg.id && messages.some(m => m.id === updatedMsg.id)) {
           queryClient.invalidateQueries({ queryKey: ['messages'] });

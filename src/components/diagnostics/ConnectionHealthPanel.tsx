@@ -91,7 +91,7 @@ export function ConnectionHealthPanel() {
   useEffect(() => {
     const channel = supabase
       .channel('health-updates')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'connection_health_logs' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'connection_health_logs' }, () => {
         fetchData();
       })
       .subscribe();

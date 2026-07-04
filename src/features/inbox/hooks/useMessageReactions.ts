@@ -23,7 +23,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
       .channel(`reactions:${messageId}`)
       .on('postgres_changes', {
         event: '*',
-        schema: 'public',
+        schema: 'zapp',
         table: 'message_reactions',
         filter: `message_id=eq.${messageId}`,
       }, () => {
