@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
       `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${ELEVENLABS_AGENT_ID}`,
       {
         headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+        signal: AbortSignal.timeout(10_000),
       }
     );
 
