@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +30,7 @@ export default function AdminEmailAuditPage() {
 
   const mountedRef = useMountedRef();
 
-  const loadAuditLogs = async () => {
+  const loadAuditLogs = useCallback(async () => {
     setLoading(true);
     try {
       const from = (page - 1) * pageSize;
@@ -52,18 +52,18 @@ export default function AdminEmailAuditPage() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  };
+  }, [page, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
-    loadAuditLogs();
-  }, [page, statusFilter, dateFrom, dateTo]);
+    void loadAuditLogs();
+  }, [loadAuditLogs]);
 
   const handleRetry = async (jobId: string) => {
     try {
       const { error } = await emailApi.retryJob(jobId);
       if (error) throw error;
       toast.success('Novo job de revalidação agendado');
-      loadAuditLogs();
+      void loadAuditLogs();
     } catch (error) {
       log.error('Error retrying job', error);
       toast.error('Erro ao agendar nova tentativa');

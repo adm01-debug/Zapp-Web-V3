@@ -30,9 +30,9 @@ export function PasswordResetRequestsPanel() {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    fetchRequests();
+    void fetchRequests();
     const channel = supabase.channel('password-reset-requests')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'password_reset_requests' }, () => fetchRequests())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'password_reset_requests' }, () => { void fetchRequests(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -53,7 +53,7 @@ export function PasswordResetRequestsPanel() {
       const { error } = await supabase.functions.invoke('approve-password-reset', { body: { requestId: request.id, action: 'approve' } });
       if (error) throw error;
       toast.success('Solicitação aprovada! Email de reset enviado.');
-      fetchRequests();
+      void fetchRequests();
     } catch (error) { log.error('Error approving:', error); toast.error(error instanceof Error ? error.message : 'Erro ao aprovar'); }
     finally { setProcessing(false); setSelectedRequest(null); }
   };
@@ -65,7 +65,7 @@ export function PasswordResetRequestsPanel() {
       const { error } = await supabase.functions.invoke('approve-password-reset', { body: { requestId: selectedRequest.id, action: 'reject', rejectionReason: reason } });
       if (error) throw error;
       toast.success('Solicitação rejeitada');
-      setRejectDialogOpen(false); setSelectedRequest(null); fetchRequests();
+      setRejectDialogOpen(false); setSelectedRequest(null); void fetchRequests();
     } catch (error) { log.error('Error rejecting:', error); toast.error(error instanceof Error ? error.message : 'Erro ao rejeitar'); }
     finally { setProcessing(false); }
   };

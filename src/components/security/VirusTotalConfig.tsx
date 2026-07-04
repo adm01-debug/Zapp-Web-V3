@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('VirusTotalConfig');
 
