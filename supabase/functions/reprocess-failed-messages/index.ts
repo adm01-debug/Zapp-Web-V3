@@ -2,7 +2,7 @@
 // Chamada por pg_cron a cada 15min ou manualmente por admin.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { computeBackoffMs, classifyRetryReason, computeBackoffMsByReason } from '../_shared/dlq-backoff.ts';
-import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+import { requireServiceRoleOrCron, requireAdminOrSupervisor } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,8 +14,12 @@ const MAX_BATCH = 25;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  const denied = requireServiceRoleOrCron(req);
-  if (denied) return denied;
+  // Accept internal (service role / cron) or admin/supervisor user JWTs.
+  const internalDenied = requireServiceRoleOrCron(req);
+  if (internalDenied) {
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+  }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
