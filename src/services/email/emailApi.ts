@@ -21,7 +21,7 @@ export const emailApi = {
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
-    let query = supabase.from('email_revalidation_jobs' as any).select('*', { count: 'exact' });
+    let query = (supabase as any).from('email_revalidation_jobs').select('*', { count: 'exact' });
 
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
@@ -40,8 +40,8 @@ export const emailApi = {
     return { data: data as EmailRevalidationJob[] | null, count, error };
   },
   getHealthSummary: async () => {
-    const { data, error } = await supabase
-      .from('email_health_summary' as any)
+    const { data, error } = await (supabase as any)
+      .from('email_health_summary')
       .select('*')
       .eq('id', 'current')
       .maybeSingle();
@@ -49,13 +49,13 @@ export const emailApi = {
     return { data: data as EmailHealthSummary | null, error };
   },
   markThreadRead: async (threadId: string, read: boolean) => {
-    return await supabase.rpc('rpc_email_mark_thread_read' as any, {
+    return await (supabase as any).rpc('rpc_email_mark_thread_read', {
       p_thread_id: threadId,
       p_read: read
     });
   },
   getTokenStatus: async () => {
-    return await supabase.rpc('rpc_email_token_status' as any);
+    return await (supabase as any).rpc('rpc_email_token_status');
   },
   retryJob: async (jobId: string) => {
     const { data: job } = await (supabase as any)
