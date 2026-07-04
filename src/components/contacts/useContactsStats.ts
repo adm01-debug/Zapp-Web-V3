@@ -79,7 +79,7 @@ export function useContactsStats(workspaceId: string) {
       .channel(`contacts-stats-${workspaceId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: dbTable('contacts'), filter: `workspace_id=eq.${workspaceId}` },
+        { event: '*', schema: 'evo', table: 'evolution_contacts' },
         () => { load(); }
       )
       .subscribe();

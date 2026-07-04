@@ -39,8 +39,8 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'public',
-          table: dbTable('messages'),
+          schema: 'evo',
+          table: 'evolution_messages',
         },
         wrapMessagesHandler<{ new: Record<string, unknown>; old?: Record<string, unknown> }>('useTranscriptionNotifications', async (payload) => {
           const newData = payload.new as { id: string; transcription_status?: string; transcription?: string; contact_id?: string };

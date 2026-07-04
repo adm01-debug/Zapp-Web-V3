@@ -145,7 +145,7 @@ export function useRealtimeInbox() {
     };
     fetchWhisperCount();
 
-    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => fetchWhisperCount()).subscribe();
+    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'zapp', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => fetchWhisperCount()).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [selectedContactId, profile?.id]);
 

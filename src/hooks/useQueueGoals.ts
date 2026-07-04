@@ -34,7 +34,7 @@ export function useQueueGoals() {
 
     const channel = supabase
       .channel('queue-goals-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_goals' }, fetchGoals)
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_goals' }, fetchGoals)
       .subscribe();
 
     return () => {

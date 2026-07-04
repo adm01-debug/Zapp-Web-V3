@@ -49,7 +49,7 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
     logMessagesSubscribe('AudioMessagePlayer', { event: 'UPDATE', table: dbTable('messages'), filter: `id=eq.${messageId}` });
     const channel = supabase
       .channel(`transcription-${messageId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: dbTable('messages'), filter: `id=eq.${messageId}` },
+      .on('postgres_changes', { event: 'UPDATE', schema: 'evo', table: 'evolution_messages', filter: `id=eq.${messageId}` },
         wrapMessagesHandler<{ new: { transcription_status?: string; transcription?: string } }>('AudioMessagePlayer', (payload) => {
           const newData = payload.new;
           if (newData.transcription_status) setTranscriptionStatus(newData.transcription_status);
@@ -64,9 +64,9 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
     const channel = supabase
       .channel(`voice-conversion-${messageId}`)
       .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'voice_conversion_queue', 
+        event: '*',
+        schema: 'zapp',
+        table: 'voice_conversion_queue',
         filter: `message_id=eq.${messageId}` 
       }, (payload) => {
         const newData = payload.new as any;

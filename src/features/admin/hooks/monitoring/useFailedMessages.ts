@@ -200,7 +200,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     const channel = supabase
       .channel('failed_messages_realtime')
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'failed_messages' },
+        { event: '*', schema: 'zapp', table: 'failed_messages' },
         () => { queryClient.invalidateQueries({ queryKey: ['failed-messages'] }); }
       )
       .subscribe();
