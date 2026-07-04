@@ -6,12 +6,12 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("elevenlabs-tts-stream");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const parsed = parseBody(ElevenLabsTTSSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
