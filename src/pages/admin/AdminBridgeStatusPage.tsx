@@ -135,8 +135,8 @@ export default function BridgeStatusPage() {
 
       // 5. Check Active Alerts
       try {
-        const { data: alerts } = await supabase
-          .from('v_alerts_active' as any)
+        const { data: alerts } = await (supabase as any)
+          .from('v_alerts_active')
           .select('*')
           .limit(5);
         if (mountedRef.current) setActiveAlerts(alerts || []);

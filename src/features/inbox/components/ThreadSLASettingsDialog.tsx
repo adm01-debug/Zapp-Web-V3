@@ -50,14 +50,14 @@ export function ThreadSLASettingsDialog({
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { error } = await (supabase
-        .from('conversation_threads' as any)
+      const { error } = await (supabase as any)
+        .from('conversation_threads')
         .update({
           sla_warning_threshold_minutes: formData.sla_warning_threshold_minutes,
           sla_critical_threshold_minutes: formData.sla_critical_threshold_minutes,
           sla_notification_message: formData.sla_notification_message,
           sla_enabled: formData.sla_enabled,
-        } as any) as any)
+        })
         .eq('id', threadId);
 
       if (error) throw error;

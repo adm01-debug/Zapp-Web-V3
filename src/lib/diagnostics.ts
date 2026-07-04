@@ -32,8 +32,8 @@ export async function runConnectionDiagnostics() {
     record('Auth Check', 'pass', { user: session.user.email });
 
     // Passo 2: Buscar Configuração Atual no Banco
-    const { data: currentConfigs, error: fetchError } = await supabase
-      .from('system_connections' as any)
+    const { data: currentConfigs, error: fetchError } = await (supabase as any)
+      .from('system_connections')
       .select('*')
       .eq('name', 'FATOR X')
       .eq('provider', 'supabase_external')
@@ -70,8 +70,8 @@ export async function runConnectionDiagnostics() {
 
     // Passo 4: Testar Escrita/Leitura no system_connections (Verificar RLS)
     const testName = `DIAG_TEST_${Math.floor(Math.random() * 1000)}`;
-    const { data: saveResult, error: saveError, status: saveStatus } = await supabase
-      .from('system_connections' as any)
+    const { data: saveResult, error: saveError, status: saveStatus } = await (supabase as any)
+      .from('system_connections')
       .upsert({
         name: testName,
         provider: 'diagnostic_test',
@@ -88,8 +88,8 @@ export async function runConnectionDiagnostics() {
       record('Database Write (RLS)', 'pass', { id: savedData?.[0]?.id, status: saveStatus });
 
       // Passo 5: Verificação de Visibilidade (Read-back)
-      const { data: verify, error: verifyError } = await supabase
-        .from('system_connections' as any)
+      const { data: verify, error: verifyError } = await (supabase as any)
+        .from('system_connections')
         .select('*')
         .eq('name', testName)
         .maybeSingle();

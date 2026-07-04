@@ -84,8 +84,8 @@ export function EmailSLADashboard({ className }: EmailSLADashboardProps) {
 
   const load = useCallback(async () => {
     setIsLoading(true);
-    const { data: rows } = await (supabase
-      .from('v_email_sla_dashboard' as any) as any)
+    const { data: rows } = await (supabase as any)
+      .from('v_email_sla_dashboard')
       .select('*');
     if (mountedRef.current) {
       setData((rows ?? []) as SLADashboardData[]);

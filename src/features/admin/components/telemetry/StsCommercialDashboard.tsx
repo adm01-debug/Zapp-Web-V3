@@ -13,8 +13,8 @@ export function StsCommercialDashboard() {
     queryFn: async () => {
       try {
         // sts_troubleshooting_report is the view created in the previous turn
-        const { data, error } = await supabase
-          .from('sts_troubleshooting_report' as any)
+        const { data, error } = await (supabase as any)
+          .from('sts_troubleshooting_report')
           .select('*');
 
         if (error) throw error;

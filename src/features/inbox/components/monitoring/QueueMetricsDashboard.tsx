@@ -25,8 +25,8 @@ export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React
     let cancelled = false;
     const fetchSTS = async () => {
       try {
-        const { data, error } = await supabase
-          .from('sts_performance_metrics' as any)
+        const { data, error } = await (supabase as any)
+          .from('sts_performance_metrics')
           .select('*');
         if (!cancelled && !error && data) setStsMetrics(data);
       } catch (err) {

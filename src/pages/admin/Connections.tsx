@@ -117,8 +117,8 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('system_connections' as any)
+    const { data, error } = await (supabase as any)
+      .from('system_connections')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -225,8 +225,8 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      const { data: verify, error: verifyError } = await supabase
-        .from('system_connections' as any)
+      const { data: verify, error: verifyError } = await (supabase as any)
+        .from('system_connections')
         .select('id, updated_at')
         .eq('provider', 'supabase_external')
         .eq('name', 'FATOR X')
