@@ -221,7 +221,10 @@ export async function validateMetaSignature(
   signatureHeader: string | null,
   appSecret: string,
 ): Promise<boolean> {
-  if (!appSecret) return true;
+  if (!appSecret) {
+    console.error('[meta-webhook] WHATSAPP_APP_SECRET not configured — rejecting all requests');
+    return false;
+  }
   if (!signatureHeader) return false;
   const expected = signatureHeader.startsWith('sha256=') ? signatureHeader.slice(7) : signatureHeader;
 

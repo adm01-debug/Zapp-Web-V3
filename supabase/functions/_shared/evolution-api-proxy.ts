@@ -145,6 +145,7 @@ export async function proxyToEvolution(
         console.warn(`[Evolution API] Got ${response.status}, will retry...`);
         lastError = new Error(`HTTP ${response.status}`);
         retryReasons.push({ attempt: attempt + 1, status: response.status, reason: `http_${response.status}` });
+        await response.body?.cancel();
         continue;
       }
 
