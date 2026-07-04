@@ -132,13 +132,13 @@ Deno.serve(async (req) => {
         ok ? 200 : 502,
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return jsonResponse({ forwarded: false, reason: 'fetch_failed', error: msg }, 502);
+      console.error('[sla-alert-forward] fetch failed', err instanceof Error ? err.message : String(err));
+      return jsonResponse({ forwarded: false, reason: 'fetch_failed', error: 'Network error forwarding alert' }, 502);
     } finally {
       clearTimeout(timer);
     }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return jsonResponse({ error: msg }, 500);
+    console.error('[sla-alert-forward]', err instanceof Error ? err.message : String(err));
+    return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });

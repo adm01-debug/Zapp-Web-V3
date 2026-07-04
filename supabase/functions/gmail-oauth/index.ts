@@ -228,7 +228,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Ação desconhecida' }), { status: 400, headers: corsHeaders });
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: corsHeaders });
+    console.error('[gmail-oauth]', err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: corsHeaders });
   }
 });

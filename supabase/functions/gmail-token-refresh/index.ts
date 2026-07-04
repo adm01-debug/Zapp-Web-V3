@@ -253,8 +253,7 @@ serve(async (req) => {
     return json({ error: `Ação desconhecida: ${action}` }, 400);
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[gmail-token-refresh]', msg);
-    return json({ error: msg }, 500);
+    console.error('[gmail-token-refresh]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });

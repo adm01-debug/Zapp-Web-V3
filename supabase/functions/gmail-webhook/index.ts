@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getSecret } from '../_shared/mod.ts';
+import { requireUser } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,6 +45,9 @@ serve(async (req) => {
 
       // ── registerWatch — registra Pub/Sub watch para uma conta ─────
       if (action === 'registerWatch') {
+        const authed = await requireUser(req);
+        if (authed instanceof Response) return authed;
+
         const { accountId } = body;
         const token = await getValidToken(supabase, accountId);
         if (!token) return json({ error: 'Token inválido' }, 401);
@@ -54,6 +58,10 @@ serve(async (req) => {
           body: JSON.stringify({ topicName: PUBSUB_TOPIC, labelIds: ['INBOX'] }),
         });
         const watchData = await watchRes.json();
+        if (watchData.error) {
+          console.error('[gmail-webhook] watch setup error', watchData.error);
+          return json({ error: 'Failed to setup Gmail watch' }, 400);
+        }
 
         if (!watchRes.ok) return json({ error: 'Watch failed', detail: watchData }, 500);
 
@@ -151,7 +159,8 @@ serve(async (req) => {
 
     return json({ error: 'Method not allowed' }, 405);
   } catch (err) {
-    return json({ error: err instanceof Error ? err.message : 'Internal error' }, 500);
+    console.error('[gmail-webhook]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });
 

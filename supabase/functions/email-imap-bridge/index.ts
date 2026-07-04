@@ -181,8 +181,7 @@ serve(async (req) => {
     return json({ error: `Ação desconhecida: ${action}. Ações válidas: getProviderConfig, saveCredentials, testConnection, listProviders` }, 400);
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[email-imap-bridge]', msg);
-    return json({ error: msg }, 500);
+    console.error('[email-imap-bridge]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });

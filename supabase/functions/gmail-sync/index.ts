@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireUser } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,9 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -42,7 +46,10 @@ serve(async (req) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const listData = await listRes.json();
-      if (listData.error) return json({ error: listData.error.message }, 400);
+      if (listData.error) {
+        console.error('[gmail-sync] list threads error', listData.error);
+        return json({ error: 'Failed to list Gmail threads' }, 400);
+      }
 
       // Para cada thread, busca snippet e persistir no Supabase
       const threads = [];
@@ -130,9 +137,8 @@ serve(async (req) => {
     return json({ error: `Ação desconhecida: ${action}` }, 400);
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[gmail-sync]', msg);
-    return json({ error: msg }, 500);
+    console.error('[gmail-sync]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });
 
