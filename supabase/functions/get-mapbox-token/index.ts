@@ -5,12 +5,12 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("get-mapbox-token");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const mapboxToken = requireEnv('MAPBOX_PUBLIC_TOKEN');
     log.done(200);
     return jsonResponse({ token: mapboxToken }, 200, req);
