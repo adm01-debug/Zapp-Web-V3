@@ -1,0 +1,102 @@
+# =====================================================================================
+# Supabase edge-runtime (serviço `functions`) — bloco RECONCILIADO com o runtime (2026-07-04)
+# Ref.: docs/EXECUCAO_MELHORIAS_PARIDADE_2026-07-04.md (item 2 — secrets do edge-runtime)
+#       docs/AUDITORIA_PARIDADE_LOVABLE_VS_SELFHOSTED_2026-07-04.md (§8)
+#
+# CONTEXTO / DRIFT:
+#   O stack `supabase` armazenado no Portainer (id 35) tem o serviço `functions` DEFASADO em
+#   relação ao serviço em produção. O serviço vivo (label com.atomicabr.audit=
+#   parity-env-external-webhook-2026-07-04, Version.Index 12444394) foi ajustado out-of-band via
+#   rolling update de serviço — NÃO via `stack deploy`. Portanto, um `stack deploy` a partir do
+#   arquivo atual do stack REGRIDE o serviço (mesma classe de bug já registrada no cabeçalho do
+#   próprio stack em 2026-07-02, quando as PROMOGIFTS_* sumiram num redeploy).
+#
+#   Este arquivo é a FONTE DA VERDADE do serviço `functions`, alinhada ao runtime. Ele NÃO
+#   substitui o stack inteiro — é o bloco a ser mesclado no stack `supabase` (id 35), preservando
+#   os demais 13 serviços (db, kong, auth, rest, realtime, storage, imgproxy, meta, analytics,
+#   vector, supavisor, studio) exatamente como estão.
+#
+# O QUE O RUNTIME TEM A MAIS QUE O STACK FILE ARMAZENADO:
+#   Args (entrypoint):
+#     + export EXTERNAL_SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+#     + export EVOLUTION_API_URL=http://evolution_evolution:8080
+#     + export EVOLUTION_API_KEY=$(cat /run/secrets/evolution_api_key_v4_20260704)
+#     + export EVOLUTION_WEBHOOK_SECRET=${WEBHOOK_SECRET}
+#     + flag --request-wait-timeout 60000
+#   Env:
+#     + WEBHOOK_SECRET, EXTERNAL_SUPABASE_URL, EXTERNAL_SUPABASE_ANON_KEY
+#   Secrets:
+#     + evolution_api_key_v4_20260704  (external)
+#   Resources:
+#     + limits.memory 1G / reservations.memory 256M
+#   update_config.failure_action: rollback  (era continue no PreviousSpec)
+#
+# ⚠️ SEGREDOS: o valor real de WEBHOOK_SECRET está REDIGIDO abaixo (não versionar segredo em git).
+#    Copie o valor do serviço vivo (docker service inspect supabase_functions) ou de um Docker
+#    secret antes de aplicar. As *_ANON_KEY são JWTs de role `anon` (públicas por design), mantidas.
+#
+# COMO APLICAR (Portainer → Stacks → supabase (id 35) → Editor):
+#   1. Substituir o bloco do serviço `functions` por este.
+#   2. Adicionar `evolution_api_key_v4_20260704: { external: true }` ao bloco `secrets:` do topo.
+#   3. Repor o valor real de WEBHOOK_SECRET.
+#   4. Update the stack (order: stop-first já garante rollback em falha do serviço `functions`).
+#   Alternativa cirúrgica sem redeploy do stack inteiro:
+#     docker service update supabase_functions ... (foi o método usado em 2026-07-04; não toca
+#     nos outros 13 serviços — preferível para evitar restart do Postgres/Kong em produção).
+# =====================================================================================
+version: "3.7"
+services:
+  functions:
+    image: supabase/edge-runtime:v1.71.2@sha256:2c0994891f47466d8791b714bac9a05842dec637feba050fc736e4fdedae0a43
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        export JWT_SECRET=$$(cat /run/secrets/supabase_jwt_secret_v1) &&
+        export DB_PASS=$$(cat /run/secrets/supabase_db_password_v1) &&
+        export SUPABASE_DB_URL=postgresql://postgres:$${DB_PASS}@db:5432/postgres &&
+        export SUPABASE_SERVICE_ROLE_KEY=$$(cat /run/secrets/supabase_service_key_v1) &&
+        export EXTERNAL_SUPABASE_SERVICE_ROLE_KEY=$${SUPABASE_SERVICE_ROLE_KEY} &&
+        export EVOLUTION_API_URL=http://evolution_evolution:8080 &&
+        export EVOLUTION_API_KEY=$$(cat /run/secrets/evolution_api_key_v4_20260704) &&
+        export EVOLUTION_WEBHOOK_SECRET=$${WEBHOOK_SECRET} &&
+        exec edge-runtime start --main-service /home/deno/functions/main --request-wait-timeout 60000
+    volumes:
+      - /root/supabase/docker/volumes/functions:/home/deno/functions:Z
+    secrets:
+      - supabase_jwt_secret_v1
+      - supabase_db_password_v1
+      - supabase_service_key_v1
+      - evolution_api_key_v4_20260704      # ← faltava no stack file armazenado
+    networks:
+      - AtomicaBRNet
+    environment:
+      - VERIFY_JWT="false"
+      - SUPABASE_URL=http://kong:8000
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk
+      # WEBHOOK_SECRET: usado como EVOLUTION_WEBHOOK_SECRET no entrypoint. VALOR REDIGIDO — repor do runtime.
+      - WEBHOOK_SECRET=__REDACTED__COPIAR_DO_RUNTIME__
+      - PROMOGIFTS_SUPABASE_URL=https://doufsxqlfjyuvxuezpln.supabase.co
+      - PROMOGIFTS_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvdWZzeHFsZmp5dXZ4dWV6cGxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczODY2NDMsImV4cCI6MjA4Mjk2MjQ0M30.nm3WMOBSx5SUnIBmvF_Mj0Y-4hV6UohrBF0sUpuQvPc
+      # EXTERNAL_SUPABASE_* → apontam o próprio VPS (functions external-db-* usam estas 3 vars)
+      - EXTERNAL_SUPABASE_URL=http://kong:8000
+      - EXTERNAL_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk
+      # EXTERNAL_SUPABASE_SERVICE_ROLE_KEY é exportado no entrypoint (= SUPABASE_SERVICE_ROLE_KEY do secret)
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+      update_config:
+        failure_action: rollback
+        order: stop-first
+
+# --- Adicionar ao bloco `secrets:` do topo do stack `supabase` (id 35) ---
+secrets:
+  evolution_api_key_v4_20260704:
+    external: true
