@@ -39,6 +39,7 @@ const loadSelected = (): string | null => {
 interface ConnectionRow {
   id: string;
   instance_id: string;
+  instance_name: string | null;
   name: string | null;
   phone_number: string | null;
   status: string;
@@ -140,7 +141,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     }
     const { data, error } = await supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, name, phone_number, status');
+      .select('id, instance_id, instance_name, name, phone_number, status');
     if (error) {
       log.warn('Failed to fetch connections', { error: error.message });
       return;
@@ -213,7 +214,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     cooldownRef.current.set(conn.instance_id, now);
     // Evolution API roteia por NOME; o UUID (instance_id) gera 404 + auto-create
     // de instância fantasma (incidente wpp2 2026-07-04). Sem nome → não chamar.
-    const instanceName = evolutionInstanceName({ instance_name: conn.name, instance_id: conn.instance_id });
+    const instanceName = evolutionInstanceName({ instance_name: conn.instance_name, instance_id: conn.instance_id });
     if (!instanceName) {
       const msg = 'Conexão sem nome de instância cadastrado — reconexão automática bloqueada.';
       if (!opts.silent) toast.error(msg);
