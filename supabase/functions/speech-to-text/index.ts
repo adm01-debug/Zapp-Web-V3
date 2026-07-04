@@ -33,12 +33,11 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("speech-to-text");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`stt:${ip}`, 10, 60_000);
     if (!allowed) return errorResponse("Limite de transcrições excedido. Tente novamente em 1 minuto.", 429, req);

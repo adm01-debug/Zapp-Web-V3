@@ -23,12 +23,11 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("file-security-scanner", req);
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const VIRUSTOTAL_API_KEY = requireEnv("VIRUSTOTAL_API_KEY");
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
