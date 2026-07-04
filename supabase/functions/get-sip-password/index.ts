@@ -15,11 +15,11 @@ Deno.serve(async (req) => {
 
     // Server-side JWT verification via Supabase Auth API (replaces getClaims local decode)
     const authed = await requireUser(req);
-    if (authed instanceof Response) return errorResponse('Unauthorized', 401, req);
+    if (authed instanceof Response) return authed;
 
     const adminClient = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
     const { data: profile, error: profileError } = await adminClient
-      .from('profiles').select('id, is_active').eq('user_id', authed.id).maybeSingle();
+      .from('profiles').select('id, is_active').eq('user_id', authed.user.id).maybeSingle();
 
     if (profileError || !profile) return errorResponse('User profile not found', 403, req);
     if (!profile.is_active) return errorResponse('User account is inactive', 403, req);
