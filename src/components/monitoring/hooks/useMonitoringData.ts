@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import type { ConnectionInfo, HealthLog, MessageStats, UptimeInfo, SparklineData, InstanceUptime, TimePeriod } from './types';
 import { periodMs, periodBuckets } from './types';
 import { dbFrom } from '@/integrations/datasource/db';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useMonitoringData');
 
 const HEALTHY_STATUSES = ['connected', 'healthy'];
 
@@ -124,7 +127,7 @@ export function useMonitoringData(onConnectionsUpdate?: (conns: ConnectionInfo[]
         setSparklines(computeSparklines(logsRes.data, msgRes.data, now));
       }
     } catch (err) {
-      console.error('Monitoring fetch error:', err);
+      log.error('Monitoring data fetch error', err);
     } finally {
       setLoading(false);
     }
