@@ -30,7 +30,7 @@ export function FeatureFlagsAdmin() {
   const [metrics, setMetrics] = useState({ pendingRetries: 0, failedTotal: 0 });
 
   const fetchFlags = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('app_settings')
       .select('*')
       .like('key', 'feature_%');
@@ -64,8 +64,8 @@ export function FeatureFlagsAdmin() {
   }, []);
 
   const fetchMetrics = useCallback(async () => {
-    const { data: retries } = await supabase.from('message_retry_queue').select('id').eq('status', 'pending');
-    const { data: failed } = await supabase.from('message_retry_queue').select('id').eq('status', 'failed');
+    const { data: retries } = await (supabase as any).from('message_retry_queue').select('id').eq('status', 'pending');
+    const { data: failed } = await (supabase as any).from('message_retry_queue').select('id').eq('status', 'failed');
     setMetrics({
       pendingRetries: retries?.length || 0,
       failedTotal: failed?.length || 0
@@ -88,11 +88,11 @@ export function FeatureFlagsAdmin() {
   }, [fetchFlags, fetchAuditLogs, fetchMetrics]);
 
   const updateFlag = async (key: string, newConfig: FeatureConfig) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('app_settings')
-      .update({ 
-        value: JSON.stringify(newConfig), 
-        updated_at: new Date().toISOString() 
+      .update({
+        value: JSON.stringify(newConfig),
+        updated_at: new Date().toISOString()
       })
       .eq('key', key);
 
@@ -110,7 +110,7 @@ export function FeatureFlagsAdmin() {
     setLoading(true);
     
     for (const key of criticalFlags) {
-      await supabase.from('app_settings').update({ 
+      await (supabase as any).from('app_settings').update({
         value: JSON.stringify({ enabled: false, killSwitch: true }),
         updated_at: new Date().toISOString()
       }).eq('key', key);

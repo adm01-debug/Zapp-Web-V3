@@ -209,7 +209,7 @@ function PmlPanel() {
 
   const load = async () => {
     setLoading(true);
-    let q = supabase
+    let q = (supabase as any)
       .from('provider_message_log')
       .select(
         "id,provider,instance_name,direction,remote_jid,delivery_status,http_status,error_message,received_at",
