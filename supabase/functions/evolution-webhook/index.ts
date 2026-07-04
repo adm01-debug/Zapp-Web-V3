@@ -5,7 +5,7 @@ import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
-  sha256Hex, markEventProcessed, auditWebhookEvent,
+  sha256Hex, markEventProcessed, auditWebhookEvent, routeToDeadLetter,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
 import { parseMessageContent } from "../_shared/evolution-media.ts";
@@ -281,7 +281,22 @@ serve(async (req) => {
     // Logical/handler errors: log the detail internally, return 200 to evo so it does not
     // retry-storm the same event. The idempotency guard above makes retries safe.
     const detail = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack ?? null : null;
     console.error(redactSecrets(`[webhook][${requestId}] handler_error event=${event} instance=${instance}: ${detail}`));
+    // Route to the dead-letter queue BEFORE auditing so the event is recoverable.
+    // The event was already marked processed (idempotency) and we return 200, so
+    // without this the failure would be a permanent, unalarmed data loss — the
+    // mechanism behind the wpp2 message gap. Best-effort: never throws.
+    const dlqData = isRecord(data) ? data : baseData;
+    await routeToDeadLetter(supabase, {
+      event_type: event,
+      instance,
+      remote_jid: (typeof dlqData.remoteJid === 'string' ? dlqData.remoteJid : null),
+      payload: payload,
+      error_message: detail,
+      error_stack: stack,
+      request_id: requestId,
+    });
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'error',
       duration_ms: Date.now() - startedAt, error_message: detail.slice(0, 500),

@@ -69,6 +69,53 @@ export async function auditWebhookEvent(supabase: any, row: WebhookAuditRow): Pr
   }
 }
 
+export interface DeadLetterInput {
+  event_type: string;
+  instance: string;
+  remote_jid?: string | null;
+  /** The parsed webhook payload/data so the reconcile cron can replay it. */
+  payload: unknown;
+  error_message: string;
+  error_stack?: string | null;
+  request_id?: string | null;
+}
+
+// Routes a webhook event whose handler threw into the Evolution dead-letter
+// queue so it can be retried/inspected instead of being silently dropped.
+//
+// Context: the webhook marks an event as processed (idempotency) BEFORE the
+// handler runs and returns 200 even on handler failure (so Evolution does not
+// retry-storm). Without this, a handler error means permanent, unalarmed data
+// loss — the exact mechanism behind the wpp2 gap during the WhatsApp LID
+// migration. Landing the event in the DLQ makes the loss recoverable.
+//
+// Best-effort by design: a DLQ failure must NEVER bubble up and turn the
+// caller's 200 into a 5xx, so everything here is swallowed-and-logged.
+// deno-lint-ignore no-explicit-any
+export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
+  try {
+    const { error } = await supabase.from('evolution_webhook_dlq').insert({
+      event_type: input.event_type || 'unknown',
+      instance_name: input.instance || 'unknown',
+      remote_jid: input.remote_jid ?? null,
+      payload: (input.payload ?? {}) as Record<string, unknown>,
+      error_message: (input.error_message || 'handler_error').slice(0, 2000),
+      error_stack: input.error_stack ? input.error_stack.slice(0, 8000) : null,
+      status: 'pending',
+      retry_count: 0,
+      // Stagger the first retry so a transient dependency (DB/API) has time to
+      // recover before the reconcile cron picks the row up.
+      next_retry_at: new Date(Date.now() + 60_000).toISOString(),
+      last_request_id: input.request_id ?? null,
+    });
+    if (error) {
+      console.warn('[dlq] insert failed:', error.message ?? error.code ?? String(error));
+    }
+  } catch (e) {
+    console.warn('[dlq] insert threw:', (e as Error).message ?? String(e));
+  }
+}
+
 export function toEventRecords(data: unknown, collectionKeys: string[] = []): Record<string, unknown>[] {
   if (Array.isArray(data)) return data.filter(isRecord);
   if (!isRecord(data)) return [];

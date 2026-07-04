@@ -59,6 +59,19 @@ Deno.test("Resiliência: handler_error retorna 200 (sem retry-storm)", () => {
   assertMatch(block, /error: 'internal_error'/);
 });
 
+Deno.test("Recuperabilidade: handler_error é roteado para a DLQ antes do audit", () => {
+  // Regressão do gap wpp2: o evento é marcado processado (idempotência) ANTES
+  // do handler e retornamos 200 mesmo em falha, então sem DLQ a perda é
+  // permanente e silenciosa. O catch DEVE rotear para routeToDeadLetter.
+  const block = SOURCE.slice(SOURCE.indexOf("} catch (error: unknown)"));
+  assertMatch(block, /routeToDeadLetter\(supabase,/);
+  // DLQ antes do audit para não depender do sucesso do audit.
+  assert(
+    block.indexOf("routeToDeadLetter") < block.indexOf("auditWebhookEvent"),
+    "routeToDeadLetter deve ser chamado antes de auditWebhookEvent",
+  );
+});
+
 Deno.test("Auditoria: estados rejected/duplicate/processed/error presentes", () => {
   for (const s of ["'rejected'", "'duplicate'", "'processed'", "'error'"]) {
     assert(hasMarker(SOURCE, `status: ${s}`), `faltou status ${s}`);
