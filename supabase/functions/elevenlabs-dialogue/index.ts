@@ -6,12 +6,11 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("elevenlabs-dialogue");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const parsed = parseBody(ElevenLabsDialogueSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 

@@ -86,12 +86,11 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("voice-agent");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const LOVABLE_API_KEY = requireEnv('LOVABLE_API_KEY');
 
     const body = await req.json().catch(() => null);
