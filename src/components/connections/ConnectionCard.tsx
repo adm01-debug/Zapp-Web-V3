@@ -25,6 +25,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { WhatsAppConnection } from '@/features/connections';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 /** Human-friendly status — no jargon. */
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Wifi; bgClass: string }> = {
@@ -78,39 +79,48 @@ export function ConnectionCard({
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const { restartInstance, connectInstance } = useEvolutionApi();
   const isConnected = connection.status === 'connected';
+  // Nome roteável na Evolution API (nunca o UUID interno — ver src/lib/evolutionInstance.ts)
+  const evoName = evolutionInstanceName(connection);
 
   const reasonInfo = connection.health_reason ? HEALTH_REASON_LABEL[connection.health_reason] : null;
   const isPhantomLike = reasonInfo?.severe && connection.health_status !== 'healthy';
   const needsAction = isPhantomLike || connection.status === 'disconnected';
 
   const handleReconnect = async () => {
-    if (!connection.instance_id) return;
+    // Evolution API roteia por NOME de instância; passar o instance_id (UUID)
+    // gera 404 e o auto-create da edge function cria uma instância fantasma
+    // (incidente wpp2 de 2026-07-04).
+    const instanceName = evolutionInstanceName(connection);
+    if (!instanceName) {
+      toast({ title: 'Conexão sem nome de instância', description: 'Cadastre o instance_name desta conexão antes de reconectar.', variant: 'destructive' });
+      return;
+    }
     setReconnecting(true);
     try {
       // 1. Tentar reiniciar a instância na Evolution API (POST /instance/restart)
-      await restartInstance(connection.instance_id);
-      
+      await restartInstance(instanceName);
+
       // 2. Aguardar um pouco para o restart processar
       await new Promise(r => setTimeout(r, 4000));
-      
+
       // 3. Forçar um health check para atualizar o status no painel
       const { data, error } = await supabase.functions.invoke('connection-health-check', {
-        body: { instanceName: connection.instance_id },
+        body: { instanceName },
       });
-      
+
       if (error) throw error;
-      
-      const isStillClosed = data?.connections?.[0]?.socket_state === 'close' || 
+
+      const isStillClosed = data?.connections?.[0]?.socket_state === 'close' ||
                            data?.connections?.[0]?.status === 'disconnected';
-                           
+
       if (isStillClosed) {
-        toast({ 
-          title: 'Ação automática', 
+        toast({
+          title: 'Ação automática',
           description: 'A instância ainda está desconectada. Gerando novo QR Code...',
         });
-        
+
         // 4. Se ainda estiver desconectado, dispara automaticamente o connect para gerar QR
-        await connectInstance(connection.instance_id);
+        await connectInstance(instanceName);
         
         // Abre o modal de QR code automaticamente
         onShowQrCode(connection);
@@ -125,11 +135,12 @@ export function ConnectionCard({
   };
 
   const handleRecheckNow = async () => {
-    if (!connection.instance_id) return;
+    const instanceName = evolutionInstanceName(connection);
+    if (!instanceName) return;
     setRecheckingHealth(true);
     try {
       const { error } = await supabase.functions.invoke('connection-health-check', {
-        body: { instanceName: connection.instance_id },
+        body: { instanceName },
       });
       if (error) throw error;
       toast({ title: 'Verificação concluída', description: 'O status foi atualizado.' });
@@ -266,9 +277,9 @@ export function ConnectionCard({
                   </motion.div>
                 </div>
               )}
-              {connection.status !== 'connected' && isOfficial && connection.instance_id && (
+              {connection.status !== 'connected' && isOfficial && evoName && (
                 <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                  <Button variant="outline" size="sm" onClick={() => onSettings(connection.instance_id!, connection.name)}
+                  <Button variant="outline" size="sm" onClick={() => onSettings(evoName, connection.name)}
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
                     <ShieldCheck className="w-4 h-4 mr-1.5" />Configurar
                   </Button>
@@ -295,7 +306,7 @@ export function ConnectionCard({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Conexão</DropdownMenuLabel>
-                  <DropdownMenuItem disabled={recheckingHealth || !connection.instance_id} onClick={handleRecheckNow}>
+                  <DropdownMenuItem disabled={recheckingHealth || !evoName} onClick={handleRecheckNow}>
                     {recheckingHealth ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Activity className="w-4 h-4 mr-2" />}
                     Verificar agora
                   </DropdownMenuItem>
@@ -316,12 +327,12 @@ export function ConnectionCard({
                   <DropdownMenuItem onClick={() => onQueues(connection.id, connection.name)}>
                     <Link2 className="w-4 h-4 mr-2" />Vincular Filas
                   </DropdownMenuItem>
-                  {connection.instance_id && (
+                  {evoName && (
                     <>
-                      <DropdownMenuItem onClick={() => onSettings(connection.instance_id!, connection.name)}>
+                      <DropdownMenuItem onClick={() => onSettings(evoName, connection.name)}>
                         <Settings className="w-4 h-4 mr-2" />Configurações & Perfil
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onIntegrations(connection.instance_id!, connection.name)}>
+                      <DropdownMenuItem onClick={() => onIntegrations(evoName, connection.name)}>
                         <Boxes className="w-4 h-4 mr-2" />Integrações (IA/Bots)
                       </DropdownMenuItem>
                     </>

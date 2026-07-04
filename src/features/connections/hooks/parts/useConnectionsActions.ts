@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { whatsappConnectionService } from '@/features/connections/services/whatsappConnectionService';
 import { getLogger } from '@/lib/logger';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 const log = getLogger('useConnectionsActions');
 
@@ -74,8 +75,10 @@ export function useConnectionsActions(
 
   const handleDelete = useCallback(async (connection: any) => {
     try {
-      if (connection.instance_id) {
-        await deleteInstance(connection.instance_id).catch(e => log.warn('Failed to delete evolution instance:', e));
+      // Evolution roteia por nome de instância — o UUID (instance_id) gera 404.
+      const evoName = evolutionInstanceName(connection);
+      if (evoName) {
+        await deleteInstance(evoName).catch(e => log.warn('Failed to delete evolution instance:', e));
       }
       const { error } = await supabase.from('whatsapp_connections' as any).delete().eq('id', connection.id);
       if (error) throw error;

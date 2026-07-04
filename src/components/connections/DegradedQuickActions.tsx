@@ -7,10 +7,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 interface DegradedConnection {
   id: string;
   instance_id?: string | null;
+  instance_name?: string | null;
   name?: string | null;
   phone_number?: string | null;
   health_status?: string | null;
@@ -45,8 +47,9 @@ export function DegradedQuickActions({ connections, onShowQrCode }: Props) {
   const handleRevalidate = async (conn: DegradedConnection) => {
     setRevalidating(conn.id);
     try {
+      // Evolution roteia por nome de instância — nunca enviar o UUID (instance_id).
       const { error } = await supabase.functions.invoke('connection-health-check', {
-        body: { connectionId: conn.id, instanceName: conn.instance_id },
+        body: { connectionId: conn.id, instanceName: evolutionInstanceName(conn) ?? undefined },
       });
       if (error) throw error;
       toast({ title: 'Verificação concluída', description: `Verificação de "${conn.name || conn.instance_id}" concluída.` });

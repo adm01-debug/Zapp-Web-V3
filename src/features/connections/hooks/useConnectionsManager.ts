@@ -16,6 +16,9 @@ export interface WhatsAppConnection {
   id: string;
   name: string;
   phone_number: string;
+  /** Nome da instância na Evolution API — identificador usado nas rotas HTTP. */
+  instance_name?: string | null;
+  /** UUID interno da Evolution — NUNCA usar em rotas da API (gera 404/fantasma). */
   instance_id: string | null;
   status: string;
   qr_code: string | null;
