@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       const SAFE_PATH_RE = /^\/message\/[a-zA-Z0-9/_-]{1,64}$/;
       // Instance names may include dots (e.g. provider-assigned IDs like "tenant.v1.abc123").
       const INSTANCE_RE = /^[a-zA-Z0-9._-]{1,128}$/;
-      if (!SAFE_PATH_RE.test(rawPath) || !INSTANCE_RE.test(instance ?? '')) {
+      if (!SAFE_PATH_RE.test(rawPath) || !INSTANCE_RE.test(instance ?? '') || instance === '.' || instance === '..') {
         console.error('[dlq-reprocess] unsafe path or instance, abandoning row', { id: row.id });
         await supabase.from('failed_messages').update({
           status: 'abandoned',
