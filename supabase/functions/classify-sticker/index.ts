@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ClassifyStickerSchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const STICKER_CATEGORIES = [
   'comemoração', 'riso', 'chorando', 'amor', 'raiva',
@@ -11,6 +12,12 @@ const STICKER_CATEGORIES = [
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const serviceOk = requireServiceRoleOrCron(req);
+  if (serviceOk !== null) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+  }
 
   const log = new Logger("classify-sticker");
 

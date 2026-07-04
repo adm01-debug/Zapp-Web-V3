@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ClassifyAudioMemeSchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const AUDIO_CATEGORIES = [
   'risada', 'aplausos', 'suspense', 'vitória', 'falha',
@@ -11,6 +12,12 @@ const AUDIO_CATEGORIES = [
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const serviceOk = requireServiceRoleOrCron(req);
+  if (serviceOk !== null) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+  }
 
   const log = new Logger("classify-audio-meme");
 

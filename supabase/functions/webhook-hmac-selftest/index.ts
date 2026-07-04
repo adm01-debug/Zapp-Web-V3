@@ -23,6 +23,7 @@
 // virar classe, etc.) o deploy continua compilando e o self-test cai em
 // fallbacks bem definidos em vez de quebrar.
 import * as hmacModule from '../_shared/hmac-validation.ts';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Adapter de validador HMAC
@@ -294,6 +295,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
+
+  const authError = requireServiceRoleOrCron(req);
+  if (authError !== null) return authError;
 
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
