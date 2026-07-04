@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
               from: "reports@noreply.lovable.app", to: recipient,
               subject: `📊 ${reportData.title} - ${reportData.period}`, html: emailHtml,
             }),
+            signal: AbortSignal.timeout(15_000),
           });
           if (!emailResponse.ok) log.error(`Failed to send to ${recipient}`, { error: await emailResponse.text() });
         })
