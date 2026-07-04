@@ -57,36 +57,48 @@ Deno.serve(async (req) => {
       'categories', 'groups', 'roles', 'permissions',
     ]
 
-    const results: Record<string, any> = {}
-    const errors: string[] = []
+    const results: Record<string, unknown> = {}
 
-    // Check each table - get count and sample
-    for (const table of knownTables) {
-      try {
-        const { data, error, count } = await ext
-          .from(table)
-          .select('*', { count: 'exact' })
-          .limit(3)
+    const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+      let timer: ReturnType<typeof setTimeout>;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`query timeout after ${ms}ms`)), ms);
+      });
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+    };
 
+    // Check all tables in parallel with individual 5s timeouts — avoids 50× sequential RTT
+    const tableChecks = await Promise.allSettled(
+      knownTables.map(async (table) => {
+        const { data, error, count } = await withTimeout(
+          ext.from(table).select('*', { count: 'exact' }).limit(3),
+          5000
+        );
         if (!error && data) {
-          results[table] = {
+          return {
+            table,
             exists: true,
             count: count,
             sample: data,
-            columns: data.length > 0 ? Object.keys(data[0]) : []
-          }
+            columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [],
+          };
         }
-      } catch (e) {
-        // Table doesn't exist or no access
+        return null;
+      })
+    );
+
+    for (const result of tableChecks) {
+      if (result.status === 'fulfilled' && result.value) {
+        const { table, ...rest } = result.value;
+        results[table] = rest;
       }
     }
 
     // Also try to discover tables via a simple approach
-    // Try querying pg_catalog if accessible
     let discoveredTables: string[] = []
     try {
-      const { data } = await ext.rpc('get_all_table_names')
-      if (data) discoveredTables = data
+      const { data } = await withTimeout(ext.rpc('get_all_table_names'), 5000);
+      if (data) discoveredTables = data as string[];
     } catch {}
 
     return new Response(JSON.stringify({
