@@ -21,6 +21,22 @@ export interface AuthedUser {
   user: { id: string; email: string | null };
 }
 
+/** Constant-time string comparison to prevent timing-based secret enumeration. */
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.byteLength !== bb.byteLength) {
+    // Consume comparable time even on length mismatch
+    let _x = 0;
+    for (let i = 0; i < ab.byteLength; i++) _x |= ab[i] ^ (bb[i % (bb.byteLength || 1)] ?? 0);
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < ab.byteLength; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
+
 function getBearer(req: Request): string | null {
   const raw = req.headers.get("Authorization") || req.headers.get("authorization");
   if (!raw) return null;
@@ -72,11 +88,11 @@ export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser
 export function requireServiceRoleOrCron(req: Request): Response | null {
   const token = getBearer(req);
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (token && serviceKey && token === serviceKey) return null;
+  if (token && serviceKey && timingSafeStringEqual(token, serviceKey)) return null;
 
   const cronSecret = Deno.env.get("CRON_SECRET");
   const headerSecret = req.headers.get("x-cron-secret");
-  if (cronSecret && headerSecret && headerSecret === cronSecret) return null;
+  if (cronSecret && headerSecret && timingSafeStringEqual(headerSecret, cronSecret)) return null;
 
   return errorResponse("Unauthorized: internal endpoint", 401, req);
 }

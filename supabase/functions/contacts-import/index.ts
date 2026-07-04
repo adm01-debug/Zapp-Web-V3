@@ -46,9 +46,20 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await supabase.auth.getUser(auth.replace('Bearer ', ''));
     if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: JSON_CORS });
 
-    const { rows = [], workspace_id: instanceName = 'wpp2' } = await req.json();
+    const body = await req.json();
+    const rows = body.rows;
+    const rawInstanceName = body.workspace_id ?? 'wpp2';
+
+    if (!Array.isArray(rows)) return new Response(JSON.stringify({ error: 'rows must be an array' }), { status: 400, headers: JSON_CORS });
     if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: JSON_CORS });
     if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: JSON_CORS });
+
+    // Validate instance name to prevent URL path injection
+    const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+    if (!INSTANCE_NAME_RE.test(String(rawInstanceName))) {
+      return new Response(JSON.stringify({ error: 'Invalid workspace_id' }), { status: 400, headers: JSON_CORS });
+    }
+    const instanceName = String(rawInstanceName);
 
     let inserted = 0, skipped = 0;
     const errors: { row: number; error: string }[] = [];
@@ -83,7 +94,7 @@ serve(async (req) => {
         .upsert(valid, { onConflict: 'remote_jid', ignoreDuplicates: false })
         .select('id');
 
-      if (error) { errors.push({ row: i + 2, error: error.message }); skipped += valid.length; }
+      if (error) { errors.push({ row: i + 2, error: 'Database error saving row' }); skipped += valid.length; }
       else inserted += (data ?? []).length;
     }
 

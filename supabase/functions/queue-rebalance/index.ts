@@ -78,7 +78,8 @@ Deno.serve(async (req) => {
   const { data: candidates, error: candErr } = await admin
     .from("contacts")
     .select("id, queue_id, assigned_to, created_at, queues!inner(max_wait_time_minutes, sla_priority, routing_weight, auto_rebalance_enabled, is_active)")
-    .not("queue_id", "is", null);
+    .not("queue_id", "is", null)
+    .limit(limit * 10);
 
   if (candErr) {
     console.error("[queue-rebalance] list error", candErr.message);
