@@ -1,10 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ScheduledReportSchema, parseBody } from "../_shared/schemas.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   const log = new Logger("send-scheduled-report");
 

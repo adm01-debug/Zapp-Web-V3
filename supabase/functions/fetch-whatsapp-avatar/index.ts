@@ -16,10 +16,14 @@ import {
   checkRateLimit,
   getClientIP,
 } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger("fetch-whatsapp-avatar");
 
