@@ -141,3 +141,48 @@ profissional e DR em camadas. Os dois riscos reais são **operacionais**, não d
 a linha principal deslogada (exige ação humana com o celular) e a cópia do backup do Supabase que
 ainda mora no mesmo disco do banco. Resolvidos esses dois pontos + a senha em texto puro, o
 ambiente fica em estado exemplar.
+
+---
+
+## 7. ADENDO — Remediação executada (2026-07-04 ~01:10 UTC, aprovada pelo usuário)
+
+Os achados **N1** (senha em texto puro no stack `supabase-backup`) e **N2** (dumps do Supabase
+sem cópia offsite) foram **corrigidos em produção** nesta mesma sessão:
+
+### N1 — Senha fora do texto puro ✅
+- O stack `supabase-backup` (Portainer id 124) foi atualizado para ler `PGPASSWORD` do secret
+  **já existente** `supabase_db_password_v1` (o mesmo que o stack do Supabase monta) via
+  `/run/secrets/…` — a senha não aparece mais no compose.
+- **Nota importante descoberta no processo:** o mesmo valor de senha também está hardcoded no
+  serviço `rest` (PostgREST, `PGRST_DB_URI`) do stack `supabase` (id 35), junto com o
+  `PGRST_JWT_SECRET`. Ou seja, a **rotação** dessa senha é uma manutenção coordenada do stack
+  inteiro (roles `supabase_admin`, `authenticator`, `supabase_auth_admin`,
+  `supabase_storage_admin`, `postgres` + secret `supabase_db_password_v1` + o URI hardcoded do
+  `rest` + possíveis credenciais salvas no n8n/metabase) com janela de indisponibilidade de
+  alguns minutos. **Runbook resumido:**
+  1. Gerar nova senha e atualizar o secret (criar `supabase_db_password_v2`).
+  2. `ALTER ROLE … PASSWORD` para os 5 roles (na mesma transação/sequência imediata).
+  3. Atualizar stack 35: trocar referências do secret e corrigir o `PGRST_DB_URI` do `rest`
+     para também ler de secret; redeploy (serviços reiniciam; DB não precisa reiniciar).
+  4. Atualizar consumidores externos (credencial do Postgres no n8n, metabase, guards).
+  5. Validar: auth/storage/realtime/rest/functions healthy + `pg_stat_activity` sem falhas de login.
+  - Recomenda-se executar em janela de manutenção supervisionada — **não** foi executado de
+    forma autônoma nesta sessão por decisão de segurança.
+
+### N2 — Backup do Supabase com cópia offsite ✅
+- Descoberta adicional: o backup diário do PG14 (evolution) **já envia direto para o
+  Cloudflare R2** (bucket `promo-brindes-backups`, prefixo `backups/evolution-db/daily`) —
+  o stack file dizia MinIO (drift de runtime; o espelho `minio-offsite-mirror` está em
+  standby com referência a container antigo e pode ser aposentado ou corrigido).
+- O `supabase-backup` v2 agora, após o `pg_dump` validado (tamanho mínimo + SHA-256):
+  1. Cifra o dump com **GPG AES-256** usando a mesma passphrase dos backups do PG14
+     (secret novo `backup_passphrase_v1`);
+  2. Envia `*.dump.gpg` + `*.sha256` para `r2://promo-brindes-backups/backups/supabase-db/daily/`
+     (secrets novos `r2_backup_access_key_v1`/`r2_backup_secret_key_v1`, copiados do runtime
+     do backup diário — nunca impressos);
+  3. Aplica retenção remota de 14 dias (`mc rm --older-than 14d`);
+  4. Em falha de upload, preserva o dump local e cria marker `OFFSITE_FAILED_*` (não perde backup).
+- Cópia local em `backup_data` continua igual (14 dias, validação, SHA-256).
+
+**Secrets criados no Swarm:** `r2_backup_access_key_v1`, `r2_backup_secret_key_v1`,
+`backup_passphrase_v1`. Nenhum valor de credencial foi exposto em logs ou neste documento.
