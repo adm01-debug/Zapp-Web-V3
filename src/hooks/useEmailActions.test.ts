@@ -111,7 +111,7 @@ describe('useEmail - Labels and RPC Actions', () => {
         await result.current.assignThread('t1', 'agent_456');
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Falha ao atribuir thread'), 'RPC Error');
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Email thread assign error'), 'RPC Error');
       consoleSpy.mockRestore();
     });
   });
