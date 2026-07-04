@@ -147,7 +147,7 @@ export function useTypingPresence({
     // Subscribe to presence channel.
     // OBS: o broadcast `contact_typing` é consumido por `useContactTyping`
     // (topic compartilhado `typing:${jid}` — não pode coexistir aqui).
-    channel.subscribe(async (status) => {
+    channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         log.debug('Subscribed to typing presence for conversation:', conversationId);
       }

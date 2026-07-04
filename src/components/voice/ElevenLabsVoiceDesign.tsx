@@ -32,28 +32,32 @@ export function ElevenLabsVoiceDesign() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     const fetchVoices = async () => {
       setLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user || cancelled) return;
 
         const { data, error } = await supabase.functions.invoke('elevenlabs-voice', {
           body: { action: 'listVoices' }
         });
 
         if (error) throw error;
-        setVoices(data?.voices || []);
-        if (data?.voices?.length > 0) setSelectedVoice(data.voices[0].voice_id);
+        if (!cancelled) {
+          setVoices(data?.voices || []);
+          if (data?.voices?.length > 0) setSelectedVoice(data.voices[0].voice_id);
+        }
       } catch (err) {
         log.error('Failed to fetch ElevenLabs voices', err);
-        toast.error('Não foi possível carregar as vozes do ElevenLabs.');
+        if (!cancelled) toast.error('Não foi possível carregar as vozes do ElevenLabs.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchVoices();
+    return () => { cancelled = true; };
   }, []);
 
   const handleGenerate = async () => {
