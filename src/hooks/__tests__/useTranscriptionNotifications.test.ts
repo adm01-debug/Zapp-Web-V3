@@ -39,6 +39,15 @@ vi.mock('@/utils/notificationSound', () => ({
   requestNotificationPermission: vi.fn(),
 }));
 
+vi.mock('@/lib/devRealtimeLogger', () => ({
+  logMessagesSubscribe: vi.fn(),
+  wrapMessagesHandler: vi.fn((_, fn) => fn),
+}));
+
+vi.mock('@/integrations/datasource/db', () => ({
+  dbTable: vi.fn((t: string) => t),
+}));
+
 // Must import AFTER mocks
 const { useTranscriptionNotifications } = await import('@/hooks/useTranscriptionNotifications');
 const { renderHook } = await import('@testing-library/react');
@@ -77,7 +86,7 @@ describe('useTranscriptionNotifications', () => {
     renderHook(() => useTranscriptionNotifications());
     expect(onMock).toHaveBeenCalledWith(
       'postgres_changes',
-      expect.objectContaining({ event: 'UPDATE', table: 'messages' }),
+      expect.objectContaining({ event: 'UPDATE', schema: 'evo', table: 'evolution_messages' }),
       expect.any(Function)
     );
   });
