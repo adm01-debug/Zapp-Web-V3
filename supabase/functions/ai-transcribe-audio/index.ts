@@ -70,7 +70,7 @@ async function downloadAudio(
     return { error: "Download failed" }; // generic — no URL disclosure
   }
 
-  const response = await fetch(audioUrl);
+  const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
     log.error("HTTP download failed", { status: response.status, detail: errText.substring(0, 200) });
@@ -162,6 +162,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { 'xi-api-key': ELEVENLABS_API_KEY },
       body: formData,
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!response.ok) {
