@@ -65,12 +65,15 @@ Deno.serve(async (req) => {
       return errorResponse(userFacingMsg, 400, req);
     }
 
-    // If a specific role was provided (not default 'agent'), update it
-    if (role && role !== "agent" && newUser.user) {
-      await adminClient
+    // Upsert the role — UPDATE alone silently no-ops when the user_roles row
+    // doesn't exist yet (trigger race after createUser), leaving the role unset.
+    if (role && newUser.user) {
+      const { error: roleError } = await adminClient
         .from("user_roles")
-        .update({ role })
-        .eq("user_id", newUser.user.id);
+        .upsert({ user_id: newUser.user.id, role }, { onConflict: 'user_id' });
+      if (roleError) {
+        log.error("Role assignment failed", { error: roleError.message });
+      }
     }
 
     // Update profile with additional fields

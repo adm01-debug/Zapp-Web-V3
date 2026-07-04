@@ -89,7 +89,27 @@ serve(async (req) => {
 
       // ── Pub/Sub push notification (sem action = webhook do Google) ──
       if (!action && body.message) {
-        const pubsubData = JSON.parse(atob(body.message.data ?? ''));
+        // Verify shared-secret token Google sends as URL query param.
+        // Configure the Pub/Sub push subscription endpoint as:
+        //   .../gmail-webhook?pubsubToken=<GMAIL_PUBSUB_TOKEN value>
+        const expectedToken = Deno.env.get('GMAIL_PUBSUB_TOKEN');
+        if (expectedToken) {
+          const reqToken = new URL(req.url).searchParams.get('pubsubToken');
+          if (reqToken !== expectedToken) {
+            console.warn('[gmail-webhook] Pub/Sub push rejected — invalid token');
+            return new Response('Unauthorized', { status: 401 });
+          }
+        }
+
+        // Guard against empty/malformed data — return 200 to ack and drop
+        // rather than letting atob('') throw and trigger Google's retry loop.
+        let pubsubData: { emailAddress?: string; historyId?: string } = {};
+        try {
+          pubsubData = JSON.parse(atob(body.message.data || 'e30='));
+        } catch {
+          console.warn('[gmail-webhook] Pub/Sub message data malformed — acking and dropping');
+          return json({ ok: true });
+        }
         const { emailAddress, historyId } = pubsubData;
 
         if (!emailAddress) return json({ ok: true });

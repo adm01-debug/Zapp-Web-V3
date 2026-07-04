@@ -105,11 +105,34 @@ serve(async (req) => {
         return json({ error: 'config.email e config.password são obrigatórios' }, 400);
       }
 
+      // Encrypt the password with AES-GCM before persisting.
+      // IMAP_ENCRYPTION_KEY must be a base64-encoded 32-byte random key set in Supabase secrets.
+      const encKeyB64 = Deno.env.get('IMAP_ENCRYPTION_KEY');
+      if (!encKeyB64) {
+        console.error('[email-imap-bridge] IMAP_ENCRYPTION_KEY not configured — refusing to store credentials in plaintext');
+        return json({ error: 'Encryption key not configured' }, 500);
+      }
+      let passwordEncrypted: string;
+      try {
+        const rawKey = Uint8Array.from(atob(encKeyB64), c => c.charCodeAt(0));
+        const cryptoKey = await crypto.subtle.importKey('raw', rawKey, 'AES-GCM', false, ['encrypt']);
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encoder = new TextEncoder();
+        const cipherBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, encoder.encode(config.password));
+        const combined = new Uint8Array(12 + cipherBuf.byteLength);
+        combined.set(iv, 0);
+        combined.set(new Uint8Array(cipherBuf), 12);
+        passwordEncrypted = btoa(String.fromCharCode(...combined));
+      } catch (encErr) {
+        console.error('[email-imap-bridge] password encryption failed', encErr instanceof Error ? encErr.message : String(encErr));
+        return json({ error: 'Internal server error' }, 500);
+      }
+
       // Mescla com configurações do provedor se disponível
       const providerDefaults = PROVIDER_CONFIGS[config.provider] ?? {};
       const merged = { ...providerDefaults, ...config };
 
-      // Persiste na tabela imap_smtp_accounts (criada abaixo via migration)
+      // Persiste na tabela imap_smtp_accounts
       const { data, error } = await supabase
         .from('imap_smtp_accounts')
         .upsert({
@@ -123,9 +146,8 @@ serve(async (req) => {
           smtp_port:     merged.smtp_port ?? 587,
           smtp_use_tls:  merged.smtp_use_tls ?? true,
           username:      merged.username ?? merged.email,
-          // Não armazenar senha em plain text — idealmente usar Vault
-          // Por agora salva encriptado via pgcrypto se disponível
-          password_hash: merged.password, // TODO: substituir por vault reference
+          // AES-GCM encrypted: base64(12-byte IV || ciphertext); decrypt with IMAP_ENCRYPTION_KEY
+          password_hash: passwordEncrypted,
           is_active:     true,
         }, { onConflict: 'user_id,email' })
         .select('id, email, provider')

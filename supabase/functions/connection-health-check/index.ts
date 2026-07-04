@@ -61,13 +61,18 @@ async function fetchOwnerJid(baseUrl: string, key: string, instanceName: string,
 async function fetchLastActivityAt(externalUrl: string, externalKey: string, instanceName: string, log: Logger): Promise<Date | null> {
   try {
     const ext = createClient(externalUrl, externalKey);
-    const { data, error } = await ext
+    const TIMEOUT_MS = 8000;
+    const queryPromise = ext
       .from('evolution_messages')
       .select('created_at')
       .eq('instance_name', instanceName)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('external query timeout')), TIMEOUT_MS)
+    );
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
     if (error) { log.warn('external messages query error', { error: error.message }); return null; }
     if (!data?.created_at) return null;
     return new Date(data.created_at as string);
@@ -369,9 +374,8 @@ Deno.serve(async (req) => {
     log.done(200, { checked: results.length, alerts: alertsToCreate.length });
     return jsonResponse({ success: true, checked_at: new Date().toISOString(), connections: results, alerts_created: alertsToCreate.length }, 200, req);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    log.error("Health check error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Health check error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse('Internal server error', 500, req);
   }
 });
 
