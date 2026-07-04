@@ -47,9 +47,9 @@ async function getProvider(supabase: ReturnType<typeof createClient>, useFor: st
 
 function injectSystemPrompt(messages: Array<{ role: string; content: string }>, systemPrompt: string) {
   const result = [...messages];
-  const hasSystem = result.some(m => m.role === 'system');
-  if (hasSystem) {
-    result[0] = { role: 'system', content: systemPrompt + '\n\n' + result[0].content };
+  const sysIdx = result.findIndex(m => m.role === 'system');
+  if (sysIdx !== -1) {
+    result[sysIdx] = { role: 'system', content: systemPrompt + '\n\n' + result[sysIdx].content };
   } else {
     result.unshift({ role: 'system', content: systemPrompt });
   }
@@ -192,7 +192,12 @@ Deno.serve(async (req) => {
     if (stream) {
       log.done(200, { provider: usedFallback ? 'Lovable AI (fallback)' : providerName, streaming: true });
       return new Response(response.body, {
-        headers: { ...Object.fromEntries(response.headers), 'Content-Type': 'text/event-stream' },
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        },
       });
     }
 

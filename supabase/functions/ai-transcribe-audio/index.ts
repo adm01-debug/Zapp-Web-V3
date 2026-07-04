@@ -83,8 +83,23 @@ async function downloadAudio(
     return { error: "Audio file too large (max 25MB)" };
   }
 
-  const buffer = await response.arrayBuffer();
-  return { buffer, contentType: response.headers.get("content-type") || "audio/mpeg" };
+  // Stream with running byte counter to guard against chunked responses without Content-Length
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    for await (const chunk of response.body as AsyncIterable<Uint8Array>) {
+      totalBytes += chunk.byteLength;
+      if (totalBytes > MAX_AUDIO_SIZE) {
+        await response.body?.cancel().catch(() => {});
+        return { error: "Audio file too large (max 25MB)" };
+      }
+      chunks.push(chunk);
+    }
+  } catch (e) { return { error: `Download interrupted: ${e instanceof Error ? e.message : "unknown"}` }; }
+  const buffer = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const c of chunks) { buffer.set(c, offset); offset += c.byteLength; }
+  return { buffer: buffer.buffer, contentType: response.headers.get("content-type") || "audio/mpeg" };
 }
 
 Deno.serve(async (req) => {
