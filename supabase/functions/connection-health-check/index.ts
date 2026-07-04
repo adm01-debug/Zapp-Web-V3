@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 /**
  * 3-layer health check para conexões Evolution.
@@ -166,6 +167,16 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("connection-health-check");
+
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+  const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  const xCron = req.headers.get('x-cron-secret') ?? '';
+  const isInternalCaller = (serviceKey && bearer === serviceKey) || (cronSecret && xCron === cronSecret);
+  if (!isInternalCaller) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+  }
 
   try {
     const evolutionUrl = requireEnv('EVOLUTION_API_URL');
