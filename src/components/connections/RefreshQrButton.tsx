@@ -58,14 +58,13 @@ export function RefreshQrButton({
 
     if (status === 'loading' || status === 'connected') {
       setStabilized(false);
-      if (prev !== status && secondsLeft > 0) setSecondsLeft(0);
+      if (prev !== status) setSecondsLeft(s => s > 0 ? 0 : s);
       return;
     }
 
     setStabilized(false);
     const timer = setTimeout(() => setStabilized(true), stabilizationMs);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, stabilizationMs]);
 
   useEffect(() => {

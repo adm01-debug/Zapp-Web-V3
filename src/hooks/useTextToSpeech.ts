@@ -27,8 +27,7 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
     if (options.initialVoiceId && options.initialVoiceId !== voiceId) {
       setVoiceIdState(options.initialVoiceId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.initialVoiceId]);
+  }, [options.initialVoiceId, voiceId]);
 
   // Sync with external speed changes
   useEffect(() => {
@@ -39,8 +38,7 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
         audioRef.current.playbackRate = options.initialSpeed;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.initialSpeed]);
+  }, [options.initialSpeed, speed]);
 
   const setVoiceId = useCallback((newVoiceId: string) => {
     setVoiceIdState(newVoiceId);

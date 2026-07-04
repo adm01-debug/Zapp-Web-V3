@@ -67,14 +67,14 @@ export default function AdminWebhookSecretStatusPage() {
   }, [filters]); // refresh when other filters change too
   void instance;
 
-  const setInstance = (next: string | null) => {
+  const setInstance = useCallback((next: string | null) => {
     const url = new URL(window.location.href);
     if (next) url.searchParams.set('instance', next);
     else url.searchParams.delete('instance');
     window.history.replaceState({}, '', url.toString());
     // Force re-render by touching useUrlFilters
     setFilters({ search: filters.search });
-  };
+  }, [filters.search, setFilters]);
 
   // 1. Secret status (no value exposed)
   const secretQuery = useQuery({
@@ -230,8 +230,7 @@ export default function AdminWebhookSecretStatusPage() {
     if (!params.get('instance') && prefs.pinnedInstance) {
       setInstance(prefs.pinnedInstance);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [prefs.pinnedInstance, setInstance]);
 
   // Available event types from current dataset.
   const availableEventTypes = useMemo(() => {

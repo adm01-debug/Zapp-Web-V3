@@ -68,8 +68,7 @@ export function useNavigationHistory(defaultView = 'inbox'): NavigationHistoryRe
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentView]);
+  }, [currentView, navigateTo]);
 
   const syncHash = useCallback((viewId: string) => {
     isInternalNav.current = true;

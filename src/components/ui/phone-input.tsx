@@ -71,8 +71,7 @@ export function PhoneInput({ value, onChange, placeholder = '+55 11 99999-0000',
     if (formatted !== displayValue) {
       setDisplayValue(formatted);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, displayValue]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;

@@ -16,7 +16,7 @@
  * - Skipped while the document is hidden to avoid wasted requests; a single
  *   refetch fires on the next `visibilitychange` → visible.
  */
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeContactsStatus } from './realtimeContactsStatusStore';
 
@@ -48,7 +48,7 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
 
   // Single invalidation routine, throttled to avoid stacking when multiple
   // triggers fire close together (reconnect + periodic + visibility).
-  const refetchAll = (reason: string) => {
+  const refetchAll = useCallback((reason: string) => {
     const now = Date.now();
     if (now - lastRefetchAtRef.current < 5_000) return; // 5s throttle
     lastRefetchAtRef.current = now;
@@ -66,7 +66,7 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
     } catch {
       /* noop */
     }
-  };
+  }, [queryClient]);
 
   // Reconnect trigger
   useEffect(() => {
@@ -76,9 +76,7 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
     if (status === 'connected' && prev !== 'connected' && prev !== 'idle') {
       refetchAll(`reconnect:${prev}->connected`);
     }
-    // refetchAll is stable enough for our throttle; intentionally omitted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, enabled]);
+  }, [status, enabled, refetchAll]);
 
   // Periodic + visibility triggers
   useEffect(() => {
@@ -106,6 +104,5 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
         document.removeEventListener('visibilitychange', onVisible);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, intervalMs]);
+  }, [enabled, intervalMs, refetchAll]);
 }
