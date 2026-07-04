@@ -103,7 +103,7 @@ export default function BridgeStatusPage() {
       if (isExternalConfigured) {
         const extSupabase = getExternalSupabase();
         if (extSupabase) {
-          // Connectivity probe: any successful query proves the external DB is reachable
+          // Connectivity probe — a working query proves the external DB is reachable
           const { error: extError } = await extSupabase.from('contacts').select('id').limit(1);
           externalOk = !extError;
         }
