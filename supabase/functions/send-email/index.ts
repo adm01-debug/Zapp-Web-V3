@@ -39,6 +39,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${serviceKey}`,
         },
         body: JSON.stringify({ ...body, action: body.action ?? 'send' }),
+        signal: AbortSignal.timeout(15_000),
       });
 
       const data = await res.json();
@@ -63,6 +64,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendKey}`,
       },
       body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html }),
+      signal: AbortSignal.timeout(15_000),
     });
 
     const resendData = await resendRes.json();
