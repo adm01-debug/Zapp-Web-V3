@@ -21,7 +21,12 @@ Deno.serve(async (req) => {
       const authed = await requireUser(req);
       if (authed instanceof Response) return authed;
     }
+  } catch (err: unknown) {
+    log.error("Auth error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse("Internal server error", 500, req);
+  }
 
+  try {
     const parsed = parseBody(ClassifyStickerSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
