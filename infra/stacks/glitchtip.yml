@@ -1,0 +1,118 @@
+version: "3.8"
+
+# 2026-07-04 (sessão 5, fix S4-3): GlitchTip v6 exige Redis/Valkey (cache + fila Celery).
+# O stack não tinha nenhum → toda ingestão de eventos retornava HTTP 500 (broker=localhost inexistente).
+# Adicionado glitchtip-valkey dedicado (isolado do Redis da Evolution de propósito — blast radius zero
+# no caminho do WhatsApp) + REDIS_URL no web e no worker.
+#
+# NOTA: POSTGRES_PASSWORD e SECRET_KEY estão como placeholders neste snapshot versionado.
+# Os valores reais vivem no stack file dentro do Portainer (não commitados). Ao redeployar,
+# use os valores reais ou migre para Docker secrets (recomendado numa próxima janela).
+
+services:
+  glitchtip-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: "<glitchtip-db-password>"
+    volumes:
+      - glitchtip-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glitchtip"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - glitchtip-net
+      - AtomicaBRNet
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy: { condition: on-failure, delay: 10s, max_attempts: 5 }
+      placement: { constraints: [node.role == manager] }
+
+  glitchtip-valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--maxmemory", "200mb", "--maxmemory-policy", "noeviction", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - glitchtip-net
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy: { condition: on-failure, delay: 10s, max_attempts: 5 }
+      resources: { limits: { memory: 256M } }
+      placement: { constraints: [node.role == manager] }
+
+  glitchtip-web:
+    image: glitchtip/glitchtip:latest
+    environment:
+      DATABASE_URL: "postgres://glitchtip:<glitchtip-db-password>@glitchtip-db:5432/glitchtip"
+      SECRET_KEY: "<glitchtip-secret-key>"
+      REDIS_URL: redis://glitchtip-valkey:6379/0
+      PORT: "8000"
+      GLITCHTIP_DOMAIN: https://erros.atomicabr.com.br
+      DEFAULT_FROM_EMAIL: noreply@atomicabr.com.br
+      EMAIL_URL: "consolemail://"
+      ENABLE_OPEN_USER_REGISTRATION: "true"
+      CELERY_WORKER_AUTOSCALE: "1,3"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "10000"
+    volumes:
+      - glitchtip-uploads:/code/uploads
+    networks:
+      - glitchtip-net
+      - AtomicaBRNet
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy: { condition: on-failure, delay: 10s, max_attempts: 5 }
+      placement: { constraints: [node.role == manager] }
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.glitchtip.rule=Host(`erros.atomicabr.com.br`)
+        - traefik.http.routers.glitchtip.entrypoints=websecure
+        - traefik.http.routers.glitchtip.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.glitchtip.service=glitchtip
+        - traefik.http.services.glitchtip.loadbalancer.server.port=8000
+        - traefik.http.services.glitchtip.loadbalancer.passHostHeader=1
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:latest
+    command: ./bin/run-celery-with-beat.sh
+    environment:
+      DATABASE_URL: "postgres://glitchtip:<glitchtip-db-password>@glitchtip-db:5432/glitchtip"
+      SECRET_KEY: "<glitchtip-secret-key>"
+      REDIS_URL: redis://glitchtip-valkey:6379/0
+      PORT: "8000"
+      GLITCHTIP_DOMAIN: https://erros.atomicabr.com.br
+      DEFAULT_FROM_EMAIL: noreply@atomicabr.com.br
+      EMAIL_URL: "consolemail://"
+      ENABLE_OPEN_USER_REGISTRATION: "true"
+      CELERY_WORKER_AUTOSCALE: "1,3"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "10000"
+    volumes:
+      - glitchtip-uploads:/code/uploads
+    networks:
+      - glitchtip-net
+      - AtomicaBRNet
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy: { condition: on-failure, delay: 10s, max_attempts: 5 }
+      placement: { constraints: [node.role == manager] }
+
+volumes:
+  glitchtip-pg-data:
+  glitchtip-uploads:
+
+networks:
+  glitchtip-net:
+    driver: overlay
+  AtomicaBRNet:
+    external: true
+    name: AtomicaBRNet
