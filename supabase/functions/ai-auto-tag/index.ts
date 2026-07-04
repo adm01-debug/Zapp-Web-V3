@@ -141,11 +141,20 @@ Responda APENAS em JSON:
         log.warn("Failed to upsert tags, preserving existing", { error: insertErr.message });
       } else {
         // Remove old tags that are no longer in the new set
-        await supabase
+        const { data: existingTags } = await supabase
           .from('ai_conversation_tags')
-          .delete()
-          .eq('contact_id', validContactId)
-          .not('tag_name', 'in', `(${newTagNames.map((n: string) => `"${n}"`).join(',')})`);
+          .select('tag_name')
+          .eq('contact_id', validContactId);
+        const staleTagNames = (existingTags ?? [])
+          .map((r: { tag_name: string }) => r.tag_name)
+          .filter((n: string) => !newTagNames.includes(n));
+        if (staleTagNames.length > 0) {
+          await supabase
+            .from('ai_conversation_tags')
+            .delete()
+            .eq('contact_id', validContactId)
+            .in('tag_name', staleTagNames);
+        }
       }
     }
 
