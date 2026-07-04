@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -89,7 +88,7 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       let taskId = activeTaskId;
       
       if (!taskId) {
-        const { data: task, error: queueError } = await supabase
+        const { data: task, error: queueError } = await (supabase as any)
           .from('voice_conversion_queue')
           .insert({
             input_audio_url: audioUrl || 'blob-input', 
@@ -157,7 +156,7 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       setShowCloneWarning(false);
       
       // Update telemetry for successful local delivery
-      void supabase.rpc('record_voice_telemetry', {
+      void (supabase as any).rpc('record_voice_telemetry', {
         p_queue_id: taskId,
         p_duration_ms: Date.now() - conversionStartTime,
         p_status: 'completed'
@@ -168,7 +167,7 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       const conversionDuration = Date.now() - conversionStartTime;
       
       // Update telemetry for local failure
-      void supabase.rpc('record_voice_telemetry', {
+      void (supabase as any).rpc('record_voice_telemetry', {
         p_queue_id: activeTaskId || '00000000-0000-0000-0000-000000000000',
         p_duration_ms: conversionDuration,
         p_status: 'failed',

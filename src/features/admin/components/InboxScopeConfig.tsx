@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Shield, Eye, Lock, Loader2, Info, Instagram, Globe, MessageSquare, Plus, Trash2, Settings2, Sparkles } from 'lucide-react';
