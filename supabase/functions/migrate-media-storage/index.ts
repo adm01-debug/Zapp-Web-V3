@@ -105,7 +105,7 @@ serve(async (req) => {
   } catch (err: unknown) {
     log.error('Migration error', { error: err instanceof Error ? err.message : String(err) });
     log.done(500);
-    return errorResponse(err instanceof Error ? err.message : 'Unknown error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });
 

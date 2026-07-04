@@ -172,6 +172,6 @@ serve(async (req) => {
       clearTimeout(timeout);
     }
   } catch (error) {
-    return errorResponse(req, error instanceof Error ? error.message : 'Internal error', 500);
+    return errorResponse(req, 'Internal server error', 500);
   }
 });

@@ -176,7 +176,7 @@ Foque em:
 
     // Save analysis to database
     if (contactId) {
-      await supabase.from('conversation_analyses').insert({
+      const { error: insertErr } = await supabase.from('conversation_analyses').insert({
         contact_id: contactId,
         summary: analysisData.summary,
         sentiment: analysisData.sentiment,
@@ -189,17 +189,19 @@ Foque em:
         status: analysisData.status,
         message_count: messages.length,
       });
+      if (insertErr) console.error('[ai-conversation-summary] insert failed', insertErr.message);
 
-      await supabase.from('contacts').update({
+      const { error: updateErr } = await supabase.from('contacts').update({
         ai_sentiment: analysisData.sentiment,
-        ai_priority: analysisData.urgency === 'critical' ? 'urgent' : analysisData.urgency,
+        ai_priority: analysisData.urgency === 'critica' ? 'urgent' : analysisData.urgency,
       }).eq('id', contactId);
+      if (updateErr) console.error('[ai-conversation-summary] contact update failed', updateErr.message);
     }
 
     log.done(200);
     return jsonResponse(analysisData, 200, req);
   } catch (error) {
     log.error("Error generating summary", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Unknown error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

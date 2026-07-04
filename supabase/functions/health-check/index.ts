@@ -33,7 +33,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ status: "error", message: err.message }), {
+    return new Response(JSON.stringify({ status: "error", message: "Health check failed" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
         const { data: file, error: fileErr } = await supabaseClient.storage
           .from('audio-memes')
           .download(task.input_audio_url);
-        if (fileErr) return errorResponse(`Storage error: ${fileErr.message}`, 500, req);
+        if (fileErr) return errorResponse('Storage error', 500, req);
         audioData = file;
       }
     }
@@ -247,6 +247,6 @@ Deno.serve(async (req) => {
     }
   } catch (err: any) {
     log.error("Global Voice Changer Error", { error: err.message });
-    return errorResponse(err.message || 'Internal Error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });
