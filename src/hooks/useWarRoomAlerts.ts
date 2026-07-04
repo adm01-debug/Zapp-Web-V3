@@ -20,10 +20,6 @@ export function useWarRoomAlerts(soundEnabled = true) {
   const queryClient = useQueryClient();
   const { showNotification, permission } = usePushNotifications();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const alertsRef = useRef(alerts);
-
-  // Keep alertsRef in sync so the SLA interval can read latest alerts without being in its dep array
-  useEffect(() => { alertsRef.current = alerts; }, [alerts]);
 
   // Initialize alert sound
   useEffect(() => {
@@ -60,6 +56,10 @@ export function useWarRoomAlerts(soundEnabled = true) {
     },
     refetchInterval: 30000,
   });
+
+  const alertsRef = useRef(alerts);
+  // Keep alertsRef in sync so the SLA interval can read latest alerts without being in its dep array
+  useEffect(() => { alertsRef.current = alerts; }, [alerts]);
 
   // Real-time subscription for new alerts
   useEffect(() => {
