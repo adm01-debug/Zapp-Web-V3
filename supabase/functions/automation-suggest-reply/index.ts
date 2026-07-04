@@ -262,9 +262,17 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         recommendedTag = ai.recommended_tag;
       } catch (e) {
         if (e instanceof Response) {
-          // Re-wrap with CORS headers so browsers receive the 429/402 error properly
-          const body = await e.text();
-          return new Response(body, {
+          // Re-wrap with CORS headers so browsers receive the 429/402 error properly.
+          // Parse and re-serialise so stack traces or internal details from the upstream
+          // API are never forwarded verbatim to the browser (CodeQL: stack-trace exposure).
+          let safeBody: string;
+          try {
+            const raw = await e.json() as Record<string, unknown>;
+            safeBody = JSON.stringify({ error: raw.error ?? raw.message ?? 'Request failed' });
+          } catch {
+            safeBody = JSON.stringify({ error: 'Request failed' });
+          }
+          return new Response(safeBody, {
             status: e.status,
             headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
