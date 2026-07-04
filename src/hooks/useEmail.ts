@@ -159,7 +159,7 @@ export function useEmail() {
   }, []);
 
   // ── Carregar threads ──────────────────────────────────────────────
-  const loadThreads = useCallback(async (accountId?: string, label: EmailLabel = 'INBOX', append = false) => {
+  const loadThreads = useCallback(async (accountId?: string, label: EmailLabel = 'INBOX', pageOffset = 0) => {
     const id = accountId ?? activeAccountId;
     if (!id || isMockId(id)) return;
 
@@ -169,7 +169,7 @@ export function useEmail() {
       p_query:      null,
       p_label_id:   label,
       p_limit:      50,
-      p_offset:     append ? threads.length : 0,
+      p_offset:     pageOffset,
     });
 
     if (!mountedRef.current) return;
@@ -186,11 +186,11 @@ export function useEmail() {
     } else {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
       const mappedThreads = emailMappers.threads(Array.isArray(data) ? data : []);
-      setThreads(prev => append ? [...prev, ...mappedThreads] : mappedThreads);
+      setThreads(prev => pageOffset > 0 ? [...prev, ...mappedThreads] : mappedThreads);
       setHasMore(mappedThreads.length === 50);
     }
     setIsLoadingThreads(false);
-  }, [activeAccountId, threads.length]);
+  }, [activeAccountId]);
 
   // ── Carregar mensagens de uma thread ────────────────────────────────
   const loadMessages = useCallback(async (threadId: string) => {
@@ -232,9 +232,9 @@ export function useEmail() {
   // ── Carregar mais threads (Paginação) ───────────────────────────────
   const loadMore = useCallback(async () => {
     if (hasMore && !isLoadingThreads) {
-      await loadThreads(activeAccountId || undefined, activeLabel, true);
+      await loadThreads(activeAccountId || undefined, activeLabel, threads.length);
     }
-  }, [hasMore, isLoadingThreads, activeAccountId, activeLabel, loadThreads]);
+  }, [hasMore, isLoadingThreads, activeAccountId, activeLabel, loadThreads, threads.length]);
 
   // ── Sincronizar inbox via email-sync ───────────────────────────────
   const syncNow = useCallback(async (accountId?: string) => {
@@ -589,7 +589,7 @@ export function useEmail() {
     if (activeAccountId) {
       void loadThreads(activeAccountId, activeLabel);
     }
-  }, [activeAccountId, activeLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeAccountId, activeLabel, loadThreads]);
 
   // ── Computed ───────────────────────────────────────────────────
   const unreadCount = threads.reduce((sum, t) => sum + (t.unread_count ?? 0), 0);
