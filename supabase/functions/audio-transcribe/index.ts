@@ -64,11 +64,12 @@ function isSafeAudioUrl(raw: string): boolean {
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, and unique-local (ULA)
+    // IPv6 loopback, link-local, ULA, and IPv4-mapped
     host === '[::1]' ||
-    host.startsWith('[fe80:') ||   // link-local
-    host.startsWith('[fc00:') ||   // ULA
-    host.startsWith('[fd')         // ULA (fd00::/8)
+    host.startsWith('[::ffff:') ||        // IPv4-mapped IPv6
+    /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
+    host.startsWith('[fc') ||              // ULA fc00::/7 (fc+fd)
+    host.startsWith('[fd')                 // ULA fd00::/8
   ) return false;
   return true;
 }

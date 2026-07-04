@@ -13,9 +13,10 @@ function isSafeAvatarUrl(raw: unknown): boolean {
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, and unique-local (ULA)
-    host === '[::1]' || host.startsWith('[fe80:') ||
-    host.startsWith('[fc00:') || host.startsWith('[fd')
+    // IPv6 loopback, link-local, ULA, and IPv4-mapped
+    host === '[::1]' || host.startsWith('[::ffff:') ||        // IPv4-mapped IPv6
+    /^\[fe[89ab][0-9a-f]:/i.test(host) ||                    // link-local fe80::/10
+    host.startsWith('[fc') || host.startsWith('[fd')          // ULA fc00::/7
   ) return false;
   return true;
 }

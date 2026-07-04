@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
+import { timingSafeEqual } from '../_shared/hmac-validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -100,7 +101,7 @@ serve(async (req) => {
           return new Response('Unauthorized', { status: 401 });
         }
         const reqToken = new URL(req.url).searchParams.get('pubsubToken');
-        if (reqToken !== expectedToken) {
+        if (!timingSafeEqual(reqToken ?? '', expectedToken)) {
           console.warn('[gmail-webhook] Pub/Sub push rejected — invalid token');
           return new Response('Unauthorized', { status: 401 });
         }

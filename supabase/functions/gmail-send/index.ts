@@ -273,7 +273,7 @@ function buildMime(opts: {
     // CWE-93: strip CR/LF, quotes, and backslashes to prevent MIME header injection.
     // String() coercion guards against non-string att.name crashing replace().
     const safeName = String(att.name ?? '').replace(/[\r\n"\\]/g, '');
-    const safeMime = String(att.mimeType ?? 'application/octet-stream').replace(/[\r\n"\\]/g, '');
+    const safeMime = String(att.mimeType ?? 'application/octet-stream').replace(/[\r\n"\\]/g, '') || 'application/octet-stream';
     return [
       `--${boundary}`,
       `Content-Type: ${safeMime}; name="${safeName}"`,

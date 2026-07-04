@@ -72,7 +72,10 @@ serve(async (req) => {
       .eq('created_by', user.id)
       .eq('instance_name', instanceName)
       .maybeSingle();
-    if (connErr || !ownedConn) {
+    if (connErr) {
+      return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_CORS });
+    }
+    if (!ownedConn) {
       return new Response(
         JSON.stringify({ error: 'WhatsApp connection not found or not authorized' }),
         { status: 403, headers: JSON_CORS }

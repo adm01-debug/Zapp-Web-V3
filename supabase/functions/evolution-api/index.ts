@@ -59,6 +59,24 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 
+  // Routes that call authorizeRoles() handle their own auth+role check — skip the
+  // redundant top-level getUser() for those to avoid a double round-trip to Auth.
+  const ROLE_GUARDED_ACTIONS = new Set(['create-instance', 'delete-instance', 'reprocess-failed-webhooks']);
+  if (!ROLE_GUARDED_ACTIONS.has(pathAction)) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const authHeader = req.headers.get('Authorization') || '';
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: { user: _u }, error: _e } = await userClient.auth.getUser();
+    if (_e || !_u) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   const SEND_PER_INSTANCE_PER_MIN = Number(Deno.env.get('EVOLUTION_SEND_RATE_PER_INSTANCE') ?? '60');
 
   let _bodyCache: Record<string, unknown> | null = null;
