@@ -174,13 +174,16 @@ export function useConnectionsManager() {
   }, [qrCodeDialog]);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchConnections = async () => {
       setLoading(true);
       const { data, error } = await whatsappConnectionRepository.fetchConnections();
+      if (cancelled) return;
       if (!error && data) setConnections(data as unknown as WhatsAppConnection[]);
       setLoading(false);
     };
     void fetchConnections();
+    return () => { cancelled = true; };
   }, [setConnections, setLoading]);
 
   const handleRefreshQrCode = async () => {

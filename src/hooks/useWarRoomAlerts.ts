@@ -20,6 +20,10 @@ export function useWarRoomAlerts(soundEnabled = true) {
   const queryClient = useQueryClient();
   const { showNotification, permission } = usePushNotifications();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const alertsRef = useRef(alerts);
+
+  // Keep alertsRef in sync so the SLA interval can read latest alerts without being in its dep array
+  useEffect(() => { alertsRef.current = alerts; }, [alerts]);
 
   // Initialize alert sound
   useEffect(() => {
@@ -118,7 +122,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
       if (breaches && breaches.length > 0) {
         const newBreachCount = breaches.length;
         // Only alert if breaches exist (idempotent via source field)
-        const existingAlerts = alerts.filter(a => a.source === 'sla-monitor');
+        const existingAlerts = alertsRef.current.filter(a => a.source === 'sla-monitor');
         if (existingAlerts.length === 0 || newBreachCount > existingAlerts.length) {
           const { error: insertErr } = await supabase.from('warroom_alerts').insert({
             alert_type: 'critical',
@@ -134,7 +138,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
     const interval = setInterval(() => { void checkSLABreaches(); }, 60000);
     void checkSLABreaches(); // initial check
     return () => clearInterval(interval);
-  }, [alerts]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs once; alertsRef keeps current value
 
   return { alerts, dismissAlert };
 }

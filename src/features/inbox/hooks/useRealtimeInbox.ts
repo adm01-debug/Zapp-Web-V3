@@ -142,14 +142,15 @@ export function useRealtimeInbox() {
     }
     // ────────────────────────────────────────────────────────────────────────
 
+    let cancelled = false;
     const fetchWhisperCount = async () => {
       const { count, error } = await supabase.from('whisper_messages').select('*', { count: 'exact', head: true }).eq('contact_id', selectedContactId).eq('is_read', false);
-      if (!error && count !== null) setWhisperCount(count);
+      if (!cancelled && !error && count !== null) setWhisperCount(count);
     };
     fetchWhisperCount();
 
     const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => fetchWhisperCount()).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [selectedContactId, profile?.id]);
 
   const messageQueue = useMessageQueue(async (item: QueueItem) => {

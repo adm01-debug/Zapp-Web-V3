@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { emailHealthService } from '@/services/email/emailHealthService';
 import type { EmailHealthInfo } from '@/services/email/types';
 import { useToast } from '@/hooks/use-toast';
@@ -11,16 +11,22 @@ export function useEmailHealth() {
   const [health, setHealth] = useState<EmailHealthInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const loadHealth = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await emailHealthService.getHealthStatus();
-      setHealth(data);
+      if (mountedRef.current) setHealth(data);
     } catch (err) {
       log.error('Email health load error', err);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   }, []);
 

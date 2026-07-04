@@ -41,6 +41,11 @@ export function useAgentPresence({
   const channelRef = useRef<RealtimeChannel | null>(null);
   const activityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myStatusRef = useRef<AgentPresenceStatus>('online');
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
   useEffect(() => { myStatusRef.current = myStatus; }, [myStatus]);
 
   // Track user activity for auto-away — reads status via ref to stay stable
@@ -57,7 +62,7 @@ export function useAgentPresence({
   // Update my status in the database
   const updateStatus = useCallback(async (status: AgentPresenceStatus) => {
     if (!user) return;
-    setMyStatus(status);
+    if (mountedRef.current) setMyStatus(status);
     await (supabase as any)
       .from('agent_presence')
       .upsert({
@@ -81,7 +86,7 @@ export function useAgentPresence({
       .neq('status', 'offline')
       .order('status', { ascending: true });
 
-    if (data) setAgents(data as AgentPresence[]);
+    if (data && mountedRef.current) setAgents(data as AgentPresence[]);
   }, [workspaceId]);
 
   useEffect(() => {

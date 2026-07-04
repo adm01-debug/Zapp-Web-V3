@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
@@ -27,6 +27,15 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [hasSession, setHasSession] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!success) return;
+    timerRef.current = setTimeout(() => navigate('/auth'), 3000);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [success, navigate]);
 
   useEffect(() => {
     // Check if user came from password reset email
@@ -72,10 +81,6 @@ export default function ResetPassword() {
 
       setSuccess(true);
       toast.success('Senha alterada com sucesso!');
-      
-      setTimeout(() => {
-        navigate('/auth');
-      }, 3000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao alterar senha');
       toast.error('Erro ao alterar senha');
