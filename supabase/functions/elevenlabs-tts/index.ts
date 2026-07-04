@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
           'xi-api-key': ELEVENLABS_API_KEY,
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(30_000),
         body: JSON.stringify({
           text,
           model_id: selectedModel,
