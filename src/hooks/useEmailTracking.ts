@@ -80,6 +80,9 @@ export interface TopContact {
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
 
+// Schema-aware client for email_app tables (module-level to avoid stale closures)
+const emailDb = (supabase as any).schema('email_app');
+
 /** Gera URL do pixel de rastreio */
 export function getTrackingPixelUrl(trackingId: string): string {
   return `${SUPABASE_URL}/functions/v1/email-track-pixel?t=${trackingId}`;
@@ -149,7 +152,7 @@ export function useEmailTracking() {
       if (!user) return null;
 
       // 1. Criar registro de tracking
-      const { data: tracked, error: insertErr } = await supabase
+      const { data: tracked, error: insertErr } = await emailDb
         .from('email_tracked_messages')
         .insert({
           user_id:         user.id,
@@ -193,7 +196,7 @@ export function useEmailTracking() {
             position: i,
           }));
 
-          const { data: links } = await supabase
+          const { data: links } = await emailDb
             .from('email_tracked_links')
             .insert(linksToInsert)
             .select('link_id, original_url');
@@ -204,7 +207,7 @@ export function useEmailTracking() {
           }
 
           // Atualizar contagem de links
-          await supabase
+          await emailDb
             .from('email_tracked_messages')
             .update({ tracked_link_count: urls.size })
             .eq('tracking_id', trackingId);
@@ -215,7 +218,7 @@ export function useEmailTracking() {
       bodyWithPixel = bodyWithPixel + pixelHtml;
 
       // 4. Atualizar contact score (total_sent)
-      await supabase
+      await emailDb
         .from('email_contact_scores')
         .upsert({
           user_id: user.id,
@@ -236,7 +239,7 @@ export function useEmailTracking() {
   const loadTrackedEmails = useCallback(async (limit = 50) => {
     setIsLoading(true);
     try {
-      const { data, error: dbErr } = await supabase
+      const { data, error: dbErr } = await emailDb
         .from('email_tracked_messages')
         .select('*')
         .order('created_at', { ascending: false })
@@ -269,7 +272,7 @@ export function useEmailTracking() {
 
   // ── Buscar eventos de abertura de um email ─────────────────────────────
   const getOpenEvents = useCallback(async (trackingId: string): Promise<TrackingEvent[]> => {
-    const { data, error } = await supabase
+    const { data, error } = await emailDb
       .from('email_tracking_events')
       .select('*')
       .eq('tracking_id', trackingId)
@@ -279,7 +282,7 @@ export function useEmailTracking() {
 
   // ── Buscar links rastreados de um email ────────────────────────────────
   const getTrackedLinks = useCallback(async (trackingId: string): Promise<TrackedLink[]> => {
-    const { data, error } = await supabase
+    const { data, error } = await emailDb
       .from('email_tracked_links')
       .select('*')
       .eq('tracking_id', trackingId)

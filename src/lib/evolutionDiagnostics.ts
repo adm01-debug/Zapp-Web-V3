@@ -74,8 +74,8 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
     try {
       const extSupabase = getExternalSupabase();
       if (extSupabase) {
-        // Correcting table name based on schema knowledge: it's likely evolution_stage_mapping or something public
-        const { error: extError } = await extSupabase.from('evolution_stage_mapping').select('count').limit(1);
+        // Connectivity probe against the external DB (any successful query suffices)
+        const { error: extError } = await extSupabase.from('contacts').select('id').limit(1);
         results.push({
           step: 'Database Direct (FATOR X)',
           status: extError ? 'fail' : 'ok',

@@ -103,14 +103,9 @@ export default function BridgeStatusPage() {
       if (isExternalConfigured) {
         const extSupabase = getExternalSupabase();
         if (extSupabase) {
-          const { error: extError } = await extSupabase.from('evolution_stage_mapping').select('count').limit(1);
+          // Connectivity probe: any successful query proves the external DB is reachable
+          const { error: extError } = await extSupabase.from('contacts').select('id').limit(1);
           externalOk = !extError;
-          
-          if (externalOk) {
-            // Get some quick stats if available
-            const { count } = await extSupabase.from('evolution_stage_mapping').select('*', { count: 'exact', head: true });
-            setInstanceCount(count || 0);
-          }
         }
       }
       setExternalDb(externalOk);

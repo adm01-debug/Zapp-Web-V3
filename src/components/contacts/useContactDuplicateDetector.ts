@@ -81,7 +81,6 @@ export function useContactDuplicateDetector({
           const query = (supabase as any)
             .from('contacts')
             .select('id, name, phone, email, avatar_url')
-            .eq('workspace_id', workspace_id)
             .is('deleted_at', null)
             .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
             .limit(5);
@@ -106,7 +105,6 @@ export function useContactDuplicateDetector({
           const { data: emailMatches } = await (supabase as any)
             .from('contacts')
             .select('id, name, phone, email, avatar_url')
-            .eq('workspace_id', workspaceId)
             .eq('email', normalizedEmail)
             .is('deleted_at', null)
             .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')

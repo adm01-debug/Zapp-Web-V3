@@ -58,10 +58,10 @@ export function useAutomations({
     const load = async () => {
       try {
         const { data, error } = await supabase
-          .from('automation_rules')
-          .select("id,name,trigger_type,trigger_config,actions,is_active,priority")
+          .from('automations')
+          .select("id,name,trigger_type,trigger_config,actions,is_active")
           .eq("is_active", true)
-          .order("priority", { ascending: true });
+          .order("name", { ascending: true });
         
         if (error) throw error;
         if (!cancelled && data) rulesRef.current = data as AutomationRule[];
