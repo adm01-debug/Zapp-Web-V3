@@ -73,9 +73,13 @@ Deno.serve(async (req) => {
             .eq("contact_id", contact.id),
         ]);
 
+        if (lastMsgResult.error) log.warn("lastMsg query failed", { contactId: contact.id, error: lastMsgResult.error.message });
+        if (recentCountResult.error) log.warn("recentCount query failed", { contactId: contact.id, error: recentCountResult.error.message });
+        if (totalCountResult.error) log.warn("totalCount query failed", { contactId: contact.id, error: totalCountResult.error.message });
+
         const lastMsg = lastMsgResult.data;
-        const recentMsgCount = recentCountResult.count;
-        const totalMsgCount = totalCountResult.count;
+        const recentMsgCount = recentCountResult.error ? 0 : (recentCountResult.count ?? 0);
+        const totalMsgCount = totalCountResult.error ? 0 : (totalCountResult.count ?? 0);
 
         const lastMessageAt = lastMsg?.created_at || contact.updated_at;
         const daysSinceLastMessage = Math.floor(
