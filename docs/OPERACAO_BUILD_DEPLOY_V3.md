@@ -15,35 +15,42 @@ Garantir que o build e o deploy do `zapp-web-v3` sejam **reproduzíveis** e não
 | Requisito | Valor | Por quê |
 |-----------|-------|---------|
 | **RAM do runner** | **≥ 8 GB** (heap `--max-old-space-size` ≥ 6144) | O bundle tem ~6.000 módulos; o rollup estoura na fase *rendering chunks*. Em container com teto de **4 GB o build morre com `Killed` (OOM)** — sem mensagem de erro clara. |
-| **`bun`** instalado | qualquer versão recente | O hook `prebuild` roda `bun run scripts/generate-component-registry.ts`. Sem bun → `bun: not found` e o build aborta antes do `vite build`. |
-| **Node** | 20.x | Alinhado ao runtime. Dev-deps pedem node ≥22 (só *warnings* `EBADENGINE`, não bloqueiam). |
+| **`bun`** instalado | v1.3+ | O projeto usa `bun.lock` como fonte de verdade. O hook `prebuild` roda `bun run scripts/generate-component-registry.ts`. Sem bun → `bun: not found` e o build aborta antes do `vite build`. |
+| **Node** | 20.x | Alinhado ao runtime de produção. Dev-deps pedem node ≥22 (só *warnings* `EBADENGINE`, não bloqueiam). |
 
 ### Comando de build de produção
-```sh
-# instalar deps (NÃO usar 'npm ci' — ver seção 3)
-npm install --no-audit --no-fund
 
-# build com heap ampliado + envs do self-hosted
+```sh
+# Instalar dependências com bun (fonte de verdade do projeto)
+bun install --frozen-lockfile
+
+# Build com heap ampliado + envs do self-hosted
 VITE_SUPABASE_URL=https://supabase.atomicabr.com.br \
 VITE_SUPABASE_ANON_KEY=<anon key> \
 NODE_OPTIONS=--max-old-space-size=6144 \
 npm run build
 ```
 
+> **Nota:** `npm run build` chama `bun` internamente no hook `prebuild`. O `bun install` deve ser executado antes para garantir que o `bun.lock` esteja sincronizado.
+
 Saída esperada: `dist/` (~17 MB), `✓ built in ~1m`, PWA com ~283 entradas de precache, assets com variantes `.br`/`.gz` pré-comprimidas.
 
 ---
 
-## 3. Pegadinha do `package-lock.json` (xlsx via CDN)
+## 3. Gerenciamento de dependências — `bun.lock` (fonte de verdade)
 
-- O `package.json` referencia o xlsx por **tarball da CDN**: `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz` — porque a SheetJS **saiu do npm registry** (versões ≥0.19 não existem lá; um `npm view xlsx@0.20.3` dá **E404**).
-- Se o `package-lock.json` estiver **dessincronizado** (travado em `xlsx@0.18.5` do registry), o **`npm ci` falha** com `EUSAGE / Invalid: lock file's xlsx@0.18.5 does not satisfy xlsx@0.20.3`.
-- **Correção** (regenera o lock a partir do `package.json`):
-  ```sh
-  npm install --package-lock-only --no-audit --no-fund
-  git add package-lock.json && git commit -m "chore: sincroniza package-lock (xlsx CDN 0.20.3)"
-  ```
-  Regra de ouro: **sempre que bumpar o xlsx, rode isso e commite o lock** — senão a CI quebra.
+O projeto usa **`bun.lock`**, não `package-lock.json`, como arquivo de lock. O `ci.yml` valida isso com `bun install --frozen-lockfile`.
+
+- O `bun.lock` resolve `xlsx@0.20.3` via tarball da CDN SheetJS: `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz` (versões ≥0.19 não existem no registry npm público).
+- O `package-lock.json` que o npm gera é um **artefato não versionado** — não use como referência.
+
+**Comando para regenerar o lock** (se bumpar dependências):
+```sh
+bun install          # atualiza bun.lock
+git add bun.lock && git commit -m "chore: atualiza bun.lock"
+```
+
+**Nunca** commitar `package-lock.json` gerado pelo npm — ele conflita com o `bun.lock`.
 
 ---
 
@@ -75,11 +82,12 @@ A workspace `/workspace/repos/zapp-web-v3` é **compartilhada** entre processos/
 
 ## 6. Backup das edge functions legadas (`_shared` Fator X)
 
-As funções legadas (`audio-transcribe`, `evolution-*`) usam `_shared/mod.ts` com exports próprios (`auth-legacy.ts`, `rate-limiter-legacy.ts`, `validation-legacy.ts`) que **vivem só no volume de functions**, fora deste repo. Um deploy que sobrescreva o `_shared` quebra o boot delas.
+As funções legadas (`audio-transcribe`, `evolution-*`) usam `_shared/mod.ts` com re-exports próprios (`auth-legacy.ts`, `rate-limiter-legacy.ts`, `validation-legacy.ts`) que **vivem no volume de functions e no diretório `supabase/functions-legacy/`** deste repo. Um deploy que sobrescreva o `_shared/` quebra o boot delas.
 
-- Backup pós-fix preservado no host: `functions-postfix-*.tar.gz` (em `/root/supabase/docker/volumes/`).
-- **Pendência**: migrar essas funções para versionamento formal (ver issues abertas).
+- Backup pós-fix preservado no host: `functions-postfix-20260703-2148.tar.gz` (em `/root/supabase/docker/volumes/`).
+- Arquivos versionados em: `supabase/functions-legacy/_shared/` (merged via PR #176, jul/2026).
+- **Script de restauração**: ver `supabase/functions-legacy/README.md`.
 
 ---
 
-_Última atualização: rodada de paridade Lovable → VPS, jul/2026._
+_Última atualização: 2026-07-04 — corrigido diagnóstico bun vs npm; adicionados detalhes sobre bun.lock e functions-legacy._
