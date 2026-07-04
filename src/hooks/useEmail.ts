@@ -97,6 +97,11 @@ export function useEmail() {
   const [nextPageToken, setNextPageToken]     = useState<string | null>(null);
   const [hasMore, setHasMore]                 = useState(false);
   const oauthInFlightRef                       = useRef(false);
+  const mountedRef                             = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -104,12 +109,14 @@ export function useEmail() {
   const loadAccounts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
-    const { data, error: dbErr, requestId } = await safeClient.from('email_accounts', (q) => 
+
+    const { data, error: dbErr, requestId } = await safeClient.from('email_accounts', (q) =>
       q.select('id, user_id, email, display_name, is_active, token_expiry, watch_expiry')
        .eq('is_active', true)
        .order('created_at', { ascending: true })
     );
+
+    if (!mountedRef.current) return;
 
     if (dbErr) {
       if (dbErr.message.includes('disponível') || dbErr.message.includes('not found')) {
@@ -137,6 +144,7 @@ export function useEmail() {
   // ── Verificar status dos tokens ────────────────────────────────────
   const checkTokenStatus = useCallback(async () => {
     const { data, error: rpcErr, requestId } = await safeClient.rpc('rpc_email_token_status');
+    if (!mountedRef.current) return;
     if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
       setTokenStatus(GMAIL_MOCKS.tokenStatus);
     } else if (!rpcErr && data) {
@@ -164,6 +172,8 @@ export function useEmail() {
       p_limit:      50,
       p_offset:     append ? threads.length : 0,
     });
+
+    if (!mountedRef.current) return;
 
     if (rpcErr) {
       if (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found')) {
@@ -196,11 +206,12 @@ export function useEmail() {
        .order('date', { ascending: true })
     );
 
+    if (!mountedRef.current) return;
+
     if (dbErr) {
       if (dbErr.message.includes('disponível') || dbErr.message.includes('not found')) {
         setMessages(GMAIL_MOCKS.messages.filter(m => m.thread_id === threadId));
       } else {
-        const rid = (dbErr as any).requestId || 'N/A';
         log.error('Email messages load error', dbErr);
       }
     } else {
