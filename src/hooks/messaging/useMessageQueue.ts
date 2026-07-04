@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { eventBus } from '@/lib/eventBus';
 import { log } from '@/lib/logger';
@@ -23,11 +24,10 @@ export function useMessageQueue(instanceName: string = 'wpp2') {
   });
   const queueRef = useRef<PendingMessage[]>([]);
   const isProcessingRef = useRef(false);
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
   const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
-    mountedRef.current = false;
     if (cleanupTimerRef.current) clearTimeout(cleanupTimerRef.current);
   }, []);
 

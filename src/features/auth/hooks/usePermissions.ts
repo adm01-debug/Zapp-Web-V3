@@ -1,4 +1,5 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -66,14 +67,7 @@ export function usePermissions() {
   const [permissions, setPermissions] = useState<Permission[]>(cache?.permissions ?? []);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>(cache?.rolePermissions ?? []);
   const [fetchingAll, setFetchingAll] = useState(false);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const mountedRef = useMountedRef();
 
   const fetchAllPermissionsData = useCallback(async (force = false) => {
     if (!mountedRef.current) return;

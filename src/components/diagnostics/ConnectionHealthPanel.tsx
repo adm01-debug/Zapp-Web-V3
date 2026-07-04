@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionHealthPanel');
@@ -42,11 +43,10 @@ export function ConnectionHealthPanel() {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
-    mountedRef.current = false;
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
   }, []);
 

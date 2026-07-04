@@ -10,6 +10,7 @@
  *  - console.error removidos: todos convertidos para getLogger (2026-07-03)
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { sanitizeText } from '@/lib/sanitize';
@@ -65,15 +66,11 @@ export function useMessages(
   const [hasMore,     setHasMore]     = useState(false);
   const PAGE_SIZE = 50;
   const offsetRef   = useRef(0);
-  const mountedRef  = useRef(true);
+  const mountedRef = useMountedRef();
   const loadAbortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      loadAbortRef.current?.abort();
-    };
+  useEffect(() => () => {
+    loadAbortRef.current?.abort();
   }, []);
 
   // mapRow: tipos fiéis ao esquema evo.evolution_messages

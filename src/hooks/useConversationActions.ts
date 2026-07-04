@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { addHours, startOfTomorrow, addDays, setHours } from 'date-fns';
@@ -12,12 +13,7 @@ export function useConversationActions() {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [snoozedIds, setSnoozedIds] = useState<Set<string>>(new Set());
   const [profileId, setProfileId] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
+  const mountedRef = useMountedRef();
 
   const loadProfile = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();

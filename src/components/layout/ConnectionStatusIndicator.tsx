@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { WifiOff, Wifi, RefreshCw, History } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -103,9 +104,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   const prevDisconnectedRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
-  const mountedRef = useRef(true);
-
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  const mountedRef = useMountedRef();
 
   // Persistir filtro
   useEffect(() => {

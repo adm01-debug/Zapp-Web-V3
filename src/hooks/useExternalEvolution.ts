@@ -8,6 +8,7 @@
  * - Polling: cursor-forward (created_at > lastSeen) instead of full re-fetch.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryExternalProxy } from '@/lib/externalProxy';
 import {
@@ -484,21 +485,17 @@ export function useExternalMessages(remoteJid: string | null) {
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
   const previousJidRef = useRef<string | null>(null);
   const lastSeenRef = useRef<string | null>(null);
   const loadOlderAbortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      // Abort any in-flight loadOlder on unmount
-      if (loadOlderAbortRef.current) {
-        loadOlderAbortRef.current.abort();
-        loadOlderAbortRef.current = null;
-      }
-    };
+  useEffect(() => () => {
+    // Abort any in-flight loadOlder on unmount
+    if (loadOlderAbortRef.current) {
+      loadOlderAbortRef.current.abort();
+      loadOlderAbortRef.current = null;
+    }
   }, []);
 
   const cancelLoadOlder = useCallback(() => {

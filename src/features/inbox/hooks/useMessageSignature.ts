@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 
 const SIGNATURE_ENABLED_KEY = 'chat_signature_enabled';
@@ -12,12 +13,7 @@ export function useMessageSignature() {
     }
   });
   const [agentSignature, setAgentSignature] = useState('');
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     const fetchName = async () => {
