@@ -4,6 +4,7 @@
  * Shows consent rate, opt-outs, missing consents.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
 
@@ -40,6 +41,7 @@ interface LGPDComplianceDashboardProps {
 export const LGPDComplianceDashboard: React.FC<LGPDComplianceDashboardProps> = ({
   workspaceId, className,
 }) => {
+  const mountedRef = useMountedRef();
   const [stats,   setStats]   = useState<ComplianceStats | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -50,13 +52,13 @@ export const LGPDComplianceDashboard: React.FC<LGPDComplianceDashboardProps> = (
         p_workspace_id: workspaceId,
       });
       if (error) throw error;
-      setStats((data ?? null) as unknown as ComplianceStats | null);
+      if (mountedRef.current) setStats((data ?? null) as unknown as ComplianceStats | null);
     } catch (err) {
       log.error('Failed to load LGPD compliance stats', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [workspaceId]);
+  }, [workspaceId, mountedRef]);
 
   useEffect(() => { load(); }, [load]);
 

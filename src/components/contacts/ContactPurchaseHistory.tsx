@@ -38,17 +38,21 @@ export function ContactPurchaseHistory({ contactId, className }: ContactPurchase
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    async function fetch() {
-      const { data, error } = await supabase
+    let cancelled = false;
+    async function fetchPurchases() {
+      const { data } = await supabase
         .from('contact_purchases')
         .select('id, title, amount, currency, status, purchased_at, purchase_type, created_at')
         .eq('contact_id', contactId)
         .order('created_at', { ascending: false })
         .limit(20);
-      setPurchases(data || []);
-      setLoading(false);
+      if (!cancelled) {
+        setPurchases(data || []);
+        setLoading(false);
+      }
     }
-    fetch();
+    fetchPurchases();
+    return () => { cancelled = true; };
   }, [contactId]);
 
   const totalValue = purchases

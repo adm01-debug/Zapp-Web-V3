@@ -4,6 +4,7 @@
  * Shows: avg score, NPS, score distribution, top agents.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, RefreshCw, TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -48,6 +49,7 @@ interface Props { instanceName?: string; days?: number; compact?: boolean; }
 export const CSATWidget: React.FC<Props> = ({
   instanceName = 'wpp2', days = 30, compact = false,
 }) => {
+  const mountedRef = useMountedRef();
   const [stats,   setStats]   = useState<CSATStats | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -59,10 +61,10 @@ export const CSATWidget: React.FC<Props> = ({
         p_days: days,
       });
       if (error) throw error;
-      setStats(data as unknown as CSATStats);
+      if (mountedRef.current) setStats(data as unknown as CSATStats);
     } catch (err) { log.error('Failed to load CSAT stats', err); }
-    finally { setLoading(false); }
-  }, [instanceName, days]);
+    finally { if (mountedRef.current) setLoading(false); }
+  }, [instanceName, days, mountedRef]);
 
   useEffect(() => { load(); }, [load]);
 

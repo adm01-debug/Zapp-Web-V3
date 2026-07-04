@@ -3,6 +3,7 @@
  * Real activity timeline using evolution_conversations + contact_audit_log.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
@@ -33,6 +34,7 @@ const COLORS: Record<string, string> = {
 };
 
 export const ContactActivityFeed: React.FC<{ contactId: string; maxItems?: number }> = ({ contactId, maxItems = 20 }) => {
+  const mountedRef = useMountedRef();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -64,9 +66,9 @@ export const ContactActivityFeed: React.FC<{ contactId: string; maxItems?: numbe
       }
 
       all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setActivities(all.slice(0, maxItems));
-    } catch (err) { log.error('Failed to load activity feed', err); }
-    finally { setLoading(false); }
+      if (mountedRef.current) setActivities(all.slice(0, maxItems));
+    } catch (err) { if (mountedRef.current) log.error('Failed to load activity feed', err); }
+    finally { if (mountedRef.current) setLoading(false); }
   }, [contactId, maxItems]);
 
   useEffect(() => { load(); }, [load]);

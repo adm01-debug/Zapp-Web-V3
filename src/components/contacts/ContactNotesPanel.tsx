@@ -4,6 +4,7 @@
  * Supports pinned notes, note types, and add/remove.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +40,7 @@ const TYPE_LABEL: Record<string, string> = Object.fromEntries(NOTE_TYPES.map((t)
 
 export const ContactNotesPanel: React.FC<{ contactId: string }> = ({ contactId }) => {
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
   const [notes,    setNotes]    = useState<Note[]>([]);
   const [loading,  setLoading]  = useState(false);
   const [saving,   setSaving]   = useState(false);
@@ -50,8 +52,8 @@ export const ContactNotesPanel: React.FC<{ contactId: string }> = ({ contactId }
     setLoading(true);
     try {
       const { data, error: rpcErr } = await (supabase as any).rpc('get_contact_notes', { p_contact_id: contactId, p_limit: 30 });
-      setNotes((data ?? []) as Note[]);
-    } finally { setLoading(false); }
+      if (mountedRef.current) setNotes((data ?? []) as Note[]);
+    } finally { if (mountedRef.current) setLoading(false); }
   }, [contactId]);
 
   useEffect(() => { load(); }, [load]);

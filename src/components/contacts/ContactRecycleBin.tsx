@@ -4,6 +4,7 @@
  * Shows contacts deleted in the last 30 days.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
 
@@ -46,6 +47,7 @@ function formatReason(reason: string | null): string {
 
 export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({ workspaceId: instanceName, onRestored }) => {
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
   const [contacts,  setContacts]  = useState<DeletedContact[]>([]);
   const [loading,   setLoading]   = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
@@ -62,10 +64,10 @@ export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({ workspaceI
         .limit(100);
 
       if (error) throw error;
-      setContacts((data ?? []) as DeletedContact[]);
+      if (mountedRef.current) setContacts((data ?? []) as DeletedContact[]);
     } catch (err) {
       log.error('Failed to load recycle bin', err);
-    } finally { setLoading(false); }
+    } finally { if (mountedRef.current) setLoading(false); }
   }, [instanceName]);
 
   useEffect(() => { load(); }, [load]);
