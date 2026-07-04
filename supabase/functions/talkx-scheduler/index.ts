@@ -48,17 +48,31 @@ Deno.serve(async (req) => {
       dueCampaigns.map(async (campaign) => {
         // Atomic claim: only proceed if we can flip status from 'scheduled' → 'processing'.
         // Concurrent cron invocations will fail this update and skip the campaign.
-        const { count: claimed } = await supabase
+        const { count: claimed, error: claimError } = await supabase
           .from("talkx_campaigns")
           .update({ status: "processing" })
           .eq("id", campaign.id)
           .eq("status", "scheduled")
           .select("id", { count: "exact", head: true });
 
+        if (claimError) {
+          log.error(`Failed to claim campaign ${campaign.id}`, { error: claimError.message });
+          return null;
+        }
         if (!claimed || claimed === 0) {
           log.info(`Campaign ${campaign.id} already claimed by another invocation, skipping`);
           return null;
         }
+
+        const revertStatus = async () => {
+          const { error: revertErr } = await supabase
+            .from("talkx_campaigns")
+            .update({ status: "scheduled" })
+            .eq("id", campaign.id);
+          if (revertErr) {
+            log.error(`Failed to revert campaign ${campaign.id} to scheduled`, { error: revertErr.message });
+          }
+        };
 
         try {
           const response = await fetch(
@@ -73,7 +87,7 @@ Deno.serve(async (req) => {
           const result = await response.json();
           if (!response.ok) {
             log.error(`talkx-send returned ${response.status} for campaign ${campaign.id}`, { result });
-            await supabase.from("talkx_campaigns").update({ status: "scheduled" }).eq("id", campaign.id);
+            await revertStatus();
             return { campaignId: campaign.id, name: campaign.name, success: false, error: result };
           }
           log.info(`Scheduled campaign started: ${campaign.name} (${campaign.id})`);
@@ -81,7 +95,7 @@ Deno.serve(async (req) => {
         } catch (err) {
           log.error(`Failed to start campaign ${campaign.id}`, { error: err instanceof Error ? err.message : String(err) });
           // Revert status so the campaign can be retried on the next cron tick
-          await supabase.from("talkx_campaigns").update({ status: "scheduled" }).eq("id", campaign.id);
+          await revertStatus();
           return { campaignId: campaign.id, name: campaign.name, success: false, error: "Failed to start campaign" };
         }
       })
