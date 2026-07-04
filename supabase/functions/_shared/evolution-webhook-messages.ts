@@ -228,7 +228,7 @@ export async function handleStickerMedia(
     const directMediaUrl = (data.mediaUrl as string) || ((message?.stickerMessage as Record<string, unknown>)?.mediaUrl as string);
     if (directMediaUrl && isSafeMediaCdnUrl(directMediaUrl)) {
       try {
-        const resp = await fetch(directMediaUrl, { signal: AbortSignal.timeout(10000) });
+        const resp = await fetch(directMediaUrl, { signal: AbortSignal.timeout(10000), redirect: 'error' });
         if (resp.ok) {
           const arrayBuf = await resp.arrayBuffer();
           const bytes = new Uint8Array(arrayBuf);
