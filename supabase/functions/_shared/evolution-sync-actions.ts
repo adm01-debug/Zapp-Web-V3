@@ -22,7 +22,7 @@ export async function syncContacts(
 
   const contactsResponse = await fetch(
     `${evolutionApiUrl}/chat/findContacts/${instanceName}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey }, body: JSON.stringify({ where: {} }) }
+    { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey }, body: JSON.stringify({ where: {} }), signal: AbortSignal.timeout(10_000) }
   );
 
   if (!contactsResponse.ok) {
@@ -88,7 +88,7 @@ export async function syncMessages(
   const messagesResponse = await fetch(
     `${evolutionApiUrl}/chat/findMessages/${instanceName}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
-      body: JSON.stringify({ where: { key: { remoteJid } }, page: 1, offset: 50 }) }
+      body: JSON.stringify({ where: { key: { remoteJid } }, page: 1, offset: 50 }), signal: AbortSignal.timeout(10_000) }
   );
   if (!messagesResponse.ok) throw new Error(`Evolution API error [${messagesResponse.status}]: ${await messagesResponse.text()}`);
 
@@ -150,6 +150,7 @@ export async function syncAllMessages(
         const msgResponse = await fetch(`${evolutionApiUrl}/chat/findMessages/${instanceName}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
           body: JSON.stringify({ where: { key: { remoteJid } }, page: 1, offset: messagesPerContact }),
+          signal: AbortSignal.timeout(10_000),
         });
         if (!msgResponse.ok) { totalErrors++; continue; }
 
@@ -207,6 +208,7 @@ export async function setupWebhook(
     body: JSON.stringify({
       webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS },
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   const webhookData = await webhookResponse.json();
   return new Response(JSON.stringify({ success: webhookResponse.ok, webhook: webhookData }), {
@@ -261,6 +263,7 @@ export async function fullSync(
     const contactsResponse = await fetch(`${evolutionApiUrl}/chat/findContacts/${instanceName}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
       body: JSON.stringify({ where: {} }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (contactsResponse.ok) {
       const contactsList = await contactsResponse.json();
@@ -292,6 +295,7 @@ export async function fullSync(
     const webhookResponse = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
       body: JSON.stringify({ webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS } }),
+      signal: AbortSignal.timeout(10_000),
     });
     results.webhook = { success: webhookResponse.ok, url: webhookUrl };
   } catch (e) { results.webhook = { success: false, error: String(e) }; }

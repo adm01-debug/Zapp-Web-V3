@@ -91,6 +91,7 @@ export async function refreshAccessToken(
       client_secret: clientSecret,
       grant_type:    'refresh_token',
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   const tokens = await res.json();
@@ -282,6 +283,7 @@ export async function fetchGmailMessage(
 ): Promise<Record<string, unknown>> {
   const res = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
   });
   return await res.json();
 }
@@ -292,7 +294,7 @@ export async function fetchGmailHistory(
 ): Promise<{ addedMessageIds: string[]; newHistoryId?: string }> {
   const res = await fetch(
     `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
   );
   const data = await res.json();
   if (data.error) return { addedMessageIds: [] };
