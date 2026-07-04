@@ -10,6 +10,7 @@ import {
   useHealthHistory, useAlertChannels, useTestAlertChannel,
   useDrRunbook, useDrHealth, useRunTestSuite,
 } from '@/lib/evoApiHealth/hooks';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { HealthTab } from '@/components/evoApiHealth/tabs/HealthTab';
 import { AlertsTab } from '@/components/evoApiHealth/tabs/AlertsTab';
 import { ChannelsTab } from '@/components/evoApiHealth/tabs/ChannelsTab';
@@ -126,32 +127,42 @@ export default function AdminEvoApiHealthPage() {
         </TabsList>
 
         <TabsContent value="health">
-          <HealthTab data={dashboardData} />
+          <SectionErrorBoundary sectionName="Saúde">
+            <HealthTab data={dashboardData} />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="alerts">
-          <AlertsTab 
-            alerts={alertsData} 
-            onAcknowledge={(id) => ack.mutate(id)} 
-            isAcknowledging={ack.isPending} 
-          />
+          <SectionErrorBoundary sectionName="Alertas">
+            <AlertsTab
+              alerts={alertsData}
+              onAcknowledge={(id) => ack.mutate(id)}
+              isAcknowledging={ack.isPending}
+            />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="channels">
-          <ChannelsTab 
-            channels={channels.data?.data} 
-            onTest={(id) => testChan.mutate(id)} 
-            isTesting={testChan.isPending} 
-            testResult={testChan.data} 
-          />
+          <SectionErrorBoundary sectionName="Canais de Alerta">
+            <ChannelsTab
+              channels={channels.data?.data}
+              onTest={(id) => testChan.mutate(id)}
+              isTesting={testChan.isPending}
+              testResult={testChan.data}
+            />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="history">
-          <HistoryTab history={history.data?.data} />
+          <SectionErrorBoundary sectionName="Histórico">
+            <HistoryTab history={history.data?.data} />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="dr">
-          <DrTab drHealth={drHealth.data?.data} runbook={runbook.data?.data} />
+          <SectionErrorBoundary sectionName="DR">
+            <DrTab drHealth={drHealth.data?.data} runbook={runbook.data?.data} />
+          </SectionErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>
