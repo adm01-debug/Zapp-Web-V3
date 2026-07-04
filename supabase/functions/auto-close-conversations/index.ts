@@ -39,7 +39,8 @@ Deno.serve(async (req) => {
       .from('contacts')
       .select('id, name, phone, assigned_to')
       .lt('updated_at', cutoffDate.toISOString())
-      .not('assigned_to', 'is', null);
+      .not('assigned_to', 'is', null)
+      .limit(200);
 
     if (staleError) {
       log.error('Error finding stale contacts', { error: staleError.message });
