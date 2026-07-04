@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
 
 
     if (action === 'connect') {
-      let connectUrl = `${evolutionApiUrl}/instance/connect/${instance}`;
+      let connectUrl = `${evolutionApiUrl}/instance/connect/${encodeURIComponent(String(instance))}`;
 
       const doConnect = async () => {
         const response = await fetch(connectUrl, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
         }
         console.warn(`[evolution-api][connect] instanceName era UUID; resolvido para "${resolved}" via fetchInstances (auto-heal, sem create).`);
         instance = resolved;
-        connectUrl = `${evolutionApiUrl}/instance/connect/${resolved}`;
+        connectUrl = `${evolutionApiUrl}/instance/connect/${encodeURIComponent(resolved)}`;
         ({ response, data } = await doConnect());
         if (response.status === 401 || response.status === 403) {
           recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'connect' });

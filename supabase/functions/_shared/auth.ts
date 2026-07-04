@@ -81,6 +81,18 @@ export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser
 }
 
 /**
+ * For internal endpoints that should NOT be callable by external cron schedulers.
+ * Only accepts the Supabase service role bearer token.
+ * Returns null when authorized, otherwise a 401 Response.
+ */
+export function requireServiceRoleOnly(req: Request): Response | null {
+  const token = getBearer(req);
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (token && serviceKey && timingSafeStringEqual(token, serviceKey)) return null;
+  return errorResponse("Unauthorized: internal endpoint", 401, req);
+}
+
+/**
  * For internal/cron-only endpoints. Returns null when authorized, otherwise a 401 Response.
  * Accepts EITHER the Supabase service role bearer token (cron jobs invoked via supabase.functions)
  * OR a matching `x-cron-secret` header (recommended for external schedulers).

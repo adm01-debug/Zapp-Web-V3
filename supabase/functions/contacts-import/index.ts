@@ -53,6 +53,9 @@ serve(async (req) => {
     if (!Array.isArray(rows)) return new Response(JSON.stringify({ error: 'rows must be an array' }), { status: 400, headers: JSON_CORS });
     if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: JSON_CORS });
     if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: JSON_CORS });
+    if (!rows.every((r: unknown) => r !== null && typeof r === 'object' && !Array.isArray(r))) {
+      return new Response(JSON.stringify({ error: 'Each row must be a plain object' }), { status: 400, headers: JSON_CORS });
+    }
 
     // Validate instance name to prevent URL path injection
     const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;

@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
       .select('id, name, phone, assigned_to')
       .lt('updated_at', cutoffDate.toISOString())
       .not('assigned_to', 'is', null)
+      .order('updated_at', { ascending: true })
       .limit(200);
 
     if (staleError) {
