@@ -5,10 +5,14 @@ import {
 } from "../_shared/validation.ts";
 import { AiAutoTagSchema, parseBody } from "../_shared/schemas.ts";
 import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger("ai-auto-tag");
   const userId = extractUserIdFromRequest(req);
