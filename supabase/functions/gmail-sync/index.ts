@@ -125,7 +125,12 @@ serve(async (req) => {
         headers: { Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(10_000),
       });
-      const listData = await listRes.json();
+      const listData = await listRes.json().catch(() => ({}));
+
+      if (listData.error) {
+        console.error('[gmail-sync] syncFull list error', listData.error);
+        return json({ error: 'Failed to list Gmail messages', detail: listData.error?.message }, 400);
+      }
 
       const messages: Array<{ id: string }> = listData.messages ?? [];
       // Cap concurrency at 5 to avoid Gmail API rate limits on full sync
