@@ -97,10 +97,12 @@ serve(async (req) => {
 
     // ── saveCredentials — salva credenciais IMAP/SMTP de forma segura ─────
     if (action === 'saveCredentials') {
-      const { userId, config }: { userId: string; config: ImapSmtpConfig } = body;
+      const { config }: { config: ImapSmtpConfig } = body;
+      // Always bind writes to the authenticated user — never trust body.userId.
+      const userId = authed.user.id;
 
-      if (!userId || !config?.email || !config?.password) {
-        return json({ error: 'userId, config.email e config.password são obrigatórios' }, 400);
+      if (!config?.email || !config?.password) {
+        return json({ error: 'config.email e config.password são obrigatórios' }, 400);
       }
 
       // Mescla com configurações do provedor se disponível
