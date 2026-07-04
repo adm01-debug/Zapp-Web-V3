@@ -22,16 +22,16 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger('client-observability');
 
-  if (req.method !== 'POST') {
-    return errorResponse('Method not allowed', 405, req);
-  }
-
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
+    if (req.method !== 'POST') {
+      return errorResponse('Method not allowed', 405, req);
+    }
+
     const body = await req.json();
     const events: VitalPayload[] = Array.isArray(body?.metrics) ? body.metrics : [];
 

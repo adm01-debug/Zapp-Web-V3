@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';
-import { requireUser } from '../_shared/auth.ts';
+import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,10 +12,10 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   try {
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');

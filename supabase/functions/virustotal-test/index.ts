@@ -9,16 +9,16 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("virustotal-test", req);
 
-  if (req.method !== "POST") {
-    return errorResponse("Method not allowed", 405, req);
-  }
-
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
+    if (req.method !== "POST") {
+      return errorResponse("Method not allowed", 405, req);
+    }
+
     const { apiKey } = await req.json();
 
     if (!apiKey) {

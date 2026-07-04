@@ -103,12 +103,11 @@ Deno.serve(async (req) => {
 
   const log = new Logger("ai-proxy");
 
-  // Require authenticated user — prevents anonymous AI credit drain.
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-  const userId = authed.user.id;
-
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const userId = authed.user.id;
+
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`proxy:${userId}:${ip}`, 30, 60_000);
     if (!allowed) return errorResponse("Limite de requisições excedido. Tente novamente em 1 minuto.", 429, req);
