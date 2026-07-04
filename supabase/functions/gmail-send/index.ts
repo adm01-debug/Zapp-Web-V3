@@ -41,6 +41,7 @@ serve(async (req) => {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ raw: rawEmail, ...(threadId ? { threadId } : {}) }),
+        signal: AbortSignal.timeout(15_000),
       });
 
       const sendData = await sendRes.json();
@@ -89,6 +90,7 @@ serve(async (req) => {
             ? { removeLabelIds: ['UNREAD'] }
             : { addLabelIds: ['UNREAD'] }
           ),
+          signal: AbortSignal.timeout(10_000),
         });
         await supabase.from('gmail_messages').update({ is_read: read }).eq('message_id', msgId).eq('account_id', accountId);
       }
@@ -104,6 +106,7 @@ serve(async (req) => {
       await fetch(`${GMAIL_API}/messages/${messageId}/trash`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       await supabase.from('gmail_messages').delete().eq('message_id', messageId).eq('account_id', accountId);
@@ -119,6 +122,7 @@ serve(async (req) => {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ addLabelIds, removeLabelIds }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       const data = await res.json();
@@ -142,12 +146,14 @@ serve(async (req) => {
           method: 'PUT',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: draftBody,
+          signal: AbortSignal.timeout(15_000),
         });
       } else {
         res = await fetch(`${GMAIL_API}/drafts`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: draftBody,
+          signal: AbortSignal.timeout(15_000),
         });
       }
 
@@ -167,6 +173,7 @@ serve(async (req) => {
       await fetch(`${GMAIL_API}/drafts/${draftId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       return json({ success: true });
@@ -199,6 +206,7 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
       client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
       grant_type:    'refresh_token',
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   const tokens = await tokenRes.json();
   if (tokens.error) { await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId); return null; }
