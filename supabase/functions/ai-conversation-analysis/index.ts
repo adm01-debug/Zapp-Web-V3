@@ -24,6 +24,10 @@ Deno.serve(async (req) => {
     const { messages, contactName, contactId } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
     const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    // Caller-scoped client (RLS enforced) — used for writes to contacts
+    const callerClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY"), {
+      global: { headers: { authorization: req.headers.get("authorization") || "" } },
+    });
 
     let contactContext = '';
     if (contactId) {
@@ -238,7 +242,7 @@ Responda em português brasileiro.`;
         analysisId = insertedAnalysis?.id ?? null;
       }
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await callerClient
         .from('contacts')
         .update({
           ai_sentiment: analysisData.sentiment,
