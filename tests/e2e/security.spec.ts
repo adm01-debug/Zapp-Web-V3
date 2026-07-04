@@ -38,7 +38,7 @@ test.describe('Security and Access Control', () => {
     await expect(page.getByRole('button', { name: 'Início' })).toBeVisible();
   });
 
-  test('audit log should capture failed navigation', async ({ page }) => {
+  test('audit log should capture failed navigation', async ({ page: _page }) => {
     // This is hard to test without real backend data, but we can verify the trigger
     // is present by looking for the network call if we had full login
   });

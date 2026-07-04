@@ -21,5 +21,5 @@ export function validateTestEnvironment() {
   if (missing.length > 0) {
     throw new Error(`❌ Missing required test environment variables: ${missing.join(', ')}`);
   }
-  console.log('✅ Test environment validated.');
+  // Test environment validated
 }

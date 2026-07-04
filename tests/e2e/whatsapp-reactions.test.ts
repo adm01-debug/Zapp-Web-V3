@@ -16,7 +16,7 @@ test.describe('WhatsApp Message Reactions', () => {
     await message.hover();
     
     // Click a reaction (👍)
-    const quickPicker = page.locator(`[data-testid="reaction-trigger-${messageId}"]`).isVisible();
+    void page.locator(`[data-testid="reaction-trigger-${messageId}"]`).isVisible();
     // In our implementation, QuickReactionBar contains the buttons directly on hover
     const thumbsUp = page.locator('button[aria-label="Reagir com 👍"]').first();
     await thumbsUp.click();
