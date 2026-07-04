@@ -71,7 +71,8 @@ Deno.serve(async (req) => {
     try {
       const apiStart = Date.now()
       const apiResponse = await fetch(`${EVOLUTION_API_URL}/manager/version`, {
-        headers: { 'apikey': EVOLUTION_API_KEY }
+        headers: { 'apikey': EVOLUTION_API_KEY },
+        signal: AbortSignal.timeout(7_000),
       })
       apiLatency = Date.now() - apiStart
       if (apiResponse.ok) {
@@ -90,7 +91,7 @@ Deno.serve(async (req) => {
     try {
       const instanceResponse = await fetch(
         `${EVOLUTION_API_URL}/instance/connectionState/${INSTANCE_NAME}`,
-        { headers: { 'apikey': EVOLUTION_API_KEY } }
+        { headers: { 'apikey': EVOLUTION_API_KEY }, signal: AbortSignal.timeout(7_000) }
       )
       if (instanceResponse.ok) {
         const data = await instanceResponse.json()
@@ -113,7 +114,7 @@ Deno.serve(async (req) => {
     try {
       const webhookResponse = await fetch(
         `${EVOLUTION_API_URL}/webhook/find/${INSTANCE_NAME}`,
-        { headers: { 'apikey': EVOLUTION_API_KEY } }
+        { headers: { 'apikey': EVOLUTION_API_KEY }, signal: AbortSignal.timeout(7_000) }
       )
       if (webhookResponse.ok) {
         const data = await webhookResponse.json()

@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
       headers: {
         "x-apikey": apiKey,
       },
+      signal: AbortSignal.timeout(10_000),
     });
 
     const data = await response.json();

@@ -33,11 +33,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2, timeoutMs = 15_000): Promise<Response> {
   let lastError: Error | null = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
       if (response.ok || (response.status >= 400 && response.status < 500)) return response;
       lastError = new Error(`HTTP ${response.status}`);
     } catch (err) {
@@ -173,6 +173,7 @@ Deno.serve(async (req) => {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: evolutionKey },
             body: JSON.stringify({ number: phone, presence: "composing" }),
+            signal: AbortSignal.timeout(5_000),
           });
         } catch { /* Presence update is best-effort */ }
 
