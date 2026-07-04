@@ -149,6 +149,7 @@ async function callAi(
       tools,
       tool_choice: { type: "function", function: { name: "suggest_response" } },
     }),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (resp.status === 429) throw new Response(
