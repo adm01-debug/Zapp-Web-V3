@@ -14,6 +14,7 @@ import {
   requireEnv,
   Logger,
 } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 /** Codifica ArrayBuffer em base64 em chunks (evita estouro de call stack). */
 function bufferToBase64(buf: ArrayBuffer): string {
@@ -29,6 +30,9 @@ function bufferToBase64(buf: ArrayBuffer): string {
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger("elevenlabs-voice");
 
