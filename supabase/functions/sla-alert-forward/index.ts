@@ -94,7 +94,8 @@ Deno.serve(async (req) => {
       .in('key', ['sla_alert_webhook_url', 'sla_alert_webhook_method']);
 
     if (settingsErr) {
-      return jsonResponse({ error: `Settings read failed: ${settingsErr.message}` }, 500);
+      console.error('[sla-alert-forward] DB error reading settings:', settingsErr.message);
+      return jsonResponse({ error: 'Internal server error' }, 500);
     }
 
     const map = new Map((settings ?? []).map((r) => [r.key, r.value]));

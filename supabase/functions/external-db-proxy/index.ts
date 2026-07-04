@@ -169,11 +169,13 @@ Deno.serve(async (req) => {
           if (error) {
             const err = error as { code?: string; message: string };
             const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
-            return { ...p, ok: false, exists: !missing, missing_table: missing, error: err.message, code: err.code ?? null, latency_ms: Date.now() - t0 };
+            console.error(`[external-db-proxy] probe ${p.schema}.${p.table}:`, err.code, err.message);
+            return { ...p, ok: false, exists: !missing, missing_table: missing, latency_ms: Date.now() - t0 };
           }
           return { ...p, ok: true, exists: true, missing_table: false, latency_ms: Date.now() - t0 };
         } catch (e) {
-          return { ...p, ok: false, exists: false, missing_table: false, error: e instanceof Error ? e.message : "probe failed", latency_ms: Date.now() - t0 };
+          console.error(`[external-db-proxy] probe exception ${p.schema}.${p.table}:`, e instanceof Error ? e.message : e);
+          return { ...p, ok: false, exists: false, missing_table: false, latency_ms: Date.now() - t0 };
         }
       }));
       const allOk = checks.every((c) => c.ok);
