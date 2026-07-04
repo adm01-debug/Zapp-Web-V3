@@ -63,7 +63,7 @@ export async function persistMediaToStorage(
     return null;
   }
   try {
-    const resp = await fetch(cdnUrl, { signal: AbortSignal.timeout(15000) });
+    const resp = await fetch(cdnUrl, { signal: AbortSignal.timeout(15000), redirect: 'error' });
     if (!resp.ok) { console.error(`[MEDIA] Download failed (${resp.status}) for ${messageType}`); return null; }
 
     const arrayBuf = await resp.arrayBuffer();

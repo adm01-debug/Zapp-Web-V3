@@ -2,6 +2,7 @@ import { handleCors, errorResponse, jsonResponse, checkRateLimit, getClientIP, r
 import { TranscribeAudioSchema, parseBody } from "../_shared/schemas.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requireUser, requireServiceRoleOnly } from "../_shared/auth.ts";
+import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -64,30 +65,10 @@ async function downloadAudio(
     }
   }
 
-  // Fallback: direct HTTP fetch — full SSRF blocklist (protocol + private IPv4/IPv6 ranges)
-  let parsedUrl: URL;
-  try { parsedUrl = new URL(audioUrl); } catch { return { error: "Invalid audio URL" }; }
-  if (parsedUrl.protocol !== "https:") return { error: "Audio URL must use HTTPS" };
+  // Fallback: direct HTTP fetch — allowlist-based SSRF protection (WhatsApp CDN only)
+  if (!isSafeMediaCdnUrl(audioUrl)) return { error: "Audio URL is not allowed" };
 
-  const host = parsedUrl.hostname.toLowerCase();
-  // URL.hostname returns bracketless IPv6 (e.g. '::1', 'fe80::1') — never '[::1]'
-  const isPrivate =
-    host === "localhost" ||
-    host.endsWith(".localhost") ||
-    host === "0.0.0.0" ||
-    /^127\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    host === "::1" ||
-    host.startsWith("::ffff:") ||          // IPv4-mapped IPv6
-    /^fe[89ab][0-9a-f]:/i.test(host) ||   // link-local fe80::/10 (fe80–febf)
-    /^fec[0-9a-f]:/i.test(host) ||        // site-local fec0::/10
-    /^f[cd][0-9a-f]{2}:/i.test(host);     // ULA fc00::/7 (fc+fd)
-  if (isPrivate) return { error: "Audio URL is not allowed" };
-
-  const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000) });
+  const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
     log.error("HTTP download failed", { status: response.status, detail: errText.substring(0, 200) });
