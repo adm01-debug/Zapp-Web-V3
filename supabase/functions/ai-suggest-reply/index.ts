@@ -144,7 +144,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
 
     let suggestions;
     try {
-      const jsonMatch = (content as string).match(/\{[\s\S]*\}/);
+      const jsonMatch = content?.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         suggestions = JSON.parse(jsonMatch[0]);
       } else {
