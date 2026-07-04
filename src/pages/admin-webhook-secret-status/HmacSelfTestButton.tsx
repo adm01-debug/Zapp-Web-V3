@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * HmacSelfTestButton
  * Aciona a edge function `webhook-hmac-selftest` e mostra a resposta detalhada
@@ -70,7 +69,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       const { data: userData , error } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      await supabase.from('hmac_selftest_audit').insert({
+      await (supabase as any).from('hmac_selftest_audit').insert({
         instance: instanceName,
         ok: !!payload.ok,
         duration_ms: payload.duration_ms ?? fallbackDurationMs,
@@ -101,7 +100,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       if (!uid) return;
 
       // Busca alerta ativo (não resolvido) para este source
-      const { data: existing , error: existingErr } = await supabase
+      const { data: existing , error: existingErr } = await (supabase as any)
         .from('warroom_alerts')
         .select('id')
         .eq('source', source)
@@ -123,7 +122,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
                 .join(' | ')
             : (payload.error ?? payload.message ?? 'Falha no self-test HMAC');
           const summary = `${phasePrefix}${detail}${reqSuffix}`;
-          await supabase.from('warroom_alerts').insert({
+          await (supabase as any).from('warroom_alerts').insert({
             alert_type: 'error',
             title: `HMAC self-test falhou (${instanceName ?? 'selftest'})`,
             message: summary.slice(0, 500),
@@ -134,7 +133,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       } else {
         // OK: resolve alertas ativos deste source
         if (activeAlertId) {
-          await supabase
+          await (supabase as any)
             .from('warroom_alerts')
             .update({
               resolved_at: new Date().toISOString(),

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * HmacAuditHistoryPanel
  *
@@ -126,7 +125,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      let q = supabase
+      let q = (supabase as any)
         .from('hmac_selftest_audit')
         .select(
           'id, instance, ok, duration_ms, error, message, good_accepted, tampered_rejected, created_at',
@@ -151,7 +150,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
   const { data: instanceOptions } = useQuery({
     queryKey: ['hmac-selftest-audit-instances', range],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('hmac_selftest_audit')
         .select('instance')
         .gte('created_at', since)
