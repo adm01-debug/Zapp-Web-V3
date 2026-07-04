@@ -78,6 +78,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(sicoobPayload),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
