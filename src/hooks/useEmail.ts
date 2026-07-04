@@ -569,10 +569,10 @@ export function useEmail() {
 
   // ── Token check automático (a cada 5 minutos) ──────────────────────────
   useEffect(() => {
-    checkTokenStatus();
+    void checkTokenStatus();
 
     tokenCheckInterval.current = setInterval(() => {
-      checkTokenStatus();
+      void checkTokenStatus();
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => {

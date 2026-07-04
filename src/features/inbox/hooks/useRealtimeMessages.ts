@@ -251,7 +251,7 @@ export function useRealtimeMessages() {
 
   useEffect(() => {
     let active = true;
-    fetchConversations();
+    void fetchConversations();
     
     log.info('Subscribing to realtime', { source: 'dbTable' });
     

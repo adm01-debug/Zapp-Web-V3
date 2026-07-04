@@ -85,7 +85,7 @@ export function useRealtimeInbox() {
       const { data, error } = await supabase.from('contacts').select('*').eq('id', selectedContactId).maybeSingle();
       if (!cancelled && !error) setSelectedContactFallback(data || null);
     };
-    loadSelectedContact();
+    void loadSelectedContact();
     return () => { cancelled = true; };
   }, [selectedContactId, selectedConversation]);
 
@@ -147,9 +147,9 @@ export function useRealtimeInbox() {
       const { count, error } = await supabase.from('whisper_messages').select('*', { count: 'exact', head: true }).eq('contact_id', selectedContactId).eq('is_read', false);
       if (!cancelled && !error && count !== null) setWhisperCount(count);
     };
-    fetchWhisperCount();
+    void fetchWhisperCount();
 
-    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => fetchWhisperCount()).subscribe();
+    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => { void fetchWhisperCount(); }).subscribe();
     return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [selectedContactId, profile?.id]);
 

@@ -278,17 +278,21 @@ export default function AdminConnectionsPage() {
             <Button 
               variant="outline" 
               onClick={async () => {
-                toast({ title: "Iniciando Diagnóstico", description: "Verificando fluxo completo..." });
-                const res = await runConnectionDiagnostics();
-                const fails = res.steps.filter((s: any) => s.status === 'fail');
-                if (fails.length > 0) {
-                  toast({ 
-                    title: "Falha no Diagnóstico", 
-                    description: `${fails.length} etapa(s) falharam. Verifique o console.`,
-                    variant: "destructive"
-                  });
-                } else {
-                  toast({ title: "Diagnóstico OK", description: "Fluxo validado com sucesso." });
+                try {
+                  toast({ title: "Iniciando Diagnóstico", description: "Verificando fluxo completo..." });
+                  const res = await runConnectionDiagnostics();
+                  const fails = res.steps.filter((s: any) => s.status === 'fail');
+                  if (fails.length > 0) {
+                    toast({
+                      title: "Falha no Diagnóstico",
+                      description: `${fails.length} etapa(s) falharam. Verifique o console.`,
+                      variant: "destructive"
+                    });
+                  } else {
+                    toast({ title: "Diagnóstico OK", description: "Fluxo validado com sucesso." });
+                  }
+                } catch {
+                  toast({ title: "Erro no Diagnóstico", description: "Não foi possível executar o diagnóstico.", variant: "destructive" });
                 }
               }}
               className="gap-2"

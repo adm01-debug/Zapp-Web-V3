@@ -325,16 +325,18 @@ export const TicketTabs = memo(function TicketTabs({
 
                     if (!hasPermission(requiredPermission) && opt.id !== 'mine') {
                       log.warn('Unauthorized inbox scope access attempt', { scope: opt.id, userId: user?.id });
-                      await supabase.from('audit_logs').insert({
-                        user_id: user?.id,
-                        action: 'UNAUTHORIZED_INBOX_SCOPE_ACCESS',
-                        entity_type: 'inbox_scope',
-                        details: {
-                          attempted_scope: opt.id,
-                          user_roles: roles,
-                          timestamp: new Date().toISOString()
-                        }
-                      });
+                      try {
+                        await supabase.from('audit_logs').insert({
+                          user_id: user?.id,
+                          action: 'UNAUTHORIZED_INBOX_SCOPE_ACCESS',
+                          entity_type: 'inbox_scope',
+                          details: {
+                            attempted_scope: opt.id,
+                            user_roles: roles,
+                            timestamp: new Date().toISOString()
+                          }
+                        });
+                      } catch { /* fire-and-forget audit log */ }
                       toast.error("Você não tem permissão para visualizar este escopo.");
                       return;
                     }

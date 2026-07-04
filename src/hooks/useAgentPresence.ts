@@ -93,8 +93,8 @@ export function useAgentPresence({
     if (!enabled || !user) return;
 
     // Set online on mount
-    updateStatus('online');
-    loadPresence();
+    void updateStatus('online');
+    void loadPresence();
 
     // Listen for activity events
     const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
@@ -111,7 +111,7 @@ export function useAgentPresence({
           table: 'agent_presence',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        () => { loadPresence(); }
+        () => { void loadPresence(); }
       )
       .subscribe();
 
@@ -121,7 +121,7 @@ export function useAgentPresence({
     return () => {
       events.forEach((e) => window.removeEventListener(e, resetActivityTimer));
       if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
-      updateStatus('offline');
+      void updateStatus('offline');
       supabase.removeChannel(channel);
     };
   }, [enabled, user, workspaceId]);

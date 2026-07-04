@@ -95,8 +95,8 @@ export function ContactNotes({ contactId, className }: ContactNotesProps) {
   };
 
   const handleDelete = async (noteId: string) => {
-    const { error } = await (supabase
-      .from('contact_notes') as any)
+    const { error } = await (supabase as any)
+      .from('contact_notes')
       .delete()
       .eq('id', noteId);
 

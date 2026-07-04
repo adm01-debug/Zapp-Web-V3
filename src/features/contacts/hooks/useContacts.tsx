@@ -238,8 +238,12 @@ export function useContacts() {
             timer.delete(ids.join(','));
 
             // Restore optimistically
-            await loadContacts();
-            toast({ title: '↩️ Restaurado!', duration: 2_500 });
+            try {
+              await loadContacts();
+              toast({ title: '↩️ Restaurado!', duration: 2_500 });
+            } catch {
+              toast({ title: 'Erro ao restaurar contato', variant: 'destructive' });
+            }
           }}
         >
           Desfazer

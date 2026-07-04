@@ -182,9 +182,9 @@ export default function BridgeStatusPage() {
   }, [mountedRef]);
 
   useEffect(() => {
-    checkHealth();
-    fetchIncidents();
-    
+    void checkHealth();
+    void fetchIncidents();
+
     // Configura Subscriptions Real-time
     const trafficSub = supabase
       .channel('traffic-changes')
@@ -196,8 +196,8 @@ export default function BridgeStatusPage() {
     const alertsSub = supabase
       .channel('health-incidents')
       .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'system_health_incidents' }, () => {
-        fetchIncidents();
-        checkHealth();
+        void fetchIncidents();
+        void checkHealth();
       })
       .subscribe();
 
@@ -205,7 +205,7 @@ export default function BridgeStatusPage() {
       timerRef.current = setInterval(() => {
         setNextRefreshIn(prev => {
           if (prev <= 1) {
-            checkHealth();
+            void checkHealth();
             return refreshInterval;
           }
           return prev - 1;

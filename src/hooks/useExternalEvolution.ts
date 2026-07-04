@@ -648,7 +648,7 @@ export function useExternalMessages(remoteJid: string | null) {
       previousJidRef.current = remoteJid;
       lastSeenRef.current = null;
       setHasMore(true);
-      initialFetch();
+      void initialFetch();
     }
   }, [remoteJid, initialFetch]);
 

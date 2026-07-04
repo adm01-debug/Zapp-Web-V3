@@ -96,8 +96,12 @@ export function AutomationSuggestionsBar({
                   variant="secondary"
                   className="h-7"
                   onClick={async () => {
-                    await onSendNow(s.suggestion_text ?? "");
-                    accept(s.id);
+                    try {
+                      await onSendNow(s.suggestion_text ?? "");
+                      accept(s.id);
+                    } catch {
+                      // onSendNow handles its own error toasts
+                    }
                   }}
                 >
                   <Send className="h-3.5 w-3.5 mr-1" /> Enviar

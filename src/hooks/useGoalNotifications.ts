@@ -197,7 +197,7 @@ export function useGoalNotifications() {
     if (!user) return;
 
     // Check immediately
-    checkGoalProgress();
+    void checkGoalProgress();
 
     // Check every 5 minutes
     checkIntervalRef.current = setInterval(checkGoalProgress, 300000);
