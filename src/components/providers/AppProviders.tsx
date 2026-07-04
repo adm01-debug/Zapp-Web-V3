@@ -16,6 +16,7 @@ const log = getLogger('AppProviders');
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [errorKey, setErrorKey] = useState(0);
   const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const MAX_RETRIES = 3;
 
   // Memoize QueryClient to prevent recreation on re-renders
@@ -72,7 +73,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         if (retryCountRef.current < MAX_RETRIES) {
           retryCountRef.current += 1;
           log.warn(`Auto-retry ${retryCountRef.current}/${MAX_RETRIES}`);
-          setTimeout(() => setErrorKey(prev => prev + 1), 2000 * retryCountRef.current);
+          clearTimeout(retryTimerRef.current);
+          retryTimerRef.current = setTimeout(() => setErrorKey(prev => prev + 1), 2000 * retryCountRef.current);
         } else {
           log.error('Max retries reached. Manual intervention required.');
         }

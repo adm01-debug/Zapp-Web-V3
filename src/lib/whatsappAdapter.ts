@@ -433,11 +433,11 @@ export async function markAsRead(params: MarkAsReadParams) {
 // ----- Webhooks de entrada --------------------------------------------------
 
 function projectFunctionsBase(): string {
-  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL ?? '';
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
   if (supabaseUrl && !supabaseUrl.includes('.supabase.co')) {
     return supabaseUrl.replace(/\/$/, "") + '/functions/v1';
   }
-  const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID ?? '';
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? '';
   return `https://${projectId}.supabase.co/functions/v1`;
 }
 

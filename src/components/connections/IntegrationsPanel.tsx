@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -196,6 +196,48 @@ export function IntegrationsPanel({
     { key: 'stopBotFromMe', label: 'Parar ao responder', type: 'boolean' },
   ];
 
+  const handleSaveTypebot = useCallback(async () => {
+    try { await api.setTypebot({ instanceName, ...typebot } as Parameters<typeof api.setTypebot>[0]); toast.success('Typebot configurado!'); } catch { toast.error('Erro'); }
+  }, [api, instanceName, typebot]);
+  const handleDeleteTypebot = useCallback(async () => {
+    try { await api.deleteTypebot(instanceName); setTypebot({ enabled: false }); toast.success('Typebot removido'); } catch { toast.error('Erro'); }
+  }, [api, instanceName]);
+
+  const handleSaveOpenAI = useCallback(async () => {
+    try { await api.setOpenAI({ instanceName, ...openai } as Parameters<typeof api.setOpenAI>[0]); toast.success('OpenAI configurado!'); } catch { toast.error('Erro'); }
+  }, [api, instanceName, openai]);
+  const handleDeleteOpenAI = useCallback(async () => {
+    try { await api.deleteOpenAI(instanceName); setOpenai({ enabled: false }); toast.success('OpenAI removido'); } catch { toast.error('Erro'); }
+  }, [api, instanceName]);
+
+  const handleSaveDify = useCallback(async () => {
+    try { await api.setDify({ instanceName, ...dify } as Parameters<typeof api.setDify>[0]); toast.success('Dify configurado!'); } catch { toast.error('Erro'); }
+  }, [api, instanceName, dify]);
+  const handleDeleteDify = useCallback(async () => {
+    try { await api.deleteDify(instanceName); setDify({ enabled: false }); toast.success('Dify removido'); } catch { toast.error('Erro'); }
+  }, [api, instanceName]);
+
+  const handleSaveFlowise = useCallback(async () => {
+    try { await api.setFlowise({ instanceName, ...flowise } as Parameters<typeof api.setFlowise>[0]); toast.success('Flowise configurado!'); } catch { toast.error('Erro'); }
+  }, [api, instanceName, flowise]);
+  const handleDeleteFlowise = useCallback(async () => {
+    try { await api.deleteFlowise(instanceName); setFlowise({ enabled: false }); toast.success('Flowise removido'); } catch { toast.error('Erro'); }
+  }, [api, instanceName]);
+
+  const handleSaveChatwoot = useCallback(async () => {
+    try { await api.setChatwoot({ instanceName, ...chatwoot } as Parameters<typeof api.setChatwoot>[0]); toast.success('Chatwoot configurado!'); } catch { toast.error('Erro'); }
+  }, [api, instanceName, chatwoot]);
+  const handleDeleteChatwoot = useCallback(async () => {
+    try { await api.deleteChatwoot(instanceName); setChatwoot({ enabled: false }); toast.success('Chatwoot removido'); } catch { toast.error('Erro'); }
+  }, [api, instanceName]);
+
+  const handleSaveEvolutionBot = useCallback(async () => {
+    try { await api.setEvolutionBot({ instanceName, ...evolutionBot } as Parameters<typeof api.setEvolutionBot>[0]); toast.success('Evolution Bot configurado!'); } catch { toast.error('Erro'); }
+  }, [api, instanceName, evolutionBot]);
+  const handleDeleteEvolutionBot = useCallback(async () => {
+    try { await api.deleteEvolutionBot(instanceName); setEvolutionBot({ enabled: false }); toast.success('Evolution Bot removido'); } catch { toast.error('Erro'); }
+  }, [api, instanceName]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -226,12 +268,8 @@ export function IntegrationsPanel({
               fields={typebotFields}
               values={typebot}
               onChange={(k, v) => setTypebot(prev => ({ ...prev, [k]: v }))}
-              onSave={async () => {
-                try { await api.setTypebot({ instanceName, ...typebot } as Parameters<typeof api.setTypebot>[0]); toast.success('Typebot configurado!'); } catch { toast.error('Erro'); }
-              }}
-              onDelete={async () => {
-                try { await api.deleteTypebot(instanceName); setTypebot({ enabled: false }); toast.success('Typebot removido'); } catch { toast.error('Erro'); }
-              }}
+              onSave={handleSaveTypebot}
+              onDelete={handleDeleteTypebot}
               isLoading={api.isLoading}
             />
           </TabsContent>
@@ -243,12 +281,8 @@ export function IntegrationsPanel({
               fields={openaiFields}
               values={openai}
               onChange={(k, v) => setOpenai(prev => ({ ...prev, [k]: v }))}
-              onSave={async () => {
-                try { await api.setOpenAI({ instanceName, ...openai } as Parameters<typeof api.setOpenAI>[0]); toast.success('OpenAI configurado!'); } catch { toast.error('Erro'); }
-              }}
-              onDelete={async () => {
-                try { await api.deleteOpenAI(instanceName); setOpenai({ enabled: false }); toast.success('OpenAI removido'); } catch { toast.error('Erro'); }
-              }}
+              onSave={handleSaveOpenAI}
+              onDelete={handleDeleteOpenAI}
               isLoading={api.isLoading}
             />
           </TabsContent>
@@ -260,12 +294,8 @@ export function IntegrationsPanel({
               fields={difyFields}
               values={dify}
               onChange={(k, v) => setDify(prev => ({ ...prev, [k]: v }))}
-              onSave={async () => {
-                try { await api.setDify({ instanceName, ...dify } as Parameters<typeof api.setDify>[0]); toast.success('Dify configurado!'); } catch { toast.error('Erro'); }
-              }}
-              onDelete={async () => {
-                try { await api.deleteDify(instanceName); setDify({ enabled: false }); toast.success('Dify removido'); } catch { toast.error('Erro'); }
-              }}
+              onSave={handleSaveDify}
+              onDelete={handleDeleteDify}
               isLoading={api.isLoading}
             />
           </TabsContent>
@@ -277,12 +307,8 @@ export function IntegrationsPanel({
               fields={flowiseFields}
               values={flowise}
               onChange={(k, v) => setFlowise(prev => ({ ...prev, [k]: v }))}
-              onSave={async () => {
-                try { await api.setFlowise({ instanceName, ...flowise } as Parameters<typeof api.setFlowise>[0]); toast.success('Flowise configurado!'); } catch { toast.error('Erro'); }
-              }}
-              onDelete={async () => {
-                try { await api.deleteFlowise(instanceName); setFlowise({ enabled: false }); toast.success('Flowise removido'); } catch { toast.error('Erro'); }
-              }}
+              onSave={handleSaveFlowise}
+              onDelete={handleDeleteFlowise}
               isLoading={api.isLoading}
             />
           </TabsContent>
@@ -294,12 +320,8 @@ export function IntegrationsPanel({
               fields={chatwootFields}
               values={chatwoot}
               onChange={(k, v) => setChatwoot(prev => ({ ...prev, [k]: v }))}
-              onSave={async () => {
-                try { await api.setChatwoot({ instanceName, ...chatwoot } as Parameters<typeof api.setChatwoot>[0]); toast.success('Chatwoot configurado!'); } catch { toast.error('Erro'); }
-              }}
-              onDelete={async () => {
-                try { await api.deleteChatwoot(instanceName); setChatwoot({ enabled: false }); toast.success('Chatwoot removido'); } catch { toast.error('Erro'); }
-              }}
+              onSave={handleSaveChatwoot}
+              onDelete={handleDeleteChatwoot}
               isLoading={api.isLoading}
             />
           </TabsContent>
@@ -311,12 +333,8 @@ export function IntegrationsPanel({
               fields={evolutionBotFields}
               values={evolutionBot}
               onChange={(k, v) => setEvolutionBot(prev => ({ ...prev, [k]: v }))}
-              onSave={async () => {
-                try { await api.setEvolutionBot({ instanceName, ...evolutionBot } as Parameters<typeof api.setEvolutionBot>[0]); toast.success('Evolution Bot configurado!'); } catch { toast.error('Erro'); }
-              }}
-              onDelete={async () => {
-                try { await api.deleteEvolutionBot(instanceName); setEvolutionBot({ enabled: false }); toast.success('Evolution Bot removido'); } catch { toast.error('Erro'); }
-              }}
+              onSave={handleSaveEvolutionBot}
+              onDelete={handleDeleteEvolutionBot}
               isLoading={api.isLoading}
             />
           </TabsContent>

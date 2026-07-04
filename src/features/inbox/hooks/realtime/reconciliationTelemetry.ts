@@ -14,6 +14,9 @@
  *     `import.meta.env.DEV` ou `localStorage.debug_reconcile === '1'`.
  */
 
+import { getLogger } from '@/lib/logger';
+const log = getLogger('reconciliationTelemetry');
+
 export type MatchStrategy = 'external_id' | 'text_fallback' | 'media_fallback';
 
 export interface MatchEvent {
@@ -72,9 +75,7 @@ export function recordMatch(ev: Omit<MatchEvent, 'at'>): void {
   if (recentEvents.length > MAX_RECENT) recentEvents.shift();
 
   if (debugEnabled()) {
-    // Log estruturado, fácil de filtrar por `[reconcile]` no devtools.
-    // eslint-disable-next-line no-console
-    console.info('[reconcile]', {
+    log.debug('[reconcile]', {
       strategy: event.strategy,
       messageType: event.messageType,
       optimisticId: event.optimisticId,

@@ -306,7 +306,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         request_id: trace.requestId,
         // If your local 'messages' table has audio_meme_id, propagate it
         ...(memeId ? { audio_meme_id: memeId } : {})
-      } as any).select('id').single();
+      }).select('id').single();
 
       const [apiResult, dbResult] = await Promise.all([apiPromise, dbPromise]);
       const messageId = dbResult?.data?.id;

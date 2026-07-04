@@ -155,7 +155,6 @@ export function useEmail() {
       tokenInfos.forEach(s => {
         statusMap[s.account_id] = s.token_status;
       });
-      (setTokenStatus as any).asMap = statusMap;
     }
   }, []);
 

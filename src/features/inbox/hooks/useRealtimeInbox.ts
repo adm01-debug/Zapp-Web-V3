@@ -33,6 +33,7 @@ export function useRealtimeInbox() {
   const [deliveryAlert, setDeliveryAlert] = useState<{ status: 'warning' | 'breached', delay: number, message?: string } | null>(null);
   const [selectedContactFallback, setSelectedContactFallback] = useState<ConversationContact | null>(null);
   const [whisperCount, setWhisperCount] = useState(0);
+  const postSendTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // 1. Data Source (Local or External)
   const source = useInboxSource(USE_EXTERNAL_DB, selectedContactId);
@@ -51,6 +52,9 @@ export function useRealtimeInbox() {
 
   // 3. Deep Links
   useInboxDeepLinks({ setPendingContactId, setPendingMessageId, useExternalDb: USE_EXTERNAL_DB });
+
+  // Cleanup post-send refetch timer on unmount
+  useEffect(() => () => { clearTimeout(postSendTimerRef.current); }, []);
 
   // 4. Offline Cache
   const { conversations: cachedConversations, usingCache } = useOfflineCache(conversations, loading);
@@ -209,7 +213,8 @@ export function useRealtimeInbox() {
         throw err;
       }
       
-      setTimeout(() => { void refetchSelectedMessages(); void refetch(); }, 1500);
+      clearTimeout(postSendTimerRef.current);
+      postSendTimerRef.current = setTimeout(() => { void refetchSelectedMessages(); void refetch(); }, 1500);
       return;
     }
     
