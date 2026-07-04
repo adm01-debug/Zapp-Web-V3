@@ -92,7 +92,7 @@ serve(async (req) => {
       if (!messageIds?.length) return json({ error: 'messageIds obrigatório' }, 400);
 
       for (const msgId of messageIds) {
-        await fetch(`${GMAIL_API}/messages/${msgId}/modify`, {
+        const gmailRes = await fetch(`${GMAIL_API}/messages/${msgId}/modify`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(read
@@ -101,6 +101,7 @@ serve(async (req) => {
           ),
           signal: AbortSignal.timeout(10_000),
         });
+        if (!gmailRes.ok) continue;
         await supabase.from('gmail_messages').update({ is_read: read }).eq('message_id', msgId).eq('account_id', accountId);
       }
 
@@ -112,11 +113,15 @@ serve(async (req) => {
       const { messageId } = body;
       if (!messageId) return json({ error: 'messageId obrigatório' }, 400);
 
-      await fetch(`${GMAIL_API}/messages/${messageId}/trash`, {
+      const trashRes = await fetch(`${GMAIL_API}/messages/${messageId}/trash`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(10_000),
       });
+      if (!trashRes.ok) {
+        console.error('[gmail-send] trash failed', await trashRes.text().catch(() => ''));
+        return json({ error: 'Failed to trash message in Gmail' }, 502);
+      }
 
       await supabase.from('gmail_messages').delete().eq('message_id', messageId).eq('account_id', accountId);
       return json({ success: true });
@@ -263,15 +268,20 @@ function buildMime(opts: {
     '',
   ].join('\r\n');
 
-  const attachParts = opts.attachments.map(att => [
-    `--${boundary}`,
-    `Content-Type: ${att.mimeType}; name="${att.name}"`,
-    'Content-Transfer-Encoding: base64',
-    `Content-Disposition: attachment; filename="${att.name}"`,
-    '',
-    att.data,
-    '',
-  ].join('\r\n')).join('');
+  const attachParts = opts.attachments.map(att => {
+    // Strip CR/LF to prevent MIME header injection (CWE-93)
+    const safeName = att.name.replace(/[\r\n]/g, '');
+    const safeMime = att.mimeType.replace(/[\r\n]/g, '');
+    return [
+      `--${boundary}`,
+      `Content-Type: ${safeMime}; name="${safeName}"`,
+      'Content-Transfer-Encoding: base64',
+      `Content-Disposition: attachment; filename="${safeName}"`,
+      '',
+      att.data,
+      '',
+    ].join('\r\n');
+  }).join('');
 
   const raw = `${headers}\r\n${plainPart}${htmlPart}${attachParts}--${boundary}--`;
   return btoa(unescape(encodeURIComponent(raw))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
