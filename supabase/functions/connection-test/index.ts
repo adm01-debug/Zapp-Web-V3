@@ -84,8 +84,8 @@ async function runEvolutionChecks(): Promise<Check[]> {
       headers: { apikey: key },
     });
     const txt = await r.text();
-    let parsed: any = null;
-    try { parsed = JSON.parse(txt); } catch { /* keep raw */ }
+    let parsed: Record<string, unknown> | null = null;
+    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
     return { status: r.status, parsed, raw: txt.slice(0, 200) };
   });
   const state =
@@ -107,8 +107,8 @@ async function runEvolutionChecks(): Promise<Check[]> {
       headers: { apikey: key },
     });
     const txt = await r.text();
-    let parsed: any = null;
-    try { parsed = JSON.parse(txt); } catch { /* keep raw */ }
+    let parsed: Record<string, unknown> | null = null;
+    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
     return { status: r.status, parsed };
   });
   const expectedWebhook = `${PROJECT_FUNCTIONS_BASE}/evolution-webhook`;
@@ -162,8 +162,8 @@ async function runCloudChecks(): Promise<Check[]> {
       { headers: { Authorization: `Bearer ${token}` } },
     );
     const txt = await r.text();
-    let parsed: any = null;
-    try { parsed = JSON.parse(txt); } catch { /* keep raw */ }
+    let parsed: Record<string, unknown> | null = null;
+    try { parsed = JSON.parse(txt) as Record<string, unknown>; } catch { /* keep raw */ }
     return { status: r.status, parsed, raw: txt.slice(0, 250) };
   });
   if (meta.error || !meta.value) {

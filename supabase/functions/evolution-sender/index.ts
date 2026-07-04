@@ -76,11 +76,11 @@ async function callEvolution(endpoint: string, body: Record<string, any>, instan
     if (!response.ok) {
       return { success: false, error: `HTTP ${response.status}: ${text.slice(0, 250)}`, http_status: response.status };
     }
-    let result: any = {};
-    try { result = JSON.parse(text); } catch { /* manter success se 2xx */ }
+    let result: Record<string, unknown> = {};
+    try { result = JSON.parse(text) as Record<string, unknown>; } catch { /* manter success se 2xx */ }
     return {
       success: true,
-      messageId: result?.key?.id || result?.messageId || result?.id,
+      messageId: (result?.key as Record<string, unknown> | undefined)?.id || result?.messageId || result?.id,
       http_status: response.status,
     };
   } catch (error) {
