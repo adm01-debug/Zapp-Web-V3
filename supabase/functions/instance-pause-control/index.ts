@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
         .select('*')
         .gt('paused_until', new Date().toISOString())
         .order('paused_until', { ascending: false });
-      if (error) return json({ error: error.message }, 400);
+      if (error) { console.error('[instance-pause-control] list error', error.message); return json({ error: 'Database operation failed' }, 500); }
       return json({ items: data ?? [] });
     }
 
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(limit);
-      if (error) return json({ error: error.message }, 400);
+      if (error) { console.error('[instance-pause-control] history error', error.message); return json({ error: 'Database operation failed' }, 500); }
       return json({ items: data ?? [] });
     }
 
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         p_minutes: minutes,
         p_trigger_count: 0,
       });
-      if (error) return json({ error: error.message }, 400);
+      if (error) { console.error('[instance-pause-control] pause error', error.message); return json({ error: 'Database operation failed' }, 500); }
       return json({ id: data, instance, minutes });
     }
 
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
       const instance = String(body.instance ?? '').trim();
       if (!instance) return json({ error: 'instance is required' }, 400);
       const { data, error } = await supabase.rpc('unpause_instance', { p_instance: instance });
-      if (error) return json({ error: error.message }, 400);
+      if (error) { console.error('[instance-pause-control] unpause error', error.message); return json({ error: 'Database operation failed' }, 500); }
       return json({ instance, cleared: data ?? 0 });
     }
 
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
         .limit(limit);
       if (instance) q = q.eq('instance_name', instance);
       const { data, error } = await q;
-      if (error) return json({ error: error.message }, 400);
+      if (error) { console.error('[instance-pause-control] recent_events error', error.message); return json({ error: 'Database operation failed' }, 500); }
       return json({ items: data ?? [] });
     }
 
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         p_pause_id: pauseId,
         p_notes: notes,
       });
-      if (error) return json({ error: error.message }, 400);
+      if (error) { console.error('[instance-pause-control] mark_investigated error', error.message); return json({ error: 'Database operation failed' }, 500); }
       return json({ pause: data });
     }
 
@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
         .order('paused_until', { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (error) return json({ error: error.message }, 400);
+      if (error) { console.error('[instance-pause-control] status error', error.message); return json({ error: 'Database operation failed' }, 500); }
       return json({
         instance,
         paused: !!data,
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
 
     return json({ error: `unknown_action:${action}` }, 400);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return json({ error: 'internal_error', message: msg }, 500);
+    console.error('[instance-pause-control] unexpected error', e instanceof Error ? e.message : String(e));
+    return json({ error: 'Internal server error' }, 500);
   }
 });

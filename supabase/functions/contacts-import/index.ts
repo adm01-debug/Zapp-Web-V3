@@ -115,6 +115,7 @@ serve(async (req) => {
     );
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: CORS });
+    console.error('[contacts-import] unexpected error', err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: CORS });
   }
 });

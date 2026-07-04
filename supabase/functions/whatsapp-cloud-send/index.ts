@@ -235,6 +235,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: true, messageId: waMsgId, raw: r.data });
   } catch (e) {
     console.error("[whatsapp-cloud-send] fetch error", e);
-    return jsonResponse({ error: "fetch_error", message: String(e) }, 502);
+    return jsonResponse({ error: "fetch_error" }, 502);
   }
 });
