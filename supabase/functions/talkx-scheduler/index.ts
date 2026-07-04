@@ -65,11 +65,17 @@ Deno.serve(async (req) => {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
               body: JSON.stringify({ campaignId: campaign.id, action: "start" }),
+              signal: AbortSignal.timeout(30_000),
             }
           );
           const result = await response.json();
+          if (!response.ok) {
+            log.error(`talkx-send returned ${response.status} for campaign ${campaign.id}`, { result });
+            await supabase.from("talkx_campaigns").update({ status: "scheduled" }).eq("id", campaign.id);
+            return { campaignId: campaign.id, name: campaign.name, success: false, error: result };
+          }
           log.info(`Scheduled campaign started: ${campaign.name} (${campaign.id})`);
-          return { campaignId: campaign.id, name: campaign.name, success: response.ok, result };
+          return { campaignId: campaign.id, name: campaign.name, success: true, result };
         } catch (err) {
           log.error(`Failed to start campaign ${campaign.id}`, { error: err instanceof Error ? err.message : String(err) });
           // Revert status so the campaign can be retried on the next cron tick
