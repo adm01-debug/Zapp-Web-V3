@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,7 +34,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         .eq('conversation_id', conversationId);
       const ids = (msgs || []).map((m: any) => m.id);
       if (!ids.length) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('team_message_reactions')
         .select('*')
         .in('message_id', ids);
