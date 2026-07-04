@@ -39,7 +39,7 @@ const loadSelected = (): string | null => {
 interface ConnectionRow {
   id: string;
   instance_id: string;
-  instance_name: string | null;
+  name: string | null;
   phone_number: string | null;
   status: string;
 }
@@ -213,9 +213,9 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     cooldownRef.current.set(conn.instance_id, now);
     // Evolution API roteia por NOME; o UUID (instance_id) gera 404 + auto-create
     // de instância fantasma (incidente wpp2 2026-07-04). Sem nome → não chamar.
-    const instanceName = evolutionInstanceName(conn);
+    const instanceName = evolutionInstanceName({ instance_name: conn.name, instance_id: conn.instance_id });
     if (!instanceName) {
-      const msg = 'Conexão sem instance_name cadastrado — reconexão automática bloqueada.';
+      const msg = 'Conexão sem nome de instância cadastrado — reconexão automática bloqueada.';
       if (!opts.silent) toast.error(msg);
       log.warn(msg, { instance_id: conn.instance_id });
       return { ok: false, error: msg };
