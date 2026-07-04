@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -13,11 +13,14 @@ export default function SSOCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<CallbackStatus>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
+    const addTimer = (t: ReturnType<typeof setTimeout>) => { timersRef.current.push(t); };
+
     const handleCallback = async () => {
       try {
-        // Get the session from URL hash (for OAuth callbacks)
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -27,43 +30,36 @@ export default function SSOCallback() {
         if (data.session) {
           setStatus('success');
           toast.success('Login realizado com sucesso!');
-          
-          // Redirect after a brief delay
-          setTimeout(() => {
-            navigate('/');
-          }, 1500);
+          addTimer(setTimeout(() => { navigate('/'); }, 1500));
         } else {
-          // Check for error in URL params
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const errorParam = hashParams.get('error_description') || hashParams.get('error');
-          
+
           if (errorParam) {
             throw new Error(errorParam);
           }
-          
-          // Wait for auth state change
+
           const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
               setStatus('success');
               toast.success('Login realizado com sucesso!');
-              setTimeout(() => navigate('/'), 1500);
+              addTimer(setTimeout(() => navigate('/'), 1500));
             } else if (event === 'SIGNED_OUT') {
               setStatus('error');
               setErrorMessage('Sessão não encontrada');
             }
           });
+          subscriptionRef.current = authData.subscription;
 
-          // Timeout fallback
-          setTimeout(() => {
-            if (status === 'loading') {
-              setStatus('error');
-              setErrorMessage('Tempo esgotado. Tente novamente.');
-            }
-          }, 10000);
-
-          return () => {
-            authData.subscription.unsubscribe();
-          };
+          addTimer(setTimeout(() => {
+            setStatus(prev => {
+              if (prev === 'loading') {
+                setErrorMessage('Tempo esgotado. Tente novamente.');
+                return 'error';
+              }
+              return prev;
+            });
+          }, 10000));
         }
       } catch (err: unknown) {
         setStatus('error');
@@ -73,6 +69,12 @@ export default function SSOCallback() {
     };
 
     handleCallback();
+
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      subscriptionRef.current?.unsubscribe();
+    };
   }, [navigate]);
 
   return (

@@ -15,6 +15,9 @@ export function EmailOAuthCallback() {
   const [email, setEmail]     = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+    let closeTimer: ReturnType<typeof setTimeout> | null = null;
+
     const params = new URLSearchParams(window.location.search);
     const code   = params.get('code');
     const error  = params.get('error');
@@ -34,18 +37,19 @@ export function EmailOAuthCallback() {
 
     (async () => {
       try {
-        // Obter usuário autenticado
         const { data: { user } } = await supabase.auth.getUser();
+        if (!mounted) return;
         if (!user) {
           setStatus('error');
           setMessage('Você precisa estar logado para conectar uma conta Email.');
           return;
         }
 
-        // Trocar code por tokens via Edge Function
         const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
           body: { action: 'exchangeCode', code, userId: user.id, state },
         });
+
+        if (!mounted) return;
 
         if (fnErr || !data?.success) {
           setStatus('error');
@@ -57,7 +61,6 @@ export function EmailOAuthCallback() {
         setEmail(data.email);
         setMessage(`Conta ${data.email} conectada com sucesso!`);
 
-        // Enviar resultado ao popup pai
         if (window.opener) {
           window.opener.postMessage({
             type: 'email_oauth_callback',
@@ -67,15 +70,20 @@ export function EmailOAuthCallback() {
             accountId: data.accountId,
           }, window.location.origin);
 
-          // Fechar popup após 2 segundos
-          setTimeout(() => window.close(), 2000);
+          closeTimer = setTimeout(() => window.close(), 2000);
         }
 
       } catch (err) {
+        if (!mounted) return;
         setStatus('error');
         setMessage(err instanceof Error ? err.message : 'Erro inesperado');
       }
     })();
+
+    return () => {
+      mounted = false;
+      if (closeTimer) clearTimeout(closeTimer);
+    };
   }, []);
 
   return (
