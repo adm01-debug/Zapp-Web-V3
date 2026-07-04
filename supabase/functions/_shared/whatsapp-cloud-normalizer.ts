@@ -1,4 +1,4 @@
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { z } from "https://esm.sh/zod@3.23.8";
 import { MetaWebhookPayloadSchema } from "./webhook-schemas.ts";
 
 // Normalizes Meta WhatsApp Cloud API payloads to the unified Evolution model.

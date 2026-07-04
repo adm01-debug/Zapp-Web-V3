@@ -1,6 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const TranscriptSchema = z.object({
   transcript: z.string().min(1).max(2000).transform(s => s.trim()),
