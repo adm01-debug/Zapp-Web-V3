@@ -3,6 +3,7 @@
 // e dispara switchover automático em rotas cujo current_provider_id ficou offline.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,6 +38,9 @@ async function ping(baseUrl: string, authToken: string | null, providerType: str
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
+
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceKey) {
@@ -58,48 +62,57 @@ Deno.serve(async (req) => {
     });
   }
 
-  const results: any[] = [];
-  for (const p of providers) {
-    const r = await ping(p.base_url, p.auth_token, p.provider_type);
-    const newStatus = r.ok ? "online" : "offline";
+  type ProviderResult = { provider: string; ok: boolean; latency_ms: number; status: string };
 
-    await admin.from("provider_configs").update({
-      status: newStatus,
-      last_ping_at: new Date().toISOString(),
-      last_ping_latency_ms: r.latencyMs,
-      last_error: r.error,
-    }).eq("id", p.id);
+  const settled = await Promise.allSettled(
+    providers.map(async (p): Promise<ProviderResult> => {
+      const r = await ping(p.base_url, p.auth_token, p.provider_type);
+      const newStatus = r.ok ? "online" : "offline";
 
-    await admin.from("provider_session_logs").insert({
-      provider_id: p.id,
-      level: r.ok ? "info" : "warn",
-      event: "healthcheck",
-      message: r.error ?? "ok",
-      latency_ms: r.latencyMs,
-    });
+      await admin.from("provider_configs").update({
+        status: newStatus,
+        last_ping_at: new Date().toISOString(),
+        last_ping_latency_ms: r.latencyMs,
+        last_error: r.error,
+      }).eq("id", p.id);
 
-    // Se provedor caiu E é o atual de alguma rota, tenta switchover para fallback
-    if (!r.ok) {
-      const { data: affectedRoutes } = await admin
-        .from("channel_provider_routes")
-        .select("id, fallback_provider_id, primary_provider_id")
-        .eq("current_provider_id", p.id);
+      await admin.from("provider_session_logs").insert({
+        provider_id: p.id,
+        level: r.ok ? "info" : "warn",
+        event: "healthcheck",
+        message: r.error ?? "ok",
+        latency_ms: r.latencyMs,
+      });
 
-      for (const route of affectedRoutes ?? []) {
-        const target = route.fallback_provider_id && route.fallback_provider_id !== p.id
-          ? route.fallback_provider_id
-          : route.primary_provider_id !== p.id ? route.primary_provider_id : null;
-        if (target) {
-          await admin.from("channel_provider_routes").update({
-            current_provider_id: target,
-            switched_reason: `healthcheck_failover: ${p.name} offline`,
-          }).eq("id", route.id);
-        }
+      // Se provedor caiu E é o atual de alguma rota, tenta switchover para fallback
+      if (!r.ok) {
+        const { data: affectedRoutes } = await admin
+          .from("channel_provider_routes")
+          .select("id, fallback_provider_id, primary_provider_id")
+          .eq("current_provider_id", p.id);
+
+        await Promise.allSettled(
+          (affectedRoutes ?? []).map(async (route) => {
+            const target = route.fallback_provider_id && route.fallback_provider_id !== p.id
+              ? route.fallback_provider_id
+              : route.primary_provider_id !== p.id ? route.primary_provider_id : null;
+            if (target) {
+              await admin.from("channel_provider_routes").update({
+                current_provider_id: target,
+                switched_reason: `healthcheck_failover: ${p.name} offline`,
+              }).eq("id", route.id);
+            }
+          })
+        );
       }
-    }
 
-    results.push({ provider: p.name, ok: r.ok, latency_ms: r.latencyMs, status: newStatus });
-  }
+      return { provider: p.name, ok: r.ok, latency_ms: r.latencyMs, status: newStatus };
+    })
+  );
+
+  const results: ProviderResult[] = settled
+    .map(r => (r.status === "fulfilled" ? r.value : null))
+    .filter((v): v is ProviderResult => v !== null);
 
   return new Response(JSON.stringify({ checked: results.length, results, finished_at: new Date().toISOString() }), {
     status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
