@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+
   const SEND_PER_INSTANCE_PER_MIN = Number(Deno.env.get('EVOLUTION_SEND_RATE_PER_INSTANCE') ?? '60');
 
   let _bodyCache: Record<string, unknown> | null = null;
@@ -104,6 +105,14 @@ Deno.serve(async (req) => {
       instance = (body as FormData).get('instanceName') as string || (body as FormData).get('instance') as string;
     } else {
       instance = (body as Record<string, unknown>).instanceName as string || (body as Record<string, unknown>).instance as string;
+    }
+
+    // Prevent path traversal: instance names must be safe identifiers only
+    const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,128}$/;
+    if (instance && !INSTANCE_RE.test(instance)) {
+      return new Response(JSON.stringify({ error: 'Invalid instance name' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Guarda anti-"instância fantasma" (incidente wpp2 2026-07-04): as rotas da
@@ -292,6 +301,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'reprocess-failed-webhooks') {
+      await authorizeRoles(req, supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, ['admin', 'dev']);
       const { data: failed, error } = await supabase
         .from('webhook_reprocess_queue')
         .select('*')

@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
     if (resetRequest.status !== "pending") return errorResponse("Request already processed", 409, req);
 
     if (action === "reject") {
-      const { error: updateError } = await supabaseAdmin
+      // Guard with .eq("status","pending") to prevent overwriting an already-approved request.
+      const { count: rejectedCount, error: updateError } = await supabaseAdmin
         .from("password_reset_requests")
         .update({
           status: "rejected",
@@ -55,35 +56,24 @@ Deno.serve(async (req) => {
           rejection_reason: rejectionReason || "Solicitação rejeitada pelo administrador",
           updated_at: new Date().toISOString(),
         })
-        .eq("id", requestId);
+        .eq("id", requestId)
+        .eq("status", "pending")
+        .select("id", { count: "exact", head: true });
 
       if (updateError) throw updateError;
+      if (!rejectedCount || rejectedCount === 0) {
+        return errorResponse("Request already processed", 409, req);
+      }
 
       log.done(200, { action: "rejected" });
       return jsonResponse({ success: true, message: "Solicitação rejeitada" }, 200, req);
     }
 
-    // Approve: Generate password reset link.
-    // Use a server-configured URL — never the client-supplied Origin header,
-    // which can be forged to redirect the reset link to an attacker-controlled domain.
-    const appUrl = Deno.env.get("APP_URL") || supabaseUrl;
-    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
-      email: resetRequest.email,
-      options: {
-        redirectTo: `${appUrl}/reset-password`,
-      },
-    });
-
-    if (resetError) {
-      log.error("Error generating reset link", { error: resetError.message });
-      throw new Error("Failed to generate reset link");
-    }
-
+    // Approve: atomic status guard FIRST to prevent concurrent requests from each
+    // generating a valid Supabase Auth recovery token. Only the winner proceeds to
+    // generateLink — this ensures exactly one token is ever created per request.
     const expiresAt = new Date(Date.now() + 3600000).toISOString();
 
-    // Update request status atomically — add .eq("status","pending") so a concurrent
-    // approval can't double-process the same request (TOCTOU guard).
     const { count: updatedCount, error: updateError } = await supabaseAdmin
       .from("password_reset_requests")
       .update({
@@ -102,8 +92,23 @@ Deno.serve(async (req) => {
       return errorResponse("Request already processed", 409, req);
     }
 
+    // generateLink runs only after winning the atomic guard above.
+    // Use a server-configured URL — never the client-supplied Origin header.
+    const appUrl = Deno.env.get("APP_URL") || supabaseUrl;
+    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "recovery",
+      email: resetRequest.email,
+      options: {
+        redirectTo: `${appUrl}/reset-password`,
+      },
+    });
+
+    if (resetError) {
+      log.error("Error generating reset link", { error: resetError.message });
+      throw new Error("Failed to generate reset link");
+    }
+
     // Store token hash in isolated table via SECURITY DEFINER function.
-    // Check the result — if the RPC fails the reset link can't be used.
     if (resetData.properties?.hashed_token) {
       const { error: rpcError } = await supabaseAdmin.rpc("store_reset_token", {
         p_request_id: requestId,

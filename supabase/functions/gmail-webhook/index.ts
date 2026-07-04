@@ -92,13 +92,17 @@ serve(async (req) => {
         // Verify shared-secret token Google sends as URL query param.
         // Configure the Pub/Sub push subscription endpoint as:
         //   .../gmail-webhook?pubsubToken=<GMAIL_PUBSUB_TOKEN value>
+        // Fail-closed: if GMAIL_PUBSUB_TOKEN is not configured, reject all requests
+        // rather than silently accepting unauthenticated pushes.
         const expectedToken = Deno.env.get('GMAIL_PUBSUB_TOKEN');
-        if (expectedToken) {
-          const reqToken = new URL(req.url).searchParams.get('pubsubToken');
-          if (reqToken !== expectedToken) {
-            console.warn('[gmail-webhook] Pub/Sub push rejected — invalid token');
-            return new Response('Unauthorized', { status: 401 });
-          }
+        if (!expectedToken) {
+          console.error('[gmail-webhook] GMAIL_PUBSUB_TOKEN not configured — rejecting request');
+          return new Response('Unauthorized', { status: 401 });
+        }
+        const reqToken = new URL(req.url).searchParams.get('pubsubToken');
+        if (reqToken !== expectedToken) {
+          console.warn('[gmail-webhook] Pub/Sub push rejected — invalid token');
+          return new Response('Unauthorized', { status: 401 });
         }
 
         // Guard against empty/malformed data — return 200 to ack and drop

@@ -35,28 +35,35 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const candidates = files
+      const candidateFiles = files
         ?.filter(f => new Date(f.created_at) < oneDayAgo)
         .map(f => f.name) || [];
 
       // F11 security fix: only delete files with no active reference in evolution_messages
-      let filesToDelete = candidates;
-      if (candidates.length > 0) {
-        const publicBase = `${supabaseUrl}/storage/v1/object/public/${bucketName}/`;
-        const candidateUrls = candidates.map(f => publicBase + f);
-        const { data: referenced } = await supabase
-          .from('evolution_messages')
-          .select('media_url')
-          .in('media_url', candidateUrls);
-        const referencedNames = new Set(
-          (referenced ?? []).map((r: { media_url: string }) => r.media_url?.replace(publicBase, ''))
+      const referencedNames = new Set<string>();
+      if (candidateFiles.length > 0) {
+        const candidateUrls = candidateFiles.map(
+          name => `${supabaseUrl}/storage/v1/object/public/${bucketName}/${name}`
         );
-        filesToDelete = candidates.filter(f => !referencedNames.has(f));
-        log.info(`Ref check: ${candidates.length} candidates → ${filesToDelete.length} safe to delete`);
+        const { data: refRows } = await supabase
+          .from("evolution_messages")
+          .select("media_url")
+          .in("media_url", candidateUrls);
+        if (refRows) {
+          for (const row of refRows) {
+            if (row.media_url) {
+              const parts = (row.media_url as string).split(`/${bucketName}/`);
+              if (parts.length > 1) referencedNames.add(parts[1]);
+            }
+          }
+        }
       }
 
+      const filesToDelete = candidateFiles.filter(name => !referencedNames.has(name));
+      log.info(`Ref check: ${candidateFiles.length} candidates → ${filesToDelete.length} safe to delete`);
+
       if (filesToDelete.length > 0) {
-        log.info(`Deletando ${filesToDelete.length} arquivos sem referência de ${bucketName}`);
+        log.info(`Deletando ${filesToDelete.length} arquivos órfãos de ${bucketName} (${candidateFiles.length - filesToDelete.length} referenciados ignorados)`);
         const { data, error: deleteError } = await supabase.storage.from(bucketName).remove(filesToDelete);
 
         if (deleteError) {
