@@ -63,6 +63,7 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
     cancelLoadOlderMessages,
     loadingOlderMessages: useExternalDb ? externalMsgs.loadingOlder : false,
     hasMoreMessages: useExternalDb ? externalMsgs.hasMore : false,
+    addExternalMessage: useExternalDb ? externalMsgs.addMessage : undefined,
     // Original realtime hooks for notifications etc
     localRealtime
   };

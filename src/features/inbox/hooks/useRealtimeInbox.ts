@@ -42,6 +42,7 @@ export function useRealtimeInbox() {
     search, setSearch, statusFilter, setStatusFilter, sortBy, setSortBy,
     selectedMessages, selectedMessagesLoading, refetchSelectedMessages,
     loadOlderMessages, cancelLoadOlderMessages, loadingOlderMessages, hasMoreMessages,
+    addExternalMessage,
     localRealtime
   } = source;
 
@@ -185,7 +186,7 @@ export function useRealtimeInbox() {
             onProgress: (p) => { messageQueue.updateProgress(item.id, p); }
           });
           if (optimistic.external_id) item.externalId = optimistic.external_id;
-          (localRealtime as any).addExternalMessage?.(optimistic);
+          addExternalMessage?.(optimistic);
         } else if (attachments && attachments.length > 0) {
           for (let i = 0; i < attachments.length; i++) {
             const file = attachments[i];
@@ -198,7 +199,7 @@ export function useRealtimeInbox() {
               }
             });
             if (optimistic.external_id) item.externalId = optimistic.external_id;
-            (localRealtime as any).addExternalMessage?.(optimistic);
+            addExternalMessage?.(optimistic);
           }
         } else {
           const { optimistic } = await sendExternalText(contactId, content, { 
@@ -206,7 +207,7 @@ export function useRealtimeInbox() {
             onProgress: (p) => { messageQueue.updateProgress(item.id, p); }
           });
           if (optimistic.external_id) item.externalId = optimistic.external_id;
-          (localRealtime as any).addExternalMessage?.(optimistic);
+          addExternalMessage?.(optimistic);
         }
       } catch (err) {
         log.error('Failed to send external message/media:', err);
