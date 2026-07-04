@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireUser } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,9 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -40,7 +44,10 @@ serve(async (req) => {
       });
 
       const sendData = await sendRes.json();
-      if (sendData.error) return json({ error: sendData.error.message }, 400);
+      if (sendData.error) {
+        console.error('[gmail-send] send message error', sendData.error);
+        return json({ error: 'Failed to send message' }, 400);
+      }
 
       // Persiste mensagem enviada no Supabase
       if (sendData.id && threadId) {
@@ -115,7 +122,10 @@ serve(async (req) => {
       });
 
       const data = await res.json();
-      if (data.error) return json({ error: data.error.message }, 400);
+      if (data.error) {
+        console.error('[gmail-send] modify labels error', data.error);
+        return json({ error: 'Failed to modify labels' }, 400);
+      }
       return json({ labelIds: data.labelIds });
     }
 
@@ -142,7 +152,10 @@ serve(async (req) => {
       }
 
       const data = await res.json();
-      if (data.error) return json({ error: data.error.message }, 400);
+      if (data.error) {
+        console.error('[gmail-send] save draft error', data.error);
+        return json({ error: 'Failed to save draft' }, 400);
+      }
       return json({ draftId: data.id });
     }
 
@@ -162,9 +175,8 @@ serve(async (req) => {
     return json({ error: `Ação desconhecida: ${action}` }, 400);
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[gmail-send]', msg);
-    return json({ error: msg }, 500);
+    console.error('[gmail-send]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });
 

@@ -69,7 +69,7 @@ serve(async (req) => {
     return json({ messageId: resendData.id, provider: 'resend' });
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return json({ error: msg }, 500);
+    console.error('[send-email]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });
