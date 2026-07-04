@@ -41,42 +41,47 @@ Deno.serve(async (req) => {
       );
     }
 
-    const results = [];
+    // Each campaign is claimed atomically (per campaign.id), so parallel processing is safe.
+    const settled = await Promise.allSettled(
+      dueCampaigns.map(async (campaign) => {
+        // Atomic claim: only proceed if we can flip status from 'scheduled' → 'processing'.
+        // Concurrent cron invocations will fail this update and skip the campaign.
+        const { count: claimed } = await supabase
+          .from("talkx_campaigns")
+          .update({ status: "processing" })
+          .eq("id", campaign.id)
+          .eq("status", "scheduled")
+          .select("id", { count: "exact", head: true });
 
-    for (const campaign of dueCampaigns) {
-      // Atomic claim: only proceed if we can flip status from 'scheduled' → 'processing'.
-      // Concurrent cron invocations will fail this update and skip the campaign.
-      const { count: claimed } = await supabase
-        .from("talkx_campaigns")
-        .update({ status: "processing" })
-        .eq("id", campaign.id)
-        .eq("status", "scheduled")
-        .select("id", { count: "exact", head: true });
+        if (!claimed || claimed === 0) {
+          log.info(`Campaign ${campaign.id} already claimed by another invocation, skipping`);
+          return null;
+        }
 
-      if (!claimed || claimed === 0) {
-        log.info(`Campaign ${campaign.id} already claimed by another invocation, skipping`);
-        continue;
-      }
+        try {
+          const response = await fetch(
+            `${supabaseUrl}/functions/v1/talkx-send`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+              body: JSON.stringify({ campaignId: campaign.id, action: "start" }),
+            }
+          );
+          const result = await response.json();
+          log.info(`Scheduled campaign started: ${campaign.name} (${campaign.id})`);
+          return { campaignId: campaign.id, name: campaign.name, success: response.ok, result };
+        } catch (err) {
+          log.error(`Failed to start campaign ${campaign.id}`, { error: err instanceof Error ? err.message : String(err) });
+          // Revert status so the campaign can be retried on the next cron tick
+          await supabase.from("talkx_campaigns").update({ status: "scheduled" }).eq("id", campaign.id);
+          return { campaignId: campaign.id, name: campaign.name, success: false, error: "Failed to start campaign" };
+        }
+      })
+    );
 
-      try {
-        const response = await fetch(
-          `${supabaseUrl}/functions/v1/talkx-send`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
-            body: JSON.stringify({ campaignId: campaign.id, action: "start" }),
-          }
-        );
-        const result = await response.json();
-        results.push({ campaignId: campaign.id, name: campaign.name, success: response.ok, result });
-        log.info(`Scheduled campaign started: ${campaign.name} (${campaign.id})`);
-      } catch (err) {
-        log.error(`Failed to start campaign ${campaign.id}`, { error: err instanceof Error ? err.message : String(err) });
-        // Revert status so the campaign can be retried on the next cron tick
-        await supabase.from("talkx_campaigns").update({ status: "scheduled" }).eq("id", campaign.id);
-        results.push({ campaignId: campaign.id, name: campaign.name, success: false, error: "Failed to start campaign" });
-      }
-    }
+    const results = settled
+      .map(r => (r.status === 'fulfilled' ? r.value : null))
+      .filter((v): v is NonNullable<typeof v> => v !== null);
 
     log.done(200, { started: results.filter((r) => r.success).length });
 
