@@ -1,5 +1,6 @@
 import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUser } from "../_shared/auth.ts";
 
 /**
  * Secure Upload Middleware
@@ -9,6 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   { error: true, code, message, verdict, scanId, details? }
  */
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — OOM guard (F5b)
+const ALLOWED_BUCKETS = new Set(["whatsapp-media", "audio-messages"]);
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -24,20 +26,26 @@ Deno.serve(async (req) => {
     );
   }
 
-  try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return securityErrorResponse(
-        { code: "UNAUTHORIZED", message: "Sessão inválida ou expirada." },
-        401,
-        req,
-      );
-    }
+  // Require a valid user JWT — existence-only check is not sufficient
+  const authed = await requireUser(req);
+  if (authed instanceof Response) {
+    return securityErrorResponse(
+      { code: "UNAUTHORIZED", message: "Sessão inválida ou expirada." },
+      401,
+      req,
+    );
+  }
 
+  try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const bucket = (formData.get("bucket") as string) || "whatsapp-media";
-    const customPath = formData.get("path") as string;
+
+    // Restrict bucket to known-safe values; ignore any attacker-supplied name
+    const requestedBucket = (formData.get("bucket") as string) || "whatsapp-media";
+    const bucket = ALLOWED_BUCKETS.has(requestedBucket) ? requestedBucket : "whatsapp-media";
+    const rawPath = formData.get("path") as string | null;
+    // Strip ".." segments and leading slashes to prevent path traversal
+    const customPath = rawPath ? rawPath.replace(/\.\./g, "").replace(/^\/+/, "") : null;
 
     if (file && file.size > MAX_FILE_SIZE) {
       return securityErrorResponse(
