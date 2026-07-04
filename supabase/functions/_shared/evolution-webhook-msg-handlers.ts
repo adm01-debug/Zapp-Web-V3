@@ -236,7 +236,10 @@ export async function handleMessagesEdited(supabase: any, instance: string, data
     const { data: existing } = await supabase.from('messages').select('id')
       .eq('external_id', key.id).eq('whatsapp_connection_id', connection.id).maybeSingle();
     if (existing) {
-      await supabase.from('messages').update({ content: editedContent, is_edited: true, updated_at: new Date().toISOString() }).eq('id', existing.id);
+      const { error: editErr } = await supabase.from('messages')
+        .update({ content: editedContent, is_edited: true, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      if (editErr) console.error(`[EDITED] Update error for ${key.id}:`, editErr);
       console.log(`Message edited: ${key.id}`);
     }
   }

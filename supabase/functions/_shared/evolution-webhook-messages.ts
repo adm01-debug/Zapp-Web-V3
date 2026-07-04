@@ -173,11 +173,13 @@ export async function handleIncomingMessage(
     const preservedStatus = existingMessage.status && existingMessage.status !== 'received' ? existingMessage.status : 'received';
     const preservedContent = existingMessage.status === 'deleted' ? (existingMessage.content || '[Mensagem apagada]') : content;
     const statusChanged = preservedStatus !== existingMessage.status;
-    await supabase.from('messages').update({
+    const { error: updateErr } = await supabase.from('messages').update({
       contact_id: contact.id, whatsapp_connection_id: connection.id, content: preservedContent,
       message_type: messageType, media_url: mediaUrl, sender: 'contact', created_at: messageCreatedAt, status: preservedStatus,
-      ...(statusChanged ? { status_updated_at: new Date().toISOString() } : {}),
+      ...(statusChanged ? { status_updated_at: messageCreatedAt } : {}),
     }).eq('id', existingMessage.id);
+    if (updateErr) { console.error('[INCOMING] Error updating existing message:', updateErr); return; }
+    await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
     if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, existingMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
     return;
   }
@@ -185,7 +187,7 @@ export async function handleIncomingMessage(
   const { data: insertedMessage, error: msgError } = await supabase.from('messages').upsert({
     contact_id: contact.id, whatsapp_connection_id: connection.id, content,
     message_type: messageType, media_url: mediaUrl, sender: 'contact', external_id: key.id,
-    status: 'received', created_at: messageCreatedAt, status_updated_at: new Date().toISOString(),
+    status: 'received', created_at: messageCreatedAt, status_updated_at: messageCreatedAt,
   }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true }).select('id').maybeSingle();
 
   if (msgError) {
@@ -193,6 +195,7 @@ export async function handleIncomingMessage(
     return;
   }
   if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
+  await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
   if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
 }
 
