@@ -26,6 +26,7 @@ async function getMediaBase64(instanceName: string, messageId: string): Promise<
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
       body: JSON.stringify({ message: { key: { id: messageId } }, convertToMp4: false }),
+      signal: AbortSignal.timeout(30_000),
     });
     if (!resp.ok) return null;
     const data = await resp.json();
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
         const existingUrl = msg.media_url;
         if (existingUrl) {
           try {
-            const checkResp = await fetch(existingUrl);
+            const checkResp = await fetch(existingUrl, { signal: AbortSignal.timeout(10_000) });
             if (checkResp.ok) {
               const existingBytes = new Uint8Array(await checkResp.arrayBuffer());
               if (isValidAudioBytes(existingBytes)) { results.skipped++; continue; }

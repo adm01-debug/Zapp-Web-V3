@@ -123,11 +123,14 @@ serve(async (req) => {
       const listData = await listRes.json();
 
       const messages: Array<{ id: string }> = listData.messages ?? [];
-      await Promise.allSettled(
+      const settled = await Promise.allSettled(
         messages.map(m => fetchAndPersistMessage(supabase, token, accountId, m.id))
       );
+      const syncedCount = settled.filter(r => r.status === 'fulfilled').length;
+      const failedCount = settled.filter(r => r.status === 'rejected').length;
+      if (failedCount > 0) console.error(`[gmail-sync] syncFull: ${failedCount} messages failed to persist`);
 
-      return json({ synced: messages.length, nextPageToken: listData.nextPageToken });
+      return json({ synced: syncedCount, failed: failedCount, nextPageToken: listData.nextPageToken });
     }
 
     // ── syncLabels — sincroniza labels do Gmail ────────────────────────

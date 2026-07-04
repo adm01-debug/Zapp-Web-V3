@@ -73,8 +73,10 @@ Deno.serve(async (req) => {
 
     log.info("Generating reply suggestions", { contactName, kbContext: knowledgeContext.length > 0 });
 
-    const sanitizeForPrompt = (s: string) => s.replace(/[\n\r\t"'`\\]/g, ' ').trim().slice(0, 50);
-    const firstName = contactName ? sanitizeForPrompt(contactName.split(' ')[0]) : null;
+    const sanitizeForPrompt = (s: string) => s.replace(/[\n\r\t"'`\\<>]/g, ' ').trim().slice(0, 200);
+    const safeContactName = contactName ? sanitizeForPrompt(contactName) : null;
+    const safeContext = context ? sanitizeForPrompt(context) : null;
+    const firstName = safeContactName ? sanitizeForPrompt(safeContactName.split(' ')[0]).slice(0, 50) : null;
 
     const systemPrompt = `Você é um Copilot de IA especializado em comunicação empresarial via WhatsApp de uma empresa distribuidora/comercial.
 
@@ -88,8 +90,8 @@ CONTEXTO DO NEGÓCIO — Nossos departamentos se comunicam com diferentes públi
 
 Identifique o tipo de conversa e adapte o tom e conteúdo da sugestão ao contexto correto.
 
-Contexto do contato: ${contactName}
-${context ? `Informações adicionais: ${context}` : ''}
+Contexto do contato: ${safeContactName ?? ''}
+${safeContext ? `Informações adicionais: ${safeContext}` : ''}
 ${knowledgeContext}
 
 IMPORTANTE: Use as informações da Base de Conhecimento e dados do contato para personalizar suas sugestões.
