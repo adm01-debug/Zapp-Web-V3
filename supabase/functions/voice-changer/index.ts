@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
       voicePreset = task.voice_preset;
       // Fetch audio from storage if input_audio_url is a path
       if (task.input_audio_url && task.input_audio_url.startsWith('http')) {
-        const resp = await fetch(task.input_audio_url);
+        const resp = await fetch(task.input_audio_url, { signal: AbortSignal.timeout(30_000) });
         audioData = await resp.blob();
       } else if (task.input_audio_url) {
         const { data: file, error: fileErr } = await supabaseClient.storage
@@ -184,6 +184,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: { 'xi-api-key': elevenlabsKey },
           body: apiFormData,
+          signal: AbortSignal.timeout(60_000),
         }
       );
 
