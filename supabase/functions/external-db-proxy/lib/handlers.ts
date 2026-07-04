@@ -54,7 +54,7 @@ export async function handleRpc(
       error = pgRes?.error ?? null
       timeoutFired = res.timeoutFired
     } catch (e: unknown) {
-      if ((e as Error).message === 'proxy_timeout') {
+      if (e instanceof Error && e.message === 'proxy_timeout') {
         timeoutFired = true
         break
       }
@@ -169,7 +169,7 @@ export async function handleQuery(
       count = pgRes?.count ?? null
       timeoutFired = res.timeoutFired
     } catch (e: unknown) {
-      if ((e as Error).message === 'proxy_timeout') {
+      if (e instanceof Error && e.message === 'proxy_timeout') {
         timeoutFired = true
         break
       }
