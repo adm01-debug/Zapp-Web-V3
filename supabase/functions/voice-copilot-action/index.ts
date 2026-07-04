@@ -6,12 +6,11 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("voice-copilot-action");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const { action, params } = await req.json();
     
     const supabaseUrl = requireEnv('SUPABASE_URL');
