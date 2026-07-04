@@ -121,6 +121,23 @@ export function useRealtimeInbox() {
   useEffect(() => {
     if (!selectedContactId || !profile?.id) { setWhisperCount(0); return; }
 
+    // ── UUID guard ──────────────────────────────────────────────────────────
+    // whisper_messages.contact_id is a uuid column. When USE_EXTERNAL_DB=true,
+    // selectedContactId may be a WhatsApp JID / phone number (e.g. "551146375517")
+    // instead of a UUID. PostgREST returns 400 "invalid input syntax for type uuid"
+    // when a non-UUID string is used as a filter on a uuid column.
+    // Skip both the count query and the realtime subscription in that case.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(selectedContactId)) {
+      log.debug(
+        '[whisperCount] selectedContactId is not a UUID — skipping whisper query (likely a WhatsApp JID)',
+        { selectedContactId },
+      );
+      setWhisperCount(0);
+      return;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     const fetchWhisperCount = async () => {
       const { count, error } = await supabase.from('whisper_messages').select('*', { count: 'exact', head: true }).eq('contact_id', selectedContactId).eq('is_read', false);
       if (!error && count !== null) setWhisperCount(count);
