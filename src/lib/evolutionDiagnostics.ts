@@ -74,7 +74,7 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
     try {
       const extSupabase = getExternalSupabase();
       if (extSupabase) {
-        // Connectivity probe against the external DB (any successful query suffices)
+        // Connectivity probe against the external DB — a working query suffices
         const { error: extError } = await extSupabase.from('contacts').select('id').limit(1);
         results.push({
           step: 'Database Direct (FATOR X)',

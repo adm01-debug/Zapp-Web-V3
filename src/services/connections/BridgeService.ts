@@ -12,7 +12,7 @@ export class BridgeService {
     }
 
     try {
-      // Connectivity probe: any successful query proves the external DB is reachable.
+      // Connectivity probe — a successful query proves the external DB is reachable.
       // v_webhook_health view may not exist yet; use a minimal select as ping instead.
       const { error: pingErr } = await externalSupabase
         .from('contacts')
