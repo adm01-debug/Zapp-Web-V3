@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Settings2, RotateCcw, Save, Info, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,7 +48,19 @@ export function RetryConfigPanel() {
   } = useInstanceRetryConfig(selected);
 
   const [draft, setDraft] = useState<RetryConfig>(DEFAULT_RETRY_CONFIG);
-  useEffect(() => { setDraft(config); }, [config]);
+  // Tracks whether the user has unsaved edits so background reloads don't clobber them.
+  const userHasEditsRef = useRef(false);
+  const prevSelectedRef = useRef(selected);
+  useEffect(() => {
+    const instanceChanged = prevSelectedRef.current !== selected;
+    prevSelectedRef.current = selected;
+    if (instanceChanged) {
+      userHasEditsRef.current = false;
+      setDraft(config);
+    } else if (!userHasEditsRef.current) {
+      setDraft(config);
+    }
+  }, [config, selected]);
 
   // Carrega instâncias disponíveis
   useEffect(() => {
@@ -76,6 +88,7 @@ export function RetryConfigPanel() {
   const isInvalid = hasRetryConfigErrors(validationErrors);
 
   function updateField(field: keyof RetryConfig, value: number) {
+    userHasEditsRef.current = true;
     const r = RETRY_CONFIG_RANGES[field];
     const clamped = Math.min(r.max, Math.max(r.min, Math.floor(value || 0)));
     setDraft((d) => ({ ...d, [field]: clamped }));
@@ -87,6 +100,7 @@ export function RetryConfigPanel() {
     RETRY_CONFIG_FIELDS.forEach((f) => { if (draft[f] !== config[f]) partial[f] = draft[f]; });
     try {
       await save(partial);
+      userHasEditsRef.current = false;
     } catch {
       // Erros de validação/persistência já mostram toast no hook.
     }
