@@ -88,9 +88,16 @@ Deno.serve(async (req) => {
 
   const log = new Logger("voice-agent");
 
+  let authed;
   try {
-    const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
+    authed = await requireUser(req);
+  } catch (authErr) {
+    log.error('Auth check failed', { error: authErr instanceof Error ? authErr.message : String(authErr) });
+    return errorResponse('Unauthorized', 401, req);
+  }
+  if (authed instanceof Response) return authed;
+
+  try {
     const LOVABLE_API_KEY = requireEnv('LOVABLE_API_KEY');
 
     const body = await req.json().catch(() => null);

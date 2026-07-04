@@ -137,12 +137,17 @@ Deno.serve(async (req) => {
     }
     const results = [];
     for (const mid of p.messageIds) {
-      const r = await callGraph("messages", {
-        messaging_product: "whatsapp",
-        status: "read",
-        message_id: mid,
-      });
-      results.push({ id: mid, ok: r.ok, status: r.status });
+      try {
+        const r = await callGraph("messages", {
+          messaging_product: "whatsapp",
+          status: "read",
+          message_id: mid,
+        });
+        results.push({ id: mid, ok: r.ok, status: r.status });
+      } catch (e) {
+        console.error("[whatsapp-cloud-send] read mark failed", mid, e instanceof Error ? e.message : String(e));
+        results.push({ id: mid, ok: false, status: 0 });
+      }
     }
     const allOk = results.every((x) => x.ok);
     return jsonResponse({ ok: allOk, results }, allOk ? 200 : 502);
