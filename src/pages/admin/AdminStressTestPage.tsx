@@ -171,7 +171,7 @@ export default function AdminStressTestPage() {
     id: string, partial: Partial<{ status: string; ended_at: string; total_sent: number; total_failed: number; results: StressResult[]; abort_reason: string; metrics_summary: any }>
   ) => {
     try {
-      await supabase.from('stress_test_runs').update(partial as any).eq('id', id);
+      await (supabase as any).from('stress_test_runs').update(partial as any).eq('id', id);
     } catch (e) {
       log.warn('Falha ao persistir progresso', e);
     }
@@ -207,7 +207,7 @@ export default function AdminStressTestPage() {
     }
 
     // Cria o registro do run
-    const { data: insertData, error: insertErr } = await supabase
+    const { data: insertData, error: insertErr } = await (supabase as any)
       .from('stress_test_runs')
       .insert({
         started_by: userId,
@@ -251,17 +251,17 @@ export default function AdminStressTestPage() {
           const latency = Math.round(performance.now() - start);
           
           // Log metrics to DB for throughput/latency analysis
-          void supabase.from('stress_test_metrics').insert({
+          void (supabase as any).from('stress_test_metrics').insert({
             run_id: id,
             task_type: args.type,
             latency_ms: latency,
             status: 'success'
           });
-          
+
           return res;
         } catch (err) {
           const latency = Math.round(performance.now() - start);
-          void supabase.from('stress_test_metrics').insert({
+          void (supabase as any).from('stress_test_metrics').insert({
             run_id: id,
             task_type: args.type,
             latency_ms: latency,
@@ -306,7 +306,7 @@ export default function AdminStressTestPage() {
     abortRef.current = null;
     
     // Aggregate metrics for final report
-    const { data: metrics } = await supabase
+    const { data: metrics } = await (supabase as any)
       .from('stress_test_metrics')
       .select('latency_ms, status')
       .eq('run_id', id);

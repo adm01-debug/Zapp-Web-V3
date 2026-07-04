@@ -93,7 +93,7 @@ function useWhatsAppLogs(mode: ModeFilter, search: string) {
       setLoading(true);
       try {
         // Envios
-        let sendQ = supabase
+        let sendQ = (supabase as any)
           .from('provider_message_log')
           .select("id,provider,instance_name,direction,remote_jid,delivery_status,http_status,error_code,error_message,received_at,delivered_at")
           .order("received_at", { ascending: false })
@@ -110,7 +110,7 @@ function useWhatsAppLogs(mode: ModeFilter, search: string) {
           .limit(150);
 
         // Erros
-        let errQ = supabase
+        let errQ = (supabase as any)
           .from('dispatch_error_logs')
           .select("id,instance_name,channel_type,remote_jid,error_code,error_message,http_status,retry_count,occurred_at")
           .order("occurred_at", { ascending: false })

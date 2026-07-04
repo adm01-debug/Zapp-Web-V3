@@ -70,7 +70,7 @@ export default function DepartmentsPage() {
 
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('departments')
       .select('*')
       .order('name');
@@ -149,8 +149,8 @@ export default function DepartmentsPage() {
     };
 
     const { error } = editingId
-      ? await supabase.from('departments').update(payload).eq('id', editingId)
-      : await supabase.from('departments').insert(payload);
+      ? await (supabase as any).from('departments').update(payload).eq('id', editingId)
+      : await (supabase as any).from('departments').insert(payload);
 
     setSaving(false);
 
