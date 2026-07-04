@@ -100,7 +100,7 @@ export default function BridgeStatusPage() {
     try {
       // 1. Check Lovable DB (Internal)
       const { error: internalError } = await supabase.from('profiles').select('count').limit(1);
-      setLovableDb(!internalError);
+      if (mountedRef.current) setLovableDb(!internalError);
 
       // 2. Check External DB (FATOR X / Evolution)
       let externalOk = false;
@@ -112,12 +112,12 @@ export default function BridgeStatusPage() {
           externalOk = !extError;
         }
       }
-      setExternalDb(externalOk);
+      if (mountedRef.current) setExternalDb(externalOk);
 
       // 3. Check WhatsApp Transport
       const transport = await whatsapp.resolveTransport();
       const currentTransportLabel = `${transport.requestedMode}${transport.degraded ? " (DEGRADED)" : ""}`;
-      setWhatsappTransport(currentTransportLabel);
+      if (mountedRef.current) setWhatsappTransport(currentTransportLabel);
 
       // 4. Check Recent Message Traffic
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();

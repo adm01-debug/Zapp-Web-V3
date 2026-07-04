@@ -27,6 +27,11 @@ export function useGoalNotifications() {
   const { settings, isQuietHours } = useNotificationSettings();
   const achievedGoals = useRef<Set<string>>(new Set());
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const createNotification = useCallback(async (
     title: string,
@@ -148,9 +153,11 @@ export function useGoalNotifications() {
           if (current >= target && !achievedGoals.current.has(achievedKey)) {
             achievedGoals.current.add(achievedKey);
 
+            if (!mountedRef.current) continue;
+
             const periodLabel = period === 'daily' ? 'diária' : period === 'weekly' ? 'semanal' : 'mensal';
             const goalLabel = getGoalLabel(goal.goal_type);
-            
+
             const title = `🎯 Meta ${periodLabel} alcançada!`;
             const message = `Você atingiu sua meta de ${goalLabel}: ${current}/${target}`;
 
@@ -162,6 +169,8 @@ export function useGoalNotifications() {
               current,
               target
             });
+
+            if (!mountedRef.current) continue;
 
             // Show toast
             toast.success(title, { description: message });
