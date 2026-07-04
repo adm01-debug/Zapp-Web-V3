@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
     if (action === "listVoices") {
       const resp = await fetch("https://api.elevenlabs.io/v1/voices", {
         headers: { "xi-api-key": ELEVENLABS_API_KEY },
+        signal: AbortSignal.timeout(10_000),
       });
       if (!resp.ok) {
         const detail = (await resp.text().catch(() => "")).substring(0, 200);
@@ -86,6 +87,7 @@ Deno.serve(async (req) => {
               use_speaker_boost: s.useSpeakerBoost !== false,
             },
           }),
+          signal: AbortSignal.timeout(30_000),
         },
       );
 

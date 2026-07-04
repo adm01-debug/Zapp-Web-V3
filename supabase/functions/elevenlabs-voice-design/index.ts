@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice_description: description, text: previewText }),
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice_name, voice_description: voice_description || '', generated_voice_id, labels: labels || {} }),
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {
@@ -71,6 +73,7 @@ Deno.serve(async (req) => {
     log.info("Listing voices");
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) throw new Error(`List voices error: ${response.status}`);
