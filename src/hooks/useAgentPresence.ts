@@ -40,17 +40,19 @@ export function useAgentPresence({
   const { user } = useAuth();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const activityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const myStatusRef = useRef<AgentPresenceStatus>('online');
+  useEffect(() => { myStatusRef.current = myStatus; }, [myStatus]);
 
-  // Track user activity for auto-away
+  // Track user activity for auto-away — reads status via ref to stay stable
   const resetActivityTimer = useCallback(() => {
     if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
-    if (myStatus === 'away') {
+    if (myStatusRef.current === 'away') {
       setMyStatus('online');
     }
     activityTimerRef.current = setTimeout(() => {
       setMyStatus('away');
     }, autoAwayMs);
-  }, [autoAwayMs, myStatus]);
+  }, [autoAwayMs]);
 
   // Update my status in the database
   const updateStatus = useCallback(async (status: AgentPresenceStatus) => {

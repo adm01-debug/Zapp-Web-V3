@@ -103,6 +103,9 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   const prevDisconnectedRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const mountedRef = useRef(true);
+
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   // Persistir filtro
   useEffect(() => {
@@ -143,6 +146,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       log.warn('Failed to fetch connections', { error: error.message });
       return;
     }
+    if (!mountedRef.current) return;
     const rows: ConnectionRow[] = (data ?? []).map(r => ({
       id: r.id,
       instance_id: r.instance_id,

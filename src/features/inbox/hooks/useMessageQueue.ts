@@ -56,6 +56,9 @@ export function useMessageQueue(
 ) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const isProcessingRef = useRef<Record<string, boolean>>({});
+  const activeTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+
+  useEffect(() => () => { activeTimersRef.current.forEach(clearTimeout); }, []);
   const QUEUE_STORAGE_KEY = 'chat_message_queue';
 
   const getConfig = useCallback((contactId: string): QueueConfig => {
@@ -145,7 +148,8 @@ export function useMessageQueue(
               if (itemToProcess.nextRetryAt && itemToProcess.nextRetryAt > Date.now()) {
                 isProcessingRef.current[contactId] = false;
                 // Agendar verificação para o tempo exato do retry
-                setTimeout(() => processNextInQueue(contactId), itemToProcess.nextRetryAt - Date.now() + 10);
+                const t1 = setTimeout(() => { activeTimersRef.current.delete(t1); processNextInQueue(contactId); }, itemToProcess.nextRetryAt - Date.now() + 10);
+                activeTimersRef.current.add(t1);
                 return;
               }
 
@@ -173,9 +177,8 @@ export function useMessageQueue(
                 } : i
               ));
               
-              setTimeout(() => {
-                setQueue(q => q.filter(i => i.id !== itemToProcess.id));
-              }, 5000);
+              const t2 = setTimeout(() => { activeTimersRef.current.delete(t2); setQueue(q => q.filter(i => i.id !== itemToProcess.id)); }, 5000);
+              activeTimersRef.current.add(t2);
 
               log.info(`[INBOX_METRIC] action=send_success contact=${contactId} duration=${duration}ms attempt=${itemToProcess.retryCount}`);
             } catch (err) {
@@ -230,7 +233,8 @@ export function useMessageQueue(
             } finally {
               isProcessingRef.current[contactId] = false;
               // Tentar processar o próximo após um pequeno delay ou o tempo do retry
-              setTimeout(() => processNextInQueue(contactId), 500);
+              const t3 = setTimeout(() => { activeTimersRef.current.delete(t3); processNextInQueue(contactId); }, 500);
+              activeTimersRef.current.add(t3);
             }
           })();
 

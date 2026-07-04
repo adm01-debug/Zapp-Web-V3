@@ -23,6 +23,13 @@ export function useMessageQueue(instanceName: string = 'wpp2') {
   });
   const queueRef = useRef<PendingMessage[]>([]);
   const isProcessingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    if (cleanupTimerRef.current) clearTimeout(cleanupTimerRef.current);
+  }, []);
 
   // Initialize queueRef from state on mount
   useEffect(() => {
@@ -68,8 +75,9 @@ export function useMessageQueue(instanceName: string = 'wpp2') {
         log.info(`[MessageQueue] Sent message ${msg.id}`);
         
         // Optional: remove after a small delay if no realtime message arrived
-        setTimeout(() => {
-          setPendingMessages(prev => prev.filter(p => p.id !== msg.id));
+        if (cleanupTimerRef.current) clearTimeout(cleanupTimerRef.current);
+        cleanupTimerRef.current = setTimeout(() => {
+          if (mountedRef.current) setPendingMessages(prev => prev.filter(p => p.id !== msg.id));
         }, 3000);
         
       } catch (err) {
