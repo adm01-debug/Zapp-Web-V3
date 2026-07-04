@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, sanitizeString, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -14,10 +15,15 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
-    const supabaseAnonKey = requireEnv("SUPABASE_ANON_KEY");
+    requireEnv("SUPABASE_ANON_KEY");
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-    const { user: caller } = await authorizeRoles(req, supabaseUrl, supabaseAnonKey, ['admin', 'dev']);
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
 
     const bodySchema = z.object({
@@ -53,7 +59,10 @@ Deno.serve(async (req) => {
 
     if (createError) {
       log.error("User creation failed", { error: createError.message });
-      return errorResponse(createError.message, 400, req);
+      const userFacingMsg = createError.message.toLowerCase().includes("already registered")
+        ? "Email already registered"
+        : "User creation failed";
+      return errorResponse(userFacingMsg, 400, req);
     }
 
     // If a specific role was provided (not default 'agent'), update it

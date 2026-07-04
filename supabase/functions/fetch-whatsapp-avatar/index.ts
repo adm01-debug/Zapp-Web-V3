@@ -138,8 +138,7 @@ Deno.serve(async (req) => {
     log.done(200, { persisted: false });
     return jsonResponse({ avatar_url: picUrl }, 200, req);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    log.error("Avatar fetch error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Avatar fetch error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse("Internal server error", 500, req);
   }
 });
