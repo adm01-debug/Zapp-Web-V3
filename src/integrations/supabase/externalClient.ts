@@ -57,8 +57,10 @@ export let isExternalConfigured = Boolean(EXTERNAL_URL && EXTERNAL_ANON_KEY);
 export let externalSupabase: SupabaseClient = isExternalConfigured
   ? createClient(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        storageKey: 'sb-external-auth-token',
       },
       global: {
         headers: {
@@ -92,8 +94,10 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   // Re-create the client instance
   (externalSupabase as any) = createClient(url, key, {
     auth: {
-      persistSession: false,
-      autoRefreshToken: false,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      storageKey: 'sb-external-auth-token',
     },
     global: {
       headers: {

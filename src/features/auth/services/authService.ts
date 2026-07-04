@@ -1,5 +1,23 @@
 import { supabase } from '@/integrations/supabase/client';
+import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { Session } from '@supabase/supabase-js';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('authService');
+
+/**
+ * Espelha a sessão no Supabase self-hosted (FATOR X) usando as mesmas
+ * credenciais. Silencioso em caso de erro — não deve bloquear o login principal.
+ */
+async function mirrorExternalSignIn(email: string, password: string) {
+  if (!isExternalConfigured) return;
+  try {
+    const { error } = await externalSupabase.auth.signInWithPassword({ email, password });
+    if (error) log.warn('external sign-in falhou', { message: error.message });
+  } catch (e) {
+    log.warn('external sign-in exception', { err: (e as Error).message });
+  }
+}
 
 export interface Profile {
   id: string;
@@ -23,12 +41,17 @@ export const authService = {
   },
 
   async signIn(email: string, password: string) {
-    return await supabase.auth.signInWithPassword({ email, password });
+    const result = await supabase.auth.signInWithPassword({ email, password });
+    if (!result.error) {
+      // dual-session: replica login no self-hosted com as mesmas credenciais
+      void mirrorExternalSignIn(email, password);
+    }
+    return result;
   },
 
   async signUp(email: string, password: string, name: string) {
     const redirectUrl = `${window.location.origin}/`;
-    return await supabase.auth.signUp({
+    const result = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -36,9 +59,16 @@ export const authService = {
         data: { name }
       }
     });
+    if (!result.error) {
+      void mirrorExternalSignIn(email, password);
+    }
+    return result;
   },
 
   async signOut() {
+    if (isExternalConfigured) {
+      try { await externalSupabase.auth.signOut(); } catch { /* noop */ }
+    }
     return await supabase.auth.signOut();
   },
 
