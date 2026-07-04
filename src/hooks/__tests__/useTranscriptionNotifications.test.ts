@@ -68,7 +68,7 @@ describe('useTranscriptionNotifications', () => {
     expect(mockRemoveChannel).toHaveBeenCalled();
   });
 
-  it('listens for UPDATE events on messages table', () => {
+  it('listens for UPDATE events on evo.evolution_messages (espelho)', () => {
     const onMock = vi.fn().mockReturnThis();
     mockChannel.mockReturnValue({
       on: onMock,
@@ -77,7 +77,7 @@ describe('useTranscriptionNotifications', () => {
     renderHook(() => useTranscriptionNotifications());
     expect(onMock).toHaveBeenCalledWith(
       'postgres_changes',
-      expect.objectContaining({ event: 'UPDATE', table: 'messages' }),
+      expect.objectContaining({ event: 'UPDATE', schema: 'evo', table: 'evolution_messages' }),
       expect.any(Function)
     );
   });
