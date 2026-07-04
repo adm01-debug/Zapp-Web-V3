@@ -27,7 +27,8 @@ Deno.serve(async (req) => {
       .from("talkx_campaigns")
       .select("id, name, scheduled_at")
       .eq("status", "scheduled")
-      .lte("scheduled_at", now);
+      .lte("scheduled_at", now)
+      .limit(20);
 
     if (error) {
       log.error("Error fetching scheduled campaigns", { error: error.message });

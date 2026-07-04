@@ -32,9 +32,18 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'sync-contacts';
-    const instanceName = body.instanceName || 'wpp2';
+    const rawInstanceName = body.instanceName || 'wpp2';
     const page = body.page || 1;
     const offset = body.offset || 100;
+
+    // Reject instance names that could inject path segments into Evolution API URLs
+    const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+    if (!INSTANCE_NAME_RE.test(String(rawInstanceName))) {
+      return new Response(JSON.stringify({ error: 'Invalid instanceName' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const instanceName = String(rawInstanceName);
 
     if (action === 'sync-contacts') {
       return await syncContacts(supabase, evolutionApiUrl, evolutionApiKey, instanceName, corsHeaders, page, offset);
