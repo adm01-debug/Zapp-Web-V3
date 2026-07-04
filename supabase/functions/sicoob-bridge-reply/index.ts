@@ -1,10 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { SicoobBridgeReplySchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger("sicoob-bridge-reply");
 
@@ -78,9 +82,9 @@ Deno.serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      log.error("Sicoob Gifts bridge error", { status: response.status, error: errorText });
-      return errorResponse(`Sicoob Gifts returned ${response.status}: ${errorText}`, 502, req);
+      const errorText = await response.text().catch(() => "");
+      log.error("Sicoob Gifts bridge error", { status: response.status, error: errorText.substring(0, 300) });
+      return errorResponse("Failed to forward reply to Sicoob Gifts", 502, req);
     }
 
     const result = await response.json();
