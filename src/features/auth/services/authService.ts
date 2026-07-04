@@ -49,9 +49,7 @@ export const authService = {
   },
 
   async signOut() {
-    if (isExternalConfigured) {
-      try { await externalSupabase.auth.signOut(); } catch { /* noop */ }
-    }
+    await mirrorExternalSignOut();
     return await supabase.auth.signOut();
   },
 
