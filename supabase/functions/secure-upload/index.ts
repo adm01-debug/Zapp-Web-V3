@@ -26,17 +26,15 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Require a valid user JWT — existence-only check is not sufficient
-  const authed = await requireUser(req);
-  if (authed instanceof Response) {
-    return securityErrorResponse(
-      { code: "UNAUTHORIZED", message: "Sessão inválida ou expirada." },
-      401,
-      req,
-    );
-  }
-
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) {
+      return securityErrorResponse(
+        { code: "UNAUTHORIZED", message: "Sessão inválida ou expirada." },
+        401,
+        req,
+      );
+    }
     const formData = await req.formData();
     const file = formData.get("file") as File;
 

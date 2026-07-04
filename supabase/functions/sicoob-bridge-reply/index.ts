@@ -7,12 +7,11 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-
   const log = new Logger("sicoob-bridge-reply");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
     const sicoobGiftsUrl = Deno.env.get('SICOOB_GIFTS_URL');
     const sicoobGiftsBridgeSecret = Deno.env.get('SICOOB_GIFTS_BRIDGE_SECRET');

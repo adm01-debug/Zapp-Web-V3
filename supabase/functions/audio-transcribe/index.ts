@@ -199,6 +199,7 @@ serve(async (req) => {
       clearTimeout(timeout);
     }
   } catch (error) {
+    console.error('[audio-transcribe] unhandled error:', error);
     return errorResponse(req, 'Internal server error', 500);
   }
 });
