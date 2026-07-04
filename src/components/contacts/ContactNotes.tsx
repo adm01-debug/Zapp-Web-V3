@@ -35,8 +35,8 @@ export function ContactNotes({ contactId, className }: ContactNotesProps) {
   const [showInput, setShowInput] = useState(false);
 
   const fetchNotes = useCallback(async () => {
-    const { data, error } = await (supabase
-      .from('contact_notes') as any)
+    const { data, error } = await (supabase as any)
+      .from('contact_notes')
       .select('id, content, created_at, author_id')
       .eq('contact_id', contactId)
       .order('created_at', { ascending: false })
@@ -45,8 +45,8 @@ export function ContactNotes({ contactId, className }: ContactNotesProps) {
     if (data) {
       // Fetch author names
       const authorIds = [...new Set(data.map(n => n.author_id))];
-      const { data: profiles , error: profilesErr } = await (supabase
-        .from('profiles') as any)
+      const { data: profiles , error: profilesErr } = await (supabase as any)
+        .from('profiles')
         .select('id, name')
         .in('id', authorIds);
 
@@ -66,16 +66,16 @@ export function ContactNotes({ contactId, className }: ContactNotesProps) {
     if (!newNote.trim()) return;
     setAdding(true);
     try {
-      const { data: profile , error: profileErr } = await (supabase
-        .from('profiles') as any)
+      const { data: profile , error: profileErr } = await (supabase as any)
+        .from('profiles')
         .select('id')
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
         .single();
 
       if (!profile) throw new Error('Perfil não encontrado');
 
-      const { error } = await (supabase
-        .from('contact_notes') as any)
+      const { error } = await (supabase as any)
+        .from('contact_notes')
         .insert({
           contact_id: contactId,
           author_id: profile.id,
