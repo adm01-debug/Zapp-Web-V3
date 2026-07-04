@@ -1,4 +1,5 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const TranscriptSchema = z.object({
@@ -84,6 +85,9 @@ function sanitizeResult(raw: Record<string, unknown>): Record<string, unknown> {
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger("voice-agent");
 

@@ -15,6 +15,7 @@ import {
   requireEnv,
   Logger,
 } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -31,6 +32,9 @@ function base64ToBytes(b64: string): Uint8Array {
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   const log = new Logger("speech-to-text");
 

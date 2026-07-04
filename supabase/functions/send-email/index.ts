@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireUser } from '../_shared/auth.ts';
 
 /**
  * send-email — Endpoint unificado legado (mantido para compatibilidade)
@@ -18,6 +19,9 @@ serve(async (req) => {
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return json({ error: 'Unauthorized' }, 401);
 
   try {
     const body = await req.json().catch(() => ({}));
