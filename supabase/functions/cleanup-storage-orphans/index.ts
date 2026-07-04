@@ -42,27 +42,29 @@ Deno.serve(async (req) => {
       // Build set of file names currently referenced in evolution_messages to avoid deleting active files.
       // Query by storage path suffix (not full URL) so custom domains, CDN rewrites, and URL encoding
       // differences don't cause false-orphan classifications.
+      // Paginate to handle arbitrarily large message tables without skipping cleanup permanently.
       let referencedNames = new Set<string>();
       if (candidateFiles.length > 0) {
         const bucketPathSegment = `/${bucketName}/`;
-        const { data: refRows, error: refError } = await supabase
-          .from("evolution_messages")
-          .select("media_url")
-          .like("media_url", `%${bucketPathSegment}%`)
-          .limit(10_000);
-        if (refError) {
-          log.error(`Erro ao consultar referências em ${bucketName}`, { error: refError.message });
-          results[bucketName] = { error: "reference_lookup_failed" };
-          continue;
-        }
-        if (refRows && refRows.length >= 10_000) {
-          log.warn(`Referência lookup atingiu limite de 10k para ${bucketName} — pulando deleção para evitar falsos órfãos`);
-          results[bucketName] = { skipped: "reference_limit_reached" };
-          continue;
-        }
-        if (refRows) {
-          const candidateSet = new Set(candidateFiles);
-          for (const row of refRows) {
+        const candidateSet = new Set(candidateFiles);
+        const PAGE_SIZE = 1000;
+        let page = 0;
+        let lookupFailed = false;
+
+        while (true) {
+          const { data: refRows, error: refError } = await supabase
+            .from("evolution_messages")
+            .select("media_url")
+            .like("media_url", `%${bucketPathSegment}%`)
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+          if (refError) {
+            log.error(`Erro ao consultar referências em ${bucketName} (página ${page})`, { error: refError.message });
+            lookupFailed = true;
+            break;
+          }
+
+          for (const row of refRows ?? []) {
             if (row.media_url) {
               const parts = (row.media_url as string).split(bucketPathSegment);
               if (parts.length > 1) {
@@ -72,6 +74,14 @@ Deno.serve(async (req) => {
               }
             }
           }
+
+          if (!refRows || refRows.length < PAGE_SIZE) break;
+          page++;
+        }
+
+        if (lookupFailed) {
+          results[bucketName] = { error: "reference_lookup_failed" };
+          continue;
         }
       }
 
