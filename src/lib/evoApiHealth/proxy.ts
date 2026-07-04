@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { generateCorrelationId, CORRELATION_HEADER } from '@/lib/correlationId';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('ExternalDbProxy');
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '';
@@ -92,7 +95,7 @@ class ExternalDbProxyClient {
         
         if (isTransientSchemaError && retryCount < 5) {
           const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
-          console.warn(`[ExternalDbProxy] Transient error (${errorMsg}). Retrying in ${Math.round(delay)}ms... (Attempt ${retryCount + 1}/5)`);
+          log.warn('Transient schema error, retrying', { error: errorMsg, attempt: retryCount + 1, delayMs: Math.round(delay) });
           await new Promise(resolve => setTimeout(resolve, delay));
           return this.call<T>(body, retryCount + 1);
         }
