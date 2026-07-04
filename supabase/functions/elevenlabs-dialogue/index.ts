@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
           script,
           language_code: languageCode,
         }),
+        signal: AbortSignal.timeout(30_000),
       }
     );
 
