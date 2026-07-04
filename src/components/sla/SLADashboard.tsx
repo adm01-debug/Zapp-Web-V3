@@ -4,6 +4,7 @@
  * Shows violations, compliance rate, and overdue alerts.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,8 @@ import {
   AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+
+const log = getLogger('SLADashboard');
 
 interface SLAStats {
   total_violations:          number;
@@ -58,7 +61,7 @@ export const SLADashboard: React.FC<Props> = ({
       if (error) throw error;
       setStats(data as unknown as SLAStats);
     } catch (err) {
-      console.error('[SLADashboard]', err);
+      log.error('Failed to load SLA dashboard', err);
     } finally { setLoading(false); }
   }, [instanceName, days]);
 

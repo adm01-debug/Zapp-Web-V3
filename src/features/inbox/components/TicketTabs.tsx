@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { getLogger } from '@/lib/logger';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,8 @@ import { useAgents } from '@/features/admin';
 import { useAllTicketStates, ConversationWithMessages } from '@/features/inbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const log = getLogger('TicketTabs');
 
 export type MainTab = 'open' | 'resolved' | 'search' | 'unread';
 export type SubTab = 'attending' | 'waiting';
@@ -321,7 +324,7 @@ export function TicketTabs({
                       'inbox.view_mine';
 
                     if (!hasPermission(requiredPermission) && opt.id !== 'mine') {
-                      console.error(`[AUDIT] Unauthorized access attempt to scope ${opt.id} by user ${user?.id}`);
+                      log.warn('Unauthorized inbox scope access attempt', { scope: opt.id, userId: user?.id });
                       await supabase.from('audit_logs').insert({
                         user_id: user?.id,
                         action: 'UNAUTHORIZED_INBOX_SCOPE_ACCESS',

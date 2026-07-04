@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
+import { getLogger } from '@/lib/logger';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend 
@@ -13,6 +14,7 @@ interface QueueMetricsDashboardProps {
   metrics: QueueMetrics;
 }
 
+const log = getLogger('QueueMetricsDashboard');
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = ({ metrics }) => {
@@ -27,7 +29,7 @@ export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = ({ me
           .select('*');
         if (!error && data) setStsMetrics(data);
       } catch (err) {
-        console.error('Failed to fetch STS metrics:', err);
+        log.error('Failed to fetch STS metrics', err);
       } finally {
         setLoadingSts(false);
       }

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,8 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
+const log = getLogger('AdminBridgeStatusPage');
 
 type BridgeStatus = "online" | "degraded" | "offline" | "loading";
 
@@ -150,7 +153,7 @@ export default function BridgeStatusPage() {
 
       setLastCheck(new Date());
     } catch (error: any) {
-      console.error("Health check failed:", error);
+      log.error('Health check failed', error);
       setStatus("offline");
       toast({
         title: "Erro na verificação",

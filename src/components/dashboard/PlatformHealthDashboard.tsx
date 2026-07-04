@@ -4,6 +4,7 @@
  * One call returns contacts + conversations + messages + webhooks KPIs.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { SLADashboard } from '@/components/sla/SLADashboard';
+
+const log = getLogger('PlatformHealthDashboard');
 
 interface PlatformHealth {
   contacts: {
@@ -73,7 +76,7 @@ export const PlatformHealthDashboard: React.FC<Props> = ({
       setData(health as unknown as PlatformHealth);
       setLastUpdated(new Date());
     } catch (err) {
-      console.error('[PlatformHealthDashboard]', err);
+      log.error('Failed to load platform health', err);
     } finally { setLoading(false); }
   }, [instanceName]);
 

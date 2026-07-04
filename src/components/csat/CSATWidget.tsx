@@ -8,6 +8,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, RefreshCw, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('CSATWidget');
 
 interface CSATStats {
   total_responses:    number;
@@ -57,7 +60,7 @@ export const CSATWidget: React.FC<Props> = ({
       });
       if (error) throw error;
       setStats(data as unknown as CSATStats);
-    } catch (err) { console.error('[CSATWidget]', err); }
+    } catch (err) { log.error('Failed to load CSAT stats', err); }
     finally { setLoading(false); }
   }, [instanceName, days]);
 

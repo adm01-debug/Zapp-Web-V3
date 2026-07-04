@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getLogger } from '@/lib/logger';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,8 @@ import { Switch } from '@/components/ui/switch';
 import { ShieldAlert, AlertTriangle, Save, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const log = getLogger('ThreadSLASettingsDialog');
 
 interface ThreadSLASettingsDialogProps {
   threadId: string;
@@ -63,7 +66,7 @@ export function ThreadSLASettingsDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error('Error updating SLA settings:', error);
+      log.error('Error updating SLA settings', error);
       toast.error('Erro ao salvar configurações de SLA.');
     } finally {
       setLoading(false);
