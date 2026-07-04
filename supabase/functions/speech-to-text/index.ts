@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "xi-api-key": ELEVENLABS_API_KEY },
       body: formData,
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!response.ok) {
