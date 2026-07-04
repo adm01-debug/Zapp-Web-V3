@@ -1,6 +1,6 @@
 // Reporta status (presença/ausência) de WEBHOOK_SECRET sem expor o valor.
 // Apenas comprimento e prefixo hash SHA-256 — útil para validar configuração no painel admin.
-import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,8 +10,8 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  const authError = requireServiceRoleOrCron(req);
-  if (authError !== null) return authError;
+  const authed = await requireAdminOrSupervisor(req);
+  if (authed instanceof Response) return authed;
 
   const secret = Deno.env.get('WEBHOOK_SECRET') ?? '';
   const present = secret.length > 0;
