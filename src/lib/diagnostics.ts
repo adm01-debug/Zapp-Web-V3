@@ -17,7 +17,7 @@ export async function runConnectionDiagnostics() {
     steps: []
   };
 
-  const record = (step: string, status: 'pass' | 'fail', details: any) => {
+  const record = (step: string, status: 'pass' | 'fail', details: unknown) => {
     diagnostics.steps.push({ step, status, details });
     diagLog[status === 'pass' ? 'debug' : 'warn'](`${status.toUpperCase()}: ${step}`, details);
   };
