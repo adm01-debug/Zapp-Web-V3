@@ -223,14 +223,19 @@ async function processHistory(
     }
   }
 
-  // Fetch and persist all new messages in parallel; log any individual failures.
+  // Fetch and persist all new messages in parallel; throw if any fail so history does not advance
+  // and Gmail retries the push notification — prevents permanent message gaps.
   const results = await Promise.allSettled(
     addedMessages.slice(0, 20).map(msgId => fetchAndPersistMessage(supabase, token, accountId, msgId))
   );
+  const failures = results.filter(r => r.status === 'rejected');
   for (const r of results) {
     if (r.status === 'rejected') {
       console.error('[gmail-webhook] processHistory message failed:', r.reason instanceof Error ? r.reason.message : String(r.reason));
     }
+  }
+  if (failures.length > 0) {
+    throw new Error(`${failures.length}/${results.length} messages failed to ingest`);
   }
 }
 

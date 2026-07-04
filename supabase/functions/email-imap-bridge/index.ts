@@ -146,8 +146,10 @@ serve(async (req) => {
           smtp_port:     merged.smtp_port ?? 587,
           smtp_use_tls:  merged.smtp_use_tls ?? true,
           username:      merged.username ?? merged.email,
-          // AES-GCM encrypted: base64(12-byte IV || ciphertext); decrypt with IMAP_ENCRYPTION_KEY
-          password_hash: passwordEncrypted,
+          // AES-GCM encrypted: base64(12-byte IV || ciphertext); decrypt with IMAP_ENCRYPTION_KEY.
+          // Stored in password_encrypted (not password_hash) to avoid column collision with
+          // outlook-oauth, which stores JSON tokens in password_hash and calls JSON.parse() on it.
+          password_encrypted: passwordEncrypted,
           is_active:     true,
         }, { onConflict: 'user_id,email' })
         .select('id, email, provider')
