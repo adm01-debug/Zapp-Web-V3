@@ -113,7 +113,7 @@ export function useEmail() {
 
     if (dbErr) {
       if (dbErr.message.includes('disponível') || dbErr.message.includes('not found')) {
-        console.info('[useEmail] Usando dados mock para contas (schema não disponível)');
+        log.warn('Email schema unavailable — using mock accounts');
         setAccounts(GMAIL_MOCKS.accounts);
         if (GMAIL_MOCKS.accounts.length > 0 && !activeAccountId) {
           setActiveAccountId(GMAIL_MOCKS.accounts[0].id);
@@ -167,7 +167,7 @@ export function useEmail() {
 
     if (rpcErr) {
       if (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found')) {
-        console.info('[useEmail] Usando threads mock');
+        log.warn('Email schema unavailable — using mock threads');
         setThreads(GMAIL_MOCKS.threads);
         setHasMore(false);
       } else {
