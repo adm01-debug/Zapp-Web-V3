@@ -68,34 +68,35 @@ Deno.serve(async (req) => {
         }
 
         if (!fetchErr && toAnonymize?.length) {
-          let anonymizedCount = 0;
+          const anonSettled = await Promise.allSettled(
+            toAnonymize.map(async (contact) => {
+              const { error: updateErr } = await supabase
+                .from('evolution_contacts')
+                .update({
+                  full_name:           '[Anonimizado]',
+                  email:               null,
+                  push_name:           null,
+                  profile_picture_url: null,
+                  company:             null,
+                  notes:               null,
+                  raw_data:            null,
+                  pii_masked_at:       new Date().toISOString(),
+                })
+                .eq('id', contact.id);
 
-          for (const contact of toAnonymize) {
-            const { error: updateErr } = await supabase
-              .from('evolution_contacts')
-              .update({
-                full_name:           '[Anonimizado]',
-                email:               null,
-                push_name:           null,
-                profile_picture_url: null,
-                company:             null,
-                notes:               null,
-                raw_data:            null,
-                pii_masked_at:       new Date().toISOString(),
-              })
-              .eq('id', contact.id);
-
-            if (!updateErr) {
-              anonymizedCount++;
+              if (updateErr) {
+                console.error('[lgpd] Failed to anonymize contact', contact.id, updateErr.message);
+                return false;
+              }
               await supabase.from('contact_audit_log').insert({
                 contact_id: contact.id,
                 action: 'pii_anonymized',
                 metadata: { reason: 'lgpd_deletion_request_30d' },
               }).catch(() => {});
-            } else {
-              console.error('[lgpd] Failed to anonymize contact', contact.id, updateErr.message);
-            }
-          }
+              return true;
+            })
+          );
+          const anonymizedCount = anonSettled.filter(r => r.status === 'fulfilled' && r.value).length;
 
           report['anonymized'] = anonymizedCount;
           console.log(`[lgpd] Anonimizados: ${anonymizedCount} contatos`);
@@ -153,21 +154,39 @@ Deno.serve(async (req) => {
       }
 
       if (!hashFetchErr && contacts?.length) {
-        let updated = 0;
-        for (const c of contacts) {
-          const hash = simpleHash(
+        // Compute all hashes in memory (synchronous), then bulk-upsert in parallel batches of 500
+        const toUpdate = contacts.map(c => ({
+          id: c.id,
+          dedup_hash: simpleHash(
             (c.phone_number ?? '').replace(/\D/g, '').toLowerCase() + '|' +
             (c.email ?? '').toLowerCase() + '|' +
             (c.full_name ?? '').toLowerCase()
-          );
+          ),
+        }));
 
-          const { error: hashErr } = await supabase
-            .from('evolution_contacts')
-            .update({ dedup_hash: hash })
-            .eq('id', c.id);
-
-          if (!hashErr) updated++;
+        const CHUNK = 500;
+        const chunks: typeof toUpdate[] = [];
+        for (let i = 0; i < toUpdate.length; i += CHUNK) {
+          chunks.push(toUpdate.slice(i, i + CHUNK));
         }
+
+        const batchResults = await Promise.allSettled(
+          chunks.map(chunk =>
+            supabase.from('evolution_contacts').upsert(chunk, { onConflict: 'id' })
+          )
+        );
+
+        let updated = 0;
+        for (let i = 0; i < batchResults.length; i++) {
+          const r = batchResults[i];
+          if (r.status === 'fulfilled' && !r.value.error) {
+            updated += chunks[i].length;
+          } else {
+            const msg = r.status === 'rejected' ? String(r.reason) : r.value.error?.message;
+            console.error('[lgpd] dedup hash batch error', msg);
+          }
+        }
+
         report['dedup_hashes_updated'] = updated;
         console.log(`[lgpd] Dedup hashes atualizados: ${updated}`);
       } else {
