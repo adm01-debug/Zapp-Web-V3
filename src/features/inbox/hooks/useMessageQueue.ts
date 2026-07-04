@@ -139,7 +139,7 @@ export function useMessageQueue(
       isProcessingRef.current[contactId] = true;
       
           // Iniciamos o processamento assíncrono
-          (async () => {
+          void (async () => {
             const config = getConfig(contactId);
             const startTime = Date.now();
             

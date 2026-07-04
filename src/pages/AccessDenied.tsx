@@ -33,7 +33,7 @@ export default function AccessDenied() {
         });
       }
     };
-    logEvent();
+    void logEvent();
   }, [from]);
 
   return (

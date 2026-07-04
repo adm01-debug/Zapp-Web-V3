@@ -15,6 +15,12 @@ export default function SSOCallback() {
   const [errorMessage, setErrorMessage] = useState('');
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     const addTimer = (t: ReturnType<typeof setTimeout>) => { timersRef.current.push(t); };
@@ -22,6 +28,8 @@ export default function SSOCallback() {
     const handleCallback = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
+
+        if (!mountedRef.current) return;
 
         if (error) {
           throw error;
@@ -62,13 +70,14 @@ export default function SSOCallback() {
           }, 10000));
         }
       } catch (err: unknown) {
+        if (!mountedRef.current) return;
         setStatus('error');
         setErrorMessage(err instanceof Error ? err.message : 'Erro durante autenticação');
         toast.error('Erro no login SSO');
       }
     };
 
-    handleCallback();
+    void handleCallback();
 
     return () => {
       timersRef.current.forEach(clearTimeout);

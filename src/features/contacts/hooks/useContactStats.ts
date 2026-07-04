@@ -9,7 +9,7 @@
  * - Crescimento nos últimos 30 dias
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ContactStatsData {
@@ -37,6 +37,11 @@ export function useContactStats(): UseContactStatsReturn {
   const [stats, setStats] = useState<ContactStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetch = useCallback(async () => {
     setIsLoading(true);
@@ -45,20 +50,21 @@ export function useContactStats(): UseContactStatsReturn {
     try {
       const { data, error: rpcErr } = await (supabase as any).rpc('rpc_contact_stats');
 
+      if (!mountedRef.current) return;
       if (rpcErr) throw new Error(rpcErr.message);
 
       // Supabase retorna o JSONB como objeto direto
       const statsData = data as unknown as ContactStatsData;
       setStats(statsData);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
+      if (mountedRef.current) setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetch();
+    void fetch();
   }, [fetch]);
 
   // Métricas derivadas

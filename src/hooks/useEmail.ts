@@ -582,13 +582,13 @@ export function useEmail() {
 
   // ── Carregar ao montar ──────────────────────────────────────────
   useEffect(() => {
-    loadAccounts();
+    void loadAccounts();
   }, [loadAccounts]);
 
   // ── Carregar threads quando muda conta ou label ──────────────────────────
   useEffect(() => {
     if (activeAccountId) {
-      loadThreads(activeAccountId, activeLabel);
+      void loadThreads(activeAccountId, activeLabel);
     }
   }, [activeAccountId, activeLabel]); // eslint-disable-line react-hooks/exhaustive-deps
 

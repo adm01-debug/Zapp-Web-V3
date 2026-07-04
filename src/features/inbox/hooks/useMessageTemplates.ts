@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/features/auth';
@@ -22,6 +22,11 @@ export function useMessageTemplates() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchTemplates = useCallback(async () => {
     if (!user?.id) return;
@@ -31,12 +36,13 @@ export function useMessageTemplates() {
         .from('message_templates')
         .select('*')
         .order('use_count', { ascending: false });
+      if (!mountedRef.current) return;
       if (error) throw error;
       setTemplates(data || []);
     } catch (err) {
       log.error('Error fetching templates:', err);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   }, [user?.id]);
 
