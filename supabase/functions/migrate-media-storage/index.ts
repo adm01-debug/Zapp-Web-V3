@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
@@ -114,8 +114,7 @@ serve(async (req) => {
 });
 
 async function downloadAndUpload(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient,
   cdnUrl: string,
   messageType: string,
   messageId: string,
@@ -145,8 +144,7 @@ async function downloadAndUpload(
 }
 
 async function getBase64Fallback(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient,
   evolutionUrl: string,
   evolutionKey: string,
   instance: string,
@@ -206,8 +204,7 @@ function detectExtension(contentType: string, messageType: string): string {
 }
 
 async function uploadToStorage(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient,
   bytes: Uint8Array,
   contentType: string,
   messageType: string,
@@ -232,8 +229,7 @@ async function uploadToStorage(
 }
 
 async function migrateSimple(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient,
   req: Request,
   log: Logger,
 ): Promise<Response> {
