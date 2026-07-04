@@ -94,17 +94,19 @@ Deno.serve(async (req) => {
     const emailHtml = buildReportEmail(reportData);
 
     if (resendApiKey && report.recipients?.length > 0) {
-      for (const recipient of report.recipients) {
-        const emailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            from: "reports@noreply.lovable.app", to: recipient,
-            subject: `📊 ${reportData.title} - ${reportData.period}`, html: emailHtml,
-          }),
-        });
-        if (!emailResponse.ok) log.error(`Failed to send to ${recipient}`, { error: await emailResponse.text() });
-      }
+      await Promise.allSettled(
+        report.recipients.map(async (recipient: string) => {
+          const emailResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: "reports@noreply.lovable.app", to: recipient,
+              subject: `📊 ${reportData.title} - ${reportData.period}`, html: emailHtml,
+            }),
+          });
+          if (!emailResponse.ok) log.error(`Failed to send to ${recipient}`, { error: await emailResponse.text() });
+        })
+      );
     }
 
     const nextSendAt = calculateNextSend(report.frequency);
