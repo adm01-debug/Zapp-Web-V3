@@ -24,6 +24,10 @@ Deno.serve(async (req) => {
     const { messages, contactName, contactId } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
     const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    // Caller-scoped client (RLS enforced) — used for writes to contacts
+    const callerClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY"), {
+      global: { headers: { authorization: req.headers.get("authorization") || "" } },
+    });
 
     // Fetch contact context for richer analysis
     let contactContext = '';
@@ -198,7 +202,7 @@ Foque em:
         persistenceWarning = 'analysis_not_persisted';
       }
 
-      const { error: updateErr } = await supabase.from('contacts').update({
+      const { error: updateErr } = await callerClient.from('contacts').update({
         ai_sentiment: analysisData.sentiment,
         ai_priority: analysisData.urgency === 'critica' ? 'urgent' : analysisData.urgency,
       }).eq('id', contactId);

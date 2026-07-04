@@ -121,6 +121,11 @@ Responda APENAS em JSON:
     if (result.suggested_queue_id && !isValidUUID(result.suggested_queue_id)) {
       result.suggested_queue_id = null;
     }
+    // Prevent prompt injection from assigning a queue_id that wasn't in the fetched set
+    const validQueueIds = new Set((queues ?? []).map((q: { id: string }) => q.id));
+    if (result.suggested_queue_id && !validQueueIds.has(result.suggested_queue_id)) {
+      result.suggested_queue_id = null;
+    }
 
     if (validContactId && result.tags?.length > 0) {
       const tagRows = result.tags.map((t: { name: string; confidence: number }) => ({
