@@ -40,12 +40,25 @@ function detectExtension(respContentType: string, defaultExt: string): string {
   return defaultExt;
 }
 
+function isSafeMediaCdnUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url);
+    if (protocol !== 'https:') return false;
+    const allowed = ['mmg.whatsapp.net', 'media.whatsapp.net', 'pps.whatsapp.net', 'media-gru', 'media-lga', 'media-ord', 'media-sea', 'media-iad', 'media-mia', 'media-dfw'];
+    return allowed.some(h => hostname === h || hostname.endsWith('.' + h) || hostname.startsWith(h));
+  } catch { return false; }
+}
+
 export async function persistMediaToStorage(
   supabase: SupabaseClient,
   cdnUrl: string,
   messageType: string,
   messageId: string,
 ): Promise<string | null> {
+  if (!isSafeMediaCdnUrl(cdnUrl)) {
+    console.error(`[MEDIA] Rejected unsafe CDN URL for ${messageType}`);
+    return null;
+  }
   try {
     const resp = await fetch(cdnUrl, { signal: AbortSignal.timeout(15000) });
     if (!resp.ok) { console.error(`[MEDIA] Download failed (${resp.status}) for ${messageType}`); return null; }
@@ -92,7 +105,7 @@ export async function persistMediaViaApi(
     if (!evolutionUrl || !evolutionKey) return null;
 
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
-    const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${instance}`, {
+    const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instance)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': evolutionKey },
       body: JSON.stringify({ message: { key: data.key, message: data.message }, convertToMp4: false }),
