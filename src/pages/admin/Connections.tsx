@@ -281,7 +281,7 @@ export default function AdminConnectionsPage() {
                 try {
                   toast({ title: "Iniciando Diagnóstico", description: "Verificando fluxo completo..." });
                   const res = await runConnectionDiagnostics();
-                  const fails = res.steps.filter((s: any) => s.status === 'fail');
+                  const fails = (res.steps as Array<{ step: string; status: string; details: unknown }>).filter(s => s.status === 'fail');
                   if (fails.length > 0) {
                     toast({
                       title: "Falha no Diagnóstico",
