@@ -1,46 +1,68 @@
 // Evolution Chatbot IA v2.0 (2026-04-26)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { callOpenAICompatible, withRetry } from "../_shared/ai-providers.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { getSecret } from "../_shared/vault.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, x-api-key", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const BASE_SYSTEM_PROMPT = `Você é a assistente virtual da Promo Brindes, especializada em brindes personalizados. Personalidade amigável, profissional, prestativa. Pode: orçamentos, info produtos (canetas, chaveiros, camisetas, bonés, canecas), prazos (10-15 dias úteis), pagamento (PIX, boleto, cartão 3x), personalização (silk, bordado, transfer, laser). Transfere humano: reclamações, financeiro complexo, dúvida. Português BR. Mensagens curtas (WhatsApp).`;
 const STOP_WORDS = ["parar bot","desativar bot","sair do bot","falar com humano","humano agora","atendente humano","quero atendente","chamar atendente"];
 
+// Vault-resolved AI keys — fetched on first call and cached in-process
+let _openAiKey: string | null | undefined;
+let _anthropicKey: string | null | undefined;
+
+async function getOpenAIKey(): Promise<string | null> {
+  if (_openAiKey === undefined) _openAiKey = await getSecret("openai_api_key");
+  return _openAiKey;
+}
+
+async function getAnthropicKey(): Promise<string | null> {
+  if (_anthropicKey === undefined) _anthropicKey = await getSecret("anthropic_api_key");
+  return _anthropicKey;
+}
+
 async function callOpenAI(messages: any[], sysPrompt: string): Promise<string> {
-  if (!OPENAI_API_KEY) return "[IA não configurada]";
+  const apiKey = await getOpenAIKey();
+  if (!apiKey) return "[IA não configurada]";
   try {
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST", headers: { "Authorization": `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "system", content: sysPrompt }, ...messages], max_tokens: 500, temperature: 0.7 }),
-      signal: AbortSignal.timeout(30000)
-    });
-    if (!r.ok) return "Desculpe, problema interno. Vou chamar um atendente humano.";
-    return (await r.json()).choices?.[0]?.message?.content || "Não consegui processar.";
-  } catch (e) { return "Desculpe, problema interno. Vou chamar um atendente humano."; }
+    const resp = await withRetry(() => callOpenAICompatible({
+      endpoint: "https://api.openai.com/v1/chat/completions",
+      apiKey,
+      messages: [{ role: "system", content: sysPrompt }, ...messages],
+      model: "gpt-4o-mini",
+      config: { max_tokens: 500, temperature: 0.7 },
+    }));
+    if (!resp.ok) return "Desculpe, problema interno. Vou chamar um atendente humano.";
+    return (await resp.json()).choices?.[0]?.message?.content || "Não consegui processar.";
+  } catch { return "Desculpe, problema interno. Vou chamar um atendente humano."; }
 }
 
 async function callAnthropic(messages: any[], sysPrompt: string): Promise<string> {
-  if (!ANTHROPIC_API_KEY) return "[IA não configurada]";
+  const apiKey = await getAnthropicKey();
+  if (!apiKey) return "[IA não configurada]";
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST", headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 500, system: sysPrompt,
-        messages: messages.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })) }),
-      signal: AbortSignal.timeout(30000)
-    });
-    if (!r.ok) return "Desculpe, problema interno. Vou chamar um atendente humano.";
-    return (await r.json()).content?.[0]?.text || "Não consegui processar.";
-  } catch (e) { return "Desculpe, problema interno. Vou chamar um atendente humano."; }
+    const resp = await withRetry(() => fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001", max_tokens: 500, system: sysPrompt,
+        messages: messages.map((m: any) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }))
+      }),
+      signal: AbortSignal.timeout(30000),
+    }));
+    if (!resp.ok) return "Desculpe, problema interno. Vou chamar um atendente humano.";
+    return (await resp.json()).content?.[0]?.text || "Não consegui processar.";
+  } catch { return "Desculpe, problema interno. Vou chamar um atendente humano."; }
 }
 
 async function getHistory(remoteJid: string, limit = 10) {
   const { data } = await supabase.from("evolution_messages").select("content, from_me, created_at").eq("remote_jid", remoteJid).order("created_at", { ascending: false }).limit(limit);
-  return (data || []).reverse().map(m => ({ role: m.from_me ? "assistant" : "user", content: m.content || "" })).filter(m => m.content);
+  return (data || []).reverse().map((m: any) => ({ role: m.from_me ? "assistant" : "user", content: m.content || "" })).filter((m: any) => m.content);
 }
 
 async function getContact(remoteJid: string) {
@@ -70,9 +92,30 @@ function getFallback(msg: string): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Only POST is supported for chatbot requests
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  // Internal endpoint — require service role or cron secret
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
+
   try {
-    const { remote_jid, message, use_ai = true } = await req.json();
-    if (!remote_jid || !message) return new Response(JSON.stringify({ error: "remote_jid e message obrigatórios" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    let body: any;
+    try { body = await req.json(); } catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+
+    const { remote_jid, message, use_ai = true } = body;
+
+    // Validate that remote_jid and message are non-empty strings
+    if (typeof remote_jid !== "string" || !remote_jid.trim()) {
+      return new Response(JSON.stringify({ error: "remote_jid deve ser uma string não vazia" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (typeof message !== "string" || !message.trim()) {
+      return new Response(JSON.stringify({ error: "message deve ser uma string não vazia" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (containsStopWord(message)) {
       const r = "👤 Entendi! Vou transferir você para um atendente humano.";
       await supabase.from("evolution_chatbot_responses").insert({ remote_jid, response_text: r, model_used: "stop_word" }).then(()=>{},()=>{});
@@ -83,8 +126,10 @@ Deno.serve(async (req: Request) => {
       const r = "💬 Muitas mensagens recentes. Vou transferir para humano.";
       return new Response(JSON.stringify({ success: true, response: r, needs_human: true, rate_limited: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const openAiKey = await getOpenAIKey();
+    const anthropicKey = await getAnthropicKey();
     let response: string, modelUsed = "fallback";
-    if (use_ai && (OPENAI_API_KEY || ANTHROPIC_API_KEY)) {
+    if (use_ai && (openAiKey || anthropicKey)) {
       const c = await getContact(remote_jid);
       let sys = BASE_SYSTEM_PROMPT;
       if (c) {
@@ -94,11 +139,14 @@ Deno.serve(async (req: Request) => {
       }
       const hist = await getHistory(remote_jid);
       hist.push({ role: "user", content: message });
-      if (OPENAI_API_KEY) { response = await callOpenAI(hist, sys); modelUsed = "gpt-4o-mini"; }
+      if (openAiKey) { response = await callOpenAI(hist, sys); modelUsed = "gpt-4o-mini"; }
       else { response = await callAnthropic(hist, sys); modelUsed = "claude-haiku-4-5"; }
     } else { response = getFallback(message); }
     await supabase.from("evolution_chatbot_responses").insert({ remote_jid, response_text: response, model_used: modelUsed }).then(()=>{},()=>{});
     const needsHuman = response.toLowerCase().includes("transferir") || response.toLowerCase().includes("atendente") || message.toLowerCase().includes("reclama");
     return new Response(JSON.stringify({ success: true, response, needs_human: needsHuman, model_used: modelUsed, rate_limit_remaining: rl.remaining }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e) { return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+  } catch (e) {
+    console.error("[evolution-chatbot] unhandled error:", e);
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 });

@@ -1,6 +1,8 @@
 // Evolution Follow-up Processor v3.0
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const INSTANCE_NAME = Deno.env.get("EVOLUTION_INSTANCE") || "wpp2";
 
@@ -22,17 +24,35 @@ function renderContent(t: string, c: any, deal?: any): string {
 
 async function setStatus(id: string, status: string, error?: string) {
   const u: any = { status };
-  if (status === "queued") u.sent_at = new Date().toISOString();
+  // queued_at marks when the message was enqueued — distinct from sent_at (Evolution confirms delivery)
+  if (status === "queued") u.queued_at = new Date().toISOString();
   if (error) u.error_message = error.slice(0, 500);
-  await supabase.from("evolution_followups").update(u).eq("id", id);
+  const { error: dbErr } = await supabase.from("evolution_followups").update(u).eq("id", id);
+  if (dbErr) console.error(`[setStatus] followup ${id} → ${status}:`, dbErr.message);
 }
 
 async function processFollowUps() {
   let processed = 0, queued = 0, cancelled = 0, failed = 0;
-  const { data: ups } = await supabase.from("evolution_followups").select("*").eq("status", "pending").lte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(50);
+  const { data: ups, error: selErr } = await supabase.from("evolution_followups").select("*").eq("status", "pending").lte("scheduled_at", new Date().toISOString()).order("scheduled_at").limit(50);
+  if (selErr) {
+    console.error("[processFollowUps] select error:", selErr.message);
+    return { processed, queued, cancelled, failed };
+  }
   if (!ups?.length) return { processed, queued, cancelled, failed };
 
   for (const fu of ups) {
+    // Atomic claim: update status='processing' only if still 'pending' to prevent duplicate processing
+    const { count: claimed, error: claimErr } = await supabase
+      .from("evolution_followups")
+      .update({ status: "processing" }, { count: "exact" })
+      .eq("id", fu.id)
+      .eq("status", "pending");
+    if (claimErr) {
+      console.error(`[processFollowUps] claim error for ${fu.id}:`, claimErr.message);
+      continue;
+    }
+    if (!claimed || claimed === 0) continue; // already claimed by another worker
+
     processed++;
     try {
       const { data: contact } = await supabase.from("evolution_contacts").select("id, remote_jid, full_name, phone_number, push_name").eq("id", fu.contact_id).maybeSingle();
@@ -71,10 +91,18 @@ async function processFollowUps() {
 Deno.serve(async (req: Request) => {
   const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
+  // Internal cron endpoint — require service role or cron secret
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
+
   try {
     const start = Date.now();
     const result = await processFollowUps();
     await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "followup_processing", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).then(()=>{},()=>{});
     return new Response(JSON.stringify({ success: true, version: "v3", ...result, duration_ms: Date.now() - start, timestamp: new Date().toISOString() }), { headers: { ...cors, "Content-Type": "application/json" } });
-  } catch (e) { return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } }); }
+  } catch (e) {
+    console.error("[evolution-followup] unhandled error:", e);
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+  }
 });
