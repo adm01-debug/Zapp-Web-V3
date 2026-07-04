@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
             .from("evolution_messages")
             .select("media_url")
             .like("media_url", `%${bucketPathSegment}%`)
+            .order('id')
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
           if (refError) {
