@@ -51,44 +51,48 @@ serve(async (req) => {
         return json({ error: 'Failed to list Gmail threads' }, 400);
       }
 
-      // Para cada thread, busca snippet e persistir no Supabase
-      const threads = [];
-      for (const t of listData.threads ?? []) {
-        const tRes = await fetch(`${GMAIL_API}/threads/${t.id}?format=metadata&metadataHeaders=Subject,From,Date`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const tData = await tRes.json();
-        if (tData.error) continue;
+      // Fetch all thread details in parallel, then upsert each to Supabase
+      const threadResults = await Promise.allSettled(
+        (listData.threads ?? []).map(async (t: { id: string }) => {
+          const tRes = await fetch(`${GMAIL_API}/threads/${t.id}?format=metadata&metadataHeaders=Subject,From,Date`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const tData = await tRes.json();
+          if (tData.error) return null;
 
-        const firstMsg = tData.messages?.[0];
-        const lastMsg  = tData.messages?.[tData.messages.length - 1];
-        const hdrMap   = headerMap(firstMsg?.payload?.headers ?? []);
-        const subject  = hdrMap['subject'] ?? '(sem assunto)';
-        const fromH    = hdrMap['from'] ?? '';
-        const dateH    = lastMsg?.internalDate ? new Date(Number(lastMsg.internalDate)).toISOString() : null;
-        const labelIds = firstMsg?.labelIds ?? [];
-        const snippet  = lastMsg?.snippet ?? '';
-        const unread   = labelIds.includes('UNREAD') ? 1 : 0;
+          const firstMsg = tData.messages?.[0];
+          const lastMsg  = tData.messages?.[tData.messages.length - 1];
+          const hdrMap   = headerMap(firstMsg?.payload?.headers ?? []);
+          const subject  = hdrMap['subject'] ?? '(sem assunto)';
+          const fromH    = hdrMap['from'] ?? '';
+          const dateH    = lastMsg?.internalDate ? new Date(Number(lastMsg.internalDate)).toISOString() : null;
+          const tLabels  = firstMsg?.labelIds ?? [];
+          const snippet  = lastMsg?.snippet ?? '';
+          const unread   = tLabels.includes('UNREAD') ? 1 : 0;
 
-        // Upsert no Supabase
-        const { data: thread } = await supabase
-          .from('gmail_threads')
-          .upsert({
-            account_id:           accountId,
-            thread_id:            t.id,
-            subject,
-            snippet,
-            label_ids:            labelIds,
-            last_message_at:      dateH,
-            unread_count:         unread,
-            message_count:        tData.messages?.length ?? 0,
-            participant_emails:   extractEmails(fromH),
-          }, { onConflict: 'account_id,thread_id' })
-          .select('id')
-          .single();
+          const { data: thread } = await supabase
+            .from('gmail_threads')
+            .upsert({
+              account_id:         accountId,
+              thread_id:          t.id,
+              subject,
+              snippet,
+              label_ids:          tLabels,
+              last_message_at:    dateH,
+              unread_count:       unread,
+              message_count:      tData.messages?.length ?? 0,
+              participant_emails: extractEmails(fromH),
+            }, { onConflict: 'account_id,thread_id' })
+            .select('id')
+            .single();
 
-        threads.push({ id: t.id, subject, snippet, fromHeader: fromH, lastActivity: dateH, unread: unread > 0, dbId: thread?.id });
-      }
+          return { id: t.id, subject, snippet, fromHeader: fromH, lastActivity: dateH, unread: unread > 0, dbId: thread?.id };
+        })
+      );
+
+      const threads = threadResults
+        .map(r => (r.status === 'fulfilled' ? r.value : null))
+        .filter(Boolean);
 
       return json({ threads, nextPageToken: listData.nextPageToken ?? null });
     }
@@ -105,14 +109,13 @@ serve(async (req) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const listData = await listRes.json();
-      let count = 0;
 
-      for (const m of listData.messages ?? []) {
-        await fetchAndPersistMessage(supabase, token, accountId, m.id);
-        count++;
-      }
+      const messages: Array<{ id: string }> = listData.messages ?? [];
+      await Promise.allSettled(
+        messages.map(m => fetchAndPersistMessage(supabase, token, accountId, m.id))
+      );
 
-      return json({ synced: count, nextPageToken: listData.nextPageToken });
+      return json({ synced: messages.length, nextPageToken: listData.nextPageToken });
     }
 
     // ── syncLabels — sincroniza labels do Gmail ────────────────────────

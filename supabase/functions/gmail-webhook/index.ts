@@ -201,3 +201,122 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
 
   return newToken;
 }
+
+async function processHistory(
+  supabase: ReturnType<typeof createClient>,
+  token: string,
+  accountId: string,
+  startHistoryId: string
+): Promise<void> {
+  const histRes = await fetch(
+    `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const histData = await histRes.json();
+  if (histData.error) return;
+
+  const addedMessages: string[] = [];
+  for (const record of histData.history ?? []) {
+    for (const added of record.messagesAdded ?? []) {
+      addedMessages.push(added.message.id);
+    }
+  }
+
+  // Fetch and persist all new messages in parallel
+  await Promise.allSettled(
+    addedMessages.slice(0, 20).map(msgId => fetchAndPersistMessage(supabase, token, accountId, msgId))
+  );
+}
+
+async function fetchAndPersistMessage(
+  supabase: ReturnType<typeof createClient>,
+  token: string,
+  accountId: string,
+  messageId: string
+): Promise<void> {
+  const msgRes = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const msg = await msgRes.json();
+  if (msg.error) return;
+
+  const headers: Record<string, string> = {};
+  for (const h of msg.payload?.headers ?? []) {
+    headers[h.name.toLowerCase()] = h.value;
+  }
+
+  const threadId   = msg.threadId;
+  const subject    = headers['subject'] ?? '(sem assunto)';
+  const fromHeader = headers['from'] ?? '';
+  const toHeader   = (headers['to'] ?? '').split(',').map((e: string) => e.trim());
+  const ccHeader   = (headers['cc'] ?? '').split(',').filter(Boolean).map((e: string) => e.trim());
+  const date       = headers['date'] ? new Date(headers['date']).toISOString() : new Date().toISOString();
+  const snippet    = msg.snippet ?? '';
+
+  // Extrai from_email e from_name
+  const fromMatch  = fromHeader.match(/^(.*?)\s*<(.+?)>$/) ?? [];
+  const fromName   = fromMatch[1]?.trim() ?? fromHeader;
+  const fromEmail  = fromMatch[2] ?? fromHeader;
+
+  // Extrai body
+  let bodyPlain = '';
+  let bodyHtml  = '';
+  const extractParts = (parts: unknown[]): void => {
+    for (const part of parts ?? []) {
+      const p = part as Record<string, unknown>;
+      if (p.mimeType === 'text/plain' && p.body) {
+        bodyPlain = atob(((p.body as Record<string,string>).data ?? '').replace(/-/g, '+').replace(/_/g, '/'));
+      } else if (p.mimeType === 'text/html' && p.body) {
+        bodyHtml = atob(((p.body as Record<string,string>).data ?? '').replace(/-/g, '+').replace(/_/g, '/'));
+      } else if (Array.isArray(p.parts)) {
+        extractParts(p.parts as unknown[]);
+      }
+    }
+  };
+  if (msg.payload?.parts) {
+    extractParts(msg.payload.parts);
+  } else if (msg.payload?.body?.data) {
+    const data = msg.payload.body.data.replace(/-/g, '+').replace(/_/g, '/');
+    if (msg.payload.mimeType === 'text/html') bodyHtml = atob(data);
+    else bodyPlain = atob(data);
+  }
+
+  const labelIds     = msg.labelIds ?? [];
+  const isRead       = !labelIds.includes('UNREAD');
+  const isSent       = labelIds.includes('SENT');
+  const hasAttach    = !!(msg.payload?.parts ?? []).some((p: Record<string, unknown>) => p.filename);
+
+  // Upsert gmail_threads
+  const { data: thread } = await supabase.from('gmail_threads').upsert({
+    account_id:       accountId,
+    thread_id:        threadId,
+    subject,
+    snippet,
+    label_ids:        labelIds,
+    last_message_at:  date,
+    unread_count:     isRead ? 0 : 1,
+  }, { onConflict: 'account_id,thread_id' }).select('id').single();
+
+  if (!thread) return;
+
+  // Upsert gmail_messages
+  await supabase.from('gmail_messages').upsert({
+    thread_id_ref:  thread.id,
+    account_id:     accountId,
+    message_id:     messageId,
+    from_email:     fromEmail,
+    from_name:      fromName,
+    to_emails:      toHeader,
+    cc_emails:      ccHeader,
+    bcc_emails:     [],
+    subject,
+    body_plain:     bodyPlain.substring(0, 50000),
+    body_html:      bodyHtml.substring(0, 200000),
+    snippet,
+    label_ids:      labelIds,
+    is_read:        isRead,
+    is_sent:        isSent,
+    has_attachments: hasAttach,
+    internal_date:  date,
+  }, { onConflict: 'account_id,message_id' });
+}

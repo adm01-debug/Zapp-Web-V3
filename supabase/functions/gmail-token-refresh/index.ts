@@ -71,93 +71,24 @@ serve(async (req) => {
         return json({ success: true, message: 'Nenhum token para renovar', refreshed: 0 });
       }
 
+      const settled = await Promise.allSettled(
+        accounts.map(account => refreshOneAccount(supabase, account, clientId, clientSecret, pubSubTopic))
+      );
+
       let refreshed = 0;
       let failed    = 0;
       const results: Array<{ email: string; status: string; error?: string }> = [];
 
-      for (const account of accounts) {
-        try {
-          if (!account.refresh_token) {
-            results.push({ email: account.email, status: 'skipped', error: 'Sem refresh_token' });
-            continue;
-          }
-
-          // Chamar Google OAuth2 token endpoint
-          const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              client_id:     clientId,
-              client_secret: clientSecret,
-              refresh_token: account.refresh_token,
-              grant_type:    'refresh_token',
-            }),
-          });
-
-          if (!tokenRes.ok) {
-            const err = await tokenRes.text();
-            failed++;
-            results.push({ email: account.email, status: 'failed', error: `Token refresh failed: ${err.substring(0, 200)}` });
-
-            // Se invalid_grant, marcar conta como inativa
-            if (err.includes('invalid_grant')) {
-              await supabase.from('gmail_accounts').update({
-                is_active: false,
-                updated_at: new Date().toISOString(),
-              }).eq('id', account.id);
-            }
-            continue;
-          }
-
-          const tokens = await tokenRes.json();
-          const newExpiry = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000);
-
-          // Atualizar no banco
-          await supabase.from('gmail_accounts').update({
-            access_token:  tokens.access_token,
-            token_expiry:  newExpiry.toISOString(),
-            updated_at:    new Date().toISOString(),
-            ...(tokens.refresh_token ? { refresh_token: tokens.refresh_token } : {}),
-          }).eq('id', account.id);
-
-          refreshed++;
-          results.push({ email: account.email, status: 'refreshed' });
-
-          // Se watch também está expirando, renovar
-          if (account.watch_expiry && new Date(account.watch_expiry) < new Date(Date.now() + 2 * 3600_000)) {
-            try {
-              const watchRes = await fetch(GMAIL_WATCH_URL, {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${tokens.access_token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  topicName:  pubSubTopic,
-                  labelIds:   ['INBOX'],
-                  labelFilterBehavior: 'INCLUDE',
-                }),
-              });
-
-              if (watchRes.ok) {
-                const watchData = await watchRes.json();
-                await supabase.from('gmail_accounts').update({
-                  watch_expiry: new Date(Number(watchData.expiration)).toISOString(),
-                  history_id:  watchData.historyId,
-                }).eq('id', account.id);
-              }
-            } catch {
-              // Watch renewal é best-effort
-            }
-          }
-
-        } catch (err) {
+      for (const r of settled) {
+        if (r.status === 'fulfilled') {
+          const v = r.value;
+          results.push(v);
+          if (v.status === 'refreshed') refreshed++;
+          else if (v.status === 'failed' || v.status === 'error') failed++;
+        } else {
           failed++;
-          results.push({
-            email: account.email,
-            status: 'error',
-            error: err instanceof Error ? err.message : String(err),
-          });
+          console.error('[gmail-token-refresh] unexpected rejection:', r.reason);
+          results.push({ email: 'unknown', status: 'error' });
         }
       }
 
@@ -257,3 +188,70 @@ serve(async (req) => {
     return json({ error: 'Internal server error' }, 500);
   }
 });
+
+async function refreshOneAccount(
+  supabase: ReturnType<typeof createClient>,
+  account: { id: string; email: string; refresh_token: string | null; watch_expiry: string | null },
+  clientId: string,
+  clientSecret: string,
+  pubSubTopic: string,
+): Promise<{ email: string; status: string; error?: string }> {
+  if (!account.refresh_token) {
+    return { email: account.email, status: 'skipped', error: 'Sem refresh_token' };
+  }
+
+  try {
+    const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id:     clientId,
+        client_secret: clientSecret,
+        refresh_token: account.refresh_token,
+        grant_type:    'refresh_token',
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const errText = await tokenRes.text();
+      if (errText.includes('invalid_grant')) {
+        await supabase.from('gmail_accounts').update({
+          is_active:  false,
+          updated_at: new Date().toISOString(),
+        }).eq('id', account.id);
+      }
+      return { email: account.email, status: 'failed', error: `Token refresh failed: ${errText.substring(0, 200)}` };
+    }
+
+    const tokens = await tokenRes.json();
+    const newExpiry = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000);
+
+    await supabase.from('gmail_accounts').update({
+      access_token:  tokens.access_token,
+      token_expiry:  newExpiry.toISOString(),
+      updated_at:    new Date().toISOString(),
+      ...(tokens.refresh_token ? { refresh_token: tokens.refresh_token } : {}),
+    }).eq('id', account.id);
+
+    if (account.watch_expiry && new Date(account.watch_expiry) < new Date(Date.now() + 2 * 3600_000)) {
+      try {
+        const watchRes = await fetch(GMAIL_WATCH_URL, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${tokens.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topicName: pubSubTopic, labelIds: ['INBOX'], labelFilterBehavior: 'INCLUDE' }),
+        });
+        if (watchRes.ok) {
+          const watchData = await watchRes.json();
+          await supabase.from('gmail_accounts').update({
+            watch_expiry: new Date(Number(watchData.expiration)).toISOString(),
+            history_id:   watchData.historyId,
+          }).eq('id', account.id);
+        }
+      } catch { /* best-effort */ }
+    }
+
+    return { email: account.email, status: 'refreshed' };
+  } catch (err) {
+    return { email: account.email, status: 'error', error: err instanceof Error ? err.message : String(err) };
+  }
+}
