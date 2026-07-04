@@ -61,12 +61,12 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
       const { data, error } = await (query as any).limit(50);
       if (!data) return [];
       const senderIds = [...new Set(data.map((w: any) => w.sender_id))];
-      const { data: profiles } = await supabase.from('profiles').select('id, name').in('id', senderIds);
+      const { data: profiles } = await (supabase as any).from('profiles').select('id, name').in('id', senderIds);
       const nameMap = new Map((profiles || []).map(p => [p.id, p.name]));
       const threadCounts: Record<string, number> = {};
       if (!activeThreadId && data.length > 0) {
         const parentIds = data.map((d: any) => d.id);
-        const { data: counts } = await supabase.from('whisper_messages').select('whisper_thread_id').in('whisper_thread_id', parentIds);
+        const { data: counts } = await (supabase as any).from('whisper_messages').select('whisper_thread_id').in('whisper_thread_id', parentIds);
         counts?.forEach((c: any) => { if (c.whisper_thread_id) threadCounts[c.whisper_thread_id] = (threadCounts[c.whisper_thread_id] || 0) + 1; });
       }
       return data.map((w: any) => ({ ...w, sender_name: nameMap.get(w.sender_id) || 'Supervisor', reply_count: threadCounts[w.id] || 0 })) as WhisperMessage[];
@@ -113,7 +113,7 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
       return;
     }
     const agentId = targetAgentId || profile.id;
-    const { error } = await supabase.from('whisper_messages').insert({
+    const { error } = await (supabase as any).from('whisper_messages').insert({
       contact_id: contactId,
       sender_id: profile.id,
       target_agent_id: agentId,

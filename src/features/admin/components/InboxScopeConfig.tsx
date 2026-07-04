@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Shield, Eye, Lock, Loader2, Info, Instagram, Globe, MessageSquare, Plus, Trash2, Settings2, Sparkles } from 'lucide-react';
+import { Shield, Eye, Lock, Loader2, Info, Instagram, Globe, MessageSquare, Plus, Trash2, Settings2, Sparkles, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';

@@ -84,10 +84,10 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
       .subscribe();
       
     const fetchStatus = async () => {
-      const { data } = await supabase
-        .from('voice_conversion_queue' as any)
+      const { data } = await (supabase as any)
+        .from('voice_conversion_queue')
         .select('*')
-        .eq('message_id' as any, messageId)
+        .eq('message_id', messageId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
