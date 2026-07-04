@@ -179,6 +179,7 @@ Foque em:
     };
 
     // Save analysis to database
+    let persistenceWarning: string | undefined;
     if (contactId) {
       const { error: insertErr } = await supabase.from('conversation_analyses').insert({
         contact_id: contactId,
@@ -193,17 +194,23 @@ Foque em:
         status: analysisData.status,
         message_count: messages.length,
       });
-      if (insertErr) console.error('[ai-conversation-summary] insert failed', insertErr.message);
+      if (insertErr) {
+        console.error('[ai-conversation-summary] insert failed', insertErr);
+        persistenceWarning = 'analysis_not_persisted';
+      }
 
       const { error: updateErr } = await supabase.from('contacts').update({
         ai_sentiment: analysisData.sentiment,
         ai_priority: analysisData.urgency === 'critica' ? 'urgent' : analysisData.urgency,
       }).eq('id', contactId);
-      if (updateErr) console.error('[ai-conversation-summary] contact update failed', updateErr.message);
+      if (updateErr) {
+        console.error('[ai-conversation-summary] contact update failed', updateErr);
+        persistenceWarning = persistenceWarning ?? 'contact_not_updated';
+      }
     }
 
     log.done(200);
-    return jsonResponse(analysisData, 200, req);
+    return jsonResponse(persistenceWarning ? { ...analysisData, _warning: persistenceWarning } : analysisData, 200, req);
   } catch (error) {
     log.error("Error generating summary", { error: error instanceof Error ? error.message : String(error) });
     return errorResponse('Internal server error', 500, req);

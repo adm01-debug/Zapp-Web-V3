@@ -121,8 +121,7 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
       const Svc = mod.WebhookSecurityService as new (...args: unknown[]) => Record<string, unknown>;
       const svc = new Svc(secret, strict);
       if (typeof svc?.validateRequest === 'function') {
-        const validateFn = svc.validateRequest as (req: Request) => Promise<unknown>;
-        return async (req) => normalizeResult(await validateFn(req));
+        return async (req) => normalizeResult(await svc.validateRequest.bind(svc)(req as unknown as Parameters<typeof svc.validateRequest>[0]));
       }
     } catch {
       // segue para fallback final

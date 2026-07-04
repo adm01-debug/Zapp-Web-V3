@@ -40,9 +40,10 @@ serve(async (req) => {
     });
 
   } catch (error) {
+    console.error('[mcp-server] unhandled error:', error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500, 
-      headers: corsHeaders 
+      status: 500,
+      headers: corsHeaders
     });
   }
 });
