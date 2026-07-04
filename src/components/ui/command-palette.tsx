@@ -89,8 +89,9 @@ export function CommandPalette({
   }, [open, allItems, selectedIndex]);
 
   React.useEffect(() => {
-    if (!open) { setQuery(''); setSearchResults([]); setSelectedIndex(0); }
-    else setTimeout(() => inputRef.current?.focus(), 0);
+    if (!open) { setQuery(''); setSearchResults([]); setSelectedIndex(0); return; }
+    const t = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(t);
   }, [open]);
 
   const categoryIcons: Record<CommandCategory, React.ReactNode> = {
