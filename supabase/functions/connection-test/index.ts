@@ -67,7 +67,7 @@ async function runEvolutionChecks(): Promise<Check[]> {
 
   // 2. Provider alcançável
   const reach = await timed(async () => {
-    const r = await fetch(`${url}/`, { headers: { apikey: key } });
+    const r = await fetch(`${url}/`, { headers: { apikey: key }, signal: AbortSignal.timeout(10_000) });
     return { status: r.status, body: (await r.text()).slice(0, 120) };
   });
   checks.push({
@@ -82,6 +82,7 @@ async function runEvolutionChecks(): Promise<Check[]> {
   const conn = await timed(async () => {
     const r = await fetch(`${url}/instance/connectionState/${encodeURIComponent(instance)}`, {
       headers: { apikey: key },
+      signal: AbortSignal.timeout(10_000),
     });
     const txt = await r.text();
     let parsed: Record<string, unknown> | null = null;
@@ -105,6 +106,7 @@ async function runEvolutionChecks(): Promise<Check[]> {
   const wh = await timed(async () => {
     const r = await fetch(`${url}/webhook/find/${encodeURIComponent(instance)}`, {
       headers: { apikey: key },
+      signal: AbortSignal.timeout(10_000),
     });
     const txt = await r.text();
     let parsed: Record<string, unknown> | null = null;
@@ -159,7 +161,7 @@ async function runCloudChecks(): Promise<Check[]> {
   const meta = await timed(async () => {
     const r = await fetch(
       `https://graph.facebook.com/${graphVersion}/${phoneId}?fields=display_phone_number,verified_name,quality_rating,code_verification_status`,
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) },
     );
     const txt = await r.text();
     let parsed: Record<string, unknown> | null = null;
@@ -228,7 +230,7 @@ function appendCloudWebhookChecks(checks: Check[], verifyToken: string, appSecre
     u.searchParams.set("hub.verify_token", verifyToken);
     u.searchParams.set("hub.challenge", challenge);
     const t0 = Date.now();
-    const r = await fetch(u.toString());
+    const r = await fetch(u.toString(), { signal: AbortSignal.timeout(10_000) });
     const body = await r.text();
     return {
       id: "cloud.webhook.handshake",
@@ -255,7 +257,7 @@ function appendCloudWebhookChecks(checks: Check[], verifyToken: string, appSecre
     if (ANON_KEY) headers["Authorization"] = `Bearer ${ANON_KEY}`;
     const t0 = Date.now();
     const r = await fetch(`${PROJECT_FUNCTIONS_BASE}/whatsapp-cloud-webhook`, {
-      method: "POST", headers, body: payload,
+      method: "POST", headers, body: payload, signal: AbortSignal.timeout(10_000),
     });
     const body = await r.text();
     return {
@@ -300,7 +302,7 @@ async function appendWebhookCheck(checks: Check[], _mode: Mode, secret: string):
   let body = "";
   try {
     res = await fetch(`${PROJECT_FUNCTIONS_BASE}/evolution-webhook`, {
-      method: "POST", headers, body: payload,
+      method: "POST", headers, body: payload, signal: AbortSignal.timeout(10_000),
     });
     body = (await res.text()).slice(0, 200);
   } catch (e) {
