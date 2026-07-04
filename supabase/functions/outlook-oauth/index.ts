@@ -140,7 +140,7 @@ serve(async (req) => {
         .select('id, email')
         .single();
 
-      if (error) return json({ error: error.message }, 500);
+      if (error) { console.error('[outlook-oauth] upsert error', error.message); return json({ error: 'Internal server error' }, 500); }
       return json({ success: true, accountId: data.id, email: data.email, displayName: profile.displayName });
     }
 

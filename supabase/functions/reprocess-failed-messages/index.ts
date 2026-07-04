@@ -31,7 +31,10 @@ Deno.serve(async (req) => {
     .order('created_at', { ascending: true })
     .limit(MAX_BATCH);
 
-  if (error) return json({ error: true, message: error.message }, 500);
+  if (error) {
+    console.error('[reprocess-failed-messages] fetch error', error.message);
+    return json({ error: true, message: 'Failed to fetch messages' }, 500);
+  }
   if (!rows || rows.length === 0) return json({ processed: 0, message: 'no pending messages' });
 
   let succeeded = 0;

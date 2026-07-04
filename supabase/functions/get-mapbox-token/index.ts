@@ -13,6 +13,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Internal server error';
     log.error("Unhandled error", { error: msg });
-    return errorResponse(msg, 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

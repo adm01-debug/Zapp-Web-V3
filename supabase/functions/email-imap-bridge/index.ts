@@ -125,7 +125,7 @@ serve(async (req) => {
         .select('id, email, provider')
         .single();
 
-      if (error) return json({ error: error.message }, 500);
+      if (error) { console.error('[email-imap-bridge] upsert error', error.message); return json({ error: 'Internal server error' }, 500); }
       return json({ success: true, accountId: data.id, email: data.email });
     }
 
