@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "x-apikey": VIRUSTOTAL_API_KEY },
       body: vtFormData,
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!vtResponse.ok) {
@@ -94,7 +95,7 @@ Deno.serve(async (req) => {
     while (attempts < maxAttempts) {
       const pollResponse = await fetch(
         `https://www.virustotal.com/api/v3/analyses/${analysisId}`,
-        { headers: { "x-apikey": VIRUSTOTAL_API_KEY } },
+        { headers: { "x-apikey": VIRUSTOTAL_API_KEY }, signal: AbortSignal.timeout(10_000) },
       );
 
       analysisResult = await pollResponse.json();
