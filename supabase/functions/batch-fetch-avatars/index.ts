@@ -93,8 +93,7 @@ Deno.serve(async (req) => {
       message: `${updated} avatares atualizados de ${contacts.length} contatos processados.`,
     }, 200, req);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    log.error("Batch avatar error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Batch avatar error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

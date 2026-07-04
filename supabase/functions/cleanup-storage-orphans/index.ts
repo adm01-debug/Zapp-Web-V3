@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
         const { data, error: deleteError } = await supabase.storage.from(bucketName).remove(filesToDelete);
 
         if (deleteError) {
-          log.error(`Erro ao deletar arquivos de ${bucketName}`, deleteError);
-          results[bucketName] = { error: deleteError.message };
+          log.error(`Erro ao deletar arquivos de ${bucketName}`, { error: deleteError.message });
+          results[bucketName] = { error: "delete_failed" };
         } else {
           results[bucketName] = { deleted: data?.length || 0 };
 
@@ -82,6 +82,6 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     log.error("Erro fatal na limpeza", { error: msg });
-    return errorResponse(msg, 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });
