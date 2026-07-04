@@ -70,7 +70,7 @@ export function useSLAAlertHistory() {
 
   const resolveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('sla_history')
         .update({ is_resolved: true, resolved_at: new Date().toISOString() })
         .eq('id', id);
