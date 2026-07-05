@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
               subject: "🔐 Novo dispositivo detectado na sua conta",
               html: emailHtml,
             }),
+            signal: AbortSignal.timeout(15_000),
           });
           log.info("Security email sent");
         } catch (emailError) {
@@ -165,11 +166,10 @@ Deno.serve(async (req) => {
     }, 200, req);
 
   } catch (error: unknown) {
-    // PostgrestError é objeto plano (não instanceof Error) — extrair .message p/ diagnosticabilidade
     const msg = error instanceof Error ? error.message
       : (error && typeof error === "object" && "message" in error) ? String((error as { message: unknown }).message)
       : JSON.stringify(error);
     log.error("Error", { error: msg });
-    return errorResponse(msg, 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

@@ -96,8 +96,7 @@ export function enqueueFailedMessage(input: EnqueueFailedMessageInput): void {
       // PostgrestBuilder is a PromiseLike, not a Promise — use the two-arg
       // .then(onFulfilled, onRejected) form so type-checking succeeds.
       .then(
-        // deno-lint-ignore no-explicit-any
-        (res: any) => {
+        (res: { error: { message: string; code?: string } | null }) => {
           if (res?.error) {
             // Conflito de chave idempotente (23505) é esperado: dedupe silencioso.
             if (res.error.code === '23505') {

@@ -1,5 +1,6 @@
 import { handleCors, jsonResponse, Logger, errorResponse } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUser } from "../_shared/auth.ts";
 
 /**
  * Endpoint to test VirusTotal connection and API Key
@@ -10,11 +11,14 @@ Deno.serve(async (req) => {
 
   const log = new Logger("virustotal-test", req);
 
-  if (req.method !== "POST") {
-    return errorResponse("Method not allowed", 405, req);
-  }
-
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
+    if (req.method !== "POST") {
+      return errorResponse("Method not allowed", 405, req);
+    }
+
     const { apiKey } = await req.json();
 
     if (!apiKey) {
@@ -28,6 +32,7 @@ Deno.serve(async (req) => {
       headers: {
         "x-apikey": apiKey,
       },
+      signal: AbortSignal.timeout(10_000),
     });
 
     const data = await response.json();

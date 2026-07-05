@@ -305,8 +305,7 @@ Deno.serve(async (req) => {
 
     return jsonRes({ error: "Invalid action" }, 400, req);
   } catch (err) {
-    const msg = errMessage(err);
-    log.error("Error", { error: msg });
-    return jsonRes({ error: msg }, 500, req);
+    log.error("Error", { error: errMessage(err) });
+    return jsonRes({ error: 'Internal server error' }, 500, req);
   }
 });

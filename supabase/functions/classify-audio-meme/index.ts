@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ClassifyAudioMemeSchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const AUDIO_CATEGORIES = [
   'risada', 'aplausos', 'suspense', 'vitória', 'falha',
@@ -13,6 +14,18 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("classify-audio-meme");
+
+  // Isolate auth so exceptions don't fall through to the broad catch that returns 200
+  try {
+    const serviceOk = requireServiceRoleOrCron(req);
+    if (serviceOk !== null) {
+      const authed = await requireUser(req);
+      if (authed instanceof Response) return authed;
+    }
+  } catch (err: unknown) {
+    log.error("Auth error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse("Internal server error", 500, req);
+  }
 
   try {
     const parsed = parseBody(ClassifyAudioMemeSchema, await req.json());

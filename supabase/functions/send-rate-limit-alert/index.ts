@@ -1,10 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { RateLimitAlertSchema, parseBody } from "../_shared/schemas.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   const log = new Logger("send-rate-limit-alert");
 
@@ -78,6 +82,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, message: "Alert processed" }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : "Internal error", 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ClassifyStickerSchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const STICKER_CATEGORIES = [
   'comemoração', 'riso', 'chorando', 'amor', 'raiva',
@@ -13,6 +14,17 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("classify-sticker");
+
+  try {
+    const serviceOk = requireServiceRoleOrCron(req);
+    if (serviceOk !== null) {
+      const authed = await requireUser(req);
+      if (authed instanceof Response) return authed;
+    }
+  } catch (err: unknown) {
+    log.error("Auth error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse("Internal server error", 500, req);
+  }
 
   try {
     const parsed = parseBody(ClassifyStickerSchema, await req.json());

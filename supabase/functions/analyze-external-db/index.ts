@@ -1,6 +1,7 @@
 // analyze-external-db v2.0
 // F10 security fix: auth required + rate limiting + BATCH_SIZE parallel queries (7x speedup)
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -101,6 +102,9 @@ Deno.serve(async (req) => {
     });
   }
 
+  const denied = requireServiceRoleOrCron(req)
+  if (denied) return denied
+
   try {
     const url = Deno.env.get('EXTERNAL_SUPABASE_URL');
     const key = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
@@ -133,6 +137,8 @@ Deno.serve(async (req) => {
           if (r.status === 'fulfilled' && r.value) {
             const [table, info] = r.value;
             results[table] = info;
+          } else if (r.status === 'rejected') {
+            console.error('[analyze-external-db] batch query rejected', r.reason);
           }
         }
       }
@@ -162,7 +168,8 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), {
+    console.error("[analyze-external-db] Unhandled error", error instanceof Error ? error.message : String(error));
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

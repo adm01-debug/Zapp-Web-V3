@@ -1,16 +1,19 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { AiConversationSummarySchema, parseBody } from "../_shared/schemas.ts";
-import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { callAiWithTracking } from "../_shared/ai-usage.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
   const log = new Logger("ai-conversation-summary");
-  const userId = extractUserIdFromRequest(req);
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const userId = authed.user.id;
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`summary:${ip}`, 10, 60_000);
     if (!allowed) return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
@@ -21,6 +24,10 @@ Deno.serve(async (req) => {
     const { messages, contactName, contactId } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
     const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    // Caller-scoped client (RLS enforced) — used for writes to contacts
+    const callerClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY"), {
+      global: { headers: { authorization: req.headers.get("authorization") || "" } },
+    });
 
     // Fetch contact context for richer analysis
     let contactContext = '';
@@ -174,9 +181,10 @@ Foque em:
       urgency: ['baixa', 'media', 'alta', 'critica'].includes(analysisData.urgency) ? analysisData.urgency : 'media',
     };
 
-    // Save analysis to database
+    // Save analysis to database — use callerClient so RLS prevents cross-tenant writes
+    let persistenceWarning: string | undefined;
     if (contactId) {
-      await supabase.from('conversation_analyses').insert({
+      const { error: insertErr } = await callerClient.from('conversation_analyses').insert({
         contact_id: contactId,
         summary: analysisData.summary,
         sentiment: analysisData.sentiment,
@@ -189,17 +197,25 @@ Foque em:
         status: analysisData.status,
         message_count: messages.length,
       });
+      if (insertErr) {
+        console.error('[ai-conversation-summary] insert failed', insertErr);
+        persistenceWarning = 'analysis_not_persisted';
+      }
 
-      await supabase.from('contacts').update({
+      const { error: updateErr } = await callerClient.from('contacts').update({
         ai_sentiment: analysisData.sentiment,
-        ai_priority: analysisData.urgency === 'critical' ? 'urgent' : analysisData.urgency,
+        ai_priority: analysisData.urgency === 'critica' ? 'urgent' : analysisData.urgency,
       }).eq('id', contactId);
+      if (updateErr) {
+        console.error('[ai-conversation-summary] contact update failed', updateErr);
+        persistenceWarning = persistenceWarning ?? 'contact_not_updated';
+      }
     }
 
     log.done(200);
-    return jsonResponse(analysisData, 200, req);
+    return jsonResponse(persistenceWarning ? { ...analysisData, _warning: persistenceWarning } : analysisData, 200, req);
   } catch (error) {
     log.error("Error generating summary", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Unknown error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

@@ -5,6 +5,7 @@ import {
 } from "../_shared/validation.ts";
 import { AiAutoTagSchema, parseBody } from "../_shared/schemas.ts";
 import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -14,6 +15,9 @@ Deno.serve(async (req) => {
   const userId = extractUserIdFromRequest(req);
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`autotag:${ip}`, 20, 60_000);
     if (!allowed) return errorResponse("Rate limit exceeded", 429, req);
@@ -117,18 +121,46 @@ Responda APENAS em JSON:
     if (result.suggested_queue_id && !isValidUUID(result.suggested_queue_id)) {
       result.suggested_queue_id = null;
     }
+    // Prevent prompt injection from assigning a queue_id that wasn't in the fetched set
+    const validQueueIds = new Set((queues ?? []).map((q: { id: string }) => q.id));
+    if (result.suggested_queue_id && !validQueueIds.has(result.suggested_queue_id)) {
+      result.suggested_queue_id = null;
+    }
 
     if (validContactId && result.tags?.length > 0) {
-      await supabase.from('ai_conversation_tags').delete().eq('contact_id', validContactId);
+      const tagRows = result.tags.map((t: { name: string; confidence: number }) => ({
+        contact_id: validContactId,
+        tag_name: sanitizeString(t.name, 100) || 'unknown',
+        confidence: Math.min(Math.max(Number(t.confidence) || 0, 0), 1),
+        source: 'ai',
+      }));
+      const newTagNames = tagRows.map((r: { tag_name: string }) => r.tag_name);
 
-      await supabase.from('ai_conversation_tags').insert(
-        result.tags.map((t: { name: string; confidence: number }) => ({
-          contact_id: validContactId,
-          tag_name: sanitizeString(t.name, 100) || 'unknown',
-          confidence: Math.min(Math.max(Number(t.confidence) || 0, 0), 1),
-          source: 'ai',
-        }))
-      );
+      // Insert new tags first; only remove stale ones if insert succeeds.
+      // This prevents a window where the contact has zero tags.
+      const { error: insertErr } = await supabase
+        .from('ai_conversation_tags')
+        .upsert(tagRows, { onConflict: 'contact_id,tag_name', ignoreDuplicates: false });
+
+      if (insertErr) {
+        log.warn("Failed to upsert tags, preserving existing", { error: insertErr.message });
+      } else {
+        // Remove old tags that are no longer in the new set
+        const { data: existingTags } = await supabase
+          .from('ai_conversation_tags')
+          .select('tag_name')
+          .eq('contact_id', validContactId);
+        const staleTagNames = (existingTags ?? [])
+          .map((r: { tag_name: string }) => r.tag_name)
+          .filter((n: string) => !newTagNames.includes(n));
+        if (staleTagNames.length > 0) {
+          await supabase
+            .from('ai_conversation_tags')
+            .delete()
+            .eq('contact_id', validContactId)
+            .in('tag_name', staleTagNames);
+        }
+      }
     }
 
     if (validContactId) {
@@ -172,6 +204,6 @@ Responda APENAS em JSON:
     return jsonResponse(result, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : "Unknown error", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

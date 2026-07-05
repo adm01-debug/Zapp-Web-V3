@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ElevenLabsVoiceDesignPreviewSchema, ElevenLabsVoiceDesignCreateSchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -8,6 +9,8 @@ Deno.serve(async (req) => {
   const log = new Logger("elevenlabs-voice-design");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
     const body = await req.json();
     const action = body.action || 'preview';
@@ -25,6 +28,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice_description: description, text: previewText }),
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {
@@ -50,6 +54,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice_name, voice_description: voice_description || '', generated_voice_id, labels: labels || {} }),
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {
@@ -67,6 +72,7 @@ Deno.serve(async (req) => {
     log.info("Listing voices");
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) throw new Error(`List voices error: ${response.status}`);
@@ -75,8 +81,7 @@ Deno.serve(async (req) => {
     log.done(200);
     return jsonResponse(data, 200, req);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

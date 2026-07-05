@@ -1,4 +1,5 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -7,6 +8,9 @@ Deno.serve(async (req) => {
   const log = new Logger("elevenlabs-scribe-token");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
 
     log.info("Requesting ElevenLabs realtime scribe token");
@@ -14,6 +18,7 @@ Deno.serve(async (req) => {
     const response = await fetch('https://api.elevenlabs.io/v1/single-use-token/realtime_scribe', {
       method: 'POST',
       headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
@@ -28,8 +33,7 @@ Deno.serve(async (req) => {
     log.done(200);
     return jsonResponse({ token: data.token }, 200, req);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

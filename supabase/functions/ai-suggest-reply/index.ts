@@ -1,16 +1,19 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { handleCors, errorResponse, jsonResponse, checkRateLimit, getClientIP, requireEnv, Logger } from "../_shared/validation.ts";
 import { AiSuggestReplySchema, parseBody } from "../_shared/schemas.ts";
-import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { callAiWithTracking } from "../_shared/ai-usage.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
   const log = new Logger("ai-suggest-reply");
-  const userId = extractUserIdFromRequest(req);
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const userId = authed.user.id;
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`suggest:${ip}`, 15, 60_000);
     if (!allowed) return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
@@ -18,7 +21,7 @@ Deno.serve(async (req) => {
     const parsed = parseBody(AiSuggestReplySchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
-    const { messages, contactName, contactId, context } = parsed.data;
+    const { conversationHistory, contactName, contactId, context } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
 
     // Fetch Knowledge Base articles for context
@@ -43,24 +46,34 @@ Deno.serve(async (req) => {
       }
 
       if (contactId) {
-        const { data: notes } = await supabase
-          .from('contact_notes')
-          .select('content')
-          .eq('contact_id', contactId)
-          .order('created_at', { ascending: false })
-          .limit(5);
+        // Verify the contact belongs to this user before fetching its data
+        const { data: ownedContact } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('id', contactId)
+          .eq('user_id', userId)
+          .maybeSingle();
 
-        if (notes && notes.length > 0) {
-          knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notes.map((n: { content: string }) => n.content).join('\n')}`;
-        }
+        if (ownedContact) {
+          const { data: notes } = await supabase
+            .from('contact_notes')
+            .select('content')
+            .eq('contact_id', contactId)
+            .order('created_at', { ascending: false })
+            .limit(5);
 
-        const { data: customFields } = await supabase
-          .from('contact_custom_fields')
-          .select('field_name, field_value')
-          .eq('contact_id', contactId);
+          if (notes && notes.length > 0) {
+            knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notes.map((n: { content: string }) => n.content).join('\n')}`;
+          }
 
-        if (customFields && customFields.length > 0) {
-          knowledgeContext += `\n\nDADOS DO CONTATO:\n${customFields.map((f: { field_name: string; field_value: string | null }) => `${f.field_name}: ${f.field_value}`).join('\n')}`;
+          const { data: customFields } = await supabase
+            .from('contact_custom_fields')
+            .select('field_name, field_value')
+            .eq('contact_id', contactId);
+
+          if (customFields && customFields.length > 0) {
+            knowledgeContext += `\n\nDADOS DO CONTATO:\n${customFields.map((f: { field_name: string; field_value: string | null }) => `${f.field_name}: ${f.field_value}`).join('\n')}`;
+          }
         }
       }
     } catch (e) {
@@ -69,7 +82,10 @@ Deno.serve(async (req) => {
 
     log.info("Generating reply suggestions", { contactName, kbContext: knowledgeContext.length > 0 });
 
-    const firstName = contactName ? contactName.split(' ')[0] : null;
+    const sanitizeForPrompt = (s: string) => s.replace(/[\n\r\t"'`\\<>]/g, ' ').trim().slice(0, 200);
+    const safeContactName = contactName ? sanitizeForPrompt(contactName) : null;
+    const safeContext = context ? sanitizeForPrompt(context) : null;
+    const firstName = safeContactName ? sanitizeForPrompt(safeContactName.split(' ')[0]).slice(0, 50) : null;
 
     const systemPrompt = `Você é um Copilot de IA especializado em comunicação empresarial via WhatsApp de uma empresa distribuidora/comercial.
 
@@ -83,8 +99,8 @@ CONTEXTO DO NEGÓCIO — Nossos departamentos se comunicam com diferentes públi
 
 Identifique o tipo de conversa e adapte o tom e conteúdo da sugestão ao contexto correto.
 
-Contexto do contato: ${contactName}
-${context ? `Informações adicionais: ${context}` : ''}
+Contexto do contato: ${safeContactName ?? ''}
+${safeContext ? `Informações adicionais: ${safeContext}` : ''}
 ${knowledgeContext}
 
 IMPORTANTE: Use as informações da Base de Conhecimento e dados do contato para personalizar suas sugestões.
@@ -106,12 +122,12 @@ Responda APENAS em formato JSON com a seguinte estrutura:
   ]
 }`;
 
-    const conversationHistory = Array.isArray(messages)
-      ? messages.slice(-20).map((m) => ({
-          role: m.sender === 'agent' ? 'assistant' : 'user',
-          content: String(m.content || ''),
-        }))
-      : [];
+    const normalizedHistory = (Array.isArray(conversationHistory) ? conversationHistory : [])
+      .slice(-20)
+      .map((m) => ({
+        role: m.role === 'agent' || m.role === 'assistant' ? 'assistant' : 'user',
+        content: String(m.content || ''),
+      }));
 
     const { response, data } = await callAiWithTracking({
       functionName: 'ai-suggest-reply',
@@ -121,7 +137,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          ...conversationHistory,
+          ...normalizedHistory,
           { role: "user", content: "Gere 3 sugestões de resposta contextualizadas para a última mensagem do cliente." }
         ],
         temperature: 0.7,
@@ -134,11 +150,11 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       throw new Error(`AI gateway error [${response.status}]`);
     }
 
-    const content = (data as any).choices?.[0]?.message?.content;
+    const content = (data?.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content;
 
     let suggestions;
     try {
-      const jsonMatch = (content as string).match(/\{[\s\S]*\}/);
+      const jsonMatch = content?.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         suggestions = JSON.parse(jsonMatch[0]);
       } else {
@@ -158,8 +174,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
     log.done(200);
     return jsonResponse(suggestions, 200, req);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse("Internal server error", 500, req);
   }
 });

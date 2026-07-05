@@ -12,6 +12,22 @@ import { contractErrorResponse } from "../_shared/validation.ts";
 import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import { markEventProcessed } from "../_shared/evolution-helpers.ts";
 
+interface MetaWAMessage {
+  from: string;
+  id: string;
+  type?: string;
+  timestamp?: string;
+  text?: { body?: string };
+  image?: { caption?: string };
+  video?: { caption?: string };
+  document?: { filename?: string };
+  [key: string]: unknown;
+}
+interface MetaWAContact {
+  wa_id?: string;
+  profile?: { name?: string };
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -67,7 +83,7 @@ async function isDuplicate(messageId: string): Promise<boolean> {
   return !isNew;
 }
 
-async function persistInbound(message: any, contact: any) {
+async function persistInbound(message: MetaWAMessage, contact: MetaWAContact | undefined) {
   if (!externalClient) return;
   const remoteJid = jidFromPhone(message.from);
   const content =
@@ -144,13 +160,24 @@ Deno.serve(async (req) => {
         );
       }
     }
+  } else if (STRICT_MODE) {
+    // Secret not configured: in strict mode reject all requests rather than
+    // processing unauthenticated payloads. Operator must set the env var.
+    console.error(
+      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — rejecting in strict mode`,
+    );
+    void recordPing("invalid_signature", { rid, reason: "no_secret_configured", strict: true });
+    return new Response(
+      JSON.stringify({ error: "webhook_not_configured", requestId: rid }),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } else {
     console.warn(
-      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — signature validation skipped`,
+      `[whatsapp-cloud-webhook][${rid}] WHATSAPP_CLOUD_APP_SECRET not configured — signature validation skipped (non-strict)`,
     );
   }
 
-  let body: any;
+  let body: unknown;
   try {
     body = JSON.parse(rawBody);
   } catch {
@@ -199,7 +226,7 @@ Deno.serve(async (req) => {
             duplicates++;
             continue;
           }
-          const contact = contacts.find((c: any) => c?.wa_id === msg?.from);
+          const contact = (contacts as MetaWAContact[]).find((c) => c?.wa_id === msg?.from);
           try {
             await persistInbound(msg, contact);
             processed++;
@@ -225,7 +252,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error(`[whatsapp-cloud-webhook][${rid}] error`, e);
     return new Response(
-      JSON.stringify({ ok: false, error: String(e), requestId: rid }),
+      JSON.stringify({ ok: false, requestId: rid }),
       {
         status: 200, // ack para evitar retry-storm da Meta
         headers: { ...corsHeaders, "Content-Type": "application/json" },

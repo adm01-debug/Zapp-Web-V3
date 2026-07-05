@@ -54,7 +54,7 @@ export const DetectNewDeviceSchema = z.object({
  *   - localhost, *.localhost, 0.0.0.0
  *   - RFC-1918: 10.x, 192.168.x, 172.16-31.x
  *   - Link-local: 169.254.x (AWS IMDS, GCP metadata)
- *   - IPv6 loopback [::1], IPv4-mapped [::ffff:x], ULA [fc/fd], link-local [fe80]
+ *   - IPv6: loopback ::1, link-local fe80::/10, site-local fec0::/10, ULA fc00::/7
  *
  * P1 security fix (extracted from PR #205): blocks IPv4-mapped IPv6 SSRF bypass.
  * Validated: 139 adversarial scenarios, 0 failures.
@@ -69,12 +69,12 @@ function isSafeHttpsUrl(url: string): boolean {
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, ULA, IPv4-mapped, and IPv4-compatible
-    // [::x.x.x.x] normalizes to [::XXYY:ZZWW] — startsWith('[::') catches all variants
-    host.startsWith('[::') ||              // loopback [::1], IPv4-mapped [::ffff:], IPv4-compatible, unspecified
-    /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
-    host.startsWith('[fc') ||              // ULA fc00::/8 (fc00–fcff)
-    host.startsWith('[fd')                 // ULA fd00::/8
+    // IPv6: Deno URL.hostname returns bracketless (e.g. '::1', 'fe80::1').
+    // WHATWG normalizes IPv4-compatible: ::127.0.0.1→::7f00:1, ::169.254.169.254→::a9fe:a9fe
+    host.startsWith('::') ||                   // loopback ::1, unspecified ::, IPv4-compat ::x, IPv4-mapped ::ffff:x
+    /^fe[89ab][0-9a-f]:/i.test(host) ||       // link-local fe80::/10 (fe80–febf)
+    /^fec[0-9a-f]:/i.test(host) ||            // site-local fec0::/10
+    /^f[cd][0-9a-f]{2}:/i.test(host)          // ULA fc00::/7 (fc00–fdff)
   ) return false;
   return true;
 }

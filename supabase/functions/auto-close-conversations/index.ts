@@ -1,9 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { getCorsHeaders, handleCors, jsonResponse, errorResponse, Logger } from '../_shared/validation.ts';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
 
   const log = new Logger('auto-close-conversations');
 
@@ -35,7 +39,9 @@ Deno.serve(async (req) => {
       .from('contacts')
       .select('id, name, phone, assigned_to')
       .lt('updated_at', cutoffDate.toISOString())
-      .not('assigned_to', 'is', null);
+      .not('assigned_to', 'is', null)
+      .order('updated_at', { ascending: true })
+      .limit(200);
 
     if (staleError) {
       log.error('Error finding stale contacts', { error: staleError.message });

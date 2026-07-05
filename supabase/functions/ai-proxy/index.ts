@@ -47,9 +47,9 @@ async function getProvider(supabase: ReturnType<typeof createClient>, useFor: st
 
 function injectSystemPrompt(messages: Array<{ role: string; content: string }>, systemPrompt: string) {
   const result = [...messages];
-  const hasSystem = result.some(m => m.role === 'system');
-  if (hasSystem) {
-    result[0] = { role: 'system', content: systemPrompt + '\n\n' + result[0].content };
+  const sysIdx = result.findIndex(m => m.role === 'system');
+  if (sysIdx !== -1) {
+    result[sysIdx] = { role: 'system', content: systemPrompt + '\n\n' + result[sysIdx].content };
   } else {
     result.unshift({ role: 'system', content: systemPrompt });
   }
@@ -103,12 +103,11 @@ Deno.serve(async (req) => {
 
   const log = new Logger("ai-proxy");
 
-  // Require authenticated user — prevents anonymous AI credit drain.
-  const authed = await requireUser(req);
-  if (authed instanceof Response) return authed;
-  const userId = authed.user.id;
-
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const userId = authed.user.id;
+
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`proxy:${userId}:${ip}`, 30, 60_000);
     if (!allowed) return errorResponse("Limite de requisições excedido. Tente novamente em 1 minuto.", 429, req);
@@ -122,7 +121,7 @@ Deno.serve(async (req) => {
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const provider = await getProvider(supabase as any, use_for as string, provider_id);
+    const provider = await getProvider(supabase, use_for as string, provider_id);
     const providerType = provider?.provider_type || 'lovable_ai';
     const providerName = provider?.name || 'Lovable AI';
 
@@ -193,7 +192,12 @@ Deno.serve(async (req) => {
     if (stream) {
       log.done(200, { provider: usedFallback ? 'Lovable AI (fallback)' : providerName, streaming: true });
       return new Response(response.body, {
-        headers: { ...Object.fromEntries(response.headers), 'Content-Type': 'text/event-stream' },
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        },
       });
     }
 
@@ -213,6 +217,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     log.error("Proxy error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Unknown error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

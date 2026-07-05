@@ -1,8 +1,9 @@
-// external-db-proxy v1.7 (2026-07-03)
+// external-db-proxy v1.8 (2026-07-04)
 // Proxy autorizado para consultas de tabelas operacionais.
 // Evolution/FATOR X usa o Supabase self-hosted atomicabr e o schema `evo`.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { requireUser } from "../_shared/auth.ts";
 
 type RequestBody = {
   schema?: unknown;
@@ -144,6 +145,15 @@ function jsonResponse(payload: Record<string, unknown>, status: number): Respons
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
+  // Health GET does not require auth; all data-access paths (POST + health=1) do
+  const url = new URL(req.url);
+  const isHealthGet = req.method === "GET" && !url.searchParams.get("health") && !url.searchParams.get("check");
+
+  if (!isHealthGet) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+  }
+
   if (bootError || !supabase) {
     return jsonResponse({
       error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
@@ -169,11 +179,13 @@ Deno.serve(async (req) => {
           if (error) {
             const err = error as { code?: string; message: string };
             const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
-            return { ...p, ok: false, exists: !missing, missing_table: missing, error: err.message, code: err.code ?? null, latency_ms: Date.now() - t0 };
+            console.error(`[external-db-proxy] probe ${p.schema}.${p.table}:`, err.code, err.message);
+            return { ...p, ok: false, exists: !missing, missing_table: missing, latency_ms: Date.now() - t0 };
           }
           return { ...p, ok: true, exists: true, missing_table: false, latency_ms: Date.now() - t0 };
         } catch (e) {
-          return { ...p, ok: false, exists: false, missing_table: false, error: e instanceof Error ? e.message : "probe failed", latency_ms: Date.now() - t0 };
+          console.error(`[external-db-proxy] probe exception ${p.schema}.${p.table}:`, e instanceof Error ? e.message : e);
+          return { ...p, ok: false, exists: false, missing_table: false, latency_ms: Date.now() - t0 };
         }
       }));
       const allOk = checks.every((c) => c.ok);
@@ -219,11 +231,14 @@ Deno.serve(async (req) => {
 
     try {
       const { data, error } = await supabase.rpc(rpc, params);
-      if (error) return jsonResponse({ error: error.message, cid, rid, data: null }, 400);
+      if (error) {
+        console.error('[external-db-proxy] rpc error', { rpc, cid, code: error.code, message: error.message });
+        return jsonResponse({ error: "Database operation failed", cid, rid, data: null }, 500);
+      }
       return jsonResponse({ ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "RPC failed";
-      return jsonResponse({ error: message, cid, rid, data: null }, 500);
+      console.error('[external-db-proxy] rpc exception', { rpc, cid, message: error instanceof Error ? error.message : String(error) });
+      return jsonResponse({ error: "Database operation failed", cid, rid, data: null }, 500);
     }
   }
 
@@ -294,7 +309,8 @@ Deno.serve(async (req) => {
           latency_ms: Date.now() - start,
         }, 503);
       }
-      return jsonResponse({ error: err.message, code: err.code, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
+      console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
+      return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
     }
 
     return jsonResponse({
@@ -310,7 +326,7 @@ Deno.serve(async (req) => {
       latency_ms: Date.now() - start,
     }, 200);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Query failed";
-    return jsonResponse({ error: message, cid, rid, data: [], count: 0 }, 500);
+    console.error('[external-db-proxy] query exception', { schema, table, message: error instanceof Error ? error.message : String(error), cid });
+    return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0 }, 500);
   }
 });

@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireUser } from '../_shared/auth.ts';
 
 /**
  * send-email — Endpoint unificado legado (mantido para compatibilidade)
@@ -20,21 +21,25 @@ serve(async (req) => {
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const body = await req.json().catch(() => ({}));
 
     // Verifica se há accountId para usar gmail-send
     if (body.accountId) {
-      // Delega para gmail-send
+      // Delega para gmail-send usando o token do usuário (não service role),
+      // para que gmail-send possa verificar a propriedade da conta Gmail.
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
       const res = await fetch(`${supabaseUrl}/functions/v1/gmail-send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceKey}`,
+          'Authorization': req.headers.get('Authorization') || '',
         },
         body: JSON.stringify({ ...body, action: body.action ?? 'send' }),
+        signal: AbortSignal.timeout(15_000),
       });
 
       const data = await res.json();
@@ -47,7 +52,8 @@ serve(async (req) => {
       return json({ error: 'Nenhum provedor de email configurado. Forneça accountId para usar Gmail ou configure RESEND_API_KEY.' }, 503);
     }
 
-    const { to, subject, html, from = 'noreply@zappweb.app' } = body;
+    const { to, subject, html } = body;
+    const from = 'noreply@zappweb.app';
     if (!to || !subject || !html) {
       return json({ error: 'to, subject e html são obrigatórios' }, 400);
     }
@@ -59,6 +65,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendKey}`,
       },
       body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html }),
+      signal: AbortSignal.timeout(15_000),
     });
 
     const resendData = await resendRes.json();
@@ -69,7 +76,7 @@ serve(async (req) => {
     return json({ messageId: resendData.id, provider: 'resend' });
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return json({ error: msg }, 500);
+    console.error('[send-email]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -11,24 +12,14 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     const rl = checkRateLimit(`sip-pwd:${ip}`, 10, 60_000);
     if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return errorResponse('Unauthorized', 401, req);
-    }
 
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_ANON_KEY'), {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Server-side JWT verification via Supabase Auth API (replaces getClaims local decode)
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return errorResponse('Invalid or expired token', 401, req);
-    }
-
-    const userId = claimsData.claims.sub;
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles').select('id, is_active').eq('user_id', userId).maybeSingle();
+    const adminClient = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
+    const { data: profile, error: profileError } = await adminClient
+      .from('profiles').select('id, is_active').eq('user_id', authed.user.id).maybeSingle();
 
     if (profileError || !profile) return errorResponse('User profile not found', 403, req);
     if (!profile.is_active) return errorResponse('User account is inactive', 403, req);
@@ -37,8 +28,7 @@ Deno.serve(async (req) => {
     log.done(200);
     return jsonResponse({ password, profileId: profile.id }, 200, req);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

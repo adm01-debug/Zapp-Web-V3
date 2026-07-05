@@ -120,6 +120,7 @@ Deno.serve(async (req) => {
               <p style="color:#9ca3af;font-size:12px;margin-top:24px">Alerta automático do sistema de análise de conversas.</p>
             </div>`,
           }),
+          signal: AbortSignal.timeout(15_000),
         });
         emailSent = emailResponse.ok;
       } catch (emailError) {
@@ -137,6 +138,6 @@ Deno.serve(async (req) => {
     }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Unknown error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

@@ -45,8 +45,7 @@ Deno.serve(async (req) => {
     log.done(200, summary);
     return jsonResponse({ success: true, ...summary }, 200, req);
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    log.error("Cleanup error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Cleanup error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

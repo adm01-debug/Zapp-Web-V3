@@ -1,10 +1,11 @@
 /**
  * HMAC Webhook Signature Validation
- * 
+ *
  * Provides secure validation of webhook payloads using HMAC-SHA256.
  * Uses Web Crypto API for cryptographic operations and implements
  * constant-time comparison to prevent timing attacks.
  */
+import { timingSafeStringEqual } from "./auth.ts";
 
 /**
  * Validates HMAC-SHA256 signature of a webhook payload.
@@ -60,22 +61,8 @@ export async function verifyHmacSignature(
  * Timing-safe string comparison to prevent timing attacks.
  * Compares strings in constant time regardless of where they differ.
  */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    // Still do a full comparison to maintain constant time
-    let dummy = 0;
-    for (let i = 0; i < a.length; i++) {
-      dummy |= a.charCodeAt(i) ^ (b.charCodeAt(i % b.length) || 0);
-    }
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return result === 0;
-}
+/** Re-export canonical TextEncoder-based constant-time comparison from auth.ts. */
+export const timingSafeEqual = timingSafeStringEqual;
 
 /**
  * Extracts signature from request headers.

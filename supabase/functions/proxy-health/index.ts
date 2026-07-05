@@ -198,7 +198,8 @@ Deno.serve(async (req) => {
     .limit(5000)
 
   if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('[proxy-health] query failed:', error.message);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...getJsonCorsHeaders(req), 'Content-Type': 'application/json' },
     })
   }

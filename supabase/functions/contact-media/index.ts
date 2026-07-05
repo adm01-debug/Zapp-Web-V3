@@ -179,8 +179,9 @@ Deno.serve(async (req) => {
 
   const { data, error } = await q;
   if (error) {
+    console.error("[contact-media] query error", error.message);
     return jsonResponse(
-      { error: "Failed to load media", detail: error.message },
+      { error: "Failed to load media" },
       500,
     );
   }

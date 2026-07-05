@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { ElevenLabsTTSSchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -7,11 +8,14 @@ Deno.serve(async (req) => {
 
   const log = new Logger("elevenlabs-tts");
 
-  const ip = getClientIP(req);
-  const rl = checkRateLimit(`tts:${ip}`, 20, 60_000);
-  if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
-
   try {
+    const ip = getClientIP(req);
+    const rl = checkRateLimit(`tts:${ip}`, 20, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const parsed = parseBody(ElevenLabsTTSSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
@@ -31,6 +35,7 @@ Deno.serve(async (req) => {
           'xi-api-key': ELEVENLABS_API_KEY,
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(30_000),
         body: JSON.stringify({
           text,
           model_id: selectedModel,
@@ -61,8 +66,7 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'audio/mpeg' },
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

@@ -3,7 +3,8 @@ import {
   sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger,
 } from "../_shared/validation.ts";
 import { AiEnhanceMessageSchema, parseBody } from "../_shared/schemas.ts";
-import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { callAiWithTracking } from "../_shared/ai-usage.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const tonePrompts: Record<string, string> = {
   professional: "Reescreva a mensagem abaixo de forma mais profissional, clara e educada. Mantenha o mesmo significado mas use linguagem corporativa e polida.",
@@ -19,9 +20,11 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("ai-enhance-message");
-  const userId = extractUserIdFromRequest(req);
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const userId = authed.user.id;
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`enhance:${ip}`, 20, 60_000);
     if (!allowed) return errorResponse("Limite de requisições excedido. Tente novamente em 1 minuto.", 429, req);
@@ -33,7 +36,9 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
     const systemPrompt = tonePrompts[tone as string];
 
-    const firstName = contactName ? contactName.split(' ')[0] : null;
+    const sanitizeForPrompt = (s: string) => s.replace(/[\n\r\t"'`\\]/g, ' ').trim().slice(0, 50);
+    const rawFirst = contactName ? contactName.split(' ')[0] : null;
+    const firstName = rawFirst ? sanitizeForPrompt(rawFirst) : null;
     const humanizationRule = firstName && firstName !== 'Cliente'
       ? `\n- REGRA CRÍTICA DE HUMANIZAÇÃO: O nome do cliente é "${firstName}". A mensagem reescrita DEVE obrigatoriamente começar mencionando o nome "${firstName}" de forma natural e humana (ex: "${firstName}, entendi sua solicitação..." ou "${firstName}, vou verificar isso..."). O cliente JAMAIS deve perceber que a resposta foi gerada por IA. Isso é OBRIGATÓRIO.`
       : '';
@@ -78,6 +83,6 @@ Regras importantes:
     return jsonResponse({ enhanced: enhancedMessage }, 200, req);
   } catch (error: unknown) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : "Erro desconhecido", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

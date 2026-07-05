@@ -23,6 +23,7 @@
 // virar classe, etc.) o deploy continua compilando e o self-test cai em
 // fallbacks bem definidos em vez de quebrar.
 import * as hmacModule from '../_shared/hmac-validation.ts';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Adapter de validador HMAC
@@ -57,34 +58,35 @@ type ValidatorResult = {
 
 type ValidatorFn = (req: Request) => Promise<ValidatorResult>;
 
-// deno-lint-ignore no-explicit-any
-function normalizeResult(raw: any): ValidatorResult {
+function normalizeResult(raw: unknown): ValidatorResult {
   if (raw == null || typeof raw !== 'object') {
     return { valid: false, signatureFound: false, error: 'validator returned non-object' };
   }
+  const r = raw as Record<string, unknown>;
   // Aceita aliases: valid|ok|isValid e signatureFound|hasSignature|signature_present
-  const valid = Boolean(raw.valid ?? raw.ok ?? raw.isValid ?? false);
+  const valid = Boolean(r.valid ?? r.ok ?? r.isValid ?? false);
   const signatureFound = Boolean(
-    raw.signatureFound ?? raw.hasSignature ?? raw.signature_present ?? false,
+    r.signatureFound ?? r.hasSignature ?? r.signature_present ?? false,
   );
-  const error = typeof raw.error === 'string'
-    ? raw.error
-    : (typeof raw.reason === 'string' ? raw.reason : undefined);
-  const payload = typeof raw.payload === 'string' ? raw.payload : null;
+  const error = typeof r.error === 'string'
+    ? r.error
+    : (typeof r.reason === 'string' ? r.reason : undefined);
+  const payload = typeof r.payload === 'string' ? r.payload : null;
   return { valid, signatureFound, error, payload };
 }
 
 function resolveValidator(secret: string, strict = false): ValidatorFn {
-  // deno-lint-ignore no-explicit-any
-  const mod = hmacModule as any;
+  const mod = hmacModule as unknown as Record<string, unknown>;
 
   // 1 + 2) createWebhookValidator(secret, strict?) → (req) => Promise<result>
+  type AnyFactory = (...args: unknown[]) => unknown;
   if (typeof mod.createWebhookValidator === 'function') {
+    const createValidator = mod.createWebhookValidator as AnyFactory;
     let factory: (req: Request) => Promise<unknown>;
     try {
-      factory = mod.createWebhookValidator(secret, strict);
+      factory = createValidator(secret, strict) as (req: Request) => Promise<unknown>;
     } catch {
-      factory = mod.createWebhookValidator(secret);
+      factory = createValidator(secret) as (req: Request) => Promise<unknown>;
     }
     if (typeof factory === 'function') {
       return async (req) => normalizeResult(await factory(req));
@@ -93,7 +95,8 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
 
   // 3) createValidator(secret) — possível rename
   if (typeof mod.createValidator === 'function') {
-    const factory = mod.createValidator(secret, strict) ?? mod.createValidator(secret);
+    const createValidator = mod.createValidator as AnyFactory;
+    const factory = (createValidator(secret, strict) ?? createValidator(secret)) as AnyFactory | null;
     if (typeof factory === 'function') {
       return async (req) => normalizeResult(await factory(req));
     }
@@ -102,7 +105,8 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
   // 4) default export como factory
   if (typeof mod.default === 'function') {
     try {
-      const factory = mod.default(secret, strict);
+      const defaultFn = mod.default as AnyFactory;
+      const factory = defaultFn(secret, strict) as AnyFactory | null;
       if (typeof factory === 'function') {
         return async (req) => normalizeResult(await factory(req));
       }
@@ -114,9 +118,10 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
   // 5) Classe WebhookSecurityService com .validateRequest
   if (typeof mod.WebhookSecurityService === 'function') {
     try {
-      const svc = new mod.WebhookSecurityService(secret, strict);
+      const Svc = mod.WebhookSecurityService as new (...args: unknown[]) => Record<string, unknown>;
+      const svc = new Svc(secret, strict);
       if (typeof svc?.validateRequest === 'function') {
-        return async (req) => normalizeResult(await svc.validateRequest(req));
+        return async (req) => normalizeResult(await svc.validateRequest.bind(svc)(req as unknown as Parameters<typeof svc.validateRequest>[0]));
       }
     } catch {
       // segue para fallback final
@@ -130,12 +135,14 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
   ) {
     return async (req) => {
       try {
-        const sig: string | null = mod.extractSignatureFromHeaders(req.headers);
+        const extractFn = mod.extractSignatureFromHeaders as (headers: Headers) => string | null;
+        const verifyFn = mod.verifyHmacSignature as (body: string, sig: string, secret: string) => Promise<boolean>;
+        const sig: string | null = extractFn(req.headers);
         const body = await req.text();
         if (!sig) {
           return { valid: !strict, signatureFound: false, payload: body, error: strict ? 'Missing webhook signature' : undefined };
         }
-        const ok: boolean = await mod.verifyHmacSignature(body, sig, secret);
+        const ok: boolean = await verifyFn(body, sig, secret);
         return {
           valid: ok,
           signatureFound: true,
@@ -294,6 +301,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
+
+  const authError = requireServiceRoleOrCron(req);
+  if (authError !== null) return authError;
 
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
