@@ -69,53 +69,6 @@ export async function auditWebhookEvent(supabase: any, row: WebhookAuditRow): Pr
   }
 }
 
-export interface DeadLetterInput {
-  event_type: string;
-  instance: string;
-  remote_jid?: string | null;
-  /** The parsed webhook payload/data so the reconcile cron can replay it. */
-  payload: unknown;
-  error_message: string;
-  error_stack?: string | null;
-  request_id?: string | null;
-}
-
-// Routes a webhook event whose handler threw into the Evolution dead-letter
-// queue so it can be retried/inspected instead of being silently dropped.
-//
-// Context: the webhook marks an event as processed (idempotency) BEFORE the
-// handler runs and returns 200 even on handler failure (so Evolution does not
-// retry-storm). Without this, a handler error means permanent, unalarmed data
-// loss — the exact mechanism behind the wpp2 gap during the WhatsApp LID
-// migration. Landing the event in the DLQ makes the loss recoverable.
-//
-// Best-effort by design: a DLQ failure must NEVER bubble up and turn the
-// caller's 200 into a 5xx, so everything here is swallowed-and-logged.
-// deno-lint-ignore no-explicit-any
-export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
-  try {
-    const { error } = await supabase.from('evolution_webhook_dlq').insert({
-      event_type: input.event_type || 'unknown',
-      instance_name: input.instance || 'unknown',
-      remote_jid: input.remote_jid ?? null,
-      payload: (input.payload ?? {}) as Record<string, unknown>,
-      error_message: (input.error_message || 'handler_error').slice(0, 2000),
-      error_stack: input.error_stack ? input.error_stack.slice(0, 8000) : null,
-      status: 'pending',
-      retry_count: 0,
-      // Stagger the first retry so a transient dependency (DB/API) has time to
-      // recover before the reconcile cron picks the row up.
-      next_retry_at: new Date(Date.now() + 60_000).toISOString(),
-      last_request_id: input.request_id ?? null,
-    });
-    if (error) {
-      console.warn('[dlq] insert failed:', error.message ?? error.code ?? String(error));
-    }
-  } catch (e) {
-    console.warn('[dlq] insert threw:', (e as Error).message ?? String(e));
-  }
-}
-
 export function toEventRecords(data: unknown, collectionKeys: string[] = []): Record<string, unknown>[] {
   if (Array.isArray(data)) return data.filter(isRecord);
   if (!isRecord(data)) return [];
@@ -231,19 +184,6 @@ export function shouldUpdateStatus(currentStatus: string | null, newStatus: stri
   return newPriority > currentPriority;
 }
 
-/**
- * Filtro PostgREST que casa uma conexão tanto pelo NOME roteável quanto pelo
- * UUID interno da Evolution. Eventos de webhook chegam com o nome da instância,
- * mas `whatsapp_connections.instance_id` guardava o nome em linhas legadas e o
- * UUID nas novas (incidente wpp2 2026-07-04) — `instance_name` é a fonte da
- * verdade e `instance_id` fica como fallback legado. Sanitiza o valor porque
- * vírgula/parênteses/aspas são sintaxe do `.or()` do PostgREST.
- */
-export function instanceOrFilter(instance: string): string {
-  const safe = String(instance).replace(/[",()\\]/g, '');
-  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
-}
-
 // deno-lint-ignore no-explicit-any
 export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
   const { data } = await supabase
@@ -349,6 +289,37 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
   } catch (err) { console.error('Avatar persist error:', err); return null; }
 }
 
+export function instanceOrFilter(instance: string): string {
+  const escaped = instance.replace(/['"]/g, '');
+  return `instance_id.eq.${escaped},instance_name.eq.${escaped}`;
+}
+
+export interface DeadLetterInput {
+  event_type?: string | null;
+  instance?: string | null;
+  payload?: unknown;
+  error_message?: string | null;
+  error_stack?: string | null;
+  request_id?: string | null;
+}
+
+// deno-lint-ignore no-explicit-any
+export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
+  try {
+    await supabase.from('webhook_dead_letter').insert({
+      event_type: input.event_type ?? null,
+      instance: input.instance ?? null,
+      payload: input.payload ?? null,
+      error_message: input.error_message ?? null,
+      error_stack: input.error_stack ?? null,
+      request_id: input.request_id ?? null,
+      created_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn('[dead-letter] insert failed:', (e as Error).message ?? String(e));
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';
@@ -356,11 +327,9 @@ export async function handleReactionEvent(supabase: any, instance: string, react
   if (!reactKey?.id) return;
 
   const targetExternalId = reactKey.id as string;
-  const connection = await getConnectionByInstance(supabase, instance);
-  if (!connection) { console.log(`Reaction: no connection for instance ${instance}`); return; }
-  const { data: targetMessage } = await supabase
-    .from('messages').select('id, contact_id').eq('external_id', targetExternalId)
-    .eq('whatsapp_connection_id', connection.id).maybeSingle();
+  const { data: targetMessage } = await supabase.schema('evo')
+    .from('evolution_messages').select('id, contact_id').eq('message_id', targetExternalId)
+    .eq('instance_name', instance).maybeSingle();
   if (!targetMessage) { console.log(`Reaction target not found: ${targetExternalId}`); return; }
 
   if (emoji === '') {

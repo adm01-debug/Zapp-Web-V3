@@ -2,9 +2,8 @@
 // Message-specific handlers moved to evolution-webhook-msg-handlers.ts
 
 import {
-  isRecord, normalizePhone, toEventRecords,
+  isRecord, normalizePhone, toEventRecords, instanceOrFilter,
   getConnectionByInstance, getContactByPhone, persistProfilePicture, generatePhoneVariants,
-  instanceOrFilter,
 } from "./evolution-helpers.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -329,9 +328,10 @@ export async function handleChatsUpdate(supabase: any, instance: string, data: u
     if (unreadCount !== undefined) {
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact && unreadCount === 0) {
-        await supabase.from('messages').update({ is_read: true })
-          .eq('contact_id', contact.id).eq('sender', 'contact').eq('is_read', false)
-          .eq('whatsapp_connection_id', connection.id);
+        await supabase.schema('evo').from('evolution_messages')
+          .update({ is_read: true, updated_at: new Date().toISOString() })
+          .eq('contact_id', contact.id).eq('from_me', false).eq('is_read', false)
+          .eq('instance_name', instance);
       }
     }
   }
@@ -407,7 +407,7 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
   let contact = await getContactByPhone(supabase, phone, connection.id);
   if (!contact) {
     const { data: newContact, error: insertErr } = await supabase.from('contacts')
-      .insert({ phone, name: phone, whatsapp_connection_id: connection.id })
+      .insert({ phone, name: phone, whatsapp_connection_id: connection.id, instance_name: instance, remote_jid: from })
       .select('id, avatar_url, assigned_to, name').single();
     if (insertErr && insertErr.code === '23505') {
       const phonesVariants = generatePhoneVariants(phone);
@@ -488,9 +488,9 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
     const contact = await getContactByPhone(supabase, phone, connection.id);
     if (contact) {
       const now = new Date().toISOString();
-      await supabase.from('messages')
-        .update({ is_deleted: true, status: 'deleted', status_updated_at: now })
-        .eq('contact_id', contact.id).eq('whatsapp_connection_id', connection.id);
+      await supabase.schema('evo').from('evolution_messages')
+        .update({ deleted_at: now, status: 'deleted', status_at: now, updated_at: now })
+        .eq('contact_id', contact.id).eq('instance_name', instance);
     }
   }
 }
@@ -525,7 +525,7 @@ export async function handleContactsSet(supabase: any, instance: string, data: u
     const existing = await getContactByPhone(supabase, phone, connection.id);
     if (existing) { skipped++; continue; }
 
-    const { error: insertErr } = await supabase.from('contacts').insert({ phone, name: pushName, whatsapp_connection_id: connection.id });
+    const { error: insertErr } = await supabase.from('contacts').insert({ phone, name: pushName, whatsapp_connection_id: connection.id, instance_name: instance, remote_jid: jid });
     if (insertErr && insertErr.code === '23505') { skipped++; continue; }
     if (insertErr) { console.warn(`[contacts.set] insert error for ${phone}:`, insertErr.message); skipped++; continue; }
     synced++;
@@ -549,9 +549,10 @@ export async function handleChatsSet(supabase: any, instance: string, data: unkn
     if (unreadCount === 0) {
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact) {
-        await supabase.from('messages').update({ is_read: true })
-          .eq('contact_id', contact.id).eq('sender', 'contact').eq('is_read', false)
-          .eq('whatsapp_connection_id', connection.id);
+        await supabase.schema('evo').from('evolution_messages')
+          .update({ is_read: true, updated_at: new Date().toISOString() })
+          .eq('contact_id', contact.id).eq('from_me', false).eq('is_read', false)
+          .eq('instance_name', instance);
         processed++;
       }
     }

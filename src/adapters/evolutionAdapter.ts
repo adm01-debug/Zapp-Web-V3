@@ -50,10 +50,13 @@ export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessa
 }
 
 function mapStatus(evoStatus: string): 'sent' | 'delivered' | 'read' | 'failed' | null {
-  const mapping: Record<string, 'sent' | 'delivered' | 'read' | 'failed'> = {
-    sent: 'sent', delivered: 'delivered', read: 'read', received: 'delivered', played: 'read', failed: 'failed', error: 'failed'
+  const mapping: Record<string, 'sent' | 'delivered' | 'read' | 'failed' | null> = {
+    sent: 'sent', delivered: 'delivered', read: 'read', received: 'delivered',
+    played: 'read', failed: 'failed', error: 'failed',
+    sending: null,  // in-flight; client shows pending indicator
+    deleted: null,  // deleted messages carry no delivery status
   };
-  return mapping[evoStatus] || 'sent';
+  return Object.prototype.hasOwnProperty.call(mapping, evoStatus) ? mapping[evoStatus] : 'sent';
 }
 
 export function deriveContactsFromMessages(messages: EvolutionMessage[]): DerivedContact[] {

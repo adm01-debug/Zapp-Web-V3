@@ -4,7 +4,7 @@ export function normalizeMessage(message: RealtimeMessage): RealtimeMessage {
   return {
     ...message,
     content: message.content ?? '',
-    status: message.status ?? 'sent',
+    status: message.status ?? null,
     status_updated_at: message.status_updated_at ?? null,
   };
 }
