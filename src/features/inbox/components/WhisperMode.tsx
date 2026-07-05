@@ -57,14 +57,16 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
   });
 
   const sendWhisper = useMutation({
-    mutationFn: async ({ content }: { content: string }) => {
+    mutationFn: async ({ content, audioUrl }: { content?: string; audioUrl?: string }) => {
       if (!profile?.id) throw new Error('Not authenticated');
-      const { error } = await supabase.from('whisper_messages').insert({
+      const payload = {
         contact_id: contactId,
         sender_id: profile.id,
         target_agent_id: targetAgentId ?? profile.id,
-        content,
-      });
+        content: content ?? null,
+        audio_url: audioUrl ?? null,
+      };
+      const { error } = await supabase.from('whisper_messages').insert(payload as never);
       if (error) throw error;
     },
     onSuccess: () => {
