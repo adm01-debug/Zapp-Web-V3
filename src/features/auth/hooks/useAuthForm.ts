@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './useAuth';
 import { useWebAuthn } from '@/hooks/useWebAuthn';
 import { toast } from '@/hooks/use-toast';
@@ -33,6 +33,11 @@ export interface LockStatus {
 
 export function useAuthForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Preserve OAuth consent redirect (or any post-login target) across sign-in
+  // flows. Only accept same-origin relative paths ("/...") to avoid open-redirect.
+  const rawNext = searchParams.get('next');
+  const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
   const { user, signIn, signUp } = useAuth();
   const { isSupported, isPlatformAuthenticatorAvailable, authenticateWithPasskey, loading: passkeyLoading } = useWebAuthn();
   const [loading, setLoading] = useState(false);
@@ -51,8 +56,8 @@ export function useAuthForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (user) navigate('/');
-  }, [user, navigate]);
+    if (user) navigate(nextPath, { replace: true });
+  }, [user, navigate, nextPath]);
 
   useEffect(() => {
     if (isSupported()) {
