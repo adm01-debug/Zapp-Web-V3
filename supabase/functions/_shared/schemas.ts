@@ -58,11 +58,12 @@ function isSafeHttpsUrl(url: string): boolean {
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, unique-local (ULA), IPv4-mapped, and IPv4-compatible
-    // IPv4-compatible: [::x.x.x.x] normalizes to [::XXYY:ZZWW] — no ffff: component
-    host === '[::1]' || host.startsWith('[fe80:') ||
-    host.startsWith('[fc00:') || host.startsWith('[fd') ||
-    host.startsWith('[::ffff:') || host.startsWith('[::')
+    // IPv6 loopback, link-local, ULA, IPv4-mapped, and IPv4-compatible
+    // [::x.x.x.x] normalizes to [::XXYY:ZZWW] — startsWith('[::') catches all variants
+    host.startsWith('[::') ||              // loopback [::1], IPv4-mapped [::ffff:], IPv4-compatible, unspecified
+    /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
+    host.startsWith('[fc') ||              // ULA fc00::/8 (fc00–fcff)
+    host.startsWith('[fd')                 // ULA fd00::/8
   ) return false;
   return true;
 }

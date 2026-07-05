@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
     }
 
     try {
-      const imgResp = await fetch(picUrl, { signal: AbortSignal.timeout(8000) });
+      const imgResp = await fetch(picUrl, { signal: AbortSignal.timeout(8000), redirect: 'error' });
       if (imgResp.ok) {
         const bytes = new Uint8Array(await imgResp.arrayBuffer());
         if (bytes.length >= 100) {

@@ -75,12 +75,14 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
+  // No DB-level LIMIT — priority sorting happens in memory and the final slice
+  // is applied after sorting. A pre-fetch cap would exclude high-priority contacts
+  // that happen to be created later than lower-priority ones.
   const { data: candidates, error: candErr } = await admin
     .from("contacts")
     .select("id, queue_id, assigned_to, created_at, queues!inner(max_wait_time_minutes, sla_priority, routing_weight, auto_rebalance_enabled, is_active)")
     .not("queue_id", "is", null)
-    .order("created_at", { ascending: true })
-    .limit(limit * 10);
+    .order("created_at", { ascending: true });
 
   if (candErr) {
     console.error("[queue-rebalance] list error", candErr.message);

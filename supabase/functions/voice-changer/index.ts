@@ -91,9 +91,13 @@ Deno.serve(async (req) => {
       if (taskError || !task) return errorResponse('Task not found', 404, req);
       
       voicePreset = task.voice_preset;
-      // Fetch audio from storage if input_audio_url is a path
+      // Fetch audio from storage if input_audio_url is an HTTP URL.
+      // Validate before fetching to prevent SSRF if DB row is ever tampered with.
       if (task.input_audio_url && task.input_audio_url.startsWith('http')) {
-        const resp = await fetch(task.input_audio_url, { signal: AbortSignal.timeout(30_000) });
+        let parsedAudioUrl: URL;
+        try { parsedAudioUrl = new URL(task.input_audio_url); } catch { return errorResponse('Invalid audio URL', 400, req); }
+        if (parsedAudioUrl.protocol !== 'https:') return errorResponse('Audio URL must be HTTPS', 400, req);
+        const resp = await fetch(task.input_audio_url, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
         audioData = await resp.blob();
       } else if (task.input_audio_url) {
         const { data: file, error: fileErr } = await supabaseClient.storage

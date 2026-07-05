@@ -15,7 +15,6 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
-    requireEnv("SUPABASE_ANON_KEY");
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
     const authed = await requireAdminOrSupervisor(req);
@@ -73,6 +72,9 @@ Deno.serve(async (req) => {
         .upsert({ user_id: newUser.user.id, role }, { onConflict: 'user_id' });
       if (roleError) {
         log.error("Role assignment failed", { error: roleError.message });
+        // Roll back the user creation so the caller knows the full setup failed.
+        await adminClient.auth.admin.deleteUser(newUser.user!.id).catch(() => {});
+        return errorResponse("User created but role assignment failed — user rolled back", 500, req);
       }
     }
 

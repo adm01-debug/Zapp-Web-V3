@@ -36,11 +36,12 @@ Deno.serve(async (req) => {
   const log = new Logger("speech-to-text");
 
   try {
-    const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`stt:${ip}`, 10, 60_000);
     if (!allowed) return errorResponse("Limite de transcrições excedido. Tente novamente em 1 minuto.", 429, req);
+
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
 
     const body = await req.json().catch(() => null);
     if (!body || typeof body.audio !== "string" || body.audio.length === 0) {

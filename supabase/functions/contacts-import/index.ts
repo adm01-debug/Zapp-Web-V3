@@ -43,6 +43,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
+    // Caller-scoped client — RLS enforces tenant isolation for connection ownership
+    const callerClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { authorization: auth } }, auth: { autoRefreshToken: false, persistSession: false } }
+    );
 
     const { data: { user }, error: authErr } = await supabase.auth.getUser(auth.replace('Bearer ', ''));
     if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: JSON_CORS });
@@ -65,8 +71,9 @@ serve(async (req) => {
     }
     const instanceName = String(rawInstanceName);
 
-    // F12 security fix: verify the caller owns the WhatsApp connection they are importing into
-    const { data: ownedConn, error: connErr } = await supabase
+    // F12 security fix: verify the caller owns the WhatsApp connection they are importing into.
+    // Use callerClient (RLS-enforced) so RLS policies enforce tenant isolation via the user's JWT.
+    const { data: ownedConn, error: connErr } = await callerClient
       .from('whatsapp_connections')
       .select('id, instance_name')
       .eq('created_by', user.id)

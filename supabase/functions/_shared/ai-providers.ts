@@ -25,7 +25,9 @@ export async function callLovableAI(params: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
+    // Streaming responses are long-lived by design; applying a fixed 30s timeout
+    // would abort them mid-stream. Only apply timeout for non-streaming requests.
+    signal: params.stream ? undefined : AbortSignal.timeout(30_000),
   });
 }
 

@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
           const { error: revertErr } = await supabase
             .from("talkx_campaigns")
             .update({ status: "scheduled" })
-            .eq("id", campaign.id);
+            .eq("id", campaign.id)
+            .eq("status", "processing"); // only revert if still in processing state
           if (revertErr) {
             log.error(`Failed to revert campaign ${campaign.id} to scheduled`, { error: revertErr.message });
           }
