@@ -6,27 +6,6 @@ import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
-// F7 security fix (v3): SSRF guard — block private/reserved IPv4 and IPv6 ranges.
-// RFC 5735/5156. Note: URL.hostname returns '[::1]' (brackets) for IPv6 literals.
-// v3: added 0.0.0.0/8 (unspecified) and 169.254.0.0/16 (link-local) to IPv4 regex.
-function isSafeAudioUrl(rawUrl: string): boolean {
-  try {
-    const u = new URL(rawUrl);
-    if (u.protocol !== 'https:') return false;
-    const h = u.hostname.toLowerCase();
-    // Private/reserved IPv4 (RFC 5735): 0/8, 10/8, 127/8, 169.254/16, 172.16-31/12, 192.168/16
-    if (/^(0\.|10\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.)/.test(h)) return false;
-    // Named loopback and unspecified
-    if (h === 'localhost' || h === '0.0.0.0') return false;
-    // IPv6 loopback and private ranges (URL.hostname includes brackets: '[::1]', '[fe80:...]')
-    if (h === '[::1]' || h === '::1') return false;
-    if (/^\[?(fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(h)) return false;
-    // Cloud metadata services
-    if (h === '169.254.169.254' || h === 'metadata.google.internal') return false;
-    return true;
-  } catch { return false; }
-}
-
 /**
  * If the URL points to our own Supabase storage, download via the
  * service-role client so we never hit expired-token issues.

@@ -20,6 +20,10 @@ import { describe, it, expect } from 'vitest';
 //    Exact copy of the function in supabase/functions/_shared/schemas.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
+// NOTE: This is a Node.js-adapted equivalent of the Deno production function.
+// Node.js URL.hostname returns BRACKETED IPv6 (e.g. '[::1]', '[fe80::1]').
+// Deno URL.hostname returns BRACKETLESS IPv6 (e.g. '::1', 'fe80::1').
+// The security logic is equivalent; only the string format differs by runtime.
 function isSafeHttpsUrl(url: string): boolean {
   let parsed: URL;
   try {
@@ -38,12 +42,12 @@ function isSafeHttpsUrl(url: string): boolean {
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    host === '[::1]' ||
-    host.startsWith('[fe80:') ||
-    host.startsWith('[fc00:') ||
-    host.startsWith('[fd') ||
-    host.startsWith('[::ffff:') ||
-    host.startsWith('[::')
+    // IPv6: Node.js URL.hostname returns bracketed form e.g. '[::1]', '[fe80::1]'
+    // WHATWG normalizes IPv4-compatible: [::127.0.0.1]→[::7f00:1], [::169.254.169.254]→[::a9fe:a9fe]
+    host.startsWith('[::') || // loopback, IPv4-mapped, IPv4-compat, unspecified
+    /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
+    /^\[fec[0-9a-f]:/i.test(host) || // site-local fec0::/10
+    /^\[f[cd][0-9a-f]{2}:/i.test(host) // ULA fc00::/7 (fc00–fdff)
   )
     return false;
   return true;
@@ -309,13 +313,17 @@ describe('isSafeHttpsUrl — SSRF prevention', () => {
   describe('rejects IPv6 private/loopback addresses', () => {
     const ipv6Private = [
       'https://[::1]/', // loopback
+      'https://[::ffff:192.168.1.1]/', // IPv4-mapped
       'https://[fe80::1]/', // link-local
       'https://[fe80::dead:beef]/',
-      'https://[fc00::1]/', // ULA
-      'https://[fc00:cafe::1]/', // ULA
-      'https://[fd00::1]/', // ULA
-      'https://[fd12:3456:789a::1]/', // ULA
-      'https://[fdff:ffff:ffff::1]/', // ULA
+      'https://[fec0::1]/', // site-local
+      'https://[fc00::1]/', // ULA fc00
+      'https://[fc00:cafe::1]/', // ULA fc00
+      'https://[fc01::1]/', // ULA fc01 (full fc/7 coverage)
+      'https://[fc80::1]/', // ULA fc80
+      'https://[fd00::1]/', // ULA fd00
+      'https://[fd12:3456:789a::1]/', // ULA fd
+      'https://[fdff:ffff:ffff::1]/', // ULA fdff
     ];
     ipv6Private.forEach((url) => {
       it(`blocks ${url}`, () => {
@@ -388,22 +396,18 @@ describe('isSafeHttpsUrl — SSRF prevention', () => {
     });
   });
 
-  // ── Known gap documentation ────────────────────────────────────────────────
-  describe('known implementation gap — fc::/8 non-fc00 ULA prefixes', () => {
-    it('KNOWN GAP: [fc01::1] is ULA but startsWith([fc00:) misses it', () => {
-      // fc00::/7 includes fc01::, fc80::, etc. The check only blocks [fc00:.
-      // In practice, fc00::/8 (L-bit=0) is IANA-reserved and unused, so
-      // risk is theoretical. Documented here for awareness.
-      const result = isSafeHttpsUrl('https://[fc01::1]/');
-      // Currently passes (returns true) — gap is documented, not yet fixed.
-      // If a wider ULA check is ever added, update this to expect(result).toBe(false).
-      expect(result).toBe(true);
+  // ── Full ULA fc00::/7 coverage ────────────────────────────────────────────
+  describe('blocks full ULA fc00::/7 range via /^f[cd][0-9a-f]{2}:/ regex', () => {
+    it('blocks [fc01::1] — ULA fc00::/7 covered by /^f[cd][0-9a-f]{2}:/', () => {
+      expect(isSafeHttpsUrl('https://[fc01::1]/')).toBe(false);
     });
 
-    it('KNOWN GAP: [fc80::1] is in ULA range but not blocked', () => {
-      const result = isSafeHttpsUrl('https://[fc80::1]/');
-      // Currently passes (returns true) — same gap as fc01::1 above.
-      expect(result).toBe(true);
+    it('blocks [fc80::1] — ULA fc80 covered by /^f[cd][0-9a-f]{2}:/', () => {
+      expect(isSafeHttpsUrl('https://[fc80::1]/')).toBe(false);
+    });
+
+    it('blocks [fec0::1] — site-local fec0::/10 covered by /^fec[0-9a-f]:/', () => {
+      expect(isSafeHttpsUrl('https://[fec0::1]/')).toBe(false);
     });
   });
 });
@@ -1189,12 +1193,12 @@ describe('isSafeHttpsUrl — IPv4-compatible IPv6 SSRF bypass (fixed)', () => {
 
 // ─── [2] IPv6 zone IDs ───────────────────────────────────────────────────────
 describe('isSafeHttpsUrl — IPv6 zone IDs cannot bypass checks', () => {
-  it('[fe80::1%25eth0] — zone ID suffix does not bypass startsWith("[fe80:")', () => {
-    // URL.hostname keeps zone ID: '[fe80::1%25eth0]' still startsWith('[fe80:')
+  it('[fe80::1%25eth0] — zone ID suffix does not bypass block: Node.js still returns "[fe80::1%25eth0]" with brackets', () => {
+    // Node.js URL.hostname: '[fe80::1%25eth0]' — matches /^\[fe[89ab][0-9a-f]:/i
     expect(isSafeHttpsUrl('https://[fe80::1%25eth0]/')).toBe(false);
   });
 
-  it('[fd00::1%25lo] — ULA with zone ID still caught by startsWith("[fd")', () => {
+  it('[fd00::1%25lo] — ULA with zone ID caught by /^\\[f[cd][0-9a-f]{2}:/i', () => {
     expect(isSafeHttpsUrl('https://[fd00::1%25lo]/')).toBe(false);
   });
 });
@@ -1690,6 +1694,8 @@ describe('classifyGmailError — unusual/edge code values', () => {
 //    after the IPv4-compatible IPv6 fix (host.startsWith('[::'))
 // ─────────────────────────────────────────────────────────────────────────────
 
+// NOTE: Node.js-adapted equivalent — brackets are kept in URL.hostname under Node.js.
+// Deno strips brackets; production edge function uses bracketless regex.
 function isSafeAudioUrl(raw: string): boolean {
   let parsed: URL;
   try {
@@ -1708,12 +1714,12 @@ function isSafeAudioUrl(raw: string): boolean {
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, ULA, IPv4-mapped, and IPv4-compatible
-    // [::x.x.x.x] normalizes to [::XXYY:ZZWW] — startsWith('[::') catches all
-    host.startsWith('[::') || // loopback [::1], IPv4-mapped [::ffff:], IPv4-compatible, unspecified [::]
+    // IPv6: Node.js URL.hostname returns bracketed form
+    // WHATWG normalizes IPv4-compatible: [::127.0.0.1]→[::7f00:1], [::169.254.169.254]→[::a9fe:a9fe]
+    host.startsWith('[::') || // loopback, IPv4-mapped, IPv4-compat, unspecified
     /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
-    host.startsWith('[fc') || // ULA fc00::/7 (fc+fd)
-    host.startsWith('[fd') // ULA fd00::/8
+    /^\[fec[0-9a-f]:/i.test(host) || // site-local fec0::/10
+    /^\[f[cd][0-9a-f]{2}:/i.test(host) // ULA fc00::/7 (fc00–fdff)
   )
     return false;
   return true;

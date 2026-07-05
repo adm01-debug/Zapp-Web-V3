@@ -69,11 +69,12 @@ function isSafeHttpsUrl(url: string): boolean {
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 checks — Deno's URL.hostname returns bracketless (e.g. "::1", not "[::1]")
-    host.startsWith('::') ||              // loopback ::1, unspecified ::, IPv4-compat/mapped ::ffff:x
-    /^fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
-    /^fec[0-9a-f]:/i.test(host) ||      // site-local fec0::/10
-    /^f[cd][0-9a-f]{2}:/i.test(host)    // ULA fc00::/7 (fc00–fdff)
+    // IPv6: Deno URL.hostname returns bracketless (e.g. '::1', 'fe80::1').
+    // WHATWG normalizes IPv4-compatible: ::127.0.0.1→::7f00:1, ::169.254.169.254→::a9fe:a9fe
+    host.startsWith('::') ||                   // loopback ::1, unspecified ::, IPv4-compat ::x, IPv4-mapped ::ffff:x
+    /^fe[89ab][0-9a-f]:/i.test(host) ||       // link-local fe80::/10 (fe80–febf)
+    /^fec[0-9a-f]:/i.test(host) ||            // site-local fec0::/10
+    /^f[cd][0-9a-f]{2}:/i.test(host)          // ULA fc00::/7 (fc00–fdff)
   ) return false;
   return true;
 }

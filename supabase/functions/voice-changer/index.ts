@@ -92,11 +92,22 @@ Deno.serve(async (req) => {
       
       voicePreset = task.voice_preset;
       // Fetch audio from storage if input_audio_url is an HTTP URL.
-      // Validate before fetching to prevent SSRF if DB row is ever tampered with.
+      // Full SSRF guard — blocks private/reserved ranges; redirect:'error' prevents redirect bypass.
       if (task.input_audio_url && task.input_audio_url.startsWith('http')) {
         let parsedAudioUrl: URL;
         try { parsedAudioUrl = new URL(task.input_audio_url); } catch { return errorResponse('Invalid audio URL', 400, req); }
         if (parsedAudioUrl.protocol !== 'https:') return errorResponse('Audio URL must be HTTPS', 400, req);
+        const h = parsedAudioUrl.hostname.toLowerCase();
+        const blocked =
+          h === 'localhost' || h.endsWith('.localhost') || h === '0.0.0.0' ||
+          /^127\./.test(h) || /^169\.254\./.test(h) ||
+          /^10\./.test(h) || /^192\.168\./.test(h) ||
+          /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+          h.startsWith('::') ||                          // loopback, unspecified, IPv4-compat/mapped (Deno bracketless)
+          /^fe[89ab][0-9a-f]:/i.test(h) || /^fec[0-9a-f]:/i.test(h) ||
+          /^f[cd][0-9a-f]{2}:/i.test(h) ||
+          h === 'metadata.google.internal';
+        if (blocked) return errorResponse('Audio URL is not allowed', 400, req);
         const resp = await fetch(task.input_audio_url, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
         audioData = await resp.blob();
       } else if (task.input_audio_url) {
