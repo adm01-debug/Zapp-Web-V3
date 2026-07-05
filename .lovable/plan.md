@@ -1,4 +1,3 @@
-
 # Corte duro para Supabase self-hosted
 
 Objetivo: parar de usar o backend Lovable Cloud (`uqysyzndkfiwfztbqvsl.supabase.co`) e apontar 100% do app para o self-hosted (`SELFHOSTED_SUPABASE_URL`). Aceito: relogin obrigatório de todos os usuários, janela de instabilidade durante o cutover, alto risco de regressão em módulos não cobertos por teste.
@@ -6,8 +5,8 @@ Objetivo: parar de usar o backend Lovable Cloud (`uqysyzndkfiwfztbqvsl.supabase.
 ## Pré-requisitos (você faz manualmente)
 
 1. **Workspace Settings → Build Secrets** — adicionar duas variáveis (nomes exatos, com prefixo `VITE_`):
-   - `VITE_SUPABASE_URL` = valor de `SELFHOSTED_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY` = valor de `SELFHOSTED_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_URL` = https://supabase.atomicabr.com.br
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogInNlcnZpY2Vfcm9sZSIsCiAgImlzcyI6ICJzdXBhYmFzZSIsCiAgImlhdCI6IDE3MTUwNTA4MDAsCiAgImV4cCI6IDE4NzI4MTcyMDAKfQ.WZnW4uA9fWo-G4eOdcR1xUGZTY357tgfqD5B-OG93S0
 
    Isso sobrescreve o `.env` auto-gerenciado em tempo de build sem eu precisar editar o arquivo (que é imutável). É o único caminho para o client oficial (`src/integrations/supabase/client.ts`, auto-gerado) apontar para o self-hosted sem refactor de 300+ imports.
 
