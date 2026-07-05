@@ -77,6 +77,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
     onRecordingComplete: (blob, url) => {
       setAudioBlob(blob);
       setIsConfirming(true);
+      onAudioReady?.(blob);
     },
   });
 
