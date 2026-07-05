@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { safeClient } from "@/integrations/supabase/safeClient";
 import {
   getWhatsAppMode,
@@ -58,7 +57,7 @@ export function WhatsAppModeSetting() {
   const handleRunMigration = async () => {
     setMigrating(true);
     try {
-      const { error } = await supabase.rpc("rpc_migrate_whatsapp_integration");
+      const { error } = await safeClient.rpc('rpc_migrate_whatsapp_integration');
       if (error) throw error;
       invalidateWhatsAppModeCache();
       await refresh();

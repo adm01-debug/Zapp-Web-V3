@@ -31,6 +31,7 @@ export interface Contact {
   phone: string;
   email: string | null;
   contact_type: string | null;
+  /** Display-only. Tags are managed via FATOR X RPC (rpc_upsert_contact), not this CRUD hook. */
   tags?: string[];
 }
 

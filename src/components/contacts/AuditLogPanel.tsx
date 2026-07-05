@@ -62,6 +62,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
         .order('changed_at', { ascending: false })
         .limit(maxEntries);
 
+      if (error) { log.error('Failed to load audit log', error); throw error; }
       setEntries((data ?? []) as AuditEntry[]);
     } catch (err) { log.error('Failed to load audit log', err); }
     finally { setLoading(false); }
