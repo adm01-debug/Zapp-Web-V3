@@ -130,7 +130,7 @@ serve(async (req) => {
           smtp_port:    587,
           smtp_use_tls: true,
           username:     email,
-          password_hash: JSON.stringify({
+          password_encrypted: JSON.stringify({
             access_token:  tokens.access_token,
             refresh_token: tokens.refresh_token,
             expires_in:    tokens.expires_in,
@@ -153,13 +153,13 @@ serve(async (req) => {
 
       const { data: account } = await supabase
         .from('imap_smtp_accounts')
-        .select('email, password_hash')
+        .select('email, password_encrypted')
         .eq('id', accountId)
         .single();
 
       if (!account) return json({ error: 'Conta não encontrada' }, 404);
 
-      const creds = JSON.parse(account.password_hash);
+      const creds = JSON.parse(account.password_encrypted);
       const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
 
       // Buscar mensagens via Graph API
@@ -187,13 +187,13 @@ serve(async (req) => {
 
       const { data: account } = await supabase
         .from('imap_smtp_accounts')
-        .select('email, password_hash')
+        .select('email, password_encrypted')
         .eq('id', accountId)
         .single();
 
       if (!account) return json({ error: 'Conta não encontrada' }, 404);
 
-      const creds = JSON.parse(account.password_hash);
+      const creds = JSON.parse(account.password_encrypted);
       const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
 
       const message = {
@@ -235,13 +235,13 @@ serve(async (req) => {
 
       const { data: account } = await supabase
         .from('imap_smtp_accounts')
-        .select('password_hash')
+        .select('password_encrypted')
         .eq('id', accountId)
         .single();
 
       if (!account) return json({ error: 'Conta não encontrada' }, 404);
 
-      const creds = JSON.parse(account.password_hash);
+      const creds = JSON.parse(account.password_encrypted);
       const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
 
       await fetch(`${GRAPH_BASE}/me/messages/${messageId}`, {
@@ -264,13 +264,13 @@ serve(async (req) => {
 
       const { data: account } = await supabase
         .from('imap_smtp_accounts')
-        .select('password_hash')
+        .select('password_encrypted')
         .eq('id', accountId)
         .single();
 
       if (!account) return json({ error: 'Conta não encontrada' }, 404);
 
-      const creds = JSON.parse(account.password_hash);
+      const creds = JSON.parse(account.password_encrypted);
       const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
 
       const msgRes = await fetch(`${GRAPH_BASE}/me/messages/${messageId}?$select=id,subject,body,from,toRecipients,ccRecipients,receivedDateTime,isRead`, {

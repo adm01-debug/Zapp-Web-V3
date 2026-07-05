@@ -117,6 +117,7 @@ serve(async (req) => {
         .single();
 
       if (upsertErr) {
+        console.error('[gmail-oauth] account upsert failed', upsertErr.message);
         return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: jsonHeaders });
       }
 
@@ -190,12 +191,17 @@ serve(async (req) => {
         .single();
 
       if (account?.access_token) {
-        await fetch(GOOGLE_REVOKE, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ token: account.access_token }),
-          signal: AbortSignal.timeout(10_000),
-        });
+        // Best-effort — a network failure or timeout must not block account deletion
+        try {
+          await fetch(GOOGLE_REVOKE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ token: account.access_token }),
+            signal: AbortSignal.timeout(10_000),
+          });
+        } catch (revokeErr) {
+          console.warn('[gmail-oauth] Google revoke failed (continuing with DB deletion)', revokeErr instanceof Error ? revokeErr.message : String(revokeErr));
+        }
       }
 
       await supabase.from('gmail_accounts').delete().eq('id', accountId);

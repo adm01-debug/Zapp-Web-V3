@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
 
   if (!isHealthGet) {
     const authed = await requireUser(req);
-    if (authed instanceof Response) return jsonResponse({ error: "unauthorized" }, 401);
+    if (authed instanceof Response) return authed;
   }
 
   if (bootError || !supabase) {
