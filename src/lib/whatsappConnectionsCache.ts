@@ -28,9 +28,11 @@ let cache: { rows: WhatsappConnectionRow[]; expiresAt: number } | null = null;
 let inflight: Promise<WhatsappConnectionRow[]> | null = null;
 
 async function fetchFromDb(): Promise<WhatsappConnectionRow[]> {
+  // SECURITY (2026-07-05): explicit column list — excludes api_key/qr_code_base64
+  // (sensitive, unused by frontend, SELECT revoked for authenticated at DB level)
   const { data, error } = await supabase
     .from('whatsapp_connections')
-    .select('*')
+    .select('id, name, phone_number, instance_name, api_url, status, is_active, is_default, webhook_url, settings, last_connected_at, connected_at, disconnected_at, created_at, updated_at, api_type, battery_level, created_by, degraded_at, farewell_enabled, farewell_message, health_reason, health_response_ms, health_status, is_plugged, last_health_check, max_retries, owner_jid, retry_count, routing_mode, auto_reconnect_enabled, loop_protection_active, max_reconnect_attempts, reconnect_interval_seconds, instance_id, qr_code, evo_instance_id')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as WhatsappConnectionRow[];

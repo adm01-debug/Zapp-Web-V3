@@ -10,6 +10,14 @@ const log = getLogger('useEvolutionAutoReconnect');
 
 const INITIAL_BACKOFF_MS = 2_000;
 const MAX_BACKOFF_MS     = 60_000;
+/**
+ * ISSUE #3 FIX (2026-07-05): attemptSpecificReconnect already had exponential
+ * backoff (2s -> 60s) but NO upper bound on attempt count — it would retry
+ * forever at the 60s ceiling if the Evolution instance never recovered.
+ * This cap stops the active-reconnect loop after N consecutive failures and
+ * emits an event so the UI can prompt for manual intervention.
+ */
+const MAX_CONSECUTIVE_RECONNECT_ATTEMPTS = 20; // ~20-30min of backoff before giving up
 
 /**
  * Circuit-breaker constants for the status-polling loop.
@@ -87,6 +95,8 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
   const isReconnectingRef = useRef(false);
   const backoffRef        = useRef(INITIAL_BACKOFF_MS);
   const timerRef          = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Consecutive attemptSpecificReconnect failures (resets on success or instanceName change). */
+  const reconnectAttemptCountRef = useRef(0);
 
   // ── Circuit-breaker state (§2 status polling) ──────────────────────────────────────
   /** Permanent flag: halts polling forever on 401/403 for this session. */
@@ -106,9 +116,11 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     credentialErrorRef.current  = false;
     consecutiveFailsRef.current = 0;
     circuitOpenUntilRef.current = 0;
+    reconnectAttemptCountRef.current = 0;
+    backoffRef.current = INITIAL_BACKOFF_MS;
   }, [instanceName]);
 
-  // ── 1. Global Realtime Monitoring ────────────────────────────────────────────────────
+  // ── 1. Global Realtime Monitoring ──────────────────────────────────────────────────
   const performReconnect = useCallback(
     async (connection: WhatsAppConnection) => {
       const id  = connection.id;
@@ -214,11 +226,25 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
   // ── 2. Specific Instance Polling ──────────────────────────────────────────────────
   const scheduleNextAttempt = useCallback(() => {
     setIsReconnecting(false);
+
+    reconnectAttemptCountRef.current += 1;
+    if (reconnectAttemptCountRef.current >= MAX_CONSECUTIVE_RECONNECT_ATTEMPTS) {
+      log.error(
+        `Giving up on ${instanceName}: ${reconnectAttemptCountRef.current} consecutive ` +
+        `reconnect attempts failed — manual intervention required`,
+      );
+      eventBus.emit('connection:reconnect-exhausted', {
+        instanceName,
+        attempts: reconnectAttemptCountRef.current,
+      });
+      return; // stop scheduling — caller must manually retry (e.g. via UI button)
+    }
+
     const nextDelay = Math.min(backoffRef.current * 2, MAX_BACKOFF_MS);
     backoffRef.current = nextDelay;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => void attemptSpecificReconnect(), nextDelay);
-  }, [setIsReconnecting]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setIsReconnecting, instanceName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const attemptSpecificReconnect = useCallback(async () => {
     if (!instanceName || isReconnectingRef.current) return;
@@ -237,6 +263,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       if (state === 'open') {
         log.info(`Successfully reconnected instance ${instanceName}`);
         backoffRef.current = INITIAL_BACKOFF_MS;
+        reconnectAttemptCountRef.current = 0; // reset on success
         setIsReconnecting(false);
         queryClient.invalidateQueries({ queryKey: ['external-evolution'] });
         eventBus.emit('connection:recovered', { instanceName });
