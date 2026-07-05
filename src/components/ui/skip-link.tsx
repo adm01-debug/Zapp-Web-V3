@@ -75,10 +75,9 @@ export function SkipLinks() {
   }, []);
 
   return (
-    <nav 
-      className="skip-links-container" 
+    <nav
+      className="skip-links-container"
       aria-label="Links de navegação rápida"
-      role="navigation"
     >
       <AnimatePresence>
         {showIndicator && (
