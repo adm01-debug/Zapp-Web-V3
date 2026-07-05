@@ -116,8 +116,11 @@ function onMetric(metric: WebVitalMetric) {
 }
 
 
+let __initialized = false;
 export function initWebVitals() {
   if (typeof window === 'undefined') return;
+  if (__initialized) return;
+  __initialized = true;
 
   window.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
