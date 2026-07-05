@@ -8,6 +8,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * Standardized error response (so the frontend can switch on `code`):
  *   { error: true, code, message, verdict, scanId, details? }
  */
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — OOM guard (F5b)
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -36,6 +38,14 @@ Deno.serve(async (req) => {
     const file = formData.get("file") as File;
     const bucket = (formData.get("bucket") as string) || "whatsapp-media";
     const customPath = formData.get("path") as string;
+
+    if (file && file.size > MAX_FILE_SIZE) {
+      return securityErrorResponse(
+        { code: "FILE_TOO_LARGE", message: "Arquivo excede o limite de 50 MB." },
+        413,
+        req,
+      );
+    }
 
     if (!file) {
       return securityErrorResponse(
