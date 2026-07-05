@@ -228,8 +228,8 @@ export function SocialLinks({ social }: { social: { plataforma: string; url: str
   const icons: Record<string, React.ReactNode> = { instagram: <Instagram className="w-3.5 h-3.5" />, linkedin: <Linkedin className="w-3.5 h-3.5" />, facebook: <Facebook className="w-3.5 h-3.5" /> };
   return (
     <div className="flex flex-wrap gap-1.5">
-      {social.map((s, i) => (
-        <a key={i} href={s.url || '#'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-muted/20 hover:bg-muted/40 rounded-md px-2 py-1 transition-colors" title={`${s.plataforma}: ${s.handle || ''}`}>
+      {social.map((s) => (
+        <a key={s.plataforma} href={s.url || '#'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-muted/20 hover:bg-muted/40 rounded-md px-2 py-1 transition-colors" title={`${s.plataforma}: ${s.handle || ''}`}>
           {icons[s.plataforma] || <Globe className="w-3.5 h-3.5" />}<span className="truncate max-w-[100px]">{s.handle || s.plataforma}</span>
         </a>
       ))}

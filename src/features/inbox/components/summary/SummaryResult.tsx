@@ -71,7 +71,7 @@ export function SummaryResult({ summary, isTtsPlaying, isTtsLoading, lastTtsText
             </div>
             <ul className="space-y-1">
               {summary.keyPoints.map((point, index) => (
-                <li key={index} className="text-sm flex items-start gap-2"><span className="text-primary mt-1">•</span><span>{point}</span></li>
+                <li key={`${point}-${index}`} className="text-sm flex items-start gap-2"><span className="text-primary mt-1">•</span><span>{point}</span></li>
               ))}
             </ul>
           </div>
@@ -85,7 +85,7 @@ export function SummaryResult({ summary, isTtsPlaying, isTtsLoading, lastTtsText
             </div>
             <ul className="space-y-1">
               {summary.nextSteps.map((step, index) => (
-                <li key={index} className="text-sm flex items-start gap-2"><span className="text-secondary mt-1">→</span><span>{step}</span></li>
+                <li key={`${step}-${index}`} className="text-sm flex items-start gap-2"><span className="text-secondary mt-1">→</span><span>{step}</span></li>
               ))}
             </ul>
           </div>

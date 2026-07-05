@@ -200,7 +200,7 @@ export const ContactDuplicatesPanel: React.FC<ContactDuplicatesPanelProps> = ({ 
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {group.contact_names.map((name, i) => (
-                      <Badge key={i} variant="secondary" className="text-xs">
+                      <Badge key={`${name}-${i}`} variant="secondary" className="text-xs">
                         {name}
                       </Badge>
                     ))}

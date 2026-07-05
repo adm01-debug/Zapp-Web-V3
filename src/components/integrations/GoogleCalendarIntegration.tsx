@@ -135,8 +135,8 @@ export function GoogleCalendarIntegration() {
               { icon: Bell, title: 'Lembretes de follow-up', desc: 'Receba alertas para retornar' },
               { icon: Clock, title: 'Disponibilidade do agente', desc: 'Mostre horários livres no chat' },
               { icon: ExternalLink, title: 'Links de agendamento', desc: 'Envie links para o cliente agendar' },
-            ].map((feature, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+            ].map((feature) => (
+              <div key={feature.title} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
                 <feature.icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-foreground">{feature.title}</p>

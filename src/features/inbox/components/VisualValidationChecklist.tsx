@@ -107,7 +107,7 @@ export function VisualValidationChecklist({ onClose }: { onClose: () => void }) 
             </div>
             <ul className="space-y-1">
               {audit.violations.map((v, i) => (
-                <li key={i} className="text-[11px] text-destructive/80 leading-tight">• {v}</li>
+                <li key={`${v}-${i}`} className="text-[11px] text-destructive/80 leading-tight">• {v}</li>
               ))}
             </ul>
           </div>

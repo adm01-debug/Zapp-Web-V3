@@ -106,8 +106,8 @@ function TriggersSection({ triggers }: { triggers: MentalTrigger[] }) {
 
   return (
     <div className="space-y-1.5 max-h-[240px] overflow-y-auto scrollbar-thin">
-      {triggers.slice(0, 4).map((trigger, i) => (
-        <div key={i} className="bg-muted/10 rounded-md p-2 text-xs">
+      {triggers.slice(0, 4).map((trigger) => (
+        <div key={trigger.trigger_name} className="bg-muted/10 rounded-md p-2 text-xs">
           <div className="flex items-center justify-between mb-1">
             <span className="font-medium">{trigger.trigger_name}</span>
             <Badge variant="outline" className={cn('text-[9px] py-0 px-1.5', categoryColors[trigger.category] || 'bg-muted/20')}>
@@ -133,7 +133,7 @@ function RapportSection({ rapport }: { rapport: RapportData }) {
   return (
     <div className="space-y-1.5">
       {rapport.suggestions.map((suggestion, i) => (
-        <div key={i} className="flex items-start gap-2 bg-success/5 border border-success/10 rounded-md p-2">
+        <div key={`suggestion-${i}`} className="flex items-start gap-2 bg-success/5 border border-success/10 rounded-md p-2">
           <Heart className="w-3 h-3 text-success mt-0.5 shrink-0" />
           <span className="text-xs text-foreground">{suggestion}</span>
         </div>
@@ -155,8 +155,8 @@ function BestTimesSection({ times }: { times: BestTime[] }) {
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {times.map((t, i) => (
-        <div key={i} className="bg-muted/20 rounded-md px-2 py-1 text-center">
+      {times.map((t) => (
+        <div key={`${t.day_of_week}-${t.hour}`} className="bg-muted/20 rounded-md px-2 py-1 text-center">
           <p className="text-[10px] text-muted-foreground">{dayNames[t.day_of_week] || '?'}</p>
           <p className="text-xs font-medium">{t.hour}h</p>
           {t.success_rate != null && t.success_rate > 0 && (
@@ -213,7 +213,7 @@ function DISCSection({ disc }: { disc: DISCTips }) {
         <div className="space-y-1">
           <p className="text-[10px] text-muted-foreground font-medium uppercase">Como comunicar:</p>
           {disc.communication_tips.slice(0, 3).map((tip, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[11px]">
+            <div key={`tip-${i}`} className="flex items-start gap-1.5 text-[11px]">
               <ThumbsUp className="w-3 h-3 text-success mt-0.5 shrink-0" />
               <span>{tip}</span>
             </div>
@@ -224,8 +224,8 @@ function DISCSection({ disc }: { disc: DISCTips }) {
       {disc.keywords_to_use && disc.keywords_to_use.length > 0 && (
         <div className="flex flex-wrap gap-1">
           <span className="text-[10px] text-muted-foreground mr-1">Usar:</span>
-          {disc.keywords_to_use.slice(0, 6).map((kw, i) => (
-            <Badge key={i} variant="outline" className="text-[9px] py-0 px-1 bg-success/5 text-success border-success/20">
+          {disc.keywords_to_use.slice(0, 6).map((kw) => (
+            <Badge key={kw} variant="outline" className="text-[9px] py-0 px-1 bg-success/5 text-success border-success/20">
               {kw}
             </Badge>
           ))}
@@ -235,8 +235,8 @@ function DISCSection({ disc }: { disc: DISCTips }) {
       {disc.keywords_to_avoid && disc.keywords_to_avoid.length > 0 && (
         <div className="flex flex-wrap gap-1">
           <span className="text-[10px] text-muted-foreground mr-1">Evitar:</span>
-          {disc.keywords_to_avoid.slice(0, 6).map((kw, i) => (
-            <Badge key={i} variant="outline" className="text-[9px] py-0 px-1 bg-destructive/5 text-destructive border-destructive/20">
+          {disc.keywords_to_avoid.slice(0, 6).map((kw) => (
+            <Badge key={kw} variant="outline" className="text-[9px] py-0 px-1 bg-destructive/5 text-destructive border-destructive/20">
               {kw}
             </Badge>
           ))}

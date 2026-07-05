@@ -47,7 +47,7 @@ export function AutomationCard({ automation, onToggle, onEdit, onDelete, onDupli
             <ArrowRight className="w-3 h-3 text-muted-foreground" />
             {actions.map((action: Record<string, unknown>, i: number) => {
               const actionInfo = ACTION_TYPES.find(a => a.type === action.type);
-              return <Badge key={i} variant="secondary" className="text-xs">{actionInfo?.label}</Badge>;
+              return <Badge key={`${String(action.type)}-${i}`} variant="secondary" className="text-xs">{actionInfo?.label}</Badge>;
             })}
           </div>
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">

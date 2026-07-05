@@ -40,9 +40,7 @@ class ValidationLogger {
     if (import.meta.env.PROD) return;
     // eslint-disable-next-line no-console
     const originalLog = console.log;
-    // eslint-disable-next-line no-console
     const originalError = console.error;
-    // eslint-disable-next-line no-console
     const originalWarn = console.warn;
 
     // eslint-disable-next-line no-console
@@ -54,7 +52,6 @@ class ValidationLogger {
       originalLog.apply(console, args);
     };
 
-    // eslint-disable-next-line no-console
     console.error = (...args: any[]) => {
       const msg = args.map(a => typeof a === 'object' ? '[Error Object]' : String(a)).join(' ');
       if (!msg.includes('[validationLogger]')) {
@@ -63,7 +60,6 @@ class ValidationLogger {
       originalError.apply(console, args);
     };
 
-    // eslint-disable-next-line no-console
     console.warn = (...args: any[]) => {
       const msg = args.map(a => typeof a === 'object' ? '[Object]' : String(a)).join(' ');
       if (!msg.includes('[validationLogger]')) {

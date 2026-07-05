@@ -18,7 +18,7 @@ function ShortcutKeyDisplay({ keys }: { keys: string[] }) {
   return (
     <div className="flex items-center gap-1">
       {keys.map((key, index) => (
-        <span key={index} className="flex items-center">
+        <span key={`${key}-${index}`} className="flex items-center">
           <kbd className="px-2 py-1 text-xs font-semibold bg-muted border border-border rounded shadow-sm min-w-[28px] text-center">
             {key}
           </kbd>

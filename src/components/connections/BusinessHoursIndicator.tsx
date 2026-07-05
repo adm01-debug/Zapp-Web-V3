@@ -33,7 +33,7 @@ export function BusinessHoursIndicator({ connectionId, className }: BusinessHour
         {days.map((day, i) => {
           const { status, label } = getDayStatus(i);
           return (
-            <Tooltip key={i}>
+            <Tooltip key={`${day}-${i}`}>
               <TooltipTrigger asChild>
                 <div
                   className={cn(

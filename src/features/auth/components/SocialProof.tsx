@@ -19,7 +19,7 @@ export function SocialProof() {
       <div className="grid grid-cols-4 gap-2">
         {stats.map((stat, index) => (
           <motion.div
-            key={index}
+            key={stat.label}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.9 + index * 0.1 }}

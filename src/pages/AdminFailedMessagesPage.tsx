@@ -86,7 +86,7 @@ export default function AdminFailedMessagesPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => api.refetch()}
+            onClick={() => void api.refetch()}
             disabled={api.isRefetching}
           >
             <RefreshCw className={cn('h-4 w-4 mr-2', api.isRefetching && 'animate-spin')} />

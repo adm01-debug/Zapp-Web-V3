@@ -148,7 +148,7 @@ export function LongPressMenu({ children, items, delay = 500, className }: LongP
             >
               {items.map((item, index) => (
                 <motion.button
-                  key={index} whileTap={{ scale: 0.98, backgroundColor: 'hsl(var(--muted))' }}
+                  key={`${item.label}-${index}`} whileTap={{ scale: 0.98, backgroundColor: 'hsl(var(--muted))' }}
                   onClick={() => handleItemClick(item)}
                   className={cn('w-full flex items-center gap-3 px-4 py-3 text-left transition-colors', item.destructive ? 'text-destructive' : 'text-foreground', index !== items.length - 1 && 'border-b border-border')}
                 >

@@ -128,19 +128,19 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
           {parts.map((part, index) => {
             switch (part.type) {
               case 'bold':
-                return <strong key={index} className="font-bold text-foreground">{part.content}</strong>;
+                return <strong key={`${part.type}-${index}`} className="font-bold text-foreground">{part.content}</strong>;
               case 'italic':
-                return <em key={index} className="italic">{part.content}</em>;
+                return <em key={`${part.type}-${index}`} className="italic">{part.content}</em>;
               case 'code':
                 return (
-                  <code key={index} className="px-1 py-0.5 bg-primary/10 text-primary rounded text-[11px] ">
+                  <code key={`${part.type}-${index}`} className="px-1 py-0.5 bg-primary/10 text-primary rounded text-[11px] ">
                     {part.content}
                   </code>
                 );
               case 'link':
                 return (
                   <a
-                    key={index}
+                    key={`${part.type}-${index}`}
                     href={part.url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -150,7 +150,7 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
                   </a>
                 );
               default:
-                return <span key={index}>{part.content}</span>;
+                return <span key={`${part.type}-${index}`}>{part.content}</span>;
             }
           })}
         </span>

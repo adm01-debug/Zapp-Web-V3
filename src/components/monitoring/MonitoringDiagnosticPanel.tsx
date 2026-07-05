@@ -179,7 +179,7 @@ export function MonitoringDiagnosticPanel({ diagnostic, diagnosing, onRunDiagnos
               const sev = severityConfig[d.webhookSeverity] || severityConfig.error;
               const SevIcon = sev.icon;
               return (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (i + 1) * 0.08 }}>
+                <motion.div key={d.instance} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (i + 1) * 0.08 }}>
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
@@ -224,7 +224,7 @@ export function MonitoringDiagnosticPanel({ diagnostic, diagnosing, onRunDiagnos
                     };
                     return (
                       <motion.div
-                        key={i}
+                        key={`${item.label}-${i}`}
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.04 }}

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer,
   XAxis, YAxis, Tooltip as ReTooltip, CartesianGrid, Legend,
@@ -157,7 +157,7 @@ export function TalkXAnalytics({ campaigns }: Props) {
                   labelLine={{ strokeWidth: 1 }}
                 >
                   {statusData.map((_, index) => (
-                    <Cell key={index} fill={pieColors[index % pieColors.length]} />
+                    <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
                   ))}
                 </Pie>
                 <ReTooltip

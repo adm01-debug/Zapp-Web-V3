@@ -219,7 +219,7 @@ export const ActivityHeatmap = ({
             <div className="flex mb-1 ml-8">
               {monthLabels.map(({ month, weekIndex }, i) => (
                 <div
-                  key={i}
+                  key={`${month}-${weekIndex}`}
                   className="text-xs text-muted-foreground"
                   style={{ 
                     marginLeft: i === 0 ? weekIndex * 14 : (weekIndex - (monthLabels[i-1]?.weekIndex || 0)) * 14 - 20
@@ -247,9 +247,9 @@ export const ActivityHeatmap = ({
               {/* Grid */}
               <div className="flex gap-0.5">
                 {weeks.map((week, weekIndex) => (
-                  <div key={weekIndex} className="flex flex-col gap-0.5">
-                    {week.map((day, dayIndex) => (
-                      <TooltipProvider key={dayIndex}>
+                  <div key={`week-${weekIndex}`} className="flex flex-col gap-0.5">
+                    {week.map((day) => (
+                      <TooltipProvider key={format(day.date, 'yyyy-MM-dd')}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <motion.div

@@ -315,8 +315,8 @@ export default function BridgeStatusPage() {
                 
                 {diagResults && (
                   <div className="space-y-3">
-                    {diagResults.map((res, i) => (
-                      <div key={i} className={cn(
+                    {diagResults.map((res) => (
+                      <div key={res.step} className={cn(
                         "p-3 rounded-lg border flex items-start gap-3",
                         res.status === 'ok' ? 'bg-success/5 border-success/20' : 
                         res.status === 'warn' ? 'bg-warning/5 border-warning/20' : 

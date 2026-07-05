@@ -76,9 +76,9 @@ export function MFABackupCodes({ codes: initialCodes, onRegenerate, onClose }: M
           className="bg-muted/50 rounded-lg p-4"
         >
           <div className="grid grid-cols-2 gap-2">
-            {codes.map((code, i) => (
+            {codes.map((code) => (
               <div
-                key={i}
+                key={code}
                 className=" text-sm px-3 py-1.5 bg-background rounded border text-center"
               >
                 {code}

@@ -19,9 +19,9 @@ function VariableHighlighter({ text, className }: { text: string; className?: st
     <span className={className}>
       {parts.map((part, index) => {
         if (part.match(/^\{\{[^}]+\}\}$/)) {
-          return <Badge key={index} variant="secondary" className="mx-0.5 text-xs ">{part.slice(2, -2)}</Badge>;
+          return <Badge key={`${part}-${index}`} variant="secondary" className="mx-0.5 text-xs ">{part.slice(2, -2)}</Badge>;
         }
-        return <span key={index}>{part}</span>;
+        return <span key={`${part}-${index}`}>{part}</span>;
       })}
     </span>
   );

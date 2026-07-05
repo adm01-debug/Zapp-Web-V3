@@ -237,7 +237,7 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
           const met = req.test(password);
           return (
             <motion.div
-              key={index}
+              key={req.label}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}

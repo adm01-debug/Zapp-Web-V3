@@ -59,10 +59,10 @@ export function OverviewTab({ dailyData, alerts, onViewAllAlerts }: {
         </CardHeader>
         <CardContent>
           <div className="h-48 flex items-end justify-between gap-1">
-            {dailyData.map((day, i) => {
+            {dailyData.map((day) => {
               const total = Math.max(day.positive + day.neutral + day.negative, 1);
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
                   <div className="w-full flex flex-col gap-[2px]" style={{ height: '160px' }}>
                     <div className="w-full bg-success/60 rounded-t transition-all" style={{ height: `${(day.positive / total) * 100}%` }} />
                     <div className="w-full bg-muted-foreground/40 transition-all" style={{ height: `${(day.neutral / total) * 100}%` }} />

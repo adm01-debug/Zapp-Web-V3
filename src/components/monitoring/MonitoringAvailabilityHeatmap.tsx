@@ -134,7 +134,7 @@ export function MonitoringAvailabilityHeatmap({ healthLogs }: Props) {
             <div className="flex items-center gap-2 mt-3 ml-[100px]">
               <span className="text-[10px] text-muted-foreground">Menos</span>
               {['bg-muted/20', 'bg-destructive', 'bg-warning', 'bg-warning', 'bg-primary', 'bg-primary'].map((c, i) => (
-                <div key={i} className={cn('w-3 h-3 rounded-sm', c)} />
+                <div key={`${c}-${i}`} className={cn('w-3 h-3 rounded-sm', c)} />
               ))}
               <span className="text-[10px] text-muted-foreground">Mais</span>
             </div>

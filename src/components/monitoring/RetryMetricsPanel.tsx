@@ -316,8 +316,8 @@ export function RetryMetricsPanel() {
                         <TableCell className="hidden lg:table-cell text-xs ">{row.final_http_status ?? '—'}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {(row.retry_reasons ?? []).slice(0, 2).map((rr, i) => (
-                              <Badge key={i} variant="secondary" className="text-[9px] ">{rr.reason}</Badge>
+                            {(row.retry_reasons ?? []).slice(0, 2).map((rr) => (
+                              <Badge key={rr.reason} variant="secondary" className="text-[9px] ">{rr.reason}</Badge>
                             ))}
                             {(row.retry_reasons ?? []).length > 2 && (
                               <Badge variant="outline" className="text-[9px]">+{row.retry_reasons.length - 2}</Badge>

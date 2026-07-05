@@ -69,7 +69,7 @@ export function HeroBenefits() {
       <div className="grid grid-cols-3 lg:grid-cols-2 gap-2 lg:gap-4">
         {benefits.map((benefit, index) => (
           <motion.div
-            key={index}
+            key={benefit.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 + index * 0.1 }}

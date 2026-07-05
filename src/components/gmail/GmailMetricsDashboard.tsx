@@ -140,11 +140,11 @@ export function EmailMetricsDashboard({ accountId, days = 7 }: EmailMetricsDashb
           </CardHeader>
           <CardContent>
             <div className="flex items-end gap-1 h-24">
-              {chartData.map((d, i) => {
+              {chartData.map((d) => {
                 const maxVal = Math.max(...chartData.map(c => c.recebidos), 1);
                 const h = Math.max((d.recebidos / maxVal) * 100, 4);
                 return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full flex flex-col items-center gap-0.5">
                       <div
                         className="w-full bg-primary/20 rounded-t-sm relative overflow-hidden"

@@ -160,8 +160,8 @@ export default function ConversationHeatmap({
         {/* Hotspots */}
         <div className="flex flex-wrap gap-2 mb-4">
           <span className="text-xs text-muted-foreground">Períodos mais movimentados:</span>
-          {hotspots.slice(0, 3).map((spot, i) => (
-            <Badge key={i} variant="secondary" className="text-xs gap-1">
+          {hotspots.slice(0, 3).map((spot) => (
+            <Badge key={`${spot.day}-${spot.hour}`} variant="secondary" className="text-xs gap-1">
               <Flame className="w-3 h-3 text-warning" />
               {DAYS[spot.day]} {formatHour(spot.hour)}
             </Badge>
@@ -242,7 +242,7 @@ export default function ConversationHeatmap({
           <span className="text-xs text-muted-foreground">Baixo</span>
           <div className="flex h-3 rounded overflow-hidden">
             {config.colorScale.map((color, i) => (
-              <div key={i} className="w-6 h-full" style={{ backgroundColor: color }} />
+              <div key={`${color}-${i}`} className="w-6 h-full" style={{ backgroundColor: color }} />
             ))}
           </div>
           <span className="text-xs text-muted-foreground">Alto</span>

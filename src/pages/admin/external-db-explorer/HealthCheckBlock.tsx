@@ -104,7 +104,7 @@ export function HealthCheckBlock() {
 
             <div className="grid grid-cols-3 gap-2">
               {state.pings.map((p, i) => (
-                <div key={i} className="rounded-md border p-2 text-xs">
+                <div key={`ping-${i}`} className="rounded-md border p-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Ping {i + 1}</span>
                     {p.ok ? (

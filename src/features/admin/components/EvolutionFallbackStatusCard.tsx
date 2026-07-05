@@ -139,8 +139,8 @@ export function EvolutionFallbackStatusCard() {
                   Ver últimos {data.recent.length} eventos
                 </summary>
                 <div className="mt-2 space-y-1 max-h-64 overflow-y-auto rounded border p-2 bg-muted/30">
-                  {data.recent.map((ev, i) => (
-                    <div key={i} className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+                  {data.recent.map((ev) => (
+                    <div key={ev.ts} className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
                       <span className="text-muted-foreground tabular-nums">
                         {new Date(ev.ts).toLocaleTimeString("pt-BR")}
                       </span>
