@@ -53,9 +53,11 @@ export interface ErrorLog {
 }
 
 async function fetchConnections(): Promise<ConnectionStatus[]> {
+  // SECURITY (2026-07-05): explicit columns matching ConnectionStatus interface —
+  // excludes api_key/qr_code_base64 (unused here, SELECT revoked for authenticated).
   const { data } = await supabase
     .from('whatsapp_connections')
-    .select('*')
+    .select('id, instance_id, status, phone_number, created_at, updated_at')
     .order('created_at', { ascending: false });
   return (data || []) as ConnectionStatus[];
 }
