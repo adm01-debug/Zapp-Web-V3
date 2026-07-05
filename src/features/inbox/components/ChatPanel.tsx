@@ -3,8 +3,6 @@ import { AnimatePresence } from 'framer-motion';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation, Message } from '@/types/chat';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 import { FileUploaderRef } from './FileUploader';
 import { useTypingPresence } from '@/hooks/useTypingPresence';
 import { useContactTyping } from '@/hooks/useContactTyping';
