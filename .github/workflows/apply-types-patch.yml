@@ -1,23 +1,16 @@
 # apply-types-patch.yml
-# Workflow disparado manualmente para aplicar o patch de types.ts
-# sem precisar de PAT local no VPS.
-# Adiciona as 10 colunas ausentes de whatsapp_connections no types gerado.
+# Disparo manual para aplicar o patch de types.ts (10 colunas whatsapp_connections).
+# Não requer PAT local — o Actions usa GITHUB_TOKEN automaticamente.
 
-name: Apply types.ts patch (whatsapp_connections columns)
+name: Apply types.ts patch (whatsapp_connections)
 
 on:
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: 'Type YES to confirm applying the patch'
-        required: true
-        default: 'NO'
 
 jobs:
   apply-patch:
     name: Apply whatsapp_connections types patch
     runs-on: ubuntu-latest
-    if: github.event.inputs.confirm == 'YES'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,8 +30,11 @@ jobs:
         run: |
           if git diff --quiet src/integrations/supabase/types.ts; then
             echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes needed"
           else
             echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected"
+            git diff --stat src/integrations/supabase/types.ts
           fi
 
       - name: Commit and push if changed
@@ -47,13 +43,15 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add src/integrations/supabase/types.ts
-          git commit -m 'fix(types): add 10 missing whatsapp_connections columns via apply-types-patch.sh'
+          git commit -m 'fix(types): add missing whatsapp_connections columns via apply-types-patch.sh'
           git push
 
       - name: Summary
         run: |
           if [ "${{ steps.diff.outputs.changed }}" = "true" ]; then
             echo '## ✅ types.ts patch applied successfully' >> $GITHUB_STEP_SUMMARY
+            echo 'Columns added: api_type, api_url, connected_at, disconnected_at, evo_instance_id,' >> $GITHUB_STEP_SUMMARY
+            echo 'is_active, last_connected_at, routing_mode, settings, webhook_url' >> $GITHUB_STEP_SUMMARY
           else
-            echo '## ℹ️ types.ts already up to date — no changes needed' >> $GITHUB_STEP_SUMMARY
+            echo '## ℹ️ Already up to date — no changes needed' >> $GITHUB_STEP_SUMMARY
           fi
