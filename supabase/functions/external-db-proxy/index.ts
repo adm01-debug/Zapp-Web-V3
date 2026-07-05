@@ -36,11 +36,25 @@ function pickEnv(name: string): string | undefined {
   return value;
 }
 
+function pickUrl(...names: string[]): string | undefined {
+  for (const name of names) {
+    const raw = pickEnv(name);
+    if (!raw) continue;
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    try {
+      return new URL(withProtocol).origin;
+    } catch {
+      // Try next alias instead of failing boot on a stale/invalid secret.
+    }
+  }
+  return undefined;
+}
+
 function isSafeIdent(value: string): boolean {
   return SAFE_IDENT_RE.test(value);
 }
 
-const EXTERNAL_URL = pickEnv("SELFHOSTED_SUPABASE_URL") ?? pickEnv("EXTERNAL_SUPABASE_URL");
+const EXTERNAL_URL = pickUrl("SELFHOSTED_SUPABASE_URL", "EXTERNAL_SUPABASE_URL");
 const EXTERNAL_KEY = pickEnv("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY")
   ?? pickEnv("SELFHOSTED_SUPABASE_ANON_KEY")
   ?? pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")
@@ -54,11 +68,11 @@ let supabase: ReturnType<typeof createClient> | null = null;
 let bootError: string | null = null;
 
 try {
-  if (!EXTERNAL_URL || !/^https?:\/\//i.test(EXTERNAL_URL)) {
-    throw new Error("EXTERNAL_SUPABASE_URL ausente ou inválida — configure com a URL do Supabase self-hosted.");
+  if (!EXTERNAL_URL) {
+    throw new Error("SELFHOSTED_SUPABASE_URL/EXTERNAL_SUPABASE_URL ausente ou inválida — configure a URL do backend self-hosted.");
   }
   if (!EXTERNAL_KEY) {
-    throw new Error("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente — configure com a service_role do self-hosted.");
+    throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente — configure a chave server-side do self-hosted.");
   }
   supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
 } catch (error) {
@@ -160,7 +174,7 @@ Deno.serve(async (req) => {
   if (bootError || !supabase) {
     return jsonResponse({
       error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
-      hint: "Configure EXTERNAL_SUPABASE_URL e EXTERNAL_SUPABASE_SERVICE_ROLE_KEY com o banco correto das tabelas Evolution.",
+      hint: "Configure SELFHOSTED_SUPABASE_URL e SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY (ou aliases EXTERNAL_*) no runtime das Edge Functions.",
       data: [],
       count: 0,
     }, 503);
@@ -195,7 +209,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         ok: allOk,
         fn: "external-db-proxy",
-        version: "1.7",
+        version: "1.9-selfhosted-auth",
         target: targetName,
         checks,
         hint: allOk ? undefined : "Se missing_table=true, aplique a migration no self-hosted e exponha o schema 'evo' em config.toml → [api].schemas.",
@@ -203,7 +217,7 @@ Deno.serve(async (req) => {
         ts: Date.now(),
       }, allOk ? 200 : 503);
     }
-    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.7", target: targetName, ts: Date.now() }, 200);
+    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.9-selfhosted-auth", target: targetName, ts: Date.now() }, 200);
   }
 
   if (req.method !== "POST") {
