@@ -114,7 +114,7 @@ export function EmailComposer({
         bodyHtml,
         bodyPlain,
         threadId: replyToThreadId,
-        attachments: processedAttachments as any[],
+        attachments: processedAttachments,
       });
 
       await discard();

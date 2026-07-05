@@ -109,10 +109,7 @@ const ChartTooltipContent = React.forwardRef<
     }
 >(
   (
-    props: any,
-    ref,
-  ) => {
-    const {
+    {
       active,
       payload,
       className,
@@ -126,7 +123,9 @@ const ChartTooltipContent = React.forwardRef<
       color,
       nameKey,
       labelKey,
-    } = props;
+    },
+    ref,
+  ) => {
     const { config } = useChart();
 
     const tooltipLabel = React.useMemo(() => {
@@ -143,7 +142,7 @@ const ChartTooltipContent = React.forwardRef<
           : itemConfig?.label;
 
       if (labelFormatter) {
-        return <div className={cn("font-medium", labelClassName)}>{labelFormatter(value, payload as any)}</div>;
+        return <div className={cn("font-medium", labelClassName)}>{labelFormatter(value, payload as unknown as Parameters<NonNullable<typeof labelFormatter>>[1])}</div>;
       }
 
       if (!value) {
@@ -183,7 +182,7 @@ const ChartTooltipContent = React.forwardRef<
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
-                  formatter(item.value, item.name, item as any, index, item.payload)
+                  formatter(item.value, item.name, item as unknown as Parameters<NonNullable<typeof formatter>>[2], index, item.payload)
                 ) : (
                   <>
                     {itemConfig?.icon ? (

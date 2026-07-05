@@ -61,7 +61,7 @@ export function DepartmentManagementDialog({ department: initialDepartment, open
         .single();
       if (error) throw error;
       
-      setWhatsappMode((data.whatsapp_mode as any) || 'none');
+      setWhatsappMode(data.whatsapp_mode || 'none');
       setWhatsappApiKey(data.whatsapp_api_key || '');
       setWhatsappInstanceId(data.whatsapp_instance_id || '');
       
@@ -122,7 +122,7 @@ export function DepartmentManagementDialog({ department: initialDepartment, open
         code,
         email: 'default@temp.com', // Added dummy email to fix TS error
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      } as any);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
