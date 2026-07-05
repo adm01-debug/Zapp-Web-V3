@@ -207,13 +207,16 @@ export async function handleIncomingMessage(
     remote_jid: bestJid || `${phone}@s.whatsapp.net`,
     push_name: (data.pushName as string) || null,
     created_at: messageCreatedAt,
-  }).select('id').single();
+  }).select('id').maybeSingle();
 
   if (msgError) {
+    if (msgError.code === '23505') return; // concurrent webhook already inserted this message
     console.error('Error inserting message:', { msgError, externalId: key.id, bestJid, phone, messageType, content });
     return;
   }
-  if (messageType === 'audio' && mediaUrl && insertedMessage) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
+  if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer won the race
+  await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
+  if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
 }
 
 // deno-lint-ignore no-explicit-any

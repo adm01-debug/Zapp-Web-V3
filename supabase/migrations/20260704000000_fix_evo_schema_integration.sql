@@ -416,8 +416,16 @@ DECLARE
   v_new_id  uuid;
   v_instance text;
 BEGIN
-  -- Resolve instance_name: explicit > first connected+active instance > fallback
+  -- Resolve instance_name: explicit > from whatsapp_connection_id > first connected+active instance
   v_instance := NULLIF(TRIM(COALESCE(NEW.instance_name, '')), '');
+
+  IF v_instance IS NULL AND NEW.whatsapp_connection_id IS NOT NULL THEN
+    SELECT wc.instance_name INTO v_instance
+    FROM public.whatsapp_connections wc
+    WHERE wc.id = NEW.whatsapp_connection_id
+    LIMIT 1;
+  END IF;
+
   IF v_instance IS NULL THEN
     SELECT wc.instance_name INTO v_instance
     FROM public.whatsapp_connections wc
@@ -498,6 +506,59 @@ BEGIN
     RAISE NOTICE 'Dropped stale uq_messages_ext_conn from public.messages base table';
   END IF;
 END $$;
+
+-- ---------------------------------------------------------------------------
+-- Part 10: Patch messages_update_trigger — add missing field mappings
+-- The original function (20260703_critical_10_steps_fix.sql) did not map:
+--   • status_updated_at → status_at
+--   • is_deleted = TRUE  → deleted_at = now()
+--   • agent_id, transcription, transcription_status, media_url, message_type
+-- Without this patch, deletes through the VIEW left deleted_at = NULL so the
+-- message remained visible (WHERE em.deleted_at IS NULL). Status timestamps
+-- were also silently discarded.
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.messages_update_trigger()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, evo
+AS $$
+BEGIN
+  UPDATE evo.evolution_messages
+  SET
+    is_read               = COALESCE(NEW.is_read,        OLD.is_read),
+    status                = CASE WHEN NEW.status IS DISTINCT FROM OLD.status THEN NEW.status ELSE status END,
+    -- Map VIEW alias status_updated_at → actual column status_at
+    status_at             = COALESCE(NEW.status_updated_at, status_at),
+    -- Map VIEW-derived boolean is_deleted → actual column deleted_at
+    deleted_at            = CASE
+                              WHEN NEW.is_deleted = TRUE AND deleted_at IS NULL THEN now()
+                              ELSE deleted_at
+                            END,
+    -- Map VIEW-derived boolean is_edited → actual column edited_at
+    edited_at             = CASE
+                              WHEN NEW.is_edited = TRUE AND edited_at IS NULL THEN now()
+                              ELSE edited_at
+                            END,
+    is_starred            = COALESCE(NEW.is_starred,     OLD.is_starred),
+    is_important          = COALESCE(NEW.is_important,   OLD.is_important),
+    follow_up_at          = NEW.follow_up_at,
+    follow_up_done        = COALESCE(NEW.follow_up_done, OLD.follow_up_done),
+    category              = COALESCE(NEW.category,       OLD.category),
+    sentiment             = COALESCE(NEW.sentiment,      OLD.sentiment),
+    tags                  = COALESCE(NEW.tags,           OLD.tags),
+    notes                 = NEW.notes,
+    content               = CASE WHEN NEW.content IS DISTINCT FROM OLD.content THEN NEW.content ELSE content END,
+    media_url             = COALESCE(NEW.media_url,      media_url),
+    message_type          = COALESCE(NEW.message_type,   message_type),
+    agent_id              = COALESCE(NEW.agent_id,       agent_id),
+    transcription         = COALESCE(NEW.transcription,  transcription),
+    transcription_status  = COALESCE(NEW.transcription_status, transcription_status),
+    push_name             = COALESCE(NEW.push_name,      push_name),
+    updated_at            = now()
+  WHERE id = OLD.id;
+  RETURN NEW;
+END;
+$$;
 
 -- Verification
 -- NOTE: checks for ANY INSTEAD OF trigger of each event type (not a specific name)

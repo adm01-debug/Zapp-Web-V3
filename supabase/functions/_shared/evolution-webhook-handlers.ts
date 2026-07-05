@@ -489,7 +489,7 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
     if (contact) {
       const now = new Date().toISOString();
       await supabase.schema('evo').from('evolution_messages')
-        .update({ is_deleted: true, status: 'deleted', status_updated_at: now, updated_at: now })
+        .update({ deleted_at: now, status: 'deleted', status_at: now, updated_at: now })
         .eq('contact_id', contact.id).eq('instance_name', instance);
     }
   }
