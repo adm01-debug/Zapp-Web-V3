@@ -4,7 +4,7 @@
  * Provides CRUD, status management, and smart assignment.
  */
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import { getLogger } from '@/lib/logger';
@@ -100,17 +100,16 @@ export function useAgents(workspaceId?: string) {
   const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
-      let q: any = (supabase as any)
-        .from('agents')
-        .select('id,user_id,name,mission,persona,avatar_emoji,model,status,version,config,tags,is_template,template_category,workspace_id,created_at,updated_at')
-        .not('status', 'in', '("deprecated","archived")')
-        .order('updated_at', { ascending: false });
-
-      if (workspaceId) q = q.eq('workspace_id', workspaceId);
-
-      const { data, error } = await q;
+      const { data, error } = await safeClient.from('agents', (q) => {
+        let query = q
+          .select('id,user_id,name,mission,persona,avatar_emoji,model,status,version,config,tags,is_template,template_category,workspace_id,created_at,updated_at')
+          .not('status', 'in', '("deprecated","archived")')
+          .order('updated_at', { ascending: false });
+        if (workspaceId) query = query.eq('workspace_id', workspaceId);
+        return query;
+      });
       if (error) throw error;
-      setAgents((data ?? []).map((r: any) => mapRow(r)));
+      setAgents((data ?? []).map((r) => mapRow(r as Record<string, unknown>)));
     } catch (err) {
       log.error('Error loading agents', err);
     } finally { setLoading(false); }
@@ -121,10 +120,9 @@ export function useAgents(workspaceId?: string) {
   // ── Promote to production ────────────────────────────────────────────
 
   const promoteToProduction = useCallback(async (id: string) => {
-    const { error } = await (supabase as any)
-      .from('agents')
-      .update({ status: 'production', updated_at: new Date().toISOString() })
-      .eq('id', id);
+    const { error } = await safeClient.from('agents', (q) =>
+      q.update({ status: 'production', updated_at: new Date().toISOString() }).eq('id', id)
+    );
 
     if (error) throw error;
     setAgents((prev) => prev.map((a) => a.id === id ? { ...a, status: 'production' } : a));
@@ -134,10 +132,9 @@ export function useAgents(workspaceId?: string) {
   // ── Deprecate ────────────────────────────────────────────────────────
 
   const deprecateAgent = useCallback(async (id: string) => {
-    const { error } = await (supabase as any)
-      .from('agents')
-      .update({ status: 'deprecated', updated_at: new Date().toISOString() })
-      .eq('id', id);
+    const { error } = await safeClient.from('agents', (q) =>
+      q.update({ status: 'deprecated', updated_at: new Date().toISOString() }).eq('id', id)
+    );
     if (error) throw error;
     setAgents((prev) => prev.filter((a) => a.id !== id));
     toast({ title: '⚠️ Agente descontinuado', duration: 3_000 });
@@ -146,7 +143,7 @@ export function useAgents(workspaceId?: string) {
   // ── Smart assign ─────────────────────────────────────────────────────
 
   const smartAssignToConversation = useCallback(async (conversationId: string) => {
-    const { data, error } = await (supabase as any).rpc('smart_assign_conversation', {
+    const { data, error } = await safeClient.rpc<Record<string, unknown>>('smart_assign_conversation', {
       p_conversation_id: conversationId,
       p_workspace_id:    workspaceId ?? null,
     });

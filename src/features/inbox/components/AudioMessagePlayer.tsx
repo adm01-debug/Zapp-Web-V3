@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Loader2, FileText, Volume2, RefreshCw, Sparkles, CheckCircle2, AlertCircle, Wand2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { log } from '@/lib/logger';
@@ -66,9 +67,9 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
         event: '*',
         schema: 'zapp',
         table: 'voice_conversion_queue',
-        filter: `message_id=eq.${messageId}` 
+        filter: `message_id=eq.${messageId}`
       }, (payload) => {
-        const newData = payload.new as any;
+        const newData = payload.new as { id?: string; status?: string; error_message?: string | null; output_audio_url?: string | null };
         if (newData.status) setVoiceStatus(newData.status);
         if (newData.error_message) setVoiceError(newData.error_message);
         if (newData.id) setVoiceTaskId(newData.id);
@@ -84,18 +85,18 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
       .subscribe();
       
     const fetchStatus = async () => {
-      const { data } = await (supabase as any)
-        .from('voice_conversion_queue')
-        .select('*')
-        .eq('message_id', messageId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (data) {
-        setVoiceStatus((data as any).status);
-        setVoiceError((data as any).error_message);
-        setVoiceTaskId((data as any).id);
+      const { data } = await safeClient.from('voice_conversion_queue', (q) =>
+        q.select('id, status, error_message')
+         .eq('message_id', messageId)
+         .order('created_at', { ascending: false })
+         .limit(1)
+         .maybeSingle()
+      );
+      const row = data as { id?: string; status?: string; error_message?: string | null } | null;
+      if (row) {
+        if (row.status) setVoiceStatus(row.status);
+        if (row.error_message) setVoiceError(row.error_message);
+        if (row.id) setVoiceTaskId(row.id);
       }
     };
     
@@ -187,8 +188,7 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                // Simula clique no centro se não houver coordenadas
-                handleSeek({ currentTarget: e.currentTarget, clientX: e.currentTarget.getBoundingClientRect().left + (e.currentTarget.clientWidth * (progress / 100)) } as any);
+                handleSeek({ currentTarget: e.currentTarget, clientX: e.currentTarget.getBoundingClientRect().left + (e.currentTarget.clientWidth * (progress / 100)) } as unknown as React.MouseEvent<HTMLDivElement>);
               }
               if (e.key === 'ArrowRight') {
                 e.preventDefault();
