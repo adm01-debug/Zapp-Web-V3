@@ -437,9 +437,9 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
   // Emit realtime broadcast on FATOR X bus for sub-100ms incoming-call alert.
   // Payload is minimal (no PII besides JID); client resolves name/avatar via rpc_get_contact.
   try {
-    const externalUrl = Deno.env.get('EXTERNAL_SUPABASE_URL');
-    const externalKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')
-      || Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+    const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+    const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
+      || (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
     if (externalUrl && externalKey) {
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       const externalAdmin = createClient(externalUrl, externalKey, {

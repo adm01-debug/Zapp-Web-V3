@@ -78,8 +78,8 @@ async function fetchKnowledgeContext(
 }
 
 async function fetchExternalTags(): Promise<ExtTag[]> {
-  const url = Deno.env.get("EXTERNAL_SUPABASE_URL");
-  const key = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+  const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   if (!url || !key) return [];
   try {
     const ext = createClient(url, key);

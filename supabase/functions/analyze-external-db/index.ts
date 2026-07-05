@@ -106,8 +106,8 @@ Deno.serve(async (req) => {
   if (denied) return denied
 
   try {
-    const url = Deno.env.get('EXTERNAL_SUPABASE_URL');
-    const key = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+    const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+    const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
 
     if (!url || !key) {
       return new Response(JSON.stringify({ error: 'Missing external DB credentials' }), {
