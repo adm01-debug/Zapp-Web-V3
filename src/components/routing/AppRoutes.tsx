@@ -59,6 +59,7 @@ const ChatPopup = lazyWithRetry(() => import("@/pages/ChatPopup"));
 const InboxPage = lazyWithRetry(() => import("@/pages/inbox/InboxPage"));
 const AdminConnectionsPage = lazyWithRetry(() => import("@/pages/admin/Connections"));
 const PerformanceDashboard = lazyWithRetry(() => import("@/pages/admin/PerformanceDashboard"));
+const OAuthConsent = lazyWithRetry(() => import("@/pages/OAuthConsent"));
 
 function RouteLoadingFallback() {
   return (
@@ -85,6 +86,7 @@ export function AppRoutes() {
         <Route path="/design-system" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><DesignSystem /></ProtectedRoute>} />
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />

@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://uqysyzndkfiwfztbqvsl.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "zapp-web-mcp",
+      "version": "0.1.0",
+      "title": "ZAPP Web MCP"
+    },
+    "tools": [
+      {
+        "name": "whoami",
+        "title": "Quem sou eu",
+        "description": "Retorna informações do usuário autenticado que está chamando o MCP (ID, e-mail, client ID).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_whatsapp_connections",
+        "title": "Listar conexões WhatsApp",
+        "description": "Lista as conexões WhatsApp (instâncias) visíveis para o usuário autenticado, respeitando RLS.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Máximo de conexões a retornar (padrão 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_contacts",
+        "title": "Buscar contatos",
+        "description": "Busca contatos por nome ou telefone (LIKE case-insensitive). Respeita RLS do usuário.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Termo de busca (nome ou telefone)."
+            },
+            "limit": {
+              "description": "Máximo de resultados (padrão 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
