@@ -181,7 +181,10 @@ serve(async (req) => {
 
       // Send parameters alongside the audio blob
       const formData = new FormData();
-      formData.append('inputs', new Blob([audioBytes], { type: 'audio/wav' }), 'audio.wav');
+      // Cast BlobPart: Deno strict tipa Uint8Array como ArrayBufferLike (inclui
+      // SharedArrayBuffer) e o construtor Blob exige ArrayBuffer — runtime é
+      // idêntico, só a assinatura de tipo diverge.
+      formData.append('inputs', new Blob([audioBytes as BlobPart], { type: 'audio/wav' }), 'audio.wav');
       if (Object.keys(hfParams).length > 0) {
         formData.append('parameters', JSON.stringify(hfParams));
       }
