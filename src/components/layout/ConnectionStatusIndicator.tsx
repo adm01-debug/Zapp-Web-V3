@@ -141,7 +141,10 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     }
     const { data, error } = await supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, instance_name, name, phone_number, status');
+      .select('id, instance_id, instance_name, name, phone_number, status') as unknown as {
+        data: Array<{ id: string; instance_id: string | null; instance_name: string | null; name: string | null; phone_number: string | null; status: string | null }> | null;
+        error: { message: string } | null;
+      };
     if (error) {
       log.warn('Failed to fetch connections', { error: error.message });
       return;
