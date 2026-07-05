@@ -5,18 +5,9 @@
  * Uses Supabase Realtime to push live updates.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
+import { contactAuditFrom } from './contactAuditUtils';
 import { getLogger } from '@/lib/logger';
-
-interface AuditDynQuery extends PromiseLike<{ data: unknown; error: unknown }> {
-  select(cols: string): AuditDynQuery;
-  eq(col: string, val: unknown): AuditDynQuery;
-  order(col: string, opts: { ascending: boolean }): AuditDynQuery;
-  limit(n: number): AuditDynQuery;
-}
-const auditFrom = () =>
-  (supabase as unknown as { from: (t: string) => AuditDynQuery }).from('contact_audit_log');
 
 import { sanitizeText } from '@/lib/sanitize';
 import { formatPhoneForDisplay } from '@/lib/phoneUtils';
@@ -100,7 +91,7 @@ export function useContactActivityFeed({
       const items: ActivityItem[] = [];
 
       // 1. Audit log (contact changes)
-      const { data: auditData , error } = await auditFrom()
+      const { data: auditData , error } = await contactAuditFrom()
         .select('id,action,changed_at,changed_by,new_values,profiles:changed_by(full_name)')
         .eq('contact_id', contactId)
         .order('changed_at', { ascending: false })

@@ -9,17 +9,8 @@ import { getLogger } from '@/lib/logger';
 
 import { Button } from '@/components/ui/button';
 import { History, RefreshCw, ChevronDown, ChevronUp, Shield } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { contactAuditFrom } from './contactAuditUtils';
 import { sanitizeText } from '@/lib/sanitize';
-
-interface AuditQuery extends PromiseLike<{ data: unknown; error: unknown }> {
-  select(cols: string): AuditQuery;
-  eq(col: string, val: unknown): AuditQuery;
-  order(col: string, opts: { ascending: boolean }): AuditQuery;
-  limit(n: number): AuditQuery;
-}
-const auditFrom = () =>
-  (supabase as unknown as { from: (t: string) => AuditQuery }).from('contact_audit_log');
 
 const log = getLogger('AuditLogPanel');
 
@@ -65,7 +56,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await auditFrom()
+      const { data, error } = await contactAuditFrom()
         .select('id,action,field_name,old_value,new_value,changed_by,changed_at,metadata')
         .eq('contact_id', contactId)
         .order('changed_at', { ascending: false })

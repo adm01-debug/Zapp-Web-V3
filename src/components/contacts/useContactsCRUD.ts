@@ -31,6 +31,7 @@ export interface Contact {
   phone: string;
   email: string | null;
   contact_type: string | null;
+  tags?: string[];
 }
 
 export function useContactsCRUD() {

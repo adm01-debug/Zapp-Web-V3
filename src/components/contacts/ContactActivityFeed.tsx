@@ -4,19 +4,10 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
-import { supabase } from '@/integrations/supabase/client';
 import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
+import { contactAuditFrom } from './contactAuditUtils';
 import { getLogger } from '@/lib/logger';
-
-interface AuditQuery extends PromiseLike<{ data: unknown; error: unknown }> {
-  select(cols: string): AuditQuery;
-  eq(col: string, val: unknown): AuditQuery;
-  order(col: string, opts: { ascending: boolean }): AuditQuery;
-  limit(n: number): AuditQuery;
-}
-const auditFrom = () =>
-  (supabase as unknown as { from: (t: string) => AuditQuery }).from('contact_audit_log');
 
 import { Button } from '@/components/ui/button';
 import { MessageCircle, FileText, Shield, RotateCcw, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
@@ -64,7 +55,7 @@ export const ContactActivityFeed: React.FC<{ contactId: string; maxItems?: numbe
       }
 
       // Audit log
-      const { data: audit , error: auditErr } = await auditFrom().select('id,action,field_name,changed_at').eq('contact_id', contactId).order('changed_at', { ascending: false }).limit(30);
+      const { data: audit , error: auditErr } = await contactAuditFrom().select('id,action,field_name,changed_at').eq('contact_id', contactId).order('changed_at', { ascending: false }).limit(30);
       for (const e of (audit ?? []) as Record<string, unknown>[]) {
         const field = String(e.field_name ?? ''); const action = String(e.action ?? '');
         if (action === 'INSERT') { all.push({ id: `a-${e.id}`, type: 'edit', label: 'Contato criado', timestamp: String(e.changed_at) }); }
