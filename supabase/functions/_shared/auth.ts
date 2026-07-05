@@ -44,16 +44,48 @@ export function getBearer(req: Request): string | null {
   return raw.slice(7).trim() || null;
 }
 
+function readSupabaseUrl(name: string): string | null {
+  const raw = Deno.env.get(name)?.trim();
+  if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    return new URL(withProtocol).origin;
+  } catch {
+    return null;
+  }
+}
+
+function readSecret(name: string): string | null {
+  const raw = Deno.env.get(name)?.trim();
+  if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
+  return raw;
+}
+
 export async function requireUser(req: Request): Promise<AuthedUser | Response> {
   const token = getBearer(req);
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
 
+  const tokenPayload = (() => {
+    try {
+      const [, payload] = token.split('.');
+      if (!payload) return null;
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      return JSON.parse(atob(padded)) as { role?: string; sub?: string };
+    } catch {
+      return null;
+    }
+  })();
+
+  if (!tokenPayload?.sub || tokenPayload.role === 'anon') {
+    return errorResponse("Unauthorized: user session required", 401, req);
+  }
+
   // Prefer self-hosted when configured — the published frontend uses it and
   // Cloud validation would falsely reject those JWTs. Fall back to Cloud.
-  const selfUrl = Deno.env.get("SELFHOSTED_SUPABASE_URL");
-  const selfAnon = Deno.env.get("SELFHOSTED_SUPABASE_ANON_KEY");
-  const cloudUrl = Deno.env.get("SUPABASE_URL");
-  const cloudAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  const selfUrl = readSupabaseUrl("SELFHOSTED_SUPABASE_URL") ?? readSupabaseUrl("EXTERNAL_SUPABASE_URL");
+  const selfAnon = readSecret("SELFHOSTED_SUPABASE_ANON_KEY") ?? readSecret("EXTERNAL_SUPABASE_ANON_KEY");
+  const cloudUrl = readSupabaseUrl("SUPABASE_URL");
+  const cloudAnon = readSecret("SUPABASE_ANON_KEY") ?? readSecret("SUPABASE_PUBLISHABLE_KEY");
 
   const candidates: Array<{ url: string; key: string; label: string }> = [];
   if (selfUrl && selfAnon) candidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted" });
