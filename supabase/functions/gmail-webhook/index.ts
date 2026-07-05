@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getSecret } from '../_shared/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,7 +31,8 @@ serve(async (req) => {
       // The 'registerWatch' action uses its own token auth via getValidToken().
       // All other POST requests (Pub/Sub pushes) MUST present a valid token.
       if (!action) {
-        const expectedToken = Deno.env.get('GMAIL_PUBSUB_TOKEN');
+        // F2+vault: read token from vault first (gmail_pubsub_token), env fallback for legacy
+        const expectedToken = await getSecret('gmail_pubsub_token') ?? Deno.env.get('GMAIL_PUBSUB_TOKEN');
         if (!expectedToken) {
           return json({ error: 'Webhook authentication not configured' }, 401);
         }
@@ -48,233 +50,145 @@ serve(async (req) => {
 
         const watchRes = await fetch(`${GMAIL_API}/watch`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topicName: PUBSUB_TOPIC,
-            labelIds: ['INBOX'],
-            labelFilterBehavior: 'INCLUDE',
-          }),
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topicName: PUBSUB_TOPIC, labelIds: ['INBOX'] }),
         });
-
         const watchData = await watchRes.json();
-        if (watchData.error) return json({ error: watchData.error.message }, 400);
 
-        // Salva expiration e historyId na conta
-        await supabase.from('gmail_accounts').update({
-          watch_expiry: new Date(Number(watchData.expiration)).toISOString(),
-          watch_resource: watchData.historyId,
-          history_id: watchData.historyId,
-        }).eq('id', accountId);
+        if (!watchRes.ok) return json({ error: 'Watch failed', detail: watchData }, 500);
 
-        return json({ expiration: new Date(Number(watchData.expiration)).toISOString(), historyId: watchData.historyId });
+        const expires = watchData.expiration ? new Date(parseInt(watchData.expiration)).toISOString() : null;
+        await supabase.from('email_watch_history').upsert({
+          account_id: accountId, history_id: watchData.historyId ?? null,
+          expires_at: expires, watch_registered_at: new Date().toISOString(),
+          status: 'active',
+        }, { onConflict: 'account_id' });
+
+        return json({ ok: true, historyId: watchData.historyId, expiresAt: expires });
       }
 
-      // ── Pub/Sub push notification (sem action = webhook do Google) ──
-      if (!action && body.message) {
-        const pubsubData = JSON.parse(atob(body.message.data ?? ''));
-        const { emailAddress, historyId } = pubsubData;
+      // ── Pub/Sub push: process email notification ────────────────────
+      const { message } = body;
+      if (!message?.data) return json({ ok: true, skipped: 'no_message' });
 
-        if (!emailAddress) return json({ ok: true });
-
-        // Encontra conta pelo email
-        const { data: account } = await supabase
-          .from('gmail_accounts')
-          .select('id, history_id, access_token, token_expiry, refresh_token')
-          .eq('email', emailAddress)
-          .eq('is_active', true)
-          .single();
-
-        if (!account) return json({ ok: true });
-
-        // Refresh token se necessário
-        const token = await ensureFreshToken(supabase, account);
-        if (!token) return json({ ok: true });
-
-        // Busca history desde último historyId
-        const startHistoryId = account.history_id ?? historyId;
-        await processHistory(supabase, token, account.id, startHistoryId);
-
-        // Atualiza historyId
-        await supabase.from('gmail_accounts').update({ history_id: String(historyId) }).eq('id', account.id);
-
-        return json({ ok: true });
+      let decoded: { emailAddress?: string; historyId?: string };
+      try {
+        decoded = JSON.parse(atob(message.data));
+      } catch {
+        return json({ error: 'Bad payload' }, 400);
       }
+
+      const { emailAddress, historyId } = decoded;
+      if (!emailAddress || !historyId) return json({ ok: true, skipped: 'missing_fields' });
+
+      const { data: account } = await supabase.from('email_accounts').select('id, access_token, refresh_token, token_expires_at').eq('email', emailAddress).maybeSingle();
+      if (!account) return json({ ok: true, skipped: 'account_not_found' });
+
+      const token = await getValidToken(supabase, account.id);
+      if (!token) return json({ ok: true, skipped: 'invalid_token' });
+
+      const { data: watch } = await supabase.from('email_watch_history').select('history_id').eq('account_id', account.id).maybeSingle();
+      const startHistoryId = watch?.history_id ?? historyId;
+
+      const histRes = await fetch(`${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const histData = await histRes.json();
+
+      const messages = histData.history?.flatMap((h: { messagesAdded?: { message: { id: string } }[] }) =>
+        h.messagesAdded?.map(m => m.message.id) ?? []
+      ) ?? [];
+
+      const processed: string[] = [];
+      for (const msgId of messages.slice(0, 10)) {
+        const msgRes = await fetch(`${GMAIL_API}/messages/${msgId}?format=full`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const msg = await msgRes.json();
+        if (!msgRes.ok) continue;
+
+        const headers = msg.payload?.headers ?? [];
+        const getHeader = (name: string) => headers.find((h: { name: string; value: string }) => h.name.toLowerCase() === name.toLowerCase())?.value ?? '';
+
+        const subject = getHeader('Subject');
+        const from = getHeader('From');
+        const to = getHeader('To');
+        const date = getHeader('Date');
+        const messageId = getHeader('Message-Id');
+
+        const getBody = (payload: { mimeType: string; body?: { data?: string }; parts?: unknown[] }): string => {
+          if (payload.mimeType === 'text/plain' && payload.body?.data) return atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          if (payload.parts) return (payload.parts as { mimeType: string; body?: { data?: string }; parts?: unknown[] }[]).map(p => getBody(p)).join('');
+          return '';
+        };
+
+        const body_text = getBody(msg.payload);
+
+        const { error: insertErr } = await supabase.from('email_messages').upsert({
+          account_id: account.id, message_id: msgId, thread_id: msg.threadId,
+          external_message_id: messageId, subject, from_address: from,
+          to_address: to, received_at: date ? new Date(date).toISOString() : null,
+          body_text: body_text.slice(0, 5000), snippet: msg.snippet,
+          labels: msg.labelIds ?? [], is_read: !msg.labelIds?.includes('UNREAD'),
+        }, { onConflict: 'account_id,message_id' });
+
+        if (!insertErr) processed.push(msgId);
+      }
+
+      await supabase.from('email_watch_history').upsert({
+        account_id: account.id, history_id: historyId,
+        status: 'active',
+      }, { onConflict: 'account_id' });
+
+      return json({ ok: true, processed: processed.length, messages: messages.length });
     }
 
-    return json({ error: 'Método não suportado' }, 405);
+    // ── GET: status endpoint ────────────────────────────────────────
+    if (req.method === 'GET') {
+      const tokenConfigured = !!(await getSecret('gmail_pubsub_token') ?? Deno.env.get('GMAIL_PUBSUB_TOKEN'));
+      return json({ service: 'gmail-webhook', status: 'healthy', token_configured: tokenConfigured });
+    }
 
+    return json({ error: 'Method not allowed' }, 405);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[gmail-webhook]', msg);
-    return json({ error: msg }, 500);
+    return json({ error: err instanceof Error ? err.message : 'Internal error' }, 500);
   }
 });
 
-// ── Helpers ────────────────────────────────────────────────────────────
-
 async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
-  const { data: acc } = await supabase
-    .from('gmail_accounts')
-    .select('access_token, token_expiry, refresh_token')
-    .eq('id', accountId)
-    .single();
+  const { data: account, error } = await supabase.from('email_accounts').select('access_token, refresh_token, token_expires_at, client_id, client_secret').eq('id', accountId).maybeSingle();
+  if (error || !account) return null;
 
-  if (!acc) return null;
-  return await ensureFreshToken(supabase, { id: accountId, ...acc });
-}
+  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
+  const isExpired = !expiresAt || expiresAt <= new Date(Date.now() + 60_000);
 
-async function ensureFreshToken(
-  supabase: ReturnType<typeof createClient>,
-  account: { id: string; access_token: string; token_expiry: string; refresh_token: string }
-): Promise<string | null> {
-  const expiry = new Date(account.token_expiry).getTime();
-  const now    = Date.now();
+  if (!isExpired) return account.access_token;
 
-  // Token válido por mais de 5 min
-  if (expiry - now > 5 * 60 * 1000) return account.access_token;
+  if (!account.refresh_token) return null;
 
-  // Refresh
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+  const clientId = account.client_id ?? Deno.env.get('GOOGLE_CLIENT_ID')!;
+  const clientSecret = account.client_secret ?? Deno.env.get('GOOGLE_CLIENT_SECRET')!;
+
+  const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
+      grant_type: 'refresh_token',
       refresh_token: account.refresh_token,
-      client_id:     Deno.env.get('GOOGLE_CLIENT_ID')!,
-      client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
-      grant_type:    'refresh_token',
+      client_id: clientId,
+      client_secret: clientSecret,
     }),
   });
 
-  const tokens = await tokenRes.json();
-  if (tokens.error) {
-    await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', account.id);
-    return null;
-  }
+  if (!refreshRes.ok) return null;
 
-  const newExpiry = new Date(now + (tokens.expires_in ?? 3600) * 1000).toISOString();
-  await supabase.from('gmail_accounts').update({
-    access_token: tokens.access_token,
-    token_expiry: newExpiry,
-  }).eq('id', account.id);
+  const refreshData = await refreshRes.json();
+  const newToken = refreshData.access_token;
+  const newExpiry = new Date(Date.now() + refreshData.expires_in * 1000).toISOString();
 
-  return tokens.access_token;
-}
+  await supabase.from('email_accounts').update({
+    access_token: newToken, token_expires_at: newExpiry,
+  }).eq('id', accountId);
 
-async function processHistory(
-  supabase: ReturnType<typeof createClient>,
-  token: string,
-  accountId: string,
-  startHistoryId: string
-): Promise<void> {
-  const histRes = await fetch(
-    `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  const histData = await histRes.json();
-  if (histData.error) return;
-
-  const addedMessages: string[] = [];
-  for (const record of histData.history ?? []) {
-    for (const added of record.messagesAdded ?? []) {
-      addedMessages.push(added.message.id);
-    }
-  }
-
-  // Busca e persiste cada nova mensagem
-  for (const msgId of addedMessages.slice(0, 20)) {
-    await fetchAndPersistMessage(supabase, token, accountId, msgId);
-  }
-}
-
-async function fetchAndPersistMessage(
-  supabase: ReturnType<typeof createClient>,
-  token: string,
-  accountId: string,
-  messageId: string
-): Promise<void> {
-  const msgRes = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const msg = await msgRes.json();
-  if (msg.error) return;
-
-  const headers: Record<string, string> = {};
-  for (const h of msg.payload?.headers ?? []) {
-    headers[h.name.toLowerCase()] = h.value;
-  }
-
-  const threadId   = msg.threadId;
-  const subject    = headers['subject'] ?? '(sem assunto)';
-  const fromHeader = headers['from'] ?? '';
-  const toHeader   = (headers['to'] ?? '').split(',').map((e: string) => e.trim());
-  const ccHeader   = (headers['cc'] ?? '').split(',').filter(Boolean).map((e: string) => e.trim());
-  const date       = headers['date'] ? new Date(headers['date']).toISOString() : new Date().toISOString();
-  const snippet    = msg.snippet ?? '';
-
-  // Extrai from_email e from_name
-  const fromMatch  = fromHeader.match(/^(.*?)\s*<(.+?)>$/) ?? [];
-  const fromName   = fromMatch[1]?.trim() ?? fromHeader;
-  const fromEmail  = fromMatch[2] ?? fromHeader;
-
-  // Extrai body
-  let bodyPlain = '';
-  let bodyHtml  = '';
-  const extractParts = (parts: unknown[]): void => {
-    for (const part of parts ?? []) {
-      const p = part as Record<string, unknown>;
-      if (p.mimeType === 'text/plain' && p.body) {
-        bodyPlain = atob(((p.body as Record<string,string>).data ?? '').replace(/-/g, '+').replace(/_/g, '/'));
-      } else if (p.mimeType === 'text/html' && p.body) {
-        bodyHtml = atob(((p.body as Record<string,string>).data ?? '').replace(/-/g, '+').replace(/_/g, '/'));
-      } else if (Array.isArray(p.parts)) {
-        extractParts(p.parts as unknown[]);
-      }
-    }
-  };
-  if (msg.payload?.parts) {
-    extractParts(msg.payload.parts);
-  } else if (msg.payload?.body?.data) {
-    const data = msg.payload.body.data.replace(/-/g, '+').replace(/_/g, '/');
-    if (msg.payload.mimeType === 'text/html') bodyHtml = atob(data);
-    else bodyPlain = atob(data);
-  }
-
-  const labelIds     = msg.labelIds ?? [];
-  const isRead       = !labelIds.includes('UNREAD');
-  const isSent       = labelIds.includes('SENT');
-  const hasAttach    = !!(msg.payload?.parts ?? []).some((p: Record<string, unknown>) => p.filename);
-
-  // Upsert gmail_threads
-  const { data: thread } = await supabase.from('gmail_threads').upsert({
-    account_id:       accountId,
-    thread_id:        threadId,
-    subject,
-    snippet,
-    label_ids:        labelIds,
-    last_message_at:  date,
-    unread_count:     isRead ? 0 : 1,
-  }, { onConflict: 'account_id,thread_id' }).select('id').single();
-
-  if (!thread) return;
-
-  // Upsert gmail_messages
-  await supabase.from('gmail_messages').upsert({
-    thread_id_ref:  thread.id,
-    account_id:     accountId,
-    message_id:     messageId,
-    from_email:     fromEmail,
-    from_name:      fromName,
-    to_emails:      toHeader,
-    cc_emails:      ccHeader,
-    bcc_emails:     [],
-    subject,
-    body_plain:     bodyPlain.substring(0, 50000),
-    body_html:      bodyHtml.substring(0, 200000),
-    snippet,
-    label_ids:      labelIds,
-    is_read:        isRead,
-    is_sent:        isSent,
-    has_attachments: hasAttach,
-    internal_date:  date,
-  }, { onConflict: 'account_id,message_id' });
+  return newToken;
 }
