@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { supabase as _supabase } from '@/integrations/supabase/client';
-const supabase = _supabase as any;
+import { supabase } from '@/integrations/supabase/client';
+
+const db = supabase as unknown as { from: typeof supabase.from };
 import { type EmailMessage, type EmailThread } from '@/hooks/gmail/gmailTypes';
 import { EmailChatBubble } from '../email/EmailChatBubble';
 import { EmailSLABadge, SLAProgressBar } from '../email/EmailSLABadge';
@@ -35,12 +36,12 @@ export function EmailThreadView({ thread, accountId, onBack, className }: EmailT
     if (!thread) { setMessages([]); return; }
 
     setIsLoading(true);
-    (supabase as any)
-      .from('email_messages')
+    db
+      .from('email_messages' as Parameters<typeof supabase.from>[0])
       .select('*, email_attachments(*)')
       .eq('thread_id_ref', thread.id)
       .order('internal_date', { ascending: true })
-      .then(({ data, error }: any) => {
+      .then(({ data, error }: { data: unknown; error: { message: string } | null }) => {
         setIsLoading(false);
         if (error || !data) return;
         setMessages(data as EmailMessage[]);
@@ -48,9 +49,9 @@ export function EmailThreadView({ thread, accountId, onBack, className }: EmailT
         // Auto-marcar como lido
         const unreadIds = (data as EmailMessage[]).filter((m) => !m.is_read).map((m) => m.message_id);
         if (unreadIds.length > 0) {
-          emailMarkRead({ accountId, messageIds: unreadIds, read: true } as any).catch(() => {});
-          (supabase as any).from('email_messages').update({ is_read: true }).in('message_id', unreadIds).then(() => {}).catch(() => {});
-          (supabase as any).from('email_threads').update({ unread_count: 0 }).eq('id', thread.id).then(() => {}).catch(() => {});
+          emailMarkRead({ accountId, messageIds: unreadIds, read: true }).catch(() => {});
+          db.from('email_messages' as Parameters<typeof supabase.from>[0]).update({ is_read: true }).in('message_id', unreadIds).then(() => {}).catch(() => {});
+          db.from('email_threads' as Parameters<typeof supabase.from>[0]).update({ unread_count: 0 }).eq('id', thread.id).then(() => {}).catch(() => {});
         }
       });
   }, [thread?.id, accountId]);

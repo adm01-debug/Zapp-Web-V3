@@ -75,6 +75,19 @@ const STATUS_META: Record<string, { label: string; icon: LucideIcon; variant: Ba
 
 type AutomationStatus = "pending" | "accepted" | "executed" | "dismissed" | "failed";
 
+// Flexible query builder for tables not yet in generated Supabase types
+interface DynQuery extends PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }> {
+  select(cols: string): DynQuery;
+  order(col: string, opts: { ascending: boolean }): DynQuery;
+  range(from: number, to: number): DynQuery;
+  eq(col: string, val: unknown): DynQuery;
+  ilike(col: string, val: string): DynQuery;
+  gte(col: string, val: string): DynQuery;
+  lte(col: string, val: string): DynQuery;
+}
+const dynFrom = (table: string) =>
+  (supabase as unknown as { from: (t: string) => DynQuery }).from(table);
+
 const PAGE_SIZE = 50;
 
 export default function AdminAutomationLogsPage() {
@@ -96,9 +109,8 @@ export default function AdminAutomationLogsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    // automation_executions is not yet in generated types
-    let q = (supabase as unknown as { from: typeof supabase.from })
-      .from('automation_executions' as Parameters<typeof supabase.from>[0])
+    // automation_executions is not yet in generated types — use dynFrom
+    let q = dynFrom('automation_executions')
       .select("*")
       .order("created_at", { ascending: false })
       .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
@@ -117,13 +129,13 @@ export default function AdminAutomationLogsPage() {
     if (!mountedRef.current) return;
     if (error) {
       // Silently show empty state when table doesn't exist yet (pending migration)
-      const isMissing = error.message?.includes('does not exist') || (error as { code?: string }).code === '42P01';
+      const isMissing = error.message?.includes('does not exist') || error.code === '42P01';
       if (!isMissing) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
       }
       setRows([]);
     } else {
-      setRows((data ?? []) as ExecutionRow[]);
+      setRows((data as unknown as ExecutionRow[]) ?? []);
     }
     setLoading(false);
   }, [page, filterRule, filterStatus, filterJid, filterFrom, filterTo, toast]);
@@ -270,9 +282,10 @@ export default function AdminAutomationLogsPage() {
             )}
             {rows.map((r) => {
               const triggerType =
-                r.rule_snapshot?.trigger_type ?? r.trigger_payload?.trigger_type ?? "—";
+                (r.rule_snapshot?.trigger_type as string | undefined) ??
+                (r.trigger_payload?.trigger_type as string | undefined) ?? "—";
               const ruleName =
-                r.rule_snapshot?.name ??
+                (r.rule_snapshot?.name as string | undefined) ??
                 (r.rule_id ? ruleNameById[r.rule_id] : null) ??
                 "(regra removida)";
               const tagsCount = (r.applied_tags ?? []).length;
@@ -342,8 +355,8 @@ export default function AdminAutomationLogsPage() {
               <Section title="Regra (snapshot no disparo)">
                 {detail.rule_snapshot ? (
                   <>
-                    <KV k="Nome" v={detail.rule_snapshot.name ?? "—"} />
-                    <KV k="Gatilho" v={detail.rule_snapshot.trigger_type ?? "—"} />
+                    <KV k="Nome" v={(detail.rule_snapshot.name as string | undefined) ?? "—"} />
+                    <KV k="Gatilho" v={(detail.rule_snapshot.trigger_type as string | undefined) ?? "—"} />
                     <KV k="Prioridade" v={String(detail.rule_snapshot.priority ?? "—")} />
                     <KV k="Cooldown (s)" v={String(detail.rule_snapshot.cooldown_seconds ?? "—")} />
                     <Pre title="Condições" data={detail.rule_snapshot.trigger_config ?? {}} />
