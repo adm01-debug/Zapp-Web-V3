@@ -29,6 +29,7 @@ export interface DiagnosticResult {
 export interface ConnectionInfo {
   id: string;
   instance_id: string;
+  instance_name: string | null;
   phone_number: string | null;
   status: string;
   health_status: string | null;

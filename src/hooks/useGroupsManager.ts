@@ -28,7 +28,7 @@ export function useGroupsManager() {
   }, []);
 
   const fetchConnections = useCallback(async () => {
-    const { data, error } = await supabase.from('whatsapp_connections').select('id, name, phone_number, instance_id').order('name', { ascending: true });
+    const { data, error } = await supabase.from('whatsapp_connections').select('id, name, phone_number, instance_id, instance_name').order('name', { ascending: true });
     if (error) log.error('Error fetching connections:', error);
     else setConnections(data || []);
   }, []);
