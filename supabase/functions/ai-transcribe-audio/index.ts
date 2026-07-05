@@ -4,7 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
-// F7 security fix: SSRF guard — block private IPv4/IPv6 ranges
+// F7 security fix: SSRF guard — block private IPv4/IPv6 ranges and localhost
+// Note: URL.hostname returns '[::1]' (with brackets) for IPv6 addresses.
 function isSafeAudioUrl(rawUrl: string): boolean {
   try {
     const u = new URL(rawUrl);
@@ -12,9 +13,12 @@ function isSafeAudioUrl(rawUrl: string): boolean {
     const h = u.hostname.toLowerCase();
     // Private IPv4 ranges
     if (/^(10\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(h)) return false;
-    // IPv6 loopback and private: [::1], [fe80:...], [fc00:...], [fd**:...]
-    if (/^\[?((::1$|fe80:|fc00:|fd[0-9a-f]{2}:))/i.test(h)) return false;
-    // Link-local and cloud metadata
+    // Named loopback: localhost, 0.0.0.0
+    if (h === 'localhost' || h === '0.0.0.0') return false;
+    // IPv6 loopback and private — URL.hostname includes brackets: '[::1]', '[fe80:...]'
+    if (h === '[::1]' || h === '::1') return false;
+    if (/^\[?(fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(h)) return false;
+    // Cloud metadata services
     if (h === '169.254.169.254' || h === 'metadata.google.internal') return false;
     return true;
   } catch { return false; }
