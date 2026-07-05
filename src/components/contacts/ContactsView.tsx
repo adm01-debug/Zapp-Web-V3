@@ -17,7 +17,7 @@ import { BulkActionsBar } from '@/components/contacts/BulkActionsBar';
 import { CONTACT_TYPE_ICONS } from './ContactsTable';
 import { ContactStatsCards } from './ContactStatsCards';
 import { ContactImportDialog } from './ContactImportDialog';
-import { ContactMergeDialog } from './ContactMergeDialog';
+import { ContactMergeDialog, type ContactForMerge } from './ContactMergeDialog';
 import { ContactCompareDialog } from './ContactCompareDialog';
 import { ContactBulkTagDialog } from './ContactBulkTagDialog';
 import { ContactBirthdayPanel } from './ContactBirthdayPanel';
@@ -97,9 +97,9 @@ export function ContactsView() {
               isAddDialogOpen={isAddDialogOpen} setIsAddDialogOpen={setIsAddDialogOpen}
               onContactSaved={() => refetch()}
               isEditDialogOpen={isEditDialogOpen} setIsEditDialogOpen={setIsEditDialogOpen}
-              editingContact={editingContact as any}
+              editingContact={editingContact}
               showSuccess={showSuccess} setShowSuccess={setShowSuccess}
-              deleteTarget={deleteTarget as any} setDeleteTarget={setDeleteTarget}
+              deleteTarget={deleteTarget} setDeleteTarget={setDeleteTarget}
               handleDeleteContact={handleDeleteContact}
             />
           </div>
@@ -109,8 +109,8 @@ export function ContactsView() {
       <ContactImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} workspaceId="default" onImportComplete={refetch} />
       <ContactMergeDialog
         open={isMergeOpen} onOpenChange={setIsMergeOpen}
-        primaryContact={filteredContacts.filter(c => selectedIds.includes(c.id))[0] as any}
-        secondaryContact={filteredContacts.filter(c => selectedIds.includes(c.id))[1] as any}
+        primaryContact={filteredContacts.filter(c => selectedIds.includes(c.id))[0] as unknown as ContactForMerge}
+        secondaryContact={filteredContacts.filter(c => selectedIds.includes(c.id))[1] as unknown as ContactForMerge}
         onMergeComplete={() => { setSelectedIds([]); refetch(); }}
       />
       <ContactCompareDialog

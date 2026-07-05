@@ -13,8 +13,8 @@
 import { useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
-
-import { supabase } from '@/integrations/supabase/client';
+import { dbRpc } from '@/integrations/datasource/db';
+import { RPC } from '@/integrations/datasource/rpcCatalog';
 
 const log = getLogger('useContactUndo');
 
@@ -93,7 +93,7 @@ export function useContactUndo(options: UseContactUndoOptions = {}) {
           // Safety: max 500 per call
           const chunks = chunkArray(contactIds, 500);
           for (const chunk of chunks) {
-            const { error } = await (supabase as any).rpc('bulk_soft_delete_contacts', {
+            const { error } = await dbRpc(RPC.bulkSoftDeleteContacts, {
               p_contact_ids: chunk,
               p_reason: 'bulk_deletion',
             });
@@ -125,7 +125,7 @@ export function useContactUndo(options: UseContactUndoOptions = {}) {
   const hardDelete = useCallback(
     async (contactId: string, contactName: string) => {
       try {
-        const { error } = await (supabase as any).rpc('soft_delete_contact', {
+        const { error } = await dbRpc(RPC.softDeleteContact, {
           p_contact_id: contactId,
           p_reason: 'manual_deletion',
         });

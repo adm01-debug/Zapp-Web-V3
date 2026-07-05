@@ -6,7 +6,17 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
+
+interface AuditDynQuery extends PromiseLike<{ data: unknown; error: unknown }> {
+  select(cols: string): AuditDynQuery;
+  eq(col: string, val: unknown): AuditDynQuery;
+  order(col: string, opts: { ascending: boolean }): AuditDynQuery;
+  limit(n: number): AuditDynQuery;
+}
+const auditFrom = () =>
+  (supabase as unknown as { from: (t: string) => AuditDynQuery }).from('contact_audit_log');
 
 import { sanitizeText } from '@/lib/sanitize';
 import { formatPhoneForDisplay } from '@/lib/phoneUtils';
@@ -90,8 +100,7 @@ export function useContactActivityFeed({
       const items: ActivityItem[] = [];
 
       // 1. Audit log (contact changes)
-      const { data: auditData , error } = await (supabase as any)
-        .from('contact_audit_log')
+      const { data: auditData , error } = await auditFrom()
         .select('id,action,changed_at,changed_by,new_values,profiles:changed_by(full_name)')
         .eq('contact_id', contactId)
         .order('changed_at', { ascending: false })
@@ -117,8 +126,7 @@ export function useContactActivityFeed({
       }
 
       // 2. Conversations
-      const { data: convData , error: convDataErr } = await (supabase as any)
-        .from('conversations')
+      const { data: convData , error: convDataErr } = await dbFrom('conversations')
         .select('id,status,channel,created_at,closed_at')
         .eq('contact_id', contactId)
         .order('created_at', { ascending: false })

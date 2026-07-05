@@ -5,7 +5,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { dbRpc } from '@/integrations/datasource/db';
+import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { getLogger } from '@/lib/logger';
+
+interface AuditQuery extends PromiseLike<{ data: unknown; error: unknown }> {
+  select(cols: string): AuditQuery;
+  eq(col: string, val: unknown): AuditQuery;
+  order(col: string, opts: { ascending: boolean }): AuditQuery;
+  limit(n: number): AuditQuery;
+}
+const auditFrom = () =>
+  (supabase as unknown as { from: (t: string) => AuditQuery }).from('contact_audit_log');
 
 import { Button } from '@/components/ui/button';
 import { MessageCircle, FileText, Shield, RotateCcw, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
@@ -46,14 +57,14 @@ export const ContactActivityFeed: React.FC<{ contactId: string; maxItems?: numbe
       const all: Activity[] = [];
 
       // Conversations
-      const { data: convs , error: convsErr } = await (supabase as any).rpc('get_contact_conversations', { p_contact_id: contactId, p_limit: 30 });
+      const { data: convs , error: convsErr } = await dbRpc(RPC.getContactConversations, { p_contact_id: contactId, p_limit: 30 });
       for (const c of (convs ?? []) as Record<string, unknown>[]) {
         if (c.first_message_at) all.push({ id: `conv-open-${c.id}`, type: 'conversation_open', label: 'Conversa iniciada', detail: c.assigned_to ? `Atendente: ${sanitizeText(String(c.assigned_to))}` : undefined, timestamp: String(c.first_message_at) });
         if (c.status === 'closed' && c.last_message_at) all.push({ id: `conv-closed-${c.id}`, type: 'conversation_closed', label: 'Conversa encerrada', detail: `${c.message_count ?? 0} msgs`, timestamp: String(c.last_message_at) });
       }
 
       // Audit log
-      const { data: audit , error: auditErr } = await (supabase as any).from('contact_audit_log').select('id,action,field_name,changed_at').eq('contact_id', contactId).order('changed_at', { ascending: false }).limit(30);
+      const { data: audit , error: auditErr } = await auditFrom().select('id,action,field_name,changed_at').eq('contact_id', contactId).order('changed_at', { ascending: false }).limit(30);
       for (const e of (audit ?? []) as Record<string, unknown>[]) {
         const field = String(e.field_name ?? ''); const action = String(e.action ?? '');
         if (action === 'INSERT') { all.push({ id: `a-${e.id}`, type: 'edit', label: 'Contato criado', timestamp: String(e.changed_at) }); }

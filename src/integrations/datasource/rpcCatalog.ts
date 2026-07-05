@@ -241,6 +241,22 @@ interface SyncInteractionParams {
 
 // ── Contacts module param shapes ──────────────────────────────────────────────
 
+interface SearchContactsParams {
+  search_term: string;
+  page_size?: number;
+  page_offset?: number;
+}
+
+interface BulkSoftDeleteContactsParams {
+  p_contact_ids: string[];
+  p_reason?: string;
+}
+
+interface SoftDeleteContactParams {
+  p_contact_id: string;
+  p_reason?: string;
+}
+
 interface GetContactConversationsParams {
   p_contact_id: string;
   p_limit?: number;
@@ -458,6 +474,21 @@ export const RPC = {
   // ── Contacts module: notes, audit, dashboards, bulk ops ────────────────────
   getContactConversations: def<GetContactConversationsParams, Record<string, unknown>[]>({
     name: 'get_contact_conversations',
+    client: 'lovable',
+  }),
+
+  searchContacts: def<SearchContactsParams, Record<string, unknown>[]>({
+    name: 'search_contacts',
+    client: 'lovable',
+  }),
+
+  bulkSoftDeleteContacts: def<BulkSoftDeleteContactsParams, unknown>({
+    name: 'bulk_soft_delete_contacts',
+    client: 'lovable',
+  }),
+
+  softDeleteContact: def<SoftDeleteContactParams, unknown>({
+    name: 'soft_delete_contact',
     client: 'lovable',
   }),
 
