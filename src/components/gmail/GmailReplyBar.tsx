@@ -16,8 +16,8 @@ interface EmailReplyBarProps {
 
 export function EmailReplyBar({ thread, defaultTo, onSent, onCancel }: EmailReplyBarProps) {
   const { sendEmail, isSending, activeAccountId } = useEmail();
-  const { defaultSignature, ...sigRest } = useEmailSignature(activeAccountId);
-  const injectSignature = (sigRest as any).injectSignature ?? ((body: string) => defaultSignature?.html_content ? `${body}\n\n${defaultSignature.html_content}` : body);
+  const { defaultSignature } = useEmailSignature(activeAccountId);
+  const injectSignature = (body: string) => defaultSignature?.html_content ? `${body}\n\n${defaultSignature.html_content}` : body;
 
   const [to, setTo]             = useState(defaultTo ?? thread.from_email ?? '');
   const [cc, setCc]             = useState('');
