@@ -70,8 +70,8 @@ export function SummaryResult({ summary, isTtsPlaying, isTtsLoading, lastTtsText
               <TtsButton text={'Pontos-chave: ' + summary.keyPoints.join('. ')} label="Ouvir pontos-chave" isTtsPlaying={isTtsPlaying} isTtsLoading={isTtsLoading} lastTtsText={lastTtsText} onPlayTts={onPlayTts} />
             </div>
             <ul className="space-y-1">
-              {summary.keyPoints.map((point) => (
-                <li key={point} className="text-sm flex items-start gap-2"><span className="text-primary mt-1">•</span><span>{point}</span></li>
+              {summary.keyPoints.map((point, index) => (
+                <li key={`${point}-${index}`} className="text-sm flex items-start gap-2"><span className="text-primary mt-1">•</span><span>{point}</span></li>
               ))}
             </ul>
           </div>
@@ -84,8 +84,8 @@ export function SummaryResult({ summary, isTtsPlaying, isTtsLoading, lastTtsText
               <TtsButton text={'Próximos passos: ' + summary.nextSteps.join('. ')} label="Ouvir próximos passos" isTtsPlaying={isTtsPlaying} isTtsLoading={isTtsLoading} lastTtsText={lastTtsText} onPlayTts={onPlayTts} />
             </div>
             <ul className="space-y-1">
-              {summary.nextSteps.map((step) => (
-                <li key={step} className="text-sm flex items-start gap-2"><span className="text-secondary mt-1">→</span><span>{step}</span></li>
+              {summary.nextSteps.map((step, index) => (
+                <li key={`${step}-${index}`} className="text-sm flex items-start gap-2"><span className="text-secondary mt-1">→</span><span>{step}</span></li>
               ))}
             </ul>
           </div>

@@ -19,6 +19,7 @@ const OPERATORS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'ilike', 'in', 'is'] a
 type Operator = typeof OPERATORS[number];
 
 interface FilterRow {
+  _id: number;
   column: string;
   operator: Operator;
   value: string;
@@ -75,7 +76,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
     }
   };
 
-  const addFilter = () => setFilters((f) => [...f, { column: '', operator: 'eq', value: '' }]);
+  const addFilter = () => setFilters((f) => [...f, { _id: Date.now(), column: '', operator: 'eq', value: '' }]);
   const updateFilter = (i: number, patch: Partial<FilterRow>) =>
     setFilters((f) => f.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
   const removeFilter = (i: number) => setFilters((f) => f.filter((_, idx) => idx !== i));
@@ -214,7 +215,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
               )}
               <div className="space-y-2">
                 {filters.map((f, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_120px_1fr_auto] gap-2">
+                  <div key={f._id} className="grid grid-cols-[1fr_120px_1fr_auto] gap-2">
                     <Input
                       placeholder="coluna (ex: remote_jid)"
                       value={f.column}

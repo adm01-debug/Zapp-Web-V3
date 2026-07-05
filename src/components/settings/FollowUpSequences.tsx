@@ -147,7 +147,7 @@ export function FollowUpSequences() {
               </Label>
 
               {newSteps.map((step, i) => (
-                <div key={i} className="relative p-4 rounded-lg border bg-muted/30 space-y-3">
+                <div key={step.step_order} className="relative p-4 rounded-lg border bg-muted/30 space-y-3">
                   {i > 0 && (
                     <div className="absolute -top-3 left-6 flex items-center gap-1 text-xs text-muted-foreground bg-background px-2">
                       <ArrowRight className="w-3 h-3" />

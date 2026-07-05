@@ -224,7 +224,7 @@ export function MonitoringDiagnosticPanel({ diagnostic, diagnosing, onRunDiagnos
                     };
                     return (
                       <motion.div
-                        key={item.label}
+                        key={`${item.label}-${i}`}
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.04 }}

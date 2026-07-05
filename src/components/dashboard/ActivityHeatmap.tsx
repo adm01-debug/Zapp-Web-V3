@@ -217,7 +217,7 @@ export const ActivityHeatmap = ({
           <div className="min-w-max">
             {/* Month labels */}
             <div className="flex mb-1 ml-8">
-              {monthLabels.map(({ month, weekIndex }) => (
+              {monthLabels.map(({ month, weekIndex }, i) => (
                 <div
                   key={`${month}-${weekIndex}`}
                   className="text-xs text-muted-foreground"

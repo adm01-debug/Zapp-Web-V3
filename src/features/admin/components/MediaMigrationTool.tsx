@@ -13,6 +13,7 @@ interface MigrationResult {
   failed: number;
   details?: string[];
   message?: string;
+  _id?: number;
 }
 
 export function MediaMigrationTool() {
@@ -30,7 +31,7 @@ export function MediaMigrationTool() {
 
       if (error) throw error;
 
-      const migrationResult = data as MigrationResult;
+      const migrationResult: MigrationResult = { ...(data as MigrationResult), _id: Date.now() };
       setResult(migrationResult);
       setHistory(prev => [migrationResult, ...prev.slice(0, 9)]);
 
@@ -141,8 +142,8 @@ export function MediaMigrationTool() {
 
             {result.details && result.details.length > 0 && (
               <div className="max-h-[300px] overflow-auto rounded-lg border bg-muted/30 p-3">
-                {result.details.map((detail) => (
-                  <p key={detail} className="text-xs  py-0.5">
+                {result.details.map((detail, i) => (
+                  <p key={`${detail}-${i}`} className="text-xs  py-0.5">
                     {detail}
                   </p>
                 ))}
@@ -162,8 +163,8 @@ export function MediaMigrationTool() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {history.slice(1).map((h, i) => (
-                <div key={`history-${i}`} className="flex items-center gap-3 p-2 rounded border text-xs">
+              {history.slice(1).map((h) => (
+                <div key={h._id} className="flex items-center gap-3 p-2 rounded border text-xs">
                   {h.success ? <CheckCircle className="w-3 h-3 text-success" /> : <XCircle className="w-3 h-3 text-destructive" />}
                   <span>{h.processed} processados</span>
                   <span className="text-success">{h.migrated} OK</span>

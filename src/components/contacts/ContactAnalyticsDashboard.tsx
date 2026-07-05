@@ -249,7 +249,7 @@ export function ContactAnalyticsDashboard({ contacts, className }: ContactAnalyt
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {analytics.insights.map((insight, i) => (
             <motion.div
-              key={i}
+              key={insight.title}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 + (i * 0.1) }}

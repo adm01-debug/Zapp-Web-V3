@@ -69,7 +69,7 @@ export function SpeedDialFAB({ mainIcon, openIcon, actions, variant = 'primary',
         {isOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute bottom-16 flex flex-col-reverse gap-3">
             {actions.map((action, index) => (
-              <motion.div key={action.label} initial={{ scale: 0, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0, y: 20, opacity: 0 }} transition={{ delay: index * 0.05 }} className="flex items-center gap-3">
+              <motion.div key={`${action.label}-${index}`} initial={{ scale: 0, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0, y: 20, opacity: 0 }} transition={{ delay: index * 0.05 }} className="flex items-center gap-3">
                 <span className="bg-card px-3 py-1.5 rounded-lg text-sm font-medium shadow-lg whitespace-nowrap">{action.label}</span>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleAction(action)}
                   className={cn('w-12 h-12 rounded-full shadow-lg flex items-center justify-center', action.color || 'bg-card text-foreground')}>

@@ -107,7 +107,7 @@ export function QuizGame({ isOpen, onClose, onComplete }: GameDialogProps) {
             <Card className="p-4"><p className="text-lg font-medium">{question.question}</p></Card>
             <div className="grid gap-2">
               {question.options.map((option, index) => (
-                <Button key={index} variant={answered === null ? 'outline' : index === question.correct ? 'default' : answered === index ? 'destructive' : 'outline'}
+                <Button key={option} variant={answered === null ? 'outline' : index === question.correct ? 'default' : answered === index ? 'destructive' : 'outline'}
                   className="justify-start h-auto py-3 px-4" onClick={() => handleAnswer(index)} disabled={answered !== null}>{option}</Button>
               ))}
             </div>

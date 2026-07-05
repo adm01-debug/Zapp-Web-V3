@@ -106,8 +106,8 @@ export function VisualValidationChecklist({ onClose }: { onClose: () => void }) 
               <span className="text-xs font-bold uppercase tracking-wider">Erros Detectados</span>
             </div>
             <ul className="space-y-1">
-              {audit.violations.map((v) => (
-                <li key={v} className="text-[11px] text-destructive/80 leading-tight">• {v}</li>
+              {audit.violations.map((v, i) => (
+                <li key={`${v}-${i}`} className="text-[11px] text-destructive/80 leading-tight">• {v}</li>
               ))}
             </ul>
           </div>

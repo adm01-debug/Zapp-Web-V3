@@ -259,7 +259,7 @@ export function FeatureFlagsAdmin() {
             <CardContent className="p-0">
               <div className="max-h-[400px] overflow-y-auto px-4 pb-4 space-y-3">
                 {auditLogs.map((log) => (
-                  <div key={log.created_at} className="group p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors">
+                  <div key={log.id} className="group p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[10px] font-bold text-primary">{new Date(log.created_at).toLocaleString()}</span>
                       <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded uppercase font-bold">{log.action}</span>

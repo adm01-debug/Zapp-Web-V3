@@ -95,8 +95,8 @@ export function SummaryTab({ analysis, ttsButtonClass, isTtsLoading, isTtsPlayin
         <div>
           <h4 className="mb-2 text-xs font-semibold text-muted-foreground">Tópicos</h4>
           <div className="flex flex-wrap gap-1.5">
-            {analysis.topics.map((topic) => (
-              <Badge key={topic} variant="secondary" className="rounded-lg text-[10px]">{topic}</Badge>
+            {analysis.topics.map((topic, index) => (
+              <Badge key={`${topic}-${index}`} variant="secondary" className="rounded-lg text-[10px]">{topic}</Badge>
             ))}
           </div>
         </div>
