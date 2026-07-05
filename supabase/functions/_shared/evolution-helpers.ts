@@ -1,6 +1,7 @@
 // Shared helpers for Evolution API webhook and sync functions
 declare const Deno: { env: { get(key: string): string | undefined } };
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @ts-ignore -- Deno remote import, resolved at edge-runtime
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 export interface WebhookPayload {
   event: string;

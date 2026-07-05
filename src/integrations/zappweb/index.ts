@@ -18,9 +18,8 @@ export {
   sendWhatsAppAudio,
   markChatRead,
   fetchInstances,
-  connectionState,
+  getConnectionState as connectionState,
   getEvolutionCredentials,
-  clearEvolutionCredentialsCache,
   stripJid,
 } from './evolutionClient';
 
