@@ -26,6 +26,20 @@ serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       const { action } = body;
 
+      // F2 security fix: fail-closed auth for Pub/Sub push notifications.
+      // The 'registerWatch' action uses its own token auth via getValidToken().
+      // All other POST requests (Pub/Sub pushes) MUST present a valid token.
+      if (!action) {
+        const expectedToken = Deno.env.get('GMAIL_PUBSUB_TOKEN');
+        if (!expectedToken) {
+          return json({ error: 'Webhook authentication not configured' }, 401);
+        }
+        const receivedToken = new URL(req.url).searchParams.get('token');
+        if (!receivedToken || receivedToken !== expectedToken) {
+          return json({ error: 'Invalid or missing push token' }, 401);
+        }
+      }
+
       // ── registerWatch — registra Pub/Sub watch para uma conta ─────
       if (action === 'registerWatch') {
         const { accountId } = body;

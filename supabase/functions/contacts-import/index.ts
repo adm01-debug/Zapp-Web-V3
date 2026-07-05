@@ -1,6 +1,7 @@
 /**
- * contacts-import Edge Function v1.0
+ * contacts-import Edge Function v1.1
  * Bulk CSV import — 50k rows, phone normalization, upsert on remote_jid.
+ * F12 security fix: ownership verification for WhatsApp connection.
  * Deploy: supabase functions deploy contacts-import
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -45,7 +46,23 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await supabase.auth.getUser(auth.replace('Bearer ', ''));
     if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: CORS });
 
-    const { rows = [], workspace_id: instanceName = 'wpp2' } = await req.json();
+    const { rows = [], workspace_id: instanceName } = await req.json();
+    const resolvedInstance = instanceName ?? 'wpp2';
+
+    // F12 security fix: verify the caller owns the WhatsApp connection they are importing into
+    const { data: ownedConn } = await supabase
+      .from('whatsapp_connections')
+      .select('id, instance_name')
+      .eq('created_by', user.id)
+      .eq('instance_name', resolvedInstance)
+      .maybeSingle();
+    if (!ownedConn) {
+      return new Response(
+        JSON.stringify({ error: 'WhatsApp connection not found or not authorized' }),
+        { status: 403, headers: CORS }
+      );
+    }
+
     if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: CORS });
     if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: CORS });
 
@@ -69,7 +86,7 @@ serve(async (req) => {
           email: sanitize(row.email),
           company: sanitize(row.company ?? row.empresa),
           notes: sanitize(row.notes ?? row.notas),
-          tags, instance_name: instanceName,
+          tags, instance_name: resolvedInstance,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -87,7 +104,7 @@ serve(async (req) => {
     }
 
     await supabase.from('contact_export_log').insert({
-      exported_by: user.id, instance_name: instanceName, contact_count: inserted,
+      exported_by: user.id, instance_name: resolvedInstance, contact_count: inserted,
       export_format: 'csv_import',
       filters_used: { rows_total: rows.length, inserted, errors: errors.length },
     }).then(() => void 0);

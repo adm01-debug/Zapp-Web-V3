@@ -4,6 +4,26 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
+// F7 security fix: SSRF guard — block private IPv4/IPv6 ranges and localhost
+// Note: URL.hostname returns '[::1]' (with brackets) for IPv6 addresses.
+function isSafeAudioUrl(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol !== 'https:') return false;
+    const h = u.hostname.toLowerCase();
+    // Private IPv4 ranges
+    if (/^(10\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(h)) return false;
+    // Named loopback: localhost, 0.0.0.0
+    if (h === 'localhost' || h === '0.0.0.0') return false;
+    // IPv6 loopback and private — URL.hostname includes brackets: '[::1]', '[fe80:...]'
+    if (h === '[::1]' || h === '::1') return false;
+    if (/^\[?(fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(h)) return false;
+    // Cloud metadata services
+    if (h === '169.254.169.254' || h === 'metadata.google.internal') return false;
+    return true;
+  } catch { return false; }
+}
+
 /**
  * If the URL points to our own Supabase storage, download via the
  * service-role client so we never hit expired-token issues.
@@ -33,7 +53,7 @@ async function downloadAudio(
           const { data, error } = await sb.storage.from(bucket).download(path);
           if (error || !data) {
             log.error("Storage download failed", { error: error?.message });
-            return { error: `Storage download failed: ${error?.message ?? "unknown"}` };
+            return { error: "Download failed" }; // generic — F7 info-disclosure fix
           }
           const buffer = await data.arrayBuffer();
           return { buffer, contentType: data.type || "audio/ogg" };
@@ -42,12 +62,17 @@ async function downloadAudio(
     }
   }
 
-  // Fallback: direct HTTP fetch (external URLs or non-storage URLs)
+  // Fallback: direct HTTP fetch — F7 SSRF guard applied
+  if (!isSafeAudioUrl(audioUrl)) {
+    log.warn("Blocked unsafe audio URL", { prefix: audioUrl.substring(0, 30) });
+    return { error: "Download failed" }; // generic — no URL disclosure
+  }
+
   const response = await fetch(audioUrl);
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
     log.error("HTTP download failed", { status: response.status, detail: errText.substring(0, 200) });
-    return { error: `Failed to download audio file (HTTP ${response.status})` };
+    return { error: "Download failed" }; // generic — F7 info-disclosure fix
   }
 
   const contentLength = response.headers.get("content-length");
@@ -146,7 +171,7 @@ Deno.serve(async (req) => {
           errorMessage: 'Não foi possível transcrever este áudio. O formato pode não ser suportado.',
         }, 200, req);
       }
-      return errorResponse("Failed to transcribe audio", 500, req);
+      return errorResponse("Transcription failed", 500, req); // generic — F7 info-disclosure fix
     }
 
     const data = await response.json();
@@ -162,6 +187,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     log.error("Unhandled error", { error: msg });
-    return errorResponse(msg, 500, req);
+    return errorResponse("Transcription failed", 500, req); // generic — F7 info-disclosure fix
   }
 });

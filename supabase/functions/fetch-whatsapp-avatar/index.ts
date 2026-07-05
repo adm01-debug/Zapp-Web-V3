@@ -17,6 +17,20 @@ import {
   getClientIP,
 } from "../_shared/validation.ts";
 
+// F1 security fix: SSRF allowlist — only fetch avatars from known WhatsApp CDN hosts
+const WHATSAPP_CDN_ALLOWLIST = [
+  'mmg.whatsapp.net', 'pps.whatsapp.net', 'static.whatsapp.net',
+  'media.whatsapp.net', 'media-mia3-1.cdn.whatsapp.net',
+  'media-gru2-1.cdn.whatsapp.net',
+];
+function isSafeAvatarUrl(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol !== 'https:') return false;
+    return WHATSAPP_CDN_ALLOWLIST.some(h => u.hostname === h || u.hostname.endsWith('.' + h));
+  } catch { return false; }
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -90,6 +104,11 @@ Deno.serve(async (req) => {
     const result = await resp.json().catch(() => ({}));
     const picUrl: string | null = result?.profilePictureUrl || result?.picture || result?.url || null;
     if (!picUrl) return jsonResponse({ avatar_url: null }, 200, req);
+    // F1 SSRF guard: reject URLs not matching WhatsApp CDN allowlist
+    if (!isSafeAvatarUrl(picUrl)) {
+      log.warn("Blocked non-CDN avatar URL", { hostname: (() => { try { return new URL(picUrl).hostname; } catch { return 'invalid'; } })() });
+      return jsonResponse({ avatar_url: null }, 200, req);
+    }
 
     // 3) Persiste no Storage para evitar expiração das URLs do WhatsApp.
     try {

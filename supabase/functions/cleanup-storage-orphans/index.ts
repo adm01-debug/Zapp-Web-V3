@@ -14,12 +14,12 @@ Deno.serve(async (req) => {
     log.info("Iniciando limpeza de arquivos órfãos nos buckets de mídia");
 
     const buckets = ["audio-messages", "whatsapp-media"];
-    const results: Record<string, any> = {};
+    const results: Record<string, unknown> = {};
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     for (const bucketName of buckets) {
       log.info(`Processando bucket: ${bucketName}`);
-      
+
       // List files in the bucket
       const { data: files, error: listError } = await supabase.storage.from(bucketName).list('', {
         limit: 1000,
@@ -31,20 +31,36 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const filesToDelete = files
+      const candidates = files
         ?.filter(f => new Date(f.created_at) < oneDayAgo)
         .map(f => f.name) || [];
 
+      // F11 security fix: only delete files with no active reference in evolution_messages
+      let filesToDelete = candidates;
+      if (candidates.length > 0) {
+        const publicBase = `${supabaseUrl}/storage/v1/object/public/${bucketName}/`;
+        const candidateUrls = candidates.map(f => publicBase + f);
+        const { data: referenced } = await supabase
+          .from('evolution_messages')
+          .select('media_url')
+          .in('media_url', candidateUrls);
+        const referencedNames = new Set(
+          (referenced ?? []).map((r: { media_url: string }) => r.media_url?.replace(publicBase, ''))
+        );
+        filesToDelete = candidates.filter(f => !referencedNames.has(f));
+        log.info(`Ref check: ${candidates.length} candidates → ${filesToDelete.length} safe to delete`);
+      }
+
       if (filesToDelete.length > 0) {
-        log.info(`Deletando ${filesToDelete.length} arquivos antigos de ${bucketName}`);
+        log.info(`Deletando ${filesToDelete.length} arquivos sem referência de ${bucketName}`);
         const { data, error: deleteError } = await supabase.storage.from(bucketName).remove(filesToDelete);
-        
+
         if (deleteError) {
           log.error(`Erro ao deletar arquivos de ${bucketName}`, deleteError);
           results[bucketName] = { error: deleteError.message };
         } else {
           results[bucketName] = { deleted: data?.length || 0 };
-          
+
           // Log to audit table
           await supabase.from("storage_cleanup_logs").insert({
             bucket_id: bucketName,
@@ -53,7 +69,7 @@ Deno.serve(async (req) => {
           });
         }
       } else {
-        log.info(`Nenhum arquivo antigo encontrado em ${bucketName}`);
+        log.info(`Nenhum arquivo para deletar em ${bucketName}`);
         results[bucketName] = { deleted: 0 };
       }
     }
