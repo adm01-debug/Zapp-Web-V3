@@ -3,8 +3,6 @@ import { AnimatePresence } from 'framer-motion';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation, Message } from '@/types/chat';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 import { FileUploaderRef } from './FileUploader';
 import { useTypingPresence } from '@/hooks/useTypingPresence';
 import { useContactTyping } from '@/hooks/useContactTyping';
@@ -21,7 +19,7 @@ import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatToolPanels } from './chat/ChatToolPanels';
 import { ChatDialogs } from './chat/ChatDialogs';
 import { ChatPanelHeader } from './chat/ChatPanelHeader';
-import { TemplatesWithVariables } from './TemplatesWithVariables';
+
 import { ChatAssignedBar } from './chat/ChatAssignedBar';
 import { TicketActionsBar } from './chat/TicketActionsBar';
 import { TicketHistorySheet } from './TicketHistorySheet';
@@ -37,13 +35,15 @@ import { ChatQuickRepliesPopover } from './chat/ChatQuickRepliesPopover';
 import { ChatSearchBar } from './chat/ChatSearchBar';
 import { useChatPanelHandlers } from './chat/useChatPanelHandlers';
 import type { ActiveTool } from './chat/ChatHeaderToolbar';
-import { QueueMetricsDashboard } from './monitoring/QueueMetricsDashboard';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FailureFilterBar } from './chat/FailureFilterBar';
 import { useChatFilters } from './chat/hooks/useChatFilters';
 import { useSLADelivery } from './chat/hooks/useSLADelivery';
 import { useChatSearchState } from './chat/hooks/useChatSearchState';
 import { useChatDialogs } from './chat/hooks/useChatDialogs';
+import { useInitialHighlight } from './chat/hooks/useInitialHighlight';
+import { useChatDragAndDrop } from './chat/hooks/useChatDragAndDrop';
+import { ChatTemplatesOverlay } from './chat/ChatTemplatesOverlay';
+import { ChatMonitoringDialog } from './chat/ChatMonitoringDialog';
 import { useTransferConversation } from '@/features/inbox/hooks/useTransferConversation';
 import { useInboxShortcuts } from '@/features/inbox/hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -110,11 +110,9 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
   const filters = useChatFilters(messages);
   const { failuresOnly, failureCategory, setFailuresOnly, setFailureCategory, failedMessages, categoryCounts, categoryFilteredMessages, visibleMessages } = filters;
 
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-
   const fileUploaderRef = useRef<FileUploaderRef>(null);
   const messagesAreaRef = useRef<ChatMessagesAreaRef>(null);
-  const dragCounterRef = useRef(0);
+  const { isDraggingOver, dragHandlers } = useChatDragAndDrop(fileUploaderRef);
 
   const { typingUsers, handleTypingStart, handleTypingStop } = useTypingPresence({
     conversationId: conversation.id,
@@ -193,78 +191,15 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
     setFailuresOnly(false);
   }, [conversation.id, resetSearch, setFailuresOnly]);
 
-  // Deep-link "Ver no chat": quando o caller abre o Inbox apontando para
-  // uma mensagem específica, scrollamos até ela e aplicamos um destaque
-  // temporário (~3 s) reaproveitando os mesmos states usados pela busca
-  // dentro do chat. Tentamos durante alguns frames porque a mensagem
-  // pode não estar no DOM no primeiro paint (lista virtualizada / fetch
-  // assíncrono). Após sumir o ring, removemos o pending no caller.
-  useEffect(() => {
-    if (!initialHighlightMessageId) return;
-
-    const targetId = initialHighlightMessageId;
-    const findInternal = () => {
-      const list = messages;
-      return (
-        list.find((m) => m.id === targetId)?.id ??
-        list.find((m) => m.external_id === targetId)?.id ??
-        null
-      );
-    };
-
-    let cancelled = false;
-    let highlightTimer: ReturnType<typeof setTimeout> | null = null;
-    let attempts = 0;
-
-    const tryFindAndScroll = () => {
-      if (cancelled) return;
-      
-      const internalId = findInternal();
-      if (internalId) {
-        setHighlightedMessageIds(new Set([internalId]));
-        setActiveHighlightId(internalId);
-
-        let scrollAttempts = 0;
-        const tryScroll = () => {
-          if (cancelled) return;
-          scrollAttempts++;
-          const found = messagesAreaRef.current?.scrollToMessage(internalId) ?? false;
-          if (!found && scrollAttempts < 10) setTimeout(tryScroll, 150);
-        };
-        tryScroll();
-
-        highlightTimer = setTimeout(() => {
-          if (cancelled) return;
-          setActiveHighlightId(null);
-          setHighlightedMessageIds(new Set());
-          onHighlightConsumed?.();
-        }, 3500);
-        return;
-      }
-
-      attempts++;
-      
-      // Retry for up to ~5 seconds (20 * 250ms) if not found, 
-      // but only if loading is still in progress or we haven't reached the limit.
-      if (attempts < 20) {
-        setTimeout(tryFindAndScroll, 250);
-      } else {
-        toast({
-          title: 'Mensagem não encontrada',
-          description: 'A mensagem original pode ter sido removida ou ainda não foi carregada.',
-          variant: 'destructive',
-        });
-        onHighlightConsumed?.();
-      }
-    };
-
-    tryFindAndScroll();
-
-    return () => {
-      cancelled = true;
-      if (highlightTimer) clearTimeout(highlightTimer);
-    };
-  }, [initialHighlightMessageId, messages, onHighlightConsumed]);
+  // Deep-link "Ver no chat": encontra a mensagem alvo, faz scroll e aplica destaque temporário.
+  useInitialHighlight({
+    initialHighlightMessageId,
+    messages,
+    messagesAreaRef,
+    setHighlightedMessageIds,
+    setActiveHighlightId,
+    onHighlightConsumed,
+  });
 
   const canGenerateSummary = messages.length >= 10;
 
@@ -367,19 +302,11 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
     } catch (err) { log.error('Failed to schedule message:', err); }
   };
 
-  const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounterRef.current++; if (e.dataTransfer.types.includes('Files')) setIsDraggingOver(true); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounterRef.current--; if (dragCounterRef.current === 0) setIsDraggingOver(false); };
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault(); e.stopPropagation(); dragCounterRef.current = 0; setIsDraggingOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0 && fileUploaderRef.current) fileUploaderRef.current.handleExternalFiles(files);
-  };
 
   const ambient = useAmbientColor(conversation.sentiment);
 
   return (
-    <div data-testid="chat-window" className={`flex h-full min-h-0 min-w-0 overflow-hidden relative bg-muted/20 antialiased`} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
+    <div data-testid="chat-window" className={`flex h-full min-h-0 min-w-0 overflow-hidden relative bg-muted/20 antialiased`} {...dragHandlers}>
       <ChatDragOverlay isDraggingOver={isDraggingOver} />
       <CRMAutoSync conversation={conversation} messageCount={messages.length} messages={messages} />
 
@@ -413,29 +340,16 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
         )}
 
         {activeTool === 'templates' && (
-          <div className="absolute inset-0 z-50 bg-foreground/80 backdrop-blur-sm p-4 overflow-auto flex items-center justify-center">
-            <div className="w-full max-w-2xl relative">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute -right-2 -top-2 z-[60] bg-background border border-border rounded-full hover:bg-muted" 
-                onClick={() => setActiveTool(null)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-              <TemplatesWithVariables 
-                onUseTemplate={(content) => {
-                  handlers.setInputValue(content);
-                  setActiveTool(null);
-                  setTimeout(() => handlers.inputRef.current?.focus(), 10);
-                }}
-                contactData={{
-                  name: conversation.contact.name,
-                  company: conversation.contact.company,
-                }}
-              />
-            </div>
-          </div>
+          <ChatTemplatesOverlay
+            contactName={conversation.contact.name}
+            contactCompany={conversation.contact.company}
+            onClose={() => setActiveTool(null)}
+            onUseTemplate={(content) => {
+              handlers.setInputValue(content);
+              setActiveTool(null);
+              setTimeout(() => handlers.inputRef.current?.focus(), 10);
+            }}
+          />
         )}
 
         <ChatSearchBar messages={messages} isOpen={(activeTool as string) === 'chatSearch'}
@@ -543,14 +457,11 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
         messages={messages} contactId={conversation.contact.id}
         contactName={conversation.contact.name} onSelectSuggestion={(text) => handlers.setInputValue(text)}
       />
-      <Dialog open={activeTool === 'monitoring'} onOpenChange={(open) => !open && handleSetActiveTool(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Métricas de Envio e Performance</DialogTitle>
-          </DialogHeader>
-          <QueueMetricsDashboard metrics={messageQueue?.getMetrics() || { totalSent: 0, totalFailed: 0, totalRetries: 0, averageLatency: 0, byType: {}, byConversation: {} }} />
-        </DialogContent>
-      </Dialog>
+      <ChatMonitoringDialog
+        open={activeTool === 'monitoring'}
+        onOpenChange={(open) => !open && handleSetActiveTool(null)}
+        metrics={messageQueue?.getMetrics()}
+      />
     </div>
   );
 }
