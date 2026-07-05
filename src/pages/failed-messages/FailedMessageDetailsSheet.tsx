@@ -10,6 +10,7 @@ import { FailedMessageStatusBadge } from '@/features/admin';
 import { cn } from '@/lib/utils';
 import { classifyRootCause, getRootCauseMeta } from '@/lib/failureRootCause';
 import { toast } from 'sonner';
+import { type FailedMessageRow } from '@/features/admin/hooks/monitoring/useFailedMessages';
 
 const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted', string> = {
   warning: 'bg-warning/15 text-warning-foreground border-warning/40',
@@ -18,7 +19,7 @@ const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted'
   muted: 'bg-muted text-muted-foreground border-border',
 };
 
-export function FailedMessageDetailsSheet({ selected, onClose, onViewInChat }: { selected: any; onClose: () => void; onViewInChat: (row: any) => void }) {
+export function FailedMessageDetailsSheet({ selected, onClose, onViewInChat }: { selected: FailedMessageRow | null; onClose: () => void; onViewInChat: (row: FailedMessageRow) => void }) {
   const copy = (val: string) => {
     navigator.clipboard.writeText(val);
     toast.success('Copiado');

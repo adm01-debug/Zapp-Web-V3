@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ALL_ROOT_CAUSES, getRootCauseMeta } from '@/lib/failureRootCause';
+import { type DlqStats } from '@/features/admin/hooks/monitoring/useFailedMessages';
+import { type useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
 
-export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) {
+export function FailedMessagesFilters({ ui, stats }: { ui: ReturnType<typeof useFailedMessagesUI>; stats: DlqStats | undefined }) {
   const { api, aggregates } = ui;
 
   return (
@@ -92,7 +94,7 @@ export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) {
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              {(stats?.by_instance ?? []).map((i: any) => (
+              {(stats?.by_instance ?? []).map((i) => (
                 <SelectItem key={i.instance} value={i.instance}>
                   {i.instance} ({i.count})
                 </SelectItem>
@@ -108,7 +110,7 @@ export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) {
               <SelectItem value="all">Todas</SelectItem>
               {ALL_ROOT_CAUSES.map((c) => {
                 const meta = getRootCauseMeta(c);
-                const count = api.aggregates.byRootCause.find((x: any) => x.cause === c)?.count ?? 0;
+                const count = api.aggregates.byRootCause.find((x) => x.cause === c)?.count ?? 0;
                 return (
                   <SelectItem key={c} value={c}>
                     {meta.label}{count > 0 ? ` (${count})` : ''}
@@ -124,7 +126,7 @@ export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) {
             <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {api.aggregates.byErrorCode.map((r: any) => (
+              {api.aggregates.byErrorCode.map((r) => (
                 <SelectItem key={r.code} value={r.code}>
                   {r.code} ({r.count})
                 </SelectItem>
