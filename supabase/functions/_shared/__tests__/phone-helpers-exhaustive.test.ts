@@ -1,7 +1,7 @@
 /**
  * Exhaustive unit tests for normalizePhone and generatePhoneVariants.
  *
- * Two major bugs are documented and exercised here:
+ * Four confirmed bugs are documented and exercised here:
  *   BUG-1 (normalizePhone)  : double device suffix "5511:5:2@s.whatsapp.net" — the
  *                             non-global /:\d+(?=@)/ regex only strips the innermost
  *                             suffix, leaving the outer ":5" to corrupt digit extraction.
@@ -15,10 +15,7 @@
  *                             as a spurious variant.
  */
 
-import {
-  assertEquals,
-  assertArrayIncludes,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   normalizePhone,
   generatePhoneVariants,
