@@ -308,7 +308,7 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
   const ambient = useAmbientColor(conversation.sentiment);
 
   return (
-    <div data-testid="chat-window" className={`flex h-full min-h-0 min-w-0 overflow-hidden relative bg-muted/20 antialiased`} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
+    <div data-testid="chat-window" className={`flex h-full min-h-0 min-w-0 overflow-hidden relative bg-muted/20 antialiased`} {...dragHandlers}>
       <ChatDragOverlay isDraggingOver={isDraggingOver} />
       <CRMAutoSync conversation={conversation} messageCount={messages.length} messages={messages} />
 
