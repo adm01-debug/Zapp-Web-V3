@@ -6,6 +6,7 @@ import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
   sha256Hex, markEventProcessed, auditWebhookEvent,
+  routeToDeadLetter, instanceOrFilter,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
 import { parseMessageContent } from "../_shared/evolution-media.ts";
@@ -225,7 +226,7 @@ serve(async (req) => {
       if (qrCode) {
         await supabase.from('whatsapp_connections')
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
-          .eq('instance_id', instance);
+          .or(instanceOrFilter(instance));
       }
     }
 
@@ -233,58 +234,74 @@ serve(async (req) => {
       const entries = toEventRecords(data, ['messages']);
       console.log(`[webhook][${requestId}][msg.upsert] entries=${entries.length} instance=${instance}`);
       for (const entry of entries) {
-        const keySource = isRecord(entry.key) ? entry.key : isRecord(baseData.key) ? baseData.key : null;
-        const externalId =
-          (typeof entry.id === 'string' && entry.id) ||
-          (typeof baseData.id === 'string' && baseData.id) ||
-          (typeof keySource?.id === 'string' && keySource.id) ||
-          null;
+        // Per-entry try/catch: a batch can carry several messages, and Baileys/Evolution
+        // sometimes ships one malformed entry alongside otherwise-healthy ones. Without
+        // this guard, one throwing entry aborts the loop and silently drops every
+        // remaining entry in the batch too (they never get a second chance — the whole
+        // event is already marked processed by the idempotency guard above). Isolate the
+        // failure to just this entry and dead-letter it so the rest of the batch lands.
+        try {
+          const keySource = isRecord(entry.key) ? entry.key : isRecord(baseData.key) ? baseData.key : null;
+          const externalId =
+            (typeof entry.id === 'string' && entry.id) ||
+            (typeof baseData.id === 'string' && baseData.id) ||
+            (typeof keySource?.id === 'string' && keySource.id) ||
+            null;
 
-        if (!externalId) {
-          console.log(`[webhook][${requestId}][msg.upsert] ignored: missing id`);
-          continue;
-        }
+          if (!externalId) {
+            console.log(`[webhook][${requestId}][msg.upsert] ignored: missing id`);
+            continue;
+          }
 
-        const key = {
-          id: externalId,
-          fromMe: Boolean(
-            (typeof entry.fromMe === 'boolean' ? entry.fromMe : undefined) ??
-            (typeof baseData.fromMe === 'boolean' ? baseData.fromMe : undefined) ??
-            (typeof keySource?.fromMe === 'boolean' ? keySource.fromMe : undefined) ??
-            false
-          ),
-          remoteJid:
-            (typeof entry.remoteJid === 'string' ? entry.remoteJid : undefined) ??
-            (typeof baseData.remoteJid === 'string' ? baseData.remoteJid : undefined) ??
-            (typeof keySource?.remoteJid === 'string' ? keySource.remoteJid : undefined),
-          remoteJidAlt:
-            (typeof entry.remoteJidAlt === 'string' ? entry.remoteJidAlt : undefined) ??
-            (typeof baseData.remoteJidAlt === 'string' ? baseData.remoteJidAlt : undefined) ??
-            (typeof keySource?.remoteJidAlt === 'string' ? keySource.remoteJidAlt : undefined),
-          participant:
-            (typeof entry.participant === 'string' ? entry.participant : undefined) ??
-            (typeof baseData.participant === 'string' ? baseData.participant : undefined) ??
-            (typeof keySource?.participant === 'string' ? keySource.participant : undefined),
-          participantAlt:
-            (typeof entry.participantAlt === 'string' ? entry.participantAlt : undefined) ??
-            (typeof baseData.participantAlt === 'string' ? baseData.participantAlt : undefined) ??
-            (typeof keySource?.participantAlt === 'string' ? keySource.participantAlt : undefined),
-        };
+          const key = {
+            id: externalId,
+            fromMe: Boolean(
+              (typeof entry.fromMe === 'boolean' ? entry.fromMe : undefined) ??
+              (typeof baseData.fromMe === 'boolean' ? baseData.fromMe : undefined) ??
+              (typeof keySource?.fromMe === 'boolean' ? keySource.fromMe : undefined) ??
+              false
+            ),
+            remoteJid:
+              (typeof entry.remoteJid === 'string' ? entry.remoteJid : undefined) ??
+              (typeof baseData.remoteJid === 'string' ? baseData.remoteJid : undefined) ??
+              (typeof keySource?.remoteJid === 'string' ? keySource.remoteJid : undefined),
+            remoteJidAlt:
+              (typeof entry.remoteJidAlt === 'string' ? entry.remoteJidAlt : undefined) ??
+              (typeof baseData.remoteJidAlt === 'string' ? baseData.remoteJidAlt : undefined) ??
+              (typeof keySource?.remoteJidAlt === 'string' ? keySource.remoteJidAlt : undefined),
+            participant:
+              (typeof entry.participant === 'string' ? entry.participant : undefined) ??
+              (typeof baseData.participant === 'string' ? baseData.participant : undefined) ??
+              (typeof keySource?.participant === 'string' ? keySource.participant : undefined),
+            participantAlt:
+              (typeof entry.participantAlt === 'string' ? entry.participantAlt : undefined) ??
+              (typeof baseData.participantAlt === 'string' ? baseData.participantAlt : undefined) ??
+              (typeof keySource?.participantAlt === 'string' ? keySource.participantAlt : undefined),
+          };
 
-        const hasReaction = !!(entry.message as Record<string,unknown>)?.reactionMessage
-          || !!(baseData.message as Record<string,unknown>)?.reactionMessage;
-        console.log(`[webhook][${requestId}][msg.upsert] id=${externalId} fromMe=${key.fromMe} jid=${redactJid(key.remoteJid)} reaction=${hasReaction}`);
+          const hasReaction = !!(entry.message as Record<string,unknown>)?.reactionMessage
+            || !!(baseData.message as Record<string,unknown>)?.reactionMessage;
+          console.log(`[webhook][${requestId}][msg.upsert] id=${externalId} fromMe=${key.fromMe} jid=${redactJid(key.remoteJid)} reaction=${hasReaction}`);
 
-        const msg = (entry.message || baseData.message) as Record<string, unknown> | undefined;
-        if (msg?.reactionMessage) {
-          await handleReactionEvent(supabase, instance, msg.reactionMessage as Record<string, unknown>, !!key.fromMe);
-          continue;
-        }
+          const msg = (entry.message || baseData.message) as Record<string, unknown> | undefined;
+          if (msg?.reactionMessage) {
+            await handleReactionEvent(supabase, instance, msg.reactionMessage as Record<string, unknown>, !!key.fromMe);
+            continue;
+          }
 
-        if (!key.fromMe) {
-          await handleIncomingMessage(supabase, instance, { ...baseData, ...entry }, key, supabaseUrl, supabaseServiceKey);
-        } else {
-          await handleOutgoingWhatsAppMessage(supabase, instance, { ...baseData, ...entry }, key);
+          if (!key.fromMe) {
+            await handleIncomingMessage(supabase, instance, { ...baseData, ...entry }, key, supabaseUrl, supabaseServiceKey);
+          } else {
+            await handleOutgoingWhatsAppMessage(supabase, instance, { ...baseData, ...entry }, key);
+          }
+        } catch (entryError: unknown) {
+          const entryDetail = entryError instanceof Error ? entryError.message : String(entryError);
+          console.error(redactSecrets(`[webhook][${requestId}][msg.upsert] entry_error instance=${instance}: ${entryDetail}`));
+          await routeToDeadLetter(supabase, {
+            event_type: event, instance, payload: entry,
+            error_message: entryDetail, error_stack: entryError instanceof Error ? entryError.stack ?? null : null,
+            request_id: requestId,
+          });
         }
       }
     }
@@ -321,9 +338,18 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: corsHeaders });
   } catch (error: unknown) {
     // Logical/handler errors: log the detail internally, return 200 to evo so it does not
-    // retry-storm the same event. The idempotency guard above makes retries safe.
+    // retry-storm the same event. The idempotency guard above marks the event processed
+    // BEFORE the handler runs, so without a DLQ a handler failure here is permanent,
+    // silent data loss (the exact wpp2 gap this contract test guards against — see
+    // evolution-webhook/__tests__/contract.test.ts). Route to the DLQ before auditing so
+    // the loss is recoverable even if the audit insert itself fails.
     const detail = error instanceof Error ? error.message : String(error);
     console.error(redactSecrets(`[webhook][${requestId}] handler_error event=${event} instance=${instance}: ${detail}`));
+    await routeToDeadLetter(supabase, {
+      event_type: event, instance, payload,
+      error_message: detail, error_stack: error instanceof Error ? error.stack ?? null : null,
+      request_id: requestId,
+    });
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'error',
       duration_ms: Date.now() - startedAt, error_message: detail.slice(0, 500),
