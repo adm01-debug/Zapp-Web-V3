@@ -27,6 +27,7 @@ interface EventMap {
   'connection:status': { isOnline: boolean; isConnected: boolean };
   'connection:recovered': { instanceName: string };
   'connection:credential-error': { instanceName: string; connectionName: string; status: number };
+  'connection:reconnect-exhausted': { instanceName: string; attempts: number };
   'notification:show': { title: string; body: string; type: 'info' | 'warning' | 'error' };
   'agent:status': { agentId: string; status: 'online' | 'away' | 'offline' };
   'queue:update': { queueId: string; count: number };
