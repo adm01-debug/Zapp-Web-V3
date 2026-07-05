@@ -11,6 +11,10 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=tdprnylgyrogbbhgdoik"
+    },
+    "supabase-selfhosted": {
+      "type": "http",
+      "url": "https://supabase-mcp.atomicabr.com.br/mcp"
     }
   }
 }
