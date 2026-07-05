@@ -95,6 +95,7 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
     return errorResponse("Server misconfigured: no Supabase auth backend", 500, req);
   }
 
+  const tried: Array<{ label: string; url: string; ok: boolean; err?: string }> = [];
   let lastErr: string | null = null;
   for (const c of candidates) {
     try {
@@ -104,13 +105,31 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
       });
       const { data, error } = await client.auth.getUser();
       if (!error && data?.user) {
+        console.log("[auth] token validated", { label: c.label, url: c.url, tried: tried.length + 1 });
         return { user: { id: data.user.id, email: data.user.email ?? null } };
       }
       lastErr = error?.message ?? "invalid token";
+      tried.push({ label: c.label, url: c.url, ok: false, err: lastErr });
     } catch (e) {
       lastErr = e instanceof Error ? e.message : "auth error";
+      tried.push({ label: c.label, url: c.url, ok: false, err: lastErr });
     }
   }
+
+  const tokenIss = (() => {
+    try {
+      const [, payload] = token.split('.');
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      return (JSON.parse(atob(padded)) as { iss?: string }).iss ?? null;
+    } catch { return null; }
+  })();
+
+  console.error("[auth] 401 invalid token", {
+    token_iss: tokenIss,
+    token_sub: tokenPayload.sub,
+    candidates_tried: tried,
+    hint: "token_iss deve bater com a URL de um candidato acima. Se não bater, a env set em uso está errada.",
+  });
 
   return errorResponse(`Unauthorized: invalid token (${lastErr ?? "unknown"})`, 401, req);
 }
