@@ -214,8 +214,50 @@ Deno.serve(async (req) => {
   const isHealthGet = req.method === "GET" && !url.searchParams.get("health") && !url.searchParams.get("check");
 
   if (!isHealthGet) {
+    // Decode caller JWT (untrusted, signature not checked) purely for diagnostics.
+    // This surfaces iss/ref/role/sub BEFORE requireUser runs, so a 401 can be
+    // traced to the exact token the client sent without re-decoding downstream.
+    const rawAuth = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+    const bearer = rawAuth.toLowerCase().startsWith("bearer ") ? rawAuth.slice(7).trim() : "";
+    const callerPayload = bearer ? decodeJwtPayload(bearer) : null;
+    const callerInfo = {
+      cid: req.headers.get("x-correlation-id") ?? undefined,
+      rid: req.headers.get("x-request-id") ?? undefined,
+      token_present: Boolean(bearer),
+      token_len: bearer.length || 0,
+      token_role: (callerPayload?.role as string) ?? "unknown",
+      token_iss: (callerPayload?.iss as string) ?? "unknown",
+      token_ref: (callerPayload?.ref as string) ?? "unknown",
+      token_sub: (callerPayload?.sub as string) ?? "unknown",
+      token_aud: (callerPayload?.aud as string) ?? "unknown",
+      token_exp: (callerPayload?.exp as number) ?? null,
+      token_exp_in_s: typeof callerPayload?.exp === "number"
+        ? (callerPayload.exp as number) - Math.floor(Date.now() / 1000)
+        : null,
+      // Which backend the fast-path in requireUser will TRY first.
+      expected_backend: (callerPayload?.iss as string) === `${EXTERNAL_URL}/auth/v1`
+        ? "self-hosted"
+        : "cloud-or-fallback",
+    };
+    console.log("[external-db-proxy] incoming JWT", callerInfo);
+
     const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
+    if (authed instanceof Response) {
+      console.error("[external-db-proxy] requireUser REJECTED", {
+        ...callerInfo,
+        status: authed.status,
+        hint: callerInfo.token_iss === "unknown"
+          ? "JWT ausente ou malformado — cliente não enviou Authorization Bearer válido."
+          : callerInfo.expected_backend === "self-hosted"
+            ? `Token emitido por ${callerInfo.token_iss} — confirme que SELFHOSTED_SUPABASE_ANON_KEY corresponde ao JWT_SECRET desse issuer.`
+            : `Token iss=${callerInfo.token_iss} não bate com EXTERNAL_URL=${EXTERNAL_URL}/auth/v1 — confira SUPABASE_URL/SUPABASE_ANON_KEY do projeto cloud emissor.`,
+      });
+      return authed;
+    }
+    console.log("[external-db-proxy] requireUser OK", {
+      ...callerInfo,
+      user_id: authed.user.id,
+    });
   }
 
   if (bootError || !supabase) {
