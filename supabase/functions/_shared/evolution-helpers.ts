@@ -290,7 +290,9 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
 }
 
 export function instanceOrFilter(instance: string): string {
-  const escaped = instance.replace(/['"]/g, '');
+  // Strip chars that are significant in PostgREST filter syntax to prevent injection.
+  // Allowed: alphanumeric, hyphen, underscore, dot (Evolution instance names use these).
+  const escaped = instance.replace(/[^a-zA-Z0-9._-]/g, '');
   return `instance_id.eq.${escaped},instance_name.eq.${escaped}`;
 }
 
