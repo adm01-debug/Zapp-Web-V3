@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { emitSendStatus } from './sendStatusBus';
 import { dbFrom } from '@/integrations/datasource/db';
 import { getWhatsappConnectionById, getFirstConnectedWhatsapp } from '@/lib/whatsappConnectionsCache';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 const MAX_RETRIES = 3;
 const lastInstabilityToastByContact = new Map<string, number>();
@@ -39,18 +40,18 @@ interface SendMessageResult {
  */
 async function resolveConnection(contactConnectionId: string | null) {
   let resolvedConnectionId = contactConnectionId;
-  let connection: { instance_id: string | null; status: string | null } | null = null;
+  let connection: { instance_id: string | null; instance_name: string | null; status: string | null } | null = null;
 
   if (resolvedConnectionId) {
     const row = await getWhatsappConnectionById(resolvedConnectionId);
-    if (row) connection = { instance_id: row.instance_id, status: row.status };
+    if (row) connection = { instance_id: row.instance_id, instance_name: row.instance_name, status: row.status };
   }
 
   if (!connection?.instance_id || connection.status !== 'connected') {
     const fallback = await getFirstConnectedWhatsapp();
     if (fallback?.instance_id) {
       resolvedConnectionId = fallback.id;
-      connection = { instance_id: fallback.instance_id, status: fallback.status };
+      connection = { instance_id: fallback.instance_id, instance_name: fallback.instance_name, status: fallback.status };
     }
   }
 
@@ -187,7 +188,25 @@ export async function sendMessageToContact(
       throw new Error('Contato sem número de telefone válido');
     }
 
-    const { action, body } = buildEvolutionPayload(connection.instance_id, phone, content, messageType, mediaUrl, mediaPayload);
+    // The Evolution API routes every call by instance NAME, never by the internal
+    // UUID (instance_id) — sending the UUID 404s and, on the connect/create-instance
+    // path, previously auto-created a ghost instance named after the UUID (incident
+    // 2026-07-04, PR #192). This send path used connection.instance_id directly and
+    // was never covered by that fix.
+    const instanceName = evolutionInstanceName(connection);
+    if (!instanceName) {
+      log.error('WhatsApp connection has no usable instance name (only UUID available), refusing to send', { connectionId: resolvedConnectionId });
+      await dbFrom('messages').update({ status: 'failed', error_reason: 'Conexão WhatsApp sem nome de instância válido' }).eq('id', data.id);
+      await (supabase as any).from('conversation_audit_logs').insert({
+        conversation_id: opts.conversationId,
+        event_type: 'failed',
+        status: 'error',
+        error_message: 'Conexão WhatsApp sem nome de instância válido (instance_id parece ser um UUID)',
+      });
+      throw new Error('Conexão WhatsApp sem nome de instância válido');
+    }
+
+    const { action, body } = buildEvolutionPayload(instanceName, phone, content, messageType, mediaUrl, mediaPayload);
     
     if (opts.optimisticId) {
       emitSendStatus(opts.optimisticId, { status: 'sending' }, { contactId, source: 'messageSender' });
