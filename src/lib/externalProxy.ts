@@ -213,15 +213,19 @@ const breaker = new Map<string, { fails: number; openedAt: number }>();
 // this lock because the token is global.
 let authLockUntil = 0;
 const AUTH_LOCK_MS = 60_000;
+// Persistent config-auth errors (502 with "service_role rejected") won't be
+// fixed by retrying — hold requests for 5 minutes to give the operator time
+// to rotate the secret without flooding telemetry.
+const CONFIG_LOCK_MS = 5 * 60_000;
 
 function isAuthLocked(): number {
   const now = Date.now();
   return authLockUntil > now ? authLockUntil - now : 0;
 }
 
-function tripAuthLock(): void {
-  authLockUntil = Date.now() + AUTH_LOCK_MS;
-  proxyLog.warn('proxy auth lock tripped', { cooldownMs: AUTH_LOCK_MS });
+function tripAuthLock(cooldownMs: number = AUTH_LOCK_MS, reason: string = 'auth'): void {
+  authLockUntil = Math.max(authLockUntil, Date.now() + cooldownMs);
+  proxyLog.warn('proxy auth lock tripped', { cooldownMs, reason });
 }
 
 function isBreakerOpen(target: string): { open: boolean; remainingMs: number } {
