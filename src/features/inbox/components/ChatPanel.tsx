@@ -112,11 +112,9 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
   const filters = useChatFilters(messages);
   const { failuresOnly, failureCategory, setFailuresOnly, setFailureCategory, failedMessages, categoryCounts, categoryFilteredMessages, visibleMessages } = filters;
 
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-
   const fileUploaderRef = useRef<FileUploaderRef>(null);
   const messagesAreaRef = useRef<ChatMessagesAreaRef>(null);
-  const dragCounterRef = useRef(0);
+  const { isDraggingOver, dragHandlers } = useChatDragAndDrop(fileUploaderRef);
 
   const { typingUsers, handleTypingStart, handleTypingStop } = useTypingPresence({
     conversationId: conversation.id,
