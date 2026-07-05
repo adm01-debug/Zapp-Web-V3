@@ -197,6 +197,22 @@ const BREAKER_THRESHOLD = 4;
 const BREAKER_COOLDOWN_MS = 5_000;
 const breaker = new Map<string, { fails: number; openedAt: number }>();
 
+// Session-wide auth breaker: after we see a hard 401/403 from the proxy we
+// stop hammering the endpoint for the rest of the session. All targets share
+// this lock because the token is global.
+let authLockUntil = 0;
+const AUTH_LOCK_MS = 60_000;
+
+function isAuthLocked(): number {
+  const now = Date.now();
+  return authLockUntil > now ? authLockUntil - now : 0;
+}
+
+function tripAuthLock(): void {
+  authLockUntil = Date.now() + AUTH_LOCK_MS;
+  proxyLog.warn('proxy auth lock tripped', { cooldownMs: AUTH_LOCK_MS });
+}
+
 function isBreakerOpen(target: string): { open: boolean; remainingMs: number } {
   const entry = breaker.get(target);
   if (!entry || entry.fails < BREAKER_THRESHOLD) return { open: false, remainingMs: 0 };
@@ -223,12 +239,14 @@ function recordBreakerSuccess(target: string): void {
     proxyLog.info('proxy circuit closed', { target });
     breaker.delete(target);
   }
+  authLockUntil = 0;
 }
 
 // Test-only reset hook — exported via __testing namespace below.
 function __resetBreakerAndCoalesce(): void {
   breaker.clear();
   inflight.clear();
+  authLockUntil = 0;
 }
 
 export async function queryExternalProxy<T = unknown>(params: ProxyParams): Promise<ProxyResponse<T>> {
