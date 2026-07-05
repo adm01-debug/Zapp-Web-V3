@@ -7639,11 +7639,16 @@ export type Database = {
       }
       whatsapp_connections: {
         Row: {
+          api_type: string | null
+          api_url: string | null
           auto_reconnect_enabled: boolean | null
           battery_level: number | null
+          connected_at: string | null
           created_at: string
           created_by: string | null
           degraded_at: string | null
+          disconnected_at: string | null
+          evo_instance_id: string | null
           farewell_enabled: boolean | null
           farewell_message: string | null
           health_reason: string | null
@@ -7651,8 +7656,11 @@ export type Database = {
           health_status: string | null
           id: string
           instance_id: string | null
+          instance_name: string | null
+          is_active: boolean | null
           is_default: boolean | null
           is_plugged: boolean | null
+          last_connected_at: string | null
           last_health_check: string | null
           loop_protection_active: boolean | null
           max_reconnect_attempts: number | null
@@ -7663,15 +7671,23 @@ export type Database = {
           qr_code: string | null
           reconnect_interval_seconds: number | null
           retry_count: number | null
+          routing_mode: string | null
+          settings: Json | null
           status: string | null
           updated_at: string
+          webhook_url: string | null
         }
         Insert: {
+          api_type?: string | null
+          api_url?: string | null
           auto_reconnect_enabled?: boolean | null
           battery_level?: number | null
+          connected_at?: string | null
           created_at?: string
           created_by?: string | null
           degraded_at?: string | null
+          disconnected_at?: string | null
+          evo_instance_id?: string | null
           farewell_enabled?: boolean | null
           farewell_message?: string | null
           health_reason?: string | null
@@ -7679,8 +7695,11 @@ export type Database = {
           health_status?: string | null
           id?: string
           instance_id?: string | null
+          instance_name?: string | null
+          is_active?: boolean | null
           is_default?: boolean | null
           is_plugged?: boolean | null
+          last_connected_at?: string | null
           last_health_check?: string | null
           loop_protection_active?: boolean | null
           max_reconnect_attempts?: number | null
@@ -7691,15 +7710,23 @@ export type Database = {
           qr_code?: string | null
           reconnect_interval_seconds?: number | null
           retry_count?: number | null
+          routing_mode?: string | null
+          settings?: Json | null
           status?: string | null
           updated_at?: string
+          webhook_url?: string | null
         }
         Update: {
+          api_type?: string | null
+          api_url?: string | null
           auto_reconnect_enabled?: boolean | null
           battery_level?: number | null
+          connected_at?: string | null
           created_at?: string
           created_by?: string | null
           degraded_at?: string | null
+          disconnected_at?: string | null
+          evo_instance_id?: string | null
           farewell_enabled?: boolean | null
           farewell_message?: string | null
           health_reason?: string | null
@@ -7707,8 +7734,11 @@ export type Database = {
           health_status?: string | null
           id?: string
           instance_id?: string | null
+          instance_name?: string | null
+          is_active?: boolean | null
           is_default?: boolean | null
           is_plugged?: boolean | null
+          last_connected_at?: string | null
           last_health_check?: string | null
           loop_protection_active?: boolean | null
           max_reconnect_attempts?: number | null
@@ -7719,8 +7749,11 @@ export type Database = {
           qr_code?: string | null
           reconnect_interval_seconds?: number | null
           retry_count?: number | null
+          routing_mode?: string | null
+          settings?: Json | null
           status?: string | null
           updated_at?: string
+          webhook_url?: string | null
         }
         Relationships: [
           {
