@@ -158,9 +158,9 @@ export const ConversationItem = memo(function ConversationItem({
   const companyName = contact?.company_name || contact?.company || contact?.organization;
   
   const displayDate =
-    toValidDate(conversation.updatedAt, null as any) ||
-    toValidDate(lastMessage?.created_at, null as any) ||
-    toValidDate(contact?.updated_at, null as any) ||
+    toValidDate(conversation.updatedAt) ||
+    toValidDate(lastMessage?.created_at) ||
+    toValidDate(contact?.updated_at) ||
     new Date();
 
   const StatusIcon = statusIcons[status as keyof typeof statusIcons] || AlertCircle;

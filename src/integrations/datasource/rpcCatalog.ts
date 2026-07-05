@@ -621,7 +621,7 @@ export const RPC = {
     name: 'rpc_provider_panel',
     client: 'lovable',
   }),
-  providerSessionTimeline: def<ProviderSessionTimelineParams, Record<string, unknown>>({
+  providerSessionTimeline: def<ProviderSessionTimelineParams, unknown[]>({
     name: 'rpc_provider_session_timeline',
     client: 'lovable',
   }),

@@ -1,7 +1,15 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getExternalSupabase } from "@/integrations/supabase/externalClient";
+import { dbFrom } from "@/integrations/datasource/db";
+import { safeClient } from "@/integrations/supabase/safeClient";
 import { log } from "@/lib/logger";
+
+interface EvolutionMessage {
+  from_me: boolean;
+  content: string | null;
+  message_timestamp: string;
+}
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
 // Resolve at call time so module import never crashes the inbox.
@@ -98,12 +106,12 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...msgs].sort(
-        (a: any, b: any) =>
+      const sorted = ([...msgs] as EvolutionMessage[]).sort(
+        (a, b) =>
           new Date(a.message_timestamp).getTime() -
           new Date(b.message_timestamp).getTime(),
       );
-      const last: any = sorted[sorted.length - 1];
+      const last = sorted[sorted.length - 1];
       if (!last) return;
 
       const lastTime = new Date(last.message_timestamp).getTime();
@@ -114,12 +122,12 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        const { data: contact } = await (client as any).rpc("rpc_get_contact", {
+        const { data: contact } = await client.rpc("rpc_get_contact" as any, {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
-        const c: any = Array.isArray(contact) ? contact[0] : contact;
-        currentTags = Array.isArray(c?.tags) ? c.tags.map((t: any) => String(t)) : [];
+        const c = (Array.isArray(contact) ? contact[0] : contact) as { tags?: unknown[] } | null;
+        currentTags = Array.isArray(c?.tags) ? c.tags.map((t) => String(t)) : [];
         if (prevTagsRef.current !== null) {
           const prev = prevTagsRef.current;
           addedTags = currentTags.filter((t) => !prev.includes(t));
@@ -138,7 +146,7 @@ export function useAutomations({
         if (rule.trigger_type === "first_response_pending") {
           const thresh = Number(cfg.threshold_seconds ?? 60);
           // Última msg é do cliente e nenhuma resposta posterior
-          const lastInboundIdx = [...sorted].reverse().findIndex((m: any) => !m.from_me);
+          const lastInboundIdx = [...sorted].reverse().findIndex((m) => !m.from_me);
           if (lastInboundIdx === 0 && ageSec >= thresh) {
             matched = true;
             payload.age_seconds = Math.round(ageSec);
@@ -198,16 +206,13 @@ export function useAutomations({
         if (!matched) continue;
 
         // Registra execução respeitando cooldown (RPC)
-        const { data: execId , error: execIdErr } = await (supabase as any).rpc(
-          "rpc_register_automation_execution",
-          {
-            p_rule_id: rule.id,
-            p_remote_jid: remoteJid,
-            p_instance_name: instanceName,
-            p_assigned_to: assignedTo,
-            p_trigger_payload: payload as any,
-          },
-        );
+        const { data: execId } = await safeClient.rpc<string>('rpc_register_automation_execution', {
+          p_rule_id: rule.id,
+          p_remote_jid: remoteJid,
+          p_instance_name: instanceName,
+          p_assigned_to: assignedTo,
+          p_trigger_payload: payload,
+        });
 
         if (!execId) continue;
 
@@ -228,13 +233,12 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            await (client as any).rpc("rpc_upsert_contact", {
+            await client.rpc("rpc_upsert_contact" as any, {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
             });
-            await (supabase as any)
-              .from('automation_executions')
+            await dbFrom('automation_executions')
               .update({
                 applied_tags: allTags,
                 trigger_payload: {
@@ -247,9 +251,9 @@ export function useAutomations({
               .eq("id", execId);
           } catch (e: any) {
             log.warn("[automation] apply_tags/escalate failed", e);
-            await (supabase as any).rpc("rpc_record_automation_error", {
+            await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: String(e instanceof Error ? e.message : e),
               p_context: { stage: "apply_tags_or_escalate", tags: allTags },
             });
           }
@@ -263,7 +267,7 @@ export function useAutomations({
                 executionId: execId,
                 ruleId: rule.id,
                 remoteJid,
-                recentMessages: sorted.map((m: any) => ({
+                recentMessages: sorted.map((m) => ({
                   from_me: m.from_me,
                   content: m.content,
                 })),
@@ -272,29 +276,27 @@ export function useAutomations({
 
             // Auto envio
             if (actions.auto_send) {
-              const { data: exec , error: execErr } = await (supabase as any)
-                .from('automation_executions')
+              const { data: exec } = await dbFrom('automation_executions')
                 .select("suggestion_text")
                 .eq("id", execId)
                 .maybeSingle();
               if (exec?.suggestion_text) {
-                await (client as any).rpc("rpc_insert_message", {
+                await client.rpc("rpc_insert_message" as any, {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
                   p_message_type: "text",
                 });
-                await (supabase as any)
-                  .from('automation_executions')
+                await dbFrom('automation_executions')
                   .update({ status: "executed", acted_at: new Date().toISOString() })
                   .eq("id", execId);
               }
             }
-          } catch (e: any) {
+          } catch (e) {
             log.warn("[automation] suggest_reply failed", e);
-            await (supabase as any).rpc("rpc_record_automation_error", {
+            await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: String(e instanceof Error ? e.message : e),
               p_context: { stage: "suggest_reply_or_autosend" },
             });
           }
