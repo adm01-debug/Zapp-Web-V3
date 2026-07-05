@@ -36,6 +36,7 @@ export function useConnectionsActions(
           name: newConnection.name,
           phone_number: newConnection.phone_number,
           instance_id: instanceName,
+          instance_name: instanceName,
           status: 'disconnected',
           is_default: connections.length === 0,
           api_type: newConnection.api_type,

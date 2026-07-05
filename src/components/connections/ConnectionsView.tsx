@@ -37,6 +37,7 @@ import { IdempotencyMissBanner } from './IdempotencyMissBanner';
 import { useConnectionsManager } from '@/features/connections';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 export function ConnectionsView() {
   const [search, setSearch] = useState('');
@@ -104,13 +105,14 @@ export function ConnectionsView() {
     }
   }, [connections, loading, handleShowQrCode]);
 
-  const handleSyncHistory = async (connection: { id: string; instance_id?: string | null }) => {
-    if (!connection.instance_id) return;
+  const handleSyncHistory = async (connection: { id: string; instance_id?: string | null; instance_name?: string | null }) => {
+    const evoName = evolutionInstanceName(connection);
+    if (!evoName) { toast({ title: 'Conexão sem nome de instância', description: 'Configure um nome válido antes de sincronizar.', variant: 'destructive' }); return; }
     setSyncingHistory(connection.id);
     toast({ title: 'Sincronizando histórico...', description: 'Isso pode levar alguns minutos.' });
     try {
       const { data, error } = await supabase.functions.invoke('evolution-sync', {
-        body: { action: 'sync-all-messages', instanceName: connection.instance_id },
+        body: { action: 'sync-all-messages', instanceName: evoName },
       });
       if (error) throw error;
       toast({ title: 'Sincronização concluída!', description: `${data?.totalSynced || 0} mensagens sincronizadas de ${data?.totalContacts || 0} contatos.` });

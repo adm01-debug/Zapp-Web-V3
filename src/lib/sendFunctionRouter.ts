@@ -33,7 +33,7 @@ export async function resolveSendFunction(
     const { data } = await supabase
       .from('whatsapp_connections')
       .select('api_type, status')
-      .eq('instance_id', instanceName)
+      .or(`instance_name.eq.${instanceName},instance_id.eq.${instanceName}`)
       .maybeSingle();
 
     // Roteamento inteligente com fallback:
