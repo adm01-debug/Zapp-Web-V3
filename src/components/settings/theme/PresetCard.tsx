@@ -28,7 +28,7 @@ export function PresetCard({ preset, isActive, onSelect }: PresetCardProps) {
           <div className="flex h-7 rounded-md overflow-hidden mb-2.5 ring-1 ring-border/30">
             {preset.swatches.map((swatch, i) => (
               <div
-                key={i}
+                key={`${swatch}-${i}`}
                 className="flex-1"
                 style={{ backgroundColor: swatch }}
               />

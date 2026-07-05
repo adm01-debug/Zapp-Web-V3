@@ -167,7 +167,7 @@ export function RealtimeMetricsPanel() {
             <span className="text-xs text-muted-foreground mr-2 self-center">Fluxo:</span>
             {sparkData.map((val, i) => (
               <motion.div
-                key={i}
+                key={`spark-${i}`}
                 initial={{ height: 0 }}
                 animate={{ height: `${Math.max((val / maxSpark) * 100, 8)}%` }}
                 className="flex-1 rounded-sm bg-primary/60 min-h-[2px]"
