@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { newRequestId } from '@/lib/withRequestId';
 import { dbFrom } from '@/integrations/datasource/db';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 /**
  * Encapsulates WhatsApp instance resolution and media-message sending
@@ -77,25 +78,27 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         setWhatsappConnectionId(connectionId);
         const { data: conn } = await supabase
           .from('whatsapp_connections')
-          .select('instance_id')
+          .select('instance_id, instance_name')
           .eq('id', connectionId)
           .maybeSingle();
-        if (conn?.instance_id) {
-          setInstanceName(conn.instance_id);
-          return conn.instance_id;
+        const resolved = conn ? evolutionInstanceName(conn as any) : null;
+        if (resolved) {
+          setInstanceName(resolved);
+          return resolved;
         }
       }
 
       const { data: fallbackConn } = await supabase
         .from('whatsapp_connections')
-        .select('instance_id')
+        .select('instance_id, instance_name')
         .eq('status', 'connected')
         .limit(1)
         .maybeSingle();
 
-      if (fallbackConn?.instance_id) {
-        setInstanceName(fallbackConn.instance_id);
-        return fallbackConn.instance_id;
+      const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn as any) : null;
+      if (fallbackResolved) {
+        setInstanceName(fallbackResolved);
+        return fallbackResolved;
       }
     } catch (err) {
       log.error('Failed to resolve WhatsApp instance:', err);
