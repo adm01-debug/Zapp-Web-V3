@@ -155,6 +155,16 @@ export async function handleMessagesDelete(supabase: any, instance: string, data
         if (phone) { const contact = await getContactByPhone(supabase, phone, connection.id); contactId = contact?.id ?? null; }
       }
 
+      // FIX: guard contactId before fallback INSERT — mirrors handleMessagesUpdate's pattern.
+      // Without this guard the upsert would write contact_id=NULL, which violates the
+      // NOT NULL constraint on messages.contact_id and produces a spurious 23502 error
+      // in the logs (and fails to persist the deleted-message tombstone row).
+      // When the JID cannot be resolved we warn and skip instead.
+      if (!contactId) {
+        console.warn(`[DELETE] Cannot persist deleted-message tombstone for ${key.id}: contact JID not resolved for instance ${instance}`);
+        continue;
+      }
+
       const { error: fallbackErr } = await supabase.from('messages').upsert({
         content: '[Mensagem apagada]', message_type: 'text', sender: 'contact',
         external_id: key.id, status: 'deleted', is_deleted: true, status_updated_at: now,
@@ -196,8 +206,8 @@ export async function handleMessagesSet(supabase: any, instance: string, data: u
     if (msg?.conversation) content = msg.conversation as string;
     else if ((msg?.extendedTextMessage as Record<string, unknown>)?.text) content = (msg!.extendedTextMessage as Record<string, unknown>).text as string;
     else if (msg?.imageMessage) { messageType = 'image'; content = ((msg.imageMessage as Record<string, unknown>).caption as string) || '[Imagem]'; }
-    else if (msg?.videoMessage) { messageType = 'video'; content = ((msg.videoMessage as Record<string, unknown>).caption as string) || '[Vídeo]'; }
-    else if (msg?.audioMessage) { messageType = 'audio'; content = '[Áudio]'; }
+    else if (msg?.videoMessage) { messageType = 'video'; content = ((msg.videoMessage as Record<string, unknown>).caption as string) || '[V\u00eddeo]'; }
+    else if (msg?.audioMessage) { messageType = 'audio'; content = '[\u00c1udio]'; }
     else if (msg?.documentMessage) { messageType = 'document'; content = ((msg.documentMessage as Record<string, unknown>).fileName as string) || '[Documento]'; }
     else if (msg?.stickerMessage) { messageType = 'sticker'; content = '[Sticker]'; }
     else { skipped++; continue; }
