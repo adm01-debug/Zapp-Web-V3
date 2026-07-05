@@ -1,5 +1,5 @@
-// audio-transcribe v2.0 (Self-Hosted, vault-aware) — migrado de Cloud Fator X
-// Mudanças: lê HF_API_TOKEN via getSecret() (env-first + vault fallback)
+// audio-transcribe v2.1 (Self-Hosted, vault-aware) — migrado de Cloud Fator X
+// v2.1: F6 security fix — SSRF guard in fetchAudioWithCap (isSafeAudioUrl)
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import {
   handleCorsPreflight, jsonResponse, errorResponse,
@@ -9,7 +9,7 @@ import {
   getSecret,
 } from "../_shared/mod.ts";
 
-const VERSION = "v2.0-self-hosted";
+const VERSION = "v2.1-self-hosted";
 const WHISPER_MODEL = 'openai/whisper-large-v3-turbo';
 const WHISPER_TIMEOUT_MS = 30000;
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -24,11 +24,38 @@ const TranscribeInput = z.object({
   message: 'Either audio_base64 or audio_url is required',
 });
 
+// F6 security fix: SSRF guard — block private/reserved IPv4 and IPv6 ranges.
+// RFC 5735/5156. Note: URL.hostname returns '[::1]' (brackets) for IPv6 literals.
+function isSafeAudioUrl(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol !== 'https:') return false;
+    const h = u.hostname.toLowerCase();
+    // Private/reserved IPv4 (RFC 5735): 0/8, 10/8, 127/8, 169.254/16, 172.16-31/12, 192.168/16
+    if (/^(0\.|10\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.)/.test(h)) return false;
+    // Named loopback / unspecified
+    if (h === 'localhost' || h === '0.0.0.0') return false;
+    // IPv6 loopback and private ranges (URL.hostname includes brackets)
+    if (h === '[::1]' || h === '::1') return false;
+    if (/^\[?(fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(h)) return false;
+    // Cloud metadata services
+    if (h === '169.254.169.254' || h === 'metadata.google.internal') return false;
+    return true;
+  } catch { return false; }
+}
+
 /**
  * Stream a remote audio URL into a Uint8Array while enforcing the byte cap.
  * Avoids buffering the entire response in memory before checking size.
+ * F6: SSRF guard applied before fetch — blocks private ranges.
  */
 async function fetchAudioWithCap(url: string, maxBytes: number): Promise<Uint8Array | null> {
+  // F6 SSRF guard — reject before any network call
+  if (!isSafeAudioUrl(url)) {
+    console.warn('[audio-transcribe] Blocked unsafe audio URL', url.substring(0, 40));
+    return null;
+  }
+
   const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!resp.ok || !resp.body) return null;
 
