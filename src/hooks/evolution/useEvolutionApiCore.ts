@@ -29,10 +29,20 @@ interface EvolutionApiError extends Error {
   retryAfterMs?: number;
 }
 
+/**
+ * FIX (2026-07-05 — Bug #9): Explicit 401/403 guard added.
+ * Credential errors must surface immediately so circuit-breaker logic
+ * in useEvolutionAutoReconnect can halt polling permanently.
+ */
 function isRetriableStatus(status?: number): boolean {
-  if (status == null) return true; // network / unknown: retry
+  if (status == null) return true; // network / unknown -> retry
+  // Credential errors: never retry — surface immediately to callers
+  if (status === 401 || status === 403) return false;
+  // Timeout / Too Early / Rate-limit
   if (status === 408 || status === 425 || status === 429) return true;
+  // Transient server errors (includes 503 from Edge Function runtime)
   if (status >= 500 && status < 600) return true;
+  // All other 4xx client errors (400, 404, 422…) — not retriable
   return false;
 }
 

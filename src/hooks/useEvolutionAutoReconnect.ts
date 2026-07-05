@@ -9,7 +9,18 @@ import { evolutionInstanceName } from '@/lib/evolutionInstance';
 const log = getLogger('useEvolutionAutoReconnect');
 
 const INITIAL_BACKOFF_MS = 2_000;
-const MAX_BACKOFF_MS = 60_000;
+const MAX_BACKOFF_MS     = 60_000;
+
+/**
+ * Circuit-breaker constants for the status-polling loop.
+ *
+ * On credential errors (401/403): polling halted PERMANENTLY for the session.
+ * On transient 5xx / network: exponential back-off after CIRCUIT_THRESHOLD
+ * consecutive failures.  Successful response resets the counter.
+ */
+const CIRCUIT_THRESHOLD  = 3;            // consecutive failures to open circuit
+const CIRCUIT_BASE_MS    = 2 * 60_000;  // 2 min — first cool-down window
+const CIRCUIT_MAX_MS     = 10 * 60_000; // 10 min — ceiling
 
 /**
  * Shape mínimo do payload Realtime de whatsapp_connections
@@ -28,8 +39,8 @@ interface WhatsAppConnection {
 }
 
 /**
- * Extrai o HTTP status de um erro lançado pelo `callApi` /
- * `supabase.functions.invoke`.
+ * Extrai o HTTP status de um erro lançado pelo callApi /
+ * supabase.functions.invoke.
  */
 function extractHttpStatus(err: unknown): number | undefined {
   if (err == null || typeof err !== 'object') return undefined;
@@ -48,21 +59,20 @@ function extractHttpStatus(err: unknown): number | undefined {
  * useEvolutionAutoReconnect
  *
  * BUGS CORRIGIDOS (2026-07-03):
- *  1. fn_log_reconnection_attempt chamado com parâmetros ERRADOS (PR #130).
+ *  1. fn_log_reconnection_attempt chamado com parametros ERRADOS (PR #130).
  *  2. stale closure em isReconnecting (PR #127).
- *  3. performReconnect não memoizado (PR #127).
+ *  3. performReconnect nao memoizado (PR #127).
  *  4. @ts-nocheck removido (PR #127).
  *  5. 401/403 aborta ciclo de retry (PR #127).
- *  6. [ESTE COMMIT] p_status='connected' viola chk_reconnection_status.
- *     zapp.reconnection_logs aceita apenas:
- *       ['attempting','success','failed','timeout','cancelled']
- *     O código anterior enviava 'connected' → CHECK VIOLATION silenciosa.
- *     Fix: status === 'success' ? 'success' : 'failed'
- *  7. [ESTE COMMIT] p_connection_id recebia whatsapp_connections.id que
- *     aponta para FK zapp.channel_connections(id) — tabela vazia.
- *     Isso causaria FK violation em toda tentativa de log.
- *     Fix: p_connection_id=NULL (FK é nullable); whatsapp_connection_id
- *     preservado em p_metadata para rastreabilidade.
+ *  6. p_status='connected' viola chk_reconnection_status (PR anterior).
+ *  7. p_connection_id recebia whatsapp_connections.id (PR anterior).
+ *
+ * BUGS CORRIGIDOS (2026-07-05):
+ *  8. RETRY STORM: checkStatus nao abortava em erros de credencial (401/403).
+ *     O setInterval de 30s continuava disparando indefinidamente.
+ *     Fix: circuit-breaker permanente em 401/403 + exponencial em 5xx >=3.
+ *  9. isRetriableStatus (useEvolutionApiCore) nao excluia explicitamente 401/403.
+ *     Corrigido no arquivo irmao useEvolutionApiCore.ts.
  */
 export function useEvolutionAutoReconnect(instanceName?: string) {
   const { restartInstance, getInstanceStatus, connectInstance } = useEvolutionApi();
@@ -78,12 +88,27 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
   const backoffRef        = useRef(INITIAL_BACKOFF_MS);
   const timerRef          = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Circuit-breaker state (§2 status polling) ──────────────────────────────────────
+  /** Permanent flag: halts polling forever on 401/403 for this session. */
+  const credentialErrorRef  = useRef(false);
+  /** Counter for consecutive non-credential failures (5xx / network). */
+  const consecutiveFailsRef = useRef(0);
+  /** Epoch ms: polling is suspended until this timestamp. */
+  const circuitOpenUntilRef = useRef(0);
+
   const setIsReconnecting = useCallback((v: boolean) => {
     isReconnectingRef.current = v;
     _setIsReconnecting(v);
   }, []);
 
-  // ── 1. Global Realtime Monitoring ─────────────────────────────────────────
+  // Reset circuit-breaker when instanceName changes (new connection context)
+  useEffect(() => {
+    credentialErrorRef.current  = false;
+    consecutiveFailsRef.current = 0;
+    circuitOpenUntilRef.current = 0;
+  }, [instanceName]);
+
+  // ── 1. Global Realtime Monitoring ────────────────────────────────────────────────────
   const performReconnect = useCallback(
     async (connection: WhatsAppConnection) => {
       const id  = connection.id;
@@ -99,11 +124,9 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
         return;
       }
 
-      // Evolution API roteia por NOME de instância; o UUID (instance_id) gera 404
-      // e pode disparar auto-create de instância fantasma (incidente wpp2 2026-07-04).
       const evoInstanceName = evolutionInstanceName(connection);
       if (!evoInstanceName) {
-        log.warn(`Auto-reconnect bloqueado: conexão "${connection.name}" sem instance_name`, { id });
+        log.warn(`Auto-reconnect bloqueado: conexao "${connection.name}" sem instance_name`, { id });
         return;
       }
 
@@ -139,27 +162,22 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
         }
       }
 
-      // HOTFIX Bug 6: p_status 'connected' viola chk_reconnection_status.
-      // Valores válidos: ['attempting','success','failed','timeout','cancelled'].
-      // HOTFIX Bug 7: p_connection_id não pode ser whatsapp_connections.id pois
-      // a FK aponta para zapp.channel_connections (tabela separada/vazia).
-      // Solucao: p_connection_id=NULL (FK nullable), whatsapp_connection_id em metadata.
       try {
         await (supabase.rpc as unknown as (n: string, a: unknown) => Promise<unknown>)('fn_log_reconnection_attempt', {
-          p_connection_id:  null,                     // Bug 7 fix: FK ref vazia
+          p_connection_id:  null,
           p_instance_name:  evoInstanceName,
-          p_status:         attemptStatus,             // Bug 6 fix: 'success'|'failed'
+          p_status:         attemptStatus,
           p_error_message:  errorMsg,
           p_attempt_number: attempts + 1,
           p_qr_generated:   false,
           p_metadata: {
-            whatsapp_connection_id: id,               // rastreabilidade via metadata
+            whatsapp_connection_id: id,
             reconnect_reason:       connection.health_reason,
             status_before:          connection.status,
           },
         });
       } catch (rpcErr) {
-        log.warn('fn_log_reconnection_attempt RPC falhou (não-crítico)', rpcErr);
+        log.warn('fn_log_reconnection_attempt RPC falhou (nao-critico)', rpcErr);
       }
     },
     [restartInstance],
@@ -193,7 +211,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     return () => { void supabase.removeChannel(channel); };
   }, [performReconnect]);
 
-  // ── 2. Specific Instance Polling ──────────────────────────────────────────
+  // ── 2. Specific Instance Polling ──────────────────────────────────────────────────
   const scheduleNextAttempt = useCallback(() => {
     setIsReconnecting(false);
     const nextDelay = Math.min(backoffRef.current * 2, MAX_BACKOFF_MS);
@@ -246,20 +264,83 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     }
   }, [instanceName, connectInstance, getInstanceStatus, queryClient, setIsReconnecting, scheduleNextAttempt]);
 
+  /**
+   * Polling loop (30 s interval).
+   *
+   * BUG #8 FIX — Circuit-breaker:
+   *
+   * BEFORE: Any error was swallowed (just logged). On 401/403 the
+   * setInterval kept firing every 30s → permanent retry storm.
+   *
+   * AFTER:
+   *  401/403 → credentialErrorRef = true (permanent halt) + event emitted.
+   *  >=CIRCUIT_THRESHOLD consecutive 5xx/network → circuitOpenUntilRef set
+   *  to (now + exponential back-off). Calls skip until cool-down expires.
+   *  Any success → consecutiveFailsRef reset to 0.
+   */
   const checkStatus = useCallback(async () => {
     if (!instanceName) return;
+
+    // Guard 1: Permanent halt on credential error (401/403)
+    if (credentialErrorRef.current) {
+      log.debug(`Skipping check for ${instanceName}: credential error halted polling`);
+      return;
+    }
+
+    // Guard 2: Temporary back-off due to consecutive 5xx / network failures
+    const now = Date.now();
+    if (circuitOpenUntilRef.current > now) {
+      const remainingSec = Math.round((circuitOpenUntilRef.current - now) / 1_000);
+      log.debug(`Circuit open for ${instanceName} — skipping (resumes in ${remainingSec}s)`);
+      return;
+    }
+
     try {
       const currentStatus = await getInstanceStatus(instanceName);
       const state: string = currentStatus?.instance?.state ?? currentStatus?.state ?? 'unknown';
       setStatus(state);
+
+      // Reset failure counter on any success
+      consecutiveFailsRef.current = 0;
 
       if (state !== 'open' && state !== 'connecting' && !isReconnectingRef.current) {
         void attemptSpecificReconnect();
       }
     } catch (err: unknown) {
       log.error(`Error checking status for ${instanceName}:`, err);
+      const httpStatus = extractHttpStatus(err);
+
+      // Credential error → permanent halt + event
+      if (httpStatus === 401 || httpStatus === 403) {
+        log.error(
+          `Credential error (HTTP ${httpStatus}) for ${instanceName} — ` +
+          `halting status polling permanently for this session`,
+        );
+        credentialErrorRef.current = true;
+        setIsReconnecting(false);
+        eventBus.emit('connection:credential-error', {
+          instanceName,
+          connectionName: instanceName,
+          status: httpStatus,
+        });
+        return;
+      }
+
+      // Transient error → exponential back-off circuit breaker
+      consecutiveFailsRef.current += 1;
+      const failures = consecutiveFailsRef.current;
+
+      if (failures >= CIRCUIT_THRESHOLD) {
+        const exponent  = failures - CIRCUIT_THRESHOLD;
+        const backoffMs = Math.min(CIRCUIT_BASE_MS * (2 ** exponent), CIRCUIT_MAX_MS);
+        circuitOpenUntilRef.current = Date.now() + backoffMs;
+        log.warn(
+          `Circuit breaker opened for ${instanceName}: ` +
+          `${failures} consecutive failure(s), pausing ${Math.round(backoffMs / 1_000)}s`,
+        );
+      }
     }
-  }, [instanceName, getInstanceStatus, attemptSpecificReconnect]);
+  }, [instanceName, getInstanceStatus, attemptSpecificReconnect, setIsReconnecting]);
 
   useEffect(() => {
     if (!instanceName) return;
