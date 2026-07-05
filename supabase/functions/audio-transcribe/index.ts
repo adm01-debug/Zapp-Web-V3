@@ -64,9 +64,9 @@ function isSafeAudioUrl(raw: string): boolean {
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, ULA, and IPv4-mapped
-    host === '[::1]' ||
-    host.startsWith('[::ffff:') ||        // IPv4-mapped IPv6
+    // IPv6 loopback, link-local, ULA, IPv4-mapped, and IPv4-compatible
+    // [::x.x.x.x] normalizes to [::XXYY:ZZWW] — startsWith('[::') catches all
+    host.startsWith('[::') ||              // loopback [::1], IPv4-mapped [::ffff:], IPv4-compatible, unspecified [::]
     /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
     host.startsWith('[fc') ||              // ULA fc00::/7 (fc+fd)
     host.startsWith('[fd')                 // ULA fd00::/8

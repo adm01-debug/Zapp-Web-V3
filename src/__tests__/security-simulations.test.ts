@@ -1683,3 +1683,166 @@ describe('classifyGmailError — unusual/edge code values', () => {
     expect(classifyGmailError({ code: 1000 })).toBe('transient');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. isSafeAudioUrl
+//    Exact copy of the function in supabase/functions/audio-transcribe/index.ts
+//    after the IPv4-compatible IPv6 fix (host.startsWith('[::'))
+// ─────────────────────────────────────────────────────────────────────────────
+
+function isSafeAudioUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === '0.0.0.0' ||
+    /^127\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    // IPv6 loopback, link-local, ULA, IPv4-mapped, and IPv4-compatible
+    // [::x.x.x.x] normalizes to [::XXYY:ZZWW] — startsWith('[::') catches all
+    host.startsWith('[::') || // loopback [::1], IPv4-mapped [::ffff:], IPv4-compatible, unspecified [::]
+    /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
+    host.startsWith('[fc') || // ULA fc00::/7 (fc+fd)
+    host.startsWith('[fd') // ULA fd00::/8
+  )
+    return false;
+  return true;
+}
+
+// ─── [21] isSafeAudioUrl — IPv4 loopback / private ranges ────────────────────
+describe('isSafeAudioUrl — IPv4 loopback and private ranges', () => {
+  it('http:// URL is rejected', () => {
+    expect(isSafeAudioUrl('http://example.com/audio.mp3')).toBe(false);
+  });
+  it('localhost is rejected', () => {
+    expect(isSafeAudioUrl('https://localhost/audio.mp3')).toBe(false);
+  });
+  it('127.0.0.1 (loopback) is rejected', () => {
+    expect(isSafeAudioUrl('https://127.0.0.1/audio.mp3')).toBe(false);
+  });
+  it('127.255.255.255 (full loopback block) is rejected', () => {
+    expect(isSafeAudioUrl('https://127.255.255.255/audio.mp3')).toBe(false);
+  });
+  it('169.254.169.254 (AWS metadata) is rejected', () => {
+    expect(isSafeAudioUrl('https://169.254.169.254/latest/meta-data/')).toBe(false);
+  });
+  it('10.0.0.1 (RFC-1918 A) is rejected', () => {
+    expect(isSafeAudioUrl('https://10.0.0.1/audio.mp3')).toBe(false);
+  });
+  it('192.168.1.1 (RFC-1918 C) is rejected', () => {
+    expect(isSafeAudioUrl('https://192.168.1.1/audio.mp3')).toBe(false);
+  });
+  it('172.16.0.1 (RFC-1918 B start) is rejected', () => {
+    expect(isSafeAudioUrl('https://172.16.0.1/audio.mp3')).toBe(false);
+  });
+  it('172.31.255.255 (RFC-1918 B end) is rejected', () => {
+    expect(isSafeAudioUrl('https://172.31.255.255/audio.mp3')).toBe(false);
+  });
+  it('172.15.255.255 (just below RFC-1918 B) is allowed', () => {
+    expect(isSafeAudioUrl('https://172.15.255.255/audio.mp3')).toBe(true);
+  });
+  it('172.32.0.1 (just above RFC-1918 B) is allowed', () => {
+    expect(isSafeAudioUrl('https://172.32.0.1/audio.mp3')).toBe(true);
+  });
+  it('public IP 93.184.216.34 is allowed', () => {
+    expect(isSafeAudioUrl('https://93.184.216.34/audio.mp3')).toBe(true);
+  });
+});
+
+// ─── [22] isSafeAudioUrl — IPv6 loopback and IPv4-mapped ─────────────────────
+describe('isSafeAudioUrl — IPv6 loopback and IPv4-mapped', () => {
+  it('[::1] (IPv6 loopback) is rejected', () => {
+    expect(isSafeAudioUrl('https://[::1]/audio.mp3')).toBe(false);
+  });
+  it('[::ffff:127.0.0.1] (IPv4-mapped loopback) is rejected', () => {
+    expect(isSafeAudioUrl('https://[::ffff:127.0.0.1]/audio.mp3')).toBe(false);
+  });
+  it('[::ffff:7f00:1] (normalized IPv4-mapped loopback) is rejected', () => {
+    expect(isSafeAudioUrl('https://[::ffff:7f00:1]/audio.mp3')).toBe(false);
+  });
+  it('[::ffff:169.254.169.254] (IPv4-mapped AWS metadata) is rejected', () => {
+    expect(isSafeAudioUrl('https://[::ffff:169.254.169.254]/audio.mp3')).toBe(false);
+  });
+  it('[::ffff:10.0.0.1] (IPv4-mapped private A) is rejected', () => {
+    expect(isSafeAudioUrl('https://[::ffff:10.0.0.1]/audio.mp3')).toBe(false);
+  });
+  it('[::]  (IPv6 unspecified) is rejected', () => {
+    expect(isSafeAudioUrl('https://[::]:443/audio.mp3')).toBe(false);
+  });
+});
+
+// ─── [23] isSafeAudioUrl — IPv4-compatible IPv6 SSRF (new fix) ───────────────
+describe('isSafeAudioUrl — IPv4-compatible IPv6 SSRF bypass (fixed)', () => {
+  it('[::127.0.0.1] loopback via IPv4-compatible IPv6 is blocked', () => {
+    expect(isSafeAudioUrl('https://[::127.0.0.1]/audio.mp3')).toBe(false);
+  });
+  it('[::169.254.169.254] AWS metadata via IPv4-compatible IPv6 is blocked', () => {
+    expect(isSafeAudioUrl('https://[::169.254.169.254]/audio.mp3')).toBe(false);
+  });
+  it('[::10.0.0.1] RFC-1918 class A via IPv4-compatible IPv6 is blocked', () => {
+    expect(isSafeAudioUrl('https://[::10.0.0.1]/audio.mp3')).toBe(false);
+  });
+  it('[::192.168.0.1] RFC-1918 class C via IPv4-compatible IPv6 is blocked', () => {
+    expect(isSafeAudioUrl('https://[::192.168.0.1]/audio.mp3')).toBe(false);
+  });
+  it('[::172.16.0.1] RFC-1918 class B via IPv4-compatible IPv6 is blocked', () => {
+    expect(isSafeAudioUrl('https://[::172.16.0.1]/audio.mp3')).toBe(false);
+  });
+  it('[::7f00:1] normalized loopback via IPv4-compatible IPv6 is blocked', () => {
+    expect(isSafeAudioUrl('https://[::7f00:1]/audio.mp3')).toBe(false);
+  });
+  it('[::a9fe:a9fe] normalized AWS metadata via IPv4-compatible IPv6 is blocked', () => {
+    expect(isSafeAudioUrl('https://[::a9fe:a9fe]/audio.mp3')).toBe(false);
+  });
+});
+
+// ─── [24] isSafeAudioUrl — IPv6 link-local and ULA ───────────────────────────
+describe('isSafeAudioUrl — IPv6 link-local and ULA', () => {
+  it('[fe80::1] (link-local) is rejected', () => {
+    expect(isSafeAudioUrl('https://[fe80::1]/audio.mp3')).toBe(false);
+  });
+  it('[fe80::dead:beef] (link-local) is rejected', () => {
+    expect(isSafeAudioUrl('https://[fe80::dead:beef]/audio.mp3')).toBe(false);
+  });
+  it('[fec0::1] (site-local, deprecated but in fe80::/10) is rejected', () => {
+    expect(isSafeAudioUrl('https://[fec0::1]/audio.mp3')).toBe(false);
+  });
+  it('[fc00::1] (ULA fc) is rejected', () => {
+    expect(isSafeAudioUrl('https://[fc00::1]/audio.mp3')).toBe(false);
+  });
+  it('[fd00::1] (ULA fd) is rejected', () => {
+    expect(isSafeAudioUrl('https://[fd00::1]/audio.mp3')).toBe(false);
+  });
+  it('[fdab:cdef:1234::1] (ULA fd) is rejected', () => {
+    expect(isSafeAudioUrl('https://[fdab:cdef:1234::1]/audio.mp3')).toBe(false);
+  });
+});
+
+// ─── [25] isSafeAudioUrl — valid public URLs ─────────────────────────────────
+describe('isSafeAudioUrl — valid public HTTPS URLs pass', () => {
+  it('Cloudflare R2 HTTPS URL is allowed', () => {
+    expect(isSafeAudioUrl('https://pub-abc.r2.cloudflarestorage.com/audio.ogg')).toBe(true);
+  });
+  it('AWS S3 public HTTPS URL is allowed', () => {
+    expect(isSafeAudioUrl('https://my-bucket.s3.amazonaws.com/audio.mp3')).toBe(true);
+  });
+  it('Public IPv6 2606:4700::6810:84e5 is allowed', () => {
+    expect(isSafeAudioUrl('https://[2606:4700::6810:84e5]/audio.mp3')).toBe(true);
+  });
+  it('Public IPv6 2001:db8::1 is allowed', () => {
+    expect(isSafeAudioUrl('https://[2001:db8::1]/audio.mp3')).toBe(true);
+  });
+  it('GCS public HTTPS URL is allowed', () => {
+    expect(isSafeAudioUrl('https://storage.googleapis.com/bucket/audio.mp3')).toBe(true);
+  });
+});
