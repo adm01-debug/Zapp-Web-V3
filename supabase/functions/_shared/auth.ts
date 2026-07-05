@@ -48,20 +48,39 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
   const token = getBearer(req);
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
 
-  const url = requireEnv("SUPABASE_URL");
-  const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))
-    ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-  if (!anonKey) return errorResponse("Server misconfigured: anon key missing", 500, req);
+  // Prefer self-hosted when configured — the published frontend uses it and
+  // Cloud validation would falsely reject those JWTs. Fall back to Cloud.
+  const selfUrl = Deno.env.get("SELFHOSTED_SUPABASE_URL");
+  const selfAnon = Deno.env.get("SELFHOSTED_SUPABASE_ANON_KEY");
+  const cloudUrl = Deno.env.get("SUPABASE_URL");
+  const cloudAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
 
-  const client = createClient(url, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const candidates: Array<{ url: string; key: string; label: string }> = [];
+  if (selfUrl && selfAnon) candidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted" });
+  if (cloudUrl && cloudAnon) candidates.push({ url: cloudUrl, key: cloudAnon, label: "cloud" });
 
-  const { data, error } = await client.auth.getUser();
-  if (error || !data?.user) return errorResponse("Unauthorized: invalid token", 401, req);
+  if (candidates.length === 0) {
+    return errorResponse("Server misconfigured: no Supabase auth backend", 500, req);
+  }
 
-  return { user: { id: data.user.id, email: data.user.email ?? null } };
+  let lastErr: string | null = null;
+  for (const c of candidates) {
+    try {
+      const client = createClient(c.url, c.key, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data, error } = await client.auth.getUser();
+      if (!error && data?.user) {
+        return { user: { id: data.user.id, email: data.user.email ?? null } };
+      }
+      lastErr = error?.message ?? "invalid token";
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : "auth error";
+    }
+  }
+
+  return errorResponse(`Unauthorized: invalid token (${lastErr ?? "unknown"})`, 401, req);
 }
 
 export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser | Response> {
