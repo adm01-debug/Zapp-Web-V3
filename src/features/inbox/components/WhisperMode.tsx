@@ -142,11 +142,7 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
                     {w.sender && w.sender_id !== profile?.id && (
                       <p className="font-semibold text-[10px] text-amber-600 dark:text-amber-400 mb-0.5">{w.sender.name}</p>
                     )}
-                    {w.audio_url ? (
-                      <WhisperAudioPlayer audioUrl={w.audio_url} />
-                    ) : (
-                      <p className="break-words">{w.content}</p>
-                    )}
+                    <p className="break-words">{w.content}</p>
                     <p className="text-[10px] opacity-60 mt-0.5">{format(new Date(w.created_at), 'HH:mm', { locale: ptBR })}</p>
                   </div>
                 </div>
