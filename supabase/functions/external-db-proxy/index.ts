@@ -76,7 +76,36 @@ const URL_SOURCE = URL_PICK.source ?? "none";
 const KEY_SOURCE = KEY_PICK.source ?? "none";
 const ENV_SET = URL_SOURCE.startsWith("SELFHOSTED_") || KEY_SOURCE.startsWith("SELFHOSTED_") ? "SELFHOSTED_*" : URL_SOURCE.startsWith("EXTERNAL_") || KEY_SOURCE.startsWith("EXTERNAL_") ? "EXTERNAL_*" : "unknown";
 
-console.log("[external-db-proxy] env resolved", { url_source: URL_SOURCE, key_source: KEY_SOURCE, env_set: ENV_SET });
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+const KEY_PAYLOAD = EXTERNAL_KEY ? decodeJwtPayload(EXTERNAL_KEY) : null;
+const KEY_ROLE = (KEY_PAYLOAD?.role as string) ?? "unknown";
+const KEY_ISS = (KEY_PAYLOAD?.iss as string) ?? "unknown";
+const KEY_REF = (KEY_PAYLOAD?.ref as string) ?? "unknown";
+
+console.log("[external-db-proxy] env resolved", {
+  url_source: URL_SOURCE,
+  key_source: KEY_SOURCE,
+  env_set: ENV_SET,
+  target_url: EXTERNAL_URL,
+  key_role: KEY_ROLE,
+  key_iss: KEY_ISS,
+  key_ref: KEY_REF,
+});
+
+if (EXTERNAL_KEY && KEY_ROLE !== "service_role") {
+  console.warn("[external-db-proxy] WARN: chave configurada NÃO é service_role", { key_role: KEY_ROLE, key_source: KEY_SOURCE });
+}
 
 const TARGET_URL = EXTERNAL_URL ?? "";
 const TARGET_KEY = EXTERNAL_KEY ?? "";
@@ -347,9 +376,28 @@ Deno.serve(async (req) => {
           latency_ms: Date.now() - start,
         }, 503);
       }
+      const isUnauthorized = /unauthorized|jwt|invalid signature|invalid api key|jws/i.test(err.message ?? "");
+      if (isUnauthorized) {
+        console.error('[external-db-proxy] AUTH MISMATCH — service_role key não é aceita pelo self-hosted', {
+          schema, table, cid,
+          target_url: EXTERNAL_URL,
+          key_source: KEY_SOURCE,
+          key_role: KEY_ROLE,
+          key_iss: KEY_ISS,
+          key_ref: KEY_REF,
+          message: err.message,
+        });
+        return jsonResponse({
+          error: "Self-hosted rejeitou a service_role key (assinatura inválida).",
+          hint: `A chave em '${KEY_SOURCE}' (role=${KEY_ROLE}, iss=${KEY_ISS}, ref=${KEY_REF}) não corresponde ao JWT_SECRET de ${EXTERNAL_URL}. Copie a service_role key EXATA do painel do self-hosted (Settings → API) e atualize o secret.`,
+          cid, rid, data: [], count: 0, latency_ms: Date.now() - start,
+        }, 502);
+      }
       console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
       return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
     }
+
+
 
     return jsonResponse({
       ok: true,
