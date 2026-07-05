@@ -1,6 +1,7 @@
 import { memo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { File, Download, Trash2, Loader2, UploadCloud, EyeOff, Search as SearchIcon, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,23 +14,30 @@ interface TeamFilesProps {
   contactId: string;
 }
 
+interface WhisperFile {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  file_type: string;
+  created_at: string;
+  contact_id: string;
+}
+
 export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  const { data: files = [], isLoading } = useQuery({
+  const { data: files = [], isLoading } = useQuery<WhisperFile[]>({
     queryKey: ['team-files', contactId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('whisper_files')
-        .select('*')
-        .eq('contact_id', contactId)
-        .order('created_at', { ascending: false });
-      
+      const { data, error } = await safeClient.from('whisper_files', (q) =>
+        q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
+      );
       if (error) throw error;
-      return data;
+      return (data ?? []) as WhisperFile[];
     },
   });
 
@@ -49,14 +57,16 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         .from('whatsapp-media')
         .getPublicUrl(filePath);
 
-      const { error: dbError } = await (supabase as any).from('whisper_files').insert({
-        contact_id: contactId,
-        file_name: file.name,
-        file_url: publicUrl,
-        file_size: file.size,
-        file_type: file.type,
-        sender_id: (await supabase.auth.getUser()).data.user?.id,
-      });
+      const { error: dbError } = await safeClient.from('whisper_files', (q) =>
+        q.insert({
+          contact_id: contactId,
+          file_name: file.name,
+          file_url: publicUrl,
+          file_size: file.size,
+          file_type: file.type,
+          sender_id: (await supabase.auth.getUser()).data.user?.id,
+        })
+      );
 
       if (dbError) throw dbError;
     },
@@ -64,15 +74,15 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
       toast({ title: 'Arquivo enviado', description: 'O documento interno foi salvo com sucesso.' });
     },
-    onError: (error: any) => {
-      toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
+    onError: (error: unknown) => {
+      toast({ title: 'Erro no upload', description: (error as { message?: string })?.message, variant: 'destructive' });
     },
     onSettled: () => setIsUploading(false),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from('whisper_files').delete().eq('id', id);
+      const { error } = await safeClient.from('whisper_files', (q) => q.delete().eq('id', id));
       if (error) throw error;
     },
     onSuccess: () => {
@@ -95,14 +105,12 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   };
 
   const filteredFiles = files.filter(file => {
-    const fileName = (file as any).file_name || '';
-    const fileType = (file as any).file_type || '';
-    const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || 
-      (typeFilter === 'image' && fileType.startsWith('image/')) ||
-      (typeFilter === 'pdf' && fileType === 'application/pdf') ||
-      (typeFilter === 'doc' && (fileType.includes('word') || fileType.includes('document'))) ||
-      (typeFilter === 'other' && !fileType.startsWith('image/') && fileType !== 'application/pdf' && !fileType.includes('word'));
+    const matchesSearch = file.file_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === 'all' ||
+      (typeFilter === 'image' && file.file_type.startsWith('image/')) ||
+      (typeFilter === 'pdf' && file.file_type === 'application/pdf') ||
+      (typeFilter === 'doc' && (file.file_type.includes('word') || file.file_type.includes('document'))) ||
+      (typeFilter === 'other' && !file.file_type.startsWith('image/') && file.file_type !== 'application/pdf' && !file.file_type.includes('word'));
     return matchesSearch && matchesType;
   });
 
@@ -127,14 +135,14 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-warning-foreground" />
-            <Input 
+            <Input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Buscar arquivos..." 
+              placeholder="Buscar arquivos..."
               className="pl-7 h-8 text-[11px] bg-warning/30 border-warning focus-visible:ring-amber-200"
             />
           </div>
-          <select 
+          <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
             className="h-8 text-[10px] bg-warning/30 border-warning rounded-md px-2 text-warning-foreground outline-none focus:ring-1 focus:ring-amber-200"
@@ -151,7 +159,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       <div className="space-y-2 min-h-[100px]">
         {isLoading ? (
           <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-warning-foreground" /></div>
-        ) : (filteredFiles as any[]).length === 0 ? (
+        ) : filteredFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 grayscale">
             <File className="w-8 h-8 mb-2" />
             <p className="text-[10px]">
@@ -159,7 +167,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
             </p>
           </div>
         ) : (
-          filteredFiles.map((file: any) => (
+          filteredFiles.map((file) => (
             <div key={file.id} className="flex items-center gap-3 p-2 rounded-xl bg-warning/50 border border-warning hover:bg-warning/50 transition-colors group">
               <div className="w-8 h-8 rounded-lg bg-warning flex items-center justify-center shrink-0">
                 <File className="w-4 h-4 text-warning-foreground" />
@@ -183,10 +191,10 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                         <DialogTitle className="text-sm font-bold text-warning-foreground">{file.file_name}</DialogTitle>
                       </DialogHeader>
                       <div className="flex items-center justify-center p-2 bg-warning/20 rounded-xl overflow-hidden min-h-[300px]">
-                        <img 
-                          src={file.file_url} 
-                          alt={file.file_name} 
-                          className="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg" 
+                        <img
+                          src={file.file_url}
+                          alt={file.file_name}
+                          className="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg"
                         />
                       </div>
                       <div className="flex justify-end gap-2">
