@@ -86,7 +86,7 @@ describe('useTranscriptionNotifications', () => {
     renderHook(() => useTranscriptionNotifications());
     expect(onMock).toHaveBeenCalledWith(
       'postgres_changes',
-      expect.objectContaining({ event: 'UPDATE', schema: 'public', table: 'messages' }),
+      expect.objectContaining({ event: 'UPDATE', schema: 'evo', table: 'evolution_messages' }),
       expect.any(Function)
     );
   });
