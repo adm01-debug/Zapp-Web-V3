@@ -8,7 +8,8 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, RefreshCw, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { dbRpc } from '@/integrations/datasource/db';
+import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('CSATWidget');
@@ -56,7 +57,7 @@ export const CSATWidget: React.FC<Props> = ({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any).rpc('get_csat_stats', {
+      const { data, error } = await dbRpc(RPC.getCSATStats, {
         p_instance_name: instanceName,
         p_days: days,
       });

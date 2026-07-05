@@ -349,6 +349,13 @@ interface MarkFollowUpDoneParams {
   p_message_id: string;
 }
 
+// ── CSAT / NPS ───────────────────────────────────────────────────────────────
+
+interface GetCSATStatsParams {
+  p_instance_name?: string;
+  p_days?: number;
+}
+
 // ── Outbound event telemetry ──────────────────────────────────────────────────
 
 interface LogOutboundEventParams {
@@ -590,6 +597,12 @@ export const RPC = {
 
   markFollowUpDone: def<MarkFollowUpDoneParams, Record<string, unknown>>({
     name: 'mark_follow_up_done',
+    client: 'lovable',
+  }),
+
+  // ── CSAT / NPS ────────────────────────────────────────────────────────────
+  getCSATStats: def<GetCSATStatsParams, Record<string, unknown>>({
+    name: 'get_csat_stats',
     client: 'lovable',
   }),
 
