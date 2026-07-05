@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
 
     let contactContext = '';
     if (contactId) {
-      const { data: contact } = await supabase
+      // Use callerClient for contactId-scoped reads so RLS prevents cross-tenant data access
+      const { data: contact } = await callerClient
         .from('contacts')
         .select('name, company, tags, ai_priority, ai_sentiment, notes, contact_type')
         .eq('id', contactId)
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
         if (contact.ai_sentiment) contactContext += `, Sentimento anterior: ${contact.ai_sentiment}`;
       }
 
-      const { data: prevAnalyses } = await supabase
+      const { data: prevAnalyses } = await callerClient
         .from('conversation_analyses')
         .select('sentiment, sentiment_score, summary, urgency, created_at')
         .eq('contact_id', contactId)
@@ -213,7 +214,8 @@ Responda em português brasileiro.`;
     let analysisId: string | null = null;
 
     if (contactId) {
-      const { data: insertedAnalysis, error: insertError } = await supabase
+      // Use callerClient for insert so RLS prevents cross-tenant writes
+      const { data: insertedAnalysis, error: insertError } = await callerClient
         .from('conversation_analyses')
         .insert({
           contact_id: contactId,

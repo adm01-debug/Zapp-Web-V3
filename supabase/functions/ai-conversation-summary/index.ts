@@ -181,10 +181,10 @@ Foque em:
       urgency: ['baixa', 'media', 'alta', 'critica'].includes(analysisData.urgency) ? analysisData.urgency : 'media',
     };
 
-    // Save analysis to database
+    // Save analysis to database — use callerClient so RLS prevents cross-tenant writes
     let persistenceWarning: string | undefined;
     if (contactId) {
-      const { error: insertErr } = await supabase.from('conversation_analyses').insert({
+      const { error: insertErr } = await callerClient.from('conversation_analyses').insert({
         contact_id: contactId,
         summary: analysisData.summary,
         sentiment: analysisData.sentiment,

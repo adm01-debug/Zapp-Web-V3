@@ -9,12 +9,12 @@ Deno.serve(async (req) => {
   const log = new Logger("elevenlabs-tts");
 
   try {
-    const authed = await requireUser(req);
-    if (authed instanceof Response) return authed;
-
     const ip = getClientIP(req);
     const rl = checkRateLimit(`tts:${ip}`, 20, 60_000);
     if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
+
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
 
     const parsed = parseBody(ElevenLabsTTSSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);

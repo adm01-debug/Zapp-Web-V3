@@ -37,7 +37,7 @@ function timingSafeStringEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-function getBearer(req: Request): string | null {
+export function getBearer(req: Request): string | null {
   const raw = req.headers.get("Authorization") || req.headers.get("authorization");
   if (!raw) return null;
   if (!raw.toLowerCase().startsWith("bearer ")) return null;

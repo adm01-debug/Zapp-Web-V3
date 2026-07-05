@@ -16,6 +16,11 @@ Deno.serve(async (req) => {
     const supabaseUrl = requireEnv('SUPABASE_URL');
     const supabaseKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const supabase = createClient(supabaseUrl, supabaseKey);
+    // Caller-scoped client enforces RLS — used for user-data reads (contacts, analyses)
+    // so tenant isolation is guaranteed without relying on a non-existent user_id column.
+    const callerClient = createClient(supabaseUrl, requireEnv('SUPABASE_ANON_KEY'), {
+      global: { headers: { authorization: req.headers.get('authorization') || '' } },
+    });
 
     if (!action || typeof action !== 'string') {
       return errorResponse('action must be a non-empty string', 400, req);
@@ -38,10 +43,9 @@ Deno.serve(async (req) => {
           result = [];
           break;
         }
-        const { data, error } = await supabase
+        const { data, error } = await callerClient
           .from('contacts')
           .select('id, name, phone, email, company, ai_sentiment, assigned_to')
-          .eq('user_id', authed.user.id)
           .or(`name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%,email.ilike.%${sanitized}%`)
           .limit(5);
         if (error) throw error;
@@ -54,12 +58,11 @@ Deno.serve(async (req) => {
         if (!contactId || typeof contactId !== 'string') {
           return errorResponse('contactId is required', 400, req);
         }
-        // Verify ownership before reading
-        const { data: contactCheck, error: contactCheckError } = await supabase
+        // RLS on callerClient enforces tenant isolation — no user_id filter needed
+        const { data: contactCheck, error: contactCheckError } = await callerClient
           .from('contacts')
           .select('id')
           .eq('id', contactId)
-          .eq('user_id', authed.user.id)
           .maybeSingle();
         if (contactCheckError) return errorResponse('Database error', 500, req);
         if (!contactCheck) {

@@ -134,8 +134,18 @@ export async function handleQuery(
     return new Response(JSON.stringify({ error: `Unsupported action: ${action}`, cid: ctx.cid, rid: ctx.rid }), { status: 400, headers })
   }
 
+  const ALLOWED_FILTER_OPERATORS = new Set([
+    'eq', 'neq', 'gt', 'gte', 'lt', 'lte',
+    'like', 'ilike', 'is', 'in', 'contains',
+    'containedBy', 'overlaps', 'textSearch',
+    'not', 'or', 'filter',
+  ]);
+
   if (Array.isArray(body.filters)) {
     for (const f of body.filters as ProxyFilter[]) {
+      if (!ALLOWED_FILTER_OPERATORS.has(f.operator)) {
+        return new Response(JSON.stringify({ error: `Unsupported filter operator: ${f.operator}`, cid: ctx.cid, rid: ctx.rid }), { status: 400, headers });
+      }
       query = (query as DynamicQueryBuilder)[f.operator](f.column, f.value) as unknown as typeof query
     }
   }
