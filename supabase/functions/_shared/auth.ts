@@ -65,6 +65,21 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
   const token = getBearer(req);
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
 
+  const tokenPayload = (() => {
+    try {
+      const [, payload] = token.split('.');
+      if (!payload) return null;
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      return JSON.parse(atob(padded)) as { role?: string; sub?: string };
+    } catch {
+      return null;
+    }
+  })();
+
+  if (!tokenPayload?.sub || tokenPayload.role === 'anon') {
+    return errorResponse("Unauthorized: user session required", 401, req);
+  }
+
   // Prefer self-hosted when configured — the published frontend uses it and
   // Cloud validation would falsely reject those JWTs. Fall back to Cloud.
   const selfUrl = readSupabaseUrl("SELFHOSTED_SUPABASE_URL") ?? readSupabaseUrl("EXTERNAL_SUPABASE_URL");
