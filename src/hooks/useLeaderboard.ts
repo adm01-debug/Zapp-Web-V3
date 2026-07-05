@@ -76,7 +76,7 @@ export function useLeaderboard() {
   }, []);
 
   useEffect(() => {
-    fetchLeaderboard();
+    void fetchLeaderboard();
     const channel = supabase
       .channel('leaderboard-updates')
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'agent_stats' }, () => {
@@ -89,7 +89,7 @@ export function useLeaderboard() {
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchLeaderboard();
+    void fetchLeaderboard();
   }, [fetchLeaderboard]);
 
   return { agents, isLoading, isRefreshing, timeRange, setTimeRange, handleRefresh };

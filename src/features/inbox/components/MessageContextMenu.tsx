@@ -130,7 +130,7 @@ export function MessageContextMenu({
         {hasMedia && (
           <ContextMenuItem
             onClick={() => {
-              import('sonner').then(({ toast }) => toast.error('🔒 Download bloqueado por política de segurança'));
+              import('sonner').then(({ toast }) => toast.error('🔒 Download bloqueado por política de segurança')).catch(() => {});
             }}
             className="gap-2 cursor-pointer opacity-50"
           >

@@ -89,8 +89,9 @@ export function CommandPalette({
   }, [open, allItems, selectedIndex]);
 
   React.useEffect(() => {
-    if (!open) { setQuery(''); setSearchResults([]); setSelectedIndex(0); }
-    else setTimeout(() => inputRef.current?.focus(), 0);
+    if (!open) { setQuery(''); setSearchResults([]); setSelectedIndex(0); return; }
+    const t = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(t);
   }, [open]);
 
   const categoryIcons: Record<CommandCategory, React.ReactNode> = {
@@ -148,7 +149,7 @@ export function CommandPalette({
                         <span className="text-muted-foreground group-hover:text-foreground transition-colors">{cmd.icon}</span>
                         <div><span className="text-sm font-medium">{cmd.title}</span>{cmd.description && <p className="text-xs text-muted-foreground">{cmd.description}</p>}</div>
                       </div>
-                      {cmd.shortcut && <div className="flex gap-1">{cmd.shortcut.map((k, i) => <kbd key={i} className="px-1.5 py-0.5 bg-muted rounded text-[10px]  text-muted-foreground">{k}</kbd>)}</div>}
+                      {cmd.shortcut && <div className="flex gap-1">{cmd.shortcut.map((k, i) => <kbd key={`${k}-${i}`} className="px-1.5 py-0.5 bg-muted rounded text-[10px]  text-muted-foreground">{k}</kbd>)}</div>}
                     </button>
                   ))}
                 </div>
@@ -179,7 +180,7 @@ export function CommandPalette({
                           </div>
                           <div className="flex items-center gap-2">
                             {item.badge && <Badge variant="secondary" className="text-[10px]">{item.badge}</Badge>}
-                            {item.shortcut && <div className="flex gap-1">{item.shortcut.map((k, i) => <kbd key={i} className="px-1.5 py-0.5 bg-muted rounded text-[10px]  text-muted-foreground">{k}</kbd>)}</div>}
+                            {item.shortcut && <div className="flex gap-1">{item.shortcut.map((k, i) => <kbd key={`${k}-${i}`} className="px-1.5 py-0.5 bg-muted rounded text-[10px]  text-muted-foreground">{k}</kbd>)}</div>}
                           </div>
                         </motion.button>
                       );

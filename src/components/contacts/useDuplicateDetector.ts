@@ -5,6 +5,9 @@
  * Uses proper BR phone normalization to catch 9th digit variations.
  */
 import { useState, useCallback, useRef } from 'react';
+import { getLogger } from '@/lib/logger';
+const log = getLogger('useDuplicateDetector');
+
 import { normalizePhone } from '@/lib/phoneUtils';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -83,7 +86,7 @@ export function useDuplicateDetector({
         setDuplicates(found);
         setHasDuplicates(found.length > 0);
       } catch (err) {
-        console.error('[useDuplicateDetector]', err);
+        log.error('Duplicate detection failed', err);
       } finally {
         setChecking(false);
       }

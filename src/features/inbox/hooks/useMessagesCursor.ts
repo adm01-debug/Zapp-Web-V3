@@ -18,6 +18,7 @@
  *  - Trocar `remoteJid` reseta estado e dispara nova primeira carga.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
 import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';
 import { toEvolutionMessageLite } from '@/types/evolutionExternal';
@@ -70,19 +71,15 @@ export function useMessagesCursor({
   const [hasMoreOlder, setHasMoreOlder] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
   const inFlightRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const oldestCursorRef = useRef<string | null>(null);
   // Lock current contact identity so async callbacks ignore stale results.
   const remoteJidRef = useRef<string | null>(remoteJid);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      abortRef.current?.abort();
-    };
+  useEffect(() => () => {
+    abortRef.current?.abort();
   }, []);
 
   // Compute flat sorted messages from pages, deduped.
@@ -170,9 +167,7 @@ export function useMessagesCursor({
     } else {
       setLoading(false);
     }
-    // We deliberately depend on the primitives, not loadFirstPage identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remoteJid, instanceName, enabled]);
+  }, [remoteJid, instanceName, enabled, loadFirstPage]);
 
   const loadOlder = useCallback(async () => {
     if (!remoteJid || !hasMoreOlder || inFlightRef.current) return;

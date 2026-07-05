@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -15,6 +17,8 @@ import type { EmailHealthInfo, EmailFailure } from '@/services/email/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { emailApi, type EmailHealthSummary, type EmailRevalidationJob } from '@/services/email/emailApi';
+
+const log = getLogger('AdminEmailStatusPage');
 
 const castStatus = (status: string | null): EmailHealthInfo['status'] => {
   if (status && ['healthy', 'degraded', 'error'].includes(status)) {
@@ -35,6 +39,8 @@ export default function AdminEmailStatusPage() {
   });
   const [failuresData, setFailuresData] = useState<{ items: EmailFailure[], total: number }>({ items: [], total: 0 });
 
+  const mountedRef = useMountedRef();
+
   const loadHealth = async () => {
     setLoading(true);
     try {
@@ -50,7 +56,8 @@ export default function AdminEmailStatusPage() {
       const dataFull = await fetchResponse.json();
       
       if (!fetchResponse.ok) throw new Error(dataFull.error || 'Erro na Edge Function');
-      
+
+      if (!mountedRef.current) return;
       setHealth({
         status: castStatus(dataFull.status),
         lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
@@ -64,7 +71,7 @@ export default function AdminEmailStatusPage() {
       });
       setFailuresData(dataFull.failuresResult || { items: [], total: 0 });
     } catch (error) {
-      console.error('Erro ao carregar saúde do Email:', error);
+      log.error('Error loading email health', error);
       toast.error('O serviço de telemetria do Email está indisponível.');
       
       try {
@@ -72,6 +79,7 @@ export default function AdminEmailStatusPage() {
         if (summaryError) throw summaryError;
           
         if (summary) {
+          if (!mountedRef.current) return;
           setHealth({
             status: castStatus(summary.status),
             lastValidation: summary.last_validation ? new Date(summary.last_validation) : null,
@@ -81,15 +89,15 @@ export default function AdminEmailStatusPage() {
           });
         }
       } catch (fallbackErr) {
-        console.error('Fallback falhou:', fallbackErr);
+        log.error('Email health fallback also failed', fallbackErr);
       }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadHealth();
+    void loadHealth();
 
     const channel = supabase
       .channel('email-admin-status')

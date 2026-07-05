@@ -7,6 +7,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useAgents');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -109,7 +112,7 @@ export function useAgents(workspaceId?: string) {
       if (error) throw error;
       setAgents((data ?? []).map((r: any) => mapRow(r)));
     } catch (err) {
-      console.error('[useAgents]', err);
+      log.error('Error loading agents', err);
     } finally { setLoading(false); }
   }, [workspaceId]);
 

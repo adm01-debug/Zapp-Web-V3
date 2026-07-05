@@ -40,22 +40,29 @@ export function useAgentPresence({
   const { user } = useAuth();
   const channelRef = useRef<RealtimeChannel | null>(null);
   const activityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const myStatusRef = useRef<AgentPresenceStatus>('online');
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+  useEffect(() => { myStatusRef.current = myStatus; }, [myStatus]);
 
-  // Track user activity for auto-away
+  // Track user activity for auto-away — reads status via ref to stay stable
   const resetActivityTimer = useCallback(() => {
     if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
-    if (myStatus === 'away') {
+    if (myStatusRef.current === 'away') {
       setMyStatus('online');
     }
     activityTimerRef.current = setTimeout(() => {
       setMyStatus('away');
     }, autoAwayMs);
-  }, [autoAwayMs, myStatus]);
+  }, [autoAwayMs]);
 
   // Update my status in the database
   const updateStatus = useCallback(async (status: AgentPresenceStatus) => {
     if (!user) return;
-    setMyStatus(status);
+    if (mountedRef.current) setMyStatus(status);
     await (supabase as any)
       .from('agent_presence')
       .upsert({
@@ -79,15 +86,15 @@ export function useAgentPresence({
       .neq('status', 'offline')
       .order('status', { ascending: true });
 
-    if (data) setAgents(data as AgentPresence[]);
+    if (data && mountedRef.current) setAgents(data as AgentPresence[]);
   }, [workspaceId]);
 
   useEffect(() => {
     if (!enabled || !user) return;
 
     // Set online on mount
-    updateStatus('online');
-    loadPresence();
+    void updateStatus('online');
+    void loadPresence();
 
     // Listen for activity events
     const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
@@ -104,7 +111,7 @@ export function useAgentPresence({
           table: 'agent_presence',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        () => { loadPresence(); }
+        () => { void loadPresence(); }
       )
       .subscribe();
 
@@ -114,8 +121,8 @@ export function useAgentPresence({
     return () => {
       events.forEach((e) => window.removeEventListener(e, resetActivityTimer));
       if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
-      updateStatus('offline');
-      channel.unsubscribe();
+      void updateStatus('offline');
+      supabase.removeChannel(channel);
     };
   }, [enabled, user, workspaceId]);
 

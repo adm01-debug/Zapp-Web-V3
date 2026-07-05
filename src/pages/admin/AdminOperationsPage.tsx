@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { SectionErrorBoundary } from "@/components/ui/section-error-boundary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OpsMetricsTab } from "./operations/OpsMetricsTab";
@@ -30,27 +31,37 @@ export default function AdminOperationsPage() {
         </TabsList>
 
         <TabsContent value="metrics" className="mt-4">
-          <OpsMetricsTab />
+          <SectionErrorBoundary sectionName="Métricas">
+            <OpsMetricsTab />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="channels" className="mt-4">
-          <Suspense fallback={<Skeleton className="h-96" />}>
-            <AdminChannelsPage />
-          </Suspense>
+          <SectionErrorBoundary sectionName="Canais">
+            <Suspense fallback={<Skeleton className="h-96" />}>
+              <AdminChannelsPage />
+            </Suspense>
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="queues" className="mt-4">
-          <Suspense fallback={<Skeleton className="h-96" />}>
-            <AdminQueuesPage />
-          </Suspense>
+          <SectionErrorBoundary sectionName="Filas">
+            <Suspense fallback={<Skeleton className="h-96" />}>
+              <AdminQueuesPage />
+            </Suspense>
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="transfers" className="mt-4">
-          <OpsTransfersTab />
+          <SectionErrorBoundary sectionName="Transferências">
+            <OpsTransfersTab />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="logs" className="mt-4">
-          <OpsLogsTab />
+          <SectionErrorBoundary sectionName="Logs">
+            <OpsLogsTab />
+          </SectionErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

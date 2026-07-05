@@ -24,7 +24,7 @@ export function useBridgeHealth() {
   }, []);
 
   useEffect(() => {
-    runCheck();
+    void runCheck();
   }, [runCheck]);
 
   return { status, health, checkedAt, error, runCheck };

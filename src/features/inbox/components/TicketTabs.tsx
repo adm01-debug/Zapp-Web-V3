@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
+import { getLogger } from '@/lib/logger';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,8 @@ import { useAgents } from '@/features/admin';
 import { useAllTicketStates, ConversationWithMessages } from '@/features/inbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const log = getLogger('TicketTabs');
 
 export type MainTab = 'open' | 'resolved' | 'search' | 'unread';
 export type SubTab = 'attending' | 'waiting';
@@ -47,7 +50,7 @@ interface TicketTabsProps {
   departmentAgentIds?: string[];
 }
 
-export function TicketTabs({
+export const TicketTabs = memo(function TicketTabs({
   conversations,
   mainTab,
   subTab,
@@ -103,32 +106,32 @@ export function TicketTabs({
     return { open: openCount, attending, waiting, resolved };
   }, [conversations, ticketStates, user?.id]);
 
-  const mainTabs = [
-    { 
-      id: 'open' as MainTab, 
-      label: 'Abertos', 
-      icon: MessageSquare, 
+  const mainTabs = useMemo(() => [
+    {
+      id: 'open' as MainTab,
+      label: 'Abertos',
+      icon: MessageSquare,
       count: counts.open,
       activeColor: 'bg-primary text-primary-foreground',
     },
-    { 
-      id: 'resolved' as MainTab, 
-      label: 'Resolvidos', 
-      icon: CheckCircle2, 
+    {
+      id: 'resolved' as MainTab,
+      label: 'Resolvidos',
+      icon: CheckCircle2,
       count: counts.resolved,
       activeColor: 'bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]',
     },
-    { 
-      id: 'unread' as MainTab, 
-      label: 'Não lidas', 
-      icon: MessageCircle, 
+    {
+      id: 'unread' as MainTab,
+      label: 'Não lidas',
+      icon: MessageCircle,
       count: conversations.filter(c => c.unreadCount > 0).length,
       activeColor: 'bg-warning text-foreground',
     },
-  ];
+  ], [counts, conversations]);
 
 
-  const subTabs = [
+  const subTabs = useMemo(() => [
     {
       id: 'attending' as SubTab,
       label: 'Atendendo',
@@ -141,7 +144,7 @@ export function TicketTabs({
       icon: Clock,
       count: counts.waiting,
     },
-  ];
+  ], [counts]);
 
   return (
     <div className={cn("transition-all duration-300", isCompact ? "space-y-1" : "space-y-2")}>
@@ -321,17 +324,19 @@ export function TicketTabs({
                       'inbox.view_mine';
 
                     if (!hasPermission(requiredPermission) && opt.id !== 'mine') {
-                      console.error(`[AUDIT] Unauthorized access attempt to scope ${opt.id} by user ${user?.id}`);
-                      await supabase.from('audit_logs').insert({
-                        user_id: user?.id,
-                        action: 'UNAUTHORIZED_INBOX_SCOPE_ACCESS',
-                        entity_type: 'inbox_scope',
-                        details: {
-                          attempted_scope: opt.id,
-                          user_roles: roles,
-                          timestamp: new Date().toISOString()
-                        }
-                      });
+                      log.warn('Unauthorized inbox scope access attempt', { scope: opt.id, userId: user?.id });
+                      try {
+                        await supabase.from('audit_logs').insert({
+                          user_id: user?.id,
+                          action: 'UNAUTHORIZED_INBOX_SCOPE_ACCESS',
+                          entity_type: 'inbox_scope',
+                          details: {
+                            attempted_scope: opt.id,
+                            user_roles: roles,
+                            timestamp: new Date().toISOString()
+                          }
+                        });
+                      } catch { /* fire-and-forget audit log */ }
                       toast.error("Você não tem permissão para visualizar este escopo.");
                       return;
                     }
@@ -412,4 +417,4 @@ export function TicketTabs({
       )}
     </div>
   );
-}
+});

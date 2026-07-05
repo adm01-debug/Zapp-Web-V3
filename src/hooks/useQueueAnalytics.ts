@@ -52,7 +52,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
 
   useEffect(() => {
     if (queueId && dateRange.from && dateRange.to) {
-      fetchAnalytics();
+      void fetchAnalytics();
     }
   }, [queueId, dateRange.from.toISOString(), dateRange.to.toISOString()]);
 

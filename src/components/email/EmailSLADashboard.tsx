@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { TrendingUp, Clock, AlertTriangle, CheckCircle, BarChart3, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -76,27 +77,30 @@ function formatMinutes(min: number | null): string {
 }
 
 export function EmailSLADashboard({ className }: EmailSLADashboardProps) {
+  const mountedRef = useMountedRef();
   const [data, setData] = useState<SLADashboardData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setIsLoading(true);
-    const { data: rows , error } = await (supabase
-      .from('v_email_sla_dashboard' as any) as any)
+    const { data: rows } = await (supabase as any)
+      .from('v_email_sla_dashboard')
       .select('*');
-    setData((rows ?? []) as SLADashboardData[]);
-    setLastRefresh(new Date());
-    setIsLoading(false);
-  };
+    if (mountedRef.current) {
+      setData((rows ?? []) as SLADashboardData[]);
+      setLastRefresh(new Date());
+      setIsLoading(false);
+    }
+  }, [mountedRef]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   // Auto-refresh a cada 2 min
   useEffect(() => {
     const interval = setInterval(load, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [load]);
 
   const totals = data.reduce(
     (acc, row) => ({

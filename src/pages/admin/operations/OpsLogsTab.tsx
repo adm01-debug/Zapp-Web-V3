@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Tabs,
@@ -91,7 +91,7 @@ function AuditPanel() {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     let q = supabase
       .from('audit_logs')
@@ -114,12 +114,11 @@ function AuditPanel() {
     if (error) toast.error("Erro ao carregar audit: " + error.message);
     setRows((data as AuditRow[]) ?? []);
     setLoading(false);
-  };
+  }, [entity, search]);
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entity]);
+    void load();
+  }, [load]);
 
   return (
     <Card>
@@ -144,7 +143,7 @@ function AuditPanel() {
               placeholder="Buscar ação..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && load()}
+              onKeyDown={(e) => { if (e.key === "Enter") void load(); }}
               className="pl-7 w-[180px]"
             />
           </div>
@@ -207,7 +206,7 @@ function PmlPanel() {
   const [rows, setRows] = useState<PmlRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     let q = (supabase as any)
       .from('provider_message_log')
@@ -222,12 +221,11 @@ function PmlPanel() {
     if (error) toast.error("Erro ao carregar PML: " + error.message);
     setRows((data as PmlRow[]) ?? []);
     setLoading(false);
-  };
+  }, [status, search]);
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+    void load();
+  }, [load]);
 
   return (
     <Card>
@@ -252,7 +250,7 @@ function PmlPanel() {
               placeholder="Buscar canal..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && load()}
+              onKeyDown={(e) => { if (e.key === "Enter") void load(); }}
               className="pl-7 w-[180px]"
             />
           </div>

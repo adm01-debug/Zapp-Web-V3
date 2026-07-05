@@ -53,7 +53,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
   }, [remoteJid, instance, limit]);
 
   useEffect(() => {
-    fetchAll();
+    void fetchAll();
     if (!remoteJid) return;
 
     const ch = zappSupabase

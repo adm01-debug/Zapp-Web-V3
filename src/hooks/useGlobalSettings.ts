@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
@@ -50,14 +51,7 @@ function invalidateGlobalSettingsCache() {
 export function useGlobalSettings() {
   const [settings, setSettings] = useState<GlobalSetting[]>(cache?.rows ?? []);
   const [isLoading, setIsLoading] = useState(!cache);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const mountedRef = useMountedRef();
 
   const fetchSettings = useCallback(async (force = false) => {
     setIsLoading(true);
@@ -72,7 +66,7 @@ export function useGlobalSettings() {
   }, []);
 
   useEffect(() => {
-    fetchSettings();
+    void fetchSettings();
   }, [fetchSettings]);
 
   const getSetting = useCallback((key: string): string | null => {

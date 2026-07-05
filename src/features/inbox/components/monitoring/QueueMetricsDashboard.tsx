@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
+import { getLogger } from '@/lib/logger';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend 
@@ -13,26 +14,29 @@ interface QueueMetricsDashboardProps {
   metrics: QueueMetrics;
 }
 
+const log = getLogger('QueueMetricsDashboard');
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = ({ metrics }) => {
+export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React.memo(({ metrics }) => {
   const [stsMetrics, setStsMetrics] = useState<any[]>([]);
   const [loadingSts, setLoadingSts] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchSTS = async () => {
       try {
-        const { data, error } = await supabase
-          .from('sts_performance_metrics' as any)
+        const { data, error } = await (supabase as any)
+          .from('sts_performance_metrics')
           .select('*');
-        if (!error && data) setStsMetrics(data);
+        if (!cancelled && !error && data) setStsMetrics(data);
       } catch (err) {
-        console.error('Failed to fetch STS metrics:', err);
+        if (!cancelled) log.error('Failed to fetch STS metrics', err);
       } finally {
-        setLoadingSts(false);
+        if (!cancelled) setLoadingSts(false);
       }
     };
     fetchSTS();
+    return () => { cancelled = true; };
   }, []);
   const typeData = useMemo(() => {
     return Object.entries(metrics.byType).map(([type, data]) => ({
@@ -250,4 +254,5 @@ export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = ({ me
       </Card>
     </div>
   );
-};
+});
+QueueMetricsDashboard.displayName = 'QueueMetricsDashboard';

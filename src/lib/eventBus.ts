@@ -11,6 +11,10 @@
  * - Coordinate between Inbox sidebar and chat panel
  */
 
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('EventBus');
+
 type EventCallback<T = unknown> = (payload: T) => void;
 
 interface EventMap {
@@ -54,7 +58,7 @@ class TypedEventBus {
       try {
         cb(payload);
       } catch (err) {
-        console.error(`[EventBus] Error in ${event} handler:`, err);
+        log.error('EventBus handler threw', { event, err });
       }
     }
   }

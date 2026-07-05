@@ -80,6 +80,8 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
       return;
     }
 
+    const ctrl = new AbortController();
+
     const checkBreach = async () => {
       setCheckingBreach(true);
       try {
@@ -88,7 +90,8 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
         const suffix = hash.substring(5);
 
         const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
-          headers: { 'Add-Padding': 'true' }
+          headers: { 'Add-Padding': 'true' },
+          signal: ctrl.signal,
         });
 
         if (!response.ok) {
@@ -98,7 +101,7 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
 
         const text = await response.text();
         const lines = text.split('\n');
-        
+
         for (const line of lines) {
           const [hashSuffix, count] = line.split(':');
           if (hashSuffix.trim() === suffix) {
@@ -107,19 +110,20 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
             return;
           }
         }
-        
+
         setIsBreached(false);
         setBreachCount(0);
       } catch (error) {
+        if ((error as Error).name === 'AbortError') return;
         log.error('Error checking password breach:', error);
         setIsBreached(null);
       } finally {
-        setCheckingBreach(false);
+        if (!ctrl.signal.aborted) setCheckingBreach(false);
       }
     };
 
     const debounce = setTimeout(checkBreach, 500);
-    return () => clearTimeout(debounce);
+    return () => { clearTimeout(debounce); ctrl.abort(); };
   }, [password]);
 
   // Notify parent of strength changes

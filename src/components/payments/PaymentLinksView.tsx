@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,6 +34,7 @@ interface PaymentLink {
 }
 
 export function PaymentLinksView() {
+  const mountedRef = useMountedRef();
   const [links, setLinks] = useState<PaymentLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -45,10 +47,12 @@ export function PaymentLinksView() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('payment_links').select('*').order('created_at', { ascending: false });
-    if (data) setLinks(data);
-    setLoading(false);
-  }, []);
+    const { data } = await supabase.from('payment_links').select('*').order('created_at', { ascending: false });
+    if (mountedRef.current) {
+      if (data) setLinks(data);
+      setLoading(false);
+    }
+  }, [mountedRef]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

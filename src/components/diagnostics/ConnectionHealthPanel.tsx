@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionHealthPanel');
@@ -42,6 +43,12 @@ export function ConnectionHealthPanel() {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const mountedRef = useMountedRef();
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   /** Build a deep link that opens the connections view and auto-launches the QR dialog. */
   const buildQrLink = (instanceId: string) => {
@@ -61,7 +68,8 @@ export function ConnectionHealthPanel() {
       await navigator.clipboard.writeText(link);
       setCopiedId(conn.id);
       toast.success('Link do QR copiado — abra em outro dispositivo para reconectar.');
-      setTimeout(() => setCopiedId((c) => (c === conn.id ? null : c)), 2000);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopiedId((c) => (c === conn.id ? null : c)), 2000);
     } catch {
       toast.error('Falha ao copiar. Copie manualmente: ' + link);
     }
@@ -80,6 +88,7 @@ export function ConnectionHealthPanel() {
         .limit(50),
     ]);
 
+    if (!mountedRef.current) return;
     if (conns) setConnections(conns as ConnectionHealth[]);
     if (logs) setRecentLogs(logs as HealthLog[]);
     setLoading(false);

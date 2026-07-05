@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
@@ -70,6 +70,8 @@ export function useConnectionsManager() {
     disconnectInstance,
     deleteInstance,
   } = useEvolutionApi();
+
+  const disconnectTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const generateQr = useCallback(async (connection: WhatsAppConnection) => {
     if (!connection.instance_id) return;
@@ -174,13 +176,16 @@ export function useConnectionsManager() {
   }, [qrCodeDialog]);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchConnections = async () => {
       setLoading(true);
       const { data, error } = await whatsappConnectionRepository.fetchConnections();
+      if (cancelled) return;
       if (!error && data) setConnections(data as unknown as WhatsAppConnection[]);
       setLoading(false);
     };
     void fetchConnections();
+    return () => { cancelled = true; };
   }, [setConnections, setLoading]);
 
   const handleRefreshQrCode = async () => {
@@ -243,7 +248,8 @@ export function useConnectionsManager() {
       });
 
       // 5. Guided Flow: Auto-open QR dialog with progress
-      setTimeout(() => {
+      clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = setTimeout(() => {
         void handleShowQrCode({ ...connection, status: 'disconnected', qr_code: null });
       }, 500);
 

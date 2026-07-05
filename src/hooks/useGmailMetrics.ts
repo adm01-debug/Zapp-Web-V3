@@ -3,11 +3,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
-import { 
-  EmailMetricsSummary, 
-  EmailSLADashboard 
+import {
+  EmailMetricsSummary,
+  EmailSLADashboard
 } from '@/types/gmail';
+import { getLogger } from '@/lib/logger';
 
+const log = getLogger('useEmailMetrics');
 const supabase = _supabase as any;
 
 export function useEmailMetrics(accountId: string | null, days = 7) {
@@ -32,7 +34,7 @@ export function useEmailMetrics(accountId: string | null, days = 7) {
       );
 
       if (dbErr) {
-        console.warn(`[useEmailMetrics][${requestId}] Falha ao carregar métricas:`, dbErr.message);
+        log.warn('Email metrics load error', dbErr.message);
         throw dbErr;
       }
 

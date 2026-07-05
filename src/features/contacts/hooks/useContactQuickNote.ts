@@ -8,6 +8,9 @@ import { useState, useCallback } from 'react';
 import { contactsDB, type ContactNote } from '@/lib/contactsDB';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { toast } from 'sonner';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useContactQuickNote');
 
 export function useContactQuickNote(contactId: string | undefined, userId: string | undefined) {
   const [notes, setNotes] = useState<ContactNote[]>([]);
@@ -21,7 +24,7 @@ export function useContactQuickNote(contactId: string | undefined, userId: strin
       const data = await contactsDB.notes.list(contactId);
       setNotes(data);
     } catch (err) {
-      console.error('[ContactQuickNote] Error loading notes:', err);
+      log.error('Error loading contact notes', err);
     } finally {
       setIsLoading(false);
     }

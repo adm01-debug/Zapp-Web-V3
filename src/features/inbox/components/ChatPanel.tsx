@@ -28,6 +28,7 @@ import { TicketHistorySheet } from './TicketHistorySheet';
 import { ChatMessagesArea, ChatMessagesAreaRef } from './chat/ChatMessagesArea';
 import type { LoadOlderProps } from './chat/loadOlderTypes';
 import { ChatInputArea } from './chat/ChatInputArea';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { AutomationSuggestionsBar } from './chat/AutomationSuggestionsBar';
 import { useAutomations } from '@/hooks/useAutomations';
 import { SendErrorBanner } from './chat/SendErrorBanner';
@@ -457,9 +458,11 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
           setFailuresOnly={setFailuresOnly}
         />
 
-        <Suspense fallback={null}>
-          <NextBestActionEngine contactId={conversation.contact.id} contactName={conversation.contact.name} />
-        </Suspense>
+        <SectionErrorBoundary sectionName="NextBestAction">
+          <Suspense fallback={null}>
+            <NextBestActionEngine contactId={conversation.contact.id} contactName={conversation.contact.name} />
+          </Suspense>
+        </SectionErrorBoundary>
 
         <ChatMessagesArea ref={messagesAreaRef} messages={visibleMessages} isContactTyping={isContactTyping} typingUserName={typingUsers[0]?.name || conversation.contact.name}
           ttsLoading={ttsLoading} ttsPlaying={ttsPlaying} ttsMessageId={ttsMessageId} instanceName={instanceName}
@@ -477,16 +480,20 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
 
         <AnimatePresence>
           {dialogs.visualValidation && (
-            <Suspense fallback={null}>
-              <VisualValidationChecklist onClose={() => closeDialog('visualValidation')} />
-            </Suspense>
+            <SectionErrorBoundary sectionName="VisualValidation">
+              <Suspense fallback={null}>
+                <VisualValidationChecklist onClose={() => closeDialog('visualValidation')} />
+              </Suspense>
+            </SectionErrorBoundary>
           )}
         </AnimatePresence>
 
         {dialogs.whisper && (
-          <Suspense fallback={null}>
-            <WhisperMode contactId={conversation.contact.id} className="mx-3 mb-2" defaultExpanded={true} />
-          </Suspense>
+          <SectionErrorBoundary sectionName="WhisperMode">
+            <Suspense fallback={null}>
+              <WhisperMode contactId={conversation.contact.id} className="mx-3 mb-2" defaultExpanded={true} />
+            </Suspense>
+          </SectionErrorBoundary>
         )}
 
         <SendErrorBanner

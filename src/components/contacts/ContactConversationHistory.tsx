@@ -5,11 +5,15 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { getLogger } from '@/lib/logger';
+
 import { MessageCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const log = getLogger('ContactConversationHistory');
 
 interface ConversationSummary {
   id: string;
@@ -40,6 +44,7 @@ export const ContactConversationHistory: React.FC<ContactConversationHistoryProp
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setIsLoading(true);
       try {
@@ -51,14 +56,15 @@ export const ContactConversationHistory: React.FC<ContactConversationHistoryProp
           .limit(maxItems);
 
         if (error) throw error;
-        setConversations((data as ConversationSummary[]) ?? []);
+        if (!cancelled) setConversations((data as ConversationSummary[]) ?? []);
       } catch (err) {
-        console.error('[ConversationHistory] Load failed:', err);
+        if (!cancelled) log.error('Failed to load conversation history', err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
     load();
+    return () => { cancelled = true; };
   }, [contactId, workspaceId, maxItems]);
 
   if (isLoading) {

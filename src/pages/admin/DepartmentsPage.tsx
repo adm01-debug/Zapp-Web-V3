@@ -102,7 +102,7 @@ export default function DepartmentsPage() {
   }, []);
 
   useEffect(() => {
-    fetchDepartments();
+    void fetchDepartments();
   }, [fetchDepartments]);
 
   const resetForm = () => {
@@ -166,7 +166,7 @@ export default function DepartmentsPage() {
     toast.success(editingId ? 'Departamento atualizado' : 'Departamento criado');
     setShowDialog(false);
     resetForm();
-    fetchDepartments();
+    void fetchDepartments();
   };
 
   const handleDelete = async () => {
@@ -182,7 +182,7 @@ export default function DepartmentsPage() {
 
     toast.success('Departamento removido');
     setToDelete(null);
-    fetchDepartments();
+    void fetchDepartments();
   };
 
   return (

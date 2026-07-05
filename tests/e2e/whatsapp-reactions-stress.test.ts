@@ -6,7 +6,7 @@ test.describe('WhatsApp Message Reactions Advanced Validation', () => {
     await page.locator('[data-testid^="conversation-item-"]').first().click();
     
     const message = page.locator('[data-testid^="message-bubble-"]').last();
-    const messageId = await message.getAttribute('data-message-id');
+    const _messageId = await message.getAttribute('data-message-id');
 
     const errorSpecs = [
       { status: 401, text: 'Sessão expirada. Por favor, faça login novamente.' },

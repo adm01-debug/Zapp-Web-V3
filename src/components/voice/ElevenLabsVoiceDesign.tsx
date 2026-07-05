@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { getLogger } from '@/lib/logger';
+const log = getLogger('ElevenLabsVoiceDesign');
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,28 +32,32 @@ export function ElevenLabsVoiceDesign() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     const fetchVoices = async () => {
       setLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user || cancelled) return;
 
         const { data, error } = await supabase.functions.invoke('elevenlabs-voice', {
           body: { action: 'listVoices' }
         });
 
         if (error) throw error;
-        setVoices(data?.voices || []);
-        if (data?.voices?.length > 0) setSelectedVoice(data.voices[0].voice_id);
+        if (!cancelled) {
+          setVoices(data?.voices || []);
+          if (data?.voices?.length > 0) setSelectedVoice(data.voices[0].voice_id);
+        }
       } catch (err) {
-        console.error('Error fetching voices:', err);
-        toast.error('Não foi possível carregar as vozes do ElevenLabs.');
+        log.error('Failed to fetch ElevenLabs voices', err);
+        if (!cancelled) toast.error('Não foi possível carregar as vozes do ElevenLabs.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchVoices();
+    return () => { cancelled = true; };
   }, []);
 
   const handleGenerate = async () => {
@@ -72,7 +79,7 @@ export function ElevenLabsVoiceDesign() {
       audio.play();
       toast.success('Áudio gerado com sucesso!');
     } catch (err) {
-      console.error('Error generating voice:', err);
+      log.error('Failed to generate voice', err);
       toast.error('Erro ao gerar áudio.');
     } finally {
       setLoading(false);

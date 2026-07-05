@@ -75,7 +75,9 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
   });
 
   useEffect(() => {
-    if (isExpanded) setTimeout(() => inputRef.current?.focus(), 100);
+    if (!isExpanded) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 100);
+    return () => clearTimeout(t);
   }, [isExpanded]);
 
   // Realtime subscription - skip if contactId is not a UUID (JID would make invalid filter)

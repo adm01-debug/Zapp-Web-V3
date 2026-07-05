@@ -16,7 +16,7 @@ export function useRealtimeNotifications() {
 
   // Request notification permission on mount
   useEffect(() => {
-    requestNotificationPermission();
+    void requestNotificationPermission();
   }, []);
 
   const notifyAboutIncomingMessage = useCallback(

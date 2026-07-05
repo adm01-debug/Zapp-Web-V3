@@ -69,18 +69,20 @@ export function usePushNotifications() {
   });
 
   useEffect(() => {
+    let mounted = true;
+
     const checkSupport = async () => {
-      const isSupported = 'Notification' in window && 
-                          'serviceWorker' in navigator && 
+      const isSupported = 'Notification' in window &&
+                          'serviceWorker' in navigator &&
                           'PushManager' in window;
 
       if (!isSupported) {
-        setState(prev => ({ ...prev, isSupported: false, isLoading: false }));
+        if (mounted) setState(prev => ({ ...prev, isSupported: false, isLoading: false }));
         return;
       }
 
       const permission = Notification.permission;
-      
+
       let isSubscribed = false;
       try {
         // O SW é registrado de forma deferida (App.tsx/DeferredHooks) — usar
@@ -97,15 +99,18 @@ export function usePushNotifications() {
         log.warn('[Push] Falha não-crítica ao checar push subscription:', error);
       }
 
-      setState({
-        isSupported: true,
-        permission,
-        isSubscribed,
-        isLoading: false,
-      });
+      if (mounted) {
+        setState({
+          isSupported: true,
+          permission,
+          isSubscribed,
+          isLoading: false,
+        });
+      }
     };
 
     checkSupport();
+    return () => { mounted = false; };
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {

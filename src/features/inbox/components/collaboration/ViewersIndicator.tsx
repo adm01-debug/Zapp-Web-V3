@@ -46,19 +46,19 @@ export function useConversationViewers(contactId: string) {
         });
         setViewers(presentViewers);
       })
-      .subscribe(async (status) => {
+      .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          const { data: profile , error } = await supabase
+          void supabase
             .from('profiles')
             .select('name, avatar_url')
             .eq('user_id', user.id)
-            .maybeSingle();
-          await channel.track({
-            name: profile?.name || 'Agente',
-            avatar_url: profile?.avatar_url || null,
-            is_typing: false,
-            online_at: new Date().toISOString(),
-          });
+            .maybeSingle()
+            .then(({ data: profile }) => channel.track({
+              name: profile?.name || 'Agente',
+              avatar_url: profile?.avatar_url || null,
+              is_typing: false,
+              online_at: new Date().toISOString(),
+            }));
         }
       });
 

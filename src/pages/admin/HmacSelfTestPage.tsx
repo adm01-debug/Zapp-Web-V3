@@ -6,7 +6,7 @@
  * mesma edge function `webhook-hmac-selftest` consumida pelo botão da tela de
  * status.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,7 +80,7 @@ export default function HmacSelfTestPage() {
   const [result, setResult] = useState<SelfTestResult | null>(null);
   const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
 
-  async function logAudit(payload: SelfTestResult, fallbackMs: number) {
+  const logAudit = useCallback(async (payload: SelfTestResult, fallbackMs: number) => {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
@@ -99,9 +99,9 @@ export default function HmacSelfTestPage() {
     } catch (e) {
       log.warn('audit insert threw', e);
     }
-  }
+  }, [instance]);
 
-  async function syncAlert(payload: SelfTestResult) {
+  const syncAlert = useCallback(async (payload: SelfTestResult) => {
     const source = `hmac-selftest:${instance}`;
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -148,9 +148,9 @@ export default function HmacSelfTestPage() {
     } catch (e) {
       log.warn('alert sync threw', e);
     }
-  }
+  }, [instance]);
 
-  async function run() {
+  const run = useCallback(async () => {
     setLoading(true);
     setResult(null);
     const t0 = performance.now();
@@ -176,23 +176,23 @@ export default function HmacSelfTestPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [instance, includeNegative, logAudit, syncAlert]);
 
   // Roda automaticamente ao carregar e quando params mudam (via URL)
   useEffect(() => {
     document.title = 'HMAC Self-test — Status';
     void run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [run]);
 
   // Sincroniza filtros com a URL (deep-link compartilhável)
   useEffect(() => {
-    const next = new URLSearchParams(params);
-    next.set('instance', instance);
-    next.set('include_negative', includeNegative ? 'true' : 'false');
-    setParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instance, includeNegative]);
+    setParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('instance', instance);
+      next.set('include_negative', includeNegative ? 'true' : 'false');
+      return next;
+    }, { replace: true });
+  }, [instance, includeNegative, setParams]);
 
   const passedCount = useMemo(
     () => result?.scenarios?.filter((s) => s.passed).length ?? 0,

@@ -58,7 +58,7 @@ export function useAudioMemes(open: boolean) {
 
   useEffect(() => {
     if (open) {
-      fetchMemes();
+      void fetchMemes();
       setSyncing(true);
       setSyncError(null);
 
@@ -205,7 +205,7 @@ export function useAudioMemes(open: boolean) {
     }
     toast.success(`Áudio salvo como "${pending.selectedCategory}"!`);
     setPendingUpload(null);
-    fetchMemes();
+    void fetchMemes();
   }, [fetchMemes]);
 
   const handleCancelUpload = useCallback(async () => {

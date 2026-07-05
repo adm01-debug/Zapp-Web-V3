@@ -46,7 +46,7 @@ export function useGeoBlocking() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { void fetchData(); }, []);
 
   const handleModeChange = async (mode: 'disabled' | 'whitelist' | 'blacklist') => {
     if (!settings) return;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
@@ -42,6 +42,12 @@ export function MetaCAPIView() {
   const [showConfig, setShowConfig] = useState(false);
   const [pixelId, setPixelId] = useState('');
   const [autoTrack, setAutoTrack] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -50,6 +56,8 @@ export function MetaCAPIView() {
       .select('*')
       .order('event_time', { ascending: false })
       .limit(100);
+    if (!mountedRef.current) return;
+    if (error) { setLoading(false); return; }
     if (data) setEvents(data);
     setLoading(false);
   }, []);
@@ -58,11 +66,13 @@ export function MetaCAPIView() {
 
   // Load config from global_settings
   useEffect(() => {
+    let cancelled = false;
     const loadConfig = async () => {
-      const { data, error: configErr } = await supabase
+      const { data } = await supabase
         .from('global_settings')
         .select('key, value')
         .in('key', ['meta_pixel_id', 'meta_capi_auto_track']);
+      if (cancelled) return;
       if (data) {
         const pixel = data.find(d => d.key === 'meta_pixel_id');
         const auto = data.find(d => d.key === 'meta_capi_auto_track');
@@ -71,6 +81,7 @@ export function MetaCAPIView() {
       }
     };
     loadConfig();
+    return () => { cancelled = true; };
   }, []);
 
   const saveConfig = async () => {

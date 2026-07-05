@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { startOfHour, format, parseISO, subHours } from 'date-fns';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useDeliveryStats');
 
 export interface ParticipantStats {
   participantJid: string;
@@ -137,7 +140,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
 
       // Fallback para quando o retorno do Supabase vier em formato inesperado
       if (error) {
-        console.error('[useDeliveryStats] Erro na query:', error);
+        log.error('Delivery stats query error', error);
         return { 
           isGroup: isGroupJid(remoteJid!), 
           totals: { sent: 0, delivered: 0, read: 0, lastSentAt: null, lastDeliveredAt: null, lastReadAt: null }, 

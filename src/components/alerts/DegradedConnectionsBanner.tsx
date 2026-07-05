@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, ArrowRight, X } from 'lucide-react';
@@ -28,6 +28,11 @@ interface Props {
 export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60 * 1000 }: Props) {
   const [degraded, setDegraded] = useState<DegradedInstance[]>([]);
   const [dismissedIds, setDismissedIds] = useState<string>('');
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchDegraded = useCallback(async () => {
     const since = new Date(Date.now() - recentWindowMs).toISOString();
@@ -36,6 +41,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
       .select('id, name, instance_id, instance_name, health_status, health_response_ms, last_health_check, degraded_at')
       .eq('health_status', 'degraded')
       .gte('last_health_check', since);
+    if (!mountedRef.current) return;
     setDegraded(((data as unknown) as DegradedInstance[]) ?? []);
   }, [recentWindowMs]);
 

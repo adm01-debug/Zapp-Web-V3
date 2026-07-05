@@ -155,7 +155,7 @@ export function useUserSettings() {
       }
     };
 
-    fetchSettings();
+    void fetchSettings();
   }, [user?.id]);
 
   // Update settings locally

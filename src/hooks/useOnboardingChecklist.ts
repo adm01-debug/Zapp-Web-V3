@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -26,6 +26,11 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
   const [status, setStatus] = useState<ChecklistStatus>(DEFAULT_STATUS);
   const [isLoading, setIsLoading] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const checkStatus = useCallback(async () => {
     if (!user) return;
@@ -75,11 +80,11 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
         .limit(1);
       newStatus.templates = (templates?.length || 0) > 0;
 
-      setStatus(newStatus);
+      if (mountedRef.current) setStatus(newStatus);
     } catch (error) {
       log.error('Error checking checklist status:', error);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   }, [user]);
 
@@ -100,7 +105,7 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
       return;
     }
 
-    checkStatus();
+    void checkStatus();
   }, [user, enabled, checkStatus]);
 
   const dismiss = useCallback(() => {

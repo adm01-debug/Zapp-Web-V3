@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Smartphone, Copy, Check, Loader2 } from 'lucide-react';
 import { useMFA } from '@/features/auth';
@@ -19,6 +19,9 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
   const [code, setCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current); }, []);
 
   const handleStartEnrollment = async () => {
     try {
@@ -34,7 +37,7 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
       navigator.clipboard.writeText(enrollmentData.totp.secret);
       setCopied(true);
       toast.success('Código copiado!');
-      setTimeout(() => setCopied(false), 2000);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     }
   };
 

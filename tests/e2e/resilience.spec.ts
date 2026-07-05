@@ -52,7 +52,7 @@ test.describe('Resilience & State Transitions E2E', () => {
 
   test('status transition audit logging', async ({ page, request }) => {
     // This test validates that status changes are tracked in the event_history
-    const connectionId = "TEST_CONN_ID"; // Mock or find real test ID
+    const _connectionId = "TEST_CONN_ID"; // Mock or find real test ID
     
     // Trigger a status change via API mock or real call
     const webhookUrl = `${testConfig.supabaseUrl}/functions/v1/evolution-webhook`;
@@ -95,7 +95,7 @@ test.describe('Resilience & State Transitions E2E', () => {
     const messageId = `E2E_FAIL_RETRY_${Date.now()}`;
     
     // 1. Send invalid payload or force failure (simulation)
-    const respFail = await request.post(webhookUrl, {
+    const _respFail = await request.post(webhookUrl, {
       headers: { 'Authorization': `Bearer ${testConfig.supabaseAnonKey}` },
       data: { event: "messages.upsert", instance: "invalid", data: { key: { id: messageId } } }
     });

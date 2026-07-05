@@ -3,7 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailSaveDraft, emailDeleteDraft } from './gmail/gmailApi';
+import { getLogger } from '@/lib/logger';
 
+const log = getLogger('useEmailDraft');
 const supabase = _supabase as any;
 const AUTO_SAVE_DELAY_MS = 30_000;
 
@@ -71,7 +73,7 @@ export function useEmailDraft(accountId: string | null, threadId?: string) {
         lastSaved: new Date(),
       }));
     } catch (err) {
-      console.error('[useEmailDraft] Erro ao salvar rascunho:', err);
+      log.error('Email draft save error', err);
     } finally {
       setIsSaving(false);
     }

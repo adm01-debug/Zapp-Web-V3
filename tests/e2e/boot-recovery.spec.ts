@@ -10,7 +10,7 @@ test.describe('Boot Recovery E2E', () => {
     // The boot script uses specific delays (8000ms and 4000ms).
     await page.addInitScript(() => {
       const originalSetTimeout = window.setTimeout;
-      // @ts-ignore
+      // @ts-expect-error — overriding window.setTimeout for test speed
       window.setTimeout = function(handler: TimerHandler, delay?: number, ...args: any[]) {
         if (delay === 8000) return originalSetTimeout(handler, 100, ...args);
         if (delay === 4000) return originalSetTimeout(handler, 100, ...args);
@@ -42,7 +42,7 @@ test.describe('Boot Recovery E2E', () => {
     await page.addInitScript(() => {
       sessionStorage.setItem('zapp_recovery_attempt', 'true');
       const originalSetTimeout = window.setTimeout;
-      // @ts-ignore
+      // @ts-expect-error — overriding window.setTimeout for test speed
       window.setTimeout = function(handler: TimerHandler, delay?: number, ...args: any[]) {
         if (delay === 8000) return originalSetTimeout(handler, 100, ...args);
         if (delay === 4000) return originalSetTimeout(handler, 100, ...args);

@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { getLogger } from '@/lib/logger';
+const log = getLogger('VirusTotalConfig');
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -39,7 +42,7 @@ export const VirusTotalConfig = () => {
         toast.error(data.message);
       }
     } catch (error: any) {
-      console.error('Test error:', error);
+      log.error('VirusTotal API test failed', error);
       setTestResult({
         success: false,
         message: error.message || "Erro ao testar conexão"

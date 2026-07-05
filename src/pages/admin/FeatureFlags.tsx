@@ -81,10 +81,10 @@ export function FeatureFlagsAdmin() {
   };
 
   useEffect(() => {
-    fetchFlags();
-    fetchAuditLogs();
-    fetchMetrics();
-    executeHealthCheck();
+    void fetchFlags();
+    void fetchAuditLogs();
+    void fetchMetrics();
+    void executeHealthCheck();
   }, [fetchFlags, fetchAuditLogs, fetchMetrics]);
 
   const updateFlag = async (key: string, newConfig: FeatureConfig) => {

@@ -21,6 +21,7 @@ import { DLQAuditHistory } from '@/components/monitoring/DLQAuditHistory';
 import { toast } from 'sonner';
 import { openContactInChat } from '@/lib/openContactInChat';
 import { useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
+import { type RootCause } from '@/lib/failureRootCause';
 
 // Sub-components can be extracted to separate files if needed, but keeping them here for now
 // to maintain the 1:1 migration while reducing the main file size.
@@ -137,7 +138,7 @@ export default function AdminFailedMessagesPage() {
         <FailedMessagesRootCauseChart
           stats={api.aggregates.byRootCause}
           filter={ui.rootCauseFilter}
-          onFilterChange={(v) => ui.setRootCauseFilter(v as any)}
+          onFilterChange={(v) => ui.setRootCauseFilter(v as RootCause | 'all')}
         />
         <FailedMessagesErrorCodeChart
           stats={api.aggregates.byErrorCode}

@@ -35,6 +35,7 @@ export function MonitoringEventTimeline() {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
@@ -50,6 +51,8 @@ export function MonitoringEventTimeline() {
           .order('checked_at', { ascending: false })
           .limit(10),
       ]);
+
+      if (cancelled) return;
 
       const timeline: TimelineEvent[] = [];
 
@@ -80,7 +83,10 @@ export function MonitoringEventTimeline() {
 
     load();
     const interval = setInterval(load, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   return (

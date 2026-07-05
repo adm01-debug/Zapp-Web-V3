@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getLogger } from "@/lib/logger";
+
+const log = getLogger('AccessDenied');
 
 export default function AccessDenied() {
   const navigate = useNavigate();
@@ -12,7 +15,7 @@ export default function AccessDenied() {
 
   useEffect(() => {
     // Log unauthorized access attempt locally for telemetry
-    console.error(`[Auth] Access denied for route: ${from}`);
+    log.error('Access denied', { route: from });
     
     // Log to Supabase audit trail if we have a user
     const logEvent = async () => {
@@ -30,7 +33,7 @@ export default function AccessDenied() {
         });
       }
     };
-    logEvent();
+    void logEvent();
   }, [from]);
 
   return (

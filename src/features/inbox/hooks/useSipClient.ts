@@ -20,6 +20,7 @@ export function useSipClient() {
 
   const sessionRef = useRef<Inviter | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const callStartTimeRef = useRef<string | null>(null);
   const profileIdRef = useRef<string | null>(null);
@@ -92,14 +93,14 @@ export function useSipClient() {
           const prev = callStatusRef.current;
           const logStatus = prev === 'active' ? 'ended' : 'missed';
           setCallStatus('ended'); callStatusRef.current = 'ended'; setIsMuted(false);
-          logCall(number, logStatus);
-          setTimeout(() => { setCallStatus('idle'); callStatusRef.current = 'idle'; }, 2000);
+          void logCall(number, logStatus);
+          resetTimerRef.current = setTimeout(() => { setCallStatus('idle'); callStatusRef.current = 'idle'; }, 2000);
         }
       });
       await inviter.invite();
       sessionRef.current = inviter;
     } catch (err: unknown) {
-      log.error('Call error:', err); logCall(number, 'missed');
+      log.error('Call error:', err); void logCall(number, 'missed');
       setCallStatus('idle'); callStatusRef.current = 'idle';
       toast.error(`Erro ao ligar: ${err instanceof Error ? err.message : 'Falha'}`);
     }
@@ -129,7 +130,7 @@ export function useSipClient() {
     } catch (err) { log.error('DTMF error:', err); }
   }, []);
 
-  useEffect(() => { return () => { stopTimer(); remoteAudioRef.current?.remove(); remoteAudioRef.current = null; }; }, [stopTimer]);
+  useEffect(() => { return () => { stopTimer(); if (resetTimerRef.current) clearTimeout(resetTimerRef.current); remoteAudioRef.current?.remove(); remoteAudioRef.current = null; }; }, [stopTimer]);
 
   return { sipStatus, callStatus, callDuration, isMuted, currentNumber, connect, disconnect, makeCall, hangUp, toggleMute, sendDTMF };
 }

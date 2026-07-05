@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,8 @@ export default function AdminQueuesPage() {
   const [newMemberId, setNewMemberId] = useState<string>("");
   const [newChannelId, setNewChannelId] = useState<string>("");
 
+  const mountedRef = useMountedRef();
+
   const load = async () => {
     setLoading(true);
     const [q, m, s, p, d, c, cq] = await Promise.all([
@@ -77,6 +80,7 @@ export default function AdminQueuesPage() {
       (supabase as any).from('service_channels').select("id,name,channel_type,default_queue_id").neq("status", "archived").order("name"),
       (supabase as any).from('channel_queues').select("*"),
     ]);
+    if (!mountedRef.current) return;
     setQueues((q.data ?? []) as Queue[]);
     setMembers((m.data ?? []) as unknown as QueueMember[]);
     setSkills((s.data ?? []) as QueueSkill[]);
@@ -87,7 +91,7 @@ export default function AdminQueuesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
 
   const save = async () => {
     if (!editing?.name) {
@@ -362,7 +366,7 @@ export default function AdminQueuesPage() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => togglePause(q)}>
+                    <Button size="sm" variant="outline" onClick={() => void togglePause(q)}>
                       {isPaused ? <><Play className="w-4 h-4 mr-1" />Retomar</> : <><Pause className="w-4 h-4 mr-1" />Pausar</>}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setMemberDialog(q)}>
@@ -371,7 +375,7 @@ export default function AdminQueuesPage() {
                     <Button size="icon" variant="ghost" onClick={() => setEditing(q)}>
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => remove(q.id)}>
+                    <Button size="icon" variant="ghost" onClick={() => void remove(q.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -424,7 +428,7 @@ export default function AdminQueuesPage() {
                   {members.filter((m) => m.queue_id === memberDialog.id).map((m) => (
                     <div key={m.id} className="flex items-center justify-between bg-muted/30 px-3 py-2 rounded">
                       <span>{m.profile?.name ?? m.profile_id}</span>
-                      <Button size="icon" variant="ghost" onClick={() => removeMember(m.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => void removeMember(m.id)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
@@ -463,7 +467,7 @@ export default function AdminQueuesPage() {
                             <Badge variant="outline" className="ml-2">prioridade {cq.priority}</Badge>
                             {!cq.is_active && <Badge variant="secondary" className="ml-2">inativo</Badge>}
                           </span>
-                          <Button size="icon" variant="ghost" onClick={() => unlinkChannel(cq.channel_id)}>
+                          <Button size="icon" variant="ghost" onClick={() => void unlinkChannel(cq.channel_id)}>
                             <X className="w-4 h-4" />
                           </Button>
                         </div>
@@ -492,7 +496,7 @@ export default function AdminQueuesPage() {
                   {skills.filter((s) => s.queue_id === memberDialog.id).map((s) => (
                     <div key={s.id} className="flex items-center justify-between bg-muted/30 px-3 py-2 rounded">
                       <span>{s.skill_name} <Badge variant="outline" className="ml-2">nível ≥ {s.min_level}</Badge></span>
-                      <Button size="icon" variant="ghost" onClick={() => removeSkill(s.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => void removeSkill(s.id)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>

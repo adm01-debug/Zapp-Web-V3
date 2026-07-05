@@ -4,6 +4,8 @@
  * Shows violations, compliance rate, and overdue alerts.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,8 @@ import {
   AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+
+const log = getLogger('SLADashboard');
 
 interface SLAStats {
   total_violations:          number;
@@ -45,6 +49,7 @@ interface Props {
 export const SLADashboard: React.FC<Props> = ({
   instanceName = 'wpp2', days = 7, compact = false,
 }) => {
+  const mountedRef = useMountedRef();
   const [stats,   setStats]   = useState<SLAStats | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -56,11 +61,11 @@ export const SLADashboard: React.FC<Props> = ({
         p_days: days,
       });
       if (error) throw error;
-      setStats(data as unknown as SLAStats);
+      if (mountedRef.current) setStats(data as unknown as SLAStats);
     } catch (err) {
-      console.error('[SLADashboard]', err);
-    } finally { setLoading(false); }
-  }, [instanceName, days]);
+      log.error('Failed to load SLA dashboard', err);
+    } finally { if (mountedRef.current) setLoading(false); }
+  }, [instanceName, days, mountedRef]);
 
   useEffect(() => { load(); }, [load]);
 

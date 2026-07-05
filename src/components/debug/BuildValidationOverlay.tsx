@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useValidation } from '@/components/providers/ValidationProvider';
 import { validationLogger } from '@/utils/validationLogger';
 import { Shield, AlertTriangle, CheckCircle, FileText, X, RefreshCw } from 'lucide-react';
@@ -74,8 +74,8 @@ export const BuildValidationOverlay: React.FC = () => {
                   {events.length === 0 ? (
                     <div className="text-xs text-muted-foreground italic">No events logged yet.</div>
                   ) : (
-                    events.slice(0, 15).map((event, i) => (
-                      <div key={i} className="text-[10px] p-1.5 rounded bg-muted/30 flex flex-col gap-0.5 border border-transparent hover:border-border">
+                    events.slice(0, 15).map((event) => (
+                      <div key={event.timestamp} className="text-[10px] p-1.5 rounded bg-muted/30 flex flex-col gap-0.5 border border-transparent hover:border-border">
                         <div className="flex items-center justify-between">
                           <span className={cn(
                             "font-bold uppercase px-1 rounded",

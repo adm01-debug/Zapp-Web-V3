@@ -34,6 +34,12 @@ const log = getLogger('AdminInboxSyncStatusPage');
 const INSTANCE = 'wpp2';
 const POLL_MS = 15_000;
 
+const BUCKET_CONFIGS: Array<{ label: string; sinceMs: number }> = [
+  { label: 'Últimos 5 min', sinceMs: 5 * 60_000 },
+  { label: 'Última 1 h', sinceMs: 60 * 60_000 },
+  { label: 'Últimas 24 h', sinceMs: 24 * 60 * 60_000 },
+];
+
 // Threshold padrão para alerta de inatividade inbound (em minutos).
 // Persistido em localStorage para sobreviver a reloads.
 const ALERT_THRESHOLD_KEY = 'admin:inbox-sync:inbound-alert-threshold-min';
@@ -134,11 +140,9 @@ export default function AdminInboxSyncStatusPage() {
   const alertedForInboundRef = useRef<string | null>(null);
 
 
-  const [buckets, setBuckets] = useState<SyncBucket[]>([
-    { label: 'Últimos 5 min', sinceMs: 5 * 60_000, count: null },
-    { label: 'Última 1 h', sinceMs: 60 * 60_000, count: null },
-    { label: 'Últimas 24 h', sinceMs: 24 * 60 * 60_000, count: null },
-  ]);
+  const [buckets, setBuckets] = useState<SyncBucket[]>(() =>
+    BUCKET_CONFIGS.map(c => ({ ...c, count: null })),
+  );
   const [lastEvents, setLastEvents] = useState<InboundOutboundLast>({
     inboundAt: null, outboundAt: null,
   });
@@ -155,7 +159,7 @@ export default function AdminInboxSyncStatusPage() {
       // 1) Buckets de contagem (5m, 1h, 24h) — usamos `countMode: 'exact'` com
       // `limit: 1` para evitar baixar payloads (queremos só o total).
       const bucketResults = await Promise.all(
-        buckets.map((b) =>
+        BUCKET_CONFIGS.map((b) =>
           queryExternalProxy({
             table: 'evolution_messages',
             select: 'id',
@@ -266,7 +270,6 @@ export default function AdminInboxSyncStatusPage() {
       setLoading(false);
       setRefreshing(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => { void fetchAll(); }, [fetchAll]);
@@ -372,7 +375,7 @@ export default function AdminInboxSyncStatusPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => fetchAll()}
+            onClick={() => void fetchAll()}
             disabled={refreshing}
           >
             <RefreshCw className={`h-4 w-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { AchievementToast, AchievementType } from './AchievementToast';
 import { useAgentGamification, ACHIEVEMENT_TYPES, calculateLevel } from '@/features/admin';
 import { log } from '@/lib/logger';
@@ -52,6 +52,9 @@ const GamificationContext = createContext<GamificationContextType>(NOOP_CONTEXT)
 export function GamificationProvider({ children }: { children: ReactNode }) {
   const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
   const [queue, setQueue] = useState<Achievement[]>([]);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
   
   const {
     stats: dbStats,
@@ -91,7 +94,8 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
 
   const handleClose = useCallback(() => {
     setCurrentAchievement(null);
-    setTimeout(processQueue, 300);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(processQueue, 300);
   }, [processQueue]);
 
   const triggerFastResponse = useCallback(async (seconds: number) => {

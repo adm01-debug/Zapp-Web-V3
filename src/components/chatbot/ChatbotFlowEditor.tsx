@@ -97,7 +97,7 @@ export function ChatbotFlowEditor({ flow, onSave, onClose }: Props) {
                           </div>
                         </div>
                         {node.data.content && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{node.data.content}</p>}
-                        {node.data.options && node.data.options.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{node.data.options.map((opt, i) => <Badge key={i} variant="secondary" className="text-xs">{opt}</Badge>)}</div>}
+                        {node.data.options && node.data.options.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{node.data.options.map((opt, i) => <Badge key={`${opt}-${i}`} variant="secondary" className="text-xs">{opt}</Badge>)}</div>}
                         {node.data.delaySeconds && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> Aguardar {node.data.delaySeconds}s</p>}
                         {outEdges.length > 0 && (
                           <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">

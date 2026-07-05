@@ -35,7 +35,7 @@ export function RateLimitConfigPanel() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchRules();
+    void fetchRules();
   }, []);
 
   const fetchRules = async () => {

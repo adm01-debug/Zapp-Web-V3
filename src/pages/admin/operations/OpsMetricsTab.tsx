@@ -82,7 +82,7 @@ export function OpsMetricsTab() {
   );
 
   useEffect(() => {
-    fetchMetrics();
+    void fetchMetrics();
   }, [fetchMetrics]);
 
   return (

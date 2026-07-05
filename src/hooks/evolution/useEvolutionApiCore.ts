@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
@@ -57,14 +58,12 @@ async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 export function useEvolutionApiCore() {
   const [isLoading, setIsLoading] = useState(false);
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
   const inflightRef = useRef<Map<string, Promise<unknown>>>(new Map());
 
   useEffect(() => {
-    mountedRef.current = true;
     // Esquenta cache de config global (não bloqueia)
     void loadRetryConfig();
-    return () => { mountedRef.current = false; };
   }, []);
 
   const callApi = useCallback(

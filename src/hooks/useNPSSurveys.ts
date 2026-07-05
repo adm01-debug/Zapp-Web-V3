@@ -47,7 +47,7 @@ export function useNPSSurveys() {
   }, []);
 
   useEffect(() => {
-    fetchSurveys();
+    void fetchSurveys();
   }, [fetchSurveys]);
 
   const createSurvey = useCallback(async (data: {

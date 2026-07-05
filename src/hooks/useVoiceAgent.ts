@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { useScribe, CommitStrategy } from '@elevenlabs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -28,7 +29,7 @@ export function useVoiceAgent(options?: UseVoiceAgentOptions): UseVoiceAgentRetu
   const bootTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const autoRestartRef = useRef<ReturnType<typeof setTimeout>>();
   const errorResetRef = useRef<ReturnType<typeof setTimeout>>();
-  const mountedRef = useRef(true);
+  const mountedRef = useMountedRef();
   const processingAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -40,13 +41,6 @@ export function useVoiceAgent(options?: UseVoiceAgentOptions): UseVoiceAgentRetu
     phaseRef.current = phase;
   }, [phase]);
 
-  // Track mount status for async safety
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;

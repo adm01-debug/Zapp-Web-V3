@@ -4,7 +4,10 @@
  * Uses find_duplicate_contacts(), merge_contacts(), bulk_auto_merge_duplicates() RPCs.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Button } from '@/components/ui/button';
+import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
@@ -15,6 +18,8 @@ import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { sanitizeText } from '@/lib/sanitize';
 import { formatPhoneForDisplay } from '@/lib/phoneUtils';
+
+const log = getLogger('DuplicateContactsPanel');
 
 interface DuplicateGroup {
   phone_normalized: string;
@@ -39,6 +44,7 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
   workspaceId: instanceName, onMergeComplete,
 }) => {
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
   const [groups,    setGroups]    = useState<DuplicateGroup[]>([]);
   const [report,    setReport]    = useState<DuplicateReport | null>(null);
   const [loading,   setLoading]   = useState(false);
@@ -58,14 +64,16 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
       if (groupsRes.error) throw groupsRes.error;
       if (reportRes.error) throw reportRes.error;
 
+      if (!mountedRef.current) return;
       setGroups((groupsRes.data ?? []) as unknown as DuplicateGroup[]);
       setReport((reportRes.data ?? null) as unknown as DuplicateReport | null);
       setDone(true);
     } catch (err) {
-      console.error('[DuplicateContactsPanel]', err);
+      if (!mountedRef.current) return;
+      log.error('Failed to load duplicate contacts', err);
       toast({ title: 'Erro ao verificar duplicatas', description: String(err), variant: 'destructive' });
-    } finally { setLoading(false); }
-  }, [instanceName, toast]);
+    } finally { if (mountedRef.current) setLoading(false); }
+  }, [instanceName, toast, mountedRef]);
 
   useEffect(() => { scan(); }, [scan]);
 

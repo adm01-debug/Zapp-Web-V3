@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { STORAGE_KEY, DEFAULT_PRESET_ID, PRESETS } from '@/components/settings/theme/presets';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useThemeAudit');
 
 export interface AuditResult {
   oledPass: boolean;
@@ -58,7 +61,7 @@ export const useThemeAudit = () => {
           presetId = parsed.preset || DEFAULT_PRESET_ID;
         } catch (e) {
           // Corrupted theme preference — fall back to the default preset.
-          console.warn('[useThemeAudit] failed to parse saved theme', e);
+          log.warn('Failed to parse saved theme preference, using default', e);
         }
       }
       
@@ -80,9 +83,7 @@ export const useThemeAudit = () => {
       setResult({ oledPass, fontPass, colorPass, violations });
 
       if (violations.length > 0 && import.meta.env.DEV) {
-        console.group('🔍 Relatório de Auditoria Visual');
-        violations.forEach(v => console.warn(v));
-        console.groupEnd();
+        log.debug('Theme audit violations', violations);
       }
     };
 

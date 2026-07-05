@@ -15,10 +15,13 @@ export default function TwoFactorAuth() {
   const [needsVerification, setNeedsVerification] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const checkMFAStatus = async () => {
       await fetchFactors();
+      if (cancelled) return;
       const assurance = await getAssuranceLevel();
-      
+      if (cancelled) return;
+
       if (assurance) {
         // If user has MFA setup but hasn't verified this session
         if (assurance.currentLevel === 'aal1' && assurance.nextLevel === 'aal2') {
@@ -31,8 +34,9 @@ export default function TwoFactorAuth() {
     };
 
     if (user) {
-      checkMFAStatus();
+      void checkMFAStatus();
     }
+    return () => { cancelled = true; };
   }, [user, navigate, getAssuranceLevel, fetchFactors]);
 
   if (!needsVerification) {

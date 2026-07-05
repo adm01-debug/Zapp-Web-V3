@@ -56,7 +56,7 @@ export function useAuthForm() {
 
   useEffect(() => {
     if (isSupported()) {
-      isPlatformAuthenticatorAvailable().then(setPasskeyAvailable);
+      isPlatformAuthenticatorAvailable().then(setPasskeyAvailable).catch(() => {});
     }
   }, [isSupported, isPlatformAuthenticatorAvailable]);
 

@@ -294,8 +294,8 @@ export default function AdminEvolutionApiLogsPage() {
                   {selected.retry_reasons?.length
                     ? (
                       <div className="space-y-1.5">
-                        {selected.retry_reasons.map((r, i) => (
-                          <div key={i} className="text-xs bg-muted/30 rounded p-2  flex justify-between">
+                        {selected.retry_reasons.map((r) => (
+                          <div key={r.attempt} className="text-xs bg-muted/30 rounded p-2  flex justify-between">
                             <span>Tentativa {r.attempt}: <strong>{r.reason}</strong></span>
                             {r.status && <Badge variant="outline" className="text-[10px]">HTTP {r.status}</Badge>}
                           </div>

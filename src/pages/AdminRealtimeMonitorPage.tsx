@@ -16,6 +16,7 @@ import { EventsLiveBlock } from './admin-realtime-monitor/EventsLiveBlock';
 import { DispatchErrorsBlock } from './admin-realtime-monitor/DispatchErrorsBlock';
 import { EvolutionFallbackStatusCard } from '@/features/admin';
 import { useRealtimeMonitor } from '@/hooks/useRealtimeMonitor';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { cn } from '@/lib/utils';
 
 const WINDOW_OPTIONS = [
@@ -85,16 +86,24 @@ export default function AdminRealtimeMonitorPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <ConnectionsHealthBlock />
+          <SectionErrorBoundary sectionName="ConnectionsHealth">
+            <ConnectionsHealthBlock />
+          </SectionErrorBoundary>
         </div>
         <div>
-          <EvolutionFallbackStatusCard />
+          <SectionErrorBoundary sectionName="EvolutionFallback">
+            <EvolutionFallbackStatusCard />
+          </SectionErrorBoundary>
         </div>
       </div>
 
-      <EventsLiveBlock windowHours={Number(windowHours)} autoRefresh={autoRefresh} />
+      <SectionErrorBoundary sectionName="EventsLive">
+        <EventsLiveBlock windowHours={Number(windowHours)} autoRefresh={autoRefresh} />
+      </SectionErrorBoundary>
 
-      <DispatchErrorsBlock windowHours={Number(windowHours)} />
+      <SectionErrorBoundary sectionName="DispatchErrors">
+        <DispatchErrorsBlock windowHours={Number(windowHours)} />
+      </SectionErrorBoundary>
     </div>
   );
 }

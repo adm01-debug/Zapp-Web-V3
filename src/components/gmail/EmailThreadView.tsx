@@ -49,8 +49,8 @@ export function EmailThreadView({ thread, accountId, onBack, className }: EmailT
         const unreadIds = (data as EmailMessage[]).filter((m) => !m.is_read).map((m) => m.message_id);
         if (unreadIds.length > 0) {
           emailMarkRead({ accountId, messageIds: unreadIds, read: true } as any).catch(() => {});
-          (supabase as any).from('email_messages').update({ is_read: true }).in('message_id', unreadIds).then(() => {});
-          (supabase as any).from('email_threads').update({ unread_count: 0 }).eq('id', thread.id).then(() => {});
+          (supabase as any).from('email_messages').update({ is_read: true }).in('message_id', unreadIds).then(() => {}).catch(() => {});
+          (supabase as any).from('email_threads').update({ unread_count: 0 }).eq('id', thread.id).then(() => {}).catch(() => {});
         }
       });
   }, [thread?.id, accountId]);

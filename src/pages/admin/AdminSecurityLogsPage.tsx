@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,6 +8,8 @@ import { Shield, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const log = getLogger('AdminSecurityLogsPage');
 
 interface AuditLog {
   id: string;
@@ -28,6 +31,7 @@ export default function AdminSecurityLogsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     const fetchLogs = async () => {
       const { data, error } = await supabase
         .from('security_audit_logs')
@@ -41,8 +45,9 @@ export default function AdminSecurityLogsPage() {
         .order('created_at', { ascending: false })
         .limit(50);
 
+      if (!mounted) return;
       if (error) {
-        console.error('Error fetching audit logs:', error);
+        log.error('Error fetching audit logs', error);
       } else {
         setLogs(data as any[]);
       }
@@ -64,6 +69,7 @@ export default function AdminSecurityLogsPage() {
       .subscribe();
 
     return () => {
+      mounted = false;
       supabase.removeChannel(channel);
     };
   }, []);

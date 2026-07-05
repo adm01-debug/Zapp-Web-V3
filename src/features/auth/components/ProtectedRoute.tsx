@@ -54,6 +54,11 @@ export function ProtectedRoute({
           setHasPermission(data === true);
         }
         setPermissionChecking(false);
+      }, (err) => {
+        if (!isMounted) return;
+        log.error('Permission check threw:', err);
+        setHasPermission(false);
+        setPermissionChecking(false);
       });
     } else if (!requiredPermission) {
       setHasPermission(true);

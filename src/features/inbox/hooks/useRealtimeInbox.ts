@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
 import { type ConversationWithMessages, type ConversationContact, type RealtimeMessage } from '@/features/inbox';
 import { useAuth } from '@/features/auth';
@@ -33,6 +33,7 @@ export function useRealtimeInbox() {
   const [deliveryAlert, setDeliveryAlert] = useState<{ status: 'warning' | 'breached', delay: number, message?: string } | null>(null);
   const [selectedContactFallback, setSelectedContactFallback] = useState<ConversationContact | null>(null);
   const [whisperCount, setWhisperCount] = useState(0);
+  const postSendTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // 1. Data Source (Local or External)
   const source = useInboxSource(USE_EXTERNAL_DB, selectedContactId);
@@ -41,6 +42,7 @@ export function useRealtimeInbox() {
     search, setSearch, statusFilter, setStatusFilter, sortBy, setSortBy,
     selectedMessages, selectedMessagesLoading, refetchSelectedMessages,
     loadOlderMessages, cancelLoadOlderMessages, loadingOlderMessages, hasMoreMessages,
+    addExternalMessage,
     localRealtime
   } = source;
 
@@ -52,16 +54,23 @@ export function useRealtimeInbox() {
   // 3. Deep Links
   useInboxDeepLinks({ setPendingContactId, setPendingMessageId, useExternalDb: USE_EXTERNAL_DB });
 
+  // Cleanup post-send refetch timer on unmount
+  useEffect(() => () => { clearTimeout(postSendTimerRef.current); }, []);
+
   // 4. Offline Cache
   const { conversations: cachedConversations, usingCache } = useOfflineCache(conversations, loading);
 
-  // Seed avatar cache
+  // Seed avatar cache — only once per contact ID to avoid redundant calls when
+  // the conversations array gets a new reference without data changes.
+  const seededAvatarsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (conversations && conversations.length > 0) {
-      conversations.forEach(c => {
-        if (c.contact.avatar_url) seedAvatarCache(c.contact.id, c.contact.avatar_url);
-      });
-    }
+    if (!conversations || conversations.length === 0) return;
+    conversations.forEach(c => {
+      if (c.contact.avatar_url && !seededAvatarsRef.current.has(c.contact.id)) {
+        seedAvatarCache(c.contact.id, c.contact.avatar_url);
+        seededAvatarsRef.current.add(c.contact.id);
+      }
+    });
   }, [conversations]);
 
   // Load fallback contact if not found in list
@@ -81,7 +90,7 @@ export function useRealtimeInbox() {
       const { data, error } = await supabase.from('contacts').select('*').eq('id', selectedContactId).maybeSingle();
       if (!cancelled && !error) setSelectedContactFallback(data || null);
     };
-    loadSelectedContact();
+    void loadSelectedContact();
     return () => { cancelled = true; };
   }, [selectedContactId, selectedConversation]);
 
@@ -138,14 +147,15 @@ export function useRealtimeInbox() {
     }
     // ────────────────────────────────────────────────────────────────────────
 
+    let cancelled = false;
     const fetchWhisperCount = async () => {
       const { count, error } = await supabase.from('whisper_messages').select('*', { count: 'exact', head: true }).eq('contact_id', selectedContactId).eq('is_read', false);
-      if (!error && count !== null) setWhisperCount(count);
+      if (!cancelled && !error && count !== null) setWhisperCount(count);
     };
-    fetchWhisperCount();
+    void fetchWhisperCount();
 
-    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => fetchWhisperCount()).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => { void fetchWhisperCount(); }).subscribe();
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [selectedContactId, profile?.id]);
 
   const messageQueue = useMessageQueue(async (item: QueueItem) => {
@@ -176,7 +186,7 @@ export function useRealtimeInbox() {
             onProgress: (p) => { messageQueue.updateProgress(item.id, p); }
           });
           if (optimistic.external_id) item.externalId = optimistic.external_id;
-          (localRealtime as any).addExternalMessage?.(optimistic);
+          addExternalMessage?.(optimistic);
         } else if (attachments && attachments.length > 0) {
           for (let i = 0; i < attachments.length; i++) {
             const file = attachments[i];
@@ -189,7 +199,7 @@ export function useRealtimeInbox() {
               }
             });
             if (optimistic.external_id) item.externalId = optimistic.external_id;
-            (localRealtime as any).addExternalMessage?.(optimistic);
+            addExternalMessage?.(optimistic);
           }
         } else {
           const { optimistic } = await sendExternalText(contactId, content, { 
@@ -197,14 +207,15 @@ export function useRealtimeInbox() {
             onProgress: (p) => { messageQueue.updateProgress(item.id, p); }
           });
           if (optimistic.external_id) item.externalId = optimistic.external_id;
-          (localRealtime as any).addExternalMessage?.(optimistic);
+          addExternalMessage?.(optimistic);
         }
       } catch (err) {
         log.error('Failed to send external message/media:', err);
         throw err;
       }
       
-      setTimeout(() => { void refetchSelectedMessages(); void refetch(); }, 1500);
+      clearTimeout(postSendTimerRef.current);
+      postSendTimerRef.current = setTimeout(() => { void refetchSelectedMessages(); void refetch(); }, 1500);
       return;
     }
     

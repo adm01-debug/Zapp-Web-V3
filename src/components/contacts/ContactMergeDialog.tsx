@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { getLogger } from '@/lib/logger';
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogFooter, DialogDescription,
@@ -14,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 import { cn } from '@/lib/utils';
+
+const log = getLogger('ContactMergeDialog');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -227,7 +231,7 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
       onMergeComplete(primaryContact.id);
       onOpenChange(false);
     } catch (err) {
-      console.error('[ContactMergeDialog]', err);
+      log.error('Failed to merge contacts', err);
       toast({ title: 'Erro ao mesclar', description: 'Tente novamente.', variant: 'destructive' });
     } finally {
       setLoading(false);

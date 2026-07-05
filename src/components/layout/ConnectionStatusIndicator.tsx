@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { WifiOff, Wifi, RefreshCw, History } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -103,6 +104,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   const prevDisconnectedRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const mountedRef = useMountedRef();
 
   // Persistir filtro
   useEffect(() => {
@@ -143,6 +145,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       log.warn('Failed to fetch connections', { error: error.message });
       return;
     }
+    if (!mountedRef.current) return;
     const rows: ConnectionRow[] = (data ?? []).map(r => ({
       id: r.id,
       instance_id: r.instance_id,
@@ -187,7 +190,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         { event: '*', schema: 'public', table: 'whatsapp_connections' },
         () => {
           // Invalidate shared cache so other consumers (senders, dialogs) see fresh data.
-          import('@/lib/whatsappConnectionsCache').then(m => m.invalidateWhatsappConnectionsCache());
+          import('@/lib/whatsappConnectionsCache').then(m => m.invalidateWhatsappConnectionsCache()).catch(() => {});
           fetchStatus();
         }
       )

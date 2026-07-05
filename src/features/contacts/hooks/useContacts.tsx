@@ -12,6 +12,9 @@ import { Button } from '@/components/ui/button';
 import { sanitizeContactFields } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useContacts');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -176,7 +179,7 @@ export function useContacts() {
       setTotal(count ?? items.length);
       setHasMore(items.length === PAGE_SIZE);
     } catch (err) {
-      console.error('[useContacts]', err);
+      log.error('Error loading contacts', err);
       toast({ title: 'Erro ao carregar contatos', description: String(err), variant: 'destructive' });
     } finally { 
       setLoading(false); 
@@ -235,8 +238,12 @@ export function useContacts() {
             timer.delete(ids.join(','));
 
             // Restore optimistically
-            await loadContacts();
-            toast({ title: '↩️ Restaurado!', duration: 2_500 });
+            try {
+              await loadContacts();
+              toast({ title: '↩️ Restaurado!', duration: 2_500 });
+            } catch {
+              toast({ title: 'Erro ao restaurar contato', variant: 'destructive' });
+            }
           }}
         >
           Desfazer
@@ -252,7 +259,7 @@ export function useContacts() {
         p_reason:      'user_deleted',
       });
       if (error) {
-        console.error('[useContacts] delete failed:', error);
+        log.error('Bulk delete failed', error);
         // Reload to get correct state
         loadContacts();
       }

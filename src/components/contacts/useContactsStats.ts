@@ -5,7 +5,11 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
+
 import { dbFrom, dbTable } from '@/integrations/datasource/db';
+
+const log = getLogger('useContactsStats');
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 
@@ -65,7 +69,7 @@ export function useContactsStats(workspaceId: string) {
         deletedPending: deletedRes.count ?? 0,
       });
     } catch (err) {
-      console.error('[useContactsStats]', err);
+      log.error('Failed to load contacts stats', err);
     } finally {
       setLoading(false);
     }

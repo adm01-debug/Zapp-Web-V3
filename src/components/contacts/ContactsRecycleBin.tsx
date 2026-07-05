@@ -4,7 +4,10 @@
  * Accessible via Settings → Contatos → Lixeira
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Button } from '@/components/ui/button';
+import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -16,6 +19,8 @@ import { sanitizeText } from '@/lib/sanitize';
 import { useAuth } from '@/features/auth';
 import { dbFrom, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
+
+const log = getLogger('ContactsRecycleBin');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +63,7 @@ interface ContactsRecycleBinProps {
 export const ContactsRecycleBin: React.FC<ContactsRecycleBinProps> = ({ workspaceId }) => {
   const { toast }   = useToast();
   const { profile } = useAuth();
+  const mountedRef  = useMountedRef();
   const [contacts,  setContacts]  = useState<DeletedContact[]>([]);
   const [filtered,  setFiltered]  = useState<DeletedContact[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -90,15 +96,17 @@ export const ContactsRecycleBin: React.FC<ContactsRecycleBinProps> = ({ workspac
         days_remaining: daysRemaining(c.deleted_at),
       }));
 
+      if (!mountedRef.current) return;
       setContacts(enriched);
       setFiltered(enriched);
     } catch (err) {
-      console.error('[ContactsRecycleBin]', err);
+      if (!mountedRef.current) return;
+      log.error('Failed to load contacts recycle bin', err);
       toast({ title: 'Erro ao carregar lixeira', variant: 'destructive' });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [workspaceId, toast]);
+  }, [workspaceId, toast, mountedRef]);
 
   useEffect(() => {
     loadDeletedContacts();
@@ -138,7 +146,7 @@ export const ContactsRecycleBin: React.FC<ContactsRecycleBinProps> = ({ workspac
         duration: 4_000,
       });
     } catch (err) {
-      console.error('[ContactsRecycleBin] restore failed:', err);
+      log.error('Failed to restore contact', err);
       toast({
         title: 'Erro ao restaurar',
         description: (err as Error).message?.includes('30-day')

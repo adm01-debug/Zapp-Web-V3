@@ -17,6 +17,9 @@ import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, ShieldAlert, FlaskConical, Loader2, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('HmacSelfTest');
 
 type Phase =
   | 'config' | 'parse-body' | 'build-payload' | 'sign' | 'mutate'
@@ -81,7 +84,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
         executed_by: uid,
       });
     } catch (err) {
-      console.warn('[HmacSelfTest] falha ao gravar auditoria', err);
+      log.warn('Failed to write audit record', err);
     }
   }
 
@@ -147,7 +150,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
         }
       }
     } catch (err) {
-      console.warn('[HmacSelfTest] falha ao sincronizar alerta', err);
+      log.warn('Failed to sync alert', err);
     }
   }
 

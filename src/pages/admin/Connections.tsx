@@ -16,6 +16,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('Connections');
 import { motion, AnimatePresence } from 'framer-motion';
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
@@ -80,13 +83,13 @@ export default function AdminConnectionsPage() {
         setIsAdmin(hasAccess);
         
         if (!hasAccess) {
-          console.warn("Usuário logado sem permissão de admin/dev:", user.email);
+          log.warn('User logged in without admin/dev permission', { email: user.email });
         }
       } else {
         setIsAdmin(false);
       }
     } catch (e: any) {
-      console.error("Erro ao verificar roles ou conexão:", e);
+      log.error('Error checking roles or connection', e);
       setIsAdmin(false);
       toast({ 
         title: 'Erro de Conexão ou Acesso', 
@@ -97,8 +100,8 @@ export default function AdminConnectionsPage() {
   };
 
   useEffect(() => {
-    fetchConnections();
-    checkAdminStatus();
+    void fetchConnections();
+    void checkAdminStatus();
 
     // Revalida ao focar na aba do navegador para garantir que o acesso ainda é válido
     const handleFocus = () => checkAdminStatus();
@@ -108,14 +111,14 @@ export default function AdminConnectionsPage() {
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    checkAdminStatus();
-    fetchConnections();
+    void checkAdminStatus();
+    void fetchConnections();
   };
 
   async function fetchConnections() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('system_connections' as any)
+    const { data, error } = await (supabase as any)
+      .from('system_connections')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -222,8 +225,8 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      const { data: verify, error: verifyError } = await supabase
-        .from('system_connections' as any)
+      const { data: verify, error: verifyError } = await (supabase as any)
+        .from('system_connections')
         .select('id, updated_at')
         .eq('provider', 'supabase_external')
         .eq('name', 'FATOR X')
@@ -275,17 +278,21 @@ export default function AdminConnectionsPage() {
             <Button 
               variant="outline" 
               onClick={async () => {
-                toast({ title: "Iniciando Diagnóstico", description: "Verificando fluxo completo..." });
-                const res = await runConnectionDiagnostics();
-                const fails = res.steps.filter((s: any) => s.status === 'fail');
-                if (fails.length > 0) {
-                  toast({ 
-                    title: "Falha no Diagnóstico", 
-                    description: `${fails.length} etapa(s) falharam. Verifique o console.`,
-                    variant: "destructive"
-                  });
-                } else {
-                  toast({ title: "Diagnóstico OK", description: "Fluxo validado com sucesso." });
+                try {
+                  toast({ title: "Iniciando Diagnóstico", description: "Verificando fluxo completo..." });
+                  const res = await runConnectionDiagnostics();
+                  const fails = (res.steps as Array<{ step: string; status: string; details: unknown }>).filter(s => s.status === 'fail');
+                  if (fails.length > 0) {
+                    toast({
+                      title: "Falha no Diagnóstico",
+                      description: `${fails.length} etapa(s) falharam. Verifique o console.`,
+                      variant: "destructive"
+                    });
+                  } else {
+                    toast({ title: "Diagnóstico OK", description: "Fluxo validado com sucesso." });
+                  }
+                } catch {
+                  toast({ title: "Erro no Diagnóstico", description: "Não foi possível executar o diagnóstico.", variant: "destructive" });
                 }
               }}
               className="gap-2"

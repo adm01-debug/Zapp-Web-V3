@@ -50,7 +50,7 @@ export function useMediaUploadQueue(contactId: string) {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       agentIdRef.current = data.user?.id || null;
-    });
+    }).catch(() => {});
     return () => {
       tickersRef.current.forEach((t) => clearInterval(t));
       tickersRef.current.clear();

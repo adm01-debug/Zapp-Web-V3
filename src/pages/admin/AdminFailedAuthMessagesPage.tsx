@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, ShieldAlert, RefreshCw, AlertTriangle } from "lucide-react";
@@ -34,7 +35,9 @@ export default function AdminFailedAuthMessagesPage() {
   const [from, setFrom] = useState<Date | undefined>(undefined);
   const [to, setTo] = useState<Date | undefined>(undefined);
 
-  const load = async () => {
+  const mountedRef = useMountedRef();
+
+  const load = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from('login_attempts')
@@ -54,6 +57,7 @@ export default function AdminFailedAuthMessagesPage() {
     }
 
     const { data, error } = await query;
+    if (!mountedRef.current) return;
     if (error) {
       toast({
         title: "Erro ao carregar falhas",
@@ -65,12 +69,11 @@ export default function AdminFailedAuthMessagesPage() {
       setRows((data ?? []) as FailedAuthRow[]);
     }
     setLoading(false);
-  };
+  }, [from, to, toast]);
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from, to]);
+    void load();
+  }, [load]);
 
   const stats = useMemo(() => {
     const total = rows.length;

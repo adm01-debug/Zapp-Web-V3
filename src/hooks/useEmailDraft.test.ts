@@ -120,7 +120,7 @@ describe('useEmailDraft', () => {
       await result.current.save();
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Erro ao salvar rascunho'), expect.any(Error));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Email draft save error'), expect.any(Error));
     expect(result.current.isSaving).toBe(false);
     consoleSpy.mockRestore();
   });

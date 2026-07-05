@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,8 @@ import {
 import { toast } from 'sonner';
 import { emailApi, type EmailRevalidationJob } from '@/services/email/emailApi';
 
+const log = getLogger('AdminEmailAuditPage');
+
 export default function AdminEmailAuditPage() {
   const [logs, setLogs] = useState<EmailRevalidationJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +28,9 @@ export default function AdminEmailAuditPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const loadAuditLogs = async () => {
+  const mountedRef = useMountedRef();
+
+  const loadAuditLogs = useCallback(async () => {
     setLoading(true);
     try {
       const from = (page - 1) * pageSize;
@@ -37,28 +43,29 @@ export default function AdminEmailAuditPage() {
       });
 
       if (error) throw error;
+      if (!mountedRef.current) return;
       setLogs(data || []);
       setTotal(count || 0);
     } catch (error) {
-      console.error('Erro ao carregar auditoria:', error);
+      log.error('Error loading audit logs', error);
       toast.error('Erro ao carregar histórico de auditoria');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  };
+  }, [page, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
-    loadAuditLogs();
-  }, [page, statusFilter, dateFrom, dateTo]);
+    void loadAuditLogs();
+  }, [loadAuditLogs]);
 
   const handleRetry = async (jobId: string) => {
     try {
       const { error } = await emailApi.retryJob(jobId);
       if (error) throw error;
       toast.success('Novo job de revalidação agendado');
-      loadAuditLogs();
+      void loadAuditLogs();
     } catch (error) {
-      console.error('Erro ao repetir job:', error);
+      log.error('Error retrying job', error);
       toast.error('Erro ao agendar nova tentativa');
     }
   };

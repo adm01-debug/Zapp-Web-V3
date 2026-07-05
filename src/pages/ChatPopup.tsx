@@ -59,18 +59,21 @@ export default function ChatPopup() {
 
   useEffect(() => {
     if (!contactId) return;
-    (async () => {
+    let cancelled = false;
+    void (async () => {
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
         .eq('id', contactId)
         .single();
+      if (cancelled) return;
       if (data) {
         setContact(data);
         document.title = `Chat — ${data.name}`;
       }
       setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, [contactId]);
 
   const conversation: Conversation | null = contact

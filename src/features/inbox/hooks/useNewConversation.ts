@@ -39,7 +39,7 @@ export function useNewConversation(
           setConnections(data);
           setSelectedConnection(data[0].id);
         }
-      });
+      }, () => {});
   }, [open]);
 
   useEffect(() => {

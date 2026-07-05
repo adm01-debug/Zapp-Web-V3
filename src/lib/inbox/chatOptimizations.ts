@@ -1,4 +1,7 @@
 import { Message } from '@/hooks/useMessages';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('chatOptimizations');
 
 /**
  * Chat performance optimization utilities.
@@ -46,7 +49,7 @@ export const setLastReceived = (remoteJid: string, info: LastReceivedInfo) => {
     data[remoteJid] = info;
     localStorage.setItem(LAST_RECEIVED_KEY, JSON.stringify(data));
   } catch (e) {
-    console.error('Error saving last received info', e);
+    log.error('Error saving last received info', e);
   }
 };
 

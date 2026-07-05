@@ -4,7 +4,10 @@
  * Shows contacts deleted in the last 30 days.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Button } from '@/components/ui/button';
+import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,6 +17,8 @@ import { dbFrom, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { sanitizeText } from '@/lib/sanitize';
 import { formatPhoneForDisplay } from '@/lib/phoneUtils';
+
+const log = getLogger('ContactRecycleBin');
 
 interface DeletedContact {
   id:              string;
@@ -42,6 +47,7 @@ function formatReason(reason: string | null): string {
 
 export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({ workspaceId: instanceName, onRestored }) => {
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
   const [contacts,  setContacts]  = useState<DeletedContact[]>([]);
   const [loading,   setLoading]   = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
@@ -58,10 +64,10 @@ export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({ workspaceI
         .limit(100);
 
       if (error) throw error;
-      setContacts((data ?? []) as DeletedContact[]);
+      if (mountedRef.current) setContacts((data ?? []) as DeletedContact[]);
     } catch (err) {
-      console.error('[ContactRecycleBin]', err);
-    } finally { setLoading(false); }
+      log.error('Failed to load recycle bin', err);
+    } finally { if (mountedRef.current) setLoading(false); }
   }, [instanceName]);
 
   useEffect(() => { load(); }, [load]);

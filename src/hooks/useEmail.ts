@@ -20,14 +20,17 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import { type EmailMessage } from './gmail/gmailTypes';
 import { GMAIL_MOCKS } from './gmail/gmailMocks';
-import { 
-  EmailAccount, 
-  EmailTokenInfo, 
-  EmailThread, 
+import { getLogger } from '@/lib/logger';
+import {
+  EmailAccount,
+  EmailTokenInfo,
+  EmailThread,
   EmailSendParams,
   EmailLabel,
   SLAStatus
 } from '@/types/gmail';
+
+const log = getLogger('useEmail');
 
 export type { 
   EmailAccount, 
@@ -42,7 +45,7 @@ export type EmailTokenStatus = 'valid' | 'expiring_soon' | 'expired' | 'no_token
 export type EmailWatchStatus = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
 export type TokenStatus = EmailTokenStatus;
 
-const supabase = _supabase as any;
+const supabase = _supabase;
 
 /**
  * IDs vindos do fallback GMAIL_MOCKS (ex.: 'mock-account-123') não existem no
@@ -94,6 +97,11 @@ export function useEmail() {
   const [nextPageToken, setNextPageToken]     = useState<string | null>(null);
   const [hasMore, setHasMore]                 = useState(false);
   const oauthInFlightRef                       = useRef(false);
+  const mountedRef                             = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -101,16 +109,18 @@ export function useEmail() {
   const loadAccounts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
-    const { data, error: dbErr, requestId } = await safeClient.from('email_accounts', (q) => 
+
+    const { data, error: dbErr, requestId } = await safeClient.from('email_accounts', (q) =>
       q.select('id, user_id, email, display_name, is_active, token_expiry, watch_expiry')
        .eq('is_active', true)
        .order('created_at', { ascending: true })
     );
 
+    if (!mountedRef.current) return;
+
     if (dbErr) {
       if (dbErr.message.includes('disponível') || dbErr.message.includes('not found')) {
-        console.info('[useEmail] Usando dados mock para contas (schema não disponível)');
+        log.warn('Email schema unavailable — using mock accounts');
         setAccounts(GMAIL_MOCKS.accounts);
         if (GMAIL_MOCKS.accounts.length > 0 && !activeAccountId) {
           setActiveAccountId(GMAIL_MOCKS.accounts[0].id);
@@ -134,6 +144,7 @@ export function useEmail() {
   // ── Verificar status dos tokens ────────────────────────────────────
   const checkTokenStatus = useCallback(async () => {
     const { data, error: rpcErr, requestId } = await safeClient.rpc('rpc_email_token_status');
+    if (!mountedRef.current) return;
     if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
       setTokenStatus(GMAIL_MOCKS.tokenStatus);
     } else if (!rpcErr && data) {
@@ -144,12 +155,11 @@ export function useEmail() {
       tokenInfos.forEach(s => {
         statusMap[s.account_id] = s.token_status;
       });
-      (setTokenStatus as any).asMap = statusMap;
     }
   }, []);
 
   // ── Carregar threads ──────────────────────────────────────────────
-  const loadThreads = useCallback(async (accountId?: string, label: EmailLabel = 'INBOX', append = false) => {
+  const loadThreads = useCallback(async (accountId?: string, label: EmailLabel = 'INBOX', pageOffset = 0) => {
     const id = accountId ?? activeAccountId;
     if (!id || isMockId(id)) return;
 
@@ -159,12 +169,14 @@ export function useEmail() {
       p_query:      null,
       p_label_id:   label,
       p_limit:      50,
-      p_offset:     append ? threads.length : 0,
+      p_offset:     pageOffset,
     });
+
+    if (!mountedRef.current) return;
 
     if (rpcErr) {
       if (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found')) {
-        console.info('[useEmail] Usando threads mock');
+        log.warn('Email schema unavailable — using mock threads');
         setThreads(GMAIL_MOCKS.threads);
         setHasMore(false);
       } else {
@@ -174,11 +186,11 @@ export function useEmail() {
     } else {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
       const mappedThreads = emailMappers.threads(Array.isArray(data) ? data : []);
-      setThreads(prev => append ? [...prev, ...mappedThreads] : mappedThreads);
+      setThreads(prev => pageOffset > 0 ? [...prev, ...mappedThreads] : mappedThreads);
       setHasMore(mappedThreads.length === 50);
     }
     setIsLoadingThreads(false);
-  }, [activeAccountId, threads.length]);
+  }, [activeAccountId]);
 
   // ── Carregar mensagens de uma thread ────────────────────────────────
   const loadMessages = useCallback(async (threadId: string) => {
@@ -193,12 +205,13 @@ export function useEmail() {
        .order('date', { ascending: true })
     );
 
+    if (!mountedRef.current) return;
+
     if (dbErr) {
       if (dbErr.message.includes('disponível') || dbErr.message.includes('not found')) {
         setMessages(GMAIL_MOCKS.messages.filter(m => m.thread_id === threadId));
       } else {
-        const rid = (dbErr as any).requestId || 'N/A';
-        console.error(`[useEmail][${rid}] Erro ao carregar mensagens:`, dbErr);
+        log.error('Email messages load error', dbErr);
       }
     } else {
       setMessages(Array.isArray(data) ? data : []);
@@ -219,9 +232,9 @@ export function useEmail() {
   // ── Carregar mais threads (Paginação) ───────────────────────────────
   const loadMore = useCallback(async () => {
     if (hasMore && !isLoadingThreads) {
-      await loadThreads(activeAccountId || undefined, activeLabel, true);
+      await loadThreads(activeAccountId || undefined, activeLabel, threads.length);
     }
-  }, [hasMore, isLoadingThreads, activeAccountId, activeLabel, loadThreads]);
+  }, [hasMore, isLoadingThreads, activeAccountId, activeLabel, loadThreads, threads.length]);
 
   // ── Sincronizar inbox via email-sync ───────────────────────────────
   const syncNow = useCallback(async (accountId?: string) => {
@@ -231,7 +244,7 @@ export function useEmail() {
     setIsSyncing(true);
     setError(null);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-sync', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
         body: { action: 'syncInbox', accountId: id, maxResults: 100 },
       });
 
@@ -256,7 +269,7 @@ export function useEmail() {
     if (!id || isMockId(id)) return;
 
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-oauth', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
         body: { action: 'refreshToken', accountId: id },
       });
 
@@ -278,7 +291,7 @@ export function useEmail() {
     if (!id || isMockId(id)) return;
 
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-webhook', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-webhook', {
         body: { action: 'renewWatch', accountId: id },
       });
 
@@ -299,7 +312,7 @@ export function useEmail() {
 
     setIsSending(true);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-send', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-send', {
         body: {
           action: 'send',
           accountId: activeAccountId,
@@ -393,7 +406,7 @@ export function useEmail() {
         t.id === threadId ? { ...t, assigned_to: agentId } : t
       ));
     } else {
-      console.warn(`[useEmail][${requestId}] Falha ao atribuir thread:`, rpcErr.message);
+      log.warn('Email thread assign error', rpcErr.message);
     }
   }, []);
 
@@ -423,7 +436,7 @@ export function useEmail() {
 
     setError(null);
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-oauth', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
         body: { action: 'getAuthUrl' },
       });
 
@@ -473,20 +486,20 @@ export function useEmail() {
         const { code } = event.data;
         if (!code) { oauthInFlightRef.current = false; return; }
 
-        const { data: { user } } = await (supabase as any).auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          setError('Sessão expirada. Faça login novamente.');
           oauthInFlightRef.current = false;
+          if (mountedRef.current) setError('Sessão expirada. Faça login novamente.');
           return;
         }
 
-        const { data: exchangeData, error: exchangeErr } = await (supabase as any).functions.invoke('gmail-oauth', {
+        const { data: exchangeData, error: exchangeErr } = await supabase.functions.invoke('gmail-oauth', {
           body: { action: 'exchangeCode', code, userId: user.id },
         });
 
         if (exchangeErr || !exchangeData?.success) {
-          setError('Falha na autenticação Google. Tente novamente.');
           oauthInFlightRef.current = false;
+          if (mountedRef.current) setError('Falha na autenticação Google. Tente novamente.');
           return;
         }
 
@@ -528,7 +541,7 @@ export function useEmail() {
     // A view public.email_threads não emite eventos WAL. Assinamos a tabela-base
     // email_app.email_threads (presente na publication supabase_realtime) e
     // adaptamos o payload ao shape da view via mapBaseThreadRow.
-    const channel = (supabase as any)
+    const channel = supabase
       .channel(`email-threads-${activeAccountId}`)
       .on('postgres_changes', {
         event:  '*',
@@ -550,15 +563,15 @@ export function useEmail() {
       })
       .subscribe();
 
-    return () => { (supabase as any).removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); };
   }, [activeAccountId]);
 
   // ── Token check automático (a cada 5 minutos) ──────────────────────────
   useEffect(() => {
-    checkTokenStatus();
+    void checkTokenStatus();
 
     tokenCheckInterval.current = setInterval(() => {
-      checkTokenStatus();
+      void checkTokenStatus();
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => {
@@ -568,15 +581,15 @@ export function useEmail() {
 
   // ── Carregar ao montar ──────────────────────────────────────────
   useEffect(() => {
-    loadAccounts();
+    void loadAccounts();
   }, [loadAccounts]);
 
   // ── Carregar threads quando muda conta ou label ──────────────────────────
   useEffect(() => {
     if (activeAccountId) {
-      loadThreads(activeAccountId, activeLabel);
+      void loadThreads(activeAccountId, activeLabel);
     }
-  }, [activeAccountId, activeLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeAccountId, activeLabel, loadThreads]);
 
   // ── Computed ───────────────────────────────────────────────────
   const unreadCount = threads.reduce((sum, t) => sum + (t.unread_count ?? 0), 0);

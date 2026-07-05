@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
@@ -15,6 +15,11 @@ export interface CustomField {
 export function useContactCustomFields(contactId: string | undefined) {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchFields = useCallback(async () => {
     if (!contactId) return;
@@ -25,17 +30,18 @@ export function useContactCustomFields(contactId: string | undefined) {
         .select('*')
         .eq('contact_id', contactId)
         .order('field_name');
+      if (!mountedRef.current) return;
       if (error) throw error;
       setFields((data || []) as CustomField[]);
     } catch (err) {
       log.error('Error fetching custom fields:', err);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   }, [contactId]);
 
   useEffect(() => {
-    fetchFields();
+    void fetchFields();
   }, [fetchFields]);
 
   const addField = useCallback(async (fieldName: string, fieldValue: string, fieldType = 'text') => {

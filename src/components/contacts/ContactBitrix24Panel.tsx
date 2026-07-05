@@ -10,11 +10,15 @@
  * - Recent interactions from interactions table
  * - Relationship stage and score
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Building2, ExternalLink, Users, TrendingUp, MessageSquare } from 'lucide-react';
+import { getLogger } from '@/lib/logger';
+
 import { type ExternalContact } from '@/lib/contactsDB';
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { Badge } from '@/components/ui/badge';
+
+const log = getLogger('ContactBitrix24Panel');
 
 interface ContactBitrix24PanelProps {
   contact: ExternalContact | null;
@@ -70,7 +74,7 @@ export function ContactBitrix24Panel({ contact }: ContactBitrix24PanelProps) {
       if (!cancelled) setIsLoading(false);
     };
 
-    loadData().catch(console.error);
+    loadData().catch(err => log.error('Failed to load Bitrix24 data', err));
     return () => { cancelled = true; };
   }, [contact?.id, contact?.company_id]);
 

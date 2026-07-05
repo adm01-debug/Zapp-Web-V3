@@ -56,10 +56,11 @@ function AppContent() {
 
   // Defer non-critical features to after first paint
   useEffect(() => {
+    let timerId: ReturnType<typeof setTimeout> | undefined;
     const id = requestAnimationFrame(() => {
-      setTimeout(() => setDeferredReady(true), 800);
+      timerId = setTimeout(() => setDeferredReady(true), 800);
     });
-    return () => cancelAnimationFrame(id);
+    return () => { cancelAnimationFrame(id); clearTimeout(timerId); };
   }, []);
 
   // Hide the initial boot loader once the App is mounted

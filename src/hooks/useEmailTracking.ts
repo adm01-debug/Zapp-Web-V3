@@ -292,9 +292,9 @@ export function useEmailTracking() {
 
   // ── Auto-carregar ao montar ────────────────────────────────────────────
   useEffect(() => {
-    loadTrackedEmails();
-    loadStats();
-    loadTopContacts();
+    void loadTrackedEmails();
+    void loadStats();
+    void loadTopContacts();
   }, [loadTrackedEmails, loadStats, loadTopContacts]);
 
   // ── Realtime para novas aberturas ──────────────────────────────────────

@@ -4,6 +4,9 @@
  * Catches React rendering errors and shows a friendly recovery UI.
  */
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { getLogger } from '@/lib/logger';
+const log = getLogger('ContactErrorBoundary');
+
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
@@ -36,7 +39,7 @@ export class ContactErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[ContactErrorBoundary] Uncaught error:', error, info.componentStack);
+    log.error('Uncaught error in contacts module', { error, componentStack: info.componentStack });
 
     // In production, you'd send this to your error tracking service
     // e.g., Sentry, LogRocket, etc.

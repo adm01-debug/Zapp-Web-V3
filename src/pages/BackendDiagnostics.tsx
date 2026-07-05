@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +37,7 @@ export default function BackendDiagnostics() {
   const [dbPing, setDbPing] = useState<PingResult>({ status: "idle" });
   const [hasSession, setHasSession] = useState<boolean | null>(null);
 
-  async function runChecks() {
+  const runChecks = useCallback(async () => {
     // REST ping
     setRestPing({ status: "checking" });
     try {
@@ -81,12 +81,11 @@ export default function BackendDiagnostics() {
     } catch (err) {
       setDbPing({ status: "error", error: err instanceof Error ? err.message : "falha" });
     }
-  }
+  }, [supabaseUrl, anonKey]);
 
   useEffect(() => {
-    runChecks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void runChecks();
+  }, [runChecks]);
 
   return (
     <div className="container max-w-3xl mx-auto p-6 space-y-6">

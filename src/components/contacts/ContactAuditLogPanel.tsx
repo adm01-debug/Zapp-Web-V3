@@ -6,12 +6,16 @@
  * Shows in the contact detail view (tab or accordion section).
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import { getLogger } from '@/lib/logger';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Shield, Clock, User, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const log = getLogger('ContactAuditLogPanel');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -94,7 +98,7 @@ export const ContactAuditLogPanel: React.FC<ContactAuditLogPanelProps> = ({
       if (error) throw error;
       setEntries(data ?? []);
     } catch (err) {
-      console.error('[ContactAuditLogPanel]', err);
+      log.error('Failed to load contact audit log', err);
       setEntries([]);
     } finally {
       setLoading(false);

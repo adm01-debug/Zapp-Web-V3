@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,6 +49,7 @@ const PRIVACY_OPTIONS = [
 
 export function InstanceSettingsDialog({ open, onOpenChange, instanceName, connectionName, connectionId }: InstanceSettingsDialogProps) {
   const { getSettings, setSettings, fetchProfile, updateProfileName, updateProfileStatus, updateProfilePicture, removeProfilePicture, updatePrivacySettings, findLabels, isLoading } = useEvolutionApi();
+  const mountedRef = useMountedRef();
 
   const [settingsData, setSettingsData] = useState<Record<string, boolean | string>>({ rejectCall: false, msgCall: '', groupsIgnore: false, alwaysOnline: false, readMessages: false, readStatus: false, syncFullHistory: false });
   const [profile, setProfile] = useState({ name: '', status: '', pictureUrl: '' });
@@ -83,7 +85,7 @@ export function InstanceSettingsDialog({ open, onOpenChange, instanceName, conne
         .eq('id', connectionId)
         .single();
       
-      if (!error && data) {
+      if (!error && data && mountedRef.current) {
         setReconnectConfig({
           enabled: data.auto_reconnect_enabled ?? true,
           interval: data.reconnect_interval_seconds ?? 30,
@@ -128,30 +130,30 @@ export function InstanceSettingsDialog({ open, onOpenChange, instanceName, conne
         .order('created_at', { ascending: false })
         .limit(20);
       
-      if (!error && data) setAuditLogs(data);
+      if (!error && data && mountedRef.current) setAuditLogs(data);
     } catch (err) {
       log.error('Error loading audit logs:', err);
     }
-    setLoadingTab('');
+    if (mountedRef.current) setLoadingTab('');
   };
 
   const loadSettings = async () => {
     setLoadingTab('settings');
-    try { const data = await getSettings(instanceName); if (data) setSettingsData({ rejectCall: data.rejectCall ?? false, msgCall: data.msgCall ?? '', groupsIgnore: data.groupsIgnore ?? false, alwaysOnline: data.alwaysOnline ?? false, readMessages: data.readMessages ?? false, readStatus: data.readStatus ?? false, syncFullHistory: data.syncFullHistory ?? false }); }
+    try { const data = await getSettings(instanceName); if (data && mountedRef.current) setSettingsData({ rejectCall: data.rejectCall ?? false, msgCall: data.msgCall ?? '', groupsIgnore: data.groupsIgnore ?? false, alwaysOnline: data.alwaysOnline ?? false, readMessages: data.readMessages ?? false, readStatus: data.readStatus ?? false, syncFullHistory: data.syncFullHistory ?? false }); }
     catch (err) { log.error('Error loading settings:', err); }
-    setLoadingTab('');
+    if (mountedRef.current) setLoadingTab('');
   };
 
   const loadProfile = async () => {
-    try { const data = await fetchProfile(instanceName) as any; if (data) setProfile({ name: data.name ?? '', status: data.status ?? '', pictureUrl: data.profilePictureUrl ?? '' }); }
+    try { const data = await fetchProfile(instanceName) as any; if (data && mountedRef.current) setProfile({ name: data.name ?? '', status: data.status ?? '', pictureUrl: data.profilePictureUrl ?? '' }); }
     catch (err) { log.error('Error loading profile:', err); }
   };
 
   const loadLabels = async () => {
     setLoadingTab('labels');
-    try { const data = await findLabels(instanceName); if (Array.isArray(data)) setLabels(data); }
+    try { const data = await findLabels(instanceName); if (Array.isArray(data) && mountedRef.current) setLabels(data); }
     catch (err) { log.error('Error loading labels:', err); }
-    setLoadingTab('');
+    if (mountedRef.current) setLoadingTab('');
   };
 
   return (

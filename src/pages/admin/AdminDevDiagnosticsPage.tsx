@@ -58,8 +58,8 @@ export default function AdminDevDiagnosticsPage() {
 
   useEffect(() => {
     if (isDev) {
-      loadLogs();
-      logAccess();
+      void loadLogs();
+      void logAccess();
     }
   }, [isDev]);
 

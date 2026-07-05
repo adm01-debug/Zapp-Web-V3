@@ -14,7 +14,8 @@
  * 4. syncInbox() busca mensagens via Graph API
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -47,6 +48,15 @@ export function useOutlookEmail() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextLink, setNextLink] = useState<string | null>(null);
+  const mountedRef = useMountedRef();
+  const oauthHandlerRef = useRef<((e: MessageEvent) => void) | null>(null);
+
+  useEffect(() => () => {
+    if (oauthHandlerRef.current) {
+      window.removeEventListener('message', oauthHandlerRef.current);
+      oauthHandlerRef.current = null;
+    }
+  }, []);
 
   // Carrega contas Outlook existentes
   const loadAccounts = useCallback(async () => {
@@ -56,16 +66,16 @@ export function useOutlookEmail() {
       .eq('is_active', true)
       .order('created_at', { ascending: true });
 
-    if (!dbErr && data) {
+    if (!dbErr && data && mountedRef.current) {
       setAccounts(data);
       if (data.length > 0 && !activeAccountId) {
         setActiveAccountId(data[0].id);
       }
     }
-  }, [activeAccountId]);
+  }, [activeAccountId, mountedRef]);
 
   useEffect(() => {
-    loadAccounts();
+    void loadAccounts();
   }, [loadAccounts]);
 
   // Iniciar fluxo OAuth com Microsoft
@@ -92,16 +102,19 @@ export function useOutlookEmail() {
       const handler = async (event: MessageEvent) => {
         if (event.data?.type !== 'outlook_oauth_callback') return;
         window.removeEventListener('message', handler);
+        oauthHandlerRef.current = null;
 
         const { code } = event.data;
         if (!code) return;
 
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user || !mountedRef.current) return;
 
         const { data: exchangeData, error: exchangeErr } = await supabase.functions.invoke('outlook-oauth', {
           body: { action: 'exchangeCode', code, userId: user.id },
         });
+
+        if (!mountedRef.current) return;
 
         if (exchangeErr || !exchangeData?.success) {
           setError('Falha ao autenticar com Microsoft. Tente novamente.');
@@ -111,6 +124,7 @@ export function useOutlookEmail() {
         await loadAccounts();
       };
 
+      oauthHandlerRef.current = handler;
       window.addEventListener('message', handler);
 
     } catch (err) {
@@ -133,14 +147,16 @@ export function useOutlookEmail() {
 
       if (fnErr || !data) throw new Error('Falha ao sincronizar inbox Outlook');
 
-      setMessages(prev => link ? [...prev, ...data.messages] : data.messages);
-      setNextLink(data.nextLink ?? null);
+      if (mountedRef.current) {
+        setMessages(prev => link ? [...prev, ...data.messages] : data.messages);
+        setNextLink(data.nextLink ?? null);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      if (mountedRef.current) setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setIsSyncing(false);
+      if (mountedRef.current) setIsSyncing(false);
     }
-  }, [activeAccountId]);
+  }, [activeAccountId, mountedRef]);
 
   // Enviar email
   const sendEmail = useCallback(async (params: {

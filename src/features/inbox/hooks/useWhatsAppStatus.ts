@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { log } from '@/lib/logger';
 import { whatsappStatusService } from '@/features/inbox/services/whatsappStatusService';
 import type { WhatsAppStatusMessage, WhatsAppPresenceInfo } from '@/features/inbox/data-access/whatsappStatusRepository';
@@ -22,14 +23,7 @@ export function useWhatsAppStatus(phone: string | undefined): WhatsAppStatusData
   const [presence, setPresence] = useState<WhatsAppPresenceInfo>({ isOnline: false, lastSeen: null, loading: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const mountedRef = useMountedRef();
 
   const fetchData = useCallback(async () => {
     if (!phone) return;
@@ -57,7 +51,7 @@ export function useWhatsAppStatus(phone: string | undefined): WhatsAppStatusData
   }, [phone]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   return {

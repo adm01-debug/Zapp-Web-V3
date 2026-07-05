@@ -7,6 +7,7 @@
  * for review and one-click merge.
  */
 import React, { useState, useCallback } from 'react';
+import { getLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -16,6 +17,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import ContactMergeDialog, { ContactForMerge } from './ContactMergeDialog';
+const log = getLogger('ContactDuplicatesPanel');
+
 import { dbFrom, dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 
@@ -68,7 +71,7 @@ export const ContactDuplicatesPanel: React.FC<ContactDuplicatesPanelProps> = ({ 
         duration: 4_000,
       });
     } catch (err) {
-      console.error('[ContactDuplicatesPanel]', err);
+      log.error('Failed to scan for duplicates', err);
       toast({ title: 'Erro ao escanear duplicatas', variant: 'destructive' });
     } finally {
       setScanning(false);

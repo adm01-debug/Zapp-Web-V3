@@ -13,6 +13,9 @@ import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { contactsDB } from '@/lib/contactsDB';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useContactAvatarFetch');
 
 interface AvatarFetchResult {
   avatarUrl: string | null;
@@ -64,7 +67,7 @@ export function useContactAvatarFetch(
         try {
           await contactsDB.updateAvatar(contactId, url);
         } catch (saveErr) {
-          console.warn('[AvatarFetch] Failed to save avatar to CRM DB:', saveErr);
+          log.warn('Failed to save avatar to CRM DB', saveErr);
           // Don't throw — avatar was still fetched successfully
         }
       }

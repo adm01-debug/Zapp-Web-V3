@@ -43,7 +43,7 @@ export function useCustomEmojis(open: boolean) {
   }, []);
 
   useEffect(() => {
-    if (open) fetchEmojis();
+    if (open) void fetchEmojis();
   }, [open, fetchEmojis]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

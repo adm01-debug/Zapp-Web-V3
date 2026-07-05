@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { type AppRole } from './useUserRole';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useRouteRoles');
 
 /**
  * Cache values:
@@ -30,7 +33,7 @@ function fetchRoles(path: string): Promise<void> {
         .maybeSingle();
       
       if (error) {
-        console.warn(`[useRouteRoles] Error fetching roles for ${path}:`, error.message);
+        log.warn('Error fetching route roles', { path, error: error.message });
         cache.set(path, null);
       } else if (!data) {
         cache.set(path, null);
@@ -38,7 +41,7 @@ function fetchRoles(path: string): Promise<void> {
         cache.set(path, (data.allowed_roles as AppRole[]) ?? []);
       }
     } catch (err) {
-      console.error(`[useRouteRoles] Critical error fetching roles for ${path}:`, err);
+      log.error('Critical error fetching route roles', { path, err });
       cache.set(path, null);
     } finally {
       inflight.delete(path);
@@ -73,7 +76,7 @@ export function useRouteRoles(path: string | undefined): AppRole[] | null {
       if (cancelled) return;
       const cached = cache.get(path) ?? null;
       setRoles(prev => (prev === cached ? prev : cached));
-    });
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };

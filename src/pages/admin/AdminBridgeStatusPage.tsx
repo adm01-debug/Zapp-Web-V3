@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useMountedRef } from "@/hooks/useMountedRef";
+import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,10 +45,13 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+const log = getLogger('AdminBridgeStatusPage');
+
 type BridgeStatus = "online" | "degraded" | "offline" | "loading";
 
 export default function BridgeStatusPage() {
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<BridgeStatus>("loading");
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
@@ -95,7 +100,7 @@ export default function BridgeStatusPage() {
     try {
       // 1. Check Lovable DB (Internal)
       const { error: internalError } = await supabase.from('profiles').select('count').limit(1);
-      setLovableDb(!internalError);
+      if (mountedRef.current) setLovableDb(!internalError);
 
       // 2. Check External DB (FATOR X / Evolution)
       let externalOk = false;
@@ -107,12 +112,12 @@ export default function BridgeStatusPage() {
           externalOk = !extError;
         }
       }
-      setExternalDb(externalOk);
+      if (mountedRef.current) setExternalDb(externalOk);
 
       // 3. Check WhatsApp Transport
       const transport = await whatsapp.resolveTransport();
       const currentTransportLabel = `${transport.requestedMode}${transport.degraded ? " (DEGRADED)" : ""}`;
-      setWhatsappTransport(currentTransportLabel);
+      if (mountedRef.current) setWhatsappTransport(currentTransportLabel);
 
       // 4. Check Recent Message Traffic
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -123,22 +128,23 @@ export default function BridgeStatusPage() {
         .order('received_at', { ascending: false })
         .limit(1);
       
-      setRecentTraffic({
+      if (mountedRef.current) setRecentTraffic({
         count: msgCount || 0,
         last_at: lastMsg?.[0]?.received_at || null
       });
 
       // 5. Check Active Alerts
       try {
-        const { data: alerts } = await supabase
-          .from('v_alerts_active' as any)
+        const { data: alerts } = await (supabase as any)
+          .from('v_alerts_active')
           .select('*')
           .limit(5);
-        setActiveAlerts(alerts || []);
+        if (mountedRef.current) setActiveAlerts(alerts || []);
       } catch (e) {
-        setActiveAlerts([]);
+        if (mountedRef.current) setActiveAlerts([]);
       }
 
+      if (!mountedRef.current) return;
       // Determine Overall Status
       if (!internalError && (externalOk && !transport.degraded)) {
         setStatus("online");
@@ -150,7 +156,8 @@ export default function BridgeStatusPage() {
 
       setLastCheck(new Date());
     } catch (error: any) {
-      console.error("Health check failed:", error);
+      if (!mountedRef.current) return;
+      log.error('Health check failed', error);
       setStatus("offline");
       toast({
         title: "Erro na verificação",
@@ -161,9 +168,9 @@ export default function BridgeStatusPage() {
       const elapsed = Date.now() - startTime;
       const minWait = 600;
       if (elapsed < minWait) await new Promise(resolve => setTimeout(resolve, minWait - elapsed));
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [toast]);
+  }, [toast, mountedRef]);
 
   const fetchIncidents = useCallback(async () => {
     const { data } = await (supabase as any)
@@ -171,13 +178,13 @@ export default function BridgeStatusPage() {
       .select('*')
       .order('started_at', { ascending: false })
       .limit(10);
-    setIncidents(data || []);
-  }, []);
+    if (mountedRef.current) setIncidents(data || []);
+  }, [mountedRef]);
 
   useEffect(() => {
-    checkHealth();
-    fetchIncidents();
-    
+    void checkHealth();
+    void fetchIncidents();
+
     // Configura Subscriptions Real-time
     const trafficSub = supabase
       .channel('traffic-changes')
@@ -189,8 +196,8 @@ export default function BridgeStatusPage() {
     const alertsSub = supabase
       .channel('health-incidents')
       .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'system_health_incidents' }, () => {
-        fetchIncidents();
-        checkHealth();
+        void fetchIncidents();
+        void checkHealth();
       })
       .subscribe();
 
@@ -198,7 +205,7 @@ export default function BridgeStatusPage() {
       timerRef.current = setInterval(() => {
         setNextRefreshIn(prev => {
           if (prev <= 1) {
-            checkHealth();
+            void checkHealth();
             return refreshInterval;
           }
           return prev - 1;

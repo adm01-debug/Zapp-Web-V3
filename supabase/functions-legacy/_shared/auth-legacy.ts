@@ -9,7 +9,7 @@ export function createSupabaseClients(authHeader: string) {
     supabaseAdmin: createClient(url!, svc!),
   };
 }
-export async function authenticateRequest(req: Request, options: Record<string, unknown> = {}) {
+export async function authenticateRequest(req: Request, _options: Record<string, unknown> = {}) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return { user: null, supabase: null, supabaseAdmin: null, error: errorResponse(req, 'Missing Authorization header', 401) };
   const { supabase, supabaseAdmin } = createSupabaseClients(authHeader);

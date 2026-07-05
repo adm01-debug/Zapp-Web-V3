@@ -48,7 +48,7 @@ export function useConversationAnalyses(contactId: string | null) {
   }, [contactId]);
 
   useEffect(() => {
-    fetchAnalyses();
+    void fetchAnalyses();
   }, [fetchAnalyses]);
 
   const saveAnalysis = async (analysis: Omit<ConversationAnalysis, 'id' | 'created_at' | 'analyzed_by'>) => {

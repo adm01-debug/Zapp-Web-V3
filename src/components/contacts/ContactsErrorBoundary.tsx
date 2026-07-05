@@ -9,9 +9,12 @@
  *   </ContactsErrorBoundary>
  */
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
+import { getLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw, Bug } from 'lucide-react';
+
+const log = getLogger('ContactsErrorBoundary');
 
 interface Props {
   children:  ReactNode;
@@ -49,7 +52,7 @@ export class ContactsErrorBoundary extends Component<Props, State> {
     this.setState({ errorInfo });
     // Log to console in development
     if (import.meta.env.DEV) {
-      console.error('[ContactsErrorBoundary]', error, errorInfo);
+      log.error('Uncaught error in contacts module', { error, componentStack: errorInfo.componentStack });
     }
   }
 

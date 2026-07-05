@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateWhatsAppModeCache } from "@/lib/whatsappAdapter";
+import { getLogger } from "@/lib/logger";
+
+const log = getLogger('IntegrationMigration');
 
 /**
  * Roda `rpc_migrate_whatsapp_integration` uma vez por sessão.
@@ -25,16 +28,16 @@ export function IntegrationMigrationMount() {
         // deno-lint-ignore no-explicit-any
         const { data, error: rpcError } = await supabase.rpc("rpc_migrate_whatsapp_integration" as any);
         if (rpcError) {
-          console.warn("[integration-migration] failed:", rpcError.message);
+          log.warn('WhatsApp integration migration failed', rpcError.message);
           return;
         }
         sessionStorage.setItem(SESSION_KEY, "1");
         invalidateWhatsAppModeCache();
         if (import.meta.env.DEV) {
-          console.info("[integration-migration] result:", data);
+          log.debug('WhatsApp integration migration result', data);
         }
       } catch (e) {
-        console.warn("[integration-migration] error:", e);
+        log.warn('WhatsApp integration migration error', e);
       }
     })();
   }, []);

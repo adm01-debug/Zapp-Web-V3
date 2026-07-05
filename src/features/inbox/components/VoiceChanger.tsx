@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -23,7 +23,7 @@ interface VoiceChangerProps {
   initialTaskId?: string | null;
 }
 
-export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, messageId, conversationId, initialTaskId }: VoiceChangerProps) {
+export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, messageId, conversationId, initialTaskId }: VoiceChangerProps) {
   const [open, setOpen] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<ElevenLabsVoice | null>(null);
   const [isConverting, setIsConverting] = useState(false);
@@ -40,6 +40,13 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
     };
   }, [convertedAudioUrl]);
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const stopPlayback = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -50,12 +57,16 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
 
   const cleanup = useCallback(() => {
     stopPlayback();
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
     if (convertedAudioUrl) {
       // Don't revoke here if we want to keep it while the popover is open
-      // URL.revokeObjectURL(convertedAudioUrl); 
+      // URL.revokeObjectURL(convertedAudioUrl);
       setConvertedAudioUrl(null);
     }
-  }, [stopPlayback]);
+  }, [stopPlayback, convertedAudioUrl]);
 
   const handleConvert = async (voice: ElevenLabsVoice, retryCount = 0) => {
     // Check if it's a "cloned" voice (placeholder logic - usually based on ID prefix or metadata)
@@ -109,7 +120,7 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       // 2. Start STS via Edge Function
       const progressSteps = [15, 40, 65, 85];
       let currentStep = 0;
-      const progressInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         if (currentStep < progressSteps.length) {
           setConversionProgress(progressSteps[currentStep]);
           currentStep++;
@@ -134,7 +145,7 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
         }
       );
 
-      clearInterval(progressInterval);
+      if (!mountedRef.current) return;
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Erro na conversão' }));
@@ -143,6 +154,7 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
 
       setConversionProgress(100);
       const blob = await response.blob();
+      if (!mountedRef.current) return;
       const url = URL.createObjectURL(blob);
       setConvertedAudioUrl(url);
 
@@ -192,20 +204,25 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       });
       setSelectedVoice(null);
     } finally {
-      setIsConverting(false);
-      setConversionProgress(0);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      if (mountedRef.current) {
+        setIsConverting(false);
+        setConversionProgress(0);
+      }
     }
   };
 
-  const proceedWithClonedVoice = () => {
+  const proceedWithClonedVoice = useCallback(() => {
     setShowCloneWarning(false);
     if (selectedVoice) handleConvert(selectedVoice);
-  };
+  }, [selectedVoice, handleConvert]);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     if (!convertedAudioUrl) return;
 
-    // Fetch the converted audio as blob and pass it up
     fetch(convertedAudioUrl)
       .then(r => r.blob())
       .then(blob => {
@@ -214,9 +231,9 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
         cleanup();
         toast.success('Áudio com voz alterada pronto para envio!');
       });
-  };
+  }, [convertedAudioUrl, onVoiceChanged, cleanup]);
 
-  const togglePlayback = () => {
+  const togglePlayback = useCallback(() => {
     if (!audioRef.current || !convertedAudioUrl) return;
     if (isPlaying) {
       audioRef.current.pause();
@@ -225,7 +242,7 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       audioRef.current.play();
       setIsPlaying(true);
     }
-  };
+  }, [convertedAudioUrl, isPlaying]);
 
   return (
     <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) cleanup(); }}>
@@ -373,4 +390,4 @@ export function VoiceChanger({ audioBlob, audioUrl, onVoiceChanged, disabled, me
       </PopoverContent>
     </Popover>
   );
-}
+});
