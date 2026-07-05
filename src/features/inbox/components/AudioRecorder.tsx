@@ -161,7 +161,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
       const startTime = Date.now();
       
       // We pass the transcription along with the audio if edited
-      await onSend(audioBlob);
+      await onSend?.(audioBlob);
       
       const durationMs = Date.now() - startTime;
       log.info(`[INBOX_METRIC] action=audio_upload_success size=${audioBlob.size} duration=${durationMs}ms`);
