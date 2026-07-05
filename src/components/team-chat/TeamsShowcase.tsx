@@ -56,7 +56,7 @@ export function TeamsShowcase() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const isAdmin = profile?.role === 'admin';
-  const userDeptId = (profile as any)?.department_id;
+  const userDeptId = profile?.department_id;
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
