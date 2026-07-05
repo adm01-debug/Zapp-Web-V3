@@ -373,7 +373,20 @@ async function executeProxyCall<T>(
     };
   };
 
+  // 502 with a config-auth hint from the proxy is NOT transient — retrying
+  // won't fix a mismatched service_role key. Detect and short-circuit.
+  const isPersistentConfigAuthError = (err: unknown): boolean => {
+    const normalized = normalizeInvokeError(err);
+    const message = normalized.message ?? '';
+    return (
+      normalized.status === 502 &&
+      /service_role|self-hosted rejeitou|assinatura inv[aá]lida|JWT_SECRET/i.test(message)
+    );
+  };
+
   const isTransientRuntimeError = (err: unknown): boolean => {
+    // Persistent config-auth 502s are never transient — bail out early.
+    if (isPersistentConfigAuthError(err)) return false;
     const normalized = normalizeInvokeError(err);
     const message = normalized.message ?? '';
     const code = normalized.code ?? '';
