@@ -393,14 +393,15 @@ describe('isSafeHttpsUrl — SSRF prevention', () => {
       // In practice, fc00::/8 (L-bit=0) is IANA-reserved and unused, so
       // risk is theoretical. Documented here for awareness.
       const result = isSafeHttpsUrl('https://[fc01::1]/');
-      // If this ever becomes false (wider check added), the gap is fixed.
-      // For now we document what the code actually does:
-      expect(typeof result).toBe('boolean');
+      // Currently passes (returns true) — gap is documented, not yet fixed.
+      // If a wider ULA check is ever added, update this to expect(result).toBe(false).
+      expect(result).toBe(true);
     });
 
     it('KNOWN GAP: [fc80::1] is in ULA range but not blocked', () => {
       const result = isSafeHttpsUrl('https://[fc80::1]/');
-      expect(typeof result).toBe('boolean');
+      // Currently passes (returns true) — same gap as fc01::1 above.
+      expect(result).toBe(true);
     });
   });
 });
@@ -534,12 +535,7 @@ describe('sanitizeStoragePath — path traversal prevention', () => {
       // '....' split by '/' → ['....', '....', 'etc']
       // filter removes '' '.' '..' but NOT '....'
       // So '....' directory names pass through — they are not traversal segments.
-      expect(sanitizeStoragePath('....//....//etc')).toBe(
-        '....//....//etc'
-          .split('/')
-          .filter((s) => s !== '' && s !== '.' && s !== '..')
-          .join('/')
-      );
+      expect(sanitizeStoragePath('....//....//etc')).toBe('..../..../etc');
     });
 
     it('a....//b is not traversal — "a...." is a valid dir name, not dotdot', () => {
