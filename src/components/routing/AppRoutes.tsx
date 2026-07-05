@@ -116,6 +116,7 @@ export function AppRoutes() {
         <Route path="/admin/stress-test" element={<ProtectedRoute requiredRoles={['admin']}><AdminStressTestPage /></ProtectedRoute>} />
         <Route path="/admin/inbox-sync-status" element={<ProtectedRoute requiredRoles={['admin', 'supervisor']}><AdminInboxSyncStatusPage /></ProtectedRoute>} />
         <Route path="/admin/external-db-explorer" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><AdminExternalDbExplorerPage /></ProtectedRoute>} />
+        <Route path="/admin/self-hosted-health" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><SelfHostedHealthPage /></ProtectedRoute>} />
         <Route path="/admin/evo-api-health" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><AdminEvoApiHealthPage /></ProtectedRoute>} />
         <Route path="/admin/bridge-status" element={<ProtectedRoute requiredRoles={['admin', 'dev', 'supervisor']}><AdminBridgeStatusPage /></ProtectedRoute>} />
         <Route path="/admin/connections" element={<ProtectedRoute requiredRoles={['admin']}><AdminConnectionsPage /></ProtectedRoute>} />
