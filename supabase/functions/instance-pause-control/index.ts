@@ -29,6 +29,7 @@ function dbError(context: string, error: { message: string; code?: string }): Re
   console.error(`[instance-pause-control] ${context}`, error.message, 'code:', error.code);
   // P0001 = PL/pgSQL RAISE EXCEPTION (business rules); 22xxx = data exception; 23xxx = constraint
   if (error.code === 'PGRST116') return json({ error: 'Not found' }, 404);
+  if (error.code === '42501') return json({ error: 'Forbidden' }, 403);
   if (error.code === 'P0001' || error.code?.startsWith('22') || error.code?.startsWith('23')) {
     return json({ error: 'Invalid request' }, 400);
   }

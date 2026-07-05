@@ -117,7 +117,19 @@ Deno.serve(async (req) => {
           { headers: { "x-apikey": VIRUSTOTAL_API_KEY }, signal: AbortSignal.timeout(10_000) },
         );
 
+        if (!pollResponse.ok) {
+          log.warn("Poll returned non-2xx", { attempt: attempts + 1, status: pollResponse.status });
+          attempts++;
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          continue;
+        }
         analysisResult = await pollResponse.json();
+        if (!analysisResult?.data?.attributes?.status) {
+          log.warn("Poll response missing expected shape", { attempt: attempts + 1 });
+          attempts++;
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          continue;
+        }
         const status = analysisResult.data.attributes.status;
 
         if (status === "completed") break;

@@ -65,8 +65,10 @@ async function downloadAudio(
     }
   }
 
-  // Fallback: direct HTTP fetch — allowlist-based SSRF protection (WhatsApp CDN only)
-  if (!isSafeMediaCdnUrl(audioUrl)) return { error: "Audio URL is not allowed" };
+  // Fallback: direct HTTP fetch
+  // Own Supabase storage URLs are always allowed (service key was absent above).
+  // External URLs must pass the allowlist check (WhatsApp CDN only).
+  if (!isOwnStorage && !isSafeMediaCdnUrl(audioUrl)) return { error: "Audio URL is not allowed" };
 
   const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
   if (!response.ok) {

@@ -1,14 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
-import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const denied = requireServiceRoleOrCron(req);
-  if (denied) return denied;
+  // Accept service-role/cron (automated) OR user JWT (UI-triggered)
+  if (requireServiceRoleOrCron(req)) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+  }
 
   const log = new Logger("batch-fetch-avatars");
 

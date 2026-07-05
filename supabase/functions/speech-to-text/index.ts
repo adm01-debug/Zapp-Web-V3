@@ -87,6 +87,10 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ text }, 200, req);
   } catch (error) {
+    if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
+      log.warn("ElevenLabs STT request timed out, returning fallback");
+      return jsonResponse({ text: "", fallback: true, error: "TRANSCRIPTION_TIMEOUT" }, 200, req);
+    }
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
     return errorResponse('Internal server error', 500, req);
   }

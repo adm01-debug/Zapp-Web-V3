@@ -3,7 +3,7 @@
 // e dispara switchover automático em rotas cujo current_provider_id ficou offline.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,8 +38,11 @@ async function ping(baseUrl: string, authToken: string | null, providerType: str
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const authErr = requireServiceRoleOrCron(req);
-  if (authErr) return authErr;
+  // Accept service-role/cron (automated) OR user JWT (admin UI-triggered)
+  if (requireServiceRoleOrCron(req)) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+  }
 
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

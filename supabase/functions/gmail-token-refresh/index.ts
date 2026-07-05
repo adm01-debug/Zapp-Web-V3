@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+import { requireServiceRoleOrCron, requireUser } from '../_shared/auth.ts';
 
 /**
  * gmail-token-refresh — Renovação automática de tokens Gmail
@@ -28,8 +28,36 @@ const GMAIL_WATCH_URL  = 'https://gmail.googleapis.com/gmail/v1/users/me/watch';
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const authDenied = requireServiceRoleOrCron(req);
-  if (authDenied) return authDenied;
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  // Parse body early so we can route auth by action
+  let body: Record<string, unknown> = {};
+  try { body = await req.json(); } catch { /* body not required */ }
+  const { action = 'refreshAll' } = body as { action?: string };
+
+  // refreshSingle: accept user JWT (RLS-scoped via callerClient) OR service-role/cron
+  // all other actions: service-role/cron only
+  let callerClient: ReturnType<typeof createClient> | null = null;
+  if (action === 'refreshSingle') {
+    if (requireServiceRoleOrCron(req)) {
+      // Not service-role/cron — fall back to user JWT
+      const authed = await requireUser(req);
+      if (authed instanceof Response) return authed;
+      // Build caller-scoped client so RLS enforces account ownership
+      callerClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } }
+      );
+    }
+  } else {
+    const authDenied = requireServiceRoleOrCron(req);
+    if (authDenied) return authDenied;
+  }
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -40,15 +68,7 @@ serve(async (req) => {
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
   const pubSubTopic  = Deno.env.get('GMAIL_PUBSUB_TOPIC') ?? 'projects/zapp-web/topics/gmail-push';
 
-  const json = (data: unknown, status = 200) =>
-    new Response(JSON.stringify(data), {
-      status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
   try {
-    const body = await req.json().catch(() => ({}));
-    const { action = 'refreshAll' } = body;
 
     // ── refreshAll — renova todos os tokens prestes a expirar ────────────
     if (action === 'refreshAll') {
@@ -125,7 +145,10 @@ serve(async (req) => {
       if (!accountId) return json({ error: 'accountId obrigatório' }, 400);
       if (!clientId || !clientSecret) return json({ error: 'Credenciais não configuradas' }, 500);
 
-      const { data: account } = await supabase
+      // Use callerClient (RLS-enforced) for user JWT callers so they can only
+      // refresh their own account; service-role callers use supabase directly.
+      const accountClient = callerClient ?? supabase;
+      const { data: account } = await accountClient
         .from('gmail_accounts')
         .select('id, email, refresh_token')
         .eq('id', accountId)

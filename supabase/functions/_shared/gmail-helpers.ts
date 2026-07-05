@@ -286,10 +286,16 @@ export async function fetchGmailMessage(
   token: string,
   messageId: string
 ): Promise<Record<string, unknown>> {
-  const res = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(10_000),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (err) {
+    console.warn('[gmail-helpers] fetchGmailMessage network error', err instanceof Error ? err.message : String(err));
+    return { error: { code: 0, message: 'network_error' } };
+  }
   if (!res.ok) return { error: { code: res.status, message: res.statusText } };
   return await res.json().catch(() => ({ error: { code: res.status, message: 'invalid JSON' } }));
 }
@@ -298,10 +304,16 @@ export async function fetchGmailHistory(
   token: string,
   startHistoryId: string
 ): Promise<{ addedMessageIds: string[]; newHistoryId?: string }> {
-  const res = await fetch(
-    `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
-    { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
-  );
+  let res: Response;
+  try {
+    res = await fetch(
+      `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
+      { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
+    );
+  } catch (err) {
+    console.warn('[gmail-helpers] fetchGmailHistory network error', err instanceof Error ? err.message : String(err));
+    return { addedMessageIds: [] };
+  }
   if (!res.ok) return { addedMessageIds: [] };
   const data = await res.json().catch(() => ({}));
   if (data.error) return { addedMessageIds: [] };

@@ -22,7 +22,7 @@ export interface AuthedUser {
 }
 
 /** Constant-time string comparison to prevent timing-based secret enumeration. */
-function timingSafeStringEqual(a: string, b: string): boolean {
+export function timingSafeStringEqual(a: string, b: string): boolean {
   const enc = new TextEncoder();
   const ab = enc.encode(a);
   const bb = enc.encode(b);
