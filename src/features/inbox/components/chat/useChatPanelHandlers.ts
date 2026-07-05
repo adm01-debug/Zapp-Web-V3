@@ -5,6 +5,7 @@ import { undoToast } from '@/lib/undoToast';
 import { useAuth } from '@/features/auth';
 import { Message, InteractiveMessage, InteractiveButton, LocationMessage } from '@/types/chat';
 import { SlashCommand } from '@/features/inbox/components/SlashCommands';
+import { DialogKey } from './ChatPanelHandlerTypes';
 import { ExternalProduct } from '@/hooks/useExternalCatalog';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -20,8 +21,8 @@ interface UseChatPanelHandlersOptions {
   applySignature: (text: string) => string;
   handleTypingStart: () => void;
   handleTypingStop: () => void;
-  openDialog: (key: string) => void;
-  closeDialog: (key: string) => void;
+  openDialog: (key: DialogKey) => void;
+  closeDialog: (key: DialogKey) => void;
   handleSetActiveTool: (tool: any) => void;
 }
 
