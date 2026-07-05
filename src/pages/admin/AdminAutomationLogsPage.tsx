@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -46,7 +46,7 @@ interface ExecutionRow {
   rule_id: string | null;
   remote_jid: string;
   instance_name: string | null;
-  status: "pending" | "executed" | "dismissed" | "error" | string;
+  status: "pending" | "accepted" | "executed" | "dismissed" | "failed" | "error" | string;
   trigger_payload: Record<string, unknown> | null;
   suggestion_text: string | null;
   applied_tags: string[] | null;
@@ -64,7 +64,7 @@ interface ExecutionRow {
 
 interface RuleLite { id: string; name: string }
 
-type BadgeVariant = "outline" | "default" | "secondary" | "destructive";
+type BadgeVariant = BadgeProps['variant'];
 const STATUS_META: Record<string, { label: string; icon: LucideIcon; variant: BadgeVariant }> = {
   pending: { label: "Pendente", icon: Clock, variant: "outline" },
   accepted: { label: "Aceita", icon: CheckCircle2, variant: "default" },

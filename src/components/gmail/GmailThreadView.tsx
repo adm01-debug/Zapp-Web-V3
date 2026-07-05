@@ -6,8 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { supabase as _supabase } from '@/integrations/supabase/client';
-const supabase = _supabase as any;
+import { supabase } from '@/integrations/supabase/client';
+
+interface DynQuery extends PromiseLike<{ data: unknown; error: unknown }> {
+  select(cols: string): DynQuery;
+  eq(col: string, val: unknown): DynQuery;
+  order(col: string, opts: { ascending: boolean }): DynQuery;
+}
+const dynFrom = (table: string) =>
+  (supabase as unknown as { from: (t: string) => DynQuery }).from(table);
 import type { EmailThread } from '@/hooks/useEmail';
 
 interface EmailMessage {
@@ -121,13 +128,12 @@ export function EmailThreadView({
   const loadMessages = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('email_messages')
+      const { data } = await dynFrom('email_messages')
         .select('*')
         .eq('thread_id', thread.id)
         .order('date', { ascending: true });
 
-      const msgs = (data ?? []) as EmailMessage[];
+      const msgs = (data as unknown as EmailMessage[]) ?? [];
       setMessages(msgs);
       // Expandir automaticamente a última mensagem
       if (msgs.length > 0) {
