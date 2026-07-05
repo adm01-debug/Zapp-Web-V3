@@ -255,11 +255,15 @@ export async function queryExternalProxy<T = unknown>(params: ProxyParams): Prom
   const body = normalizeProxyBody(rawBody as Record<string, unknown>);
   const meta = deriveTelemetryMeta(body);
 
+  // ── Session auth lock ──
+  // If a previous call returned 401/403, short-circuit for AUTH_LOCK_MS so we
+  // don't flood the edge with doomed requests until the user re-authenticates.
+  const authRemaining = isAuthLocked();
+  if (authRemaining > 0) {
+    throw new Error(`Proxy auth locked (retry in ${authRemaining}ms) — sessão inválida, faça login novamente`);
+  }
+
   // ── Circuit breaker check ──
-  // If too many recent ghost-POST failures hit this target, fail fast for a
-  // few seconds so we don't pile more cancelled requests onto an already
-  // overloaded edge runtime. Surface the breaker state to telemetry so the
-  // admin Health panel can see it.
   const breakerState = isBreakerOpen(meta.target);
   if (breakerState.open) {
     proxyLog.warn('proxy circuit short-circuit', {
