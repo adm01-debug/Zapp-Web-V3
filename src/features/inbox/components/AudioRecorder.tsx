@@ -214,7 +214,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
     } else {
       cancelRecording(false);
     }
-    onCancel();
+    onCancel?.();
   };
 
   const handleUndoCancel = () => {
