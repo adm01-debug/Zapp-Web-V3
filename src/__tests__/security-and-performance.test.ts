@@ -82,20 +82,21 @@ describe('Security - Audit Logging', () => {
     mockRpc.mockResolvedValue({ error: null });
   });
 
-  it('should log audit entries via RPC', async () => {
+  it('should log audit entries via RPC (UUID entity_id preservado)', async () => {
     const { logAudit } = await import('@/lib/audit');
+    const uuid = '11111111-2222-3333-4444-555555555555';
 
     await logAudit({
       action: 'login',
       entityType: 'auth',
-      entityId: 'user-1',
+      entityId: uuid,
       details: { method: 'password' },
     });
 
     expect(mockRpc).toHaveBeenCalledWith('log_audit_event', expect.objectContaining({
       p_action: 'login',
       p_entity_type: 'auth',
-      p_entity_id: 'user-1',
+      p_entity_id: uuid,
     }));
   });
 

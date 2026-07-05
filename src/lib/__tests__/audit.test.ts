@@ -18,18 +18,20 @@ describe('audit logging', () => {
     mockRpc.mockResolvedValue({ error: null });
   });
 
-  it('calls log_audit_event RPC', async () => {
+  const UUID_A = '11111111-2222-3333-4444-555555555555';
+
+  it('calls log_audit_event RPC preserving UUID entity_id', async () => {
     await logAudit({
       action: 'login',
       entityType: 'auth',
-      entityId: 'u1',
+      entityId: UUID_A,
       details: { method: 'password' },
     });
 
     expect(mockRpc).toHaveBeenCalledWith('log_audit_event', expect.objectContaining({
       p_action: 'login',
       p_entity_type: 'auth',
-      p_entity_id: 'u1',
+      p_entity_id: UUID_A,
     }));
   });
 
@@ -39,7 +41,7 @@ describe('audit logging', () => {
     await expect(logAudit({ action: 'login' })).resolves.not.toThrow();
   });
 
-  it('includes details and user_agent', async () => {
+  it('normaliza entity_id não-UUID movendo para details.entity_id_text', async () => {
     await logAudit({
       action: 'contact_created',
       entityType: 'contact',
@@ -50,8 +52,8 @@ describe('audit logging', () => {
     expect(mockRpc).toHaveBeenCalledWith('log_audit_event', expect.objectContaining({
       p_action: 'contact_created',
       p_entity_type: 'contact',
-      p_entity_id: 'c1',
-      p_details: { contactName: 'John' },
+      p_entity_id: null,
+      p_details: { contactName: 'John', entity_id_text: 'c1' },
       p_user_agent: expect.any(String),
     }));
   });
