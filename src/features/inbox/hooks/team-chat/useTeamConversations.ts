@@ -107,12 +107,11 @@ export function useTeamConversations() {
     if (!profile) return;
     const channel = supabase
       .channel('team-chat-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_messages' }, () => {
+      // Wave 1: team_messages is a view in public — repoint to zapp base table
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
         queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
-      // public.team_conversations e uma VIEW (security_invoker) sobre zapp.team_conversations;
-      // views nao emitem eventos realtime. Assinamos as tabelas base no schema zapp
-      // (adicionadas a publication supabase_realtime em 2026-07-02).
+      // Wave 1: team_conversations and team_conversation_members are views in public — zapp is base schema
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversations' }, () => {
         queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
