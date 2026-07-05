@@ -36,29 +36,47 @@ function pickEnv(name: string): string | undefined {
   return value;
 }
 
-function pickUrl(...names: string[]): string | undefined {
+function pickEnvWithSource(names: string[]): { value?: string; source?: string } {
+  for (const name of names) {
+    const v = pickEnv(name);
+    if (v) return { value: v, source: name };
+  }
+  return {};
+}
+
+function pickUrlWithSource(names: string[]): { value?: string; source?: string } {
   for (const name of names) {
     const raw = pickEnv(name);
     if (!raw) continue;
     const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
     try {
-      return new URL(withProtocol).origin;
+      return { value: new URL(withProtocol).origin, source: name };
     } catch {
-      // Try next alias instead of failing boot on a stale/invalid secret.
+      // try next
     }
   }
-  return undefined;
+  return {};
 }
 
 function isSafeIdent(value: string): boolean {
   return SAFE_IDENT_RE.test(value);
 }
 
-const EXTERNAL_URL = pickUrl("SELFHOSTED_SUPABASE_URL", "EXTERNAL_SUPABASE_URL");
-const EXTERNAL_KEY = pickEnv("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY")
-  ?? pickEnv("SELFHOSTED_SUPABASE_ANON_KEY")
-  ?? pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY")
-  ?? pickEnv("EXTERNAL_SUPABASE_ANON_KEY");
+const URL_PICK = pickUrlWithSource(["SELFHOSTED_SUPABASE_URL", "EXTERNAL_SUPABASE_URL"]);
+const KEY_PICK = pickEnvWithSource([
+  "SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY",
+  "SELFHOSTED_SUPABASE_ANON_KEY",
+  "EXTERNAL_SUPABASE_SERVICE_ROLE_KEY",
+  "EXTERNAL_SUPABASE_ANON_KEY",
+]);
+
+const EXTERNAL_URL = URL_PICK.value;
+const EXTERNAL_KEY = KEY_PICK.value;
+const URL_SOURCE = URL_PICK.source ?? "none";
+const KEY_SOURCE = KEY_PICK.source ?? "none";
+const ENV_SET = URL_SOURCE.startsWith("SELFHOSTED_") || KEY_SOURCE.startsWith("SELFHOSTED_") ? "SELFHOSTED_*" : URL_SOURCE.startsWith("EXTERNAL_") || KEY_SOURCE.startsWith("EXTERNAL_") ? "EXTERNAL_*" : "unknown";
+
+console.log("[external-db-proxy] env resolved", { url_source: URL_SOURCE, key_source: KEY_SOURCE, env_set: ENV_SET });
 
 const TARGET_URL = EXTERNAL_URL ?? "";
 const TARGET_KEY = EXTERNAL_KEY ?? "";
