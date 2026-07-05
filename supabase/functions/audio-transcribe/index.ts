@@ -24,52 +24,31 @@ const TranscribeInput = z.object({
   message: 'Either audio_base64 or audio_url is required',
 });
 
-// F6 security fix: SSRF guard — block private/reserved IPv4 and IPv6 ranges.
-// RFC 5735/5156. Note: URL.hostname returns '[::1]' (brackets) for IPv6 literals.
-function isSafeAudioUrl(rawUrl: string): boolean {
-  try {
-    const u = new URL(rawUrl);
-    if (u.protocol !== 'https:') return false;
-    const h = u.hostname.toLowerCase();
-    // Private/reserved IPv4 (RFC 5735): 0/8, 10/8, 127/8, 169.254/16, 172.16-31/12, 192.168/16
-    if (/^(0\.|10\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.)/.test(h)) return false;
-    // Named loopback / unspecified
-    if (h === 'localhost' || h === '0.0.0.0') return false;
-    // IPv6 loopback and private ranges (URL.hostname includes brackets)
-    if (h === '[::1]' || h === '::1') return false;
-    if (/^\[?(fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(h)) return false;
-    // Cloud metadata services
-    if (h === '169.254.169.254' || h === 'metadata.google.internal') return false;
-    return true;
-  } catch { return false; }
-}
-
 /**
- * Returns true only for HTTPS URLs pointing outside link-local / loopback /
- * metadata ranges. Prevents SSRF to AWS metadata (169.254.169.254), internal
- * services, or non-HTTP protocols.
+ * Returns true only for HTTPS URLs pointing outside loopback / link-local /
+ * private / metadata ranges. Prevents SSRF to AWS metadata, internal services,
+ * or non-HTTPS protocols. Note: URL.hostname returns bracketless IPv6 (e.g.
+ * '::1', 'fe80::1') — never '[::1]'.
  */
 function isSafeAudioUrl(raw: string): boolean {
   let parsed: URL;
   try { parsed = new URL(raw); } catch { return false; }
   if (parsed.protocol !== 'https:') return false;
   const host = parsed.hostname.toLowerCase();
-  // Block loopback, link-local, private, and metadata service addresses (IPv4 + IPv6)
   if (
     host === 'localhost' ||
     host.endsWith('.localhost') ||
     host === '0.0.0.0' ||
     /^127\./.test(host) ||
-    /^169\.254\./.test(host) ||  // AWS/GCP/Azure metadata
+    /^169\.254\./.test(host) ||            // AWS/GCP/Azure metadata + link-local
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, ULA, IPv4-mapped, and IPv4-compatible
-    // [::x.x.x.x] normalizes to [::XXYY:ZZWW] — startsWith('[::') catches all
-    host.startsWith('[::') ||              // loopback [::1], IPv4-mapped [::ffff:], IPv4-compatible, unspecified [::]
-    /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
-    host.startsWith('[fc') ||              // ULA fc00::/7 (fc+fd)
-    host.startsWith('[fd')                 // ULA fd00::/8
+    host === '::1' ||                      // IPv6 loopback (bracketless)
+    host.startsWith('::ffff:') ||          // IPv4-mapped IPv6
+    /^fe[89ab][0-9a-f]:/i.test(host) ||   // link-local fe80::/10 (fe80–febf)
+    /^fec[0-9a-f]:/i.test(host) ||        // site-local fec0::/10
+    /^f[cd][0-9a-f]{2}:/i.test(host)      // ULA fc00::/7 (fc+fd)
   ) return false;
   return true;
 }
@@ -80,13 +59,10 @@ function isSafeAudioUrl(raw: string): boolean {
  * F6: SSRF guard applied before fetch — blocks private ranges.
  */
 async function fetchAudioWithCap(url: string, maxBytes: number): Promise<Uint8Array | null> {
-  // F6 SSRF guard — reject before any network call
-  if (!isSafeAudioUrl(url)) {
-    console.warn('[audio-transcribe] Blocked unsafe audio URL', url.substring(0, 40));
-    return null;
-  }
-
-  const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  // redirect: 'error' prevents SSRF bypass via server-side redirects to private IPs.
+  // isSafeAudioUrl validates the initial URL; without this flag a redirect could
+  // silently forward the request to 169.254.169.254 or internal addresses.
+  const resp = await fetch(url, { signal: AbortSignal.timeout(15000), redirect: 'error' });
   if (!resp.ok || !resp.body) return null;
 
   const chunks: Uint8Array[] = [];
