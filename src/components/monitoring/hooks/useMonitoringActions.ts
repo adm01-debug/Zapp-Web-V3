@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { isUuidLike } from '@/lib/evolutionInstance';
 import type { WebhookTestResult, WebhookConfig, DiagnosticResult } from './types';
 
 export function useMonitoringActions(fetchData: () => Promise<void>) {
@@ -58,11 +59,15 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
     }
   }, []);
 
-  const checkWebhookConfig = useCallback(async (instanceId: string) => {
+  const checkWebhookConfig = useCallback(async (instanceName: string) => {
+    if (isUuidLike(instanceName)) {
+      toast.error('Instância sem nome roteável — acesse Conexões e configure um nome válido.');
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('evolution-api/get-webhook', {
         method: 'POST',
-        body: { instanceName: instanceId },
+        body: { instanceName },
       });
       if (error) throw error;
       const webhook = data?.webhook || data;
@@ -77,7 +82,11 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
     }
   }, []);
 
-  const reconfigureWebhook = useCallback(async (instanceId: string) => {
+  const reconfigureWebhook = useCallback(async (instanceName: string) => {
+    if (isUuidLike(instanceName)) {
+      toast.error('Instância sem nome roteável — acesse Conexões e configure um nome válido.');
+      return;
+    }
     setReconfiguring(true);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -85,7 +94,7 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
       const { error } = await supabase.functions.invoke('evolution-api/set-webhook', {
         method: 'POST',
         body: {
-          instanceName: instanceId,
+          instanceName,
           webhook: {
             url: webhookUrl,
             webhookByEvents: false,
@@ -102,7 +111,7 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
       });
       if (error) throw error;
       toast.success('Webhook reconfigurado com sucesso!');
-      await checkWebhookConfig(instanceId);
+      await checkWebhookConfig(instanceName);
     } catch (err) {
       toast.error('Erro ao reconfigurar: ' + (err instanceof Error ? err.message : 'desconhecido'));
     } finally {

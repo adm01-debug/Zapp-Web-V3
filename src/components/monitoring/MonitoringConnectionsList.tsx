@@ -149,10 +149,10 @@ export function MonitoringConnectionsList({ connections, webhookTest, onCheckWeb
                         </Button>
                       </>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => onCheckWebhook(conn.instance_id)} className="text-xs h-8">
+                    <Button size="sm" variant="outline" onClick={() => { const n = evolutionInstanceName(conn); n && onCheckWebhook(n); }} className="text-xs h-8">
                       <Settings2 className="w-3.5 h-3.5 mr-1" />Webhook
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => onTestWebhook(conn.instance_id)} disabled={webhookTest.status === 'testing'} className="text-xs h-8">
+                    <Button size="sm" variant="outline" onClick={() => { const n = evolutionInstanceName(conn); n && onTestWebhook(n); }} disabled={webhookTest.status === 'testing'} className="text-xs h-8">
                       {webhookTest.status === 'testing'
                         ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Testando</>
                         : <><PlayCircle className="w-3.5 h-3.5 mr-1" />Testar</>
