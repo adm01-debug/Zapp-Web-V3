@@ -225,5 +225,122 @@ endpoints dependentes de socket Baileys em instâncias `close`).
 
 ## 7. Revisão de código exaustiva (hooks, proxy REST, webhook handlers, RLS/funções)
 
-_(preenchido após o workflow de revisão adversarial de 5 dimensões — ver commits desta
-sessão para os fixes aplicados)_
+Workflow de revisão adversarial com 5 dimensões (hooks do front-end, fluxos de UI, proxy
+REST de 111 ações, handlers do webhook, funções/RLS do banco), cada achado submetido a um
+segundo agente cético antes de entrar aqui. **34 achados** no total; parte da fase de
+verificação foi interrompida por limite de sessão dos subagentes (não desta sessão
+principal), então os achados abaixo marcados "verificado nesta sessão" foram confirmados
+por mim diretamente lendo o código-fonte atual (mais rigoroso que a verificação
+automática), e os demais mantêm o veredito do agente revisor original sem uma segunda
+checagem adversarial independente — tratem como alta confiança, não como 100% certos.
+
+### 7.1 Corrigidos nesta sessão
+
+| # | Severidade | Arquivo | Achado | Commit |
+|---|:---:|---|---|---|
+| S6-2/28 | 🔴 crítico | `fn_apply_connection_update` + `fn_reconcile_apply` (DB) | Falso-positivo de conexão sem debounce (ver §2) — **dois caminhos independentes** com o mesmo bug | migrations 20260705005207, 20260705011018, 20260705012657 |
+| — | 🔴 crítico | `fn_reconcile_apply` (DB) | Fallback sem clamp violava `whatsapp_connections_status_check`, exceção não capturada abortava o lote inteiro | migration 20260705011420 |
+| — | 🟠 alto | `fn_auto_resolve_baileys_alerts` (DB) | Fazia ack de alertas críticos após 6h, diferente da política da função irmã | migration 20260705011420 |
+| — | 🟠 alto | `whatsapp_connections` (DB) | Sem guarda contra `instance_name` em formato UUID (classe do incidente S5-1) | migration 20260705011839 (CHECK constraint) |
+| 26 | 🔴 crítico | `evolution-webhook/index.ts:228` | `qrcode.updated` usava `.eq('instance_id', instance)` em vez de `instanceOrFilter()` — QR podia falhar em persistir | commit c5ace08 |
+| 27 | 🔴 crítico | `evolution-webhook/index.ts` (catch) | `routeToDeadLetter()` removido do catch — **regressão com teste próprio que deveria ter pego isso** (`contract.test.ts`); também endureci o loop de `messages.upsert` com try/catch por entrada | commit c5ace08 |
+| 0 | 🔴 crítico | `messageSender.ts:190` | Enviava `instance_id` (UUID) como `instanceName` no envio principal do Inbox | commit 0fd2d14 |
+| 1/11 | 🟠 alto | `useConnectionsManager.ts:80,229` | `generateQr`/`handleDisconnect` enviavam `instance_id` cru | commit 4fb1ff4 |
+| 7 | — | `whatsapp_connections` (DB) | Achado do workflow dizia faltar `REPLICA IDENTITY FULL` — **verificado ao vivo nesta sessão: já está `FULL`** (`relreplident='f'`). Falso-positivo ou já corrigido por outra sessão; nenhuma ação necessária. | — |
+
+### 7.2 Confirmados, ainda não corrigidos (recomendação priorizada para a próxima sessão)
+
+| # | Severidade | Arquivo:linha | Achado |
+|---|:---:|---|---|
+| 12/22 | 🟠 alto | `evolution-api/index.ts:371` | A guarda de UUID (`instanceLooksLikeUuid`) só existe em `create-instance`/`connect` — as outras ~108 ações (disconnect, restart, status, todo `send-*`, grupos, integrações) fazem zero validação antes de repassar `instance` para a Evolution |
+| 13/19 | 🟠 alto | `evolution-api/index.ts:264,396` | `connect`/`status`/`disconnect` gravam em `whatsapp_connections` com `.eq('instance_id', instance)` em vez de `instanceOrFilter()` — mesma ambiguidade já corrigida nos webhook handlers, nunca replicada aqui |
+| 2/10 | 🟠 alto | `useChatMediaSending.ts:95,99` | `resolveInstance()` usa `instance_id` cru para figurinha/áudio-meme, contornando `evolutionInstanceName()` |
+| 3 | 🟠 alto | `src/hooks/groups/actions.ts:99` | `loadGroups`/`sendBroadcast` repassam `instance_id` cru para `list-groups`/`send-text` |
+| 24 | 🟠 alto | `evolution-api/index.ts:354` | `restart-instance`/`disconnect` (ações destrutivas que exigem re-scan de QR físico para recuperar) não têm checagem de role, ao contrário de `create-instance`/`delete-instance` |
+| 21 | 🟡 médio | `evolution-api/index.ts:386` | `disconnect` chama `.json()` e, no catch, `.text()` no MESMO `Response` — `TypeError: body stream already read` mascara o erro real da Evolution quando o corpo não é JSON |
+| 29 | 🟠 alto | `evolution-helpers.ts:151` (`resolveBestJid`) | Prioriza qualquer JID `@s.whatsapp.net` antes de `@g.us` — mensagens de grupo normais (não-LID) podem resolver para o JID do participante em vez do grupo, quebrando o filtro de grupo em 3 handlers |
+| 9 | 🔴 crítico (UX) | `AdvancedMessageMenu.tsx:97` | Mensagens de enquete/cartão-contato ficam com spinner "Enviando..." permanente — o status nunca transiciona para 'sent' após o envio já ter tido sucesso |
+| 8 | 🟡 médio | `useMessageQueue.ts:106` | Retry com backoff exponencial faz `break` incondicional após o catch — mensagem fica presa em 'sending' até outra chamada não relacionada reprocessar a fila |
+| 4 | 🟡 médio | `whatsappStatusService.ts:90` | `getConnectionInfo()` retorna `instance_id` como `instanceName` para o visualizador de Status/Stories |
+| 16 | 🟡 médio | `DegradedQuickActions.tsx:139` | Botão "Gerar QR" usa `instance_id` cru enquanto o botão vizinho no mesmo arquivo já usa `evolutionInstanceName()` — aplicação parcial do fix do PR #192 |
+| 17 | 🟡 médio | `AdminAlertHistoryPage.tsx:159` | `resolveAlert()` deixa qualquer admin resolver QUALQUER alerta (inclusive críticos) com um clique, sem confirmação e com motivo genérico fixo — mesmo padrão do fechamento em lote do S6-4 |
+| 14 | 🟠 alto | `useNewConversation.ts:105` | `handleSend()` não verifica o envelope `{error}` da resposta — sempre mostra "Mensagem enviada!" mesmo em falha |
+| 15 | 🟡 médio | `useFileUploadLogic.ts:140` | `Promise.all([apiCall, dbInsert])` — se a API falhar, o id da linha já inserida nunca é recuperado para marcá-la como 'failed' |
+| 5 | 🟠 alto | `useEvolutionApiCore.ts:100` | Dedup de requisições GET em voo usa só `${method}:${action}` (sem body) — chamadas concorrentes com `instanceName` diferentes colidem e compartilham uma resposta |
+| 6 | 🟡 médio | `useEvolutionApiCore.ts:79` | `timeoutMs` fixo em 45000, ignora a config administrável de retry por instância |
+| 30 | 🟠 alto | `evolution-media.ts:146` | `parseMessageContent()` não trata subtipos interativos (`buttonsResponseMessage`, `listResponseMessage`, etc.) — retorna conteúdo vazio silenciosamente, sem a guarda de skip que o handler irmão já tem |
+| 31 | 🟡 médio | `evolution-webhook-msg-handlers.ts:123` | Fallback de "mensagem fantasma" em ACK/delete fixa `sender:'contact'` independente de `key.fromMe` |
+| 32 | 🟡 médio | `evolution-webhook-handlers.ts:51` | `handleGroupsUpsert` zera `participant_count` em eventos de metadado-apenas (rename/ícone) que não reenviam a lista de participantes |
+| 33 | 🟡 baixo | `webhook-schemas.ts` | `webhookBase64:true` está ativo mas nada limita o tamanho do payload antes de `req.text()`/`JSON.parse()`/`atob()` rodarem de forma síncrona |
+| 23 | 🟡 médio | `evolution-api/index.ts:593` | Vários endpoints GET (`group-info`, `group-participants`, `fetch-profile-picture`) interpolam parâmetros ausentes como a string literal `"undefined"` na querystring em vez de rejeitar antes |
+| 25 | 🟡 médio | `docs/architecture/evolution-api-mapping.md` | Documentação desatualizada: métodos HTTP e nomes de ação divergem da implementação real em vários pontos |
+| 20 | 🟢 baixo | `evolution-api/index.ts:85` | `instanceInPath` do wrapper `proxy()` é sempre `undefined` — cosmético, cada call site já embute o instance no path string |
+
+### 7.3 Achado sistêmico — testes de contrato sem CI
+
+O achado #27 (routeToDeadLetter removido) tinha um teste de regressão dedicado
+(`evolution-webhook/__tests__/contract.test.ts`, "Recuperabilidade: handler_error é
+roteado para a DLQ antes do audit") que **deveria ter pego essa regressão** — mas nenhum
+workflow em `.github/workflows/*.yml` referencia `deno` (`grep -l deno .github/workflows/*.yml`
+não retorna nada). Toda a suíte de testes Deno dos edge functions (webhook, hmac,
+sync-actions) roda zero vezes em CI. Recomendação de alta prioridade: adicionar um job
+`deno test` ao pipeline — sem isso, qualquer regressão futura na mesma família passa
+despercebida como esta passou.
+
+### 7.4 Drift de schema — famílias de função ainda não capturadas em migração
+
+Fechamos o gap para a família reconcile/alerta (§5). Dezenas de outras funções
+`public.fn_*`/`evo.fn_*`/`zapp.fn_*` continuam existindo só no banco ao vivo. Fora de
+escopo para esta sessão de resposta a incidente — recomenda-se uma sessão dedicada de
+"schema sync" que extraia `pg_get_functiondef` de tudo que estiver sem migração
+correspondente.
+
+### 7.5 Nota sobre colisão de edição concorrente
+
+Durante esta sessão, outra sessão/processo aplicou diretamente no banco ao vivo um fix
+não relacionado (case-insensitivity, "Bug #69") em `fn_apply_connection_update` — **ao
+mesmo tempo** que esta sessão corrigia a mesma função para o debounce anti-flap,
+sobrescrevendo silenciosamente o fix sem qualquer erro ou aviso (detectado porque o JSON
+de retorno de uma chamada de simulação não tinha mais a chave `debounced`). As duas
+mudanças foram reconciliadas na migração `20260705011018`. Isso é evidência de que
+múltiplas sessões editam objetos de banco ao vivo compartilhados sem coordenação — a
+mesma função pode ser sobrescrita por baixo dos pés de quem está no meio de um fix.
+Recomendação de processo: reler `pg_get_functiondef` imediatamente antes E depois de
+qualquer alteração em função compartilhada, para detectar esse tipo de corrida.
+
+---
+
+## 8. Resumo executivo e próximos passos
+
+**Corrigido e verificado nesta sessão (11 commits):** o outage ativo foi diagnosticado até
+a causa-raiz de aplicação (não infra) — um pulso de `open` transitório do Baileys sendo
+tratado como conexão estável em DOIS caminhos independentes (webhook e cron-poll), mascarado
+por um health-score com janela de graça longa demais e por um fechamento em lote de alertas
+críticos sem verificação. Além disso: uma regressão real no webhook (DLQ removida, com teste
+de contrato próprio que deveria tê-la pego mas nunca roda em CI), o filtro errado no handler
+de QR code, e 3 pontos onde o front-end ainda envia o UUID interno da instância para a
+Evolution API (mesma classe do incidente S5-1) — mais uma guarda a nível de banco (CHECK
+constraint) para essa classe inteira de bug.
+
+**Pendências que EXIGEM ação humana (inalterado desde as sessões 3-5):**
+1. 🔴 Re-parear `wpp2` e `wpp_pink_test` por QR code no celular físico — única forma de
+   restaurar as linhas de verdade (runbook §4).
+2. 🟠 Rotacionar `AUTHENTICATION_API_KEY`/credenciais compartilhadas (pendência das sessões
+   anteriores, ainda válida).
+
+**Pendências técnicas priorizadas para a próxima sessão (§7.2):** a lista completa de 24
+achados confirmados-mas-não-corrigidos está na tabela acima, ordenada por severidade. Os
+3 de maior risco imediato: (a) a guarda de UUID no proxy REST cobre só 2 de 111 ações —
+qualquer outra ação com um `instance` vindo de UUID falha ou, pior, pode re-abrir a classe
+de bug do incidente fantasma; (b) `restart-instance`/`disconnect` sem checagem de role —
+qualquer usuário autenticado pode forçar um logout que só se recupera com QR físico; (c) o
+spinner "Enviando..." permanente em mensagens de enquete/contato é um bug visível para o
+usuário final todos os dias, não só durante incidentes.
+
+**Achado de processo mais importante:** os testes de regressão Deno (`__tests__/*.test.ts`)
+não rodam em nenhum workflow de CI. Um deles existia especificamente para a regressão
+encontrada (§7.3) e não a pegou porque nunca é executado. Wire isso antes de qualquer outra
+coisa nesta lista — é o que impede a próxima regressão silenciosa.
+
+*Sessão 6 executada por auditoria automatizada (Claude Code) em 2026-07-05. Nenhum segredo
+(API keys, tokens de instância, senhas) foi incluído neste relatório.*

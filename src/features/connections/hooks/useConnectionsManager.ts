@@ -9,6 +9,7 @@ import { whatsappConnectionService } from '@/features/connections/services/whats
 import { useConnectionsState } from './parts/useConnectionsState';
 import { useConnectionsRealtime } from './parts/useConnectionsRealtime';
 import { useConnectionsActions } from './parts/useConnectionsActions';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 export type WhatsAppApiType = 'evolution' | 'official';
 
@@ -75,9 +76,19 @@ export function useConnectionsManager() {
 
   const generateQr = useCallback(async (connection: WhatsAppConnection) => {
     if (!connection.instance_id) return;
-    const attemptId = await whatsappConnectionService.logQrAttempt(connection.id, connection.instance_id, connection.name);
+    // Evolution roteia por nome de instância — passar o UUID (instance_id) gera 404.
+    const evoName = evolutionInstanceName(connection);
+    if (!evoName) {
+      setQrCodeDialog((prev) => ({
+        ...prev,
+        status: 'error',
+        errorMessage: `A instância "${connection.name}" ainda não tem um nome sincronizado da Evolution. Tente novamente em alguns segundos.`,
+      }));
+      return;
+    }
+    const attemptId = await whatsappConnectionService.logQrAttempt(connection.id, evoName, connection.name);
     try {
-      const result = await whatsappConnectionService.requestQrCode(connection.instance_id);
+      const result = await whatsappConnectionService.requestQrCode(evoName);
       const { ttlMs, source: ttlSource } = whatsappConnectionService.detectQrTtlMs(result);
       const expiresAt = Date.now() + ttlMs;
       
@@ -207,6 +218,17 @@ export function useConnectionsManager() {
 
   const handleDisconnect = async (connection: WhatsAppConnection) => {
     if (!connection.instance_id) return;
+    // Evolution roteia por nome de instância — passar o UUID (instance_id) gera 404
+    // no endpoint de logout, revertendo o estado otimista com um erro confuso.
+    const evoName = evolutionInstanceName(connection);
+    if (!evoName) {
+      toast({
+        title: 'Aguardando sincronização',
+        description: `A instância "${connection.name}" ainda não tem um nome sincronizado da Evolution. Tente novamente em alguns segundos.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
       // 1. Log audit event before action
       const { data: { user } } = await supabase.auth.getUser();
@@ -216,7 +238,7 @@ export function useConnectionsManager() {
           p_entity_id: connection.id,
           p_action: 'disconnect',
           p_performed_by: user.email,
-          p_details: { instance: connection.instance_id, source: 'manual_ui' }
+          p_details: { instance: evoName, source: 'manual_ui' }
         });
       }
 
@@ -226,7 +248,7 @@ export function useConnectionsManager() {
       ));
 
       // 3. Call disconnect API
-      const response = await disconnectInstance(connection.instance_id) as { success?: boolean; reason?: string } | null;
+      const response = await disconnectInstance(evoName) as { success?: boolean; reason?: string } | null;
       
       if (response && response.success === false) {
         throw new Error(response.reason || 'Falha na API Evolution ao desconectar');

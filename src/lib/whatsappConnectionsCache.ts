@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface WhatsappConnectionRow {
   id: string;
   instance_id: string | null;
+  instance_name: string | null;
   phone_number: string | null;
   status: string | null;
   api_type: string | null;
