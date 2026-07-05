@@ -155,7 +155,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
           )}
 
           <AnimatePresence mode="wait">
-            <motion.div key={messages[index]?.id ?? index} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="w-full h-full flex items-center justify-center px-14">
+            <motion.div key={messages[index].id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="w-full h-full flex items-center justify-center px-14">
               {mediaType === 'image' ? (
                 mediaLoading ? (
                   <div className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" /><p className="text-sm">Carregando imagem...</p></div>
