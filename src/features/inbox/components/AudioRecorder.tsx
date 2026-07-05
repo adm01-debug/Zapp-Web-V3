@@ -13,11 +13,12 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('AudioRecorder');
 
 interface AudioRecorderProps {
-  onSend: (audioBlob: Blob) => void;
-  onCancel: () => void;
+  onSend?: (audioBlob: Blob) => void;
+  onCancel?: () => void;
+  onAudioReady?: (audioBlob: Blob) => void;
 }
 
-export function AudioRecorder({ onSend, onCancel }: AudioRecorderProps) {
+export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderProps) {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
