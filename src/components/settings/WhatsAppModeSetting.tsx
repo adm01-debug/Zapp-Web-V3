@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { safeClient } from "@/integrations/supabase/safeClient";
 import {
   getWhatsAppMode,
   invalidateWhatsAppModeCache,
@@ -35,9 +36,8 @@ export function WhatsAppModeSetting() {
   const [migrating, setMigrating] = useState(false);
 
   const loadProfile = useCallback(async () => {
-    // deno-lint-ignore no-explicit-any
-    const { data, error } = await supabase.rpc("rpc_get_active_integration_profile" as any);
-    if (data) setProfile(data as IntegrationProfile);
+    const { data } = await safeClient.rpc<IntegrationProfile>('rpc_get_active_integration_profile');
+    if (data) setProfile(data);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -58,8 +58,7 @@ export function WhatsAppModeSetting() {
   const handleRunMigration = async () => {
     setMigrating(true);
     try {
-      // deno-lint-ignore no-explicit-any
-      const { error } = await supabase.rpc("rpc_migrate_whatsapp_integration" as any);
+      const { error } = await supabase.rpc("rpc_migrate_whatsapp_integration");
       if (error) throw error;
       invalidateWhatsAppModeCache();
       await refresh();
@@ -77,10 +76,7 @@ export function WhatsAppModeSetting() {
     setSaving(true);
     setMode(next); // optimistic
     try {
-      // deno-lint-ignore no-explicit-any
-      const { error } = await supabase.rpc("rpc_set_whatsapp_mode" as any, {
-        p_mode: next,
-      });
+      const { error } = await safeClient.rpc('rpc_set_whatsapp_mode', { p_mode: next });
       if (error) throw error;
       invalidateWhatsAppModeCache();
       toast.success(

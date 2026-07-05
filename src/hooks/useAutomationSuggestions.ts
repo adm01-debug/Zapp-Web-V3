@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getExternalSupabase } from "@/integrations/supabase/externalClient";
+import { dbFrom } from "@/integrations/datasource/db";
 import { toast } from "@/hooks/use-toast";
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
@@ -35,8 +36,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       return;
     }
     setLoading(true);
-    const { data, error } = await (supabase as any)
-      .from('automation_executions')
+    const { data, error } = await dbFrom('automation_executions')
       .select(
         "id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)",
       )
@@ -47,7 +47,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       .limit(5);
     if (!mountedRef.current) return;
     setSuggestions(
-      ((data ?? []) as any[]).map((r) => ({
+      (data ?? []).map((r) => ({
         id: r.id,
         rule_id: r.rule_id,
         rule_name: r.automations?.name,
@@ -72,7 +72,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         "postgres_changes",
         { event: "*", schema: "public", table: "automation_executions" },
         (payload) => {
-          const row = (payload.new ?? payload.old) as any;
+          const row = (payload.new ?? payload.old) as { remote_jid?: string };
           if (row?.remote_jid === remoteJid) void refresh();
         },
       )
@@ -83,16 +83,14 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   }, [remoteJid, refresh]);
 
   const accept = useCallback(async (id: string) => {
-    await (supabase as any)
-      .from('automation_executions')
+    await dbFrom('automation_executions')
       .update({ status: "accepted", acted_at: new Date().toISOString() })
       .eq("id", id);
     void refresh();
   }, [refresh]);
 
   const dismiss = useCallback(async (id: string) => {
-    await (supabase as any)
-      .from('automation_executions')
+    await dbFrom('automation_executions')
       .update({ status: "dismissed", acted_at: new Date().toISOString() })
       .eq("id", id);
     void refresh();
@@ -108,13 +106,12 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       const sugg = suggestions.find((s) => s.id === id);
       if (!sugg?.recommended_tag) return false;
       try {
-        await (getClient()?.rpc as any)("rpc_upsert_contact", {
+        await getClient()?.rpc('rpc_upsert_contact' as any, {
           p_remote_jid: sugg.remote_jid,
           p_instance: sugg.instance_name,
           p_tags: [sugg.recommended_tag],
         });
-        await (supabase as any)
-          .from('automation_executions')
+        await dbFrom('automation_executions')
           .update({ applied_tags: [sugg.recommended_tag] })
           .eq("id", id);
         toast({

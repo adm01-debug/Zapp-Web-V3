@@ -54,6 +54,10 @@ export interface RealtimeMessage {
   /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
   contactAvatar?: string | null;
   reactions?: any[] | null;
+  /** Meta-informações brutas da Evolution API (PTT, isPtv, etc.) */
+  media_meta?: Record<string, unknown> | null;
+  /** ID de meme de áudio, quando aplicável */
+  audio_meme_id?: string | null;
 }
 
 export interface ConversationContact {

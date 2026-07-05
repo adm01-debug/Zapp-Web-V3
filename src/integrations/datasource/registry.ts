@@ -42,7 +42,8 @@ export type LogicalEntity =
   | 'team_conversations'
   | 'evolution_contacts'
   | 'evolution_messages'
-  | 'provider_configs';
+  | 'provider_configs'
+  | 'automation_executions';
 
 export type DatasourceClient = 'lovable' | 'external';
 
@@ -71,7 +72,8 @@ export const ENTITY_MAP = {
   evolution_contacts:   { client: 'lovable', table: 'evolution_contacts' },
   evolution_messages:   { client: 'lovable', table: 'evolution_messages' },
   imap_smtp_accounts:   { client: 'lovable', table: 'imap_smtp_accounts' },
-  provider_configs:     { client: 'lovable', table: 'provider_configs' },
+  provider_configs:        { client: 'lovable', table: 'provider_configs' },
+  automation_executions:   { client: 'lovable', table: 'automation_executions' },
 } as const satisfies Record<LogicalEntity, EntityMapping>;
 
 export function getEntityMapping(entity: LogicalEntity): EntityMapping {

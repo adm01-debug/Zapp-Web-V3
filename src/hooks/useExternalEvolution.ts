@@ -141,8 +141,8 @@ export function reconcileOptimistic(
         // Telemetria enriquecida para áudio (PTT vs Gravado vs Meme)
         let messageType = m.message_type;
         if (messageType === 'audio') {
-          const isPtt = (m as any).media_meta?.ptt === true;
-          const isMeme = !!(m as any).audio_meme_id;
+          const isPtt = m.media_meta?.ptt === true;
+          const isMeme = !!m.audio_meme_id;
           messageType = isMeme ? 'audio_meme' : (isPtt ? 'audio_ptt' : 'audio_recorded');
         }
 
@@ -180,8 +180,8 @@ export function reconcileOptimistic(
         // Telemetria enriquecida para áudio fallback (PTT vs Gravado vs Meme)
         let messageType = m.message_type;
         if (messageType === 'audio') {
-          const isPtt = (m as any).media_meta?.ptt === true;
-          const isMeme = !!(m as any).audio_meme_id;
+          const isPtt = m.media_meta?.ptt === true;
+          const isMeme = !!m.audio_meme_id;
           messageType = isMeme ? 'audio_meme' : (isPtt ? 'audio_ptt' : 'audio_recorded');
         }
 
@@ -530,8 +530,8 @@ export function useExternalMessages(remoteJid: string | null) {
       // Mantemos quaisquer otimistas que ainda não foram reconciliadas.
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens
-        const currentAvatar = (queryClient.getQueryData(['contact', remoteJid]) as any)?.avatar_url || 
-                             (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as any)?.avatar_url;
+        const currentAvatar = (queryClient.getQueryData(['contact', remoteJid]) as { avatar_url?: string } | undefined)?.avatar_url ||
+                             (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as { avatar_url?: string } | undefined)?.avatar_url;
 
         // Propaga o avatar para todas as mensagens (canônicas e otimistas remanescentes)
         const additionsWithAvatar = additions.map(m => ({ ...m, contactAvatar: currentAvatar }));
@@ -576,8 +576,8 @@ export function useExternalMessages(remoteJid: string | null) {
       const mapped = newOnes.map(evolutionToRealtimeMessage);
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens poladas
-        const currentAvatar = (queryClient.getQueryData(['contact', remoteJid]) as any)?.avatar_url || 
-                             (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as any)?.avatar_url;
+        const currentAvatar = (queryClient.getQueryData(['contact', remoteJid]) as { avatar_url?: string } | undefined)?.avatar_url ||
+                             (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as { avatar_url?: string } | undefined)?.avatar_url;
 
         const additionsWithAvatar = additions.map(m => ({ ...m, contactAvatar: currentAvatar }));
         return [...filteredPrev, ...additionsWithAvatar];
