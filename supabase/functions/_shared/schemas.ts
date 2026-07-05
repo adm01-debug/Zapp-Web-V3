@@ -33,7 +33,7 @@ export const AiSuggestReplySchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
   contactName: z.string().max(200).optional().nullable(),
   conversationHistory: z.array(z.object({
-    role: z.string().max(20),
+    role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
     content: z.string().max(10000),
   })).max(50),
   context: z.string().max(2000).optional(),
@@ -58,10 +58,11 @@ function isSafeHttpsUrl(url: string): boolean {
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, unique-local (ULA), and IPv4-mapped
+    // IPv6 loopback, link-local, unique-local (ULA), IPv4-mapped, and IPv4-compatible
+    // IPv4-compatible: [::x.x.x.x] normalizes to [::XXYY:ZZWW] — no ffff: component
     host === '[::1]' || host.startsWith('[fe80:') ||
     host.startsWith('[fc00:') || host.startsWith('[fd') ||
-    host.startsWith('[::ffff:')
+    host.startsWith('[::ffff:') || host.startsWith('[::')
   ) return false;
   return true;
 }

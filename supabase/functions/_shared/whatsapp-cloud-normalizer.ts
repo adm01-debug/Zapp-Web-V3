@@ -214,7 +214,7 @@ export function normalizeMetaPayload(payload: unknown): {
 
 /**
  * Validates Meta webhook signature (X-Hub-Signature-256).
- * Returns true if valid OR if no secret is configured (dev mode).
+ * Returns true if the signature is valid. Rejects (returns false) when appSecret is empty.
  */
 export async function validateMetaSignature(
   rawBody: string,
