@@ -376,9 +376,25 @@ Deno.serve(async (req) => {
           latency_ms: Date.now() - start,
         }, 503);
       }
+      const isUnauthorized = /unauthorized|jwt|invalid signature|invalid api key|jws/i.test(err.message ?? "");
+      if (isUnauthorized) {
+        console.error('[external-db-proxy] AUTH MISMATCH — service_role key não é aceita pelo self-hosted', {
+          schema, table, cid,
+          target_url: EXTERNAL_URL,
+          key_source: KEY_SOURCE,
+          key_role: KEY_ROLE,
+          key_iss: KEY_ISS,
+          key_ref: KEY_REF,
+          message: err.message,
+        });
+        return jsonResponse({
+          error: "Self-hosted rejeitou a service_role key (assinatura inválida).",
+          hint: `A chave em '${KEY_SOURCE}' (role=${KEY_ROLE}, iss=${KEY_ISS}, ref=${KEY_REF}) não corresponde ao JWT_SECRET de ${EXTERNAL_URL}. Copie a service_role key EXATA do painel do self-hosted (Settings → API) e atualize o secret.`,
+          cid, rid, data: [], count: 0, latency_ms: Date.now() - start,
+        }, 502);
+      }
       console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
       return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
-    }
 
     return jsonResponse({
       ok: true,
