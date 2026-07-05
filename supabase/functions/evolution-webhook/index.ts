@@ -5,8 +5,7 @@ import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
-  sha256Hex, markEventProcessed, auditWebhookEvent, routeToDeadLetter,
-  instanceOrFilter,
+  sha256Hex, markEventProcessed, auditWebhookEvent,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
 import { parseMessageContent } from "../_shared/evolution-media.ts";
@@ -36,15 +35,33 @@ const WEBHOOK_SECRETS = (() => {
   return legacy ? [legacy] : [];
 })();
 const STRICT_MODE = (Deno.env.get('EVOLUTION_WEBHOOK_STRICT') ?? 'true').toLowerCase() !== 'false';
-// Evolution's native webhook and the RabbitMQ consumer authenticate with a
-// static `x-webhook-secret` header (they cannot compute a per-request HMAC).
-// Accept that shared-secret bearer, constant-time compared against the same
-// configured secret, in addition to HMAC signatures. HMAC stays preferred.
-// Set EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET=false to require HMAC only.
-const ALLOW_SHARED_SECRET = (Deno.env.get('EVOLUTION_WEBHOOK_ALLOW_SHARED_SECRET') ?? 'true').toLowerCase() !== 'false';
 const validateWebhook = WEBHOOK_SECRETS.length > 0
-  ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE, ALLOW_SHARED_SECRET)
+  ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE)
   : null;
+
+// [PATCH 2026-07-04 registry-guard] So processa eventos de instancias cadastradas em
+// instance_registry (existencia, nao is_active - evita perda de dados de instancia nova
+// ainda nao ativada). Cache em memoria TTL 60s. Fail-open (null) em erro de lookup para
+// nao derrubar o pipeline por falha transitoria do PostgREST.
+const __registryCache = new Map<string, { known: boolean; at: number }>();
+const __REGISTRY_TTL_MS = 60_000;
+// deno-lint-ignore no-explicit-any
+async function isKnownInstance(supabase: any, instance: string): Promise<boolean | null> {
+  if (!instance) return false;
+  const hit = __registryCache.get(instance);
+  if (hit && Date.now() - hit.at < __REGISTRY_TTL_MS) return hit.known;
+  try {
+    const { data, error } = await supabase.from('instance_registry')
+      .select('instance_name').eq('instance_name', instance).limit(1).maybeSingle();
+    if (error) { console.error(`[registry-guard] lookup error: ${error.message}`); return null; }
+    const known = !!data;
+    __registryCache.set(instance, { known, at: Date.now() });
+    return known;
+  } catch (e) {
+    console.error(`[registry-guard] lookup exception: ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+}
 
 serve(async (req) => {
   const requestId = generateRequestId();
@@ -69,7 +86,14 @@ serve(async (req) => {
   // antes mesmo de parsear o body. Cai em 'unknown' se não houver.
   const headerInstance = req.headers.get('x-evolution-instance') || req.headers.get('x-instance') || null;
 
-  if (validateWebhook) {
+  // [PATCH 2026-07-03] Auth por secret estatico: Evolution API envia header fixo x-webhook-secret,
+  // nao assina HMAC por payload. Comparacao timing-safe contra os secrets configurados.
+  const __tsEq = (a: string, b: string): boolean => { if (a.length !== b.length) { let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ (b.charCodeAt(i % (b.length || 1)) || 0); return false; } let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; };
+  const __staticSecret = req.headers.get('x-webhook-secret');
+  const __staticSecretOk = __staticSecret !== null && WEBHOOK_SECRETS.some((s) => __tsEq(__staticSecret, s));
+  if (__staticSecretOk) {
+    rawBody = await req.text();
+  } else if (validateWebhook) {
     const result = await validateWebhook(req);
     if (!result.valid) {
       console.warn(redactSecrets(`[webhook][${requestId}] rejected: ${result.error ?? 'unknown'} signatureFound=${result.signatureFound}`));
@@ -139,7 +163,38 @@ serve(async (req) => {
     );
   }
 
-  // Rate Limit guard: prevent storming from a single instance/event
+  // [PATCH 2026-07-04 registry-guard] Instancia desconhecida => HTTP 200 + skip total
+  // (200 evita retry-storm do consumer; nada e persistido) + audit rejected/unknown_instance
+  // + log de seguranca. Lookup com falha (null) => fail-open, segue o fluxo normal.
+  const __knownInstance = await isKnownInstance(supabase, instance);
+  if (__knownInstance === false) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'rejected',
+      error_message: 'unknown_instance',
+      duration_ms: Date.now() - startedAt,
+    });
+    console.warn(`[webhook][${requestId}] SECURITY unknown_instance='${instance}' event=${event} - ignored`);
+    return new Response(
+      JSON.stringify({ success: true, ignored: true, reason: 'unknown_instance', requestId }),
+      { status: 200, headers: corsHeaders },
+    );
+  }
+
+  // [ORDER 2026-07-04] Idempotency ANTES do rate-limit: retries duplicados do Evolution nao consomem quota.
+  // Dedup by hash of (instance + event + body); se ja vimos este event_id, short-circuit 200.
+  const bodyHash = await sha256Hex(rawBody);
+  const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
+  const isNew = await markEventProcessed(supabase, eventId, instance, event);
+  if (!isNew) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'duplicate',
+      duration_ms: Date.now() - startedAt,
+    });
+    console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
+    return new Response(JSON.stringify({ success: true, duplicate: true, requestId }), { status: 200, headers: corsHeaders });
+  }
+
+  // Rate Limit guard: conta apenas eventos UNICOS (idempotency ja filtrou retries)
   const rateLimit = await checkRateLimit(supabase, {
     instanceId: instance || 'unknown',
     eventType: event,
@@ -158,20 +213,6 @@ serve(async (req) => {
     );
   }
 
-  // Idempotency guard: dedup by hash of (instance + event + body). Evolution retries reuse
-  // the same payload, so if we have seen this event_id we short-circuit with 200.
-  const bodyHash = await sha256Hex(rawBody);
-  const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
-  const isNew = await markEventProcessed(supabase, eventId, instance, event);
-  if (!isNew) {
-    await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'duplicate',
-      duration_ms: Date.now() - startedAt,
-    });
-    console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
-    return new Response(JSON.stringify({ success: true, duplicate: true, requestId }), { status: 200, headers: corsHeaders });
-  }
-
   console.log(`[webhook][${requestId}] received raw=${payload.event} norm=${event} instance=${instance}`);
 
   try {
@@ -184,7 +225,7 @@ serve(async (req) => {
       if (qrCode) {
         await supabase.from('whatsapp_connections')
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
-          .or(instanceOrFilter(instance));
+          .eq('instance_id', instance);
       }
     }
 
@@ -282,22 +323,7 @@ serve(async (req) => {
     // Logical/handler errors: log the detail internally, return 200 to evo so it does not
     // retry-storm the same event. The idempotency guard above makes retries safe.
     const detail = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error ? error.stack ?? null : null;
     console.error(redactSecrets(`[webhook][${requestId}] handler_error event=${event} instance=${instance}: ${detail}`));
-    // Route to the dead-letter queue BEFORE auditing so the event is recoverable.
-    // The event was already marked processed (idempotency) and we return 200, so
-    // without this the failure would be a permanent, unalarmed data loss — the
-    // mechanism behind the wpp2 message gap. Best-effort: never throws.
-    const dlqData = isRecord(data) ? data : baseData;
-    await routeToDeadLetter(supabase, {
-      event_type: event,
-      instance,
-      remote_jid: (typeof dlqData.remoteJid === 'string' ? dlqData.remoteJid : null),
-      payload: payload,
-      error_message: detail,
-      error_stack: stack,
-      request_id: requestId,
-    });
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'error',
       duration_ms: Date.now() - startedAt, error_message: detail.slice(0, 500),
