@@ -3,12 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ALL_ROOT_CAUSES, getRootCauseMeta } from '@/lib/failureRootCause';
-import { type DlqStats } from '@/features/admin/hooks/monitoring/useFailedMessages';
+import { ALL_ROOT_CAUSES, getRootCauseMeta, type RootCause } from '@/lib/failureRootCause';
+import { type DlqStats, type FailedMessageStatus } from '@/features/admin/hooks/monitoring/useFailedMessages';
 import { type useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
 
 export function FailedMessagesFilters({ ui, stats }: { ui: ReturnType<typeof useFailedMessagesUI>; stats: DlqStats | undefined }) {
-  const { api, aggregates } = ui;
+  const { api } = ui;
 
   return (
     <Card>
@@ -77,7 +77,7 @@ export function FailedMessagesFilters({ ui, stats }: { ui: ReturnType<typeof use
         )}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">Status</label>
-          <Select value={ui.statusFilter} onValueChange={(v) => ui.setStatusFilter(v)}>
+          <Select value={ui.statusFilter} onValueChange={(v) => ui.setStatusFilter(v as 'all' | FailedMessageStatus)}>
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
@@ -104,7 +104,7 @@ export function FailedMessagesFilters({ ui, stats }: { ui: ReturnType<typeof use
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">Causa raiz</label>
-          <Select value={ui.rootCauseFilter} onValueChange={(v) => ui.setRootCauseFilter(v)}>
+          <Select value={ui.rootCauseFilter} onValueChange={(v) => ui.setRootCauseFilter(v as 'all' | RootCause)}>
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
