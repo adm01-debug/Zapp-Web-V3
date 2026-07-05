@@ -459,14 +459,11 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
         messages={messages} contactId={conversation.contact.id}
         contactName={conversation.contact.name} onSelectSuggestion={(text) => handlers.setInputValue(text)}
       />
-      <Dialog open={activeTool === 'monitoring'} onOpenChange={(open) => !open && handleSetActiveTool(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Métricas de Envio e Performance</DialogTitle>
-          </DialogHeader>
-          <QueueMetricsDashboard metrics={messageQueue?.getMetrics() || { totalSent: 0, totalFailed: 0, totalRetries: 0, averageLatency: 0, byType: {}, byConversation: {} }} />
-        </DialogContent>
-      </Dialog>
+      <ChatMonitoringDialog
+        open={activeTool === 'monitoring'}
+        onOpenChange={(open) => !open && handleSetActiveTool(null)}
+        metrics={messageQueue?.getMetrics()}
+      />
     </div>
   );
 }
