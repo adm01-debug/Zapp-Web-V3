@@ -10,10 +10,9 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { emailMappers } from '@/utils/emailMappers';
 import { EmailAccount } from '@/types/gmail';
-const supabase = _supabase as any;
 import { emailRefreshToken, emailRevokeAccount, emailRegisterWatch } from './gmail/gmailApi';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
@@ -50,7 +49,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   // ── Carrega contas ──────────────────────────────────────────────────
 
   const loadAccounts = useCallback(async () => {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('email_accounts')
       .select('id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at')
       .eq('is_active', true)
@@ -101,13 +100,13 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       setAccounts(prev =>
         prev.map(a =>
           a.id === accountId
-            ? { ...a, token_expiry: (result as any).token_expiry }
+            ? { ...a, token_expiry: result.data?.expiresAt ?? a.token_expiry }
             : a
         )
       );
       setTokenStatus(prev => ({ ...prev, [accountId]: 'valid' }));
 
-      log.info(`Token refreshed for account ${accountId}, expires at ${(result as any).token_expiry}`);
+      log.info(`Token refreshed for account ${accountId}, expires at ${result.data?.expiresAt}`);
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
       setTokenStatus(prev => ({ ...prev, [accountId]: 'expired' }));
@@ -149,11 +148,11 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         setAccounts(prev =>
           prev.map(a =>
             a.id === accountId
-              ? { ...a, watch_expiry: (result as any).expiration }
+              ? { ...a, watch_expiry: result.data?.watchExpiry ?? a.watch_expiry }
               : a
           )
         );
-        log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${(result as any).expiration}`);
+        log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${result.data?.watchExpiry}`);
       } catch (err) {
         log.warn(`Não foi possível renovar watch para ${accountId}`, err);
       }

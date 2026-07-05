@@ -36,6 +36,7 @@ import { ChatDragOverlay } from './chat/ChatDragOverlay';
 import { ChatQuickRepliesPopover } from './chat/ChatQuickRepliesPopover';
 import { ChatSearchBar } from './chat/ChatSearchBar';
 import { useChatPanelHandlers } from './chat/useChatPanelHandlers';
+import type { SlashCommand } from './SlashCommands';
 import type { ActiveTool } from './chat/ChatHeaderToolbar';
 import { QueueMetricsDashboard } from './monitoring/QueueMetricsDashboard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -144,7 +145,7 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
   const handlers = useChatPanelHandlers({
     conversationId: conversation.id, contactId: conversation.contact.id, contactPhone: conversation.contact.phone,
     instanceName, onSendMessage, editMessageApi: editMessage, applySignature,
-    handleTypingStart, handleTypingStop, openDialog: openDialog as any, closeDialog: closeDialog as any, handleSetActiveTool,
+    handleTypingStart, handleTypingStop, openDialog, closeDialog, handleSetActiveTool,
   });
 
   useEffect(() => { initResolve(); }, [conversation.contact.id]);
@@ -182,7 +183,7 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
     onNextConversation: () => {}, // Handled in Sidebar
     onPrevConversation: () => {}, // Handled in Sidebar
     onArchive: () => {}, // Handled in Sidebar
-    onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' } as any),
+    onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' } as unknown as SlashCommand),
     onRefresh: () => {}, // Handled in Sidebar
     onSearchFocusChat: () => handleSetActiveTool('chatSearch'),
   });
