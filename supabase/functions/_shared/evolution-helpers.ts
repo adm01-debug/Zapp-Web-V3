@@ -84,7 +84,7 @@ export function normalizePhone(rawJid?: string): string | null {
   if (!rawJid) return null;
   const sanitized = rawJid
     .trim()
-    .replace(/:\d+(?=@)/, '')
+    .replace(/:\d+(?=@)/g, '')
     .replace('@s.whatsapp.net', '')
     .replace('@g.us', '')
     .replace('@broadcast', '')
@@ -220,7 +220,8 @@ export async function getContactByPhone(
  */
 export function generatePhoneVariants(phone: string): string[] {
   const clean = phone.replace(/\D/g, '').replace(/^\+/, '');
-  const variants = new Set<string>([clean, `+${clean}`, phone]);
+  const variants = new Set<string>([clean]);
+  if (clean) variants.add(`+${clean}`);
   
   // Brazilian number handling (country code 55)
   if (clean.startsWith('55') && clean.length >= 12) {
@@ -235,7 +236,7 @@ export function generatePhoneVariants(phone: string): string[] {
     }
     
     // If missing 9th digit (8 digits after DDD = total 12 with country code)
-    if (clean.length === 12) {
+    if (clean.length === 12 && !rest.startsWith('9')) {
       // Add variant WITH 9th digit
       const with9 = `55${ddd}9${rest}`;
       variants.add(with9);
