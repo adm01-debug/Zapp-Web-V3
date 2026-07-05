@@ -4,7 +4,6 @@
 import {
   isRecord, normalizePhone, toEventRecords,
   getConnectionByInstance, getContactByPhone, persistProfilePicture, generatePhoneVariants,
-  instanceOrFilter,
 } from "./evolution-helpers.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -15,11 +14,11 @@ export async function handleLogoutInstance(supabase: any, instance: string, data
     ?? null;
 
   const { data: prev } = await supabase.from('whatsapp_connections')
-    .select('id, status, phone_number').or(instanceOrFilter(instance)).maybeSingle();
+    .select('id, status, phone_number').eq('instance_id', instance).maybeSingle();
 
   await supabase.from('whatsapp_connections')
     .update({ status: 'logged_out', qr_code: null, updated_at: new Date().toISOString() })
-    .or(instanceOrFilter(instance));
+    .eq('instance_id', instance);
 
   if (prev && prev.status !== 'logged_out') {
     const phone = prev.phone_number ? ` (${prev.phone_number})` : '';
@@ -111,7 +110,7 @@ export async function handleConnectionUpdate(supabase: any, instance: string, ba
   const reasonCode = (baseData.reason ?? (baseData.data as Record<string, unknown>)?.reason) as number | string | undefined;
 
   const { data: prevConn } = await supabase.from('whatsapp_connections')
-    .select('status, phone_number').or(instanceOrFilter(instance)).maybeSingle();
+    .select('status, phone_number').eq('instance_id', instance).maybeSingle();
 
   // Registrar logs específicos de causa (timeline)
   if (evoState === 'close' || evoState === 'disconnected') {
@@ -166,7 +165,7 @@ export async function handleConnectionUpdate(supabase: any, instance: string, ba
 
   // Reset QR sempre que recebermos uma transição não-pendente (open ou close).
   if (evoState === 'open' || evoState === 'close') {
-    await supabase.from('whatsapp_connections').update({ qr_code: null }).or(instanceOrFilter(instance));
+    await supabase.from('whatsapp_connections').update({ qr_code: null }).eq('instance_id', instance);
   }
 
   // Alertas warroom: olhar status do RPC retornado (autoritário) ao invés do baseData.
@@ -329,9 +328,10 @@ export async function handleChatsUpdate(supabase: any, instance: string, data: u
     if (unreadCount !== undefined) {
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact && unreadCount === 0) {
-        await supabase.from('messages').update({ is_read: true })
-          .eq('contact_id', contact.id).eq('sender', 'contact').eq('is_read', false)
-          .eq('whatsapp_connection_id', connection.id);
+        await supabase.schema('evo').from('evolution_messages')
+          .update({ is_read: true, updated_at: new Date().toISOString() })
+          .eq('contact_id', contact.id).eq('from_me', false).eq('is_read', false)
+          .eq('instance_name', instance);
       }
     }
   }
@@ -407,7 +407,7 @@ export async function handleCallEvent(supabase: any, instance: string, data: unk
   let contact = await getContactByPhone(supabase, phone, connection.id);
   if (!contact) {
     const { data: newContact, error: insertErr } = await supabase.from('contacts')
-      .insert({ phone, name: phone, whatsapp_connection_id: connection.id })
+      .insert({ phone, name: phone, whatsapp_connection_id: connection.id, instance_name: instance, remote_jid: from })
       .select('id, avatar_url, assigned_to, name').single();
     if (insertErr && insertErr.code === '23505') {
       const phonesVariants = generatePhoneVariants(phone);
@@ -488,9 +488,9 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
     const contact = await getContactByPhone(supabase, phone, connection.id);
     if (contact) {
       const now = new Date().toISOString();
-      await supabase.from('messages')
-        .update({ is_deleted: true, status: 'deleted', status_updated_at: now })
-        .eq('contact_id', contact.id).eq('whatsapp_connection_id', connection.id);
+      await supabase.schema('evo').from('evolution_messages')
+        .update({ is_deleted: true, status: 'deleted', status_updated_at: now, updated_at: now })
+        .eq('contact_id', contact.id).eq('instance_name', instance);
     }
   }
 }
@@ -499,7 +499,7 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
 export async function handleApplicationStartup(supabase: any, instance: string) {
   console.log(`Application startup event from instance: ${instance}`);
   const { data: conn } = await supabase.from('whatsapp_connections')
-    .select('id, status').or(instanceOrFilter(instance)).maybeSingle();
+    .select('id, status').eq('instance_id', instance).maybeSingle();
   if (conn && conn.status === 'disconnected') {
     await supabase.from('whatsapp_connections')
       .update({ status: 'connecting', updated_at: new Date().toISOString() }).eq('id', conn.id);
@@ -525,7 +525,7 @@ export async function handleContactsSet(supabase: any, instance: string, data: u
     const existing = await getContactByPhone(supabase, phone, connection.id);
     if (existing) { skipped++; continue; }
 
-    const { error: insertErr } = await supabase.from('contacts').insert({ phone, name: pushName, whatsapp_connection_id: connection.id });
+    const { error: insertErr } = await supabase.from('contacts').insert({ phone, name: pushName, whatsapp_connection_id: connection.id, instance_name: instance, remote_jid: jid });
     if (insertErr && insertErr.code === '23505') { skipped++; continue; }
     if (insertErr) { console.warn(`[contacts.set] insert error for ${phone}:`, insertErr.message); skipped++; continue; }
     synced++;
@@ -549,9 +549,10 @@ export async function handleChatsSet(supabase: any, instance: string, data: unkn
     if (unreadCount === 0) {
       const contact = await getContactByPhone(supabase, phone, connection.id);
       if (contact) {
-        await supabase.from('messages').update({ is_read: true })
-          .eq('contact_id', contact.id).eq('sender', 'contact').eq('is_read', false)
-          .eq('whatsapp_connection_id', connection.id);
+        await supabase.schema('evo').from('evolution_messages')
+          .update({ is_read: true, updated_at: new Date().toISOString() })
+          .eq('contact_id', contact.id).eq('from_me', false).eq('is_read', false)
+          .eq('instance_name', instance);
         processed++;
       }
     }

@@ -7,17 +7,24 @@ import {
 } from "./evolution-helpers.ts";
 import { persistMediaToStorage, persistMediaViaApi, parseMessageContent } from "./evolution-media.ts";
 
+// All message reads/writes go directly to evo.evolution_messages via supabase.schema('evo').
+// Column mapping: external_id → message_id, whatsapp_connection_id → (dropped; use instance_name),
+//                 sender 'agent' → from_me:true/direction:'outbound', sender 'contact' → from_me:false/direction:'inbound'
+
 // deno-lint-ignore no-explicit-any
 export async function handleOutgoingWhatsAppMessage(
   supabase: any, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
 ) {
   const externalId = key.id;
+  const evo = () => supabase.schema('evo').from('evolution_messages');
+
+  const { data: existingMessage } = await evo().select('id')
+    .eq('message_id', externalId).eq('instance_name', instance).maybeSingle();
+  if (existingMessage) return;
+
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
-  const { data: existingMessage } = await supabase.from('messages').select('id')
-    .eq('external_id', externalId).eq('whatsapp_connection_id', connection.id).maybeSingle();
-  if (existingMessage) return;
 
   const payloadKey = isRecord(data.key) ? data.key : null;
   const bestJid = resolveEventJid(key, payloadKey, data);
@@ -47,47 +54,42 @@ export async function handleOutgoingWhatsAppMessage(
     ? new Date((data.messageTimestamp as number) * 1000).toISOString() : new Date().toISOString();
 
   const recentCutoff = new Date(Date.now() - 300_000).toISOString();
-  const { data: pendingMessage } = await supabase.from('messages').select('id')
-    .eq('contact_id', contact.id).eq('sender', 'agent').eq('message_type', parsed.messageType)
-    .is('external_id', null).gte('created_at', recentCutoff)
+  const { data: pendingMessage } = await evo().select('id')
+    .eq('contact_id', contact.id).eq('from_me', true).eq('message_type', parsed.messageType)
+    .is('message_id', null).gte('created_at', recentCutoff)
     .order('created_at', { ascending: true }).limit(1).maybeSingle();
 
   if (pendingMessage?.id) {
-    // Only return when this writer actually claimed the placeholder row.
-    // With `.is('external_id', null)` a concurrent webhook matches 0 rows and
-    // must fall through to the INSERT below so the message is never dropped.
-    const { data: claimed, error: claimError } = await supabase.from('messages')
-      .update({ status: 'sent', external_id: externalId, status_updated_at: new Date().toISOString() })
+    const { data: claimed, error: claimError } = await evo()
+      .update({ status: 'sent', message_id: externalId, status_at: new Date().toISOString() })
       .eq('id', pendingMessage.id)
-      .is('external_id', null)
+      .is('message_id', null)
       .select('id');
     if (claimError) { console.error('[FROM_ME] Error claiming placeholder:', claimError); return; }
     if (claimed?.length) return;
   }
 
-  // Re-check before INSERT: a concurrent webhook that lost the placeholder race
-  // may have already inserted a row for this externalId in the window between the
-  // initial dedup check (~line 18) and here. This SELECT reduces the chance of
-  // hitting the DB UNIQUE constraint, but it is not atomic — a sub-millisecond
-  // race between the SELECT and the upsert below is still possible. The
-  // upsert's ON CONFLICT DO NOTHING (ignoreDuplicates:true) is the final,
-  // fully atomic backstop: the DB rejects the second write at constraint level.
-  const { data: raceCheck } = await supabase.from('messages')
+  const { data: raceCheck } = await evo()
     .select('id')
-    .eq('external_id', externalId)
-    .eq('whatsapp_connection_id', connection.id)
+    .eq('message_id', externalId)
+    .eq('instance_name', instance)
     .maybeSingle();
   if (raceCheck) return;
 
-  // upsert + ignoreDuplicates:true maps to ON CONFLICT (external_id,whatsapp_connection_id) DO NOTHING.
-  // When two concurrent webhooks both fall through the raceCheck above (sub-millisecond window),
-  // only one INSERT wins; the other silently no-ops at the DB layer with no error returned.
-  const { data: insertedMessage, error: msgError } = await supabase.from('messages').upsert({
-    contact_id: contact.id, whatsapp_connection_id: connection.id, content: parsed.content,
-    message_type: parsed.messageType, media_url: mediaUrl, sender: 'agent', external_id: externalId,
-    status: 'sent', created_at: messageCreatedAt, agent_id: contact.assigned_to || null,
-    status_updated_at: new Date().toISOString(),
-  }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true }).select('id').maybeSingle();
+  const { data: insertedMessage, error: msgError } = await evo().upsert({
+    contact_id: contact.id,
+    instance_name: instance,
+    message_id: externalId,
+    remote_jid: bestJid,
+    from_me: true,
+    direction: 'outbound',
+    content: parsed.content,
+    message_type: parsed.messageType,
+    media_url: mediaUrl,
+    status: 'sent',
+    created_at: messageCreatedAt,
+    status_at: new Date().toISOString(),
+  }, { onConflict: 'message_id,instance_name', ignoreDuplicates: true }).select('id').maybeSingle();
 
   if (msgError) { console.error('[FROM_ME] Error inserting outgoing message:', msgError); return; }
   if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
@@ -138,17 +140,21 @@ export async function handleIncomingMessage(
     const picUrl = await fetchProfilePicFromApi(instance, phone);
     if (picUrl) avatarUrl = await persistProfilePicture(supabase, phone, picUrl);
     const { data: newContact, error: insertErr } = await supabase.from('contacts').insert({
-      phone, name: (data.pushName as string) || phone, avatar_url: avatarUrl, whatsapp_connection_id: connection.id,
+      phone,
+      name: (data.pushName as string) || phone,
+      avatar_url: avatarUrl,
+      whatsapp_connection_id: connection.id,
+      instance_name: instance,
+      remote_jid: bestJid || `${phone}@s.whatsapp.net`,
     }).select('id, avatar_url, assigned_to, name').single();
     if (insertErr && insertErr.code === '23505') {
-      // Duplicate phone — contact exists with another connection; fetch with 9th digit variants
       const phonesVariants = generatePhoneVariants(phone);
       const { data: existing } = await supabase.from('contacts').select('id, avatar_url, assigned_to, name')
         .in('phone', phonesVariants).eq('whatsapp_connection_id', connection.id).limit(1).maybeSingle();
       if (existing) {
         contact = existing;
-        await supabase.from('contacts').update({ whatsapp_connection_id: connection.id, updated_at: new Date().toISOString() }).eq('id', existing.id);
-        console.log(`[CONTACT] Relinked existing contact ${existing.id} to connection ${connection.id}`);
+        await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', existing.id);
+        console.log(`[CONTACT] Recovered existing contact ${existing.id} after duplicate insert conflict (instance: ${instance})`);
       }
     } else {
       contact = newContact;
@@ -166,37 +172,48 @@ export async function handleIncomingMessage(
   const messageCreatedAt = (data.messageTimestamp as number)
     ? new Date((data.messageTimestamp as number) * 1000).toISOString() : new Date().toISOString();
 
-  const { data: existingMessage } = await supabase.from('messages')
-    .select('id, status, content').eq('external_id', key.id).eq('whatsapp_connection_id', connection.id).maybeSingle();
+  const evo = () => supabase.schema('evo').from('evolution_messages');
+
+  const { data: existingMessage } = await evo()
+    .select('id, status, content').eq('message_id', key.id).eq('instance_name', instance).maybeSingle();
 
   if (existingMessage?.id) {
     const preservedStatus = existingMessage.status && existingMessage.status !== 'received' ? existingMessage.status : 'received';
     const preservedContent = existingMessage.status === 'deleted' ? (existingMessage.content || '[Mensagem apagada]') : content;
-    const statusChanged = preservedStatus !== existingMessage.status;
-    const { error: updateErr } = await supabase.from('messages').update({
-      contact_id: contact.id, whatsapp_connection_id: connection.id, content: preservedContent,
-      message_type: messageType, media_url: mediaUrl, sender: 'contact', created_at: messageCreatedAt, status: preservedStatus,
-      ...(statusChanged ? { status_updated_at: messageCreatedAt } : {}),
+    await evo().update({
+      contact_id: contact.id,
+      content: preservedContent,
+      message_type: messageType,
+      media_url: mediaUrl,
+      from_me: false,
+      direction: 'inbound',
+      status: preservedStatus,
+      updated_at: new Date().toISOString(),
     }).eq('id', existingMessage.id);
-    if (updateErr) { console.error('[INCOMING] Error updating existing message:', updateErr); return; }
-    await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
     if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, existingMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
     return;
   }
 
-  const { data: insertedMessage, error: msgError } = await supabase.from('messages').upsert({
-    contact_id: contact.id, whatsapp_connection_id: connection.id, content,
-    message_type: messageType, media_url: mediaUrl, sender: 'contact', external_id: key.id,
-    status: 'received', created_at: messageCreatedAt, status_updated_at: messageCreatedAt,
-  }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true }).select('id').maybeSingle();
+  const { data: insertedMessage, error: msgError } = await evo().insert({
+    contact_id: contact.id,
+    instance_name: instance,
+    message_id: key.id,
+    from_me: false,
+    direction: 'inbound',
+    content,
+    message_type: messageType,
+    media_url: mediaUrl,
+    status: 'received',
+    remote_jid: bestJid || `${phone}@s.whatsapp.net`,
+    push_name: (data.pushName as string) || null,
+    created_at: messageCreatedAt,
+  }).select('id').single();
 
   if (msgError) {
     console.error('Error inserting message:', { msgError, externalId: key.id, bestJid, phone, messageType, content });
     return;
   }
-  if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
-  await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
-  if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
+  if (messageType === 'audio' && mediaUrl && insertedMessage) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
 }
 
 // deno-lint-ignore no-explicit-any
@@ -290,7 +307,9 @@ export async function handleAudioTranscription(supabase: any, _contactId: string
     .select('value').eq('key', 'auto_transcription_enabled').maybeSingle();
   if (globalSetting?.value === 'false') return;
 
-  await supabase.from('messages').update({ transcription_status: 'processing' }).eq('id', messageId);
+  const evo = () => supabase.schema('evo').from('evolution_messages');
+
+  await evo().update({ transcription_status: 'processing', updated_at: new Date().toISOString() }).eq('id', messageId);
 
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/ai-transcribe-audio`, {
@@ -301,11 +320,11 @@ export async function handleAudioTranscription(supabase: any, _contactId: string
 
     if (response.ok) {
       const result = await response.json();
-      await supabase.from('messages').update({ transcription: result.text, transcription_status: 'completed' }).eq('id', messageId);
+      await evo().update({ transcription: result.text, transcription_status: 'completed', updated_at: new Date().toISOString() }).eq('id', messageId);
     } else {
-      await supabase.from('messages').update({ transcription_status: 'failed' }).eq('id', messageId);
+      await evo().update({ transcription_status: 'failed', updated_at: new Date().toISOString() }).eq('id', messageId);
     }
   } catch {
-    await supabase.from('messages').update({ transcription_status: 'failed' }).eq('id', messageId);
+    await evo().update({ transcription_status: 'failed', updated_at: new Date().toISOString() }).eq('id', messageId);
   }
 }
