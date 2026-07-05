@@ -88,7 +88,9 @@ export function useTeamChatNotifications(activeConversationId: string | null) {
       .channel('team-chat-notifications')
       .on('postgres_changes', {
         event: 'INSERT',
-        schema: 'public',
+        // Wave 2: team_messages is a VIEW in public schema — zapp.team_messages is the base table.
+        // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
+        schema: 'zapp',
         table: 'team_messages',
       }, async (payload) => {
         const msg = payload.new as {
