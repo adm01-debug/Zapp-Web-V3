@@ -289,6 +289,37 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
   } catch (err) { console.error('Avatar persist error:', err); return null; }
 }
 
+export function instanceOrFilter(instance: string): string {
+  const escaped = instance.replace(/['"]/g, '');
+  return `instance_id.eq.${escaped},instance_name.eq.${escaped}`;
+}
+
+export interface DeadLetterInput {
+  event_type?: string | null;
+  instance?: string | null;
+  payload?: unknown;
+  error_message?: string | null;
+  error_stack?: string | null;
+  request_id?: string | null;
+}
+
+// deno-lint-ignore no-explicit-any
+export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
+  try {
+    await supabase.from('webhook_dead_letter').insert({
+      event_type: input.event_type ?? null,
+      instance: input.instance ?? null,
+      payload: input.payload ?? null,
+      error_message: input.error_message ?? null,
+      error_stack: input.error_stack ?? null,
+      request_id: input.request_id ?? null,
+      created_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn('[dead-letter] insert failed:', (e as Error).message ?? String(e));
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';

@@ -180,7 +180,7 @@ export async function handleIncomingMessage(
   if (existingMessage?.id) {
     const preservedStatus = existingMessage.status && existingMessage.status !== 'received' ? existingMessage.status : 'received';
     const preservedContent = existingMessage.status === 'deleted' ? (existingMessage.content || '[Mensagem apagada]') : content;
-    await evo().update({
+    const { error: updateErr } = await evo().update({
       contact_id: contact.id,
       content: preservedContent,
       message_type: messageType,
@@ -190,6 +190,7 @@ export async function handleIncomingMessage(
       status: preservedStatus,
       updated_at: new Date().toISOString(),
     }).eq('id', existingMessage.id);
+    if (updateErr) console.error('[INCOMING] Error updating existing message:', { updateErr, messageId: existingMessage.id });
     if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, existingMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
     return;
   }
