@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
 import { dbFrom } from '@/integrations/datasource/db';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 const log = getLogger('useSendProduct');
 
@@ -76,7 +77,7 @@ export function useSendToContact(onSuccess: () => void) {
       try {
         const { data: connections } = await supabase
           .from('whatsapp_connections')
-          .select('id, name')
+          .select('id, name, instance_id, instance_name')
           .eq('status', 'connected')
           .limit(1);
 
@@ -99,7 +100,7 @@ export function useSendToContact(onSuccess: () => void) {
           const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
             body: {
               action: 'send-media',
-              instanceName: connection?.name || 'wpp2',
+              instanceName: (connection ? evolutionInstanceName(connection as any) : null) || 'wpp2',
               number: contact.phone,
               mediatype: 'image',
               media: imgUrl,
@@ -131,7 +132,7 @@ export function useSendToContact(onSuccess: () => void) {
         const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
           body: {
             action: 'send-text',
-            instanceName: connection?.name || 'wpp2',
+            instanceName: (connection ? evolutionInstanceName(connection as any) : null) || 'wpp2',
             number: contact.phone,
             text: message,
           },

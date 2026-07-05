@@ -5,6 +5,7 @@ import { newRequestId } from '@/lib/withRequestId';
 import { z } from 'zod';
 import { createCriticalPayloadSchemas, mapValidationIssuesToContractError } from '@/shared/criticalPayloadSchemas';
 import { dbFrom } from '@/integrations/datasource/db';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 interface ContactResult {
   id: string;
@@ -33,7 +34,7 @@ export function useNewConversation(
 
   useEffect(() => {
     if (!open) return;
-    supabase.from('whatsapp_connections').select('id, name').eq('status', 'connected')
+    supabase.from('whatsapp_connections').select('id, name, instance_id, instance_name').eq('status', 'connected')
       .then(({ data }) => {
         if (data && data.length > 0) {
           setConnections(data);
@@ -91,7 +92,7 @@ export function useNewConversation(
       });
       if (msgError) throw msgError;
       const rawSendPayload = {
-        instanceName: connections.find(c => c.id === selectedConnection)?.name || 'wpp2',
+        instanceName: (() => { const c = connections.find(c => c.id === selectedConnection); return (c ? evolutionInstanceName(c) : null) || 'wpp2'; })(),
         number: selectedContact?.phone || newPhone,
         text: messageText.trim(),
       };
