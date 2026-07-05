@@ -27,7 +27,7 @@ export default defineTool({
     }
     const { data, error } = await supabaseForUser(ctx)
       .from("whatsapp_connections")
-      .select("id, instance_id, phone_number, status, api_type, created_at")
+      .select("id, name, instance_id, phone_number, status, is_default, created_at")
       .limit(limit ?? 20);
 
     if (error) {

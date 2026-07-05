@@ -55,7 +55,7 @@ var list_connections_default = defineTool2({
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "N\xE3o autenticado." }], isError: true };
     }
-    const { data, error } = await supabaseForUser(ctx).from("whatsapp_connections").select("id, instance_id, phone_number, status, api_type, created_at").limit(limit ?? 20);
+    const { data, error } = await supabaseForUser(ctx).from("whatsapp_connections").select("id, name, instance_id, phone_number, status, is_default, created_at").limit(limit ?? 20);
     if (error) {
       return { content: [{ type: "text", text: error.message }], isError: true };
     }
