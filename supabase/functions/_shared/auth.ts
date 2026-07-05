@@ -70,7 +70,7 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
       const [, payload] = token.split('.');
       if (!payload) return null;
       const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
-      return JSON.parse(atob(padded)) as { role?: string; sub?: string };
+      return JSON.parse(atob(padded)) as { role?: string; sub?: string; iss?: string };
     } catch {
       return null;
     }
@@ -80,20 +80,27 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
     return errorResponse("Unauthorized: user session required", 401, req);
   }
 
-  // Prefer self-hosted when configured — the published frontend uses it and
-  // Cloud validation would falsely reject those JWTs. Fall back to Cloud.
   const selfUrl = readSupabaseUrl("SELFHOSTED_SUPABASE_URL") ?? readSupabaseUrl("EXTERNAL_SUPABASE_URL");
   const selfAnon = readSecret("SELFHOSTED_SUPABASE_ANON_KEY") ?? readSecret("EXTERNAL_SUPABASE_ANON_KEY");
   const cloudUrl = readSupabaseUrl("SUPABASE_URL");
   const cloudAnon = readSecret("SUPABASE_ANON_KEY") ?? readSecret("SUPABASE_PUBLISHABLE_KEY");
 
-  const candidates: Array<{ url: string; key: string; label: string }> = [];
-  if (selfUrl && selfAnon) candidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted" });
-  if (cloudUrl && cloudAnon) candidates.push({ url: cloudUrl, key: cloudAnon, label: "cloud" });
+  const allCandidates: Array<{ url: string; key: string; label: string }> = [];
+  if (selfUrl && selfAnon) allCandidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted" });
+  if (cloudUrl && cloudAnon) allCandidates.push({ url: cloudUrl, key: cloudAnon, label: "cloud" });
 
-  if (candidates.length === 0) {
+  if (allCandidates.length === 0) {
     return errorResponse("Server misconfigured: no Supabase auth backend", 500, req);
   }
+
+  // Fast-path: prefer the candidate whose origin matches the JWT's `iss` claim.
+  const tokenIssOrigin = (() => {
+    try { return tokenPayload.iss ? new URL(tokenPayload.iss).origin : null; } catch { return null; }
+  })();
+  const candidates = tokenIssOrigin
+    ? [...allCandidates].sort((a, b) => (b.url === tokenIssOrigin ? 1 : 0) - (a.url === tokenIssOrigin ? 1 : 0))
+    : allCandidates;
+
 
   const tried: Array<{ label: string; url: string; ok: boolean; err?: string }> = [];
   let lastErr: string | null = null;
