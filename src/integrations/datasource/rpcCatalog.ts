@@ -356,6 +356,16 @@ interface GetCSATStatsParams {
   p_days?: number;
 }
 
+// ── Provider panel ────────────────────────────────────────────────────────────
+
+type ProviderPanelParams = Record<string, never>;
+
+interface ProviderSessionTimelineParams {
+  p_provider_id: string | null;
+  p_session_id: string | null;
+  p_limit?: number;
+}
+
 // ── Outbound event telemetry ──────────────────────────────────────────────────
 
 interface LogOutboundEventParams {
@@ -603,6 +613,16 @@ export const RPC = {
   // ── CSAT / NPS ────────────────────────────────────────────────────────────
   getCSATStats: def<GetCSATStatsParams, Record<string, unknown>>({
     name: 'get_csat_stats',
+    client: 'lovable',
+  }),
+
+  // ── Provider panel ────────────────────────────────────────────────────────
+  providerPanel: def<ProviderPanelParams, Record<string, unknown>>({
+    name: 'rpc_provider_panel',
+    client: 'lovable',
+  }),
+  providerSessionTimeline: def<ProviderSessionTimelineParams, Record<string, unknown>>({
+    name: 'rpc_provider_session_timeline',
     client: 'lovable',
   }),
 

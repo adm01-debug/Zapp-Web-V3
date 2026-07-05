@@ -111,7 +111,7 @@ export const ContactSidebarPanel: React.FC<Props> = ({ contact, onEdit, onOpenCh
           </TabsContent>
 
           <TabsContent value="lgpd" className="p-3 mt-0">
-            <LGPDConsentManager contact={safeContact as any} onUpdated={onUpdated} readonly={readonly} />
+            <LGPDConsentManager contact={safeContact} onUpdated={onUpdated} readonly={readonly} />
           </TabsContent>
 
           <TabsContent value="history" className="p-3 mt-0">

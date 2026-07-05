@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { dbRpc, dbFrom } from '@/integrations/datasource/db';
+import { RPC } from '@/integrations/datasource/rpcCatalog';
 
 export type ProviderType = 'evolution' | 'wppconnect' | 'baileys' | 'custom';
 
@@ -50,8 +51,8 @@ export function useProviderPanel() {
   const fetchPanel = useCallback(async () => {
     setLoading(true);
     const [{ data: panelData }, { data: logsData }] = await Promise.all([
-      supabase.rpc('rpc_provider_panel' as any),
-      supabase.rpc('rpc_provider_session_timeline' as any, {
+      dbRpc(RPC.providerPanel, {}),
+      dbRpc(RPC.providerSessionTimeline, {
         p_provider_id: selectedProviderId,
         p_session_id: null,
         p_limit: 100,
@@ -70,7 +71,7 @@ export function useProviderPanel() {
   }, [fetchPanel]);
 
   const upsertProvider = async (payload: Partial<ProviderRow> & { id?: string; auth_token?: string }) => {
-    const { id, ...rest } = payload as any;
+    const { id, ...rest } = payload;
     const data = {
       name: rest.name,
       provider_type: rest.provider_type,
@@ -80,8 +81,8 @@ export function useProviderPanel() {
       is_active: rest.is_active ?? true,
     };
     const op = id
-      ? (supabase as any).from('provider_configs').update(data).eq('id', id)
-      : (supabase as any).from('provider_configs').insert(data);
+      ? dbFrom('provider_configs').update(data).eq('id', id)
+      : dbFrom('provider_configs').insert(data);
     const { error } = await op;
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -93,7 +94,7 @@ export function useProviderPanel() {
   };
 
   const deleteProvider = async (id: string) => {
-    const { error } = await (supabase as any).from('provider_configs').delete().eq('id', id);
+    const { error } = await dbFrom('provider_configs').delete().eq('id', id);
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
       return;
