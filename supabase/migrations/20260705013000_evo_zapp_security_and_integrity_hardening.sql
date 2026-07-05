@@ -1,12 +1,21 @@
--- Sessão 6 (2026-07-05) — Auditoria exaustiva Evolution API + banco.
+-- Sessão 7 (2026-07-05) — Auditoria exaustiva Evolution API + banco.
 -- Registra (idempotente) as correções de segurança/integridade aplicadas ao vivo
 -- no Supabase self-hosted (projeto zapp) durante a auditoria. Ver
--- docs/EVOLUTION_API_AUDIT_2026-07-05_sessao6.md para o relatório completo.
+-- docs/EVOLUTION_API_AUDIT_2026-07-05_sessao7.md para o relatório completo.
+-- (Renomeada de "sessao6" para "sessao7" por colidir com o nome de arquivo de
+-- outra sessão de auditoria paralela já mergeada via PR #193 — ver nota no topo
+-- do relatório sessao7 sobre como os dois conjuntos de fixes se complementam.)
 
 -- =============================================================================
 -- 1) zapp.whatsapp_connections: mascarar qr_code/instance_id/evo_instance_id
 --    para não-admin (a view repassava esses campos sem mascara nenhuma,
 --    diferente do padrão já usado em public.whatsapp_connections_safe).
+--    security_invoker=true explícito: CREATE OR REPLACE VIEW não preserva
+--    reloptions de uma definição anterior (confirmado ao vivo: reloptions
+--    ficou NULL após o replace inicial sem esta linha), e as demais views
+--    zapp.* do projeto seguem essa convenção (ver
+--    supabase/migrations/20260701120000_finalizacao_sync_zapp.sql).
+--    has_role qualificado com schema para não depender de search_path.
 -- =============================================================================
 CREATE OR REPLACE VIEW zapp.whatsapp_connections AS
  SELECT whatsapp_connections.id,
@@ -14,13 +23,13 @@ CREATE OR REPLACE VIEW zapp.whatsapp_connections AS
     whatsapp_connections.phone_number,
     whatsapp_connections.instance_name,
         CASE
-            WHEN has_role(auth.uid(), 'admin'::app_role) THEN whatsapp_connections.instance_id
+            WHEN public.has_role(auth.uid(), 'admin'::app_role) THEN whatsapp_connections.instance_id
             ELSE NULL::text
         END AS instance_id,
     whatsapp_connections.api_url,
     whatsapp_connections.status,
         CASE
-            WHEN has_role(auth.uid(), 'admin'::app_role) THEN whatsapp_connections.qr_code
+            WHEN public.has_role(auth.uid(), 'admin'::app_role) THEN whatsapp_connections.qr_code
             ELSE NULL::text
         END AS qr_code,
     whatsapp_connections.is_active,
@@ -52,10 +61,12 @@ CREATE OR REPLACE VIEW zapp.whatsapp_connections AS
     whatsapp_connections.max_reconnect_attempts,
     whatsapp_connections.reconnect_interval_seconds,
         CASE
-            WHEN has_role(auth.uid(), 'admin'::app_role) THEN whatsapp_connections.evo_instance_id
+            WHEN public.has_role(auth.uid(), 'admin'::app_role) THEN whatsapp_connections.evo_instance_id
             ELSE NULL::text
         END AS evo_instance_id
    FROM public.whatsapp_connections;
+
+ALTER VIEW zapp.whatsapp_connections SET (security_invoker = true);
 
 -- Nota de follow-up (não aplicado aqui): public.whatsapp_connections (tabela base)
 -- ainda tem policy wconn_select_auth USING(true) para 'authenticated', ou seja
@@ -80,7 +91,8 @@ CREATE POLICY evo_creds_service_role_only ON evo.evolution_instance_credentials
 -- 3) zapp.channel_connections: policy channel_conn_select (qual=true) expunha
 --    TODAS as colunas, incluindo credentials/config (tokens de integração), a
 --    qualquer authenticated. Revoga grant de coluna nessas duas e mantém as
---    demais (a tabela já tem RLS por role para INSERT/UPDATE/DELETE).
+--    demais (a tabela já tem RLS por role para INSERT/UPDATE/DELETE, ver
+--    supabase/migrations/20260705000002_rls_channel_connections_scoped.sql).
 -- =============================================================================
 REVOKE SELECT ON zapp.channel_connections FROM authenticated;
 GRANT SELECT (
@@ -88,8 +100,11 @@ GRANT SELECT (
   external_page_id, webhook_url, whatsapp_connection_id, created_at,
   updated_at, created_by
 ) ON zapp.channel_connections TO authenticated;
--- credentials/config permanecem sem SELECT grant para authenticated;
--- service_role mantém acesso total (bypassa RLS e grants por padrão).
+-- credentials/config permanecem sem SELECT grant para authenticated.
+-- service_role mantém acesso total: já possui GRANT explícito (SELECT/INSERT/
+-- UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER, confirmado em
+-- information_schema.role_table_grants) nesta tabela, independente do
+-- BYPASSRLS do role — o REVOKE acima só atinge 'authenticated'.
 
 -- =============================================================================
 -- 4) Integridade referencial: department_id em profiles/queues/
@@ -131,10 +146,27 @@ ALTER TABLE zapp.automation_executions VALIDATE CONSTRAINT automation_executions
 -- 5) zapp.messages_whatsapp_deprecated: tabela órfã (0 linhas, nenhuma view/
 --    função referenciando), residual da migração messages -> evo.evolution_messages.
 --    Arquivada antes de dropar (convenção já usada no schema 'archive').
+--    Bloco protegido para ser seguro em re-run (ambiente onde a tabela já foi
+--    removida numa execução anterior desta mesma migration) e portável para
+--    ambientes novos onde o schema 'archive' ainda não exista.
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS archive.messages_whatsapp_deprecated_backup_20260705
-  (LIKE zapp.messages_whatsapp_deprecated INCLUDING ALL);
-INSERT INTO archive.messages_whatsapp_deprecated_backup_20260705
-  SELECT * FROM zapp.messages_whatsapp_deprecated
-  WHERE NOT EXISTS (SELECT 1 FROM archive.messages_whatsapp_deprecated_backup_20260705);
-DROP TABLE IF EXISTS zapp.messages_whatsapp_deprecated;
+CREATE SCHEMA IF NOT EXISTS archive;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'zapp' AND table_name = 'messages_whatsapp_deprecated'
+  ) THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'archive' AND table_name = 'messages_whatsapp_deprecated_backup_20260705'
+    ) THEN
+      EXECUTE 'CREATE TABLE archive.messages_whatsapp_deprecated_backup_20260705 '
+        || '(LIKE zapp.messages_whatsapp_deprecated INCLUDING ALL)';
+      EXECUTE 'INSERT INTO archive.messages_whatsapp_deprecated_backup_20260705 '
+        || 'SELECT * FROM zapp.messages_whatsapp_deprecated';
+    END IF;
+    EXECUTE 'DROP TABLE zapp.messages_whatsapp_deprecated';
+  END IF;
+END $$;

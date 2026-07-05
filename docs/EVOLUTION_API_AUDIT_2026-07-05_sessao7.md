@@ -1,10 +1,24 @@
-# 🔍 Sessão 6 — Auditoria exaustiva Evolution API + bancos (nativo/evo/zapp) + infra — 2026-07-05
+# 🔍 Sessão 7 — Auditoria exaustiva Evolution API + bancos (nativo/evo/zapp) + infra — 2026-07-05
 
+> **Nota de reconciliação:** esta auditoria rodou em paralelo (mesma janela de horário,
+> 2026-07-05 ~00:20–01:30 UTC) a uma outra sessão Claude Code independente, cujo relatório
+> já está em [`EVOLUTION_API_AUDIT_2026-07-05_sessao6.md`](./EVOLUTION_API_AUDIT_2026-07-05_sessao6.md)
+> (mergeado antes deste, via PR #193). Por isso este arquivo foi renomeado de "sessao6"
+> para "sessao7" ao resolver o conflito de merge. As duas sessões encontraram parte dos
+> mesmos problemas por ângulos diferentes e **não se contradizem**: a sessão 6 tratou
+> `zapp.channel_connections` via policies de linha (RLS granular por operação) e revogou
+> `anon` + `security_invoker` em todas as 546 views de `public`; esta sessão (7) fechou a
+> lacuna de **exposição de coluna** que sobrava (grant de coluna para `credentials`/`config`
+> continuava aberto para `authenticated` mesmo com a policy de linha corrigida) e tratou
+> `zapp.whatsapp_connections`/`evo.evolution_instance_credentials`, que a sessão 6 não
+> cobriu. Os dois conjuntos de mudanças são complementares e idempotentes entre si.
+>
 > **Método:** 8 trilhas de investigação independentes via MCP (Portainer, Evolution API,
 > Supabase self-hosted PG15 + PG14 nativo da Evolution), com simulação de cenários e
 > verificação cruzada, seguido de execução direta das correções seguras e reversíveis.
-> **Anteriores:** sessões 1–5 de 2026-07-03/04 (`EVOLUTION_API_AUDIT_2026-07-04_*`,
-> scorecard "10/10" da sessão 3, `EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md`).
+> **Anteriores:** sessões 1–6 de 2026-07-03/04/05 (`EVOLUTION_API_AUDIT_2026-07-04_*`,
+> scorecard "10/10" da sessão 3, `EVOLUTION_API_AUDIT_2026-07-04_sessao5_wpp2.md`,
+> `EVOLUTION_API_AUDIT_2026-07-05_sessao6.md`).
 > Este relatório **não repete** achados já resolvidos nessas sessões (ex.: bug da
 > instância fantasma wpp2/UUID, já corrigido em `src/lib/evolutionInstance.ts` e no
 > guard server-side de `evolution-api/index.ts`) — foca no que mudou desde então.
