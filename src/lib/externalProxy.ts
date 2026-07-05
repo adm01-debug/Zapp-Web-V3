@@ -38,12 +38,23 @@ async function invokeViaFetch<T>(
   if (!FUNCTIONS_BASE) {
     return { data: null, error: { name: 'ConfigError', message: 'VITE_SUPABASE_URL missing' } };
   }
-  let authHeader = `Bearer ${SUPABASE_ANON}`;
+  let authHeader: string | null = null;
   try {
     const { data, error } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (token) authHeader = `Bearer ${token}`;
   } catch { /* fall back to anon */ }
+
+  if (!authHeader) {
+    return {
+      data: null,
+      error: {
+        name: 'AuthSessionMissingError',
+        message: 'Sessão ausente. Faça login novamente para consultar o proxy externo.',
+        status: 401,
+      },
+    };
+  }
 
   try {
     const res = await fetch(`${FUNCTIONS_BASE}/${fnName}`, {
