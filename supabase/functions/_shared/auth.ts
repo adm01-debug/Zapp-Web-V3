@@ -49,7 +49,7 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
 
   const url = requireEnv("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")
+  const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))
     ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
   if (!anonKey) return errorResponse("Server misconfigured: anon key missing", 500, req);
 
@@ -87,7 +87,7 @@ export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser
  */
 export function requireServiceRoleOnly(req: Request): Response | null {
   const token = getBearer(req);
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (token && serviceKey && timingSafeStringEqual(token, serviceKey)) return null;
   return errorResponse("Unauthorized: internal endpoint", 401, req);
 }
@@ -99,7 +99,7 @@ export function requireServiceRoleOnly(req: Request): Response | null {
  */
 export function requireServiceRoleOrCron(req: Request): Response | null {
   const token = getBearer(req);
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (token && serviceKey && timingSafeStringEqual(token, serviceKey)) return null;
 
   const cronSecret = Deno.env.get("CRON_SECRET");

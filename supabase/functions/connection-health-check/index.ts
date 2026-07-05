@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
 
   const log = new Logger("connection-health-check");
 
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
   const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
   const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const xCron = req.headers.get('x-cron-secret') ?? '';
@@ -195,10 +195,10 @@ Deno.serve(async (req) => {
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
 
     // FATOR X (opcional — se faltar, layer 3 é skipped graciosamente)
-    const externalUrl = Deno.env.get('EXTERNAL_SUPABASE_URL') ?? Deno.env.get('FATOR_X_URL');
-    const externalKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')
+    const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL')) ?? Deno.env.get('FATOR_X_URL');
+    const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
                      ?? Deno.env.get('FATOR_X_SERVICE_ROLE_KEY')
-                     ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+                     ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
 
     // Allow targeting a single instance (manual "Verificar agora" do card)
     let onlyInstance: string | null = null;

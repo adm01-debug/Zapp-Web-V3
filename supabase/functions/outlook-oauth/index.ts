@@ -40,14 +40,14 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
   );
 
   const clientId     = Deno.env.get('MICROSOFT_CLIENT_ID');
   const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET');
   const redirectUri  = Deno.env.get('MICROSOFT_REDIRECT_URI') ??
-    `${Deno.env.get('SUPABASE_URL')}/functions/v1/outlook-oauth`;
+    `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/outlook-oauth`;
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {

@@ -444,7 +444,7 @@ export async function authorizeRoles(
   if (authError || !user) throw { message: "Não autorizado", status: 401 };
 
   // Fetch user roles using service role to bypass RLS for checking
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   
   const { data: roleData, error: roleError } = await adminClient

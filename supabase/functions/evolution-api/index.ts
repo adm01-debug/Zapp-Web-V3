@@ -54,8 +54,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+  const supabaseServiceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
   // auth based on the URL alone creates a bypass (e.g. POST /create-instance with body
   // action:'send-message' would have been unauthenticated). Role-guarded routes still
   // call authorizeRoles() on top of this base user check.
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!;
   const authHeader = req.headers.get('Authorization') || '';
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create-instance') {
-      await authorizeRoles(req, supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, ['admin', 'dev']);
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
       if (instanceLooksLikeUuid(instance)) {
         const resolved = await resolveInstanceNameById(String(instance));
         return new Response(JSON.stringify({
@@ -318,7 +318,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'reprocess-failed-webhooks') {
-      await authorizeRoles(req, supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, ['admin', 'dev']);
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
       const { data: failed, error } = await supabase
         .from('webhook_reprocess_queue')
         .select('*')
@@ -475,7 +475,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'delete-instance') {
-      await authorizeRoles(req, supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, ['admin', 'dev']);
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
       return await proxy(`/instance/delete/${instance}`, 'DELETE', body);
     }
     if (action === 'set-presence') return await proxy(`/instance/setPresence/${instance}`, 'POST', { presence: (body as Record<string, unknown>).presence });

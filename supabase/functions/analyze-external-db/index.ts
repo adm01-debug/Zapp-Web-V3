@@ -74,8 +74,8 @@ Deno.serve(async (req) => {
   }
 
   // Verify token against our own Supabase instance
-  const selfUrl = Deno.env.get('SUPABASE_URL');
-  const selfKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const selfUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+  const selfKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!selfUrl || !selfKey) {
     return new Response(JSON.stringify({ error: 'Service misconfigured' }), {
       status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -106,8 +106,8 @@ Deno.serve(async (req) => {
   if (denied) return denied
 
   try {
-    const url = Deno.env.get('EXTERNAL_SUPABASE_URL');
-    const key = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+    const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+    const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
 
     if (!url || !key) {
       return new Response(JSON.stringify({ error: 'Missing external DB credentials' }), {
