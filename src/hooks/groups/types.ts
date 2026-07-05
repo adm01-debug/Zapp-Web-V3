@@ -16,6 +16,7 @@ export interface WhatsAppConnection {
   name: string;
   phone_number: string;
   instance_id: string;
+  instance_name?: string | null;
 }
 
 export const GROUP_CATEGORIES = [

@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ConnectionInfo, WebhookTestResult } from './hooks/useEvolutionMonitoring';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 interface Props {
   connections: ConnectionInfo[];
@@ -32,38 +33,42 @@ export function MonitoringConnectionsList({ connections, webhookTest, onCheckWeb
   const [loadingQr, setLoadingQr] = useState<Record<string, boolean>>({});
   const [reconnecting, setReconnecting] = useState<Record<string, boolean>>({});
 
-  const fetchQrCode = useCallback(async (instanceId: string) => {
-    setLoadingQr(prev => ({ ...prev, [instanceId]: true }));
+  const fetchQrCode = useCallback(async (conn: ConnectionInfo) => {
+    const evoName = evolutionInstanceName(conn);
+    if (!evoName) { toast.error('Conexão sem nome de instância válido.'); return; }
+    setLoadingQr(prev => ({ ...prev, [conn.instance_id]: true }));
     try {
       const { data, error } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'get-qrcode', instanceName: instanceId },
+        body: { action: 'get-qrcode', instanceName: evoName },
       });
       if (error) throw error;
       const base64 = data?.qrcode?.base64 || data?.base64;
       if (base64) {
-        setQrCodes(prev => ({ ...prev, [instanceId]: base64 }));
+        setQrCodes(prev => ({ ...prev, [conn.instance_id]: base64 }));
       } else {
         toast.info('QR Code não disponível. A instância pode já estar conectada.');
       }
     } catch {
       toast.error('Erro ao buscar QR Code');
     } finally {
-      setLoadingQr(prev => ({ ...prev, [instanceId]: false }));
+      setLoadingQr(prev => ({ ...prev, [conn.instance_id]: false }));
     }
   }, []);
 
-  const reconnectInstance = useCallback(async (instanceId: string) => {
-    setReconnecting(prev => ({ ...prev, [instanceId]: true }));
+  const reconnectInstance = useCallback(async (conn: ConnectionInfo) => {
+    const evoName = evolutionInstanceName(conn);
+    if (!evoName) { toast.error('Conexão sem nome de instância válido.'); return; }
+    setReconnecting(prev => ({ ...prev, [conn.instance_id]: true }));
     try {
       const { error: restartErr } = await supabase.functions.invoke('evolution-api', {
-        body: { action: 'restart-instance', instanceName: instanceId },
+        body: { action: 'restart-instance', instanceName: evoName },
       });
       if (restartErr) throw restartErr;
-      toast.success(`Instância ${instanceId} reiniciada!`);
+      toast.success(`Instância ${evoName} reiniciada!`);
     } catch {
       toast.error('Erro ao reconectar instância');
     } finally {
-      setReconnecting(prev => ({ ...prev, [instanceId]: false }));
+      setReconnecting(prev => ({ ...prev, [conn.instance_id]: false }));
     }
   }, []);
 
@@ -134,11 +139,11 @@ export function MonitoringConnectionsList({ connections, webhookTest, onCheckWeb
                   <div className="flex gap-2 shrink-0 flex-wrap">
                     {isOffline && (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => fetchQrCode(conn.instance_id)} disabled={loadingQr[conn.instance_id]} className="text-xs h-8">
+                        <Button size="sm" variant="outline" onClick={() => fetchQrCode(conn)} disabled={loadingQr[conn.instance_id]} className="text-xs h-8">
                           {loadingQr[conn.instance_id] ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <QrCode className="w-3.5 h-3.5 mr-1" />}
                           QR Code
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => reconnectInstance(conn.instance_id)} disabled={reconnecting[conn.instance_id]} className="text-xs h-8 text-warning-foreground">
+                        <Button size="sm" variant="outline" onClick={() => reconnectInstance(conn)} disabled={reconnecting[conn.instance_id]} className="text-xs h-8 text-warning-foreground">
                           {reconnecting[conn.instance_id] ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
                           Reconectar
                         </Button>

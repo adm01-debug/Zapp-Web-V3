@@ -4,10 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, RefreshCw, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 interface DisconnectedInstance {
   id: string;
   instance_id: string;
+  instance_name: string | null;
   phone_number: string | null;
   status: string;
 }
@@ -20,7 +22,7 @@ export function EvolutionDisconnectBanner() {
   const fetchStatus = async () => {
     const { data } = await supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, phone_number, status')
+      .select('id, instance_id, instance_name, phone_number, status')
       .eq('status', 'disconnected');
     if (data && data.length > 0) {
       setDisconnected(data as DisconnectedInstance[]);
@@ -47,16 +49,21 @@ export function EvolutionDisconnectBanner() {
   }, []);
 
   const handleReconnect = async (conn: DisconnectedInstance) => {
+    const evoName = evolutionInstanceName(conn);
+    if (!evoName) {
+      toast.error(`Conexão sem nome de instância válido — acesse "Conexões" para reconectar manualmente.`);
+      return;
+    }
     setReconnecting(conn.instance_id);
     try {
       const { error } = await supabase.functions.invoke('evolution-api/instance/connect', {
         method: 'POST',
-        body: { instanceName: conn.instance_id },
+        body: { instanceName: evoName },
       });
       if (error) throw error;
-      toast.success(`Reconectando ${conn.instance_id}... Escaneie o QR Code na tela de conexões.`);
+      toast.success(`Reconectando ${evoName}... Escaneie o QR Code na tela de conexões.`);
     } catch {
-      toast.error(`Erro ao reconectar ${conn.instance_id}`);
+      toast.error(`Erro ao reconectar ${evoName}`);
     } finally {
       setReconnecting(null);
     }
