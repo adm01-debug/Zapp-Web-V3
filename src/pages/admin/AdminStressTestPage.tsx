@@ -29,7 +29,9 @@ import { AlertTriangle, Play, Square, CheckCircle2, XCircle, Loader2, Download, 
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
+import type { SendMessageParams } from '@/hooks/evolutionApi.types';
 import { runStressTest, type RunSummary } from '@/lib/stressTest/runner';
 import {
   ALL_STRESS_TYPES, STRESS_TYPE_LABEL,
@@ -124,7 +126,7 @@ export default function AdminStressTestPage() {
           mediatype: 'image', mimetype: 'image/jpeg', media: sample.url!,
           fileName: sample.fileName, caption: sample.caption,
           idempotencyKey: `stress_${idx}_${Date.now()}`
-        } as any);
+        } as unknown as SendMessageParams);
         break;
       case 'video':
         result = await evo.sendMediaMessage({
@@ -132,7 +134,7 @@ export default function AdminStressTestPage() {
           mediatype: 'video', mimetype: 'video/mp4', media: sample.url!,
           fileName: sample.fileName, caption: sample.caption,
           idempotencyKey: `stress_${idx}_${Date.now()}`
-        } as any);
+        } as unknown as SendMessageParams);
         break;
       case 'document':
         result = await evo.sendMediaMessage({
@@ -140,7 +142,7 @@ export default function AdminStressTestPage() {
           mediatype: 'document', mimetype: 'application/pdf', media: sample.url!,
           fileName: sample.fileName, caption: sample.caption,
           idempotencyKey: `stress_${idx}_${Date.now()}`
-        } as any);
+        } as unknown as SendMessageParams);
         break;
       case 'audio_voice':
       case 'audio_meme':
@@ -159,7 +161,7 @@ export default function AdminStressTestPage() {
           instanceName: instance, number: phone,
           latitude: sample.latitude, longitude: sample.longitude, name: sample.name,
           idempotencyKey: `stress_${idx}_${Date.now()}`
-        } as any);
+        } as unknown as SendMessageParams);
         break;
     }
     messageId = result?.key?.id ?? result?.messageId ?? result?.id;
@@ -171,7 +173,7 @@ export default function AdminStressTestPage() {
     id: string, partial: Partial<{ status: string; ended_at: string; total_sent: number; total_failed: number; results: StressResult[]; abort_reason: string; metrics_summary: any }>
   ) => {
     try {
-      await (supabase as any).from('stress_test_runs').update(partial as any).eq('id', id);
+      await safeClient.from('stress_test_runs', (q) => q.update(partial).eq('id', id));
     } catch (e) {
       log.warn('Falha ao persistir progresso', e);
     }
@@ -207,17 +209,15 @@ export default function AdminStressTestPage() {
     }
 
     // Cria o registro do run
-    const { data: insertData, error: insertErr } = await (supabase as any)
-      .from('stress_test_runs')
-      .insert({
+    const { data: insertData, error: insertErr } = await safeClient.from('stress_test_runs', (q) =>
+      q.insert({
         started_by: userId,
         target_phone: phone,
         instance_name: instance,
         total_planned: total,
         status: 'running',
-      })
-      .select('id')
-      .single();
+      }).select('id').single()
+    );
 
     if (insertErr || !insertData) {
       toast.error(`Não foi possível criar o registro do teste: ${insertErr?.message ?? 'desconhecido'}`);
@@ -251,23 +251,23 @@ export default function AdminStressTestPage() {
           const latency = Math.round(performance.now() - start);
           
           // Log metrics to DB for throughput/latency analysis
-          void (supabase as any).from('stress_test_metrics').insert({
+          void safeClient.from('stress_test_metrics', (q) => q.insert({
             run_id: id,
             task_type: args.type,
             latency_ms: latency,
             status: 'success'
-          });
+          }));
 
           return res;
         } catch (err) {
           const latency = Math.round(performance.now() - start);
-          void (supabase as any).from('stress_test_metrics').insert({
+          void safeClient.from('stress_test_metrics', (q) => q.insert({
             run_id: id,
             task_type: args.type,
             latency_ms: latency,
             status: 'failed',
             error_message: err instanceof Error ? err.message : String(err)
-          });
+          }));
           throw err;
         }
       },
@@ -306,10 +306,9 @@ export default function AdminStressTestPage() {
     abortRef.current = null;
     
     // Aggregate metrics for final report
-    const { data: metrics } = await (supabase as any)
-      .from('stress_test_metrics')
-      .select('latency_ms, status')
-      .eq('run_id', id);
+    const { data: metrics } = await safeClient.from('stress_test_metrics', (q) =>
+      q.select('latency_ms, status').eq('run_id', id)
+    );
       
     const latencies = metrics?.map(m => m.latency_ms).sort((a, b) => a - b) || [];
     const avgLatency = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;

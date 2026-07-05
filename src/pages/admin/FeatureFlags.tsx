@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -30,10 +31,9 @@ export function FeatureFlagsAdmin() {
   const [metrics, setMetrics] = useState({ pendingRetries: 0, failedTotal: 0 });
 
   const fetchFlags = useCallback(async () => {
-    const { data, error } = await (supabase as any)
-      .from('app_settings')
-      .select('*')
-      .like('key', 'feature_%');
+    const { data, error } = await safeClient.from('app_settings', (q) =>
+      q.select('*').like('key', 'feature_%')
+    );
     
     if (!error && data) {
       setFlags(data.map(f => {
@@ -64,8 +64,8 @@ export function FeatureFlagsAdmin() {
   }, []);
 
   const fetchMetrics = useCallback(async () => {
-    const { data: retries } = await (supabase as any).from('message_retry_queue').select('id').eq('status', 'pending');
-    const { data: failed } = await (supabase as any).from('message_retry_queue').select('id').eq('status', 'failed');
+    const { data: retries } = await safeClient.from('message_retry_queue', (q) => q.select('id').eq('status', 'pending'));
+    const { data: failed } = await safeClient.from('message_retry_queue', (q) => q.select('id').eq('status', 'failed'));
     setMetrics({
       pendingRetries: retries?.length || 0,
       failedTotal: failed?.length || 0
@@ -88,13 +88,9 @@ export function FeatureFlagsAdmin() {
   }, [fetchFlags, fetchAuditLogs, fetchMetrics]);
 
   const updateFlag = async (key: string, newConfig: FeatureConfig) => {
-    const { error } = await (supabase as any)
-      .from('app_settings')
-      .update({
-        value: JSON.stringify(newConfig),
-        updated_at: new Date().toISOString()
-      })
-      .eq('key', key);
+    const { error } = await safeClient.from('app_settings', (q) =>
+      q.update({ value: JSON.stringify(newConfig), updated_at: new Date().toISOString() }).eq('key', key)
+    );
 
     if (error) {
       toast({ title: "Erro ao atualizar", variant: "destructive" });
@@ -110,10 +106,9 @@ export function FeatureFlagsAdmin() {
     setLoading(true);
     
     for (const key of criticalFlags) {
-      await (supabase as any).from('app_settings').update({
-        value: JSON.stringify({ enabled: false, killSwitch: true }),
-        updated_at: new Date().toISOString()
-      }).eq('key', key);
+      await safeClient.from('app_settings', (q) =>
+        q.update({ value: JSON.stringify({ enabled: false, killSwitch: true }), updated_at: new Date().toISOString() }).eq('key', key)
+      );
     }
     
     toast({ 
@@ -265,9 +260,9 @@ export function FeatureFlagsAdmin() {
                       <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded uppercase font-bold">{log.action}</span>
                     </div>
                     <div className="text-[11px]  break-all line-clamp-2">
-                      <span className="font-bold text-foreground">{(log.details as any)?.new?.key?.replace('feature_', '')}</span>
+                      <span className="font-bold text-foreground">{(log.details as { new?: { key?: string; value?: unknown } } | null)?.new?.key?.replace('feature_', '')}</span>
                       <p className="text-muted-foreground mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                        {JSON.stringify((log.details as any)?.new?.value)}
+                        {JSON.stringify((log.details as { new?: { key?: string; value?: unknown } } | null)?.new?.value)}
                       </p>
                     </div>
                   </div>

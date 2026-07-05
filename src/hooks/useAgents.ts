@@ -102,7 +102,7 @@ export function useAgents(workspaceId?: string) {
     try {
       const { data, error } = await safeClient.from('agents', (q) => {
         let query = q
-          .select('id,user_id,name,mission,persona,avatar_emoji,model,status,version,config,tags,is_template,template_category,workspace_id,created_at,updated_at')
+          .select('id,user_id,name,mission,persona,avatar_emoji,avatar_url,model,status,version,config,tags,is_template,template_category,workspace_id,created_at,updated_at')
           .not('status', 'in', '("deprecated","archived")')
           .order('updated_at', { ascending: false });
         if (workspaceId) query = query.eq('workspace_id', workspaceId);
