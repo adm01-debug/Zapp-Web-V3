@@ -395,6 +395,9 @@ Deno.serve(async (req) => {
       }
       console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
       return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
+    }
+
+
 
     return jsonResponse({
       ok: true,
