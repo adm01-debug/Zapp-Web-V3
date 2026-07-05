@@ -1,18 +1,24 @@
-// audio-transcribe v2.1 (Self-Hosted, vault-aware) — migrado de Cloud Fator X
+// audio-transcribe v2.2 (Self-Hosted, vault-aware) — migrado de Cloud Fator X
 // v2.1: F6 security fix — SSRF guard in fetchAudioWithCap (isSafeAudioUrl)
+// v2.2: refactor — dependências migradas dos módulos -legacy para os canônicos
+//       (`auth.ts`, `validation.ts`, `vault.ts`). Sem mudança de comportamento:
+//       mantém heavy=5 req/60s por usuário, preflight CORS via cors.ts,
+//       jsonResponse/errorResponse do cors.ts (assinatura req-first).
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
-import {
-  handleCorsPreflight, jsonResponse, errorResponse,
-  authenticateRequest,
-  checkRateLimit, createRateLimitResponse, getRateLimitIdentifier, RATE_LIMITS,
-  parseBody, z,
-  getSecret,
-} from "../_shared/mod.ts";
+import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/cors.ts";
+import { requireUser } from "../_shared/auth.ts";
+import { checkRateLimit, parseBody } from "../_shared/validation.ts";
+import { z } from "../_shared/schemas.ts";
+import { getSecret } from "../_shared/vault.ts";
 
-const VERSION = "v2.1-self-hosted";
+const VERSION = "v2.2-self-hosted";
 const WHISPER_MODEL = 'openai/whisper-large-v3-turbo';
 const WHISPER_TIMEOUT_MS = 30000;
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25 MB
+// Rate limit "heavy" (equivalente a RATE_LIMITS.heavy do rate-limiter-legacy):
+// 5 requisições por janela de 60s por usuário. Preserva a semântica exata pré-refactor.
+const RL_MAX = 5;
+const RL_WINDOW_MS = 60_000;
 
 const TranscribeInput = z.object({
   action: z.enum(['transcribe', 'translate']).default('transcribe'),
@@ -112,15 +118,16 @@ serve(async (req) => {
   }
 
   try {
-    // Auth obrigatório
-    const auth = await authenticateRequest(req);
-    if (auth.error) return auth.error;
-    const { user } = auth;
+    // Auth obrigatório (novo helper: retorna Response quando 401, senão { user })
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const { user } = authed;
 
-    // Rate limit (heavy: 5/min/user)
-    const identifier = getRateLimitIdentifier(req, user.id);
-    const rateCheck = checkRateLimit(identifier, RATE_LIMITS.heavy);
-    if (!rateCheck.allowed) return createRateLimitResponse(rateCheck);
+    // Rate limit (heavy: 5/min/user) — in-memory por isolate, comportamento equivalente ao legacy.
+    const rateCheck = checkRateLimit(`audio-transcribe:user:${user.id}`, RL_MAX, RL_WINDOW_MS);
+    if (!rateCheck.allowed) {
+      return errorResponse(req, 'Rate limit exceeded', 429, { retryAfterSeconds: 60 });
+    }
 
     // Body validation
     const parsed = await parseBody(req, TranscribeInput);
