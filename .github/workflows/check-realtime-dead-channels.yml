@@ -1,0 +1,54 @@
+# CI Guard — Realtime Dead Channels
+# Prevents subscriptions to PostgreSQL views from being merged into main.
+# Views in public.* schema never emit WAL events — subscriptions to them are silently dead.
+#
+# This workflow runs on every PR that touches TypeScript files.
+# It blocks merge if any .on('postgres_changes') targets a known public view.
+
+name: Guard — Realtime Dead Channels
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+
+jobs:
+  check-dead-channels:
+    name: Detect dead realtime subscriptions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run dead-channel guard
+        run: bash scripts/check-realtime-dead-channels.sh src
+
+      - name: Summary on success
+        if: success()
+        run: |
+          echo '## ✅ Realtime Guard Passed' >> $GITHUB_STEP_SUMMARY
+          echo 'No dead realtime subscriptions targeting public-schema views found.' >> $GITHUB_STEP_SUMMARY
+
+      - name: Summary on failure
+        if: failure()
+        run: |
+          echo '## ❌ Dead Realtime Subscriptions Detected' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo 'One or more `.on("postgres_changes")` calls target PostgreSQL **views** in `public.*`.' >> $GITHUB_STEP_SUMMARY
+          echo 'Views never emit WAL events — these subscriptions are silently dead.' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '**Fix:** repoint to the base table in the correct schema:' >> $GITHUB_STEP_SUMMARY
+          echo '| Dead channel | Correct target |' >> $GITHUB_STEP_SUMMARY
+          echo '|---|---|' >> $GITHUB_STEP_SUMMARY
+          echo '| `public.whisper_messages` | `zapp.whisper_messages` |' >> $GITHUB_STEP_SUMMARY
+          echo '| `public.team_messages` | `zapp.team_messages` |' >> $GITHUB_STEP_SUMMARY
+          echo '| `public.contacts` | `evo.evolution_contacts` |' >> $GITHUB_STEP_SUMMARY
+          echo '| `public.messages` | `evo.evolution_messages` |' >> $GITHUB_STEP_SUMMARY
+          echo '| `public.evolution_messages` | `evo.evolution_messages` |' >> $GITHUB_STEP_SUMMARY
