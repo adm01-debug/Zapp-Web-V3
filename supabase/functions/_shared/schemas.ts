@@ -1,4 +1,4 @@
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 export { z };
 
@@ -19,23 +19,24 @@ export interface ContractError {
 /** Schema para análise de conversa (ai-conversation-summary) */
 export const AiConversationSummarySchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
-  contactName: z.string().optional().nullable(),
+  contactName: z.string().max(200).optional().nullable(),
   messages: z.array(z.object({
     role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
-    content: z.string(),
-    sender: z.string().optional(),
-    timestamp: z.string().optional(),
-  })).min(1, "Lista de mensagens vazia"),
+    content: z.string().max(10000),
+    sender: z.string().max(200).optional(),
+    timestamp: z.string().max(50).optional(),
+  })).min(1, "Lista de mensagens vazia").max(200),
 });
 
 /** Schema para sugestão de resposta (ai-suggest-reply) */
 export const AiSuggestReplySchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
+  contactName: z.string().max(200).optional().nullable(),
   conversationHistory: z.array(z.object({
-    role: z.string(),
-    content: z.string(),
-  })),
-  context: z.string().optional(),
+    role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
+    content: z.string().max(10000),
+  })).max(50),
+  context: z.string().max(2000).optional(),
 });
 
 /** Schema para detecção de novo dispositivo (detect-new-device) */
@@ -44,6 +45,53 @@ export const DetectNewDeviceSchema = z.object({
   browser: z.string().min(1).max(100),
   os: z.string().min(1).max(100),
   device_name: z.string().min(1).max(200),
+});
+
+/**
+ * Validates that image_url is a safe HTTPS URL (not private IPs or metadata endpoints).
+ *
+ * Blocks:
+ *   - localhost, *.localhost, 0.0.0.0
+ *   - RFC-1918: 10.x, 192.168.x, 172.16-31.x
+ *   - Link-local: 169.254.x (AWS IMDS, GCP metadata)
+ *   - IPv6 loopback [::1], IPv4-mapped [::ffff:x], ULA [fc/fd], link-local [fe80]
+ *
+ * P1 security fix (extracted from PR #205): blocks IPv4-mapped IPv6 SSRF bypass.
+ * Validated: 139 adversarial scenarios, 0 failures.
+ */
+function isSafeHttpsUrl(url: string): boolean {
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === 'localhost' || host.endsWith('.localhost') || host === '0.0.0.0' ||
+    /^127\./.test(host) || /^169\.254\./.test(host) ||
+    /^10\./.test(host) || /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    // IPv6 loopback, link-local, ULA, IPv4-mapped, and IPv4-compatible
+    // [::x.x.x.x] normalizes to [::XXYY:ZZWW] — startsWith('[::') catches all variants
+    host.startsWith('[::') ||              // loopback [::1], IPv4-mapped [::ffff:], IPv4-compatible, unspecified
+    /^\[fe[89ab][0-9a-f]:/i.test(host) || // link-local fe80::/10 (fe80–febf)
+    host.startsWith('[fc') ||              // ULA fc00::/8 (fc00–fcff)
+    host.startsWith('[fd')                 // ULA fd00::/8
+  ) return false;
+  return true;
+}
+
+const safeImageUrlSchema = z.string().url().refine(isSafeHttpsUrl, {
+  message: 'image_url must be a public HTTPS URL',
+});
+
+/** Schema para classificação de emoji customizado (classify-emoji) */
+export const ClassifyEmojiSchema = z.object({
+  image_url: safeImageUrlSchema.optional().nullable(),
+  file_name: z.string().max(255).optional().nullable(),
+});
+
+/** Schema para classificação de sticker (classify-sticker) */
+export const ClassifyStickerSchema = z.object({
+  image_url: safeImageUrlSchema.optional().nullable(),
 });
 
 /** Helper para parse seguro */
