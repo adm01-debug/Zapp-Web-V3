@@ -37,6 +37,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  type LucideIcon,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,12 +47,12 @@ interface ExecutionRow {
   remote_jid: string;
   instance_name: string | null;
   status: "pending" | "executed" | "dismissed" | "error" | string;
-  trigger_payload: any;
+  trigger_payload: Record<string, unknown> | null;
   suggestion_text: string | null;
   applied_tags: string[] | null;
   recommended_tag: string | null;
   kb_sources: string[] | null;
-  rule_snapshot: any;
+  rule_snapshot: Record<string, unknown> | null;
   channel_id: string | null;
   department_id: string | null;
   error_message: string | null;
@@ -63,7 +64,8 @@ interface ExecutionRow {
 
 interface RuleLite { id: string; name: string }
 
-const STATUS_META: Record<string, { label: string; icon: any; variant: any }> = {
+type BadgeVariant = "outline" | "default" | "secondary" | "destructive";
+const STATUS_META: Record<string, { label: string; icon: LucideIcon; variant: BadgeVariant }> = {
   pending: { label: "Pendente", icon: Clock, variant: "outline" },
   accepted: { label: "Aceita", icon: CheckCircle2, variant: "default" },
   executed: { label: "Executada", icon: CheckCircle2, variant: "default" },
@@ -94,8 +96,9 @@ export default function AdminAutomationLogsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    let q = (supabase as any)
-      .from('automation_executions')
+    // automation_executions is not yet in generated types
+    let q = (supabase as unknown as { from: typeof supabase.from })
+      .from('automation_executions' as Parameters<typeof supabase.from>[0])
       .select("*")
       .order("created_at", { ascending: false })
       .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
@@ -114,7 +117,7 @@ export default function AdminAutomationLogsPage() {
     if (!mountedRef.current) return;
     if (error) {
       // Silently show empty state when table doesn't exist yet (pending migration)
-      const isMissing = error.message?.includes('does not exist') || (error as any).code === '42P01';
+      const isMissing = error.message?.includes('does not exist') || (error as { code?: string }).code === '42P01';
       if (!isMissing) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
       }
@@ -405,7 +408,7 @@ function KV({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
   );
 }
 
-function Pre({ title, data }: { title: string; data: any }) {
+function Pre({ title, data }: { title: string; data: unknown }) {
   return (
     <div>
       <Label className="text-xs">{title}</Label>
