@@ -4,7 +4,16 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { supabase as _supabase } from '@/integrations/supabase/client';
-const supabase = _supabase as any;
+
+interface SigQuery extends PromiseLike<{ data: unknown; error: { message: string } | null }> {
+  select(cols: string): SigQuery;
+  eq(col: string, val: unknown): SigQuery;
+  order(col: string, opts: { ascending: boolean }): SigQuery;
+  update(vals: Record<string, unknown>): SigQuery;
+  insert(vals: Record<string, unknown>): SigQuery;
+  delete(): SigQuery;
+}
+const supabase = _supabase as unknown as { from: (t: string) => SigQuery };
 import { toast } from 'sonner';
 
 export interface EmailSignature {

@@ -162,8 +162,8 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
     const fields: Array<keyof FieldResolution> = ['name', 'phone', 'email', 'company', 'notes'];
     
     fields.forEach(field => {
-      const pVal = (primaryContact as any)[field];
-      const sVal = (secondaryContact as any)[field];
+      const pVal = primaryContact[field as keyof ContactForMerge];
+      const sVal = secondaryContact[field as keyof ContactForMerge];
       
       // If primary is empty but secondary isn't, prefer secondary
       if (!pVal && sVal) {

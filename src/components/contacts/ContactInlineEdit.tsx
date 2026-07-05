@@ -86,7 +86,7 @@ export function ContactInlineEdit({
 
     setIsSaving(true);
     try {
-      await contactsDB.update(contactId, { [field]: trimmed || null } as any);
+      await contactsDB.update(contactId, { [field]: trimmed || null } as unknown as Parameters<typeof contactsDB.update>[1]);
       toast.success(`${label} atualizado`);
       onSaved?.(trimmed);
       setIsEditing(false);
