@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 export type SLAAlertSeverity = 'risk' | 'violated';
 
@@ -13,48 +13,65 @@ export interface SLAAlertHistoryEntry {
   resolvedAt: string | null;
   alertTime: string;
   createdAt: string;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
+}
+
+interface SLAHistoryRawRow {
+  id: string;
+  thread_id: string;
+  status: string;
+  is_resolved: boolean;
+  resolved_at: string | null;
+  alert_time: string;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+  conversation_threads: {
+    remote_jid: string;
+    contacts: { name: string | null; phone: string | null } | null;
+  } | null;
 }
 
 const PAGE_SIZE = 100;
 
 async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
-  const { data, error } = await (supabase as any)
-    .from('sla_history')
-    .select(`
-      id,
-      thread_id,
-      status,
-      is_resolved,
-      resolved_at,
-      alert_time,
-      created_at,
-      metadata,
-      conversation_threads(
-        remote_jid,
-        contacts:external_contact_id(name, phone)
-      )
-    `)
-    .order('created_at', { ascending: false })
-    .limit(PAGE_SIZE);
+  const { data, error } = await safeClient.from('sla_history', (q) =>
+    q
+      .select(`
+        id,
+        thread_id,
+        status,
+        is_resolved,
+        resolved_at,
+        alert_time,
+        created_at,
+        metadata,
+        conversation_threads(
+          remote_jid,
+          contacts:external_contact_id(name, phone)
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE)
+  );
 
   if (error) throw error;
 
-  return (data ?? []).map((row: any) => {
-    const thread = row.conversation_threads;
+  return (data ?? []).map((row) => {
+    const r = row as unknown as SLAHistoryRawRow;
+    const thread = r.conversation_threads;
     const contact = thread?.contacts;
-    
+
     return {
-      id: row.id,
-      threadId: row.thread_id,
+      id: r.id,
+      threadId: r.thread_id,
       contactName: contact?.name ?? thread?.remote_jid ?? 'Conversa desconhecida',
       contactPhone: contact?.phone ?? null,
-      status: row.status as SLAAlertSeverity,
-      isResolved: row.is_resolved,
-      resolvedAt: row.resolved_at,
-      alertTime: row.alert_time,
-      createdAt: row.created_at,
-      metadata: row.metadata,
+      status: r.status as SLAAlertSeverity,
+      isResolved: r.is_resolved,
+      resolvedAt: r.resolved_at,
+      alertTime: r.alert_time,
+      createdAt: r.created_at,
+      metadata: r.metadata,
     };
   });
 }
@@ -70,10 +87,9 @@ export function useSLAAlertHistory() {
 
   const resolveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from('sla_history')
-        .update({ is_resolved: true, resolved_at: new Date().toISOString() })
-        .eq('id', id);
+      const { error } = await safeClient.from('sla_history', (q) =>
+        q.update({ is_resolved: true, resolved_at: new Date().toISOString() }).eq('id', id)
+      );
       if (error) throw error;
     },
     onSuccess: () => {

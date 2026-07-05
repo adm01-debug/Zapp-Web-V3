@@ -13,6 +13,7 @@ import {
   Activity
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
@@ -20,6 +21,16 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('Connections');
 import { motion, AnimatePresence } from 'framer-motion';
+
+interface SystemConnection {
+  id: string;
+  name: string;
+  provider: string;
+  config: { url?: string; anon_key?: string } | null;
+  is_active: boolean;
+  created_at: string;
+  created_by?: string | null;
+}
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
 
@@ -50,7 +61,7 @@ const DEFAULT_EXTERNAL_KEY = initialConfig.key;
 
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
-  const [connections, setConnections] = useState<any[]>([]);
+  const [connections, setConnections] = useState<SystemConnection[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [externalUrl, setExternalUrl] = useState(DEFAULT_EXTERNAL_URL);
@@ -79,7 +90,7 @@ export default function AdminConnectionsPage() {
         
         if (rolesError) throw rolesError;
         
-        const hasAccess = !!roles?.some((r: any) => r.role === 'admin' || r.role === 'dev');
+        const hasAccess = !!roles?.some((r) => r.role === 'admin' || r.role === 'dev');
         setIsAdmin(hasAccess);
         
         if (!hasAccess) {
@@ -88,13 +99,13 @@ export default function AdminConnectionsPage() {
       } else {
         setIsAdmin(false);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       log.error('Error checking roles or connection', e);
       setIsAdmin(false);
-      toast({ 
-        title: 'Erro de Conexão ou Acesso', 
-        description: `Não foi possível validar seu nível de acesso: ${e?.message ?? 'Banco indisponível'}.`, 
-        variant: 'destructive' 
+      toast({
+        title: 'Erro de Conexão ou Acesso',
+        description: `Não foi possível validar seu nível de acesso: ${e instanceof Error ? e.message : 'Banco indisponível'}.`,
+        variant: 'destructive'
       });
     }
   };
@@ -117,20 +128,20 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
-    const { data, error } = await (supabase as any)
-      .from('system_connections')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await safeClient.from('system_connections', (q) =>
+      q.select('*').order('created_at', { ascending: false })
+    );
 
     if (!error && data) {
-      setConnections(data as any[]);
-      const fatorX: any = (data as any[]).find((c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X');
-      if (fatorX?.config?.url && fatorX?.config?.anon_key) { 
-        setExternalUrl(fatorX.config.url); 
+      const rows = data as unknown as SystemConnection[];
+      setConnections(rows);
+      const fatorX = rows.find((c) => c.provider === 'supabase_external' || c.name === 'FATOR X');
+      if (fatorX?.config?.url && fatorX?.config?.anon_key) {
+        setExternalUrl(fatorX.config.url);
         setDraftUrl(fatorX.config.url);
-        setExternalKey(fatorX.config.anon_key); 
+        setExternalKey(fatorX.config.anon_key);
         setDraftKey(fatorX.config.anon_key);
-        
+
         // Sincroniza o cliente em tempo de execução
         updateRuntimeExternalConfig(fatorX.config.url, fatorX.config.anon_key);
       }
@@ -160,8 +171,8 @@ export default function AdminConnectionsPage() {
       }
       toast({ title: 'Falha na conexão', description: `HTTP ${res.status}`, variant: 'destructive' });
       return false;
-    } catch (e: any) {
-      toast({ title: 'Erro de rede', description: e?.message ?? 'falha desconhecida', variant: 'destructive' });
+    } catch (e: unknown) {
+      toast({ title: 'Erro de rede', description: e instanceof Error ? e.message : 'falha desconhecida', variant: 'destructive' });
       return false;
     } finally {
       setTesting(false);
@@ -189,7 +200,7 @@ export default function AdminConnectionsPage() {
       return;
     }
 
-    const payload: any = {
+    const payload: Omit<SystemConnection, 'id' | 'created_at'> = {
       name: 'FATOR X',
       provider: 'supabase_external',
       config: { url: draftUrl, anon_key: draftKey },
@@ -197,12 +208,12 @@ export default function AdminConnectionsPage() {
     };
 
     try {
-      const existing: any = connections.find((c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X');
+      const existing = connections.find((c) => c.provider === 'supabase_external' || c.name === 'FATOR X');
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
       const { data, error, status, statusText } = existing
-        ? await (supabase as any).from('system_connections').update(payload).eq('id', existing.id).select()
-        : await (supabase as any).from('system_connections').insert(insertPayload).select();
+        ? await safeClient.from('system_connections', (q) => q.update(payload).eq('id', existing.id).select())
+        : await safeClient.from('system_connections', (q) => q.insert(insertPayload).select());
 
       if (error) {
         const msg = `Falha na escrita [Provider: ${payload.provider}]: Status ${status} (${statusText || 'Erro'}). Mensagem: ${error.message}${error.code ? ` (Code: ${error.code})` : ''}`;
@@ -225,21 +236,16 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      const { data: verify, error: verifyError } = await (supabase as any)
-        .from('system_connections')
-        .select('id, updated_at')
-        .eq('provider', 'supabase_external')
-        .eq('name', 'FATOR X')
-        .maybeSingle();
+      const { data: verify, error: verifyError } = await safeClient.from('system_connections', (q) =>
+        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X').maybeSingle()
+      );
 
       if (verifyError || !verify) {
-        const msg = `A requisição retornou status ${status}, mas o SELECT de validação falhou: ${verifyError?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
+        const msg = `A requisição retornou status ${status}, mas o SELECT de validação falhou: ${(verifyError as { message?: string } | null)?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
         setSaveError(msg);
         toast({ title: 'Confirmação falhou', description: msg, variant: 'destructive' });
         return;
       }
-
-      const verifyData = verify as any;
 
       setExternalUrl(draftUrl);
       setExternalKey(draftKey);
@@ -258,8 +264,8 @@ export default function AdminConnectionsPage() {
       }, 1500);
       
       await fetchConnections();
-    } catch (e: any) {
-      const msg = `[Exceção] ${e?.message ?? 'Falha desconhecida ao processar a requisição.'}`;
+    } catch (e: unknown) {
+      const msg = `[Exceção] ${e instanceof Error ? e.message : 'Falha desconhecida ao processar a requisição.'}`;
       setSaveError(msg);
       toast({ title: 'Erro inesperado', description: msg, variant: 'destructive' });
     } finally {
