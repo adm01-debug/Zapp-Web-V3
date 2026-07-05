@@ -58,9 +58,10 @@ function isSafeHttpsUrl(url: string): boolean {
     /^127\./.test(host) || /^169\.254\./.test(host) ||
     /^10\./.test(host) || /^192\.168\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    // IPv6 loopback, link-local, and unique-local (ULA)
+    // IPv6 loopback, link-local, unique-local (ULA), and IPv4-mapped
     host === '[::1]' || host.startsWith('[fe80:') ||
-    host.startsWith('[fc00:') || host.startsWith('[fd')
+    host.startsWith('[fc00:') || host.startsWith('[fd') ||
+    host.startsWith('[::ffff:')
   ) return false;
   return true;
 }

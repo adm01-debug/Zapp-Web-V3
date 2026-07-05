@@ -41,7 +41,8 @@ function isSafeHttpsUrl(url: string): boolean {
     host === '[::1]' ||
     host.startsWith('[fe80:') ||
     host.startsWith('[fc00:') ||
-    host.startsWith('[fd')
+    host.startsWith('[fd') ||
+    host.startsWith('[::ffff:')
   )
     return false;
   return true;
@@ -1110,5 +1111,538 @@ describe('Gmail error taxonomy — NonRetryableMessageError routing', () => {
       expect(non instanceof NonRetryableMessageError).toBe(true);
       expect(plain instanceof NonRetryableMessageError).toBe(false);
     });
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PHASE 2 — SUPPLEMENTARY GAP-ANALYSIS SIMULATIONS (~100 tests)
+// Exhaustively covers vectors identified during code-level audit.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ─── [1] IPv4-mapped IPv6 SSRF bypass ────────────────────────────────────────
+// WHATWG URL normalizes [::ffff:x.x.x.x] → [::ffff:HHHH:HHHH] hex form.
+// The fix: host.startsWith('[::ffff:') blocks all IPv4-in-IPv6 regardless of
+// whether the parser emits mixed or hex notation (both start with '[::ffff:').
+describe('isSafeHttpsUrl — IPv4-mapped IPv6 SSRF bypass (fixed)', () => {
+  it('[::ffff:127.0.0.1] — loopback via IPv4-mapped IPv6 is blocked', () => {
+    expect(isSafeHttpsUrl('https://[::ffff:127.0.0.1]/')).toBe(false);
+  });
+
+  it('[::ffff:10.0.0.1] — RFC-1918 class A via IPv4-mapped IPv6 is blocked', () => {
+    expect(isSafeHttpsUrl('https://[::ffff:10.0.0.1]/')).toBe(false);
+  });
+
+  it('[::ffff:192.168.0.1] — RFC-1918 class C via IPv4-mapped IPv6 is blocked', () => {
+    expect(isSafeHttpsUrl('https://[::ffff:192.168.0.1]/')).toBe(false);
+  });
+
+  it('[::ffff:169.254.169.254] — AWS metadata via IPv4-mapped IPv6 is blocked', () => {
+    expect(isSafeHttpsUrl('https://[::ffff:169.254.169.254]/')).toBe(false);
+  });
+
+  it('[::ffff:172.16.0.1] — RFC-1918 class B via IPv4-mapped IPv6 is blocked', () => {
+    expect(isSafeHttpsUrl('https://[::ffff:172.16.0.1]/')).toBe(false);
+  });
+
+  it('[::ffff:8.8.8.8] — public IP in IPv4-mapped form blocked (defense in depth)', () => {
+    // We block the entire ::ffff: class — clients should use plain IPv4 or hostnames.
+    expect(isSafeHttpsUrl('https://[::ffff:8.8.8.8]/')).toBe(false);
+  });
+});
+
+// ─── [2] IPv6 zone IDs ───────────────────────────────────────────────────────
+describe('isSafeHttpsUrl — IPv6 zone IDs cannot bypass checks', () => {
+  it('[fe80::1%25eth0] — zone ID suffix does not bypass startsWith("[fe80:")', () => {
+    // URL.hostname keeps zone ID: '[fe80::1%25eth0]' still startsWith('[fe80:')
+    expect(isSafeHttpsUrl('https://[fe80::1%25eth0]/')).toBe(false);
+  });
+
+  it('[fd00::1%25lo] — ULA with zone ID still caught by startsWith("[fd")', () => {
+    expect(isSafeHttpsUrl('https://[fd00::1%25lo]/')).toBe(false);
+  });
+});
+
+// ─── [3] RFC-1918 boundary precision ─────────────────────────────────────────
+describe('isSafeHttpsUrl — RFC-1918 boundary precision', () => {
+  it('172.15.255.255 — just below RFC-1918 class B range, must be ALLOWED', () => {
+    expect(isSafeHttpsUrl('https://172.15.255.255/')).toBe(true);
+  });
+
+  it('172.16.0.0 — first address of RFC-1918 class B, must be BLOCKED', () => {
+    expect(isSafeHttpsUrl('https://172.16.0.0/')).toBe(false);
+  });
+
+  it('172.31.255.255 — last address of RFC-1918 class B, must be BLOCKED', () => {
+    expect(isSafeHttpsUrl('https://172.31.255.255/')).toBe(false);
+  });
+
+  it('172.32.0.0 — just above RFC-1918 class B range, must be ALLOWED', () => {
+    expect(isSafeHttpsUrl('https://172.32.0.0/')).toBe(true);
+  });
+
+  it('9.255.255.255 — just below 10.x block, must be ALLOWED', () => {
+    expect(isSafeHttpsUrl('https://9.255.255.255/')).toBe(true);
+  });
+
+  it('11.0.0.0 — just above 10.x block, must be ALLOWED', () => {
+    expect(isSafeHttpsUrl('https://11.0.0.0/')).toBe(true);
+  });
+
+  it('192.167.255.255 — just below 192.168 block, must be ALLOWED', () => {
+    expect(isSafeHttpsUrl('https://192.167.255.255/')).toBe(true);
+  });
+
+  it('192.169.0.1 — just above 192.168 block, must be ALLOWED', () => {
+    expect(isSafeHttpsUrl('https://192.169.0.1/')).toBe(true);
+  });
+});
+
+// ─── [4] Port numbers on blocked hosts ───────────────────────────────────────
+describe('isSafeHttpsUrl — ports do not bypass host-based blocks', () => {
+  it('127.0.0.1:8080 — port does not bypass loopback block', () => {
+    expect(isSafeHttpsUrl('https://127.0.0.1:8080/path')).toBe(false);
+  });
+
+  it('localhost:3000 — port does not bypass localhost block', () => {
+    expect(isSafeHttpsUrl('https://localhost:3000/')).toBe(false);
+  });
+
+  it('192.168.1.1:443 — port does not bypass RFC-1918 block', () => {
+    expect(isSafeHttpsUrl('https://192.168.1.1:443/')).toBe(false);
+  });
+
+  it('[::1]:8080 — port does not bypass IPv6 loopback block', () => {
+    expect(isSafeHttpsUrl('https://[::1]:8080/')).toBe(false);
+  });
+});
+
+// ─── [5] SSRF — alternative IP notation variants ─────────────────────────────
+describe('isSafeHttpsUrl — alternative IP notation / format quirks', () => {
+  it('0x7f000001 — hex loopback: invalid hostname, URL parse fails → blocked', () => {
+    // Browsers reject 0x7f000001 as a URL host — new URL() throws
+    expect(isSafeHttpsUrl('https://0x7f000001/')).toBe(false);
+  });
+
+  it('2130706433 — decimal loopback: browsers parse as 127.0.0.1 or reject', () => {
+    // Node/happy-dom reject numeric hosts as invalid URL
+    expect(isSafeHttpsUrl('https://2130706433/')).toBe(false);
+  });
+
+  it('0177.0.0.1 — octal loopback: WHATWG URL rejects octal notation → blocked', () => {
+    expect(isSafeHttpsUrl('https://0177.0.0.1/')).toBe(false);
+  });
+
+  it('LOCALHOST — uppercase: lowercased before check, still blocked', () => {
+    expect(isSafeHttpsUrl('https://LOCALHOST/')).toBe(false);
+  });
+
+  it('Localhost.localDomain — endsWith(".localhost") catches subdomains', () => {
+    expect(isSafeHttpsUrl('https://app.localhost/')).toBe(false);
+  });
+});
+
+// ─── [6] isSafeMediaCdnUrl — IP address and protocol bypass attempts ──────────
+describe('isSafeMediaCdnUrl — IP address targets are not CDN URLs', () => {
+  it('plain public IP address → rejected (not in exact set, no whatsapp domain)', () => {
+    expect(isSafeMediaCdnUrl('https://35.190.56.2/media.jpg')).toBe(false);
+  });
+
+  it('private IP address → rejected', () => {
+    expect(isSafeMediaCdnUrl('https://192.168.1.1/media.jpg')).toBe(false);
+  });
+});
+
+describe('isSafeMediaCdnUrl — non-https schemes', () => {
+  it('http: (non-TLS) is rejected', () => {
+    expect(isSafeMediaCdnUrl('http://mmg.whatsapp.net/media.jpg')).toBe(false);
+  });
+
+  it('data: URI is rejected', () => {
+    expect(isSafeMediaCdnUrl('data:image/jpeg;base64,/9j/4AAQ')).toBe(false);
+  });
+
+  it('javascript: URI is rejected', () => {
+    expect(isSafeMediaCdnUrl('javascript:alert(1)')).toBe(false);
+  });
+
+  it('blob: URI is rejected', () => {
+    expect(isSafeMediaCdnUrl('blob:https://mmg.whatsapp.net/abc123')).toBe(false);
+  });
+});
+
+// ─── [7] isSafeMediaCdnUrl — subdomain confusion ─────────────────────────────
+describe('isSafeMediaCdnUrl — subdomain and path confusion', () => {
+  it('evil.whatsapp.net.attacker.com — endsWith is direction-safe, rejects this', () => {
+    // 'evil.whatsapp.net.attacker.com'.endsWith('.whatsapp.net') → false
+    expect(isSafeMediaCdnUrl('https://evil.whatsapp.net.attacker.com/')).toBe(false);
+  });
+
+  it('attacker.com/whatsapp.net — path cannot spoof CDN hostname check', () => {
+    expect(isSafeMediaCdnUrl('https://attacker.com/whatsapp.net/file.jpg')).toBe(false);
+  });
+
+  it('whatsapp.net (bare, no subdomain) — not in exact set; endsWith needs leading dot', () => {
+    // 'whatsapp.net'.endsWith('.whatsapp.net') → false; also not in exact set
+    expect(isSafeMediaCdnUrl('https://whatsapp.net/')).toBe(false);
+  });
+
+  it('whatsapp.com (bare) — same: not in exact set, no subdomain dot', () => {
+    expect(isSafeMediaCdnUrl('https://whatsapp.com/')).toBe(false);
+  });
+});
+
+// ─── [8] isSafeMediaCdnUrl — port numbers on valid CDN hosts ─────────────────
+describe('isSafeMediaCdnUrl — port numbers on valid CDN hostnames', () => {
+  it('mmg.whatsapp.net:8080 — URL.hostname strips port; check still passes', () => {
+    expect(isSafeMediaCdnUrl('https://mmg.whatsapp.net:8080/media.jpg')).toBe(true);
+  });
+
+  it('pps.whatsapp.net:443 — standard port, passes', () => {
+    expect(isSafeMediaCdnUrl('https://pps.whatsapp.net:443/')).toBe(true);
+  });
+
+  it('cdn1.whatsapp.net:1234 — subdomain with custom port, passes', () => {
+    expect(isSafeMediaCdnUrl('https://cdn1.whatsapp.net:1234/file')).toBe(true);
+  });
+});
+
+// ─── [9] sanitizeStoragePath — multiple consecutive slashes ──────────────────
+describe('sanitizeStoragePath — multiple consecutive slashes', () => {
+  it('path//to///file → path/to/file (empty segments are removed)', () => {
+    expect(sanitizeStoragePath('path//to///file')).toBe('path/to/file');
+  });
+
+  it('leading slash /etc/passwd → etc/passwd (no absolute path escape)', () => {
+    expect(sanitizeStoragePath('/etc/passwd')).toBe('etc/passwd');
+  });
+
+  it('trailing slash path/to/ → path/to (trailing empty segment stripped)', () => {
+    expect(sanitizeStoragePath('path/to/')).toBe('path/to');
+  });
+
+  it('all slashes /// → empty string (all segments empty)', () => {
+    expect(sanitizeStoragePath('///')).toBe('');
+  });
+});
+
+// ─── [10] sanitizeStoragePath — single dot segments ──────────────────────────
+describe('sanitizeStoragePath — single dot (.) segments', () => {
+  it('./file.jpg → file.jpg (leading dot-segment removed)', () => {
+    expect(sanitizeStoragePath('./file.jpg')).toBe('file.jpg');
+  });
+
+  it('path/./to/./file → path/to/file (inline dots removed)', () => {
+    expect(sanitizeStoragePath('path/./to/./file')).toBe('path/to/file');
+  });
+
+  it('. alone → empty string (sole segment is dot)', () => {
+    expect(sanitizeStoragePath('.')).toBe('');
+  });
+});
+
+// ─── [11] sanitizeStoragePath — FILTER semantics (not a resolver) ─────────────
+describe('sanitizeStoragePath — is a filter, NOT a path resolver', () => {
+  // The function removes ".." tokens but does NOT backtrack like path.resolve().
+  // a/b/../c → split → [a, b, .., c] → filter ".." → [a, b, c] → 'a/b/c' (NOT 'a/c')
+  it('a/b/../c → a/b/c (.. removed in-place, no backtrack)', () => {
+    expect(sanitizeStoragePath('a/b/../c')).toBe('a/b/c');
+  });
+
+  it('valid/../../../secret → valid/secret (all .. stripped, no directory climb)', () => {
+    expect(sanitizeStoragePath('valid/../../../secret')).toBe('valid/secret');
+  });
+
+  it('../../etc/passwd → etc/passwd (leading .. stripped, cannot climb to root)', () => {
+    expect(sanitizeStoragePath('../../etc/passwd')).toBe('etc/passwd');
+  });
+
+  it('.. alone → empty string (sole segment is double-dot)', () => {
+    expect(sanitizeStoragePath('..')).toBe('');
+  });
+});
+
+// ─── [12] sanitizeStoragePath — percent-encoding traversal ───────────────────
+describe('sanitizeStoragePath — percent-encoding vectors', () => {
+  it('%2e%2e/etc/passwd → etc/passwd (decoded ".." is then filtered)', () => {
+    expect(sanitizeStoragePath('%2e%2e/etc/passwd')).toBe('etc/passwd');
+  });
+
+  it('%2E%2E/shadow — uppercase hex: same decode behavior', () => {
+    expect(sanitizeStoragePath('%2E%2E/shadow')).toBe('shadow');
+  });
+
+  it('path%2Fto%2Ffile.jpg → path/to/file.jpg (encoded slash inside one split-segment)', () => {
+    // split('/') occurs before decode, so %2F stays in one segment.
+    // decodeURIComponent turns it into 'path/to/file.jpg' — a single segment value.
+    expect(sanitizeStoragePath('path%2Fto%2Ffile.jpg')).toBe('path/to/file.jpg');
+  });
+
+  it('triple dot ... passes through (not a traversal token)', () => {
+    expect(sanitizeStoragePath('.../secret')).toBe('.../secret');
+  });
+});
+
+// ─── [13] sanitizeAttachment — CRLF / quote / backslash injection baseline ───
+describe('sanitizeAttachment — CRLF / quote / backslash (what IS stripped)', () => {
+  it('strips CR (\\r) from name', () => {
+    const { safeName } = sanitizeAttachment({
+      name: 'file\r.jpg',
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('file.jpg');
+  });
+
+  it('strips LF (\\n) from name', () => {
+    const { safeName } = sanitizeAttachment({
+      name: 'file\n.jpg',
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('file.jpg');
+  });
+
+  it('strips CRLF sequence from mimeType (header-injection prevention)', () => {
+    const { safeMime } = sanitizeAttachment({
+      name: 'x',
+      mimeType: 'image/jpeg\r\nX-Evil: hacked',
+      data: '',
+    });
+    expect(safeMime).toBe('image/jpegX-Evil: hacked');
+  });
+
+  it('strips double-quote from name', () => {
+    const { safeName } = sanitizeAttachment({
+      name: 'file".jpg',
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('file.jpg');
+  });
+
+  it('strips backslash from name', () => {
+    const { safeName } = sanitizeAttachment({
+      name: 'file\\.jpg',
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('file.jpg');
+  });
+
+  it('combined injection: name with CR+LF+quote+backslash — all stripped', () => {
+    const { safeName } = sanitizeAttachment({
+      name: 'a\r\n"b\\c',
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('abc');
+  });
+});
+
+// ─── [14] sanitizeAttachment — known gaps (tab and null byte not stripped) ────
+describe('sanitizeAttachment — documented gaps: tab and null byte survive', () => {
+  it('tab (\\t) in name — NOT stripped (documented gap)', () => {
+    // Current regex /[\\r\\n"\\\\]/ does not include \\t
+    const { safeName } = sanitizeAttachment({
+      name: 'file\t.jpg',
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('file\t.jpg');
+  });
+
+  it('null byte (\\x00) in name — NOT stripped (documented gap)', () => {
+    const { safeName } = sanitizeAttachment({
+      name: 'file\x00.jpg',
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('file\x00.jpg');
+  });
+
+  it('semicolon in mimeType passes through (MIME parameter injection vector; parser-dependent)', () => {
+    const { safeMime } = sanitizeAttachment({
+      name: 'x',
+      mimeType: 'image/jpeg; charset=utf-8',
+      data: '',
+    });
+    expect(safeMime).toBe('image/jpeg; charset=utf-8');
+  });
+});
+
+// ─── [15] sanitizeAttachment — type-coercion edge cases ──────────────────────
+describe('sanitizeAttachment — non-string inputs coerced via String()', () => {
+  it('null name → empty string (null ?? "" → "")', () => {
+    const { safeName } = sanitizeAttachment({
+      name: null as unknown as string,
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('');
+  });
+
+  it('undefined name → empty string (undefined ?? "" → "")', () => {
+    const { safeName } = sanitizeAttachment({
+      name: undefined as unknown as string,
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('');
+  });
+
+  it('boolean false as name → String coerces to "false"', () => {
+    const { safeName } = sanitizeAttachment({
+      name: false as unknown as string,
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('false');
+  });
+
+  it('number 42 as name → "42"', () => {
+    const { safeName } = sanitizeAttachment({
+      name: 42 as unknown as string,
+      mimeType: 'image/jpeg',
+      data: '',
+    });
+    expect(safeName).toBe('42');
+  });
+
+  it('empty mimeType string → falls back to application/octet-stream', () => {
+    const { safeMime } = sanitizeAttachment({ name: 'file', mimeType: '', data: '' });
+    expect(safeMime).toBe('application/octet-stream');
+  });
+
+  it('null mimeType → falls back to application/octet-stream', () => {
+    const { safeMime } = sanitizeAttachment({
+      name: 'file',
+      mimeType: null as unknown as string,
+      data: '',
+    });
+    expect(safeMime).toBe('application/octet-stream');
+  });
+
+  it('mimeType that is only CRLF → after strip becomes "", falls back to application/octet-stream', () => {
+    const { safeMime } = sanitizeAttachment({ name: 'file', mimeType: '\r\n', data: '' });
+    expect(safeMime).toBe('application/octet-stream');
+  });
+});
+
+// ─── [16] classifyGmailError — 429 rate-limit variants ───────────────────────
+describe('classifyGmailError — 429 rate-limit code variants', () => {
+  it('code=429 alone → transient (code is sufficient)', () => {
+    expect(classifyGmailError({ code: 429 })).toBe('transient');
+  });
+
+  it('code=429 with reason=dailyLimitExceeded → transient (code wins)', () => {
+    expect(classifyGmailError({ code: 429, reason: 'dailyLimitExceeded' })).toBe('transient');
+  });
+
+  it('code=429 with status=RESOURCE_EXHAUSTED → transient (both match)', () => {
+    expect(classifyGmailError({ code: 429, status: 'RESOURCE_EXHAUSTED' })).toBe('transient');
+  });
+
+  it('code=400 with reason=rateLimitExceeded → transient (reason alone wins)', () => {
+    expect(classifyGmailError({ code: 400, reason: 'rateLimitExceeded' })).toBe('transient');
+  });
+
+  it('code=400 with reason=userRateLimitExceeded → transient', () => {
+    expect(classifyGmailError({ code: 400, reason: 'userRateLimitExceeded' })).toBe('transient');
+  });
+
+  it('code=400 with reason=quotaExceeded → transient', () => {
+    expect(classifyGmailError({ code: 400, reason: 'quotaExceeded' })).toBe('transient');
+  });
+});
+
+// ─── [17] classifyGmailError — 4xx boundary behavior ─────────────────────────
+describe('classifyGmailError — 4xx boundary and short-circuit behavior', () => {
+  it('code=404 → skip (immediately, before transient check)', () => {
+    expect(classifyGmailError({ code: 404 })).toBe('skip');
+  });
+
+  it('code=404 with status=UNAUTHENTICATED → skip (404 short-circuits; status ignored)', () => {
+    expect(classifyGmailError({ code: 404, status: 'UNAUTHENTICATED' })).toBe('skip');
+  });
+
+  it('code=401 with no status → non-retryable', () => {
+    expect(classifyGmailError({ code: 401 })).toBe('non-retryable');
+  });
+
+  it('code=401 with status=UNAUTHENTICATED → transient (status override)', () => {
+    expect(classifyGmailError({ code: 401, status: 'UNAUTHENTICATED' })).toBe('transient');
+  });
+
+  it('code=403 → non-retryable', () => {
+    expect(classifyGmailError({ code: 403 })).toBe('non-retryable');
+  });
+
+  it('code=499 → non-retryable (not 404, not 429, not >= 500)', () => {
+    expect(classifyGmailError({ code: 499 })).toBe('non-retryable');
+  });
+
+  it('code=200 (success) → non-retryable (not an error code we retry)', () => {
+    expect(classifyGmailError({ code: 200 })).toBe('non-retryable');
+  });
+});
+
+// ─── [18] classifyGmailError — 5xx range completeness ────────────────────────
+describe('classifyGmailError — 5xx range all map to transient', () => {
+  it('code=500 → transient', () => {
+    expect(classifyGmailError({ code: 500 })).toBe('transient');
+  });
+
+  it('code=501 → transient', () => {
+    expect(classifyGmailError({ code: 501 })).toBe('transient');
+  });
+
+  it('code=502 → transient', () => {
+    expect(classifyGmailError({ code: 502 })).toBe('transient');
+  });
+
+  it('code=503 → transient', () => {
+    expect(classifyGmailError({ code: 503 })).toBe('transient');
+  });
+
+  it('code=504 → transient', () => {
+    expect(classifyGmailError({ code: 504 })).toBe('transient');
+  });
+
+  it('code=507 → transient (Insufficient Storage — 5xx)', () => {
+    expect(classifyGmailError({ code: 507 })).toBe('transient');
+  });
+});
+
+// ─── [19] classifyGmailError — status field case-insensitivity ───────────────
+describe('classifyGmailError — status field is lowercased before comparison', () => {
+  it('status=unauthenticated (lower) → transient', () => {
+    expect(classifyGmailError({ code: 401, status: 'unauthenticated' })).toBe('transient');
+  });
+
+  it('status=UNAUTHENTICATED (upper) → transient', () => {
+    expect(classifyGmailError({ code: 401, status: 'UNAUTHENTICATED' })).toBe('transient');
+  });
+
+  it('status=resource_exhausted (lower) → transient', () => {
+    expect(classifyGmailError({ code: 400, status: 'resource_exhausted' })).toBe('transient');
+  });
+
+  it('status=RESOURCE_EXHAUSTED (upper) → transient', () => {
+    expect(classifyGmailError({ code: 400, status: 'RESOURCE_EXHAUSTED' })).toBe('transient');
+  });
+});
+
+// ─── [20] classifyGmailError — unknown and edge status codes ─────────────────
+describe('classifyGmailError — unusual/edge code values', () => {
+  it('code=0 → non-retryable', () => {
+    expect(classifyGmailError({ code: 0 })).toBe('non-retryable');
+  });
+
+  it('code=-1 (negative) → non-retryable', () => {
+    expect(classifyGmailError({ code: -1 })).toBe('non-retryable');
+  });
+
+  it('code=1000 (very large) → transient (>= 500)', () => {
+    expect(classifyGmailError({ code: 1000 })).toBe('transient');
   });
 });
