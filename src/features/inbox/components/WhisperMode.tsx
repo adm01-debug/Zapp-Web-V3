@@ -7,17 +7,14 @@ import { Eye, EyeOff, Send, Loader2, ChevronDown, ChevronUp } from 'lucide-react
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { AudioRecorder } from './AudioRecorder';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { WhisperAudioPlayer } from './WhisperAudioPlayer';
 
 interface WhisperMessage {
   id: string;
   contact_id: string;
   sender_id: string;
   content: string | null;
-  audio_url: string | null;
   created_at: string;
   sender?: { name: string; avatar_url?: string | null };
 }
@@ -57,13 +54,13 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
   });
 
   const sendWhisper = useMutation({
-    mutationFn: async ({ content, audioUrl }: { content?: string; audioUrl?: string }) => {
+    mutationFn: async ({ content }: { content: string }) => {
       if (!profile?.id) throw new Error('Not authenticated');
       const { error } = await supabase.from('whisper_messages').insert({
         contact_id: contactId,
         sender_id: profile.id,
-        content: content || null,
-        audio_url: audioUrl || null,
+        target_agent_id: targetAgentId ?? profile.id,
+        content,
       });
       if (error) throw error;
     },
@@ -145,11 +142,7 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
                     {w.sender && w.sender_id !== profile?.id && (
                       <p className="font-semibold text-[10px] text-amber-600 dark:text-amber-400 mb-0.5">{w.sender.name}</p>
                     )}
-                    {w.audio_url ? (
-                      <WhisperAudioPlayer audioUrl={w.audio_url} />
-                    ) : (
-                      <p className="break-words">{w.content}</p>
-                    )}
+                    <p className="break-words">{w.content}</p>
                     <p className="text-[10px] opacity-60 mt-0.5">{format(new Date(w.created_at), 'HH:mm', { locale: ptBR })}</p>
                   </div>
                 </div>
@@ -169,17 +162,6 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
               rows={1}
             />
             <div className="flex flex-col gap-1">
-              <AudioRecorder
-                onAudioReady={async (blob) => {
-                  const fileName = `whisper-${Date.now()}.webm`;
-                  const { data, error } = await supabase.storage
-                    .from('audio-messages')
-                    .upload(`whispers/${fileName}`, blob, { contentType: 'audio/webm' });
-                  if (error) { toast.error('Erro ao enviar áudio'); return; }
-                  const { data: { publicUrl } } = supabase.storage.from('audio-messages').getPublicUrl(data.path);
-                  sendWhisper.mutate({ audioUrl: publicUrl });
-                }}
-              />
               <Button
                 size="icon"
                 className="w-8 h-8 bg-amber-500 hover:bg-amber-600 text-white shrink-0"
