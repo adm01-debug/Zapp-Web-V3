@@ -39,6 +39,30 @@ const validateWebhook = WEBHOOK_SECRETS.length > 0
   ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE)
   : null;
 
+// [PATCH 2026-07-04 registry-guard] So processa eventos de instancias cadastradas em
+// instance_registry (existencia, nao is_active - evita perda de dados de instancia nova
+// ainda nao ativada). Cache em memoria TTL 60s. Fail-open (null) em erro de lookup para
+// nao derrubar o pipeline por falha transitoria do PostgREST.
+const __registryCache = new Map<string, { known: boolean; at: number }>();
+const __REGISTRY_TTL_MS = 60_000;
+// deno-lint-ignore no-explicit-any
+async function isKnownInstance(supabase: any, instance: string): Promise<boolean | null> {
+  if (!instance) return false;
+  const hit = __registryCache.get(instance);
+  if (hit && Date.now() - hit.at < __REGISTRY_TTL_MS) return hit.known;
+  try {
+    const { data, error } = await supabase.from('instance_registry')
+      .select('instance_name').eq('instance_name', instance).limit(1).maybeSingle();
+    if (error) { console.error(`[registry-guard] lookup error: ${error.message}`); return null; }
+    const known = !!data;
+    __registryCache.set(instance, { known, at: Date.now() });
+    return known;
+  } catch (e) {
+    console.error(`[registry-guard] lookup exception: ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+}
+
 serve(async (req) => {
   const requestId = generateRequestId();
   const startedAt = Date.now();
@@ -62,7 +86,14 @@ serve(async (req) => {
   // antes mesmo de parsear o body. Cai em 'unknown' se não houver.
   const headerInstance = req.headers.get('x-evolution-instance') || req.headers.get('x-instance') || null;
 
-  if (validateWebhook) {
+  // [PATCH 2026-07-03] Auth por secret estatico: Evolution API envia header fixo x-webhook-secret,
+  // nao assina HMAC por payload. Comparacao timing-safe contra os secrets configurados.
+  const __tsEq = (a: string, b: string): boolean => { if (a.length !== b.length) { let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ (b.charCodeAt(i % (b.length || 1)) || 0); return false; } let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; };
+  const __staticSecret = req.headers.get('x-webhook-secret');
+  const __staticSecretOk = __staticSecret !== null && WEBHOOK_SECRETS.some((s) => __tsEq(__staticSecret, s));
+  if (__staticSecretOk) {
+    rawBody = await req.text();
+  } else if (validateWebhook) {
     const result = await validateWebhook(req);
     if (!result.valid) {
       console.warn(redactSecrets(`[webhook][${requestId}] rejected: ${result.error ?? 'unknown'} signatureFound=${result.signatureFound}`));
@@ -132,9 +163,25 @@ serve(async (req) => {
     );
   }
 
-  // [ORDER 2026-07-04] Idempotency guard ANTES do rate-limit: retries duplicados do Evolution
-  // (reconexão reenvia o mesmo payload) são descartados sem consumir quota do rate-limiter.
-  // Dedup by hash of (instance + event + body); se já vimos este event_id, short-circuit 200.
+  // [PATCH 2026-07-04 registry-guard] Instancia desconhecida => HTTP 200 + skip total
+  // (200 evita retry-storm do consumer; nada e persistido) + audit rejected/unknown_instance
+  // + log de seguranca. Lookup com falha (null) => fail-open, segue o fluxo normal.
+  const __knownInstance = await isKnownInstance(supabase, instance);
+  if (__knownInstance === false) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'rejected',
+      error_message: 'unknown_instance',
+      duration_ms: Date.now() - startedAt,
+    });
+    console.warn(`[webhook][${requestId}] SECURITY unknown_instance='${instance}' event=${event} - ignored`);
+    return new Response(
+      JSON.stringify({ success: true, ignored: true, reason: 'unknown_instance', requestId }),
+      { status: 200, headers: corsHeaders },
+    );
+  }
+
+  // [ORDER 2026-07-04] Idempotency ANTES do rate-limit: retries duplicados do Evolution nao consomem quota.
+  // Dedup by hash of (instance + event + body); se ja vimos este event_id, short-circuit 200.
   const bodyHash = await sha256Hex(rawBody);
   const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
   const isNew = await markEventProcessed(supabase, eventId, instance, event);
@@ -147,7 +194,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, duplicate: true, requestId }), { status: 200, headers: corsHeaders });
   }
 
-  // Rate Limit guard: conta apenas eventos ÚNICOS (idempotency já filtrou retries acima)
+  // Rate Limit guard: conta apenas eventos UNICOS (idempotency ja filtrou retries)
   const rateLimit = await checkRateLimit(supabase, {
     instanceId: instance || 'unknown',
     eventType: event,
