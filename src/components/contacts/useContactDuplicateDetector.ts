@@ -7,8 +7,7 @@
  */
 import { useState, useCallback, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
-
-import { supabase } from '@/integrations/supabase/client';
+import { dbFrom } from '@/integrations/datasource/db';
 
 const log = getLogger('useContactDuplicateDetector');
 
@@ -81,9 +80,7 @@ export function useContactDuplicateDetector({
       try {
         // Check by normalized phone
         if (normalizedPhone && normalizedPhone.length >= 8) {
-          const workspace_id = workspaceId; 
-          const query = (supabase as any)
-            .from('contacts')
+          const query = dbFrom('contacts')
             .select('id, name, phone, email, avatar_url')
             .is('deleted_at', null)
             .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
@@ -106,8 +103,7 @@ export function useContactDuplicateDetector({
 
         // Check by email
         if (normalizedEmail && normalizedEmail.includes('@')) {
-          const { data: emailMatches } = await (supabase as any)
-            .from('contacts')
+          const { data: emailMatches } = await dbFrom('contacts')
             .select('id, name, phone, email, avatar_url')
             .eq('email', normalizedEmail)
             .is('deleted_at', null)

@@ -10,11 +10,10 @@
  * - Supports sort by: name, created_at, last_seen_at
  */
 import { useState, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
-
 import { sanitizeText } from '@/lib/sanitize';
-import { dbFrom } from '@/integrations/datasource/db';
+import { dbFrom, dbRpc } from '@/integrations/datasource/db';
+import { RPC } from '@/integrations/datasource/rpcCatalog';
 
 const log = getLogger('useContactsPagination');
 
@@ -79,7 +78,7 @@ export function useContactsPagination(workspaceId: string) {
 
         if (f.search.trim()) {
           // Use full-text search RPC (handles unaccent + trigram)
-          const { data: searchData, error } = await (supabase as any).rpc('search_contacts', {
+          const { data: searchData, error } = await dbRpc(RPC.searchContacts, {
             search_term: f.search.trim(),
             page_size:   PAGE_SIZE,
             page_offset: 0,
@@ -135,7 +134,7 @@ export function useContactsPagination(workspaceId: string) {
       let data: ContactListItem[] = [];
 
       if (filters.search.trim()) {
-        const { data: searchData, error } = await (supabase as any).rpc('search_contacts', {
+        const { data: searchData, error } = await dbRpc(RPC.searchContacts, {
           search_term: filters.search.trim(),
           page_size:   PAGE_SIZE,
           page_offset: offset,
