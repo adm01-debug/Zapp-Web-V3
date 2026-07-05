@@ -50,7 +50,7 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
         .order('created_at', { ascending: true })
         .limit(50);
       if (error) throw error;
-      return (data || []) as WhisperMessage[];
+      return ((data || []) as unknown) as WhisperMessage[];
     },
     enabled: !!contactId && !!profile && contactIsUUID,
     refetchOnWindowFocus: false,
