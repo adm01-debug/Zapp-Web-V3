@@ -20,10 +20,11 @@ export const SkipLink = forwardRef<HTMLAnchorElement, SkipLinkProps>(function Sk
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    const target = document.querySelector(href);
+    const target = document.querySelector(href) as HTMLElement | null;
     if (target) {
+      if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
       target.scrollIntoView({ behavior: 'smooth' });
-      (target as HTMLElement).focus?.();
+      target.focus?.();
     }
   };
 
@@ -48,7 +49,6 @@ export const SkipLink = forwardRef<HTMLAnchorElement, SkipLinkProps>(function Sk
         'transition-all duration-300 ease-out',
         className
       )}
-      aria-label={typeof children === 'string' ? children : undefined}
       data-focused={isFocused ? 'true' : 'false'}
     >
       {icon && <span className="text-primary-foreground/80">{icon}</span>}
@@ -75,10 +75,9 @@ export function SkipLinks() {
   }, []);
 
   return (
-    <nav 
-      className="skip-links-container" 
+    <nav
+      className="skip-links-container"
       aria-label="Links de navegação rápida"
-      role="navigation"
     >
       <AnimatePresence>
         {showIndicator && (

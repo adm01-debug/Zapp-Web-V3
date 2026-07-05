@@ -197,6 +197,22 @@ const BREAKER_THRESHOLD = 4;
 const BREAKER_COOLDOWN_MS = 5_000;
 const breaker = new Map<string, { fails: number; openedAt: number }>();
 
+// Session-wide auth breaker: after we see a hard 401/403 from the proxy we
+// stop hammering the endpoint for the rest of the session. All targets share
+// this lock because the token is global.
+let authLockUntil = 0;
+const AUTH_LOCK_MS = 60_000;
+
+function isAuthLocked(): number {
+  const now = Date.now();
+  return authLockUntil > now ? authLockUntil - now : 0;
+}
+
+function tripAuthLock(): void {
+  authLockUntil = Date.now() + AUTH_LOCK_MS;
+  proxyLog.warn('proxy auth lock tripped', { cooldownMs: AUTH_LOCK_MS });
+}
+
 function isBreakerOpen(target: string): { open: boolean; remainingMs: number } {
   const entry = breaker.get(target);
   if (!entry || entry.fails < BREAKER_THRESHOLD) return { open: false, remainingMs: 0 };
@@ -223,12 +239,14 @@ function recordBreakerSuccess(target: string): void {
     proxyLog.info('proxy circuit closed', { target });
     breaker.delete(target);
   }
+  authLockUntil = 0;
 }
 
 // Test-only reset hook — exported via __testing namespace below.
 function __resetBreakerAndCoalesce(): void {
   breaker.clear();
   inflight.clear();
+  authLockUntil = 0;
 }
 
 export async function queryExternalProxy<T = unknown>(params: ProxyParams): Promise<ProxyResponse<T>> {
@@ -237,11 +255,15 @@ export async function queryExternalProxy<T = unknown>(params: ProxyParams): Prom
   const body = normalizeProxyBody(rawBody as Record<string, unknown>);
   const meta = deriveTelemetryMeta(body);
 
+  // ── Session auth lock ──
+  // If a previous call returned 401/403, short-circuit for AUTH_LOCK_MS so we
+  // don't flood the edge with doomed requests until the user re-authenticates.
+  const authRemaining = isAuthLocked();
+  if (authRemaining > 0) {
+    throw new Error(`Proxy auth locked (retry in ${authRemaining}ms) — sessão inválida, faça login novamente`);
+  }
+
   // ── Circuit breaker check ──
-  // If too many recent ghost-POST failures hit this target, fail fast for a
-  // few seconds so we don't pile more cancelled requests onto an already
-  // overloaded edge runtime. Surface the breaker state to telemetry so the
-  // admin Health panel can see it.
   const breakerState = isBreakerOpen(meta.target);
   if (breakerState.open) {
     proxyLog.warn('proxy circuit short-circuit', {
@@ -413,9 +435,11 @@ async function executeProxyCall<T>(
       const isGhostPost = !ok
         && (error?.name === 'FunctionsFetchError' || /Failed to send a request/i.test(error?.message ?? ''))
         && error?.status === undefined;
+      const isAuthError = !ok && (error?.status === 401 || error?.status === 403);
       const transient = error ? (isTransientRuntimeError(error) || isGhostPost) : false;
       if (transient) transientCount += 1;
       if (isGhostPost) recordBreakerFailure(meta.target);
+      if (isAuthError) tripAuthLock();
       if (ok) recordBreakerSuccess(meta.target);
 
       const isAbort = error?.name === 'AbortError';

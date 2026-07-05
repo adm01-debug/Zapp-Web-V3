@@ -60,21 +60,34 @@ Deno.serve(async (req) => {
 
 
   // Always authenticate — body action may differ from the URL path segment, so skipping
-  // auth based on the URL alone creates a bypass (e.g. POST /create-instance with body
-  // action:'send-message' would have been unauthenticated). Role-guarded routes still
-  // call authorizeRoles() on top of this base user check.
-  const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!;
+  // auth based on the URL alone creates a bypass. Try self-hosted first (published app),
+  // then Cloud, so JWTs from either backend are accepted.
+  const selfUrlForAuth = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+  const selfAnonForAuth = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY');
+  const cloudUrlForAuth = Deno.env.get('SUPABASE_URL');
+  const cloudAnonForAuth = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY');
   const authHeader = req.headers.get('Authorization') || '';
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: { user: _u }, error: _e } = await userClient.auth.getUser();
-  if (_e || !_u) {
+  const authCandidates: Array<{ url: string; key: string }> = [];
+  if (selfUrlForAuth && selfAnonForAuth) authCandidates.push({ url: selfUrlForAuth, key: selfAnonForAuth });
+  if (cloudUrlForAuth && cloudAnonForAuth) authCandidates.push({ url: cloudUrlForAuth, key: cloudAnonForAuth });
+  let authedUser: { id: string; email: string | undefined } | null = null;
+  for (const c of authCandidates) {
+    try {
+      const uc = createClient(c.url, c.key, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data, error } = await uc.auth.getUser();
+      if (!error && data?.user) { authedUser = { id: data.user.id, email: data.user.email }; break; }
+    } catch { /* try next */ }
+  }
+  if (!authedUser) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+  const _u = authedUser;
+  void _u;
 
   const SEND_PER_INSTANCE_PER_MIN = Number(Deno.env.get('EVOLUTION_SEND_RATE_PER_INSTANCE') ?? '60');
 
