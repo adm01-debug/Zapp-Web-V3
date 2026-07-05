@@ -154,7 +154,9 @@ export function useRealtimeInbox() {
     };
     void fetchWhisperCount();
 
-    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => { void fetchWhisperCount(); }).subscribe();
+    // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
+    // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
+    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'zapp', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => { void fetchWhisperCount(); }).subscribe();
     return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [selectedContactId, profile?.id]);
 
