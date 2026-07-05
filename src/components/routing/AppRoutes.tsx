@@ -40,6 +40,7 @@ const RoutePermissionsPage = lazyWithRetry(() => import("@/pages/admin/RoutePerm
 const AdminStressTestPage = lazyWithRetry(() => import("@/pages/admin/AdminStressTestPage"));
 const AdminInboxSyncStatusPage = lazyWithRetry(() => import("@/pages/admin/AdminInboxSyncStatusPage"));
 const AdminExternalDbExplorerPage = lazyWithRetry(() => import("@/pages/admin/AdminExternalDbExplorerPage"));
+const SelfHostedHealthPage = lazyWithRetry(() => import("@/pages/admin/SelfHostedHealthPage"));
 const AdminEvoApiHealthPage = lazyWithRetry(() => import("@/pages/admin/AdminEvoApiHealthPage"));
 const ZappWebbDemoPage = lazyWithRetry(() => import("@/pages/admin/ZappWebbDemoPage"));
 const AdminAutomationsPage = lazyWithRetry(() => import("@/pages/admin/AdminAutomationsPage"));
@@ -115,6 +116,7 @@ export function AppRoutes() {
         <Route path="/admin/stress-test" element={<ProtectedRoute requiredRoles={['admin']}><AdminStressTestPage /></ProtectedRoute>} />
         <Route path="/admin/inbox-sync-status" element={<ProtectedRoute requiredRoles={['admin', 'supervisor']}><AdminInboxSyncStatusPage /></ProtectedRoute>} />
         <Route path="/admin/external-db-explorer" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><AdminExternalDbExplorerPage /></ProtectedRoute>} />
+        <Route path="/admin/self-hosted-health" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><SelfHostedHealthPage /></ProtectedRoute>} />
         <Route path="/admin/evo-api-health" element={<ProtectedRoute requiredRoles={['admin', 'dev']}><AdminEvoApiHealthPage /></ProtectedRoute>} />
         <Route path="/admin/bridge-status" element={<ProtectedRoute requiredRoles={['admin', 'dev', 'supervisor']}><AdminBridgeStatusPage /></ProtectedRoute>} />
         <Route path="/admin/connections" element={<ProtectedRoute requiredRoles={['admin']}><AdminConnectionsPage /></ProtectedRoute>} />
