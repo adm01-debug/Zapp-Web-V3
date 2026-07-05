@@ -129,7 +129,7 @@ Deno.test("signature: missing header → false (when secret configured)", async 
   assertEquals(ok, false);
 });
 
-Deno.test("signature: no secret configured → permissive (dev mode)", async () => {
+Deno.test("signature: no secret configured → rejected (strict mode)", async () => {
   const ok = await validateMetaSignature("body", null, "");
-  assertEquals(ok, true);
+  assertEquals(ok, false);
 });

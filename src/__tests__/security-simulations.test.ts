@@ -42,7 +42,8 @@ function isSafeHttpsUrl(url: string): boolean {
     host.startsWith('[fe80:') ||
     host.startsWith('[fc00:') ||
     host.startsWith('[fd') ||
-    host.startsWith('[::ffff:')
+    host.startsWith('[::ffff:') ||
+    host.startsWith('[::')
   )
     return false;
   return true;
@@ -1147,6 +1148,42 @@ describe('isSafeHttpsUrl — IPv4-mapped IPv6 SSRF bypass (fixed)', () => {
   it('[::ffff:8.8.8.8] — public IP in IPv4-mapped form blocked (defense in depth)', () => {
     // We block the entire ::ffff: class — clients should use plain IPv4 or hostnames.
     expect(isSafeHttpsUrl('https://[::ffff:8.8.8.8]/')).toBe(false);
+  });
+});
+
+// ─── [1b] IPv4-compatible IPv6 SSRF bypass (CRITICAL — now fixed) ───────────
+// WHATWG URL normalizes deprecated IPv4-compatible addresses [::x.x.x.x] to
+// pure hex form WITHOUT the ffff: component: [::7f00:1], [::a9fe:a9fe], etc.
+// The old code only blocked [::ffff:...] — these forms bypassed every rule.
+// Fix: host.startsWith('[::') blocks all :: prefix addresses including compat.
+describe('isSafeHttpsUrl — IPv4-compatible IPv6 SSRF bypass (fixed)', () => {
+  it('[::127.0.0.1] — loopback via IPv4-compatible IPv6 is blocked', () => {
+    // WHATWG normalizes [::127.0.0.1] → hostname [::7f00:1]
+    // Previously NOT blocked — host.startsWith('[::') now catches it
+    expect(isSafeHttpsUrl('https://[::127.0.0.1]/')).toBe(false);
+  });
+  it('[::169.254.169.254] — AWS metadata via IPv4-compatible IPv6 is blocked', () => {
+    // WHATWG normalizes [::169.254.169.254] → hostname [::a9fe:a9fe]
+    expect(isSafeHttpsUrl('https://[::169.254.169.254]/')).toBe(false);
+  });
+  it('[::10.0.0.1] — RFC-1918 class A via IPv4-compatible IPv6 is blocked', () => {
+    // WHATWG normalizes [::10.0.0.1] → hostname [::a00:1]
+    expect(isSafeHttpsUrl('https://[::10.0.0.1]/')).toBe(false);
+  });
+  it('[::192.168.0.1] — RFC-1918 class C via IPv4-compatible IPv6 is blocked', () => {
+    // WHATWG normalizes [::192.168.0.1] → hostname [::c0a8:1]
+    expect(isSafeHttpsUrl('https://[::192.168.0.1]/')).toBe(false);
+  });
+  it('[::172.16.0.1] — RFC-1918 class B via IPv4-compatible IPv6 is blocked', () => {
+    // WHATWG normalizes [::172.16.0.1] → hostname [::ac10:1]
+    expect(isSafeHttpsUrl('https://[::172.16.0.1]/')).toBe(false);
+  });
+  it('[::] — unspecified address is blocked', () => {
+    expect(isSafeHttpsUrl('https://[::]:443/')).toBe(false);
+  });
+  it('valid public IPv6 2606:4700::6810:84e5 is NOT blocked', () => {
+    // Public addresses start with 2xxx/3xxx — do NOT begin with [::]
+    expect(isSafeHttpsUrl('https://[2606:4700::6810:84e5]/')).toBe(true);
   });
 });
 
