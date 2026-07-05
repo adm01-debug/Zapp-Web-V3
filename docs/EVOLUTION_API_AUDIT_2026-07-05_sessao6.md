@@ -94,16 +94,53 @@ Mesma postura de engenharia sênior das sessões 3–5 — nenhum destes é esqu
 | Migrar Evolution 2.3.7 → 2.4.0 | Decisão de licenciamento, não técnica |
 | Backups PG14 (drift MinIO→R2), `minio-offsite-mirror`, retenção `_analytics` | Sem mudança de estado desde a sessão 5 — continuam no runbook supervisionado |
 
-## 5. Auditoria de documentação oficial vs. instalado (em andamento)
+## 5. Auditoria de documentação oficial vs. instalado (concluída)
 
-Um workflow paralelo de varredura da documentação oficial (`docs.evolutionfoundation.com.br`,
-protegida por Cloudflare para fetch direto — acessada via Jina Reader) está comparando,
-domínio por domínio (mensagens/mídia, instância/conexão/Business Cloud API, grupos/chat/contatos,
-integrações nativas de chatbot, eventos/filas/observabilidade, storage/DB/segurança,
-licenciamento/roadmap), cada funcionalidade documentada contra a configuração real do
-`evolution_evolution` (env vars capturadas via `portainer_inspect_service`). Resultado será
-anexado a este documento (ou a um `sessao6_addendum.md`) quando concluído — não bloqueou as
-correções acima, que já tinham evidência direta suficiente.
+Workflow de varredura da documentação oficial (`docs.evolutionfoundation.com.br`, protegida por
+Cloudflare para fetch direto — acessada via Jina Reader) comparou, domínio por domínio, cada
+funcionalidade documentada contra a configuração real do `evolution_evolution` (env vars via
+`portainer_inspect_service`). **Importante:** o workflow recebeu um resumo dos fatos já
+levantados nesta sessão, não o dump bruto completo — por isso 3 dos "achados" do resultado bruto
+eram **falsos positivos** (contradiziam dados já confirmados diretamente nesta mesma sessão) e
+foram removidos/corrigidos abaixo antes de publicar. Fica como nota metodológica para sessões
+futuras: ao alimentar um sub-agente de pesquisa com "ground truth" resumido, revalidar cada
+achado contra os dados brutos originais antes de reportar — resumir por economia de contexto tem
+esse custo.
+
+**Falsos positivos descartados (verificados contra dados já coletados nesta sessão):**
+
+| Achado do workflow | Por que é falso |
+|---|---|
+| "`DEL_INSTANCE` não configurado — risco de auto-delete das instâncias desconectadas" (reportado como P1) | **Falso.** `DEL_INSTANCE=false` está presente e correto no `Env` do serviço `evolution_evolution` (confirmado via `portainer_inspect_service` nesta mesma sessão) — sem risco de auto-remoção. |
+| "`rejectCall`/`msgCall` não configurados" | **Falso.** Ambas as instâncias já têm `rejectCall:true` + `msgCall` em PT-BR configurado (confirmado via `evo_dashboard`/`evo_instance_list` nesta sessão). |
+| "`TELEMETRY` vs `TELEMETRY_ENABLED`: variável errada, telemetria pode seguir ativa" | **Já resolvido.** O `Spec` atual (pós-redeploy mais recente, label `legacy-env-cleanup-2026-07-04`) já usa `TELEMETRY_ENABLED=false` — o `TELEMETRY=false` antigo só aparece no `PreviousSpec`. |
+
+**Achado descartado por falta de fonte verificável:** "bug de allowlist de IP no `/metrics`
+(`allowedIPs.filter(...) === 0`)" — referência específica demais para ser aceita sem conferir o
+código-fonte real da versão instalada; não incluída abaixo até alguém confirmar contra o
+`dist/main.js` do container.
+
+### 5.1 Gaps reais a avaliar (verificados/plausíveis, não falsos-positivos)
+
+| Gap | Prioridade | Ação recomendada |
+|---|:---:|---|
+| `wpp2` 100% Baileys (não-oficial) com ~103k mensagens — mesmo padrão de instabilidade do incidente atual | P1 | Avaliar migrar a linha de maior volume para WhatsApp Business (Cloud API) com token Meta permanente; manter `wpp_pink_test` em Baileys |
+| Consumer RabbitMQ derruba mensagens (`drop=545`) sem DLQ capturar + falha de DNS para `glitchtip-web` no shutdown | P1 | Já coberto no patch de referência (`db/remediation/consumer-hmac-patch.md`, INT401-2) — reforça a prioridade de aplicá-lo numa janela dedicada |
+| Patch LGPD de redação de logs falha aberto silenciosamente se o match de string quebrar num futuro bump de imagem | P1 | Adicionar verificação pós-patch no entrypoint que loga/alerta se o match não ocorrer (hoje só loga sucesso) |
+| Proxy por instância desabilitado (`Proxy.enabled=false`/`null`) | P2 | Avaliar habilitar proxy residencial/mobile via `POST /proxy/set` como mitigação a bans do Baileys |
+| `DATABASE_SAVE_DATA_CHATS=false` e `DATABASE_SAVE_DATA_HISTORIC=false` no Postgres nativo do Evolution | P2 | Religar pelo menos `DATABASE_SAVE_DATA_CHATS` — hoje o nativo não serve de ledger redundante caso o pipeline RabbitMQ/Supabase perca algo |
+| Rotação da API key global compartilhada | P2 | **Já documentado como pendente desde a sessão 3** (não é achado novo) — mantém-se gated por janela coordenada |
+| `CACHE_LOCAL_ENABLED=true` junto com Redis | P3 | **Já documentado (S5-6)** — seguro com 1 réplica; revisitar só se escalar |
+| Buttons/List no Baileys (compatibilidade limitada/beta segundo a doc oficial) | P2 | Auditar `zapp.chatbot_flows` por payloads tipo botão; preferir List (testar antes) ou menu numerado em texto |
+| `typebot-viewer` rodando no stack sem nenhuma instância Evolution usando `/typebot/create` | P2 | Confirmar que está sem uso e desligar, ou conectar de propósito se houver caso de uso |
+
+### 5.2 Não aplicável a este deploy
+
+WhatsApp Business templates/catálogo/coleções (exigem Cloud API), Chatwoot (zapp-web já é o
+inbox/CRM), OpenAI nativo bot+STT (já coberto por Gemini/GPT + ElevenLabs), Dify/Flowise/EvoAI
+(sem caso de uso), SQS/Kafka/NATS/Pusher (RabbitMQ já cobre o papel), WebSocket nativo (sem
+client consumindo), licenciamento obrigatório e Manager v2 redesign (só relevantes na 2.4.0, que
+não está instalada).
 
 ---
 
