@@ -16,7 +16,25 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
   const ip = getClientIP(req);
-  const rl = checkRateLimit(`evolution:${ip}`, 120, 60_000);
+
+  // BUG FIX (2026-07-05): cheap, read-only polling actions (status, list-instances,
+  // instance-info) used to share the same 120 req/60s IP-wide bucket as every other
+  // action (sends, config changes, etc). With N connections each polling `status`
+  // every 30s from useEvolutionAutoReconnect/useEvolutionAutoSync — plus normal user
+  // traffic on the same IP/office network — that shared bucket saturates fast and
+  // returns 429 on legitimate polling (observed: repeated 429 on
+  // evolution-api/status for instance "wpp2", 2026-07-05 12:58 UTC logs).
+  // Fix: give polling actions their own, much more generous bucket, so they no
+  // longer compete with (or get starved by) write/send traffic on the same IP.
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/').filter(Boolean);
+  const pathAction = pathParts[pathParts.length - 1];
+  const READ_ONLY_POLL_ACTIONS = new Set(['status', 'list-instances', 'instance-info']);
+  const isPollAction = READ_ONLY_POLL_ACTIONS.has(pathAction);
+
+  const rl = isPollAction
+    ? checkRateLimit(`evolution-poll:${ip}`, 600, 60_000)
+    : checkRateLimit(`evolution:${ip}`, 120, 60_000);
   if (!rl.allowed) {
     return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
       status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
@@ -40,10 +58,6 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-  const url = new URL(req.url);
-  const pathParts = url.pathname.split('/').filter(Boolean);
-  const pathAction = pathParts[pathParts.length - 1];
 
   const SEND_PER_INSTANCE_PER_MIN = Number(Deno.env.get('EVOLUTION_SEND_RATE_PER_INSTANCE') ?? '60');
 
