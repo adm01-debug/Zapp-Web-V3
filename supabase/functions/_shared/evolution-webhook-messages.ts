@@ -86,6 +86,7 @@ export async function handleOutgoingWhatsAppMessage(
     content: parsed.content,
     message_type: parsed.messageType,
     media_url: mediaUrl,
+    agent_id: contact.assigned_to || null,
     status: 'sent',
     created_at: messageCreatedAt,
     status_at: new Date().toISOString(),

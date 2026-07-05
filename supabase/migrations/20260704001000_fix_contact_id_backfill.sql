@@ -42,17 +42,27 @@ DO $$
 DECLARE
   v_updated bigint;
 BEGIN
+  -- DISTINCT ON prevents non-deterministic selection when a jid maps to multiple contacts;
+  -- most-recently-created non-deleted contact wins (same ordering as the contact_id backfill above).
+  -- COALESCE on the SET side preserves existing message data when the contact has no value.
   UPDATE evo.evolution_messages em
-  SET full_name    = COALESCE(ec.full_name, ec.push_name),
-      phone_number = ec.phone_number,
+  SET full_name    = COALESCE(COALESCE(ec.full_name, ec.push_name), em.full_name),
+      phone_number = COALESCE(ec.phone_number, em.phone_number),
       updated_at   = now()
-  FROM evo.evolution_contacts ec
+  FROM (
+    SELECT DISTINCT ON (remote_jid, instance_name)
+           remote_jid, instance_name, full_name, push_name, phone_number
+    FROM evo.evolution_contacts
+    WHERE deleted_at IS NULL
+    ORDER BY remote_jid, instance_name, created_at DESC NULLS LAST, id DESC
+  ) ec
   WHERE em.remote_jid    = ec.remote_jid
     AND em.instance_name = ec.instance_name
-    AND ec.deleted_at IS NULL
     AND (
-      em.full_name    IS DISTINCT FROM COALESCE(ec.full_name, ec.push_name)
-      OR em.phone_number IS DISTINCT FROM ec.phone_number
+      COALESCE(ec.full_name, ec.push_name) IS NOT NULL
+        AND COALESCE(ec.full_name, ec.push_name) IS DISTINCT FROM em.full_name
+      OR ec.phone_number IS NOT NULL
+        AND ec.phone_number IS DISTINCT FROM em.phone_number
     );
 
   GET DIAGNOSTICS v_updated = ROW_COUNT;

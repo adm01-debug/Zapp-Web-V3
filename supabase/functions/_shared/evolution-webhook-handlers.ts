@@ -2,7 +2,7 @@
 // Message-specific handlers moved to evolution-webhook-msg-handlers.ts
 
 import {
-  isRecord, normalizePhone, toEventRecords,
+  isRecord, normalizePhone, toEventRecords, instanceOrFilter,
   getConnectionByInstance, getContactByPhone, persistProfilePicture, generatePhoneVariants,
 } from "./evolution-helpers.ts";
 
@@ -14,11 +14,11 @@ export async function handleLogoutInstance(supabase: any, instance: string, data
     ?? null;
 
   const { data: prev } = await supabase.from('whatsapp_connections')
-    .select('id, status, phone_number').eq('instance_id', instance).maybeSingle();
+    .select('id, status, phone_number').or(instanceOrFilter(instance)).maybeSingle();
 
   await supabase.from('whatsapp_connections')
     .update({ status: 'logged_out', qr_code: null, updated_at: new Date().toISOString() })
-    .eq('instance_id', instance);
+    .or(instanceOrFilter(instance));
 
   if (prev && prev.status !== 'logged_out') {
     const phone = prev.phone_number ? ` (${prev.phone_number})` : '';
@@ -110,7 +110,7 @@ export async function handleConnectionUpdate(supabase: any, instance: string, ba
   const reasonCode = (baseData.reason ?? (baseData.data as Record<string, unknown>)?.reason) as number | string | undefined;
 
   const { data: prevConn } = await supabase.from('whatsapp_connections')
-    .select('status, phone_number').eq('instance_id', instance).maybeSingle();
+    .select('status, phone_number').or(instanceOrFilter(instance)).maybeSingle();
 
   // Registrar logs específicos de causa (timeline)
   if (evoState === 'close' || evoState === 'disconnected') {
@@ -165,7 +165,7 @@ export async function handleConnectionUpdate(supabase: any, instance: string, ba
 
   // Reset QR sempre que recebermos uma transição não-pendente (open ou close).
   if (evoState === 'open' || evoState === 'close') {
-    await supabase.from('whatsapp_connections').update({ qr_code: null }).eq('instance_id', instance);
+    await supabase.from('whatsapp_connections').update({ qr_code: null }).or(instanceOrFilter(instance));
   }
 
   // Alertas warroom: olhar status do RPC retornado (autoritário) ao invés do baseData.
@@ -499,7 +499,7 @@ export async function handleChatsDelete(supabase: any, instance: string, data: u
 export async function handleApplicationStartup(supabase: any, instance: string) {
   console.log(`Application startup event from instance: ${instance}`);
   const { data: conn } = await supabase.from('whatsapp_connections')
-    .select('id, status').eq('instance_id', instance).maybeSingle();
+    .select('id, status').or(instanceOrFilter(instance)).maybeSingle();
   if (conn && conn.status === 'disconnected') {
     await supabase.from('whatsapp_connections')
       .update({ status: 'connecting', updated_at: new Date().toISOString() }).eq('id', conn.id);
