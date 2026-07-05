@@ -171,6 +171,17 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
               rows={1}
             />
             <div className="flex flex-col gap-1">
+              <AudioRecorder
+                onAudioReady={async (blob) => {
+                  const fileName = `whisper-${Date.now()}.webm`;
+                  const { data, error } = await supabase.storage
+                    .from('audio-messages')
+                    .upload(`whispers/${fileName}`, blob, { contentType: 'audio/webm' });
+                  if (error) { toast.error('Erro ao enviar áudio'); return; }
+                  const { data: { publicUrl } } = supabase.storage.from('audio-messages').getPublicUrl(data.path);
+                  sendWhisper.mutate({ audioUrl: publicUrl });
+                }}
+              />
               <Button
                 size="icon"
                 className="w-8 h-8 bg-amber-500 hover:bg-amber-600 text-white shrink-0"
