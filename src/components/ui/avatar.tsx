@@ -169,8 +169,8 @@ function AvatarGroup({ avatars, max = 4, size = 'default', className }: AvatarGr
   return (
     <div className={cn("flex -space-x-2", className)}>
       {visibleAvatars.map((avatar, index) => (
-        <Avatar 
-          key={index} 
+        <Avatar
+          key={avatar.src || avatar.alt || avatar.fallback || `avatar-${index}`}
           size={size}
           className="ring-2 ring-black border border-border"
         >
