@@ -1,6 +1,5 @@
 
 import { useCallback, useEffect, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import {
@@ -10,7 +9,6 @@ import {
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useEmailMetrics');
-const supabase = _supabase as any;
 
 export function useEmailMetrics(accountId: string | null, days = 7) {
   const [summary, setSummary]     = useState<EmailMetricsSummary | null>(null);

@@ -9,8 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
-const supabase = _supabase as any;
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailListThreads } from './gmail/gmailApi';
 
 export interface EmailSearchResult {
@@ -42,9 +41,8 @@ export function useEmailSearch(accountId: string | null) {
     // Normaliza para FTS websearch
     const ftsQuery = q.trim();
 
-    const { data, error: dbErr } = await supabase
-      .from('email_threads')
-      .select(`
+    const { data, error: dbErr } = await safeClient.from('email_threads', (q) =>
+      q.select(`
         id,
         thread_id,
         subject,
@@ -53,10 +51,11 @@ export function useEmailSearch(accountId: string | null) {
         unread_count,
         email_messages!inner ( from_email, from_name )
       `)
-      .eq('account_id', accountId)
-      .textSearch('subject', ftsQuery, { config: 'portuguese', type: 'websearch' })
-      .order('last_message_at', { ascending: false })
-      .limit(20);
+       .eq('account_id', accountId)
+       .textSearch('subject', ftsQuery, { config: 'portuguese', type: 'websearch' })
+       .order('last_message_at', { ascending: false })
+       .limit(20)
+    );
 
     if (dbErr) return [];
 
@@ -82,7 +81,7 @@ export function useEmailSearch(accountId: string | null) {
 
     try {
       const res = await emailListThreads({ accountId, q, maxResults: 10 });
-      return (((res as any).threads as Record<string, unknown>[]) ?? []).map((t) => ({
+      return ((res as { threads?: Record<string, unknown>[] }).threads ?? []).map((t) => ({
         id: String(t.id ?? ''),
         thread_id: String(t.id ?? ''),
         subject: String(t.snippet ?? '').substring(0, 80),
