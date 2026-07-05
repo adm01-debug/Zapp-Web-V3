@@ -435,9 +435,11 @@ async function executeProxyCall<T>(
       const isGhostPost = !ok
         && (error?.name === 'FunctionsFetchError' || /Failed to send a request/i.test(error?.message ?? ''))
         && error?.status === undefined;
+      const isAuthError = !ok && (error?.status === 401 || error?.status === 403);
       const transient = error ? (isTransientRuntimeError(error) || isGhostPost) : false;
       if (transient) transientCount += 1;
       if (isGhostPost) recordBreakerFailure(meta.target);
+      if (isAuthError) tripAuthLock();
       if (ok) recordBreakerSuccess(meta.target);
 
       const isAbort = error?.name === 'AbortError';
