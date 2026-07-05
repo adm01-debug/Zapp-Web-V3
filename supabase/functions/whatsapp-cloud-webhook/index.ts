@@ -10,6 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
 import { contractErrorResponse } from "../_shared/validation.ts";
 import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
+import { markEventProcessed } from "../_shared/evolution-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,27 +60,11 @@ async function recordPing(
 async function isDuplicate(messageId: string): Promise<boolean> {
   if (!messageId) return false;
   const eventId = `whatsapp-cloud:${messageId}`;
-  // Reaproveita a tabela genérica de eventos processados (mesma usada pelo evolution-webhook).
-  const { data, error } = await localClient
-    .from("processed_webhook_events")
-    .select("event_id")
-    .eq("event_id", eventId)
-    .maybeSingle();
-  if (error) {
-    // Se a tabela não existe / outro erro, falha aberto (não bloqueia entrega).
-    console.warn(`[whatsapp-cloud-webhook] dedup check failed: ${error.message}`);
-    return false;
-  }
-  if (data) return true;
-  await localClient
-    .from("processed_webhook_events")
-    .insert({ event_id: eventId, instance: "whatsapp-cloud", event_type: "messages.upsert" })
-    .then(({ error: insErr }) => {
-      if (insErr && !insErr.message.includes("duplicate")) {
-        console.warn(`[whatsapp-cloud-webhook] dedup insert failed: ${insErr.message}`);
-      }
-    });
-  return false;
+  // Reaproveita o helper compartilhado (mesmo usado pelo evolution-webhook): insert-first
+  // com detecção de duplicata via violação de unique constraint em webhook_events_processed,
+  // em vez de select-then-insert (que tinha uma janela de corrida sob entrega concorrente).
+  const isNew = await markEventProcessed(localClient, eventId, "whatsapp-cloud", "messages.upsert");
+  return !isNew;
 }
 
 async function persistInbound(message: any, contact: any) {
