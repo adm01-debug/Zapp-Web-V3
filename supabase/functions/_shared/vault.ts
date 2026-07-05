@@ -13,8 +13,8 @@ export async function getSecret(name: string, opts: { skipEnv?: boolean } = {}):
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.value;
 
   try {
-    const url = Deno.env.get('SUPABASE_URL');
-    const svc = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+    const svc = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!url || !svc) return null;
     const admin = createClient(url, svc);
     const { data, error } = await admin.rpc('fn_get_vault_secret', { p_name: name });

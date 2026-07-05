@@ -8,9 +8,9 @@ interface LegacyAuthUser {
 }
 
 export function createSupabaseClients(authHeader: string): { supabase: SupabaseClient; supabaseAdmin: SupabaseClient } {
-  const url = Deno.env.get('SUPABASE_URL');
-  const anon = Deno.env.get('SUPABASE_ANON_KEY');
-  const svc = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+  const anon = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'));
+  const svc = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   return {
     supabase: createClient(url!, anon!, { global: { headers: { Authorization: authHeader } } }),
     supabaseAdmin: createClient(url!, svc!),

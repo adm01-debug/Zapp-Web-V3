@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
 
   const log = new Logger("connection-health-check");
 
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
   const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
   const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const xCron = req.headers.get('x-cron-secret') ?? '';

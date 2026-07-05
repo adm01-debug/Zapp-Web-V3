@@ -69,8 +69,8 @@ async function resolveProfileId(
 /** Log AI usage to database (fire-and-forget, non-blocking) */
 export async function logAiUsage(entry: AiUsageEntry): Promise<void> {
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+    const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!supabaseUrl || !serviceRoleKey) return;
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
