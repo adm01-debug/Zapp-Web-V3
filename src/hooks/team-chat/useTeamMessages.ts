@@ -29,7 +29,8 @@ export function useTeamMessages(conversationId: string | null) {
     if (!conversationId) return;
     const channel = supabase
       .channel(`team-messages-${conversationId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_messages', filter: `conversation_id=eq.${conversationId}` }, () => {
+      // Wave 1: team_messages is a view in public — repoint to zapp base table
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages', filter: `conversation_id=eq.${conversationId}` }, () => {
         queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
         queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })

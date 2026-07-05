@@ -107,7 +107,8 @@ export function useTeamConversations() {
     if (!profile) return;
     const channel = supabase
       .channel('team-chat-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_messages' }, () => {
+      // Wave 1: team_messages is a view in public — repoint to zapp base table
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
         queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
       .subscribe();
