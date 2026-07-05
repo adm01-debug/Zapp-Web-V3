@@ -1,4 +1,13 @@
-# 🔬 Auditoria Exaustiva — Evolution API + Banco de Dados (Sessão 6)
+# 🔬 Auditoria Exaustiva — Evolution API + Banco de Dados (Sessão 6 — eventos de webhook + GlitchTip)
+
+> **Nota:** uma sessão paralela produziu, no mesmo dia, um relatório mais profundo também
+> chamado "Sessão 6" — [`EVOLUTION_API_AUDIT_2026-07-05_sessao6.md`](./EVOLUTION_API_AUDIT_2026-07-05_sessao6.md)
+> — que encontrou e corrigiu a causa-raiz do falso-positivo de status "conectado"
+> (`fn_apply_connection_update` sem debounce) e reabriu alertas críticos fechados
+> indevidamente. Este documento cobre um escopo diferente e complementar (drift de
+> inscrição de eventos do webhook nativo, GlitchTip, e o comparativo com a documentação
+> oficial upstream) — nenhum dos dois achados conflita com o outro; renomeado para evitar
+> colisão de nome de arquivo.
 
 > **Data:** 2026-07-05 (~00:20–01:10 UTC)
 > **Escopo:** Evolution API na VPS (Docker Swarm/Portainer), Supabase self-hosted (PG15, schemas
@@ -27,7 +36,7 @@
 
 **Confirmado como já resolvido / não é bug (evita retrabalho):**
 
-- ✅ **Secret do webhook está correto**: comparado byte-a-byte — o Docker secret `supabase_evolution_webhook_secret_v1` (88 chars, montado no `supabase_functions` via `EVOLUTION_WEBHOOK_SECRETS`) é **idêntico** ao header `x-webhook-secret` configurado na Evolution e ao valor em `vault.decrypted_secrets` (`evolution_webhook_secret` e `webhook_secret_evolution` — duas entradas de vault com o mesmo valor, resíduo de uma migração de 13/06; **não usadas** pelo caminho de validação real, que lê `Deno.env` direto, não vault — sem risco, mas candidatas a limpeza futura).
+- ✅ **Secret do webhook está correto**: comparado byte-a-byte — o Docker secret `supabase_evolution_webhook_secret_v1` (88 bytes, sem newline, montado no `supabase_functions` via `EVOLUTION_WEBHOOK_SECRETS`) é **idêntico** ao header `x-webhook-secret` configurado na Evolution e ao valor em `vault.decrypted_secrets` (`evolution_webhook_secret` e `webhook_secret_evolution` — duas entradas de vault com o mesmo valor, resíduo de uma migração de 13/06; **não usadas** pelo caminho de validação real, que lê `Deno.env` direto, não vault — sem risco, mas candidatas a limpeza futura).
 - ✅ **Os 401 "Missing webhook signature"/"Invalid webhook shared secret"** remanescentes em `zapp.instance_auth_events` (8 nos últimos 5 min no momento da verificação, 0 nos últimos 2 min — intermitente, não um flood constante) são o mesmo fenômeno já documentado na sessão 2 (§1.4): o **caminho nativo `connection.update`** da Evolution ocasionalmente chega sem o header, mesmo com o header configurado na instância — comportamento do próprio Evolution, não um bug nosso. Consolidação recomendada (não executada — é a mudança INT401-3 do patch de referência do consumer, depende de decisão de qual caminho de entrega vira o único): desabilitar `CONNECTION_UPDATE` no webhook nativo e manter só via RabbitMQ→consumer (autenticado por HMAC/shared-secret e com DLQ).
 - ✅ **S3 `Access Denied` no `makeBucket`**: mesmo padrão já explicado na sessão 5 (S4-2) — token R2 sem permissão de `CreateBucket`, inofensivo porque o bucket já existe; `PutObject` funciona.
 - ✅ **Consumer RabbitMQ `drop=545` sem DLQ**: **não é um bug novo desta sessão** — é o comportamento **documentado e já endereçado com patch pronto** em [`db/remediation/consumer-hmac-patch.md`](../db/remediation/consumer-hmac-patch.md) (INT401-2): hoje o consumer faz `ch.basic_ack()` em qualquer 4xx, descartando silenciosamente. O patch (assinar HMAC + `basic_nack(requeue=False)` em 401/403 para rotear à DLQ) está pronto mas **não aplicado** — o consumer roda como Docker Config fora deste repositório (stack `evolution-rabbit-consumer`, não versionado aqui), portanto não posso aplicá-lo via commit; aplicar exige editar o Config no Portainer diretamente (fora do escopo seguro desta sessão sem coordenação, pelo mesmo motivo do WS-6 do FMEA: risco de derrubar o único caminho de entrega funcionando).
