@@ -464,10 +464,12 @@ async function executeProxyCall<T>(
         && (error?.name === 'FunctionsFetchError' || /Failed to send a request/i.test(error?.message ?? ''))
         && error?.status === undefined;
       const isAuthError = !ok && (error?.status === 401 || error?.status === 403);
+      const isConfigAuthError = !ok && isPersistentConfigAuthError(error);
       const transient = error ? (isTransientRuntimeError(error) || isGhostPost) : false;
       if (transient) transientCount += 1;
       if (isGhostPost) recordBreakerFailure(meta.target);
-      if (isAuthError) tripAuthLock();
+      if (isAuthError) tripAuthLock(AUTH_LOCK_MS, 'auth_401_403');
+      if (isConfigAuthError) tripAuthLock(CONFIG_LOCK_MS, 'config_service_role_mismatch');
       if (ok) recordBreakerSuccess(meta.target);
 
       const isAbort = error?.name === 'AbortError';
