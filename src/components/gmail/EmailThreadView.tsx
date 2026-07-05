@@ -62,7 +62,9 @@ export function EmailThreadView({ thread, accountId, onBack, className }: EmailT
       .channel(`thread_${thread.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
-        schema: 'public',
+        // Wave 2: email_messages is a VIEW in public schema — email_app.email_messages is the base table.
+        // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
+        schema: 'email_app',
         table: 'email_messages',
         filter: `thread_id_ref=eq.${thread.id}`,
       }, payload => {
