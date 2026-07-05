@@ -7,17 +7,14 @@ import { Eye, EyeOff, Send, Loader2, ChevronDown, ChevronUp } from 'lucide-react
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { AudioRecorder } from './AudioRecorder';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { WhisperAudioPlayer } from './WhisperAudioPlayer';
 
 interface WhisperMessage {
   id: string;
   contact_id: string;
   sender_id: string;
   content: string | null;
-  audio_url: string | null;
   created_at: string;
   sender?: { name: string; avatar_url?: string | null };
 }
