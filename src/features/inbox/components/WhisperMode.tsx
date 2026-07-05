@@ -9,12 +9,15 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { AudioRecorder } from './AudioRecorder';
+import { WhisperAudioPlayer } from './WhisperAudioPlayer';
 
 interface WhisperMessage {
   id: string;
   contact_id: string;
   sender_id: string;
   content: string | null;
+  audio_url: string | null;
   created_at: string;
   sender?: { name: string; avatar_url?: string | null };
 }
