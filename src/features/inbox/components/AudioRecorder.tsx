@@ -13,11 +13,12 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('AudioRecorder');
 
 interface AudioRecorderProps {
-  onSend: (audioBlob: Blob) => void;
-  onCancel: () => void;
+  onSend?: (audioBlob: Blob) => void;
+  onCancel?: () => void;
+  onAudioReady?: (audioBlob: Blob) => void;
 }
 
-export function AudioRecorder({ onSend, onCancel }: AudioRecorderProps) {
+export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderProps) {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -76,6 +77,7 @@ export function AudioRecorder({ onSend, onCancel }: AudioRecorderProps) {
     onRecordingComplete: (blob, url) => {
       setAudioBlob(blob);
       setIsConfirming(true);
+      onAudioReady?.(blob);
     },
   });
 
@@ -159,7 +161,7 @@ export function AudioRecorder({ onSend, onCancel }: AudioRecorderProps) {
       const startTime = Date.now();
       
       // We pass the transcription along with the audio if edited
-      await onSend(audioBlob);
+      await onSend?.(audioBlob);
       
       const durationMs = Date.now() - startTime;
       log.info(`[INBOX_METRIC] action=audio_upload_success size=${audioBlob.size} duration=${durationMs}ms`);
@@ -212,7 +214,7 @@ export function AudioRecorder({ onSend, onCancel }: AudioRecorderProps) {
     } else {
       cancelRecording(false);
     }
-    onCancel();
+    onCancel?.();
   };
 
   const handleUndoCancel = () => {

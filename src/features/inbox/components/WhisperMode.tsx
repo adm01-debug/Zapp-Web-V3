@@ -9,12 +9,15 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { AudioRecorder } from './AudioRecorder';
+import { WhisperAudioPlayer } from './WhisperAudioPlayer';
 
 interface WhisperMessage {
   id: string;
   contact_id: string;
   sender_id: string;
   content: string | null;
+  audio_url: string | null;
   created_at: string;
   sender?: { name: string; avatar_url?: string | null };
 }
@@ -47,21 +50,23 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
         .order('created_at', { ascending: true })
         .limit(50);
       if (error) throw error;
-      return (data || []) as WhisperMessage[];
+      return ((data || []) as unknown) as WhisperMessage[];
     },
     enabled: !!contactId && !!profile && contactIsUUID,
     refetchOnWindowFocus: false,
   });
 
   const sendWhisper = useMutation({
-    mutationFn: async ({ content }: { content: string }) => {
+    mutationFn: async ({ content, audioUrl }: { content?: string; audioUrl?: string }) => {
       if (!profile?.id) throw new Error('Not authenticated');
-      const { error } = await supabase.from('whisper_messages').insert({
+      const payload = {
         contact_id: contactId,
         sender_id: profile.id,
         target_agent_id: targetAgentId ?? profile.id,
-        content,
-      });
+        content: content ?? null,
+        audio_url: audioUrl ?? null,
+      };
+      const { error } = await supabase.from('whisper_messages').insert(payload as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -142,7 +147,11 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
                     {w.sender && w.sender_id !== profile?.id && (
                       <p className="font-semibold text-[10px] text-amber-600 dark:text-amber-400 mb-0.5">{w.sender.name}</p>
                     )}
-                    <p className="break-words">{w.content}</p>
+                    {w.audio_url ? (
+                      <WhisperAudioPlayer audioUrl={w.audio_url} />
+                    ) : (
+                      <p className="break-words">{w.content}</p>
+                    )}
                     <p className="text-[10px] opacity-60 mt-0.5">{format(new Date(w.created_at), 'HH:mm', { locale: ptBR })}</p>
                   </div>
                 </div>
@@ -162,6 +171,17 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
               rows={1}
             />
             <div className="flex flex-col gap-1">
+              <AudioRecorder
+                onAudioReady={async (blob) => {
+                  const fileName = `whisper-${Date.now()}.webm`;
+                  const { data, error } = await supabase.storage
+                    .from('audio-messages')
+                    .upload(`whispers/${fileName}`, blob, { contentType: 'audio/webm' });
+                  if (error) { toast.error('Erro ao enviar áudio'); return; }
+                  const { data: { publicUrl } } = supabase.storage.from('audio-messages').getPublicUrl(data.path);
+                  sendWhisper.mutate({ audioUrl: publicUrl });
+                }}
+              />
               <Button
                 size="icon"
                 className="w-8 h-8 bg-amber-500 hover:bg-amber-600 text-white shrink-0"

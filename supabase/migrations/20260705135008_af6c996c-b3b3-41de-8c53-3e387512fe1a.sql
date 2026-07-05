@@ -1,0 +1,1 @@
+ALTER TABLE public.whisper_messages ADD COLUMN IF NOT EXISTS audio_url text;
