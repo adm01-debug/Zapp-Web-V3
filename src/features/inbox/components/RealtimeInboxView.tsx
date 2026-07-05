@@ -193,9 +193,14 @@ export function RealtimeInboxView() {
   // Sync IDs do departamento → permite escopo "Departamento" no Inbox
   // (coordenador/supervisor vê conversas atribuídas aos colegas do mesmo depto).
   const { agentIds: departmentAgentIds } = useDepartmentAgents();
+  // FIX: destructure setter to get stable reference and break potential render loop.
+  // Previously, [departmentAgentIds, inboxFilters.setDepartmentAgentIds] caused
+  // infinite re-renders because inboxFilters is a new object on every render,
+  // making inboxFilters.setDepartmentAgentIds a new function ref each time.
+  const setDepartmentAgentIds = inboxFilters.setDepartmentAgentIds;
   useEffect(() => {
-    inboxFilters.setDepartmentAgentIds(departmentAgentIds);
-  }, [departmentAgentIds, inboxFilters.setDepartmentAgentIds]);
+    setDepartmentAgentIds(departmentAgentIds);
+  }, [departmentAgentIds, setDepartmentAgentIds]);
 
   const bulkActions = useInboxBulkActions({ refetch: inbox.refetch, filteredConversations: inboxFilters.filteredConversations });
   const pullToRefresh = usePullToRefresh({ onRefresh: async () => { await inbox.refetch(); }, disabled: !isMobile || !!inbox.selectedContactId });
@@ -216,6 +221,8 @@ export function RealtimeInboxView() {
 
   useGlobalSearchShortcut({ onOpen: () => inbox.setGlobalSearchOpen(true) });
 
+  // FIX: removed inbox.conversations from deps — it's not used in the effect body
+  // and was causing extra effect runs whenever conversations updated after selection.
   useEffect(() => {
     if (!inbox.pendingContactId || inbox.loading) return;
     inboxFilters.setMainTab('search');
@@ -224,21 +231,25 @@ export function RealtimeInboxView() {
     inbox.setSelectedContact(inbox.pendingContactId);
     inbox.markAsRead(inbox.pendingContactId);
     inbox.setPendingContactId(null);
-  }, [inbox.pendingContactId, inbox.loading, inbox.conversations]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inbox.pendingContactId, inbox.loading]);
 
+  // FIX: destructure stable action refs to avoid re-running effect when bulkActions
+  // object reference changes (new object on every render from useInboxBulkActions).
+  const { selectAll, selectionMode, selectedIds, bulkArchive, clearSelection, bulkMarkAsRead } = bulkActions;
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const active = document.activeElement;
       const isInput = active?.tagName === 'INPUT' || active?.tagName === 'TEXTAREA' || active?.getAttribute('contenteditable') === 'true';
       if (isInput) return;
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') { e.preventDefault(); bulkActions.selectAll(); }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && bulkActions.selectionMode && bulkActions.selectedIds.size > 0) { e.preventDefault(); bulkActions.bulkArchive(); }
-      if (e.key === 'Escape' && bulkActions.selectionMode) { e.preventDefault(); bulkActions.clearSelection(); }
-      if (e.key === 'r' && bulkActions.selectionMode && bulkActions.selectedIds.size > 0 && !e.ctrlKey && !e.metaKey) { e.preventDefault(); bulkActions.bulkMarkAsRead(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') { e.preventDefault(); selectAll(); }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectionMode && selectedIds.size > 0) { e.preventDefault(); bulkArchive(); }
+      if (e.key === 'Escape' && selectionMode) { e.preventDefault(); clearSelection(); }
+      if (e.key === 'r' && selectionMode && selectedIds.size > 0 && !e.ctrlKey && !e.metaKey) { e.preventDefault(); bulkMarkAsRead(); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [bulkActions]);
+  }, [selectAll, selectionMode, selectedIds, bulkArchive, clearSelection, bulkMarkAsRead]);
 
   const handleGlobalSearchResult = (result: SearchResult) => {
     if (!result.contactId) return;

@@ -1,5 +1,6 @@
+import { Fragment } from 'react';
 import { ChevronLeft, Home } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -41,7 +42,6 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleBack = () => {
     if (onBack) {
@@ -60,6 +60,7 @@ export function PageHeader({
       {breadcrumbs.length > 0 && (
         <Breadcrumb>
           <BreadcrumbList>
+            {/* Home item */}
             <BreadcrumbItem>
               <BreadcrumbLink 
                 href="/" 
@@ -74,25 +75,32 @@ export function PageHeader({
               const isLast = index === breadcrumbs.length - 1;
               
               return (
-                <BreadcrumbItem key={crumb.label}>
+                // FIX: BreadcrumbSeparator (<li>) must be a SIBLING of BreadcrumbItem (<li>),
+                // not nested inside it. Use Fragment with key to wrap both as siblings
+                // inside the parent BreadcrumbList (<ol>).
+                // Previously: <BreadcrumbItem><BreadcrumbSeparator/>...</BreadcrumbItem>
+                // caused invalid <li> inside <li> DOM nesting (HTML spec violation).
+                <Fragment key={crumb.label}>
                   <BreadcrumbSeparator />
-                  {isLast ? (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink
-                      href={crumb.href}
-                      onClick={(e) => {
-                        if (crumb.onClick) {
-                          e.preventDefault();
-                          crumb.onClick();
-                        }
-                      }}
-                      className="hover:text-foreground transition-colors"
-                    >
-                      {crumb.label}
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
+                  <BreadcrumbItem>
+                    {isLast ? (
+                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink
+                        href={crumb.href}
+                        onClick={(e) => {
+                          if (crumb.onClick) {
+                            e.preventDefault();
+                            crumb.onClick();
+                          }
+                        }}
+                        className="hover:text-foreground transition-colors"
+                      >
+                        {crumb.label}
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </Fragment>
               );
             })}
           </BreadcrumbList>
