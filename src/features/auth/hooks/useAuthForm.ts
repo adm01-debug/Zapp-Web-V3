@@ -132,7 +132,7 @@ export function useAuthForm() {
     } else {
       await clearLoginAttempts(formData.email);
       toast({ title: 'Bem-vindo!', description: 'Login realizado com sucesso.' });
-      navigate('/');
+      navigate(nextPath, { replace: true });
     }
   };
 
@@ -159,7 +159,7 @@ export function useAuthForm() {
       toast({ title: 'Erro ao criar conta', description: errorMessage, variant: 'destructive' });
     } else {
       toast({ title: 'Conta criada!', description: 'Você já pode fazer login.' });
-      navigate('/');
+      navigate(nextPath, { replace: true });
     }
   };
 
@@ -173,7 +173,7 @@ export function useAuthForm() {
       if (error) {
         toast({ title: 'Autenticado com Passkey!', description: 'Redirecionando...' });
       }
-      navigate('/');
+      navigate(nextPath, { replace: true });
     }
   };
 
@@ -181,7 +181,7 @@ export function useAuthForm() {
     try {
       const { lovable } = await import('@/integrations/lovable/index');
       const { error } = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth?next=${encodeURIComponent(nextPath)}`,
       });
       if (error) {
         toast({ title: 'Erro ao conectar com Google', description: error.message, variant: 'destructive' });
