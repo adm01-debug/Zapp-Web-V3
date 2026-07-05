@@ -213,15 +213,19 @@ const breaker = new Map<string, { fails: number; openedAt: number }>();
 // this lock because the token is global.
 let authLockUntil = 0;
 const AUTH_LOCK_MS = 60_000;
+// Persistent config-auth errors (502 with "service_role rejected") won't be
+// fixed by retrying — hold requests for 5 minutes to give the operator time
+// to rotate the secret without flooding telemetry.
+const CONFIG_LOCK_MS = 5 * 60_000;
 
 function isAuthLocked(): number {
   const now = Date.now();
   return authLockUntil > now ? authLockUntil - now : 0;
 }
 
-function tripAuthLock(): void {
-  authLockUntil = Date.now() + AUTH_LOCK_MS;
-  proxyLog.warn('proxy auth lock tripped', { cooldownMs: AUTH_LOCK_MS });
+function tripAuthLock(cooldownMs: number = AUTH_LOCK_MS, reason: string = 'auth'): void {
+  authLockUntil = Math.max(authLockUntil, Date.now() + cooldownMs);
+  proxyLog.warn('proxy auth lock tripped', { cooldownMs, reason });
 }
 
 function isBreakerOpen(target: string): { open: boolean; remainingMs: number } {
@@ -373,7 +377,20 @@ async function executeProxyCall<T>(
     };
   };
 
+  // 502 with a config-auth hint from the proxy is NOT transient — retrying
+  // won't fix a mismatched service_role key. Detect and short-circuit.
+  const isPersistentConfigAuthError = (err: unknown): boolean => {
+    const normalized = normalizeInvokeError(err);
+    const message = normalized.message ?? '';
+    return (
+      normalized.status === 502 &&
+      /service_role|self-hosted rejeitou|assinatura inv[aá]lida|JWT_SECRET/i.test(message)
+    );
+  };
+
   const isTransientRuntimeError = (err: unknown): boolean => {
+    // Persistent config-auth 502s are never transient — bail out early.
+    if (isPersistentConfigAuthError(err)) return false;
     const normalized = normalizeInvokeError(err);
     const message = normalized.message ?? '';
     const code = normalized.code ?? '';
@@ -447,10 +464,12 @@ async function executeProxyCall<T>(
         && (error?.name === 'FunctionsFetchError' || /Failed to send a request/i.test(error?.message ?? ''))
         && error?.status === undefined;
       const isAuthError = !ok && (error?.status === 401 || error?.status === 403);
+      const isConfigAuthError = !ok && isPersistentConfigAuthError(error);
       const transient = error ? (isTransientRuntimeError(error) || isGhostPost) : false;
       if (transient) transientCount += 1;
       if (isGhostPost) recordBreakerFailure(meta.target);
-      if (isAuthError) tripAuthLock();
+      if (isAuthError) tripAuthLock(AUTH_LOCK_MS, 'auth_401_403');
+      if (isConfigAuthError) tripAuthLock(CONFIG_LOCK_MS, 'config_service_role_mismatch');
       if (ok) recordBreakerSuccess(meta.target);
 
       const isAbort = error?.name === 'AbortError';
