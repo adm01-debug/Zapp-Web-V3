@@ -33,7 +33,7 @@ export function KeyPointsTab({ analysis, ttsButtonClass, isTtsLoading, isTtsPlay
           </div>
           <ul className="space-y-2">
             {analysis.keyPoints.map((point, index) => (
-              <motion.li key={index} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}
+              <motion.li key={point} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}
                 className="flex items-start gap-2 rounded-xl border border-border/50 bg-muted/30 p-2.5 text-sm">
                 <span className="mt-0.5 shrink-0 text-xs font-bold text-primary">{index + 1}.</span>
                 <span className="leading-relaxed">{point}</span>
@@ -61,7 +61,7 @@ export function KeyPointsTab({ analysis, ttsButtonClass, isTtsLoading, isTtsPlay
           </div>
           <ul className="space-y-2">
             {analysis.nextSteps.map((step, index) => (
-              <motion.li key={index} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}
+              <motion.li key={step} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}
                 className="flex items-start gap-2 rounded-xl border border-primary/10 bg-primary/5 p-2.5 text-sm">
                 <span className="mt-0.5 shrink-0 text-primary">→</span>
                 <span className="leading-relaxed">{step}</span>

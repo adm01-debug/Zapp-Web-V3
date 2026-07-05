@@ -54,9 +54,9 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
     const parts = content.split(/(@\w+)/g);
     return parts.map((part, i) => {
       if (part.startsWith('@')) {
-        return <Badge key={i} variant="secondary" className="text-xs mx-0.5">{part}</Badge>;
+        return <Badge key={`${part}-${i}`} variant="secondary" className="text-xs mx-0.5">{part}</Badge>;
       }
-      return <span key={i}>{part}</span>;
+      return <span key={`${part}-${i}`}>{part}</span>;
     });
   };
 

@@ -34,11 +34,11 @@ export function RetryAlertsBanner({ breaches }: RetryAlertsBannerProps) {
             </AlertTitle>
             <AlertDescription className="mt-1.5 space-y-1.5">
               <ul className="flex flex-col gap-1">
-                {b.details.map((d, i) => {
+                {b.details.map((d) => {
                   const Icon = reasonMeta[d.kind].icon;
                   const suffix = d.kind === 'failure_rate' ? '%' : '';
                   return (
-                    <li key={i} className="flex items-center gap-2 text-[11px]">
+                    <li key={d.kind} className="flex items-center gap-2 text-[11px]">
                       <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
                       <span className="font-medium">{reasonMeta[d.kind].label}:</span>
                       <span className="">
