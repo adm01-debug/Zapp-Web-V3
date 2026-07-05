@@ -141,8 +141,8 @@ export function MediaMigrationTool() {
 
             {result.details && result.details.length > 0 && (
               <div className="max-h-[300px] overflow-auto rounded-lg border bg-muted/30 p-3">
-                {result.details.map((detail, i) => (
-                  <p key={i} className="text-xs  py-0.5">
+                {result.details.map((detail) => (
+                  <p key={detail} className="text-xs  py-0.5">
                     {detail}
                   </p>
                 ))}
@@ -163,7 +163,7 @@ export function MediaMigrationTool() {
           <CardContent>
             <div className="space-y-2">
               {history.slice(1).map((h, i) => (
-                <div key={i} className="flex items-center gap-3 p-2 rounded border text-xs">
+                <div key={`history-${i}`} className="flex items-center gap-3 p-2 rounded border text-xs">
                   {h.success ? <CheckCircle className="w-3 h-3 text-success" /> : <XCircle className="w-3 h-3 text-destructive" />}
                   <span>{h.processed} processados</span>
                   <span className="text-success">{h.migrated} OK</span>

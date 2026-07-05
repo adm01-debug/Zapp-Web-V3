@@ -50,7 +50,7 @@ export function SwipeableRow({
       {leftActions.length > 0 && (
         <motion.div className="absolute inset-y-0 left-0 flex items-center gap-1 px-2" style={{ opacity: leftOpacity, scale: leftScale }}>
           {leftActions.map((action, index) => (
-            <motion.button key={index} whileTap={{ scale: 0.9 }} onClick={() => handleActionClick('left', index)}
+            <motion.button key={action.label} whileTap={{ scale: 0.9 }} onClick={() => handleActionClick('left', index)}
               className={cn('p-3 rounded-xl flex flex-col items-center justify-center min-w-[60px]', action.bgColor)}>
               <div className={action.color}>{action.icon}</div>
               <span className={cn('text-xs mt-1 font-medium', action.color)}>{action.label}</span>
@@ -61,7 +61,7 @@ export function SwipeableRow({
       {rightActions.length > 0 && (
         <motion.div className="absolute inset-y-0 right-0 flex items-center gap-1 px-2" style={{ opacity: rightOpacity, scale: rightScale }}>
           {rightActions.map((action, index) => (
-            <motion.button key={index} whileTap={{ scale: 0.9 }} onClick={() => handleActionClick('right', index)}
+            <motion.button key={action.label} whileTap={{ scale: 0.9 }} onClick={() => handleActionClick('right', index)}
               className={cn('p-3 rounded-xl flex flex-col items-center justify-center min-w-[60px]', action.bgColor)}>
               <div className={action.color}>{action.icon}</div>
               <span className={cn('text-xs mt-1 font-medium', action.color)}>{action.label}</span>

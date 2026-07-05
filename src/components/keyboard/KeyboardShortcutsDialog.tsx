@@ -85,7 +85,7 @@ function ShortcutRow({ shortcut }: { shortcut: ShortcutBinding }) {
       </div>
       <div className="flex items-center gap-1 shrink-0">
         {keys.map((key, index) => (
-          <span key={index} className="flex items-center">
+          <span key={`${key}-${index}`} className="flex items-center">
             <ShortcutKey>{key}</ShortcutKey>
             {index < keys.length - 1 && (
               <span className="mx-1 text-muted-foreground text-xs">+</span>
@@ -194,15 +194,15 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
                 Atalhos Globais
               </h4>
               <div className="grid grid-cols-2 gap-2">
-                {additionalShortcuts.map((shortcut, index) => (
-                  <div 
-                    key={index}
+                {additionalShortcuts.map((shortcut) => (
+                  <div
+                    key={shortcut.description}
                     className="flex items-center justify-between p-2 rounded-lg bg-muted/30"
                   >
                     <span className="text-xs text-muted-foreground">{shortcut.description}</span>
                     <div className="flex items-center gap-0.5">
                       {shortcut.keys.map((key, keyIndex) => (
-                        <span key={keyIndex} className="flex items-center">
+                        <span key={`${key}-${keyIndex}`} className="flex items-center">
                           <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-background border border-border rounded">
                             {key}
                           </kbd>

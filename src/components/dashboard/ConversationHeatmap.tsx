@@ -242,7 +242,7 @@ export default function ConversationHeatmap({
           <span className="text-xs text-muted-foreground">Baixo</span>
           <div className="flex h-3 rounded overflow-hidden">
             {config.colorScale.map((color, i) => (
-              <div key={i} className="w-6 h-full" style={{ backgroundColor: color }} />
+              <div key={`${color}-${i}`} className="w-6 h-full" style={{ backgroundColor: color }} />
             ))}
           </div>
           <span className="text-xs text-muted-foreground">Alto</span>

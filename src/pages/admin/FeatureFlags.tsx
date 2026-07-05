@@ -232,8 +232,8 @@ export function FeatureFlagsAdmin() {
               </div>
 
               <div className="space-y-2">
-                {healthResults.map((res, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/20 text-xs border border-border/30">
+                {healthResults.map((res) => (
+                  <div key={res.service} className="flex items-center justify-between p-2 rounded bg-muted/20 text-xs border border-border/30">
                     <span className="font-medium">{res.service}</span>
                     <div className="flex items-center gap-2">
                       {res.latency && <span className="text-[9px] text-muted-foreground ">{res.latency}ms</span>}
@@ -258,8 +258,8 @@ export function FeatureFlagsAdmin() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="max-h-[400px] overflow-y-auto px-4 pb-4 space-y-3">
-                {auditLogs.map((log, i) => (
-                  <div key={i} className="group p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors">
+                {auditLogs.map((log) => (
+                  <div key={log.created_at} className="group p-3 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[10px] font-bold text-primary">{new Date(log.created_at).toLocaleString()}</span>
                       <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded uppercase font-bold">{log.action}</span>

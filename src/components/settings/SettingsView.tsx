@@ -67,7 +67,7 @@ export function SettingsView() {
             <Skeleton className="h-5 w-48" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="space-y-2">
+                <div key={`field-${i}`} className="space-y-2">
                   <Skeleton className="h-3.5 w-20" />
                   <Skeleton className="h-10 w-full rounded-md" />
                 </div>
@@ -82,7 +82,7 @@ export function SettingsView() {
             <Skeleton className="h-5 w-36" />
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between">
+                <div key={`toggle-${i}`} className="flex items-center justify-between">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-6 w-11 rounded-full" />
                 </div>
