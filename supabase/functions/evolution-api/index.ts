@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
       const rawState = data?.instance?.state || data?.state;
       const status = rawState === 'open' ? 'connected' : 'disconnected';
       
-      await supabase.from('whatsapp_connections').update({ status, qr_code: null }).eq('instance_id', instance);
+      await supabase.from('whatsapp_connections').update({ status, qr_code: null }).eq('instance_name', instance);
       return new Response(JSON.stringify({ ...data, status, state: rawState }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
