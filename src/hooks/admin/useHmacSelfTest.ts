@@ -99,7 +99,7 @@ export function useHmacSelfTest(instance: string, includeNegative: boolean) {
         });
         if (insertAlertError) log.warn('warroom_alerts insert failed', insertAlertError);
       } else if (payload.ok && activeId) {
-        const { error: resolveError } = await supabase.from('warroom_alerts')
+        const { error: resolveError } = await (supabase as any).from('warroom_alerts')
           .update({
             resolved_at: new Date().toISOString(),
             resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
