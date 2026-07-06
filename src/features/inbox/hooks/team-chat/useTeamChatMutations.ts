@@ -1,13 +1,25 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
+
+interface TeamConversation {
+  id: string;
+  type: string;
+  name: string | null;
+  created_by: string | null;
+  department_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export function useUpdateTeamMessageStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ messageId, status, conversationId }: { messageId: string; status: 'delivered' | 'read'; conversationId: string }) => {
-      const { error } = await (supabase as any).from('team_messages').update({ status }).eq('id', messageId);
+      const { error } = await safeClient.from('team_messages', (q) => q.update({ status }).eq('id', messageId));
       if (error) throw error;
       return { conversationId, messageId, status };
     },
@@ -160,25 +172,22 @@ export function useCreateTeamConversation() {
 
       // Conversa de departamento: única por departamento (índice UNIQUE parcial no banco)
       if (type === 'department' && departmentId) {
-        const { data: existingDeptConv, error: deptErr } = await (supabase as any)
-          .from('team_conversations')
-          .select('*')
-          .eq('department_id', departmentId)
-          .eq('type', 'department')
-          .limit(1)
-          .maybeSingle();
+        const { data: deptConvRows, error: deptErr } = await safeClient.from<TeamConversation>(
+          'team_conversations',
+          (q) => q.select('*').eq('department_id', departmentId).eq('type', 'department').limit(1),
+        );
         if (deptErr) throw deptErr;
+        const existingDeptConv = deptConvRows[0];
         if (existingDeptConv) return existingDeptConv;
       }
 
-      const { data: conv, error: convErr } = await (supabase as any).from('team_conversations').insert({
-        type,
-        name: name || null,
-        created_by: profile.id,
-        department_id: departmentId || null
-      }).select().single();
-      
+      const { data: convRows, error: convErr } = await safeClient.from<TeamConversation>(
+        'team_conversations',
+        (q) => q.insert({ type, name: name || null, created_by: profile.id, department_id: departmentId || null }).select(),
+      );
       if (convErr) throw convErr;
+      const conv = convRows[0];
+      if (!conv) throw new Error('Falha ao criar conversa');
       
       // Membros deduplicados (o banco também garante UNIQUE (conversation_id, profile_id)).
       // Em conversas de departamento, apenas o criador é adicionado para consistência de UI.
@@ -215,13 +224,13 @@ export function useTransferTeamConversation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ conversationId, departmentId, metadata }: { conversationId: string; departmentId: string; metadata?: any }) => {
-      const { data, error } = await (supabase as any).from('team_conversations').update({
-        department_id: departmentId,
-        metadata: metadata || {},
-        updated_at: new Date().toISOString()
-      }).eq('id', conversationId).select().single();
+      const { data: convRows, error } = await safeClient.from<TeamConversation>(
+        'team_conversations',
+        (q) => q.update({ department_id: departmentId, metadata: metadata || {}, updated_at: new Date().toISOString() })
+          .eq('id', conversationId).select(),
+      );
       if (error) throw error;
-      return data;
+      return convRows[0] ?? null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
