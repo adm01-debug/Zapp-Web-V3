@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
       if (response.ok && data?.qrcode?.base64) {
         await supabase
           .from('whatsapp_connections')
-          .update({ qr_code: data.qrcode.base64, status: 'pending' })
+          .update({ qr_code: data.qrcode.base64, status: 'qr_pending' })
           .eq('instance_name', instance);
       }
 
