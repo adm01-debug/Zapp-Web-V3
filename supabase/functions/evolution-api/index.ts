@@ -383,7 +383,7 @@ Deno.serve(async (req) => {
 
       if (response.status === 401 || response.status === 403) {
         recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'status' });
-        await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_id', instance);
+        await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_name', instance);
         return new Response(JSON.stringify({
           version: EVOLUTION_ENVELOPE_VERSION,
           status: 'disconnected',
