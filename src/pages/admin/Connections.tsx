@@ -211,37 +211,36 @@ export default function AdminConnectionsPage() {
       const existing = connections.find((c) => c.provider === 'supabase_external' || c.name === 'FATOR X');
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
-      const { data, error, status, statusText } = existing
+      const { data, error } = existing
         ? await safeClient.from('system_connections', (q) => q.update(payload).eq('id', existing.id).select())
         : await safeClient.from('system_connections', (q) => q.insert(insertPayload).select());
 
       if (error) {
-        const msg = `Falha na escrita [Provider: ${payload.provider}]: Status ${status} (${statusText || 'Erro'}). Mensagem: ${error.message}${error.code ? ` (Code: ${error.code})` : ''}`;
+        const msg = `Falha na escrita [Provider: ${payload.provider}]: ${error.message}`;
         setSaveError(msg);
         toast({ title: 'Erro ao salvar no Supabase', description: msg, variant: 'destructive' });
         return;
       }
 
-      // Se status for 200/201 mas o data vier vazio (pode acontecer em RLS falha silenciosa em alguns drivers)
+      // Se o data vier vazio (RLS falha silenciosa em alguns drivers)
       if (!data || (Array.isArray(data) && data.length === 0)) {
-        const msg = `A requisição retornou status ${status}, mas nenhum dado foi retornado. Verifique se as permissões de RLS permitem a inserção/atualização.`;
+        const msg = `Requisição sem erro mas nenhum dado retornado. Verifique se as permissões de RLS permitem a inserção/atualização.`;
         setSaveError(msg);
         toast({ title: 'Escrita não confirmada', description: msg, variant: 'destructive' });
         return;
       }
 
-      // Validação Pós-Save (SELECT para confirmar persistência no Self-Hosted)
+      // Validação Pós-Save: SELECT confirma persistência real no banco
       toast({ title: 'Confirmando gravação...', description: 'Aguardando sincronização do banco.' });
-      
-      // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      const { data: verify, error: verifyError } = await safeClient.from('system_connections', (q) =>
-        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X').maybeSingle()
+      // Use .limit(1) — safeClient.from always returns T[], so maybeSingle inside is wrong
+      const { data: verifyRows, error: verifyError } = await safeClient.from('system_connections', (q) =>
+        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X').limit(1)
       );
 
-      if (verifyError || !verify) {
-        const msg = `A requisição retornou status ${status}, mas o SELECT de validação falhou: ${(verifyError as { message?: string } | null)?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
+      if (verifyError || !verifyRows || verifyRows.length === 0) {
+        const msg = `SELECT de validação falhou: ${verifyError?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
         setSaveError(msg);
         toast({ title: 'Confirmação falhou', description: msg, variant: 'destructive' });
         return;

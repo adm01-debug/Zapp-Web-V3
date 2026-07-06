@@ -122,7 +122,7 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        const { data: contact } = await client.rpc("rpc_get_contact" as any, {
+        const { data: contact } = await client.rpc("rpc_get_contact", {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
@@ -233,7 +233,7 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            await client.rpc("rpc_upsert_contact" as any, {
+            await client.rpc("rpc_upsert_contact", {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
@@ -281,7 +281,7 @@ export function useAutomations({
                 .eq("id", execId)
                 .maybeSingle();
               if (exec?.suggestion_text) {
-                await client.rpc("rpc_insert_message" as any, {
+                await client.rpc("rpc_insert_message", {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,

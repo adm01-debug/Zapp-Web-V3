@@ -81,6 +81,7 @@ export interface ConversationContact {
   ai_sentiment: string | null;
   channel_type: string | null;
   channel_connection_id: string | null;
+  routing_status?: string | null;
 }
 
 export interface ConversationWithMessages {
@@ -427,10 +428,10 @@ export function useRealtimeMessages() {
       filtered = filtered.filter(conv => {
         if (statusFilter === 'unread') return conv.unreadCount > 0;
         if (statusFilter === 'open') {
-          return !conv.lastMessage || conv.lastMessage.sender === 'contact' || (conv.contact as any).routing_status === 'pending';
+          return !conv.lastMessage || conv.lastMessage.sender === 'contact' || conv.contact.routing_status === 'pending';
         }
         if (statusFilter === 'closed') {
-          return conv.lastMessage?.sender === 'agent' && (conv.contact as any).routing_status !== 'pending';
+          return conv.lastMessage?.sender === 'agent' && conv.contact.routing_status !== 'pending';
         }
         return true; 
       });

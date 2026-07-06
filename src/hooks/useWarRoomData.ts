@@ -93,7 +93,7 @@ export function useWarRoomData() {
       if (dbQueuesErr) throw dbQueuesErr;
 
       const { data: contacts, error: qContactsErr } = await dbFrom('contacts')
-        .select('queue_id, assigned_to');
+        .select('id, queue_id, assigned_to');
       if (qContactsErr) log.warn('contacts fetch failed (warroom queues)', qContactsErr.message);
 
       const { data: slaData, error: slaErr } = await supabase
@@ -101,6 +101,7 @@ export function useWarRoomData() {
         .select('contact_id, first_response_breached, resolution_breached');
       if (slaErr) log.warn('conversation_sla fetch failed', slaErr.message);
 
+      // breachedContacts holds contacts.id values (conversation_sla.contact_id → contacts.id FK)
       const breachedContacts = new Set(
         (slaData || []).filter(s => s.first_response_breached || s.resolution_breached).map(s => s.contact_id)
       );
@@ -109,7 +110,7 @@ export function useWarRoomData() {
         const queueContacts = (contacts || []).filter(c => c.queue_id === q.id);
         const waiting = queueContacts.filter(c => !c.assigned_to).length;
         const inProgress = queueContacts.filter(c => c.assigned_to).length;
-        const slaBreaches = queueContacts.filter(c => breachedContacts.has(c.queue_id)).length;
+        const slaBreaches = queueContacts.filter(c => breachedContacts.has(c.id)).length;
 
         return {
           id: q.id, name: q.name, color: q.color,
