@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ShieldAlert, AlertTriangle, Save, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 
 const log = getLogger('ThreadSLASettingsDialog');
@@ -50,15 +50,12 @@ export function ThreadSLASettingsDialog({
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { error } = await (supabase as any)
-        .from('conversation_threads')
-        .update({
-          sla_warning_threshold_minutes: formData.sla_warning_threshold_minutes,
-          sla_critical_threshold_minutes: formData.sla_critical_threshold_minutes,
-          sla_notification_message: formData.sla_notification_message,
-          sla_enabled: formData.sla_enabled,
-        })
-        .eq('id', threadId);
+      const { error } = await safeClient.from('conversation_threads', (q) => q.update({
+        sla_warning_threshold_minutes: formData.sla_warning_threshold_minutes,
+        sla_critical_threshold_minutes: formData.sla_critical_threshold_minutes,
+        sla_notification_message: formData.sla_notification_message,
+        sla_enabled: formData.sla_enabled,
+      }).eq('id', threadId));
 
       if (error) throw error;
 

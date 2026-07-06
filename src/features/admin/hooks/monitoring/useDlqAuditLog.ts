@@ -49,7 +49,7 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
         p_action: action,
       });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as DlqAuditEntry[];
     },
     staleTime: 15_000,
     refetchInterval: 60_000,

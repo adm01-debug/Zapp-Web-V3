@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Message } from '@/types/chat';
 
 interface UseSLADeliveryProps {
@@ -12,12 +12,11 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
     if (!contactId || !messages.length) return;
     
     const checkDeliveryDelay = async () => {
-      const { data: customRule } = await (supabase as any)
-        .from('sla_delivery_rules')
-        .select('*')
-        .eq('contact_id', contactId)
-        .eq('is_active', true)
-        .maybeSingle();
+      const { data: ruleRows } = await safeClient.from<Record<string, unknown>>(
+        'sla_delivery_rules',
+        (q) => q.select('*').eq('contact_id', contactId).eq('is_active', true).limit(1),
+      );
+      const customRule = ruleRows[0] ?? null;
 
       const WARNING_THRESHOLD = (customRule?.warning_threshold_minutes || 30) * 60 * 1000;
       const BREACH_THRESHOLD = (customRule?.breach_threshold_minutes || 60) * 60 * 1000;

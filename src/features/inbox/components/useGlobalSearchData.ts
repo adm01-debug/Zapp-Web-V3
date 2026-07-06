@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { log } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
@@ -203,14 +203,14 @@ export function useGlobalSearchData(open: boolean) {
       if (cleanQuery.length >= 2) {
         addToHistory(cleanQuery, searchResults.length);
         // Fire-and-forget telemetry — never blocks UI.
-        (supabase as any)
+        safeClient
           .rpc('rpc_log_search_event', {
             p_query: cleanQuery,
             p_entities: Array.from(types),
             p_result_count: searchResults.length,
             p_used_vector: false,
           })
-          .then(({ data, error }: { data: any, error: any }) => {
+          .then(({ data, error }) => {
             if (error) log.warn('rpc_log_search_event failed', error);
             else if (typeof data === 'string') lastSearchEventIdRef.current = data;
           });

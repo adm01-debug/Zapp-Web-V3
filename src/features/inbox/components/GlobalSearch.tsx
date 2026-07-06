@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { log } from '@/lib/logger';
 import { useGlobalSearchData, type SearchResult } from './useGlobalSearchData';
 import { GlobalSearchFilters } from './search/GlobalSearchFilters';
@@ -55,8 +55,8 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
   const handleSelect = useCallback((result: SearchResult) => {
     // Telemetry — fire-and-forget; never blocks the navigation.
     if (search && search.trim().length >= 2) {
-      supabase
-        .rpc('rpc_record_search_click' as any, {
+      safeClient
+        .rpc('rpc_record_search_click', {
           p_query: search.trim(),
           p_result_id: result.id,
           p_result_type: result.type,

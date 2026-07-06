@@ -6,7 +6,8 @@
  * Uses RPCs: soft_delete_contact, bulk_soft_delete_contacts, restore_contact
  */
 import { useState, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React from 'react';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { sanitizeContactFields } from '@/lib/sanitize';
@@ -248,13 +249,13 @@ export function useContacts() {
         >
           Desfazer
         </Button>
-      ) as any,
+      ) as React.ReactElement,
     });
 
     // Schedule actual delete after 5s
     const timerId = setTimeout(async () => {
       timer.delete(ids.join(','));
-      const { error } = await (supabase as any).rpc('bulk_soft_delete_contacts', {
+      const { error } = await safeClient.rpc('bulk_soft_delete_contacts', {
         p_contact_ids: ids,
         p_reason:      'user_deleted',
       });

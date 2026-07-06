@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,14 +22,12 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
   const { data: config, isLoading } = useQuery({
     queryKey: ['sla-delivery-config', contactId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('sla_delivery_rules')
-        .select('*')
-        .eq('contact_id', contactId)
-        .maybeSingle();
-      
+      const { data, error } = await safeClient.from<Record<string, unknown>>(
+        'sla_delivery_rules',
+        (q) => q.select('*').eq('contact_id', contactId).limit(1),
+      );
       if (error) throw error;
-      return data;
+      return data[0] ?? null;
     }
   });
 
@@ -54,15 +52,10 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
       };
 
       if (config?.id) {
-        const { error } = await (supabase as any)
-          .from('sla_delivery_rules')
-          .update(payload)
-          .eq('id', config.id);
+        const { error } = await safeClient.from('sla_delivery_rules', (q) => q.update(payload).eq('id', config.id as string));
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any)
-          .from('sla_delivery_rules')
-          .insert(payload);
+        const { error } = await safeClient.from('sla_delivery_rules', (q) => q.insert(payload));
         if (error) throw error;
       }
     },
@@ -70,7 +63,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
       toast.success('Configurações de SLA salvas');
       queryClient.invalidateQueries({ queryKey: ['sla-delivery-config', contactId] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(`Erro ao salvar: ${err.message}`);
     }
   });

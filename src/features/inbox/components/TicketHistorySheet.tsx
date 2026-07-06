@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Clock, Circle, UserCheck, UserMinus, UserPlus, Wand2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useTicketStatus } from '@/features/inbox';
 import type { TicketEvent } from '@/lib/inbox/ticketStore';
 
@@ -146,14 +147,12 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     queryKey: ['conversation-audit-logs', contactId],
     enabled: open && !!contactId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('conversation_audit_logs')
-        .select('*')
-        .eq('conversation_id', contactId!)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const { data, error } = await safeClient.from<Record<string, unknown>>(
+        'conversation_audit_logs',
+        (q) => q.select('*').eq('conversation_id', contactId!).order('created_at', { ascending: false }).limit(50),
+      );
       if (error) return [];
-      return data ?? [];
+      return data;
     },
   });
 

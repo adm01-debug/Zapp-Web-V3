@@ -8,6 +8,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 export interface RetryAttempt {
   attempt: number;
@@ -72,12 +73,10 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .eq('entity_id', messageId)
           .order('created_at', { ascending: false })
           .limit(20),
-        (supabase as any)
-          .from('outbound_delivery_audit')
-          .select('*')
-          .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
-          .order('created_at', { ascending: false })
-          .limit(10)
+        safeClient.from<Record<string, unknown>>(
+          'outbound_delivery_audit',
+          (q) => q.select('*').or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`).order('created_at', { ascending: false }).limit(10),
+        )
       ]);
 
       const auditEntries = (auditRes.data ?? []).map((e) => ({

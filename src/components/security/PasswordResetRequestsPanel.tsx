@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -39,10 +40,9 @@ export function PasswordResetRequestsPanel() {
 
   const fetchRequests = async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).from('password_reset_requests_safe').select('*').order('created_at', { ascending: false });
+      const { data, error } = await safeClient.from<ResetRequest>('password_reset_requests_safe', (q) => q.select('*').order('created_at', { ascending: false }));
       if (error) throw error;
-      setRequests((data || []) as unknown as ResetRequest[]);
+      setRequests(data);
     } catch (error) { log.error('Error fetching requests:', error); toast.error('Erro ao carregar solicitações'); }
     finally { setLoading(false); }
   };
