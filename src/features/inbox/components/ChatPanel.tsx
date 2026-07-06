@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useChatScheduleMessage } from './chat/hooks/useChatScheduleMessage';
+import { useChatQuickReplyControl } from './chat/hooks/useChatQuickReplyControl';
 import { AnimatePresence } from 'framer-motion';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
