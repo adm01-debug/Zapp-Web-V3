@@ -10,7 +10,7 @@ import {
   UserCheck, UserX, Edit, Code,
 } from 'lucide-react';
 import { ForceLogoutButton } from './ForceLogoutButton';
-import { accessLevelConfig, type UserWithRole } from './useAdminData';
+import { accessLevelConfig, type UserWithRole } from '../hooks/useAdminData';
 import type { AppRole } from '@/features/auth';
 
 const roleIconMap = { dev: Code, admin: Crown, supervisor: UserCog, agent: User } as const;

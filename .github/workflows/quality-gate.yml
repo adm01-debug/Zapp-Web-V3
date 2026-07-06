@@ -32,6 +32,11 @@ jobs:
         run: |
           set +e
           npm run lint
+
+      - name: Refactor guards (ratchets — dead code + data layer)
+        run: |
+          node scripts/check-dead-code.mjs
+          node scripts/check-data-layer.mjs
           status=$?
           if [ "$status" -ne 0 ]; then
             echo "::warning title=ESLint debt::ESLint has pre-existing violations. Tracked as follow-up cleanup debt."
