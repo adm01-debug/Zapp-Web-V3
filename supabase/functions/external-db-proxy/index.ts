@@ -5,6 +5,11 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireUser } from "../_shared/auth.ts";
 
+type DynamicSupabaseClient = ReturnType<typeof createClient> & {
+  schema(schema: string): DynamicSupabaseClient;
+  from(table: string): ReturnType<ReturnType<typeof createClient>["from"]>;
+};
+
 type RequestBody = {
   schema?: unknown;
   table?: unknown;
@@ -62,20 +67,6 @@ function isSafeIdent(value: string): boolean {
   return SAFE_IDENT_RE.test(value);
 }
 
-const URL_PICK = pickUrlWithSource(["SELFHOSTED_SUPABASE_URL", "EXTERNAL_SUPABASE_URL"]);
-const KEY_PICK = pickEnvWithSource([
-  "SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY",
-  "SELFHOSTED_SUPABASE_ANON_KEY",
-  "EXTERNAL_SUPABASE_SERVICE_ROLE_KEY",
-  "EXTERNAL_SUPABASE_ANON_KEY",
-]);
-
-const EXTERNAL_URL = URL_PICK.value;
-const EXTERNAL_KEY = KEY_PICK.value;
-const URL_SOURCE = URL_PICK.source ?? "none";
-const KEY_SOURCE = KEY_PICK.source ?? "none";
-const ENV_SET = URL_SOURCE.startsWith("SELFHOSTED_") || KEY_SOURCE.startsWith("SELFHOSTED_") ? "SELFHOSTED_*" : URL_SOURCE.startsWith("EXTERNAL_") || KEY_SOURCE.startsWith("EXTERNAL_") ? "EXTERNAL_*" : "unknown";
-
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const parts = token.split(".");
@@ -87,6 +78,31 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     return null;
   }
 }
+
+function pickServiceRoleKeyWithSource(names: string[]): { value?: string; source?: string; rejected?: Array<{ source: string; role: string }> } {
+  const rejected: Array<{ source: string; role: string }> = [];
+  for (const name of names) {
+    const value = pickEnv(name);
+    if (!value) continue;
+    const payload = decodeJwtPayload(value);
+    const role = (payload?.role as string) ?? "unknown";
+    if (role === "service_role") return { value, source: name, rejected };
+    rejected.push({ source: name, role });
+  }
+  return { rejected };
+}
+
+const URL_PICK = pickUrlWithSource(["SELFHOSTED_SUPABASE_URL", "EXTERNAL_SUPABASE_URL"]);
+const KEY_PICK = pickServiceRoleKeyWithSource([
+  "SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY",
+  "EXTERNAL_SUPABASE_SERVICE_ROLE_KEY",
+]);
+
+const EXTERNAL_URL = URL_PICK.value;
+const EXTERNAL_KEY = KEY_PICK.value;
+const URL_SOURCE = URL_PICK.source ?? "none";
+const KEY_SOURCE = KEY_PICK.source ?? "none";
+const ENV_SET = URL_SOURCE.startsWith("SELFHOSTED_") || KEY_SOURCE.startsWith("SELFHOSTED_") ? "SELFHOSTED_*" : URL_SOURCE.startsWith("EXTERNAL_") || KEY_SOURCE.startsWith("EXTERNAL_") ? "EXTERNAL_*" : "unknown";
 
 const KEY_PAYLOAD = EXTERNAL_KEY ? decodeJwtPayload(EXTERNAL_KEY) : null;
 const KEY_ROLE = (KEY_PAYLOAD?.role as string) ?? "unknown";
@@ -103,15 +119,15 @@ console.log("[external-db-proxy] env resolved", {
   key_ref: KEY_REF,
 });
 
-if (EXTERNAL_KEY && KEY_ROLE !== "service_role") {
-  console.warn("[external-db-proxy] WARN: chave configurada NÃO é service_role", { key_role: KEY_ROLE, key_source: KEY_SOURCE });
+if (KEY_PICK.rejected?.length) {
+  console.warn("[external-db-proxy] WARN: chaves rejeitadas por não serem service_role", { rejected: KEY_PICK.rejected });
 }
 
 const TARGET_URL = EXTERNAL_URL ?? "";
 const TARGET_KEY = EXTERNAL_KEY ?? "";
 const targetName = "self-hosted-external";
 
-let supabase: ReturnType<typeof createClient> | null = null;
+let supabase: DynamicSupabaseClient | null = null;
 let bootError: string | null = null;
 
 try {
@@ -119,9 +135,9 @@ try {
     throw new Error("SELFHOSTED_SUPABASE_URL/EXTERNAL_SUPABASE_URL ausente ou inválida — configure a URL do backend self-hosted.");
   }
   if (!EXTERNAL_KEY) {
-    throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente — configure a chave server-side do self-hosted.");
+    throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente ou inválida — configure uma chave service_role válida do self-hosted.");
   }
-  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
+  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } }) as DynamicSupabaseClient;
 } catch (error) {
   bootError = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o proxy.";
   console.error("[external-db-proxy] boot error:", bootError);
@@ -391,7 +407,7 @@ Deno.serve(async (req) => {
     } else if (filter) {
       for (const [key, value] of Object.entries(filter)) {
         if (!isSafeIdent(key)) continue;
-        query = query.eq(key, value);
+        query = query.eq(key, value as {});
       }
     }
 
