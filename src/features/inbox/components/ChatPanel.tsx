@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useChatScheduleMessage } from './chat/hooks/useChatScheduleMessage';
+import { useChatQuickReplyControl } from './chat/hooks/useChatQuickReplyControl';
 import { AnimatePresence } from 'framer-motion';
-import { log } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
 import { Conversation, Message } from '@/types/chat';
 import { FileUploaderRef } from './FileUploader';
 import { useTypingPresence } from '@/hooks/useTypingPresence';
@@ -10,7 +10,7 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { useQuickReplies } from '@/features/inbox';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { toast } from '@/hooks/use-toast';
+
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
 import { useChatMediaSending } from './useChatMediaSending';
@@ -82,7 +82,6 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
   // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
   const { roles: userRoles } = useUserRole();
   const isDevExact = userRoles.includes('dev');
-  const [selectedQuickReplyIndex, setSelectedQuickReplyIndex] = useState(0);
   const { dialogs, openDialog, closeDialog, toggleDialog, resetDialogs } = useChatDialogs();
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -212,95 +211,42 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
     () => messages.map(m => ({ id: m.id, content: m.content, sender: m.sender, timestamp: m.timestamp.toISOString() })),
     [messages]
   );
-  const handleQuickReply = useCallback((reply: any) => {
-    handlers.setInputValue(reply.content);
-    closeDialog('quickReplies');
-    setTimeout(() => handlers.inputRef.current?.focus(), 10);
-    incrementUseCount(reply.id);
-  }, [handlers.setInputValue, closeDialog, incrementUseCount]);
-
-  const filteredQuickReplies = useMemo(() => {
-    if (!handlers.inputValue.startsWith('/')) return [];
-    const query = handlers.inputValue.slice(1).toLowerCase();
-    return dbQuickReplies.filter(r => 
-      r.shortcut.toLowerCase().includes(query) || 
-      r.title.toLowerCase().includes(query)
-    );
-  }, [dbQuickReplies, handlers.inputValue]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (dialogs.quickReplies && filteredQuickReplies.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedQuickReplyIndex(prev => (prev + 1) % filteredQuickReplies.length);
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedQuickReplyIndex(prev => (prev - 1 + filteredQuickReplies.length) % filteredQuickReplies.length);
-        return;
-      }
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const selected = filteredQuickReplies[selectedQuickReplyIndex];
-        if (selected) handleQuickReply(selected);
-        return;
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeDialog('quickReplies');
-        return;
-      }
-    }
-    handlers.handleKeyDown(e, dialogs.slashCommands);
-  }, [dialogs.quickReplies, dialogs.slashCommands, filteredQuickReplies, selectedQuickReplyIndex, handlers.handleKeyDown, handleQuickReply, closeDialog]);
-
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    handlers.handleInputChange(e);
-    
-    if (value.startsWith('/')) {
-      if (!dialogs.quickReplies) openDialog('quickReplies');
-      setSelectedQuickReplyIndex(0);
-    } else if (dialogs.quickReplies) {
-      closeDialog('quickReplies');
-    }
-  }, [handlers.handleInputChange, dialogs.quickReplies, openDialog, closeDialog]);
-
-  // Global search shortcut removed in favor of useInboxShortcuts (react-hotkeys-hook)
-  // which handles cleanup and focus checks automatically.
+  const {
+    filtered: filteredQuickReplies,
+    selectedIndex: selectedQuickReplyIndex,
+    handleQuickReply,
+    handleKeyDown,
+    handleInputChange,
+  } = useChatQuickReplyControl({
+    inputValue: handlers.inputValue,
+    dbQuickReplies,
+    quickRepliesOpen: dialogs.quickReplies,
+    openQuickReplies: () => openDialog('quickReplies'),
+    closeQuickReplies: () => closeDialog('quickReplies'),
+    slashCommandsOpen: dialogs.slashCommands,
+    setInputValue: handlers.setInputValue,
+    focusInput: () => handlers.inputRef.current?.focus(),
+    incrementUseCount,
+    baseHandleInputChange: handlers.handleInputChange,
+    baseHandleKeyDown: handlers.handleKeyDown,
+  });
 
   // Stable refs for ChatMessagesArea to prevent re-renders on input change
   const contactJid = useMemo(() => conversation.contact.phone ? `${conversation.contact.phone}@s.whatsapp.net` : '', [conversation.contact.phone]);
   const contactAvatar = conversation.contact.avatar || undefined;
   const handleScrollToMessage = useCallback((id: string) => messagesAreaRef.current?.scrollToMessage(id), []);
 
-  // Redundância removida: handleQuickReply já está definido acima como useCallback.
-
   const { transferConversation: handleTransfer } = useTransferConversation({
     contactId: conversation.contact.id,
     whatsappConnectionId,
   });
 
-  const handleScheduleMessage = async (content: string, scheduledAt: Date, attachment?: File) => {
-    try {
-      let mediaUrl: string | undefined;
-      let messageType = 'text';
-      if (attachment) {
-        const fileName = `scheduled_${Date.now()}_${attachment.name}`;
-        const { error: uploadError } = await supabase.storage.from('whatsapp-media').upload(fileName, attachment);
-        if (uploadError) {
-          toast({ title: 'Erro no upload', description: `Falha ao anexar: ${uploadError.message}`, variant: 'destructive' });
-        } else {
-          const { data: signedData } = await supabase.storage.from('whatsapp-media').createSignedUrl(fileName, 604800);
-          mediaUrl = signedData?.signedUrl;
-          messageType = attachment.type.startsWith('audio') ? 'audio' : attachment.type.startsWith('image') ? 'image' : attachment.type.startsWith('video') ? 'video' : 'document';
-        }
-      }
-      await scheduleMessage({ contactId: conversation.contact.id, content, scheduledAt, messageType, mediaUrl });
-      closeDialog('scheduleDialog');
-    } catch (err) { log.error('Failed to schedule message:', err); }
-  };
+  const handleScheduleMessage = useChatScheduleMessage({
+    contactId: conversation.contact.id,
+    scheduleMessage,
+    onDone: () => closeDialog('scheduleDialog'),
+  });
+
 
 
   const ambient = useAmbientColor(conversation.sentiment);
