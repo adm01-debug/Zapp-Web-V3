@@ -75,7 +75,7 @@ export function useRealtimeInbox() {
 
   // Load fallback contact if not found in list
   const selectedConversation = useMemo(
-    () => conversations.find((c) => (c.contact.id === selectedContactId || (c.contact as any).remote_jid === selectedContactId)) || null,
+    () => conversations.find((c) => (c.contact.id === selectedContactId || (c.contact as unknown as { remote_jid?: string }).remote_jid === selectedContactId)) || null,
     [conversations, selectedContactId]
   );
 
@@ -182,7 +182,7 @@ export function useRealtimeInbox() {
           const { optimistic } = await sendExternalAudio(contactId, attachments[0], { 
             contactAvatar: currentAvatar,
             isPtt: !attachments[0].name.endsWith('.mp3'),
-            conversationInstance: (resolvedSelectedConversation as any)?.instance_name || (resolvedSelectedConversation?.contact as any)?.instance_name,
+            conversationInstance: (resolvedSelectedConversation as unknown as { instance_name?: string })?.instance_name || (resolvedSelectedConversation?.contact as unknown as { instance_name?: string })?.instance_name,
             onProgress: (p) => { messageQueue.updateProgress(item.id, p); }
           });
           if (optimistic.external_id) item.externalId = optimistic.external_id;

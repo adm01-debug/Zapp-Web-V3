@@ -75,9 +75,9 @@ export function useAutomationFailureAlerts(enabled = true): void {
       seenRef.current.add(row.id);
 
       const payload = row.trigger_payload ?? {};
-      const ctx = (payload.error_context ?? {}) as Record<string, any>;
+      const ctx = (payload.error_context ?? {}) as Record<string, unknown>;
       const ruleName =
-        (row.rule_snapshot as any)?.name ??
+        (row.rule_snapshot as Record<string, unknown> | null)?.name as string | undefined ??
         (payload.rule_name as string | undefined) ??
         "Regra sem nome";
       const stage = describeStage(ctx.stage);
