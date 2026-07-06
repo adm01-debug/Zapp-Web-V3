@@ -14,7 +14,7 @@
  *  - GET  /instance/fetchInstances
  *  - GET  /instance/connectionState/{instance}
  */
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { log } from '@/lib/logger';
 
 export interface EvolutionCredentials {
@@ -52,18 +52,26 @@ export async function getEvolutionCredentials(
   if (cached && Date.now() - cached.at < CREDS_TTL_MS) return cached.creds;
 
   try {
-    const { data } = await (supabase as any)
-      .from('evolution_instance_credentials')
-      .select('instance_name, api_url, api_key, is_active')
-      .eq('instance_name', instance)
-      .eq('is_active', true)
-      .maybeSingle();
+    const { data } = await safeClient.from<{
+      instance_name: string;
+      api_url: string;
+      api_key: string;
+      is_active: boolean;
+    }>(
+      'evolution_instance_credentials',
+      (q) => q
+        .select('instance_name, api_url, api_key, is_active')
+        .eq('instance_name', instance)
+        .eq('is_active', true)
+        .limit(1),
+    );
+    const credData = data[0] ?? null;
 
-    if (data?.api_url && data?.api_key) {
+    if (credData?.api_url && credData?.api_key) {
       const creds: EvolutionCredentials = {
-        api_url: normalizeUrl(data.api_url),
-        api_key: data.api_key,
-        instance_name: data.instance_name,
+        api_url: normalizeUrl(credData.api_url),
+        api_key: credData.api_key,
+        instance_name: credData.instance_name,
       };
       credsCache.set(instance, { creds, at: Date.now() });
       return creds;
@@ -99,9 +107,10 @@ async function evoFetch<T>(
   const res = await fetch(url, { ...init, headers });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    const err = new Error(`Evolution API ${res.status}: ${body || res.statusText}`);
-    (err as any).status = res.status;
-    throw err;
+    throw Object.assign(
+      new Error(`Evolution API ${res.status}: ${body || res.statusText}`),
+      { status: res.status },
+    );
   }
   try {
     return (await res.json()) as T;
