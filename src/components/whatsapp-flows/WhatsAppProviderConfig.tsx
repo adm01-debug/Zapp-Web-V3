@@ -17,7 +17,7 @@ import {
   RefreshCcw,
   ShieldCheck
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 
 type ProviderType = 'evolution' | 'unofficial';
@@ -37,10 +37,10 @@ export default function WhatsAppProviderConfig() {
   const loadCurrentConfig = async () => {
     setIsLoading(true);
     try {
-      const { data: configs } = await (supabase as any)
-        .from('whatsapp_connections_safe')
-        .select('*')
-        .limit(1);
+      const { data: configs } = await safeClient.from<Record<string, unknown>>(
+        'whatsapp_connections_safe',
+        (q) => q.select('*').limit(1),
+      );
       
       if (configs && configs.length > 0) {
         const config = configs[0];
@@ -74,8 +74,8 @@ export default function WhatsAppProviderConfig() {
         // Lógica para Unofficial
         setStatus({ ok: true, message: 'Provedor sem API oficial configurado localmente.' });
       }
-    } catch (err: any) {
-      setStatus({ ok: false, message: err.message || 'Falha ao validar credenciais.' });
+    } catch (err) {
+      setStatus({ ok: false, message: err instanceof Error ? err.message : 'Falha ao validar credenciais.' });
       toast.error('Erro na validação.');
     } finally {
       setIsVerifying(false);
@@ -84,16 +84,16 @@ export default function WhatsAppProviderConfig() {
 
   const handleSave = async () => {
     try {
-      const { error } = await (supabase as any).rpc('rpc_upsert_whatsapp_provider', {
+      const { error } = await safeClient.rpc('rpc_upsert_whatsapp_provider', {
         p_provider_type: provider,
         p_base_url: baseUrl,
-        p_api_key: apiKey // O RPC deve tratar o armazenamento seguro (vault/env)
-      } as any);
+        p_api_key: apiKey,
+      });
 
       if (error) throw error;
       toast.success('Configuração de provedor salva com sucesso!');
-    } catch (err: any) {
-      toast.error(`Erro ao salvar: ${err.message}`);
+    } catch (err) {
+      toast.error(`Erro ao salvar: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
