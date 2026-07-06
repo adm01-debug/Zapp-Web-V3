@@ -10,6 +10,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/hooks/useAuth';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -63,30 +64,26 @@ export function useAgentPresence({
   const updateStatus = useCallback(async (status: AgentPresenceStatus) => {
     if (!user) return;
     if (mountedRef.current) setMyStatus(status);
-    await (supabase as any)
-      .from('agent_presence')
-      .upsert({
+    await safeClient.from('agent_presence', (q) =>
+      q.upsert({
         agent_id: user.id,
         workspace_id: workspaceId,
         status,
         agent_name: user.user_metadata?.full_name ?? user.email ?? 'Agent',
         avatar_url: user.user_metadata?.avatar_url ?? null,
         last_activity_at: new Date().toISOString(),
-      }, {
-        onConflict: 'agent_id,workspace_id',
-      });
+      }, { onConflict: 'agent_id,workspace_id' })
+    );
   }, [user, workspaceId]);
 
   // Load all agents' presence
   const loadPresence = useCallback(async () => {
-    const { data, error } = await (supabase as any)
-      .from('agent_presence')
-      .select('*')
-      .eq('workspace_id', workspaceId)
-      .neq('status', 'offline')
-      .order('status', { ascending: true });
+    const { data, error } = await safeClient.from<AgentPresence>(
+      'agent_presence',
+      (q) => q.select('*').eq('workspace_id', workspaceId).neq('status', 'offline').order('status', { ascending: true }),
+    );
 
-    if (data && mountedRef.current) setAgents(data as AgentPresence[]);
+    if (!error && mountedRef.current) setAgents(data);
   }, [workspaceId]);
 
   useEffect(() => {
