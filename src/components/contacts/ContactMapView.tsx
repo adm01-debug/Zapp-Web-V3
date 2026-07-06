@@ -7,15 +7,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MapPin, Users, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Contact {
-  id: string;
-  name: string;
-  company?: string | null;
-  phone: string;
-  avatar_url?: string | null;
-  lead_origin?: string | null;
-}
+type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'company' | 'phone' | 'avatar_url'> & Partial<Pick<Tables<'contacts'>, 'lead_origin'>>;
 
 interface ContactMapViewProps {
   contacts: Contact[];

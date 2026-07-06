@@ -1,17 +1,5 @@
-export interface Contact {
-  id: string;
-  name: string;
-  surname: string | null;
-  nickname: string | null;
-  phone: string;
-  email: string | null;
-  avatar_url: string | null;
-  company: string | null;
-  job_title: string | null;
-  tags: string[] | null;
-  contact_type: string | null;
-  created_at: string;
-}
+import type { Tables } from '@/integrations/supabase/types';
+export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'surname' | 'nickname' | 'phone' | 'email' | 'avatar_url' | 'company' | 'job_title' | 'tags' | 'contact_type' | 'created_at'>;
 
 export interface ContactItemProps {
   contact: Contact;

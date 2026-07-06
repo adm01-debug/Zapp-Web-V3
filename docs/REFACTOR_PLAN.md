@@ -97,3 +97,21 @@ de paridade em `src/lib/__tests__/formatters.parity.test.ts`.
 4. eslint dos 2 arquivos; tsc/build por batch; `--update-baseline` ao final
 
 Ofensores restantes (informativo): distribuídos em cauda longa (≤5 calls/arquivo) — seguir o protocolo acima por domínio.
+
+## Sessão 2026-07-06 (tarde) — Wave 3 tier-2 + W4 Pick + W5 semântica + CI guards
+
+**Simulação prévia: ~1.486 cenários** (SIM H re-ranking, SIM I classificação semântica por execução, SIM J v2 subset-analysis vs schema, SIM K auditoria CI).
+
+### Entregas
+1. **CI**: guards `check-dead-code` + `check-data-layer` agora rodam no `quality-gate.yml` (eram apenas locais — decorativos no CI).
+2. **W3 tier-2** (fingerprint-parity 5/5 em cada): `useChannelRoutingRules`, `useCampaignABTesting`, `useFollowUpSequences`, `useSLAScopeOptions`. Realocações: `useAdminData` e `useChatMediaSending` (features/*/components→hooks), `checklistSteps.ts` → `src/lib/onboarding/` (módulo de dados declarativo, não componente).
+3. **W4 experimento Pick**: 6 interfaces `Contact` substituídas por `Pick<Tables<'contacts'>>` derivadas do schema gerado (tsc como juiz; MapView usa `& Partial<Pick<…,'lead_origin'>>` para preservar opcionalidade original). Pendentes de alinhamento: ContactBirthdayPanel (extra: birthday), types/chat.ts (extras: avatar, createdAt).
+4. **W5**: `formatTime` do par AdminWebhookOverviewPage+CallCorrelationView migrado para `formatDateTimeCompact` (byte-idêntico, detectado por classificação semântica). **VETO registrado**: par `formatDuration` AdminEvolutionApiLogsPage×telemetryUtils NÃO consolidado — `toFixed(2)≠toFixed(1)` (lição: shape-classifier é triagem; byte-vector é o juiz). `formatPhone`×2 e `getInitials`×2 são intencionais (APIs/semânticas distintas).
+
+### Ratchets (após tier-2)
+| escopo | antes | depois |
+|---|---|---|
+| src/components | 150 | **124** |
+| src/pages | 40 | **40** |
+| src/features | 220 | 220 (informativo) |
+| src/hooks | 249 | 269 (informativo — recebeu extrações) |

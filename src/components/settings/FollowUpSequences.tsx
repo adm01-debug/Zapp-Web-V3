@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,89 +6,18 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
 import { Plus, Trash2, Clock, ArrowRight, Zap, MessageSquare } from 'lucide-react';
-import { useAuth } from '@/features/auth';
 import { FollowUpExecutionsHistory } from './FollowUpExecutionsHistory';
-
-interface Step {
-  id?: string;
-  step_order: number;
-  delay_hours: number;
-  message_template: string;
-  is_active: boolean;
-}
+import { useFollowUpSequences, type Step } from '@/hooks/followup/useFollowUpSequences';
 
 export function FollowUpSequences() {
-  const { profile } = useAuth();
-  const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newSteps, setNewSteps] = useState<Step[]>([
     { step_order: 1, delay_hours: 24, message_template: 'Olá {name}! Gostaria de saber se sua dúvida foi resolvida. Posso ajudar em algo mais?', is_active: true },
     { step_order: 2, delay_hours: 168, message_template: 'Olá {name}! Passando para verificar se está tudo bem. Avalie nosso atendimento de 1 a 5 ⭐', is_active: true },
   ]);
-
-  const { data: sequences = [], isLoading } = useQuery({
-    queryKey: ['followup-sequences'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('followup_sequences')
-        .select('*, followup_steps(*)') 
-        .order('created_at', { ascending: false });
-      return data || [];
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const { data: seq, error: seqError } = await supabase
-        .from('followup_sequences')
-        .insert({ name: newName, created_by: profile?.id })
-        .select()
-        .single();
-      if (seqError) throw seqError;
-
-      const stepsToInsert = newSteps.map(s => ({
-        sequence_id: seq.id,
-        step_order: s.step_order,
-        delay_hours: s.delay_hours,
-        message_template: s.message_template,
-        is_active: s.is_active,
-      }));
-
-      const { error: stepsError } = await supabase.from('followup_steps').insert(stepsToInsert);
-      if (stepsError) throw stepsError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['followup-sequences'] });
-      toast({ title: 'Sequência criada!', description: 'Follow-up automático configurado.' });
-      setShowCreate(false);
-      setNewName('');
-    },
-    onError: (e: Error) => {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
-    },
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase.from('followup_sequences').update({ is_active: isActive }).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['followup-sequences'] }),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('followup_sequences').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['followup-sequences'] });
-      toast({ title: 'Sequência removida!' });
-    },
-  });
+  const { sequences, isLoading, createMutation, toggleMutation, deleteMutation } = useFollowUpSequences();
 
   const addStep = () => {
     setNewSteps(prev => [...prev, {
@@ -189,7 +116,7 @@ export function FollowUpSequences() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={() => createMutation.mutate()} disabled={!newName.trim() || createMutation.isPending} className="flex-1">
+              <Button onClick={() => createMutation.mutate({ name: newName, steps: newSteps }, { onSuccess: () => { setShowCreate(false); setNewName(''); } })} disabled={!newName.trim() || createMutation.isPending} className="flex-1">
                 {createMutation.isPending ? 'Criando...' : 'Criar Sequência'}
               </Button>
               <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
