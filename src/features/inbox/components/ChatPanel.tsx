@@ -330,15 +330,6 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
 
         <ChatQuickRepliesPopover show={dialogs.quickReplies} replies={filteredQuickReplies} onSelect={handleQuickReply} onClose={() => closeDialog('quickReplies')} selectedIndex={selectedQuickReplyIndex} />
 
-        </AnimatePresence>
-
-        {dialogs.whisper && (
-          <SectionErrorBoundary sectionName="WhisperMode">
-            <Suspense fallback={null}>
-              <WhisperMode contactId={conversation.contact.id} className="mx-3 mb-2" defaultExpanded={true} />
-            </Suspense>
-          </SectionErrorBoundary>
-        )}
 
         <SendErrorBanner
           error={handlers.lastSendError}
