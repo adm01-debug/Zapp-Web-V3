@@ -5,6 +5,11 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireUser } from "../_shared/auth.ts";
 
+type DynamicSupabaseClient = ReturnType<typeof createClient> & {
+  schema(schema: string): DynamicSupabaseClient;
+  from(table: string): ReturnType<ReturnType<typeof createClient>["from"]>;
+};
+
 type RequestBody = {
   schema?: unknown;
   table?: unknown;
@@ -122,7 +127,7 @@ const TARGET_URL = EXTERNAL_URL ?? "";
 const TARGET_KEY = EXTERNAL_KEY ?? "";
 const targetName = "self-hosted-external";
 
-let supabase: ReturnType<typeof createClient> | null = null;
+let supabase: DynamicSupabaseClient | null = null;
 let bootError: string | null = null;
 
 try {
@@ -132,7 +137,7 @@ try {
   if (!EXTERNAL_KEY) {
     throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente ou inválida — configure uma chave service_role válida do self-hosted.");
   }
-  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
+  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } }) as DynamicSupabaseClient;
 } catch (error) {
   bootError = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o proxy.";
   console.error("[external-db-proxy] boot error:", bootError);
