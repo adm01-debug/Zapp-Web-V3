@@ -313,8 +313,8 @@ Deno.serve(async (req) => {
       if (response.ok && data?.qrcode?.base64) {
         await supabase
           .from('whatsapp_connections')
-          .update({ qr_code: data.qrcode.base64, status: 'pending', instance_id: instance })
-          .eq('instance_id', instance);
+          .update({ qr_code: data.qrcode.base64, status: 'pending' })
+          .eq('instance_name', instance);
       }
 
       if (!response.ok) {
@@ -383,7 +383,7 @@ Deno.serve(async (req) => {
 
       if (response.status === 401 || response.status === 403) {
         recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'status' });
-        await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_id', instance);
+        await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_name', instance);
         return new Response(JSON.stringify({
           version: EVOLUTION_ENVELOPE_VERSION,
           status: 'disconnected',
@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
       const rawState = data?.instance?.state || data?.state;
       const status = rawState === 'open' ? 'connected' : 'disconnected';
       
-      await supabase.from('whatsapp_connections').update({ status, qr_code: null }).eq('instance_id', instance);
+      await supabase.from('whatsapp_connections').update({ status, qr_code: null }).eq('instance_name', instance);
       return new Response(JSON.stringify({ ...data, status, state: rawState }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
