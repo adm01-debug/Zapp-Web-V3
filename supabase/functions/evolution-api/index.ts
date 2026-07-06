@@ -450,7 +450,7 @@ Deno.serve(async (req) => {
           const isTransient = upstreamStatus === 503 || upstreamStatus === 504 || upstreamStatus === 502;
 
           if (response.ok || alreadyClosed) {
-            await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_id', instance);
+            await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_name', instance);
             return new Response(JSON.stringify({ 
               success: true, 
               statusCode: upstreamStatus, 
