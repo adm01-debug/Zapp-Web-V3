@@ -53,7 +53,7 @@ export default function AdminAutomationsPage() {
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const { rules, channels, departments, loading, save, remove, toggleActive, channelMap, deptMap } = useAdminAutomations();
+  const { rules, channels, departments, loading, save, remove, toggleActive, adjustPriority, channelMap, deptMap } = useAdminAutomations();
 
   const filtered = useMemo(() => {
     return rules.filter((r) => {
@@ -213,7 +213,12 @@ export default function AdminAutomationsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {/* setas de prioridade removidas: gravavam trigger_count (métrica real) a partir de campo inexistente — ver REFACTOR_PLAN */}
+                <Button size="icon" variant="ghost" title="Aumentar prioridade (menor número = mais alta)" onClick={() => adjustPriority(r, -5)}>
+                  <span className="text-xs font-bold">↑</span>
+                </Button>
+                <Button size="icon" variant="ghost" title="Diminuir prioridade" onClick={() => adjustPriority(r, 5)}>
+                  <span className="text-xs font-bold">↓</span>
+                </Button>
                 <Switch checked={r.is_active} onCheckedChange={() => toggleActive(r)} />
                 <Button size="icon" variant="ghost" onClick={() => startEdit(r)}>
                   <Pencil className="h-4 w-4" />
