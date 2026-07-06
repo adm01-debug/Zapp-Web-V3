@@ -50,7 +50,7 @@ export function useHmacSelfTest(instance: string, includeNegative: boolean) {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      const { error: insertError } = await supabase.from('hmac_selftest_audit').insert({
+      const { error: insertError } = await (supabase as any).from('hmac_selftest_audit').insert({
         instance,
         ok: !!payload.ok,
         duration_ms: payload.duration_ms ?? fallbackMs,

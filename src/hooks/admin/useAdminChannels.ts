@@ -47,7 +47,7 @@ export function useAdminChannels(statusFilter: string, search: string) {
     setLoading(true);
     try {
       const [chRes, qRes, wRes] = await Promise.all([
-        supabase.rpc("rpc_list_service_channels",
+        (supabase as any).rpc("rpc_list_service_channels",
           {
             p_status: statusFilter === "all" ? null : statusFilter,
             p_search: search.trim() || null,
@@ -87,7 +87,7 @@ export function useAdminChannels(statusFilter: string, search: string) {
       return false;
     }
     try {
-      const { error } = await supabase.rpc("rpc_upsert_service_channel",
+      const { error } = await (supabase as any).rpc("rpc_upsert_service_channel",
         {
           p_id: editing.id ?? null,
           p_name: editing.name.trim(),
@@ -125,7 +125,7 @@ export function useAdminChannels(statusFilter: string, search: string) {
         kind === "purge"
           ? { p_id: channel.id }
           : { p_id: channel.id, p_reason: actionReason.trim() || null };
-      const { error } = await supabase.rpc(rpcName as 'rpc_pause_service_channel', args as { p_id: string; p_reason?: string }); // dinâmico legítimo (3 RPCs, mesma shape)
+      const { error } = await (supabase as any).rpc(rpcName, args); // dinâmico legítimo (3 RPCs, mesma shape)
       if (error) throw new Error(error.message);
       toast({
         title:
@@ -143,7 +143,7 @@ export function useAdminChannels(statusFilter: string, search: string) {
 
   const reactivate = async (channel: ServiceChannel) => {
     try {
-      const { error } = await supabase.rpc("rpc_reactivate_service_channel",
+      const { error } = await (supabase as any).rpc("rpc_reactivate_service_channel",
         { p_id: channel.id },
       );
       if (error) throw new Error(error.message);
