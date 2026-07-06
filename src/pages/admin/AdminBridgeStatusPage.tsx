@@ -82,10 +82,10 @@ export default function BridgeStatusPage() {
         title: "Diagnóstico Concluído",
         description: `Finalizado com ${results.filter(r => r.status === 'fail').length} falhas.`
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({
         title: "Erro no Diagnóstico",
-        description: e.message,
+        description: e instanceof Error ? e.message : String(e),
         variant: "destructive"
       });
     } finally {
@@ -120,26 +120,25 @@ export default function BridgeStatusPage() {
       if (mountedRef.current) setWhatsappTransport(currentTransportLabel);
 
       // 4. Check Recent Message Traffic
+      // safeClient.from strips count; fetch up to 100 rows and use data.length as proxy
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count: msgCount, data: lastMsg } = await (supabase as any)
-        .from('provider_message_log')
-        .select('received_at', { count: 'exact' })
-        .gt('received_at', fiveMinsAgo)
-        .order('received_at', { ascending: false })
-        .limit(1);
-      
+      const { data: recentMsgs } = await safeClient.from<{ received_at: string }>(
+        'provider_message_log',
+        (q) => q.select('received_at').gt('received_at', fiveMinsAgo).order('received_at', { ascending: false }).limit(100),
+      );
+
       if (mountedRef.current) setRecentTraffic({
-        count: msgCount || 0,
-        last_at: lastMsg?.[0]?.received_at || null
+        count: recentMsgs?.length ?? 0,
+        last_at: recentMsgs?.[0]?.received_at ?? null,
       });
 
       // 5. Check Active Alerts
       try {
-        const { data: alerts } = await (supabase as any)
-          .from('v_alerts_active')
-          .select('*')
-          .limit(5);
-        if (mountedRef.current) setActiveAlerts(alerts || []);
+        const { data: alerts } = await safeClient.from(
+          'v_alerts_active',
+          (q) => q.select('*').limit(5),
+        );
+        if (mountedRef.current) setActiveAlerts(alerts ?? []);
       } catch (e) {
         if (mountedRef.current) setActiveAlerts([]);
       }
@@ -155,13 +154,13 @@ export default function BridgeStatusPage() {
       }
 
       setLastCheck(new Date());
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!mountedRef.current) return;
       log.error('Health check failed', error);
       setStatus("offline");
       toast({
         title: "Erro na verificação",
-        description: error.message || "Não foi possível validar todos os serviços.",
+        description: error instanceof Error ? error.message : "Não foi possível validar todos os serviços.",
         variant: "destructive"
       });
     } finally {
@@ -173,12 +172,11 @@ export default function BridgeStatusPage() {
   }, [toast, mountedRef]);
 
   const fetchIncidents = useCallback(async () => {
-    const { data } = await (supabase as any)
-      .from('system_health_incidents')
-      .select('*')
-      .order('started_at', { ascending: false })
-      .limit(10);
-    if (mountedRef.current) setIncidents(data || []);
+    const { data } = await safeClient.from(
+      'system_health_incidents',
+      (q) => q.select('*').order('started_at', { ascending: false }).limit(10),
+    );
+    if (mountedRef.current) setIncidents(data ?? []);
   }, [mountedRef]);
 
   useEffect(() => {
@@ -188,14 +186,14 @@ export default function BridgeStatusPage() {
     // Configura Subscriptions Real-time
     const trafficSub = supabase
       .channel('traffic-changes')
-      .on('postgres_changes' as any, { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' }, () => {
         setRecentTraffic(prev => ({ ...prev, count: prev.count + 1, last_at: new Date().toISOString() }));
       })
       .subscribe();
 
     const alertsSub = supabase
       .channel('health-incidents')
-      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'system_health_incidents' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_health_incidents' }, () => {
         void fetchIncidents();
         void checkHealth();
       })

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from "@/integrations/supabase/client";
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,22 +73,22 @@ export default function AdminQueuesPage() {
   const load = async () => {
     setLoading(true);
     const [q, m, s, p, d, c, cq] = await Promise.all([
-      (supabase as any).from('queues').select("*").order("priority", { ascending: false }),
+      safeClient.from<Queue>('queues', (sq) => sq.select("*").order("priority", { ascending: false })),
       supabase.from('queue_members').select("id,queue_id,profile_id,profile:profiles(id,name,avatar_url)"),
       supabase.from('queue_skill_requirements').select("*"),
       supabase.from('profiles').select("id,name,avatar_url").eq("is_active", true).order("name"),
       supabase.from('departments').select("id,name").order("name"),
-      (supabase as any).from('service_channels').select("id,name,channel_type,default_queue_id").neq("status", "archived").order("name"),
-      (supabase as any).from('channel_queues').select("*"),
+      safeClient.from<ServiceChannel>('service_channels', (sq) => sq.select("id,name,channel_type,default_queue_id").neq("status", "archived").order("name")),
+      safeClient.from<ChannelQueue>('channel_queues', (sq) => sq.select("*")),
     ]);
     if (!mountedRef.current) return;
-    setQueues((q.data ?? []) as Queue[]);
+    setQueues(q.data);
     setMembers((m.data ?? []) as unknown as QueueMember[]);
     setSkills((s.data ?? []) as QueueSkill[]);
     setProfiles((p.data ?? []) as Profile[]);
     setDepartments((d.data ?? []) as Department[]);
-    setChannels((c.data ?? []) as ServiceChannel[]);
-    setChannelQueues((cq.data ?? []) as ChannelQueue[]);
+    setChannels(c.data);
+    setChannelQueues(cq.data);
     setLoading(false);
   };
 
@@ -112,9 +113,10 @@ export default function AdminQueuesPage() {
       max_per_queue_per_agent: editing.max_per_queue_per_agent ?? null,
       overflow_queue_id: editing.overflow_queue_id ?? null,
     };
-    const { error } = editing.id
-      ? await (supabase as any).from('queues').update(payload).eq("id", editing.id)
-      : await (supabase as any).from('queues').insert(payload);
+    const queueId = editing.id;
+    const { error } = queueId
+      ? await safeClient.from('queues', (sq) => sq.update(payload).eq("id", queueId))
+      : await safeClient.from('queues', (sq) => sq.insert(payload));
     if (error) {
       toast({ title: "Erro ao salvar fila", description: error.message, variant: "destructive" });
       return;
