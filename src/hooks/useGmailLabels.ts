@@ -1,6 +1,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import { EmailLabelInfo as EmailLabel } from '@/types/gmail';
@@ -9,7 +9,6 @@ import { getLogger } from '@/lib/logger';
 export type { EmailLabel };
 
 const log = getLogger('useEmailLabels');
-const supabase = _supabase as any;
 
 export const SYSTEM_LABELS: Array<{ id: string; name: string; icon: string; color: string }> = [
   { id: 'INBOX',     name: 'Inbox',     icon: 'inbox',     color: '#1a73e8' },
@@ -47,7 +46,7 @@ export function useEmailLabels(accountId: string | null) {
   const syncLabels = useCallback(async () => {
     if (!accountId) return;
     try {
-      const { data, error: fnErr } = await (supabase as any).functions.invoke('gmail-sync', {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
         body: { action: 'syncLabels', accountId },
       });
       if (!fnErr && data?.success) {
@@ -61,16 +60,14 @@ export function useEmailLabels(accountId: string | null) {
   const getLabelCount = useCallback(async (labelId: string): Promise<{ thread_count: number; unread_count: number }> => {
     if (!accountId) return { thread_count: 0, unread_count: 0 };
 
-    const { data, error } = await supabase
-      .from('email_threads')
-      .select('id, unread_count')
-      .eq('account_id', accountId)
-      .contains('label_ids', [labelId]);
+    const { data: threads } = await safeClient.from<{ id: string; unread_count: number | null }>(
+      'email_threads',
+      (q) => q.select('id, unread_count').eq('account_id', accountId).contains('label_ids', [labelId]),
+    );
 
-    const threads = Array.isArray(data) ? data : [];
     return {
       thread_count: threads.length,
-      unread_count: threads.reduce((s: number, t: any) => s + (t.unread_count ?? 0), 0),
+      unread_count: threads.reduce((s, t) => s + (t.unread_count ?? 0), 0),
     };
   }, [accountId]);
 

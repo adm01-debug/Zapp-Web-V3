@@ -11,8 +11,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
-const supabase = _supabase as any;
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ export interface TopContact {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
 
 // Schema-aware client for email_app tables (module-level to avoid stale closures)
-const emailDb = (supabase as any).schema('email_app');
+const emailDb = (supabase as unknown as SupabaseClient).schema('email_app');
 
 /** Gera URL do pixel de rastreio */
 export function getTrackingPixelUrl(trackingId: string): string {
@@ -257,7 +258,7 @@ export function useEmailTracking() {
   // ── Carregar estatísticas ──────────────────────────────────────────────
   const loadStats = useCallback(async (days = 30) => {
     try {
-      const { data, error: rpcErr } = await supabase.rpc('rpc_email_tracking_stats', { p_days: days });
+      const { data, error: rpcErr } = await safeClient.rpc<TrackingStats>('rpc_email_tracking_stats', { p_days: days });
       if (!rpcErr && data) setStats(data as TrackingStats);
     } catch { /* silencioso */ }
   }, []);
@@ -265,7 +266,7 @@ export function useEmailTracking() {
   // ── Carregar top contatos ──────────────────────────────────────────────
   const loadTopContacts = useCallback(async (limit = 10) => {
     try {
-      const { data, error: rpcErr } = await supabase.rpc('rpc_email_top_contacts', { p_limit: limit });
+      const { data, error: rpcErr } = await safeClient.rpc<TopContact[]>('rpc_email_top_contacts', { p_limit: limit });
       if (!rpcErr && data) setTopContacts(data as TopContact[]);
     } catch { /* silencioso */ }
   }, []);
