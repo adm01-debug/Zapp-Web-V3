@@ -5,6 +5,7 @@ interface QuickReply {
   shortcut: string;
   title: string;
   content: string;
+  category: string;
 }
 
 interface Params {
