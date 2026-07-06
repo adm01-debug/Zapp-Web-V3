@@ -407,7 +407,7 @@ Deno.serve(async (req) => {
     } else if (filter) {
       for (const [key, value] of Object.entries(filter)) {
         if (!isSafeIdent(key)) continue;
-        query = query.eq(key, value);
+        query = query.eq(key, value as {});
       }
     }
 
