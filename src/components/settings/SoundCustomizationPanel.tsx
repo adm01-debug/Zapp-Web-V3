@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Volume2, VolumeX, Bell, MessageSquare, AlertTriangle, Trophy, Clock, Moon, Upload } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings, UserSettings } from '@/hooks/useUserSettings';
 import { toast } from 'sonner';
 import { SoundCategoryCard } from './SoundCategoryCard';
 
@@ -39,7 +39,7 @@ export function SoundCustomizationPanel() {
   const [masterVolume, setMasterVolume] = useState(80);
 
   const handleSoundChange = (category: string, soundId: string) => {
-    updateSettings({ [`${category}_sound_type`]: soundId } as any);
+    updateSettings({ [`${category}_sound_type`]: soundId } as unknown as Partial<UserSettings>);
     if (soundId !== 'none') { playSoundPreview(soundId); setPlayingSound(`${category}-${soundId}`); setTimeout(() => setPlayingSound(null), 500); }
   };
 
