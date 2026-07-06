@@ -48,7 +48,7 @@ dados pulverizado em camadas de UI e (c) tipos/utils de domínio duplicados.
 | Wave 5 — Utils canônicos | ✅ (grupos comprovados) | 3 canônicas + 20 testes de paridade permanentes. Famílias divergentes documentadas — NÃO forçar. |
 | Wave 4 — Tipos canônicos | ✅ (shapes idênticos) | QuickReply 4→1, ChatMessage-AI 4→1. Contact×9/Profile×6 divergem: exigem adapters (backlog). |
 | Wave 6 — Convergência | 🟡 parcial | Pasta tripla de testes eliminada (src/tests removida). Migração components/→features/ = programa dedicado. |
-| Wave 3 — Data layer | 🟡 blueprint + ratchet v2 | useMetaCapi = padrão-referência (componente 0 refs supabase). Total 712→659. Guard v2: hard-fail UI + teto global. |
+| Wave 3 — Data layer | ✅ **top ofensores zerados** | 6 extrações c/ fingerprint-parity (SkillRouting, DeptManagement, EvolutionApi, AdminQueues, SalesPipeline+realtime, useMediaLibrary realocado). components 191→150, pages 49→40. Ferramenta permanente: `scripts/query-fingerprint.mjs`. |
 
 ## 3. Roadmap — próximas ondas (prioridade por impacto × risco)
 
@@ -87,3 +87,13 @@ de paridade em `src/lib/__tests__/formatters.parity.test.ts`.
 - Ratchets nunca afrouxam: baselines só são atualizados para baixo.
 - Comportamento visível idêntico; qualquer divergência intencional (ex.: correção
   de crash latente) documentada no PR.
+
+
+## 4b. Wave 3 — protocolo de extração validado (2026-07-06)
+
+1. `node scripts/query-fingerprint.mjs --save /tmp/fp-X.json <componente>` (invariante ANTES)
+2. Extrair p/ `src/hooks/<dominio>/useX.ts`: queries/mutations/handlers + estados de DOMÍNIO; view-state (tabs, busca, drag) fica no componente
+3. `--parity /tmp/fp-X.json <componente> <hook>` — multiset de queries deve ser idêntico
+4. eslint dos 2 arquivos; tsc/build por batch; `--update-baseline` ao final
+
+Ofensores restantes (informativo): distribuídos em cauda longa (≤5 calls/arquivo) — seguir o protocolo acima por domínio.
