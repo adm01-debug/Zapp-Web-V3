@@ -10,7 +10,7 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { useQuickReplies } from '@/features/inbox';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { toast } from '@/hooks/use-toast';
+
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
 import { useChatMediaSending } from './useChatMediaSending';
