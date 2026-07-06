@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
-import type { AIProvider, ProviderFormData } from './types';
-import { EMPTY_FORM } from './types';
+import type { AIProvider, ProviderFormData } from '@/components/settings/ai-providers/types';
+import { EMPTY_FORM } from '@/components/settings/ai-providers/types';
 
 export function useAIProviders() {
   const queryClient = useQueryClient();

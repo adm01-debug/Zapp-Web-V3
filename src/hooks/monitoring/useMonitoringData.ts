@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { ConnectionInfo, HealthLog, MessageStats, UptimeInfo, SparklineData, InstanceUptime, TimePeriod } from './types';
-import { periodMs, periodBuckets } from './types';
+import type { ConnectionInfo, HealthLog, MessageStats, UptimeInfo, SparklineData, InstanceUptime, TimePeriod } from '@/components/monitoring/hooks/types';
+import { periodMs, periodBuckets } from '@/components/monitoring/hooks/types';
 import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
 

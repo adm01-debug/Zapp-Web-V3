@@ -1,0 +1,31 @@
+name: ratchet-tighten
+# Auto-aperta o baseline do data-layer quando o número real fica abaixo do teto,
+# eliminando "gordura" acumulada. Só commita se NENHUM escopo hard subiu.
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  tighten:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tighten baseline (down-only nos escopos hard)
+        run: |
+          node - << 'EOF'
+          const { execSync } = require('child_process');
+          const fs = require('fs');
+          const before = JSON.parse(fs.readFileSync('scripts/data-layer-baseline.json','utf8')).calls;
+          execSync('node scripts/check-data-layer.mjs --update-baseline', {stdio:'inherit'});
+          const after = JSON.parse(fs.readFileSync('scripts/data-layer-baseline.json','utf8')).calls;
+          const hard = ['src/components','src/pages'];
+          const up = hard.filter(k => (after[k]??0) > (before[k]??0));
+          const totalUp = Object.values(after).reduce((a,b)=>a+b,0) > Object.values(before).reduce((a,b)=>a+b,0);
+          if (up.length || totalUp) { console.log('⛔ subida detectada em', up.join(',')||'TOTAL', '— não afrouxo. Revertendo.'); execSync('git checkout -- scripts/data-layer-baseline.json'); process.exit(0); }
+          const changed = execSync('git status --porcelain scripts/data-layer-baseline.json').toString().trim();
+          if (!changed) { console.log('baseline já justo — nada a fazer.'); process.exit(0); }
+          execSync('git config user.name "ratchet-bot" && git config user.email "bot@users.noreply.github.com"');
+          execSync('git add scripts/data-layer-baseline.json && git commit -m "chore(ratchet): auto-tighten data-layer baseline [skip ci]" && git push');
+          console.log('✅ baseline apertado e commitado.');
+          EOF

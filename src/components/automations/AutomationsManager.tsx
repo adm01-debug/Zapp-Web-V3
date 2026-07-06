@@ -7,7 +7,7 @@ import { Zap, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/features/auth';
-import { useAutomations, type AutomationRow } from './useAutomations';
+import { useAutomations, type AutomationRow } from '@/hooks/automations/useAutomations';
 import { AutomationCard } from './AutomationCard';
 import { AutomationEditorDialog } from './AutomationEditorDialog';
 
