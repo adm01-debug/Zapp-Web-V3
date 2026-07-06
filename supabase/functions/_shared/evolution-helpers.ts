@@ -85,7 +85,7 @@ export function normalizePhone(rawJid?: string): string | null {
   if (!rawJid) return null;
   const sanitized = rawJid
     .trim()
-    .replace(/:\d+(?=@)/, '')
+    .replace(/(:\d+)+(?=@)/g, '')
     .replace('@s.whatsapp.net', '')
     .replace('@g.us', '')
     .replace('@broadcast', '')
@@ -171,14 +171,17 @@ export function resolveEventJid(...sources: unknown[]): string | null {
 }
 
 export const STATUS_PRIORITY: Record<string, number> = {
-  'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'played': 3,
+  'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'played': 4,
   'failed': -1, 'deleted': 99, 'received': 1,
 };
 
 export function shouldUpdateStatus(currentStatus: string | null, newStatus: string): boolean {
   if (!currentStatus) return true;
-  if (newStatus === 'deleted' || newStatus === 'failed') return true;
   const currentPriority = STATUS_PRIORITY[currentStatus] ?? 0;
+  if (newStatus === 'deleted') return true;
+  // Allow 'failed' only if the message has not yet reached 'delivered' or beyond,
+  // preventing stale error ACKs from downgrading already-confirmed messages.
+  if (newStatus === 'failed') return currentPriority < STATUS_PRIORITY['delivered'];
   const newPriority = STATUS_PRIORITY[newStatus] ?? 0;
   return newPriority > currentPriority;
 }
@@ -229,7 +232,8 @@ export async function getContactByPhone(
  */
 export function generatePhoneVariants(phone: string): string[] {
   const clean = phone.replace(/\D/g, '').replace(/^\+/, '');
-  const variants = new Set<string>([clean, `+${clean}`, phone]);
+  const variants = new Set<string>([clean]);
+  if (clean) variants.add(`+${clean}`);
   
   // Brazilian number handling (country code 55)
   if (clean.startsWith('55') && clean.length >= 12) {
@@ -244,7 +248,7 @@ export function generatePhoneVariants(phone: string): string[] {
     }
     
     // If missing 9th digit (8 digits after DDD = total 12 with country code)
-    if (clean.length === 12) {
+    if (clean.length === 12 && !rest.startsWith('9')) {
       // Add variant WITH 9th digit
       const with9 = `55${ddd}9${rest}`;
       variants.add(with9);
