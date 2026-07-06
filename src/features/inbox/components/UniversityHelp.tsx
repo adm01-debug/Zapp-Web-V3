@@ -9,14 +9,8 @@ import { ToneSelector } from './ai-tools/ToneSelector';
 import { AIResponseCard } from './ai-tools/AIResponseCard';
 import { PeriodFilterSelector } from './ai-tools/PeriodFilterSelector';
 import { useUniversityHelp } from '@/hooks/useUniversityHelp';
+import type { ChatMessage } from '@/features/inbox/types/aiChatMessage';
 
-interface ChatMessage {
-  id: string;
-  content: string;
-  sender: string;
-  timestamp: string;
-  created_at?: string;
-}
 
 interface UniversityHelpProps {
   contactId: string;

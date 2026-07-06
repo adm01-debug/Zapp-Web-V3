@@ -8,19 +8,13 @@ import { Copy, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import type { RecentSend } from '@/features/inbox';
+import { formatTimeHMS } from '@/lib/formatters';
 
 interface Props {
   agentName: string;
   sends: RecentSend[];
 }
 
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleTimeString('pt-BR', { hour12: false });
-  } catch {
-    return iso;
-  }
-}
 
 function statusVariant(http: number): 'success' | 'destructive' | 'warning' {
   if (http >= 200 && http < 300) return 'success';
@@ -70,7 +64,7 @@ export function AgentRecentSendsPopover({ agentName, sends }: Props) {
               <li key={s.idem_key} className="p-3 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs  text-muted-foreground tabular-nums">
-                    {formatTime(s.created_at)}
+                    {formatTimeHMS(s.created_at)}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <Badge variant="outline" className="text-[10px] py-0 px-1.5">

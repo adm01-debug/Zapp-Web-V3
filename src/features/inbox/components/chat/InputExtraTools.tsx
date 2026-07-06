@@ -10,14 +10,8 @@ import { ExternalProduct } from '@/hooks/useExternalCatalog';
 import { Message } from '@/types/chat';
 import { cn } from '@/lib/utils';
 import { Zap, Mic, Clock, MapPin, Package, Layers } from 'lucide-react';
+import type { QuickReply } from '@/types/chat';
 
-interface QuickReply {
-  id: string;
-  title: string;
-  shortcut: string;
-  content: string;
-  category: string;
-}
 
 interface InputExtraToolsProps {
   isRecordingAudio: boolean;

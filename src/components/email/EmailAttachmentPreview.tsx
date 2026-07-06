@@ -5,17 +5,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { type EmailAttachment } from '@/hooks/gmail/gmailTypes';
+import { formatBytesCompact } from '@/lib/formatters';
 
 interface EmailAttachmentPreviewProps {
   attachments: EmailAttachment[];
   className?: string;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function getFileIcon(mimeType: string | null) {
   if (!mimeType) return File;
@@ -80,7 +76,7 @@ export function EmailAttachmentPreview({ attachments, className }: EmailAttachme
               <div className="flex-1 min-w-0">
                 <p className="truncate text-xs font-medium">{att.filename}</p>
                 {att.size_bytes != null && (
-                  <p className="text-[10px] text-muted-foreground">{formatBytes(att.size_bytes)}</p>
+                  <p className="text-[10px] text-muted-foreground">{formatBytesCompact(att.size_bytes)}</p>
                 )}
               </div>
 

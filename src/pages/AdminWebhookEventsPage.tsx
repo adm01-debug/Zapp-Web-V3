@@ -29,6 +29,7 @@ import { queryExternalProxy } from '@/lib/externalProxy';
 import { consumePendingWebhookEventsFilters } from '@/lib/webhookEventsDeepLink';
 import { cn } from '@/lib/utils';
 import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';
+import { formatDateTimeCompact } from '@/lib/formatters';
 
 const EVENT_TYPES = [
   'all',
@@ -72,14 +73,6 @@ const RANGE_OPTIONS = [
   { value: '720', label: 'Últimos 30 dias' },
 ] as const;
 
-function formatDate(iso: string | null) {
-  if (!iso) return '—';
-  try {
-    return format(new Date(iso), "dd/MM HH:mm:ss", { locale: ptBR });
-  } catch {
-    return iso;
-  }
-}
 
 function shortJid(jid: string | null) {
   if (!jid) return '—';
@@ -434,7 +427,7 @@ export default function AdminWebhookEventsPage() {
                       data-status={row.error_message ? 'error' : row.processed ? 'processed' : 'pending'}
                     >
                       <TableCell className="text-xs whitespace-nowrap" data-testid="webhook-event-created-at">
-                        {formatDate(row.created_at)}
+                        {formatDateTimeCompact(row.created_at)}
                       </TableCell>
                       <TableCell data-testid="webhook-event-event-type">
                         <Badge variant="outline" className=" text-xs">
@@ -496,7 +489,7 @@ export default function AdminWebhookEventsPage() {
               {selected?.event_type}
             </DialogTitle>
             <DialogDescription>
-              {selected && `${selected.instance_name} • ${formatDate(selected.created_at)}`}
+              {selected && `${selected.instance_name} • ${formatDateTimeCompact(selected.created_at)}`}
             </DialogDescription>
           </DialogHeader>
           {selected && (
@@ -508,8 +501,8 @@ export default function AdminWebhookEventsPage() {
                 <Field label="From me" value={selected.from_me ? 'Sim' : 'Não'} />
                 <Field label="Push name" value={selected.push_name || '—'} />
                 <Field label="Processado" value={selected.processed ? 'Sim' : 'Não'} />
-                <Field label="Processado em" value={formatDate(selected.processed_at)} />
-                <Field label="Recebido em" value={formatDate(selected.created_at)} />
+                <Field label="Processado em" value={formatDateTimeCompact(selected.processed_at)} />
+                <Field label="Recebido em" value={formatDateTimeCompact(selected.created_at)} />
               </div>
 
               {selected.error_message && (

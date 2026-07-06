@@ -3,6 +3,7 @@ import { CheckCircle2, Clock, XCircle, AlertCircle, History, Loader2 } from 'luc
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { cn } from '@/lib/utils';
+import { formatTimeHMS } from '@/lib/formatters';
 
 export interface QrAttemptRow {
   id: string;
@@ -27,13 +28,6 @@ const STATUS_META: Record<QrAttemptRow['status'], { label: string; icon: typeof 
   error: { label: 'Erro', icon: XCircle, tone: 'text-destructive' },
 };
 
-function formatTime(iso: string) {
-  try {
-    return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  } catch {
-    return iso;
-  }
-}
 
 export function QrAttemptHistory({ connectionId, refreshKey, limit = 5 }: Props) {
   const [rows, setRows] = useState<QrAttemptRow[]>([]);
@@ -100,7 +94,7 @@ export function QrAttemptHistory({ connectionId, refreshKey, limit = 5 }: Props)
                   )}
                 </div>
                 <span className="text-muted-foreground tabular-nums shrink-0">
-                  {formatTime(row.created_at)}
+                  {formatTimeHMS(row.created_at)}
                 </span>
               </li>
             );

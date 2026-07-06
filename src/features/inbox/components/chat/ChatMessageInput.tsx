@@ -16,14 +16,8 @@ import { InputExtraTools } from './InputExtraTools';
 import { toast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { validateFile, formatFileSize } from '@/utils/whatsappFileTypes';
+import type { QuickReply } from '@/types/chat';
 
-interface QuickReply {
-  id: string;
-  title: string;
-  shortcut: string;
-  content: string;
-  category: string;
-}
 
 interface QueuedFile {
   id: string;

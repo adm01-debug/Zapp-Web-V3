@@ -3,14 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ToneKey, getTonePrompt } from '@/features/inbox/components/ai-tools/ToneSelector';
 import { usePeriodFilter } from '@/features/inbox/components/ai-tools/PeriodFilterSelector';
+import type { ChatMessage } from '@/features/inbox/types/aiChatMessage';
 
-interface ChatMessage {
-  id: string;
-  content: string;
-  sender: string;
-  timestamp: string;
-  created_at?: string;
-}
 
 type FilterMode = 'all' | 'client' | 'agent';
 

@@ -1,7 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
-import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { useMetaCapi } from '@/hooks/meta-capi/useMetaCapi';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,18 +13,6 @@ import { Activity, Send, CheckCircle, XCircle, BarChart3, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface CAPIEvent {
-  id: string;
-  event_name: string;
-  event_time: string;
-  contact_id: string | null;
-  pixel_id: string | null;
-  action_source: string;
-  custom_data: Json;
-  sent_to_meta: boolean;
-  created_at: string;
-}
-
 const EVENT_TYPES = [
   { name: 'Purchase', label: 'Compra', icon: CreditCard, color: 'text-success' },
   { name: 'Lead', label: 'Lead', icon: UserPlus, color: 'text-info' },
@@ -37,78 +23,12 @@ const EVENT_TYPES = [
 ];
 
 export function MetaCAPIView() {
-  const [events, setEvents] = useState<CAPIEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { events, loading, pixelId, setPixelId, autoTrack, setAutoTrack, saveConfig, sendTestEvent } = useMetaCapi();
   const [showConfig, setShowConfig] = useState(false);
-  const [pixelId, setPixelId] = useState('');
-  const [autoTrack, setAutoTrack] = useState(false);
-  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  const fetchEvents = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('meta_capi_events')
-      .select('*')
-      .order('event_time', { ascending: false })
-      .limit(100);
-    if (!mountedRef.current) return;
-    if (error) { setLoading(false); return; }
-    if (data) setEvents(data);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
-
-  // Load config from global_settings
-  useEffect(() => {
-    let cancelled = false;
-    const loadConfig = async () => {
-      const { data } = await supabase
-        .from('global_settings')
-        .select('key, value')
-        .in('key', ['meta_pixel_id', 'meta_capi_auto_track']);
-      if (cancelled) return;
-      if (data) {
-        const pixel = data.find(d => d.key === 'meta_pixel_id');
-        const auto = data.find(d => d.key === 'meta_capi_auto_track');
-        if (pixel?.value) setPixelId(pixel.value);
-        if (auto?.value) setAutoTrack(auto.value === 'true');
-      }
-    };
-    loadConfig();
-    return () => { cancelled = true; };
-  }, []);
-
-  const saveConfig = async () => {
-    const upsert = async (key: string, value: string) => {
-      const { data: existing , error: existingErr } = await supabase.from('global_settings').select('id').eq('key', key).maybeSingle();
-      if (existing) {
-        await supabase.from('global_settings').update({ value }).eq('key', key);
-      } else {
-        await supabase.from('global_settings').insert({ key, value });
-      }
-    };
-    await upsert('meta_pixel_id', pixelId);
-    await upsert('meta_capi_auto_track', String(autoTrack));
-    toast({ title: 'Configurações salvas!' });
+  const handleSaveConfig = async () => {
+    await saveConfig();
     setShowConfig(false);
-  };
-
-  const sendTestEvent = async (eventName: string) => {
-    const { error: insertErr } = await supabase.from('meta_capi_events').insert({
-      event_name: eventName,
-      pixel_id: pixelId || null,
-      action_source: 'chat',
-      custom_data: { test: true, value: 0 },
-    });
-    if (insertErr) { toast({ title: 'Erro', description: insertErr.message, variant: 'destructive' }); return; }
-    toast({ title: `Evento "${eventName}" registrado!` });
-    fetchEvents();
   };
 
   const totalEvents = events.length;
@@ -245,7 +165,7 @@ export function MetaCAPIView() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfig(false)}>Cancelar</Button>
-            <Button onClick={saveConfig}>Salvar</Button>
+            <Button onClick={handleSaveConfig}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

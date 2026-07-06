@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { ToneSelector } from './ai-tools/ToneSelector';
 import { PeriodFilterSelector } from './ai-tools/PeriodFilterSelector';
 import { useObjectionDetector } from '@/hooks/useObjectionDetector';
+import type { ChatMessage } from '@/features/inbox/types/aiChatMessage';
 
 interface Objection {
   objection: string;
@@ -15,13 +16,6 @@ interface Objection {
   confidence: number;
 }
 
-interface ChatMessage {
-  id: string;
-  content: string;
-  sender: string;
-  timestamp: string;
-  created_at?: string;
-}
 
 interface ObjectionDetectorProps {
   contactId: string;

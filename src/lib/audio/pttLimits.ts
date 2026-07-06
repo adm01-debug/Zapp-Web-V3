@@ -1,3 +1,4 @@
+import { formatBytesCompact } from '@/lib/formatters';
 /**
  * Limites de PTT (Push-to-Talk) compatíveis com WhatsApp / Evolution API.
  *
@@ -20,11 +21,6 @@ export interface PttValidationResult {
   durationSec?: number;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function formatSeconds(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -90,7 +86,7 @@ export async function validatePttBlob(
   if (blob.size > maxBytes) {
     return {
       ok: false,
-      message: `Áudio muito grande (${formatBytes(blob.size)}). Limite: ${formatBytes(maxBytes)}.`,
+      message: `Áudio muito grande (${formatBytesCompact(blob.size)}). Limite: ${formatBytesCompact(maxBytes)}.`,
     };
   }
 

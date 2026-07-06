@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { type ToneKey, getTonePrompt } from '@/features/inbox/components/ai-tools/ToneSelector';
 import { usePeriodFilter } from '@/features/inbox/components/ai-tools/PeriodFilterSelector';
+import type { ChatMessage } from '@/features/inbox/types/aiChatMessage';
 
 interface Objection {
   objection: string;
@@ -10,13 +11,6 @@ interface Objection {
   confidence: number;
 }
 
-interface ChatMessage {
-  id: string;
-  content: string;
-  sender: string;
-  timestamp: string;
-  created_at?: string;
-}
 
 export function useObjectionDetector(
   contactId: string,
