@@ -104,9 +104,9 @@ export function EmailChatBubble({
       await emailModifyLabels({
         accountId,
         messageId: message.message_id,
-        addLabels: wasStarred ? [] : ['STARRED'],
-        removeLabels: wasStarred ? ['STARRED'] : [],
-      } as any);
+        addLabelIds: wasStarred ? [] : ['STARRED'],
+        removeLabelIds: wasStarred ? ['STARRED'] : [],
+      });
     } catch (err) {
       setIsStarred(wasStarred);
     }
@@ -116,7 +116,7 @@ export function EmailChatBubble({
     const wasRead = isRead;
     setIsRead(!wasRead);
     try {
-      await emailMarkRead({ accountId, messageIds: [message.message_id], read: !wasRead } as any);
+      await emailMarkRead({ accountId, messageIds: [message.message_id], read: !wasRead });
     } catch (err) {
       setIsRead(wasRead);
     }
@@ -124,7 +124,7 @@ export function EmailChatBubble({
 
   const handleTrash = async () => {
     try {
-      await emailTrashMessage({ accountId, messageId: message.message_id } as any);
+      await emailTrashMessage({ accountId, messageId: message.message_id });
       toast.success('Mensagem movida para lixeira');
     } catch (err) {
       toast.error('Erro ao mover para lixeira');

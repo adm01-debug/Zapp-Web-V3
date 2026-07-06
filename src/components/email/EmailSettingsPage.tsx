@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EmailAccountSelector } from '@/components/gmail';
+import { type TokenStatus as GmailTokenStatus } from '@/hooks/useGmailOAuthFlow';
 import { EmailSignatureEditor } from '@/components/email/EmailSignatureEditor';
 import { EmailSLADashboard } from '@/components/email/EmailSLADashboard';
 import { useEmail } from '@/hooks/useEmail';
@@ -112,7 +113,7 @@ export function EmailSettingsPage() {
                 <EmailAccountSelector
                   accounts={emailAccounts}
                   activeAccountId={emailActiveId}
-                  tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as any}
+                  tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as unknown as Record<string, GmailTokenStatus>}
                   isSyncing={isEmailSyncing}
                   onSelectAccount={setEmailActiveId}
                   onAddAccount={startEmailOAuth}
