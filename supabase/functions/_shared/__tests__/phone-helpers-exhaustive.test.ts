@@ -2,10 +2,12 @@
  * Exhaustive unit tests for normalizePhone and generatePhoneVariants.
  *
  * Four bugs were identified and have since been fixed:
- *   BUG-1 (normalizePhone)  : double device suffix "5511:5:2@s.whatsapp.net" — the
- *                             non-global /:\d+(?=@)/ regex only stripped the innermost
- *                             suffix, leaving the outer ":5" to corrupt digit extraction.
- *                             FIXED: added /g flag to strip all device suffixes.
+ *   BUG-1 (normalizePhone)  : double device suffix "5511998765432:5:2@s.whatsapp.net" — the
+ *                             regex /:\d+(?=@)/ (even with /g) only strips the suffix
+ *                             immediately adjacent to '@'; outer segments like ":5" leak
+ *                             into digit extraction and corrupt the phone key.
+ *                             FIXED: /(:\d+)+(?=@)/g — grouped quantifier matches the full
+ *                             chain of device segments in a single pass.
  *   BUG-2 (generatePhoneVariants): 12-digit numbers whose 8-digit subscriber already
  *                             starts with "9" received an unconditional 9-prefix, producing
  *                             an invalid double-9 subscriber (e.g. "998765432").
@@ -92,12 +94,12 @@ np(" 5511998765432@s.whatsapp.net ", "5511998765432", "N14 leading+trailing spac
 np("55 11 99876-5432@s.whatsapp.net", "5511998765432", "N15 spaces and dash in phone body");
 
 // ── N16  Double device suffix (BUG-1 fixed) ───────────────────────────────────
-// /:\d+(?=@)/g (global) now matches both ":5" and ":2" in a single pass.
-// After removing both suffixes and "@s.whatsapp.net", sanitized="5511998765432".
-Deno.test("normalizePhone | N16 double device suffix :5:2 — BUG-1 fixed: global /g strips all", () => {
+// /(:\d+)+(?=@)/g matches the full ":5:2" chain before "@" in a single pass.
+// After removing the entire chain and "@s.whatsapp.net", sanitized="5511998765432".
+Deno.test("normalizePhone | N16 double device suffix :5:2 — BUG-1 fixed: grouped quantifier strips all", () => {
   const result = normalizePhone("5511998765432:5:2@s.whatsapp.net");
   assertEquals(result, "5511998765432",
-    "BUG-1 fixed: /g flag removes all device suffixes before digit extraction");
+    "BUG-1 fixed: (:\\d+)+(?=@) removes every device suffix segment before digit extraction");
 });
 
 // ── N17  Unknown domain (digit fallback saves it) ────────────────────────────
