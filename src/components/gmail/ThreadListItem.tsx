@@ -3,12 +3,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Star, AlertCircle } from 'lucide-react';
 import type { EmailThread } from '@/hooks/useEmail';
+import { getInitialsFromNameOrEmail } from '@/lib/formatters';
 
-function getInitials(name: string | null | undefined, email?: string): string {
-  if (name) return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  if (email) return email[0]?.toUpperCase() || '?';
-  return '?';
-}
 
 function formatThreadDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -39,7 +35,7 @@ export function ThreadListItem({ thread, isSelected, onClick }: ThreadListItemPr
     >
       <Avatar className="h-9 w-9 shrink-0 mt-0.5">
         <AvatarFallback className={`text-xs ${thread.is_unread ? 'bg-primary/10 text-primary font-bold' : 'bg-secondary/20'}`}>
-          {getInitials(thread.contact?.name, thread.contact?.email)}
+          {getInitialsFromNameOrEmail(thread.contact?.name, thread.contact?.email)}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">

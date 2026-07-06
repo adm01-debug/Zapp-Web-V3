@@ -16,6 +16,7 @@ import { emailMarkRead, emailTrashMessage, emailModifyLabels } from '@/hooks/gma
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getInitialsFromNameOrEmail } from '@/lib/formatters';
 
 interface EmailChatBubbleProps {
   message: EmailMessage;
@@ -48,11 +49,6 @@ function sanitizeHtml(html: string): string {
   }
 }
 
-function getInitials(name: string | null, email: string | null): string {
-  if (name) return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
-  if (email) return email[0]?.toUpperCase() ?? '?';
-  return '?';
-}
 
 function getAvatarColor(email: string | null): string {
   const colors = [
@@ -107,7 +103,7 @@ export function EmailChatBubble({
         addLabels: wasStarred ? [] : ['STARRED'],
         removeLabels: wasStarred ? ['STARRED'] : [],
       } as any);
-    } catch (err) {
+    } catch {
       setIsStarred(wasStarred);
     }
   };
@@ -117,7 +113,7 @@ export function EmailChatBubble({
     setIsRead(!wasRead);
     try {
       await emailMarkRead({ accountId, messageIds: [message.message_id], read: !wasRead } as any);
-    } catch (err) {
+    } catch {
       setIsRead(wasRead);
     }
   };
@@ -126,7 +122,7 @@ export function EmailChatBubble({
     try {
       await emailTrashMessage({ accountId, messageId: message.message_id } as any);
       toast.success('Mensagem movida para lixeira');
-    } catch (err) {
+    } catch {
       toast.error('Erro ao mover para lixeira');
     }
   };
@@ -145,7 +141,7 @@ export function EmailChatBubble({
         <motion.div whileHover={{ scale: 1.1 }} className="relative shrink-0">
           <Avatar className="h-[38px] w-[44px] ring-2 ring-background shadow-lg border border-border">
             <AvatarFallback className={cn('text-primary-foreground text-[11px] font-bold uppercase tracking-wider', getAvatarColor(message.from_email))}>
-              {getInitials(message.from_name, message.from_email)}
+              {getInitialsFromNameOrEmail(message.from_name, message.from_email)}
             </AvatarFallback>
           </Avatar>
         </motion.div>

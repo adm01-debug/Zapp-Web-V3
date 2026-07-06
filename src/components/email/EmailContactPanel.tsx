@@ -10,6 +10,7 @@ import { EmailSLABadge, SLAProgressBar } from './EmailSLABadge';
 import { useEmailSLA } from '@/hooks/useEmailSLA';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getInitialsFromNameOrEmail } from '@/lib/formatters';
 
 interface EmailContactPanelProps {
   thread: EmailThread | null;
@@ -18,10 +19,6 @@ interface EmailContactPanelProps {
   className?: string;
 }
 
-function getInitials(name: string | null, email: string | null): string {
-  if (name) return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
-  return (email ?? '?')[0].toUpperCase();
-}
 
 function getAvatarColor(email: string | null): string {
   const colors = ['bg-primary','bg-primary','bg-primary','bg-warning','bg-destructive'];
@@ -62,7 +59,7 @@ export function EmailContactPanel({ thread, messages, accountId, className }: Em
       <div className="p-4 text-center border-b">
         <Avatar className="h-14 w-14 mx-auto mb-3">
           <AvatarFallback className={cn('text-foreground text-lg font-semibold', getAvatarColor(fromEmail))}>
-            {getInitials(fromName, fromEmail)}
+            {getInitialsFromNameOrEmail(fromName, fromEmail)}
           </AvatarFallback>
         </Avatar>
         {fromName && <h3 className="font-semibold text-sm">{fromName}</h3>}
