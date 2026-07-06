@@ -92,7 +92,7 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   isExternalConfigured = true;
 
   // Re-create the client instance
-  (externalSupabase as any) = createClient(url, key, {
+  externalSupabase = createClient(url, key, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,

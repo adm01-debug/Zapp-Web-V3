@@ -60,7 +60,7 @@ export const AdminProvidersPage = () => {
     const ok = await upsertProvider({
       id: editing.provider_id,
       ...editing,
-    } as any);
+    } as Partial<ProviderRow> & { id?: string });
     if (ok) setEditorOpen(false);
   };
 

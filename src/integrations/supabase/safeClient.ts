@@ -22,7 +22,7 @@ const resourceCache = new Map<string, { exists: boolean; expires: number }>();
 
 // Telemetria interna
 let lastValidation: Date | null = null;
-const recentFailures: any[] = [];
+const recentFailures: unknown[] = [];
 const MAX_FAILURES = 50;
 const stats = {
   totalCalls: 0,
@@ -196,7 +196,7 @@ export const safeClient = {
     else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
     try {
-      await supabase.rpc('rpc_update_email_health_state' as any, {
+      await safeClient.rpc('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: telemetry.recentFailures.length,
         p_metadata: {
@@ -214,7 +214,7 @@ export const safeClient = {
    * Logger estruturado com masking de dados sensíveis — usa o logger de produção
    * em vez de console.* para que os logs sigam o nível de verbosidade configurado.
    */
-  log(requestId: string, level: 'info' | 'warn' | 'error', message: string, detail?: any) {
+  log(requestId: string, level: 'info' | 'warn' | 'error', message: string, detail?: unknown) {
     const maskedDetail = this.maskSensitiveData(detail);
     const meta: Record<string, unknown> = { requestId };
     if (maskedDetail != null) {
@@ -304,7 +304,7 @@ export const safeClient = {
 
     // Persistir falha no banco para monitoramento assíncrono
     try {
-      await supabase.rpc('rpc_log_email_health' as any, {
+      await safeClient.rpc('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,

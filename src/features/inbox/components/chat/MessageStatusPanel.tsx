@@ -126,7 +126,7 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
   message,
 }: MessageStatusPanelProps) {
   const { data: stats } = useDeliveryStats(
-    message.sender === 'agent' ? (message as any).remote_jid : (message as any).contact_id
+    message.sender === 'agent' ? (message as unknown as { remote_jid?: string }).remote_jid : (message as unknown as { contact_id?: string }).contact_id
   );
   const isSent = message.sender === 'agent';
   const isFailed = TERMINAL_FAILURES.has(message.status as never);
