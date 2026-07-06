@@ -46,6 +46,8 @@ export interface ChatMessagesAreaRef {
   scrollToBottom: () => void;
   registerMessageRef: (messageId: string, el: HTMLDivElement | null) => void;
   scrollToMessage: (messageId: string) => boolean;
+  /** Exposes the internal scroll container so parent hooks can attach passive listeners. */
+  getScrollContainer: () => HTMLElement | null;
 }
 
 export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessagesAreaProps>(({
@@ -75,6 +77,7 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
       // Placeholder
       return true;
     },
+    getScrollContainer: () => scrollContainerRef.current,
   }));
 
   useEffect(() => {
