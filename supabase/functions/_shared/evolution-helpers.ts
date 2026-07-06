@@ -1,7 +1,4 @@
 // Shared helpers for Evolution API webhook and sync functions
-declare const Deno: { env: { get(key: string): string | undefined } };
-// @ts-ignore -- Deno remote import, resolved at edge-runtime
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 export interface WebhookPayload {
   event: string;
@@ -45,7 +42,8 @@ export async function sha256Hex(input: string): Promise<string> {
 // Marks an event as processed. Returns true if this is the first time (caller should process),
 // false if a prior row already exists (caller should treat as duplicate). Non-unique errors are
 // treated as "new" so the handler is never blocked by audit-infra failure.
-export async function markEventProcessed(supabase: SupabaseClient, eventId: string, instance: string, eventType: string): Promise<boolean> {
+// deno-lint-ignore no-explicit-any
+export async function markEventProcessed(supabase: any, eventId: string, instance: string, eventType: string): Promise<boolean> {
   const { error } = await supabase.from('webhook_events_processed').insert({
     event_id: eventId, instance, event_type: eventType,
   });
@@ -64,58 +62,12 @@ export interface WebhookAuditRow {
   error_message?: string | null;
 }
 
-export async function auditWebhookEvent(supabase: SupabaseClient, row: WebhookAuditRow): Promise<void> {
+// deno-lint-ignore no-explicit-any
+export async function auditWebhookEvent(supabase: any, row: WebhookAuditRow): Promise<void> {
   try { await supabase.from('webhook_audit_log').insert(row); } catch (e) {
     console.warn('[audit] insert failed:', (e as Error).message ?? String(e));
   }
 }
-
-export interface DeadLetterInput {
-  event_type: string;
-  instance: string;
-  remote_jid?: string | null;
-  /** The parsed webhook payload/data so the reconcile cron can replay it. */
-  payload: unknown;
-  error_message: string;
-  error_stack?: string | null;
-  request_id?: string | null;
-}
-
-// Routes a webhook event whose handler threw into the Evolution dead-letter
-// queue so it can be retried/inspected instead of being silently dropped.
-//
-// Context: the webhook marks an event as processed (idempotency) BEFORE the
-// handler runs and returns 200 even on handler failure (so Evolution does not
-// retry-storm). Without this, a handler error means permanent, unalarmed data
-// loss — the exact mechanism behind the wpp2 gap during the WhatsApp LID
-// migration. Landing the event in the DLQ makes the loss recoverable.
-//
-// Best-effort by design: a DLQ failure must NEVER bubble up and turn the
-// caller's 200 into a 5xx, so everything here is swallowed-and-logged.
-export async function routeToDeadLetter(supabase: SupabaseClient, input: DeadLetterInput): Promise<void> {
-  try {
-    const { error } = await supabase.from('evolution_webhook_dlq').insert({
-      event_type: input.event_type || 'unknown',
-      instance_name: input.instance || 'unknown',
-      remote_jid: input.remote_jid ?? null,
-      payload: (input.payload ?? {}) as Record<string, unknown>,
-      error_message: (input.error_message || 'handler_error').slice(0, 2000),
-      error_stack: input.error_stack ? input.error_stack.slice(0, 8000) : null,
-      status: 'pending',
-      retry_count: 0,
-      // Stagger the first retry so a transient dependency (DB/API) has time to
-      // recover before the reconcile cron picks the row up.
-      next_retry_at: new Date(Date.now() + 60_000).toISOString(),
-      last_request_id: input.request_id ?? null,
-    });
-    if (error) {
-      console.warn('[dlq] insert failed:', error.message ?? error.code ?? String(error));
-    }
-  } catch (e) {
-    console.warn('[dlq] insert threw:', (e as Error).message ?? String(e));
-  }
-}
-
 
 export function toEventRecords(data: unknown, collectionKeys: string[] = []): Record<string, unknown>[] {
   if (Array.isArray(data)) return data.filter(isRecord);
@@ -131,7 +83,7 @@ export function normalizePhone(rawJid?: string): string | null {
   if (!rawJid) return null;
   const sanitized = rawJid
     .trim()
-    .replace(/:\d+(?=@)/g, '')
+    .replace(/:\d+(?=@)/, '')
     .replace('@s.whatsapp.net', '')
     .replace('@g.us', '')
     .replace('@broadcast', '')
@@ -217,45 +169,42 @@ export function resolveEventJid(...sources: unknown[]): string | null {
 }
 
 export const STATUS_PRIORITY: Record<string, number> = {
-  'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'played': 4,
+  'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'played': 3,
   'failed': -1, 'deleted': 99, 'received': 1,
 };
 
 export function shouldUpdateStatus(currentStatus: string | null, newStatus: string): boolean {
   if (!currentStatus) return true;
+  if (newStatus === 'deleted' || newStatus === 'failed') return true;
   const currentPriority = STATUS_PRIORITY[currentStatus] ?? 0;
-  if (newStatus === 'deleted') return true;
-  // Allow 'failed' only if the message has not yet reached 'delivered' or beyond,
-  // preventing stale error ACKs from downgrading already-confirmed messages.
-  if (newStatus === 'failed') return currentPriority < STATUS_PRIORITY['delivered'];
   const newPriority = STATUS_PRIORITY[newStatus] ?? 0;
   return newPriority > currentPriority;
 }
 
-/**
- * Filtro PostgREST que casa uma conexão tanto pelo NOME roteável quanto pelo
- * UUID interno da Evolution. Eventos de webhook chegam com o nome da instância,
- * mas `whatsapp_connections.instance_id` guardava o nome em linhas legadas e o
- * UUID nas novas (incidente wpp2 2026-07-04) — `instance_name` é a fonte da
- * verdade e `instance_id` fica como fallback legado. Sanitiza o valor porque
- * vírgula/parênteses/aspas são sintaxe do `.or()` do PostgREST.
- */
-export function instanceOrFilter(instance: string): string {
-  const safe = String(instance).replace(/[",()\\]/g, '');
-  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
-}
-
-export async function getConnectionByInstance(supabase: SupabaseClient, instance: string): Promise<{ id: string } | null> {
-  const { data } = await supabase
+// deno-lint-ignore no-explicit-any
+export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
+  // [PATCH 2026-07-05 conn-resolver] Evolution envia payload.instance = NOME da instancia,
+  // mas fluxos de criacao gravam UUID em whatsapp_connections.instance_id. Resolve por
+  // instance_name (estavel) com fallback para instance_id (compat) e LOGA o miss -
+  // o return silencioso aqui escondeu 2 semanas de mensagens nao espelhadas (21/06-05/07).
+  const { data: byName } = await supabase
     .from('whatsapp_connections')
     .select('id')
-    .or(instanceOrFilter(instance))
+    .eq('instance_name', instance)
     .maybeSingle();
-  return data;
+  if (byName) return byName;
+  const { data: byId } = await supabase
+    .from('whatsapp_connections')
+    .select('id')
+    .eq('instance_id', instance)
+    .maybeSingle();
+  if (byId) return byId;
+  console.error(`[conn-resolver] whatsapp_connections MISS instance='${instance}' - message will NOT be mirrored`);
+  return null;
 }
-
+// deno-lint-ignore no-explicit-any
 export async function getContactByPhone(
-  supabase: SupabaseClient,
+  supabase: any,
   phone: string,
   connectionId: string
 ): Promise<{ id: string; avatar_url: string | null; assigned_to: string | null; name: string | null } | null> {
@@ -278,8 +227,7 @@ export async function getContactByPhone(
  */
 export function generatePhoneVariants(phone: string): string[] {
   const clean = phone.replace(/\D/g, '').replace(/^\+/, '');
-  const variants = new Set<string>([clean]);
-  if (clean) variants.add(`+${clean}`);
+  const variants = new Set<string>([clean, `+${clean}`, phone]);
   
   // Brazilian number handling (country code 55)
   if (clean.startsWith('55') && clean.length >= 12) {
@@ -294,7 +242,7 @@ export function generatePhoneVariants(phone: string): string[] {
     }
     
     // If missing 9th digit (8 digits after DDD = total 12 with country code)
-    if (clean.length === 12 && !rest.startsWith('9')) {
+    if (clean.length === 12) {
       // Add variant WITH 9th digit
       const with9 = `55${ddd}9${rest}`;
       variants.add(with9);
@@ -310,7 +258,7 @@ export async function fetchProfilePicFromApi(instance: string, phone: string): P
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
     if (!evolutionUrl || !evolutionKey) return null;
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
-    const resp = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instance)}`, {
+    const resp = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${instance}`, {
       method: 'POST',
       headers: { 'apikey': evolutionKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({ number: phone }),
@@ -322,17 +270,8 @@ export async function fetchProfilePicFromApi(instance: string, phone: string): P
   } catch { return null; }
 }
 
-function isSafeProfilePicUrl(url: string): boolean {
-  try {
-    const { protocol, hostname } = new URL(url);
-    if (protocol !== 'https:') return false;
-    const allowed = ['pps.whatsapp.net', 'mmg.whatsapp.net', 'media.whatsapp.net'];
-    return allowed.some(h => hostname === h || hostname.endsWith('.' + h));
-  } catch { return false; }
-}
-
-export async function persistProfilePicture(supabase: SupabaseClient, phone: string, profilePicUrl: string): Promise<string | null> {
-  if (!isSafeProfilePicUrl(profilePicUrl)) return null;
+// deno-lint-ignore no-explicit-any
+export async function persistProfilePicture(supabase: any, phone: string, profilePicUrl: string): Promise<string | null> {
   try {
     const response = await fetch(profilePicUrl, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) return null;
@@ -358,15 +297,18 @@ export async function persistProfilePicture(supabase: SupabaseClient, phone: str
   } catch (err) { console.error('Avatar persist error:', err); return null; }
 }
 
-export async function handleReactionEvent(supabase: SupabaseClient, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
+// deno-lint-ignore no-explicit-any
+export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';
   const reactKey = reactionMessage.key as Record<string, unknown> | undefined;
   if (!reactKey?.id) return;
 
   const targetExternalId = reactKey.id as string;
-  const { data: targetMessage } = await supabase.schema('evo')
-    .from('evolution_messages').select('id, contact_id').eq('message_id', targetExternalId)
-    .eq('instance_name', instance).maybeSingle();
+  const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) { console.log(`Reaction: no connection for instance ${instance}`); return; }
+  const { data: targetMessage } = await supabase
+    .from('messages').select('id, contact_id').eq('external_id', targetExternalId)
+    .eq('whatsapp_connection_id', connection.id).maybeSingle();
   if (!targetMessage) { console.log(`Reaction target not found: ${targetExternalId}`); return; }
 
   if (emoji === '') {
