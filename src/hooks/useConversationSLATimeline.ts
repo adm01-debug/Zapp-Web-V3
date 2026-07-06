@@ -146,7 +146,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
         : 'not-applicable';
 
       if (contactId) {
-        const { data: events } = await supabase
+        const { data: events } = await (supabase as any) /* TS2589: schema 678 */
           .from('conversation_events')
           .select(`
             event_type, created_at, performed_by, from_agent_id, to_agent_id,

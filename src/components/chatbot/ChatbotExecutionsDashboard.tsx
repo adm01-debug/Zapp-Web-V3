@@ -25,7 +25,7 @@ export function ChatbotExecutionsDashboard() {
   const { data: executions = [], isLoading } = useQuery({
     queryKey: ['chatbot-executions', statusFilter],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any) /* TS2589: schema 678 */
         .from('chatbot_executions')
         .select('*, flow:chatbot_flows(name), contact:contacts(name, phone)')
         .order('created_at', { ascending: false })

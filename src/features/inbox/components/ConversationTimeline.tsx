@@ -40,7 +40,7 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['conversation-timeline', contactId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('conversation_events')
         .select(`
           id, event_type, from_agent_id, to_agent_id, 

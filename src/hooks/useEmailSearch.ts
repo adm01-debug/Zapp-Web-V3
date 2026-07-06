@@ -42,7 +42,7 @@ export function useEmailSearch(accountId: string | null) {
     // Normaliza para FTS websearch
     const ftsQuery = q.trim();
 
-    const { data, error: dbErr } = await supabase
+    const { data, error: dbErr } = await (supabase as any) /* TS2589: schema 678 */
       .from('email_threads')
       .select(`
         id,

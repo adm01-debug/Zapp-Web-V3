@@ -23,7 +23,7 @@ export function useFollowUpSequences() {
   const { data: sequences = [], isLoading } = useQuery({
     queryKey: ['followup-sequences'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('followup_sequences')
         .select('*, followup_steps(*)') 
         .order('created_at', { ascending: false });
