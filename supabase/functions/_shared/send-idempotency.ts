@@ -22,8 +22,8 @@ const KEY_MAX = 200;
 let cached: ReturnType<typeof createClient> | null = null;
 function getServiceClient() {
   if (cached) return cached;
-  const url = Deno.env.get('SUPABASE_URL');
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+  const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !key) return null;
   cached = createClient(url, key, { auth: { persistSession: false } });
   return cached;

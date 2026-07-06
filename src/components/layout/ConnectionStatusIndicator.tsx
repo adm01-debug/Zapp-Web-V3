@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
-import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
+import {
+  supabase,
+  isSupabaseConfigured,
+  warnSupabaseUnconfigured,
+} from '@/integrations/supabase/client';
 import { WifiOff, Wifi, RefreshCw, History } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -24,7 +28,9 @@ const loadFilter = (): FilterValue => {
   try {
     const v = localStorage.getItem(FILTER_STORAGE_KEY);
     if (v === 'connected' || v === 'disconnected' || v === 'all') return v;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return 'all';
 };
 
@@ -61,7 +67,7 @@ const loadHistory = (): DisconnectEvent[] => {
     const parsed = JSON.parse(raw) as DisconnectEvent[];
     if (!Array.isArray(parsed)) return [];
     const cutoff = Date.now() - HISTORY_TTL_MS;
-    return parsed.filter(e => e && typeof e.at === 'number' && e.at >= cutoff);
+    return parsed.filter((e) => e && typeof e.at === 'number' && e.at >= cutoff);
   } catch {
     return [];
   }
@@ -109,7 +115,11 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
 
   // Persistir filtro
   useEffect(() => {
-    try { localStorage.setItem(FILTER_STORAGE_KEY, filter); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, filter);
+    } catch {
+      /* ignore */
+    }
   }, [filter]);
 
   // Persistir instância selecionada
@@ -117,7 +127,9 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     try {
       if (selectedInstance) localStorage.setItem(SELECTED_STORAGE_KEY, selectedInstance);
       else localStorage.removeItem(SELECTED_STORAGE_KEY);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [selectedInstance]);
 
   // Restaurar foco/scroll ao abrir
@@ -139,15 +151,25 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       setLoading(false);
       return;
     }
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, instance_name, name, phone_number, status');
+      .select('id, instance_id, instance_name, name, phone_number, status')) as unknown as {
+      data: Array<{
+        id: string;
+        instance_id: string | null;
+        instance_name: string | null;
+        name: string | null;
+        phone_number: string | null;
+        status: string | null;
+      }> | null;
+      error: { message: string } | null;
+    };
     if (error) {
       log.warn('Failed to fetch connections', { error: error.message });
       return;
     }
     if (!mountedRef.current) return;
-    const rows: ConnectionRow[] = (data ?? []).map(r => ({
+    const rows: ConnectionRow[] = (data ?? []).map((r) => ({
       id: r.id,
       instance_id: r.instance_id || r.id,
       instance_name: r.instance_name ?? null,
@@ -159,10 +181,12 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     setLoading(false);
 
     // Detect new disconnections → single toast per instance + record history
-    const currentDisconnected = new Set(rows.filter(r => r.status !== 'connected').map(r => r.instance_id));
+    const currentDisconnected = new Set(
+      rows.filter((r) => r.status !== 'connected').map((r) => r.instance_id)
+    );
     if (initializedRef.current) {
       const newlyDown: DisconnectEvent[] = [];
-      currentDisconnected.forEach(id => {
+      currentDisconnected.forEach((id) => {
         if (!prevDisconnectedRef.current.has(id)) {
           newlyDown.push({ instance_id: id, at: Date.now() });
           toast.warning(`Conexão "${id}" caiu`, {
@@ -172,7 +196,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         }
       });
       if (newlyDown.length > 0) {
-        setHistory(prev => {
+        setHistory((prev) => {
           const next = [...newlyDown, ...prev].slice(0, HISTORY_MAX_ENTRIES);
           saveHistory(next);
           return next;
@@ -192,13 +216,16 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         { event: '*', schema: 'public', table: 'whatsapp_connections' },
         () => {
           // Invalidate shared cache so other consumers (senders, dialogs) see fresh data.
-          import('@/lib/whatsappConnectionsCache').then(m => m.invalidateWhatsappConnectionsCache()).catch(() => {});
+          import('@/lib/whatsappConnectionsCache')
+            .then((m) => m.invalidateWhatsappConnectionsCache())
+            .catch(() => {});
           fetchStatus();
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-     
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const reconnectInstance = async (
@@ -215,7 +242,10 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     cooldownRef.current.set(conn.instance_id, now);
     // Evolution API roteia por NOME; o UUID (instance_id) gera 404 + auto-create
     // de instância fantasma (incidente wpp2 2026-07-04). Sem nome → não chamar.
-    const instanceName = evolutionInstanceName({ instance_name: conn.instance_name, instance_id: conn.instance_id });
+    const instanceName = evolutionInstanceName({
+      instance_name: conn.instance_name,
+      instance_id: conn.instance_id,
+    });
     if (!instanceName) {
       const msg = 'Conexão sem nome de instância cadastrado — reconexão automática bloqueada.';
       if (!opts.silent) toast.error(msg);
@@ -259,7 +289,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   };
 
   const handleReconnectAll = async () => {
-    const targets = connections.filter(c => c.status !== 'connected');
+    const targets = connections.filter((c) => c.status !== 'connected');
     if (targets.length === 0) return;
     setReconnectingAll(true);
     let success = 0;
@@ -275,7 +305,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       else if (r.authError) authErr++;
       else failed++;
       // Throttle entre chamadas pra não sobrecarregar a edge function
-      if (i < targets.length - 1) await new Promise(res => setTimeout(res, 400));
+      if (i < targets.length - 1) await new Promise((res) => setTimeout(res, 400));
     }
     setReconnecting(null);
     setReconnectingAll(false);
@@ -298,10 +328,9 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     }
   };
 
-
   if (loading || connections.length === 0) return null;
 
-  const disconnected = connections.filter(c => c.status !== 'connected');
+  const disconnected = connections.filter((c) => c.status !== 'connected');
   const total = connections.length;
   const connected = total - disconnected.length;
   const hasIssue = disconnected.length > 0;
@@ -318,14 +347,14 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         'inline-flex items-center gap-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
         collapsed ? 'h-9 w-9 justify-center' : 'h-7 px-2',
         hasIssue
-          ? 'bg-destructive/10 text-destructive hover:bg-destructive/15 border border-destructive/30'
-          : 'bg-primary/10 text-primary dark:text-primary hover:bg-primary/15 border border-primary/20'
+          ? 'border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/15'
+          : 'border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 dark:text-primary'
       )}
     >
       {hasIssue ? (
-        <WifiOff className="w-3.5 h-3.5 shrink-0" />
+        <WifiOff className="h-3.5 w-3.5 shrink-0" />
       ) : (
-        <Wifi className="w-3.5 h-3.5 shrink-0" />
+        <Wifi className="h-3.5 w-3.5 shrink-0" />
       )}
       {!collapsed && (
         <span className="text-[11px] font-semibold tabular-nums leading-none">
@@ -345,11 +374,15 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
           {triggerLabel}
         </TooltipContent>
       </Tooltip>
-      <PopoverContent side="right" align="start" className="w-72 p-0 bg-foreground border-border shadow-none">
-        <div className="px-3 py-2 border-b border-border flex items-start justify-between gap-2">
+      <PopoverContent
+        side="right"
+        align="start"
+        className="w-72 border-border bg-foreground p-0 shadow-none"
+      >
+        <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
           <div className="min-w-0">
             <p className="text-xs font-semibold text-foreground">WhatsApp — Conexões</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
               {connected} de {total} conectada{total > 1 ? 's' : ''}
             </p>
           </div>
@@ -358,10 +391,10 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
               type="button"
               onClick={handleReconnectAll}
               disabled={reconnectingAll || reconnecting !== null}
-              className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/15 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 shrink-0"
+              className="inline-flex shrink-0 items-center gap-1 rounded border border-destructive/30 bg-destructive/10 px-2 py-1 text-[10px] font-semibold text-destructive hover:bg-destructive/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 disabled:opacity-50"
               aria-label={`Reconectar todas as ${disconnected.length} instâncias desconectadas`}
             >
-              <RefreshCw className={cn('w-3 h-3', reconnectingAll && 'animate-spin')} />
+              <RefreshCw className={cn('h-3 w-3', reconnectingAll && 'animate-spin')} />
               Reconectar todas ({disconnected.length})
             </button>
           )}
@@ -370,13 +403,15 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         <div
           role="tablist"
           aria-label="Filtrar conexões por status"
-          className="flex items-center gap-1 px-3 py-1.5 border-b border-border"
+          className="flex items-center gap-1 border-b border-border px-3 py-1.5"
         >
-          {([
-            { key: 'all', label: 'Todas', count: total },
-            { key: 'connected', label: 'Conectadas', count: connected },
-            { key: 'disconnected', label: 'Offline', count: disconnected.length },
-          ] as const).map(({ key, label, count }) => {
+          {(
+            [
+              { key: 'all', label: 'Todas', count: total },
+              { key: 'connected', label: 'Conectadas', count: connected },
+              { key: 'disconnected', label: 'Offline', count: disconnected.length },
+            ] as const
+          ).map(({ key, label, count }) => {
             const active = filter === key;
             return (
               <button
@@ -386,14 +421,16 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                 aria-selected={active}
                 onClick={() => setFilter(key)}
                 className={cn(
-                  'flex-1 inline-flex items-center justify-center gap-1 text-[10px] font-medium px-2 py-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+                  'inline-flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
                   active
-                    ? 'bg-primary/10 text-primary border border-primary/30'
-                    : 'text-muted-foreground hover:bg-muted/60 border border-transparent'
+                    ? 'border border-primary/30 bg-primary/10 text-primary'
+                    : 'border border-transparent text-muted-foreground hover:bg-muted/60'
                 )}
               >
                 {label}
-                <span className={cn('tabular-nums text-[9px]', active ? 'opacity-100' : 'opacity-70')}>
+                <span
+                  className={cn('text-[9px] tabular-nums', active ? 'opacity-100' : 'opacity-70')}
+                >
                   ({count})
                 </span>
               </button>
@@ -403,7 +440,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
 
         <ul className="max-h-72 overflow-auto py-1" role="list">
           {(() => {
-            const filtered = connections.filter(c => {
+            const filtered = connections.filter((c) => {
               if (filter === 'connected') return c.status === 'connected';
               if (filter === 'disconnected') return c.status !== 'connected';
               return true;
@@ -429,21 +466,25 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                   onClick={() => setSelectedInstance(c.instance_id)}
                   aria-current={isSelected ? 'true' : undefined}
                   className={cn(
-                    'flex items-center justify-between gap-2 px-3 py-2 cursor-pointer transition-colors',
-                    isSelected ? 'bg-primary/10 border-l-2 border-primary' : 'hover:bg-muted/10 border-l-2 border-transparent'
+                    'flex cursor-pointer items-center justify-between gap-2 px-3 py-2 transition-colors',
+                    isSelected
+                      ? 'border-l-2 border-primary bg-primary/10'
+                      : 'border-l-2 border-transparent hover:bg-muted/10'
                   )}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span
                       className={cn(
-                        'w-1.5 h-1.5 rounded-full shrink-0',
-                        isOk ? 'bg-primary' : 'bg-destructive animate-pulse'
+                        'h-1.5 w-1.5 shrink-0 rounded-full',
+                        isOk ? 'bg-primary' : 'animate-pulse bg-destructive'
                       )}
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{c.instance_id}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">
+                      <p className="truncate text-xs font-medium text-foreground">
+                        {c.instance_id}
+                      </p>
+                      <p className="truncate text-[10px] text-muted-foreground">
                         {c.phone_number || (isOk ? 'Online' : 'Desconectada')}
                       </p>
                     </div>
@@ -453,9 +494,9 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                       type="button"
                       onClick={() => handleReconnect(c)}
                       disabled={isReconn || reconnectingAll}
-                      className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded border border-border hover:bg-muted text-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                      className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[10px] font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50"
                     >
-                      <RefreshCw className={cn('w-3 h-3', isReconn && 'animate-spin')} />
+                      <RefreshCw className={cn('h-3 w-3', isReconn && 'animate-spin')} />
                       Reconectar
                     </button>
                   )}
@@ -466,15 +507,18 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         </ul>
         {history.length > 0 && (
           <div className="border-t border-border px-3 py-2">
-            <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                <History className="w-3 h-3" aria-hidden="true" />
+                <History className="h-3 w-3" aria-hidden="true" />
                 Últimas quedas
               </div>
               <button
                 type="button"
-                onClick={() => { setHistory([]); saveHistory([]); }}
-                className="text-[10px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded px-1"
+                onClick={() => {
+                  setHistory([]);
+                  saveHistory([]);
+                }}
+                className="rounded px-1 text-[10px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 aria-label="Limpar histórico de quedas"
               >
                 Limpar
@@ -488,7 +532,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                 >
                   <span className="truncate text-foreground/80">{ev.instance_id}</span>
                   <span
-                    className="text-[10px] text-muted-foreground tabular-nums shrink-0"
+                    className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
                     title={new Date(ev.at).toLocaleString()}
                   >
                     {formatRelative(ev.at)}
@@ -497,7 +541,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
               ))}
             </ul>
             {history.length > HISTORY_VISIBLE && (
-              <p className="text-[10px] text-muted-foreground mt-1">
+              <p className="mt-1 text-[10px] text-muted-foreground">
                 +{history.length - HISTORY_VISIBLE} eventos anteriores
               </p>
             )}

@@ -49,8 +49,8 @@ serve(async (req) => {
       if (authed instanceof Response) return authed;
       // Build caller-scoped client so RLS enforces account ownership
       callerClient = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_ANON_KEY')!,
+        (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+        (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
         { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } }
       );
     }
@@ -60,8 +60,8 @@ serve(async (req) => {
   }
 
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
   );
 
   const clientId     = Deno.env.get('GOOGLE_CLIENT_ID');

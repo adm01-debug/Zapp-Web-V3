@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
       });
     }
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+      (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
       { global: { headers: { Authorization: authHeader } } },
     );
     const token = authHeader.replace('Bearer ', '');
@@ -109,8 +109,8 @@ Deno.serve(async (req) => {
     // 4. Secret + FATOR X creds
     const secret =
       Deno.env.get('EVOLUTION_WEBHOOK_SECRET') || Deno.env.get('WEBHOOK_SECRET') || '';
-    const extUrl = Deno.env.get('EXTERNAL_SUPABASE_URL');
-    const extKey = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+    const extUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+    const extKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
     if (!extUrl || !extKey) {
       return new Response(JSON.stringify({ error: 'External DB not configured' }), {
         status: 500,

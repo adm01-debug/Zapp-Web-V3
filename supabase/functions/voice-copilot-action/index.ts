@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     // Caller-scoped client enforces RLS — used for user-data reads (contacts, analyses)
     // so tenant isolation is guaranteed without relying on a non-existent user_id column.
-    const callerClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? requireEnv('SUPABASE_ANON_KEY'), {
+    const callerClient = createClient(supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? requireEnv('SUPABASE_ANON_KEY'), {
       global: { headers: { authorization: req.headers.get('authorization') || '' } },
     });
 

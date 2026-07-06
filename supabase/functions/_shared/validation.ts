@@ -444,7 +444,7 @@ export async function authorizeRoles(
   if (authError || !user) throw { message: "Não autorizado", status: 401 };
 
   // Fetch user roles using service role to bypass RLS for checking
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   
   const { data: roleData, error: roleError } = await adminClient
@@ -472,5 +472,43 @@ export async function authorizeRoles(
 
   return { user, roles: userRoles };
 }
+
+// ─── parseBody + CommonSchemas + z (migrado de validation-legacy.ts em v2.2) ─
+// Antes vivia só no arquivo -legacy; movido para cá para permitir a remoção
+// definitiva do legacy e destravar novos consumidores sem duplicar helpers.
+export { z } from './schemas.ts';
+import { z as _z } from './schemas.ts';
+
+export interface ParseSuccess<T> { data: T; error: null; }
+export interface ParseFailure { data: null; error: Response; }
+export type ParseResult<T> = ParseSuccess<T> | ParseFailure;
+
+/** Parse JSON body and validate via Zod schema. Returns { data, error } discriminated union. */
+export async function parseBody<T>(req: Request, schema: _z.ZodSchema<T>): Promise<ParseResult<T>> {
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return { data: null, error: errorResponse('Invalid JSON body', 400, req) };
+  }
+  const result = schema.safeParse(raw);
+  if (!result.success) {
+    return {
+      data: null,
+      error: errorResponse(
+        'Validation failed: ' + result.error.issues.map(i => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; '),
+        400,
+        req
+      ),
+    };
+  }
+  return { data: result.data, error: null };
+}
+
+export const CommonSchemas = {
+  uuid: _z.string().uuid(),
+  nonEmpty: _z.string().min(1).trim(),
+} as const;
+
 
 

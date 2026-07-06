@@ -44,24 +44,101 @@ export function getBearer(req: Request): string | null {
   return raw.slice(7).trim() || null;
 }
 
+function readSupabaseUrl(name: string): string | null {
+  const raw = Deno.env.get(name)?.trim();
+  if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    return new URL(withProtocol).origin;
+  } catch {
+    return null;
+  }
+}
+
+function readSecret(name: string): string | null {
+  const raw = Deno.env.get(name)?.trim();
+  if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
+  return raw;
+}
+
 export async function requireUser(req: Request): Promise<AuthedUser | Response> {
   const token = getBearer(req);
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
 
-  const url = requireEnv("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")
-    ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-  if (!anonKey) return errorResponse("Server misconfigured: anon key missing", 500, req);
+  const tokenPayload = (() => {
+    try {
+      const [, payload] = token.split('.');
+      if (!payload) return null;
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      return JSON.parse(atob(padded)) as { role?: string; sub?: string; iss?: string };
+    } catch {
+      return null;
+    }
+  })();
 
-  const client = createClient(url, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
+  if (!tokenPayload?.sub || tokenPayload.role === 'anon') {
+    return errorResponse("Unauthorized: user session required", 401, req);
+  }
+
+  const selfUrl = readSupabaseUrl("SELFHOSTED_SUPABASE_URL") ?? readSupabaseUrl("EXTERNAL_SUPABASE_URL");
+  const selfAnon = readSecret("SELFHOSTED_SUPABASE_ANON_KEY") ?? readSecret("EXTERNAL_SUPABASE_ANON_KEY");
+  const cloudUrl = readSupabaseUrl("SUPABASE_URL");
+  const cloudAnon = readSecret("SUPABASE_ANON_KEY") ?? readSecret("SUPABASE_PUBLISHABLE_KEY");
+
+  const allCandidates: Array<{ url: string; key: string; label: string }> = [];
+  if (selfUrl && selfAnon) allCandidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted" });
+  if (cloudUrl && cloudAnon) allCandidates.push({ url: cloudUrl, key: cloudAnon, label: "cloud" });
+
+  if (allCandidates.length === 0) {
+    return errorResponse("Server misconfigured: no Supabase auth backend", 500, req);
+  }
+
+  // Fast-path: prefer the candidate whose origin matches the JWT's `iss` claim.
+  const tokenIssOrigin = (() => {
+    try { return tokenPayload.iss ? new URL(tokenPayload.iss).origin : null; } catch { return null; }
+  })();
+  const candidates = tokenIssOrigin
+    ? [...allCandidates].sort((a, b) => (b.url === tokenIssOrigin ? 1 : 0) - (a.url === tokenIssOrigin ? 1 : 0))
+    : allCandidates;
+
+
+  const tried: Array<{ label: string; url: string; ok: boolean; err?: string }> = [];
+  let lastErr: string | null = null;
+  for (const c of candidates) {
+    try {
+      const client = createClient(c.url, c.key, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data, error } = await client.auth.getUser();
+      if (!error && data?.user) {
+        console.log("[auth] token validated", { label: c.label, url: c.url, tried: tried.length + 1 });
+        return { user: { id: data.user.id, email: data.user.email ?? null } };
+      }
+      lastErr = error?.message ?? "invalid token";
+      tried.push({ label: c.label, url: c.url, ok: false, err: lastErr });
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : "auth error";
+      tried.push({ label: c.label, url: c.url, ok: false, err: lastErr });
+    }
+  }
+
+  const tokenIss = (() => {
+    try {
+      const [, payload] = token.split('.');
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      return (JSON.parse(atob(padded)) as { iss?: string }).iss ?? null;
+    } catch { return null; }
+  })();
+
+  console.error("[auth] 401 invalid token", {
+    token_iss: tokenIss,
+    token_sub: tokenPayload.sub,
+    candidates_tried: tried,
+    hint: "token_iss deve bater com a URL de um candidato acima. Se não bater, a env set em uso está errada.",
   });
 
-  const { data, error } = await client.auth.getUser();
-  if (error || !data?.user) return errorResponse("Unauthorized: invalid token", 401, req);
-
-  return { user: { id: data.user.id, email: data.user.email ?? null } };
+  return errorResponse(`Unauthorized: invalid token (${lastErr ?? "unknown"})`, 401, req);
 }
 
 export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser | Response> {
@@ -87,7 +164,7 @@ export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser
  */
 export function requireServiceRoleOnly(req: Request): Response | null {
   const token = getBearer(req);
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (token && serviceKey && timingSafeStringEqual(token, serviceKey)) return null;
   return errorResponse("Unauthorized: internal endpoint", 401, req);
 }
@@ -99,7 +176,7 @@ export function requireServiceRoleOnly(req: Request): Response | null {
  */
 export function requireServiceRoleOrCron(req: Request): Response | null {
   const token = getBearer(req);
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (token && serviceKey && timingSafeStringEqual(token, serviceKey)) return null;
 
   const cronSecret = Deno.env.get("CRON_SECRET");

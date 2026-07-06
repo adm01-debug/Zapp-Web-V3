@@ -88,12 +88,30 @@ function shouldUpload(metric: WebVitalMetric): boolean {
   return Math.abs(metric.value - prev) / Math.max(prev, 1) >= 0.1;
 }
 
+const lastLoggedByName = new Map<string, { value: number; at: number }>();
+const LOG_DEDUP_WINDOW_MS = 2000;
+
 function onMetric(metric: WebVitalMetric) {
   metricsBuffer.push(metric);
 
-  const emoji = metric.rating === 'good' ? '🟢' : metric.rating === 'needs-improvement' ? '🟡' : '🔴';
-  const unit = metric.name === 'CLS' ? '' : 'ms';
-  log.info(`${emoji} ${metric.name}: ${metric.value.toFixed(metric.name === 'CLS' ? 3 : 0)}${unit} (${metric.rating})`);
+  // Deduplicate console spam: skip logging if same metric+value fired within the window,
+  // or if the value change is below a meaningful threshold.
+  const prev = lastLoggedByName.get(metric.name);
+  const changed =
+    !prev ||
+    (metric.name === 'CLS'
+      ? Math.abs(metric.value - prev.value) >= 0.01
+      : Math.abs(metric.value - prev.value) >= (metric.name === 'INP' ? 20 : 100));
+  const fresh = !prev || Date.now() - prev.at > LOG_DEDUP_WINDOW_MS;
+  if (changed && fresh) {
+    lastLoggedByName.set(metric.name, { value: metric.value, at: Date.now() });
+    const emoji =
+      metric.rating === 'good' ? '🟢' : metric.rating === 'needs-improvement' ? '🟡' : '🔴';
+    const unit = metric.name === 'CLS' ? '' : 'ms';
+    log.info(
+      `${emoji} ${metric.name}: ${metric.value.toFixed(metric.name === 'CLS' ? 3 : 0)}${unit} (${metric.rating})`
+    );
+  }
 
   if (typeof window !== 'undefined' && shouldUpload(metric)) {
     lastSentByName.set(metric.name, metric.value);
@@ -102,9 +120,11 @@ function onMetric(metric: WebVitalMetric) {
   }
 }
 
-
+let __initialized = false;
 export function initWebVitals() {
   if (typeof window === 'undefined') return;
+  if (__initialized) return;
+  __initialized = true;
 
   window.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
@@ -128,7 +148,9 @@ export function initWebVitals() {
       }
     });
     lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
-  } catch { /* not supported */ }
+  } catch {
+    /* not supported */
+  }
 
   // FID - First Input Delay
   try {
@@ -145,7 +167,9 @@ export function initWebVitals() {
       }
     });
     fidObserver.observe({ type: 'first-input', buffered: true });
-  } catch { /* not supported */ }
+  } catch {
+    /* not supported */
+  }
 
   // CLS - Cumulative Layout Shift
   try {
@@ -165,7 +189,9 @@ export function initWebVitals() {
       });
     });
     clsObserver.observe({ type: 'layout-shift', buffered: true });
-  } catch { /* not supported */ }
+  } catch {
+    /* not supported */
+  }
 
   // INP - Interaction to Next Paint
   try {
@@ -181,8 +207,14 @@ export function initWebVitals() {
         });
       }
     });
-    inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 40 } as PerformanceObserverInit);
-  } catch { /* not supported */ }
+    inpObserver.observe({
+      type: 'event',
+      buffered: true,
+      durationThreshold: 40,
+    } as PerformanceObserverInit);
+  } catch {
+    /* not supported */
+  }
 
   // TTFB - Time to First Byte
   try {

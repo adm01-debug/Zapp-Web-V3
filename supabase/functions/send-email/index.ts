@@ -30,7 +30,7 @@ serve(async (req) => {
     if (body.accountId) {
       // Delega para gmail-send usando o token do usuário (não service role),
       // para que gmail-send possa verificar a propriedade da conta Gmail.
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
 
       const res = await fetch(`${supabaseUrl}/functions/v1/gmail-send`, {
         method: 'POST',

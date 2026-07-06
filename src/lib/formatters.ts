@@ -100,6 +100,24 @@ export function getInitials(name: string, maxChars = 2): string {
     .join('');
 }
 
+/**
+ * Get initials from a display name, falling back to the e-mail's first letter.
+ * Parity-preserving consolidation of the local helpers previously duplicated in
+ * EmailChatBubble, EmailContactPanel and ThreadListItem (Refactor Wave 1).
+ */
+export function getInitialsFromNameOrEmail(name?: string | null, email?: string | null): string {
+  if (name) {
+    return name
+      .split(' ')
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+  if (email) return email[0]?.toUpperCase() ?? '?';
+  return '?';
+}
+
 // ─── Number Formatting ──────────────────────────────────────────────
 
 /**
