@@ -14,6 +14,7 @@
  *  - Joga o erro pra cima (sem swallow), pra alimentar o `SendErrorBanner`.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { jidToPhone } from '@/adapters/evolutionAdapter';
 import { getLogger } from '@/lib/logger';
 import { parseEvolutionError } from '@/features/inbox';
@@ -190,12 +191,12 @@ export async function sendExternalAudio(
   });
 
   if (convId) {
-    void (supabase as any).from('conversation_audit_logs').insert({
+    void safeClient.from('conversation_audit_logs', (q) => q.insert({
       conversation_id: convId,
       event_type: 'send_attempt',
       status: 'starting',
       metadata: { messageType: 'audio', isPtt: opts.isPtt ?? true }
-    });
+    }));
   }
 
   const formData = new FormData();
@@ -270,12 +271,12 @@ export async function sendExternalAudio(
   optimistic.status = 'sent';
 
   if (convId) {
-    void (supabase as any).from('conversation_audit_logs').insert({
+    void safeClient.from('conversation_audit_logs', (q) => q.insert({
       conversation_id: convId,
       event_type: 'delivered',
       status: 'success',
       metadata: { external_id: externalId }
-    });
+    }));
   }
 
   return { optimistic, externalId };

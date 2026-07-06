@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 
@@ -32,14 +33,14 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         .from('team_messages')
         .select('id')
         .eq('conversation_id', conversationId);
-      const ids = (msgs || []).map((m: any) => m.id);
+      const ids = (msgs || []).map((m) => m.id);
       if (!ids.length) return [];
-      const { data, error } = await (supabase as any)
-        .from('team_message_reactions')
-        .select('*')
-        .in('message_id', ids);
+      const { data, error } = await safeClient.from<TeamReaction>(
+        'team_message_reactions',
+        (q) => q.select('*').in('message_id', ids),
+      );
       if (error) throw error;
-      return (data || []) as TeamReaction[];
+      return data;
     },
     enabled: !!conversationId,
   });
@@ -64,15 +65,16 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         (r) => r.message_id === messageId && r.profile_id === profile.id && r.emoji === emoji
       );
       if (existing) {
-        const { error } = await (supabase as any)
-          .from('team_message_reactions')
-          .delete()
-          .eq('id', existing.id);
+        const { error } = await safeClient.from(
+          'team_message_reactions',
+          (q) => q.delete().eq('id', existing.id),
+        );
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any)
-          .from('team_message_reactions')
-          .insert({ message_id: messageId, profile_id: profile.id, emoji });
+        const { error } = await safeClient.from(
+          'team_message_reactions',
+          (q) => q.insert({ message_id: messageId, profile_id: profile.id, emoji }),
+        );
         if (error) throw error;
       }
     },
