@@ -94,6 +94,8 @@ export function RateLimitConfigPanel() {
         endpoint_pattern: r.endpoint,
         max_requests: r.max_requests,
         window_seconds: r.window_seconds,
+        // NOT NULL sem default no schema; 15min = padrão de bloqueio do domínio
+        block_duration_minutes: 15,
         is_active: r.is_active,
       }));
 

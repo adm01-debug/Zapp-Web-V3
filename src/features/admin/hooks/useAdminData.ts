@@ -106,7 +106,9 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
 
   const handleRoleChange = useCallback(async (userId: string, newRole: AppRole) => {
     await supabase.from('user_roles').delete().eq('user_id', userId);
-    const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: newRole as any });
+    // role_key e workspace_id são NOT NULL sem default (schema real); app é single-workspace
+    const { data: ws } = await supabase.from('workspaces').select('id').order('created_at').limit(1).single();
+    const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: newRole as any, role_key: newRole, workspace_id: ws?.id ?? '' });
     if (error) {
       toast.error('Erro ao atualizar role');
     } else {

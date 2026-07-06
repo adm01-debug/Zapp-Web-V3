@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
 export interface AutomationRow {
@@ -45,7 +45,7 @@ export function useAutomations() {
           actions: automation.actions || [],
           is_active: automation.is_active ?? true,
           created_by: automation.created_by,
-        } as unknown as Database['public']['Tables']['automations']['Insert'])
+        } as unknown as TablesInsert<'automations'>)
         .select()
         .single();
       if (error) throw error;
@@ -59,7 +59,7 @@ export function useAutomations() {
     mutationFn: async ({ id, ...updates }: Partial<AutomationRow> & { id: string }) => {
       const { error } = await supabase
         .from('automations')
-        .update(updates as unknown as Database['public']['Tables']['automations']['Update'])
+        .update(updates as unknown as TablesUpdate<'automations'>)
         .eq('id', id);
       if (error) throw error;
     },
