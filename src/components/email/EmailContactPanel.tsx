@@ -1,1 +1,234 @@
-aW1wb3J0IHsgdXNlU3RhdGUgfSBmcm9tICdyZWFjdCc7CmltcG9ydCB7IFVzZXIsIE1haWwsIFRhZywgTWVzc2FnZVNxdWFyZSB9IGZyb20gJ2x1Y2lkZS1yZWFjdCc7CmltcG9ydCB7IEF2YXRhciwgQXZhdGFyRmFsbGJhY2sgfSBmcm9tICdAL2NvbXBvbmVudHMvdWkvYXZhdGFyJzsKaW1wb3J0IHsgQmFkZ2UgfSBmcm9tICdAL2NvbXBvbmVudHMvdWkvYmFkZ2UnOwppbXBvcnQgeyBTZXBhcmF0b3IgfSBmcm9tICdAL2NvbXBvbmVudHMvdWkvc2VwYXJhdG9yJzsKaW1wb3J0IHsgVG9vbHRpcCwgVG9vbHRpcENvbnRlbnQsIFRvb2x0aXBUcmlnZ2VyIH0gZnJvbSAnQC9jb21wb25lbnRzL3VpL3Rvb2x0aXAnOwppbXBvcnQgeyBjbiB9IGZyb20gJ0AvbGliL3V0aWxzJzsKaW1wb3J0IHsgdHlwZSBFbWFpbFRocmVhZCwgdHlwZSBFbWFpbE1lc3NhZ2UgfSBmcm9tICdAL2hvb2tzL2dtYWlsL2dtYWlsVHlwZXMnOwppbXBvcnQgeyBFbWFpbFNMQUJhZGdlLCBTTEFQcm9ncmVzc0JhciB9IGZyb20gJy4vRW1haWxTTEFCYWRnZSc7CmltcG9ydCB7IHVzZUVtYWlsU0xBIH0gZnJvbSAnQC9ob29rcy91c2VFbWFpbFNMQSc7CmltcG9ydCB7IGZvcm1hdERpc3RhbmNlVG9Ob3csIGZvcm1hdCB9IGZyb20gJ2RhdGUtZm5zJzsKaW1wb3J0IHsgcHRCUiB9IGZyb20gJ2RhdGUtZm5zL2xvY2FsZSc7CmltcG9ydCB7IGdldEluaXRpYWxzRnJvbU5hbWVPckVtYWlsIH0gZnJvbSAnQC9saWIvZm9ybWF0dGVycyc7CgppbnRlcmZhY2UgRW1haWxDb250YWN0UGFuZWxQcm9wcyB7CiAgdGhyZWFkOiBFbWFpbFRocmVhZCB8IG51bGw7CiAgbWVzc2FnZXM6IEVtYWlsTWVzc2FnZVtdOwogIGFjY291bnRJZDogc3RyaW5nIHwgbnVsbDsKICBjbGFzc05hbWU/OiBzdHJpbmc7Cn0KCgpmdW5jdGlvbiBnZXRBdmF0YXJDb2xvcihlbWFpbDogc3RyaW5nIHwgbnVsbCk6IHN0cmluZyB7CiAgY29uc3QgY29sb3JzID0gWydiZy1wcmltYXJ5JywnYmctcHJpbWFyeScsJ2JnLXByaW1hcnknLCdiZy13YXJuaW5nJywnYmctZGVzdHJ1Y3RpdmUnXTsKICBjb25zdCBjb2RlID0gKGVtYWlsID8/ICcnKS5zcGxpdCgnJykucmVkdWNlKChhLCBjKSA9PiBhICsgYy5jaGFyQ29kZUF0KDApLCAwKTsKICByZXR1cm4gY29sb3JzW2NvZGUgJSBjb2xvcnMubGVuZ3RoXTsKfQoKZXhwb3J0IGZ1bmN0aW9uIEVtYWlsQ29udGFjdFBhbmVsKHsgdGhyZWFkLCBtZXNzYWdlcywgYWNjb3VudElkLCBjbGFzc05hbWUgfTogRW1haWxDb250YWN0UGFuZWxQcm9wcykgewogIGNvbnN0IFtzaG93QWxsTWVzc2FnZXMsIHNldFNob3dBbGxNZXNzYWdlc10gPSB1c2VTdGF0ZShmYWxzZSk7CiAgY29uc3QgeyBnZXRSZWNvcmQsIGdldFN0YXR1cyB9ID0gdXNlRW1haWxTTEEoYWNjb3VudElkKTsKCiAgaWYgKCF0aHJlYWQpIHsKICAgIHJldHVybiAoCiAgICAgIDxkaXYgY2xhc3NOYW1lPXtjbignZmxleCBmbGV4LWNvbCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgaC1mdWxsIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCBnYXAtMyBwLTYnLCBjbGFzc05hbWUpfT4KICAgICAgICA8VXNlciBjbGFzc05hbWU9ImgtMTAgdy0xMCBvcGFjaXR5LTIwIiAvPgogICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1zbSI+U2VsZWNpb25lIHVtIGVtYWlsIHBhcmEgdmVyIG9zIGRldGFsaGVzPC9wPgogICAgICA8L2Rpdj4KICAgICk7CiAgfQoKICAvLyBQYXJ0aWNpcGFudGUgcHJpbmNpcGFsIChyZW1ldGVudGUgZG8gcHJpbWVpcm8gZW1haWwgcmVjZWJpZG8pCiAgY29uc3QgZmlyc3RSZWNlaXZlZCA9IG1lc3NhZ2VzLmZpbmQobSA9PiAhbS5pc19zZW50KTsKICBjb25zdCBmcm9tTmFtZSA9IGZpcnN0UmVjZWl2ZWQ/LmZyb21fbmFtZSA/PyBudWxsOwogIGNvbnN0IGZyb21FbWFpbCA9IGZpcnN0UmVjZWl2ZWQ/LmZyb21fZW1haWwgPz8gdGhyZWFkLnBhcnRpY2lwYW50X2VtYWlscz8uWzBdID8/ICcnOwoKICBjb25zdCBzbGFSZWNvcmQgPSBnZXRSZWNvcmQodGhyZWFkLnRocmVhZF9pZCk7CiAgY29uc3Qgc2xhU3RhdHVzID0gZ2V0U3RhdHVzKHRocmVhZC50aHJlYWRfaWQpOwoKICAvLyBDb250YWdlbSBkZSBtZW5zYWdlbnMgZW52aWFkYXMvcmVjZWJpZGFzCiAgY29uc3Qgc2VudENvdW50ICAgICA9IG1lc3NhZ2VzLmZpbHRlcihtID0+IG0uaXNfc2VudCkubGVuZ3RoOwogIGNvbnN0IHJlY2VpdmVkQ291bnQgPSBtZXNzYWdlcy5maWx0ZXIobSA9PiAhbS5pc19zZW50KS5sZW5ndGg7CgogIGNvbnN0IHJlY2VudE1lc3NhZ2VzID0gc2hvd0FsbE1lc3NhZ2VzID8gbWVzc2FnZXMgOiBtZXNzYWdlcy5zbGljZSgtNSk7CgogIHJldHVybiAoCiAgICA8ZGl2IGNsYXNzTmFtZT17Y24oJ2ZsZXggZmxleC1jb2wgaC1mdWxsIG92ZXJmbG93LXktYXV0bycsIGNsYXNzTmFtZSl9PgogICAgICB7LyogQ29udGFjdCBoZWFkZXIgKi99CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJwLTQgdGV4dC1jZW50ZXIgYm9yZGVyLWIiPgogICAgICAgIDxBdmF0YXIgY2xhc3NOYW1lPSJoLTE0IHctMTQgbXgtYXV0byBtYi0zIj4KICAgICAgICAgIDxBdmF0YXJGYWxsYmFjayBjbGFzc05hbWU9e2NuKCd0ZXh0LWZvcmVncm91bmQgdGV4dC1sZyBmb250LXNlbWlib2xkJywgZ2V0QXZhdGFyQ29sb3IoZnJvbUVtYWlsKSl9PgogICAgICAgICAgICB7Z2V0SW5pdGlhbHNGcm9tTmFtZU9yRW1haWwoZnJvbU5hbWUsIGZyb21FbWFpbCl9CiAgICAgICAgICA8L0F2YXRhckZhbGxiYWNrPgogICAgICAgIDwvQXZhdGFyPgogICAgICAgIHtmcm9tTmFtZSAmJiA8aDMgY2xhc3NOYW1lPSJmb250LXNlbWlib2xkIHRleHQtc20iPntmcm9tTmFtZX08L2gzPn0KICAgICAgICA8YQogICAgICAgICAgaHJlZj17YG1haWx0bzoke2Zyb21FbWFpbH1gfQogICAgICAgICAgY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCBob3Zlcjp0ZXh0LXByaW1hcnkgZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgZ2FwLTEgbXQtMC41IgogICAgICAgID4KICAgICAgICAgIDxNYWlsIGNsYXNzTmFtZT0iaC0zIHctMyIgLz4KICAgICAgICAgIDxzcGFuPntmcm9tRW1haWx9PC9zcGFuPgogICAgICAgIDwvYT4KICAgICAgPC9kaXY+CgogICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleC0xIHNwYWNlLXktNCBwLTQiPgogICAgICAgIHsvKiBTTEEgaW5mbyAqL30KICAgICAgICB7c2xhUmVjb3JkICYmICgKICAgICAgICAgIDxzZWN0aW9uPgogICAgICAgICAgICA8aDQgY2xhc3NOYW1lPSJ0ZXh0LXhzIGZvbnQtc2VtaWJvbGQgdXBwZXJjYXNlIHRyYWNraW5nLXdpZGUgdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIG1iLTIiPlNMQTwvaDQ+CiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzcGFjZS15LTIiPgogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4iPgogICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+U3RhdHVzPC9zcGFuPgogICAgICAgICAgICAgICAgPEVtYWlsU0xBQmFkZ2UKICAgICAgICAgICAgICAgICAgc3RhdHVzPXtzbGFTdGF0dXN9CiAgICAgICAgICAgICAgICAgIHJlY2VpdmVkQXQ9e3NsYVJlY29yZC5yZWNlaXZlZF9hdH0KICAgICAgICAgICAgICAgICAgZnJ0TWludXRlcz17c2xhUmVjb3JkLmZydF9taW51dGVzfQogICAgICAgICAgICAgICAgICB0aHJlc2hvbGRNaW51dGVzPXtzbGFSZWNvcmQuc2xhX3RocmVzaG9sZF9taW51dGVzfQogICAgICAgICAgICAgICAgLz4KICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICB7IXNsYVJlY29yZC5maXJzdF9yZXBseV9hdCAmJiAoCiAgICAgICAgICAgICAgICA8U0xBUHJvZ3Jlc3NCYXIKICAgICAgICAgICAgICAgICAgcmVjZWl2ZWRBdD17c2xhUmVjb3JkLnJlY2VpdmVkX2F0fQogICAgICAgICAgICAgICAgICB0aHJlc2hvbGRNaW51dGVzPXtzbGFSZWNvcmQuc2xhX3RocmVzaG9sZF9taW51dGVzfQogICAgICAgICAgICAgICAgLz4KICAgICAgICAgICAgICApfQogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gdGV4dC14cyI+CiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+UmVjZWJpZG88L3NwYW4+CiAgICAgICAgICAgICAgICA8VG9vbHRpcD4KICAgICAgICAgICAgICAgICAgPFRvb2x0aXBUcmlnZ2VyPgogICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iZm9udC1tZWRpdW0iPgogICAgICAgICAgICAgICAgICAgICAge2Zvcm1hdERpc3RhbmNlVG9Ob3cobmV3IERhdGUoc2xhUmVjb3JkLnJlY2VpdmVkX2F0KSwgeyBsb2NhbGU6IHB0QlIsIGFkZFN1ZmZpeDogdHJ1ZSB9KX0KICAgICAgICAgICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICAgICAgICAgIDwvVG9vbHRpcFRyaWdnZXI+CiAgICAgICAgICAgICAgICAgIDxUb29sdGlwQ29udGVudD4KICAgICAgICAgICAgICAgICAgICB7Zm9ybWF0KG5ldyBEYXRlKHNsYVJlY29yZC5yZWNlaXZlZF9hdCksICJkZC9NTS95eXl5IEhIOm1tIiwgeyBsb2NhbGU6IHB0QlIgfSl9CiAgICAgICAgICAgICAgICAgIDwvVG9vbHRpcENvbnRlbnQ+CiAgICAgICAgICAgICAgICA8L1Rvb2x0aXA+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAge3NsYVJlY29yZC5mcnRfbWludXRlcyAhPSBudWxsICYmICgKICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gdGV4dC14cyI+CiAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj4xwqogcmVzcG9zdGEgZW08L3NwYW4+CiAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iZm9udC1tZWRpdW0gdGV4dC1wcmltYXJ5Ij4KICAgICAgICAgICAgICAgICAgICB7c2xhUmVjb3JkLmZydF9taW51dGVzfW1pbgogICAgICAgICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICApfQogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDwvc2VjdGlvbj4KICAgICAgICApfQoKICAgICAgICA8U2VwYXJhdG9yIC8+CgogICAgICAgIHsvKiBUaHJlYWQgaW5mbyAqL30KICAgICAgICA8c2VjdGlvbj4KICAgICAgICAgIDxoNCBjbGFzc05hbWU9InRleHQteHMgZm9udC1zZW1pYm9sZCB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZSB0ZXh0LW11dGVkLWZvcmVncm91bmQgbWItMiI+VGhyZWFkPC9oND4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzcGFjZS15LTIiPgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIHRleHQteHMiPgogICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj5Bc3N1bnRvPC9zcGFuPgogICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iZm9udC1tZWRpdW0gdGV4dC1yaWdodCBtYXgtdy0zMiB0cnVuY2F0ZSI+e3RocmVhZC5zdWJqZWN0IHx8ICcoc2VtIGFzc3VudG8pJ308L3NwYW4+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIHRleHQteHMiPgogICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj5NZW5zYWdlbnM8L3NwYW4+CiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIj4KICAgICAgICAgICAgICAgIDxUb29sdGlwPgogICAgICAgICAgICAgICAgICA8VG9vbHRpcFRyaWdnZXI+CiAgICAgICAgICAgICAgICAgICAgPEJhZGdlIHZhcmlhbnQ9InNlY29uZGFyeSIgY2xhc3NOYW1lPSJ0ZXh0LVsxMHB4XSBoLTQgcHgtMS41Ij57cmVjZWl2ZWRDb3VudH0gcmVjZWJpZG9zPC9CYWRnZT4KICAgICAgICAgICAgICAgICAgPC9Ub29sdGlwVHJpZ2dlcj4KICAgICAgICAgICAgICAgICAgPFRvb2x0aXBDb250ZW50Pk1lbnNhZ2VucyByZWNlYmlkYXM8L1Rvb2x0aXBDb250ZW50PgogICAgICAgICAgICAgICAgPC9Ub29sdGlwPgogICAgICAgICAgICAgICAgPFRvb2x0aXA+CiAgICAgICAgICAgICAgICAgIDxUb29sdGlwVHJpZ2dlcj4KICAgICAgICAgICAgICAgICAgICA8QmFkZ2UgdmFyaWFudD0ib3V0bGluZSIgY2xhc3NOYW1lPSJ0ZXh0LVsxMHB4XSBoLTQgcHgtMS41Ij57c2VudENvdW50fSBlbnZpYWRvczwvQmFkZ2U+CiAgICAgICAgICAgICAgICAgIDwvVG9vbHRpcFRyaWdnZXI+CiAgICAgICAgICAgICAgICAgIDxUb29sdGlwQ29udGVudD5NZW5zYWdlbnMgZW52aWFkYXM8L1Rvb2x0aXBDb250ZW50PgogICAgICAgICAgICAgICAgPC9Ub29sdGlwPgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAge3RocmVhZC5sYXN0X21lc3NhZ2VfYXQgJiYgKAogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gdGV4dC14cyI+CiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+w5psdGltYSBhdGl2aWRhZGU8L3NwYW4+CiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9ImZvbnQtbWVkaXVtIj4KICAgICAgICAgICAgICAgICAge2Zvcm1hdERpc3RhbmNlVG9Ob3cobmV3IERhdGUodGhyZWFkLmxhc3RfbWVzc2FnZV9hdCksIHsgbG9jYWxlOiBwdEJSLCBhZGRTdWZmaXg6IHRydWUgfSl9CiAgICAgICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICl9CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L3NlY3Rpb24+CgogICAgICAgIDxTZXBhcmF0b3IgLz4KCiAgICAgICAgey8qIFBhcnRpY2lwYW50ZXMgKi99CiAgICAgICAgPHNlY3Rpb24+CiAgICAgICAgICA8aDQgY2xhc3NOYW1lPSJ0ZXh0LXhzIGZvbnQtc2VtaWJvbGQgdXBwZXJjYXNlIHRyYWNraW5nLXdpZGUgdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIG1iLTIiPlBhcnRpY2lwYW50ZXM8L2g0PgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMiI+CiAgICAgICAgICAgIHsodGhyZWFkLnBhcnRpY2lwYW50X2VtYWlscyA/PyBbXSkubWFwKGVtYWlsID0+ICgKICAgICAgICAgICAgICA8ZGl2IGtleT17ZW1haWx9IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIiPgogICAgICAgICAgICAgICAgPEF2YXRhciBjbGFzc05hbWU9ImgtNiB3LTYiPgogICAgICAgICAgICAgICAgICA8QXZhdGFyRmFsbGJhY2sgY2xhc3NOYW1lPXtjbigndGV4dC1mb3JlZ3JvdW5kIHRleHQtWzEwcHhdJywgZ2V0QXZhdGFyQ29sb3IoZW1haWwpKX0+CiAgICAgICAgICAgICAgICAgICAge2VtYWlsWzBdLnRvVXBwZXJDYXNlKCl9CiAgICAgICAgICAgICAgICAgIDwvQXZhdGFyRmFsbGJhY2s+CiAgICAgICAgICAgICAgICA8L0F2YXRhcj4KICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC14cyB0cnVuY2F0ZSI+e2VtYWlsfTwvc3Bhbj4KICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgKSl9CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L3NlY3Rpb24+CgogICAgICAgIDxTZXBhcmF0b3IgLz4KCiAgICAgICAgey8qIExhYmVscyAqL30KICAgICAgICB7dGhyZWFkLmxhYmVsX2lkcy5maWx0ZXIobCA9PiAhWydJTkJPWCcsJ1VOUkVBRCcsJ1NUQVJSRUQnLCdTRU5UJ10uaW5jbHVkZXMobCkpLmxlbmd0aCA+IDAgJiYgKAogICAgICAgICAgPHNlY3Rpb24+CiAgICAgICAgICAgIDxoNCBjbGFzc05hbWU9InRleHQteHMgZm9udC1zZW1pYm9sZCB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZSB0ZXh0LW11dGVkLWZvcmVncm91bmQgbWItMiI+TGFiZWxzPC9oND4KICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggZmxleC13cmFwIGdhcC0xIj4KICAgICAgICAgICAgICB7dGhyZWFkLmxhYmVsX2lkcwogICAgICAgICAgICAgICAgLmZpbHRlcihsID0+ICFbJ0lOQk9YJywnVU5SRUFEJywnU1RBUlJFRCcsJ1NFTlQnXS5pbmNsdWRlcyhsKSkKICAgICAgICAgICAgICAgIC5tYXAobCA9PiAoCiAgICAgICAgICAgICAgICAgIDxCYWRnZSBrZXk9e2x9IHZhcmlhbnQ9Im91dGxpbmUiIGNsYXNzTmFtZT0idGV4dC1bMTBweF0gaC01IHB4LTIiPgogICAgICAgICAgICAgICAgICAgIDxUYWcgY2xhc3NOYW1lPSJoLTIuNSB3LTIuNSBtci0xIiAvPgogICAgICAgICAgICAgICAgICAgIHtsfQogICAgICAgICAgICAgICAgICA8L0JhZGdlPgogICAgICAgICAgICAgICAgKSl9CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPC9zZWN0aW9uPgogICAgICAgICl9CgogICAgICAgIDxTZXBhcmF0b3IgLz4KCiAgICAgICAgey8qIEhpc3TDs3JpY28gcmVzdW1pZG8gKi99CiAgICAgICAgPHNlY3Rpb24+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIG1iLTIiPgogICAgICAgICAgICA8aDQgY2xhc3NOYW1lPSJ0ZXh0LXhzIGZvbnQtc2VtaWJvbGQgdXBwZXJjYXNlIHRyYWNraW5nLXdpZGUgdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj5IaXN0w7NyaWNvPC9oND4KICAgICAgICAgICAge21lc3NhZ2VzLmxlbmd0aCA+IDUgJiYgKAogICAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0idGV4dC1bMTBweF0gdGV4dC1wcmltYXJ5IGhvdmVyOnVuZGVybGluZSIKICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNob3dBbGxNZXNzYWdlcyh2ID0+ICF2KX0KICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICB7c2hvd0FsbE1lc3NhZ2VzID8gJ1ZlciBtZW5vcycgOiBgVmVyIHRvZG9zICgke21lc3NhZ2VzLmxlbmd0aH0pYH0KICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgKX0KICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMS41Ij4KICAgICAgICAgICAge3JlY2VudE1lc3NhZ2VzLm1hcChtc2cgPT4gKAogICAgICAgICAgICAgIDxkaXYga2V5PXttc2cuaWR9IGNsYXNzTmFtZT17Y24oJ2ZsZXggaXRlbXMtc3RhcnQgZ2FwLTIgdGV4dC14cyByb3VuZGVkLW1kIHB4LTIgcHktMS41JywgbXNnLmlzX3NlbnQgPyAnYmctcHJpbWFyeS81JyA6ICdiZy1tdXRlZC80MCcpfT4KICAgICAgICAgICAgICAgIDxNZXNzYWdlU3F1YXJlIGNsYXNzTmFtZT17Y24oJ2gtMy41IHctMy41IG10LTAuNSBzaHJpbmstMCcsIG1zZy5pc19zZW50ID8gJ3RleHQtcHJpbWFyeScgOiAndGV4dC1tdXRlZC1mb3JlZ3JvdW5kJyl9IC8+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleC0xIG1pbi13LTAiPgogICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIGdhcC0xIj4KICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9ImZvbnQtbWVkaXVtIHRydW5jYXRlIj57bXNnLmlzX3NlbnQgPyAnVm9jw6onIDogKG1zZy5mcm9tX25hbWUgfHwgbXNnLmZyb21fZW1haWwpfTwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICB7bXNnLmludGVybmFsX2RhdGUgJiYgKAogICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LVsxMHB4XSB0ZXh0LW11dGVkLWZvcmVncm91bmQgc2hyaW5rLTAiPgogICAgICAgICAgICAgICAgICAgICAgICB7Zm9ybWF0KG5ldyBEYXRlKG1zZy5pbnRlcm5hbF9kYXRlKSwgImRkL01NIEhIOm1tIil9CiAgICAgICAgICAgICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1tdXRlZC1mb3JlZ3JvdW5kIHRydW5jYXRlIj57bXNnLnNuaXBwZXR9PC9wPgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICkpfQogICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9zZWN0aW9uPgogICAgICA8L2Rpdj4KICAgIDwvZGl2PgogICk7Cn0K
+import { useState } from 'react';
+import { User, Mail, Tag, MessageSquare } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { type EmailThread, type EmailMessage } from '@/hooks/gmail/gmailTypes';
+import { EmailSLABadge, SLAProgressBar } from './EmailSLABadge';
+import { useEmailSLA } from '@/hooks/useEmailSLA';
+import { formatDistanceToNow, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { getInitialsFromNameOrEmail } from '@/lib/formatters';
+
+interface EmailContactPanelProps {
+  thread: EmailThread | null;
+  messages: EmailMessage[];
+  accountId: string | null;
+  className?: string;
+}
+
+
+function getAvatarColor(email: string | null): string {
+  const colors = ['bg-primary','bg-primary','bg-primary','bg-warning','bg-destructive'];
+  const code = (email ?? '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return colors[code % colors.length];
+}
+
+export function EmailContactPanel({ thread, messages, accountId, className }: EmailContactPanelProps) {
+  const [showAllMessages, setShowAllMessages] = useState(false);
+  const { getRecord, getStatus } = useEmailSLA(accountId);
+
+  if (!thread) {
+    return (
+      <div className={cn('flex flex-col items-center justify-center h-full text-muted-foreground gap-3 p-6', className)}>
+        <User className="h-10 w-10 opacity-20" />
+        <p className="text-sm">Selecione um email para ver os detalhes</p>
+      </div>
+    );
+  }
+
+  // Participante principal (remetente do primeiro email recebido)
+  const firstReceived = messages.find(m => !m.is_sent);
+  const fromName = firstReceived?.from_name ?? null;
+  const fromEmail = firstReceived?.from_email ?? thread.participant_emails?.[0] ?? '';
+
+  const slaRecord = getRecord(thread.thread_id);
+  const slaStatus = getStatus(thread.thread_id);
+
+  // Contagem de mensagens enviadas/recebidas
+  const sentCount     = messages.filter(m => m.is_sent).length;
+  const receivedCount = messages.filter(m => !m.is_sent).length;
+
+  const recentMessages = showAllMessages ? messages : messages.slice(-5);
+
+  return (
+    <div className={cn('flex flex-col h-full overflow-y-auto', className)}>
+      {/* Contact header */}
+      <div className="p-4 text-center border-b">
+        <Avatar className="h-14 w-14 mx-auto mb-3">
+          <AvatarFallback className={cn('text-foreground text-lg font-semibold', getAvatarColor(fromEmail))}>
+            {getInitialsFromNameOrEmail(fromName, fromEmail)}
+          </AvatarFallback>
+        </Avatar>
+        {fromName && <h3 className="font-semibold text-sm">{fromName}</h3>}
+        <a
+          href={`mailto:${fromEmail}`}
+          className="text-xs text-muted-foreground hover:text-primary flex items-center justify-center gap-1 mt-0.5"
+        >
+          <Mail className="h-3 w-3" />
+          <span>{fromEmail}</span>
+        </a>
+      </div>
+
+      <div className="flex-1 space-y-4 p-4">
+        {/* SLA info */}
+        {slaRecord && (
+          <section>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">SLA</h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Status</span>
+                <EmailSLABadge
+                  status={slaStatus}
+                  receivedAt={slaRecord.received_at}
+                  frtMinutes={slaRecord.frt_minutes}
+                  thresholdMinutes={slaRecord.sla_threshold_minutes}
+                />
+              </div>
+              {!slaRecord.first_reply_at && (
+                <SLAProgressBar
+                  receivedAt={slaRecord.received_at}
+                  thresholdMinutes={slaRecord.sla_threshold_minutes}
+                />
+              )}
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Recebido</span>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <span className="font-medium">
+                      {formatDistanceToNow(new Date(slaRecord.received_at), { locale: ptBR, addSuffix: true })}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {format(new Date(slaRecord.received_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              {slaRecord.frt_minutes != null && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">1ª resposta em</span>
+                  <span className="font-medium text-primary">
+                    {slaRecord.frt_minutes}min
+                  </span>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        <Separator />
+
+        {/* Thread info */}
+        <section>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Thread</h4>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Assunto</span>
+              <span className="font-medium text-right max-w-32 truncate">{thread.subject || '(sem assunto)'}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Mensagens</span>
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{receivedCount} recebidos</Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>Mensagens recebidas</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">{sentCount} enviados</Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>Mensagens enviadas</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+            {thread.last_message_at && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Última atividade</span>
+                <span className="font-medium">
+                  {formatDistanceToNow(new Date(thread.last_message_at), { locale: ptBR, addSuffix: true })}
+                </span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* Participantes */}
+        <section>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Participantes</h4>
+          <div className="space-y-2">
+            {(thread.participant_emails ?? []).map(email => (
+              <div key={email} className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className={cn('text-foreground text-[10px]', getAvatarColor(email))}>
+                    {email[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs truncate">{email}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* Labels */}
+        {thread.label_ids.filter(l => !['INBOX','UNREAD','STARRED','SENT'].includes(l)).length > 0 && (
+          <section>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Labels</h4>
+            <div className="flex flex-wrap gap-1">
+              {thread.label_ids
+                .filter(l => !['INBOX','UNREAD','STARRED','SENT'].includes(l))
+                .map(l => (
+                  <Badge key={l} variant="outline" className="text-[10px] h-5 px-2">
+                    <Tag className="h-2.5 w-2.5 mr-1" />
+                    {l}
+                  </Badge>
+                ))}
+            </div>
+          </section>
+        )}
+
+        <Separator />
+
+        {/* Histórico resumido */}
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Histórico</h4>
+            {messages.length > 5 && (
+              <button
+                className="text-[10px] text-primary hover:underline"
+                onClick={() => setShowAllMessages(v => !v)}
+              >
+                {showAllMessages ? 'Ver menos' : `Ver todos (${messages.length})`}
+              </button>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            {recentMessages.map(msg => (
+              <div key={msg.id} className={cn('flex items-start gap-2 text-xs rounded-md px-2 py-1.5', msg.is_sent ? 'bg-primary/5' : 'bg-muted/40')}>
+                <MessageSquare className={cn('h-3.5 w-3.5 mt-0.5 shrink-0', msg.is_sent ? 'text-primary' : 'text-muted-foreground')} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-medium truncate">{msg.is_sent ? 'Você' : (msg.from_name || msg.from_email)}</span>
+                    {msg.internal_date && (
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {format(new Date(msg.internal_date), "dd/MM HH:mm")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground truncate">{msg.snippet}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

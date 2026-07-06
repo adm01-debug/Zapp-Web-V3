@@ -1,1 +1,9 @@
-ewogICJ1cGRhdGVkQXQiOiAiMjAyNi0wNy0wNiIsCiAgImNhbGxzIjogewogICAgInNyYy9jb21wb25lbnRzIjogMjEyLAogICAgInNyYy9wYWdlcyI6IDUwLAogICAgInNyYy9mZWF0dXJlcyI6IDIyMCwKICAgICJzcmMvaG9va3MiOiAyMzAKICB9Cn0K
+{
+  "updatedAt": "2026-07-06",
+  "calls": {
+    "src/components": 212,
+    "src/pages": 50,
+    "src/features": 220,
+    "src/hooks": 230
+  }
+}

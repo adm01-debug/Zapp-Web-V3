@@ -1,1 +1,154 @@
-LyoqCiAqIENlbnRyYWxpemVkIGZvcm1hdHRpbmcgdXRpbGl0aWVzCiAqIEVsaW1pbmF0ZXMgZHVwbGljYXRpb24gb2YgZGF0ZS9waG9uZS9jdXJyZW5jeSBmb3JtYXR0aW5nIGFjcm9zcyBjb21wb25lbnRzLgogKi8KaW1wb3J0IHsgZm9ybWF0RGlzdGFuY2VUb05vdywgZm9ybWF0LCBpc1RvZGF5LCBpc1llc3RlcmRheSB9IGZyb20gJ2RhdGUtZm5zJzsKaW1wb3J0IHsgcHRCUiB9IGZyb20gJ2RhdGUtZm5zL2xvY2FsZSc7CgovLyDilIDilIDilIAgRGF0ZSBGb3JtYXR0aW5nIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKLyoqCiAqIEZvcm1hdCBhIGRhdGUgYXMgcmVsYXRpdmUgdGltZSBpbiBQb3J0dWd1ZXNlIChlLmcuLCAiaMOhIDUgbWludXRvcyIpCiAqLwpleHBvcnQgZnVuY3Rpb24gZm9ybWF0UmVsYXRpdmVUaW1lKGRhdGU6IERhdGUgfCBzdHJpbmcgfCBudW1iZXIpOiBzdHJpbmcgewogIGNvbnN0IGQgPSBkYXRlIGluc3RhbmNlb2YgRGF0ZSA/IGRhdGUgOiBuZXcgRGF0ZShkYXRlKTsKICByZXR1cm4gZm9ybWF0RGlzdGFuY2VUb05vdyhkLCB7IGFkZFN1ZmZpeDogdHJ1ZSwgbG9jYWxlOiBwdEJSIH0pOwp9CgovKioKICogRm9ybWF0IGEgZGF0ZSBhcyBhIHNtYXJ0IGxhYmVsOiAiSG9qZSIsICJPbnRlbSIsIG9yIGZ1bGwgZGF0ZQogKi8KZXhwb3J0IGZ1bmN0aW9uIGZvcm1hdFNtYXJ0RGF0ZShkYXRlOiBEYXRlIHwgc3RyaW5nKTogc3RyaW5nIHsKICBjb25zdCBkID0gZGF0ZSBpbnN0YW5jZW9mIERhdGUgPyBkYXRlIDogbmV3IERhdGUoZGF0ZSk7CiAgaWYgKGlzVG9kYXkoZCkpIHJldHVybiBgSG9qZSwgJHtmb3JtYXQoZCwgJ0hIOm1tJywgeyBsb2NhbGU6IHB0QlIgfSl9YDsKICBpZiAoaXNZZXN0ZXJkYXkoZCkpIHJldHVybiBgT250ZW0sICR7Zm9ybWF0KGQsICdISDptbScsIHsgbG9jYWxlOiBwdEJSIH0pfWA7CiAgcmV0dXJuIGZvcm1hdChkLCAiZGQvTU0veXl5eSAnw6BzJyBISDptbSIsIHsgbG9jYWxlOiBwdEJSIH0pOwp9CgovKioKICogRm9ybWF0IGEgZGF0ZSBhcyBzaG9ydCBkYXRlIChkZC9NTS95eXl5KQogKi8KZXhwb3J0IGZ1bmN0aW9uIGZvcm1hdFNob3J0RGF0ZShkYXRlOiBEYXRlIHwgc3RyaW5nKTogc3RyaW5nIHsKICBjb25zdCBkID0gZGF0ZSBpbnN0YW5jZW9mIERhdGUgPyBkYXRlIDogbmV3IERhdGUoZGF0ZSk7CiAgcmV0dXJuIGZvcm1hdChkLCAnZGQvTU0veXl5eScsIHsgbG9jYWxlOiBwdEJSIH0pOwp9CgovKioKICogRm9ybWF0IGEgZGF0ZSBhcyBmdWxsIGRhdGV0aW1lCiAqLwpleHBvcnQgZnVuY3Rpb24gZm9ybWF0RnVsbERhdGVUaW1lKGRhdGU6IERhdGUgfCBzdHJpbmcpOiBzdHJpbmcgewogIGNvbnN0IGQgPSBkYXRlIGluc3RhbmNlb2YgRGF0ZSA/IGRhdGUgOiBuZXcgRGF0ZShkYXRlKTsKICByZXR1cm4gZm9ybWF0KGQsICJkZC9NTS95eXl5ICfDoHMnIEhIOm1tOnNzIiwgeyBsb2NhbGU6IHB0QlIgfSk7Cn0KCi8vIOKUgOKUgOKUgCBQaG9uZSBGb3JtYXR0aW5nIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKLyoqCiAqIENsZWFuIHBob25lIG51bWJlciB0byBkaWdpdHMgb25seSAocmVtb3ZlcyArLCBzcGFjZXMsIGRhc2hlcywgcGFyZW5zKQogKi8KZXhwb3J0IGZ1bmN0aW9uIGNsZWFuUGhvbmUocGhvbmU6IHN0cmluZyk6IHN0cmluZyB7CiAgcmV0dXJuIHBob25lLnJlcGxhY2UoL1xEL2csICcnKTsKfQoKLyoqCiAqIEZvcm1hdCBhIEJyYXppbGlhbiBwaG9uZSBudW1iZXI6ICgxMSkgOTk5OTktOTk5OQogKi8KZXhwb3J0IGZ1bmN0aW9uIGZvcm1hdEJyYXppbGlhblBob25lKHBob25lOiBzdHJpbmcpOiBzdHJpbmcgewogIGNvbnN0IGRpZ2l0cyA9IGNsZWFuUGhvbmUocGhvbmUpOwogIC8vIFJlbW92ZSBjb3VudHJ5IGNvZGUgNTUgaWYgcHJlc2VudAogIGNvbnN0IGxvY2FsID0gZGlnaXRzLnN0YXJ0c1dpdGgoJzU1JykgJiYgZGlnaXRzLmxlbmd0aCA+IDExID8gZGlnaXRzLnNsaWNlKDIpIDogZGlnaXRzOwogIGlmIChsb2NhbC5sZW5ndGggPT09IDExKSB7CiAgICByZXR1cm4gYCgke2xvY2FsLnNsaWNlKDAsIDIpfSkgJHtsb2NhbC5zbGljZSgyLCA3KX0tJHtsb2NhbC5zbGljZSg3KX1gOwogIH0KICBpZiAobG9jYWwubGVuZ3RoID09PSAxMCkgewogICAgcmV0dXJuIGAoJHtsb2NhbC5zbGljZSgwLCAyKX0pICR7bG9jYWwuc2xpY2UoMiwgNil9LSR7bG9jYWwuc2xpY2UoNil9YDsKICB9CiAgcmV0dXJuIHBob25lOyAvLyBSZXR1cm4gb3JpZ2luYWwgaWYgZm9ybWF0IHVua25vd24KfQoKLy8g4pSA4pSA4pSAIEN1cnJlbmN5IEZvcm1hdHRpbmcg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgovKioKICogRm9ybWF0IGEgbnVtYmVyIGFzIEJyYXppbGlhbiBSZWFsIChSJCAxLjIzNCw1NikKICovCmV4cG9ydCBmdW5jdGlvbiBmb3JtYXRCUkwodmFsdWU6IG51bWJlcik6IHN0cmluZyB7CiAgcmV0dXJuIG5ldyBJbnRsLk51bWJlckZvcm1hdCgncHQtQlInLCB7CiAgICBzdHlsZTogJ2N1cnJlbmN5JywKICAgIGN1cnJlbmN5OiAnQlJMJywKICB9KS5mb3JtYXQodmFsdWUpOwp9CgovLyDilIDilIDilIAgVGV4dCBGb3JtYXR0aW5nIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKLyoqCiAqIFRydW5jYXRlIHRleHQgd2l0aCBlbGxpcHNpcwogKi8KZXhwb3J0IGZ1bmN0aW9uIHRydW5jYXRlKHRleHQ6IHN0cmluZywgbWF4TGVuZ3RoOiBudW1iZXIpOiBzdHJpbmcgewogIGlmICh0ZXh0Lmxlbmd0aCA8PSBtYXhMZW5ndGgpIHJldHVybiB0ZXh0OwogIHJldHVybiB0ZXh0LnNsaWNlKDAsIG1heExlbmd0aCkudHJpbUVuZCgpICsgJ+KApic7Cn0KCi8qKgogKiBHZXQgaW5pdGlhbHMgZnJvbSBhIG5hbWUgKGUuZy4sICJKb8OjbyBTaWx2YSIg4oaSICJKUyIpCiAqLwpleHBvcnQgZnVuY3Rpb24gZ2V0SW5pdGlhbHMobmFtZTogc3RyaW5nLCBtYXhDaGFycyA9IDIpOiBzdHJpbmcgewogIHJldHVybiBuYW1lCiAgICAuc3BsaXQoL1xzKy8pCiAgICAuZmlsdGVyKEJvb2xlYW4pCiAgICAuc2xpY2UoMCwgbWF4Q2hhcnMpCiAgICAubWFwKCh3b3JkKSA9PiB3b3JkWzBdLnRvVXBwZXJDYXNlKCkpCiAgICAuam9pbignJyk7Cn0KCi8qKgogKiBHZXQgaW5pdGlhbHMgZnJvbSBhIGRpc3BsYXkgbmFtZSwgZmFsbGluZyBiYWNrIHRvIHRoZSBlLW1haWwncyBmaXJzdCBsZXR0ZXIuCiAqIFBhcml0eS1wcmVzZXJ2aW5nIGNvbnNvbGlkYXRpb24gb2YgdGhlIGxvY2FsIGhlbHBlcnMgcHJldmlvdXNseSBkdXBsaWNhdGVkIGluCiAqIEVtYWlsQ2hhdEJ1YmJsZSwgRW1haWxDb250YWN0UGFuZWwgYW5kIFRocmVhZExpc3RJdGVtIChSZWZhY3RvciBXYXZlIDEpLgogKi8KZXhwb3J0IGZ1bmN0aW9uIGdldEluaXRpYWxzRnJvbU5hbWVPckVtYWlsKAogIG5hbWU/OiBzdHJpbmcgfCBudWxsLAogIGVtYWlsPzogc3RyaW5nIHwgbnVsbCwKKTogc3RyaW5nIHsKICBpZiAobmFtZSkgewogICAgcmV0dXJuIG5hbWUKICAgICAgLnNwbGl0KCcgJykKICAgICAgLm1hcCgodykgPT4gd1swXSkKICAgICAgLnNsaWNlKDAsIDIpCiAgICAgIC5qb2luKCcnKQogICAgICAudG9VcHBlckNhc2UoKTsKICB9CiAgaWYgKGVtYWlsKSByZXR1cm4gZW1haWxbMF0/LnRvVXBwZXJDYXNlKCkgPz8gJz8nOwogIHJldHVybiAnPyc7Cn0KCi8vIOKUgOKUgOKUgCBOdW1iZXIgRm9ybWF0dGluZyDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCi8qKgogKiBGb3JtYXQgbGFyZ2UgbnVtYmVycyB3aXRoIEsvTSBzdWZmaXggKGUuZy4sIDE1MDAg4oaSICIxLjVLIikKICovCmV4cG9ydCBmdW5jdGlvbiBmb3JtYXRDb21wYWN0TnVtYmVyKHZhbHVlOiBudW1iZXIpOiBzdHJpbmcgewogIHJldHVybiBuZXcgSW50bC5OdW1iZXJGb3JtYXQoJ3B0LUJSJywgewogICAgbm90YXRpb246ICdjb21wYWN0JywKICAgIG1heGltdW1GcmFjdGlvbkRpZ2l0czogMSwKICB9KS5mb3JtYXQodmFsdWUpOwp9CgovKioKICogRm9ybWF0IGEgZHVyYXRpb24gaW4gc2Vjb25kcyB0byBodW1hbi1yZWFkYWJsZSAoZS5nLiwgMTI1IOKGkiAiMm1pbiA1cyIpCiAqLwpleHBvcnQgZnVuY3Rpb24gZm9ybWF0RHVyYXRpb24oc2Vjb25kczogbnVtYmVyKTogc3RyaW5nIHsKICBpZiAoc2Vjb25kcyA8IDYwKSByZXR1cm4gYCR7TWF0aC5yb3VuZChzZWNvbmRzKX1zYDsKICBjb25zdCBtaW5zID0gTWF0aC5mbG9vcihzZWNvbmRzIC8gNjApOwogIGNvbnN0IHNlY3MgPSBNYXRoLnJvdW5kKHNlY29uZHMgJSA2MCk7CiAgaWYgKG1pbnMgPCA2MCkgcmV0dXJuIHNlY3MgPiAwID8gYCR7bWluc31taW4gJHtzZWNzfXNgIDogYCR7bWluc31taW5gOwogIGNvbnN0IGhvdXJzID0gTWF0aC5mbG9vcihtaW5zIC8gNjApOwogIGNvbnN0IHJlbWFpbk1pbnMgPSBtaW5zICUgNjA7CiAgcmV0dXJuIHJlbWFpbk1pbnMgPiAwID8gYCR7aG91cnN9aCAke3JlbWFpbk1pbnN9bWluYCA6IGAke2hvdXJzfWhgOwp9CgovKioKICogRm9ybWF0IHBlcmNlbnRhZ2UgKGUuZy4sIDAuODU2IOKGkiAiODUuNiUiKQogKi8KZXhwb3J0IGZ1bmN0aW9uIGZvcm1hdFBlcmNlbnRhZ2UodmFsdWU6IG51bWJlciwgZGVjaW1hbHMgPSAxKTogc3RyaW5nIHsKICByZXR1cm4gYCR7KHZhbHVlICogMTAwKS50b0ZpeGVkKGRlY2ltYWxzKX0lYDsKfQo=
+/**
+ * Centralized formatting utilities
+ * Eliminates duplication of date/phone/currency formatting across components.
+ */
+import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+// ─── Date Formatting ────────────────────────────────────────────────
+
+/**
+ * Format a date as relative time in Portuguese (e.g., "há 5 minutos")
+ */
+export function formatRelativeTime(date: Date | string | number): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return formatDistanceToNow(d, { addSuffix: true, locale: ptBR });
+}
+
+/**
+ * Format a date as a smart label: "Hoje", "Ontem", or full date
+ */
+export function formatSmartDate(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  if (isToday(d)) return `Hoje, ${format(d, 'HH:mm', { locale: ptBR })}`;
+  if (isYesterday(d)) return `Ontem, ${format(d, 'HH:mm', { locale: ptBR })}`;
+  return format(d, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+}
+
+/**
+ * Format a date as short date (dd/MM/yyyy)
+ */
+export function formatShortDate(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return format(d, 'dd/MM/yyyy', { locale: ptBR });
+}
+
+/**
+ * Format a date as full datetime
+ */
+export function formatFullDateTime(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return format(d, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR });
+}
+
+// ─── Phone Formatting ───────────────────────────────────────────────
+
+/**
+ * Clean phone number to digits only (removes +, spaces, dashes, parens)
+ */
+export function cleanPhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+/**
+ * Format a Brazilian phone number: (11) 99999-9999
+ */
+export function formatBrazilianPhone(phone: string): string {
+  const digits = cleanPhone(phone);
+  // Remove country code 55 if present
+  const local = digits.startsWith('55') && digits.length > 11 ? digits.slice(2) : digits;
+  if (local.length === 11) {
+    return `(${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7)}`;
+  }
+  if (local.length === 10) {
+    return `(${local.slice(0, 2)}) ${local.slice(2, 6)}-${local.slice(6)}`;
+  }
+  return phone; // Return original if format unknown
+}
+
+// ─── Currency Formatting ────────────────────────────────────────────
+
+/**
+ * Format a number as Brazilian Real (R$ 1.234,56)
+ */
+export function formatBRL(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+}
+
+// ─── Text Formatting ────────────────────────────────────────────────
+
+/**
+ * Truncate text with ellipsis
+ */
+export function truncate(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trimEnd() + '…';
+}
+
+/**
+ * Get initials from a name (e.g., "João Silva" → "JS")
+ */
+export function getInitials(name: string, maxChars = 2): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, maxChars)
+    .map((word) => word[0].toUpperCase())
+    .join('');
+}
+
+/**
+ * Get initials from a display name, falling back to the e-mail's first letter.
+ * Parity-preserving consolidation of the local helpers previously duplicated in
+ * EmailChatBubble, EmailContactPanel and ThreadListItem (Refactor Wave 1).
+ */
+export function getInitialsFromNameOrEmail(
+  name?: string | null,
+  email?: string | null,
+): string {
+  if (name) {
+    return name
+      .split(' ')
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+  if (email) return email[0]?.toUpperCase() ?? '?';
+  return '?';
+}
+
+// ─── Number Formatting ──────────────────────────────────────────────
+
+/**
+ * Format large numbers with K/M suffix (e.g., 1500 → "1.5K")
+ */
+export function formatCompactNumber(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+/**
+ * Format a duration in seconds to human-readable (e.g., 125 → "2min 5s")
+ */
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  if (mins < 60) return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
+  const hours = Math.floor(mins / 60);
+  const remainMins = mins % 60;
+  return remainMins > 0 ? `${hours}h ${remainMins}min` : `${hours}h`;
+}
+
+/**
+ * Format percentage (e.g., 0.856 → "85.6%")
+ */
+export function formatPercentage(value: number, decimals = 1): string {
+  return `${(value * 100).toFixed(decimals)}%`;
+}

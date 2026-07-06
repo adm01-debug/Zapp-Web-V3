@@ -1,1 +1,86 @@
-IyBSRUZBQ1RPUl9QTEFOLm1kIOKAlCBSZWZhdG9yYcOnw6NvIEVzdHJ1dHVyYWwgemFwcC13ZWItdjMKCj4gV2F2ZSAxIGV4ZWN1dGFkYSBlbSAyMDI2LTA3LTA2IChicmFuY2ggYHJlZmFjdG9yL3N0cnVjdHVyYWwtd2F2ZTEtMjAyNi0wNy0wNmApLgo+IFByaW5jw61waW8gaW5lZ29jacOhdmVsOiAqKnplcm8gbXVkYW7Dp2EgZGUgY29tcG9ydGFtZW50byB2aXPDrXZlbCoqLiBUb2RhIG9uZGEgw6kKPiB2YWxpZGFkYSBwb3IgYG5wbSBydW4gY2hlY2tgIGNvbXBsZXRvIGFudGVzIGRlIG1lcmdlLgoKIyMgMS4gRGlhZ27Ds3N0aWNvIChiYXNlbGluZSAyMDI2LTA3LTA2LCBtYWluIEAgMTgyZmRhZTVhKQoKfCBNw6l0cmljYSB8IFZhbG9yIHwgQXZhbGlhw6fDo28gfAp8LS0tfC0tLXwtLS18CnwgQXJxdWl2b3MgVFMvVFNYIGVtIGBzcmMvYCB8IDEuNzI2IHwg4oCUIHwKfCBMaW5oYXMgVFMvVFNYIGVtIGBzcmMvYCB8IH4yNTkuOWsgKDkuM2sgZ2VyYWRhcyBlbSBgaW50ZWdyYXRpb25zL3N1cGFiYXNlL3R5cGVzLnRzYCkgfCDigJQgfAp8IEFycXVpdm9zIG1vcnRvcyAoZ3JhZm8gZGUgaW1wb3J0cykgfCA5NCAofjExayBsaW5oYXMpIHwg8J+UtCB8CnwgYHN1cGFiYXNlLmZyb20oKWAgZW0gY29tcG9uZW50cytwYWdlcyB8IDI2MiBjaGFtYWRhcyB8IPCflLQgYWNvcGxhbWVudG8gVUnihpRkYWRvcyB8CnwgYHN1cGFiYXNlLmZyb20oKWAgdG90YWwgZm9yYSBkZSBzZXJ2aWNlcyB8IDcxMiBjaGFtYWRhcyB8IPCflLQgfAp8IGBzcmMvc2VydmljZXMvYCB8IDUgYXJxdWl2b3MgLyAyNjIgbGluaGFzIHwg8J+UtCBjYW1hZGEgaW5leGlzdGVudGUgbmEgcHLDoXRpY2EgfAp8IGBpbnRlcmZhY2UgQ29udGFjdGAgcmVkZWZpbmlkYSB8IDkgYXJxdWl2b3MgZGUgcHJvZHXDp8OjbyB8IPCfn6AgfAp8IGBDaGF0TWVzc2FnZWAvYFByb2ZpbGVgL2BTTEFTdGF0dXNgL2BBdWRpdExvZ2AgfCA2IGRlZmluacOnw7VlcyBjYWRhIHwg8J+foCB8CnwgYGZvcm1hdFRpbWVgIGR1cGxpY2FkYSB8IDEwIGltcGxlbWVudGHDp8O1ZXMgfCDwn5+gIHwKfCBgZm9ybWF0RGF0ZWAgLyBgZ2V0SW5pdGlhbHNgIC8gYGZvcm1hdEN1cnJlbmN5YCB8IDcgLyA2IC8gNCB8IPCfn6AgfAp8IFBhc3RhcyBkZSB0ZXN0ZSBkaXN0aW50YXMgfCAzIChgX190ZXN0c19fYCwgYHRlc3RgLCBgdGVzdHNgKSB8IPCfn6EgfAp8IEFycXVpdGV0dXJhcyBjb252aXZlbmRvIHwgYGNvbXBvbmVudHMvYCAoNjYxIGFycSwgcG9yIHRpcG8pIMOXIGBmZWF0dXJlcy9gICg0ODMgYXJxLCBwb3IgZG9tw61uaW8pIHwg8J+foCB8CnwgYDogYW55YCBlbSBwcm9kdcOnw6NvIHwgMjIxIHwg8J+foSBhY2VpdMOhdmVsIHAvIGVzY2FsYSB8CnwgYGNvbnNvbGUuKmAgZW0gcHJvZHXDp8OjbyB8IDEzIHwg8J+foiB8CnwgSW1wb3J0cyByZWxhdGl2b3MgcHJvZnVuZG9zIChgLi4vLi4vLi5gKSB8IDAgKGFsaWFzIGBAL2AgdW5pdmVyc2FsOiA1LjQzNCkgfCDwn5+iIHwKfCBHdWFyZHMgZGUgYXJxdWl0ZXR1cmEgcHJlZXhpc3RlbnRlcyB8IGBjaGVjazpkb21haW5gLCBgY2hlY2s6YmFycmVsc2AsIGBkczpjaGVja2AsIGBsaW50LXN1cGFiYXNlLWNhc3RzYCB8IPCfn6IgYmFzZSBleGNlbGVudGUgfAoKKipMZWl0dXJhIGV4ZWN1dGl2YToqKiBvIHByb2pldG8gasOhIHRlbSBkaXNjaXBsaW5hIGRlIGd1YXJkcyBlIGFsaWFzIGNvbnNpc3RlbnRlLgpPcyB0csOqcyBkw6liaXRvcyBlc3RydXR1cmFpcyByZWFpcyBzw6NvIChhKSBjw7NkaWdvIG1vcnRvIGFjdW11bGFkbywgKGIpIGFjZXNzbyBhCmRhZG9zIHB1bHZlcml6YWRvIGVtIGNhbWFkYXMgZGUgVUkgZSAoYykgdGlwb3MvdXRpbHMgZGUgZG9tw61uaW8gZHVwbGljYWRvcy4KCiMjIDIuIFdhdmUgMSDigJQgZXhlY3V0YWRhIG5lc3RhIGJyYW5jaAoKfCAjIHwgQcOnw6NvIHwgUmVzdWx0YWRvIHwKfC0tLXwtLS18LS0tfAp8IEEgfCBSZW1vw6fDo28gZGUgY8OzZGlnbyBtb3J0byBjb20gdmFsaWRhw6fDo28gZm9yZW5zZSAoZ3JhZm8gZGUgaW1wb3J0cyArIHplcm8gbWVuw6fDtWVzIHBvciBzdHJpbmcgZW0gc3JjL2UyZS9zY3JpcHRzICsgY2FzY2F0YSBpdGVyYXRpdmEpIHwgKio0MSBhcnF1aXZvcyAvIH41LjRrIGxpbmhhcyByZW1vdmlkb3MqKiB8CnwgQiB8IEd1YXJkIGBzY3JpcHRzL2NoZWNrLWRlYWQtY29kZS5tanNgICsgYG5wbSBydW4gY2hlY2s6ZGVhZGNvZGVgIG5vIGNoYWluIGBjaGVja2AgfCBJbXBlZGUgbm92byBjw7NkaWdvIG1vcnRvOyBhbGxvd2xpc3QgPSByZWdpc3RybyBkZSBkw612aWRhICg1MSBpdGVucyBwLyB0cmlhZ2VtKSB8CnwgQyB8IENvbnNvbGlkYcOnw6NvIGBnZXRJbml0aWFsc2AgZG9zIGNvbXBvbmVudGVzIGRlIGUtbWFpbCDihpIgYGdldEluaXRpYWxzRnJvbU5hbWVPckVtYWlsYCBlbSBgc3JjL2xpYi9mb3JtYXR0ZXJzLnRzYCB8IFBhcmlkYWRlIGRlIGNvbXBvcnRhbWVudG87IGNvcnJpZ2UgY3Jhc2ggbGF0ZW50ZSBlbSBgZW1haWw9IiJgIG5vIEVtYWlsQ29udGFjdFBhbmVsIHwKfCBEIHwgRXN0ZSBwbGFubyAoYGRvY3MvUkVGQUNUT1JfUExBTi5tZGApIHwgUm9hZG1hcCB2ZXJzaW9uYWRvIHwKfCBFIHwgUmF0Y2hldCBgc2NyaXB0cy9jaGVjay1kYXRhLWxheWVyLm1qc2AgKyBgbnBtIHJ1biBjaGVjazpkYXRhbGF5ZXJgIChiYXNlbGluZSBgZGF0YS1sYXllci1iYXNlbGluZS5qc29uYCkgfCBUZXRvIGNvbmdlbGFkbzogY29tcG9uZW50cyAyMTIgLyBwYWdlcyA1MCAvIGZlYXR1cmVzIDIyMCAvIGhvb2tzIDIzMC4gU8OzIHBvZGUgY2Fpci4gfAoKIyMgMy4gUm9hZG1hcCDigJQgcHLDs3hpbWFzIG9uZGFzIChwcmlvcmlkYWRlIHBvciBpbXBhY3RvIMOXIHJpc2NvKQoKIyMjIFdhdmUgMiDigJQgVHJpYWdlbSBkYSBhbGxvd2xpc3QgZGUgY8OzZGlnbyBtb3J0byAocmlzY28gYmFpeG8pCk9zIDUxIGFycXVpdm9zIGVtIGBzY3JpcHRzL2RlYWQtY29kZS1hbGxvd2xpc3QudHh0YCBuw6NvIHTDqm0gaW1wb3J0YWRvciwgbWFzIG8KYmFzZW5hbWUgYXBhcmVjZSBlbSBzdHJpbmdzL2NvbWVudMOhcmlvcy4gVHJpYWdlbSBtYW51YWw6IGRlbGV0YXIsIHJlY29uZWN0YXIgb3UKanVzdGlmaWNhciBlbSBjb21lbnTDoXJpbyBuYSBwcsOzcHJpYSBhbGxvd2xpc3QuIE1ldGE6IGFsbG93bGlzdCDiiaQgMTAuCkluY2x1aSBkZWNpZGlyIG9zIHByaW1pdGl2b3MgbsOjbyB1c2Fkb3MgZGUgYHNyYy9jb21wb25lbnRzL3VpL2AgKGhvamUgZXhjbHXDrWRvcwpkbyBndWFyZCBwb3IgZGVwZW5kw6puY2lhIGRvIGBnZW5lcmF0ZS1jb21wb25lbnQtcmVnaXN0cnlgKS4KCiMjIyBXYXZlIDMg4oCUIENhbWFkYSBkZSBkYWRvcyBwb3IgZG9tw61uaW8gKG1haW9yIGltcGFjdG8pCkV4dHJhaXIgYXMgMjYyIGNoYW1hZGFzIGRlIGNvbXBvbmVudHMrcGFnZXMgcGFyYSBob29rcy9zZXJ2aWNlcyBwb3IgZG9tw61uaW8sCnNlZ3VpbmRvIG8gcGFkcsOjbyBqw6EgZXhpc3RlbnRlIGVtIGBmZWF0dXJlcy8qL2hvb2tzYDoKMS4gQ29tcG9uZW50ZS9ww6FnaW5hICoqbnVuY2EqKiBjaGFtYSBgc3VwYWJhc2VgIGRpcmV0by4KMi4gUXVlcnkvbXV0YXRpb24gdml2ZSBlbSBgQC9mZWF0dXJlcy88ZG9taW5pbz4vaG9va3NgIChSZWFjdCBRdWVyeSkgb3UKICAgYEAvZmVhdHVyZXMvPGRvbWluaW8+L3NlcnZpY2VzYCBwYXJhIGzDs2dpY2Egc2VtIGVzdGFkbyBkZSBVSS4KMy4gQSBjYWRhIFBSOiBgbm9kZSBzY3JpcHRzL2NoZWNrLWRhdGEtbGF5ZXIubWpzIC0tdXBkYXRlLWJhc2VsaW5lYCBwYXJhIGFwZXJ0YXIgbyByYXRjaGV0LgpPcmRlbSBzdWdlcmlkYSAobWFpb3JlcyBvZmVuc29yZXMgcHJpbWVpcm8pOiBgcGFnZXMvYWRtaW4vKmAsIGBjb21wb25lbnRzL2NvbnRhY3RzLypgLApgY29tcG9uZW50cy9zZXR0aW5ncy8qYC4gTWV0YSBkZSBzYcOtZGE6IGNvbXBvbmVudHM9MCwgcGFnZXM9MC4KCiMjIyBXYXZlIDQg4oCUIFRpcG9zIGNhbsO0bmljb3MgZGUgZG9tw61uaW8gKHJpc2NvIG3DqWRpbykKQ3JpYXIgYHNyYy90eXBlcy9kb21haW4vYCAob3UgZXhwYW5kaXIgYHNyYy90eXBlcy9gKSBjb20gYENvbnRhY3RgLCBgQ2hhdE1lc3NhZ2VgLApgUHJvZmlsZWAsIGBTTEFTdGF0dXNgLCBgQXVkaXRMb2dgLCBgUXVpY2tSZXBseWAsIGBEZXBhcnRtZW50YCDDum5pY29zLCBkZXJpdmFkb3MgZGUKYFRhYmxlczwnLi4uJz5gIGRvIHR5cGVzLnRzIGdlcmFkby4gTWlncmFyIGFycXVpdm8gYSBhcnF1aXZvOyBvbmRlIGEgZm9ybWEgbG9jYWwKZGl2ZXJnaXIgZG8gY2Fuw7RuaWNvLCBtYXBlYXIgZXhwbGljaXRhbWVudGUgKGFkYXB0ZXIpIGVtIHZleiBkZSBmb3LDp2FyIGNhc3QuCgojIyMgV2F2ZSA1IOKAlCBVdGlscyBjYW7DtG5pY29zIChyaXNjbyBtw6lkaW8g4oCUIGV4aWdlIHRhYmVsYSBkZSBwYXJpZGFkZSkKQXMgMTAgYGZvcm1hdFRpbWVgIC8gNyBgZm9ybWF0RGF0ZWAgdMOqbSBzZW3Dom50aWNhcyBkaXZlcmdlbnRlcyAobG9jYWxlLCBmb3JtYXRvLApyZWxhdGl2ZSB0aW1lKS4gUHJvY2Vzc286IGludmVudGFyaWFyIGFzc2luYXR1cmFzIOKGkiBhZ3J1cGFyIHBvciBzZW3Dom50aWNhIOKGkgpjYW5vbml6YXIgZW0gYHNyYy9saWIvZm9ybWF0dGVycy50c2AgY29tIG5vbWVzIGV4cGzDrWNpdG9zCihgZm9ybWF0VGltZUhIbW1gLCBgZm9ybWF0UmVsYXRpdmVUaW1lYCwgLi4uKSDihpIgbWlncmFyIGdydXBvIGEgZ3J1cG8gY29tIHRlc3RlCmRlIHBhcmlkYWRlIGVtIGBzcmMvbGliL19fdGVzdHNfXy9mb3JtYXR0ZXJzLnBhcml0eS50ZXN0LnRzYC4KCiMjIyBXYXZlIDYg4oCUIENvbnZlcmfDqm5jaWEgYXJxdWl0ZXR1cmFsIChyaXNjbyBhbHRvLCBmaW0gZGUgY2ljbG8pCjEuIE1pZ3JhciBgc3JjL2NvbXBvbmVudHMvPGRvbWluaW8+YCDihpIgYHNyYy9mZWF0dXJlcy88ZG9taW5pbz5gIGF0w6kgYGNvbXBvbmVudHMvYAogICBjb250ZXIgYXBlbmFzIGB1aS9gIGUgY29tcGFydGlsaGFkb3MgZ2VudcOtbm9zLgoyLiBVbmlmaWNhciBgc3JjL3Rlc3RgLCBgc3JjL3Rlc3RzYCwgYHNyYy9fX3Rlc3RzX19gIOKGkiBwYWRyw6NvIMO6bmljbwogICAoYF9fdGVzdHNfX2AgY29sb2NhZG8gcG9yIGZlYXR1cmUgKyBgc3JjL3Rlc3QvYCBzw7MgcGFyYSBzZXR1cCkuCjMuIEF2YWxpYXIgcHJvbW92ZXIgYGNoZWNrOmRlYWRjb2RlYC9gY2hlY2s6ZGF0YWxheWVyYCBhIGpvYiBkZWRpY2FkbyBubyBDSS4KCiMjIDQuIFJlZ3JhcyBkZSBleGVjdcOnw6NvICh0b2RhcyBhcyBvbmRhcykKLSBCcmFuY2ggcG9yIG9uZGE7IFBSIHBlcXVlbm8gZSB0ZW3DoXRpY287IG51bmNhIG1pc3R1cmFyIG9uZGFzLgotIEdhdGUgb2JyaWdhdMOzcmlvOiBgbnBtIHJ1biBjaGVja2AgdmVyZGUgKyBgbnBtIHJ1biB0ZXN0YCBzZW0gbm92YXMgZmFsaGFzLgotIFJhdGNoZXRzIG51bmNhIGFmcm91eGFtOiBiYXNlbGluZXMgc8OzIHPDo28gYXR1YWxpemFkb3MgcGFyYSBiYWl4by4KLSBDb21wb3J0YW1lbnRvIHZpc8OtdmVsIGlkw6pudGljbzsgcXVhbHF1ZXIgZGl2ZXJnw6puY2lhIGludGVuY2lvbmFsIChleC46IGNvcnJlw6fDo28KICBkZSBjcmFzaCBsYXRlbnRlKSBkb2N1bWVudGFkYSBubyBQUi4K
+# REFACTOR_PLAN.md — Refatoração Estrutural zapp-web-v3
+
+> Wave 1 executada em 2026-07-06 (branch `refactor/structural-wave1-2026-07-06`).
+> Princípio inegociável: **zero mudança de comportamento visível**. Toda onda é
+> validada por `npm run check` completo antes de merge.
+
+## 1. Diagnóstico (baseline 2026-07-06, main @ 182fdae5a)
+
+| Métrica | Valor | Avaliação |
+|---|---|---|
+| Arquivos TS/TSX em `src/` | 1.726 | — |
+| Linhas TS/TSX em `src/` | ~259.9k (9.3k geradas em `integrations/supabase/types.ts`) | — |
+| Arquivos mortos (grafo de imports) | 94 (~11k linhas) | 🔴 |
+| `supabase.from()` em components+pages | 262 chamadas | 🔴 acoplamento UI↔dados |
+| `supabase.from()` total fora de services | 712 chamadas | 🔴 |
+| `src/services/` | 5 arquivos / 262 linhas | 🔴 camada inexistente na prática |
+| `interface Contact` redefinida | 9 arquivos de produção | 🟠 |
+| `ChatMessage`/`Profile`/`SLAStatus`/`AuditLog` | 6 definições cada | 🟠 |
+| `formatTime` duplicada | 10 implementações | 🟠 |
+| `formatDate` / `getInitials` / `formatCurrency` | 7 / 6 / 4 | 🟠 |
+| Pastas de teste distintas | 3 (`__tests__`, `test`, `tests`) | 🟡 |
+| Arquiteturas convivendo | `components/` (661 arq, por tipo) × `features/` (483 arq, por domínio) | 🟠 |
+| `: any` em produção | 221 | 🟡 aceitável p/ escala |
+| `console.*` em produção | 13 | 🟢 |
+| Imports relativos profundos (`../../..`) | 0 (alias `@/` universal: 5.434) | 🟢 |
+| Guards de arquitetura preexistentes | `check:domain`, `check:barrels`, `ds:check`, `lint-supabase-casts` | 🟢 base excelente |
+
+**Leitura executiva:** o projeto já tem disciplina de guards e alias consistente.
+Os três débitos estruturais reais são (a) código morto acumulado, (b) acesso a
+dados pulverizado em camadas de UI e (c) tipos/utils de domínio duplicados.
+
+## 2. Wave 1 — executada nesta branch
+
+| # | Ação | Resultado |
+|---|---|---|
+| A | Remoção de código morto com validação forense (grafo de imports + zero menções por string em src/e2e/scripts + cascata iterativa) | **41 arquivos / ~5.4k linhas removidos** |
+| B | Guard `scripts/check-dead-code.mjs` + `npm run check:deadcode` no chain `check` | Impede novo código morto; allowlist = registro de dívida (51 itens p/ triagem) |
+| C | Consolidação `getInitials` dos componentes de e-mail → `getInitialsFromNameOrEmail` em `src/lib/formatters.ts` | Paridade de comportamento; corrige crash latente em `email=""` no EmailContactPanel |
+| D | Este plano (`docs/REFACTOR_PLAN.md`) | Roadmap versionado |
+| E | Ratchet `scripts/check-data-layer.mjs` + `npm run check:datalayer` (baseline `data-layer-baseline.json`) | Teto congelado: components 212 / pages 50 / features 220 / hooks 230. Só pode cair. |
+
+## 3. Roadmap — próximas ondas (prioridade por impacto × risco)
+
+### Wave 2 — Triagem da allowlist de código morto (risco baixo)
+Os 51 arquivos em `scripts/dead-code-allowlist.txt` não têm importador, mas o
+basename aparece em strings/comentários. Triagem manual: deletar, reconectar ou
+justificar em comentário na própria allowlist. Meta: allowlist ≤ 10.
+Inclui decidir os primitivos não usados de `src/components/ui/` (hoje excluídos
+do guard por dependência do `generate-component-registry`).
+
+### Wave 3 — Camada de dados por domínio (maior impacto)
+Extrair as 262 chamadas de components+pages para hooks/services por domínio,
+seguindo o padrão já existente em `features/*/hooks`:
+1. Componente/página **nunca** chama `supabase` direto.
+2. Query/mutation vive em `@/features/<dominio>/hooks` (React Query) ou
+   `@/features/<dominio>/services` para lógica sem estado de UI.
+3. A cada PR: `node scripts/check-data-layer.mjs --update-baseline` para apertar o ratchet.
+Ordem sugerida (maiores ofensores primeiro): `pages/admin/*`, `components/contacts/*`,
+`components/settings/*`. Meta de saída: components=0, pages=0.
+
+### Wave 4 — Tipos canônicos de domínio (risco médio)
+Criar `src/types/domain/` (ou expandir `src/types/`) com `Contact`, `ChatMessage`,
+`Profile`, `SLAStatus`, `AuditLog`, `QuickReply`, `Department` únicos, derivados de
+`Tables<'...'>` do types.ts gerado. Migrar arquivo a arquivo; onde a forma local
+divergir do canônico, mapear explicitamente (adapter) em vez de forçar cast.
+
+### Wave 5 — Utils canônicos (risco médio — exige tabela de paridade)
+As 10 `formatTime` / 7 `formatDate` têm semânticas divergentes (locale, formato,
+relative time). Processo: inventariar assinaturas → agrupar por semântica →
+canonizar em `src/lib/formatters.ts` com nomes explícitos
+(`formatTimeHHmm`, `formatRelativeTime`, ...) → migrar grupo a grupo com teste
+de paridade em `src/lib/__tests__/formatters.parity.test.ts`.
+
+### Wave 6 — Convergência arquitetural (risco alto, fim de ciclo)
+1. Migrar `src/components/<dominio>` → `src/features/<dominio>` até `components/`
+   conter apenas `ui/` e compartilhados genuínos.
+2. Unificar `src/test`, `src/tests`, `src/__tests__` → padrão único
+   (`__tests__` colocado por feature + `src/test/` só para setup).
+3. Avaliar promover `check:deadcode`/`check:datalayer` a job dedicado no CI.
+
+## 4. Regras de execução (todas as ondas)
+- Branch por onda; PR pequeno e temático; nunca misturar ondas.
+- Gate obrigatório: `npm run check` verde + `npm run test` sem novas falhas.
+- Ratchets nunca afrouxam: baselines só são atualizados para baixo.
+- Comportamento visível idêntico; qualquer divergência intencional (ex.: correção
+  de crash latente) documentada no PR.

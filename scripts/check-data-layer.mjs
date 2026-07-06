@@ -1,1 +1,65 @@
-IyEvdXNyL2Jpbi9lbnYgbm9kZQovKioKICogY2hlY2stZGF0YS1sYXllci5tanMg4oCUIFJhdGNoZXQgZGUgYXJxdWl0ZXR1cmEgZGEgY2FtYWRhIGRlIGRhZG9zIChSZWZhY3RvciBXYXZlIDEsIDIwMjYtMDctMDYpCiAqCiAqIFByb2JsZW1hOiBjaGFtYWRhcyBkaXJldGFzIGBzdXBhYmFzZS5mcm9tKC4uLilgIGVzcGFsaGFkYXMgZW0gY2FtYWRhcyBkZSBVSQogKiAoY29tcG9uZW50cy9wYWdlcykgbWlzdHVyYW0gcmVncmEgZGUgbmVnw7NjaW8gY29tIGFwcmVzZW50YcOnw6NvIGUgdHJhdmFtIGEKICogbWlncmHDp8OjbyBwYXJhIHNlcnZpY2VzL2hvb2tzIHBvciBkb23DrW5pby4KICoKICogRXN0cmF0w6lnaWEgcmF0Y2hldDogbyBuw7ptZXJvIGRlIGNoYW1hZGFzIHBvciBjYW1hZGEgTsODTyBQT0RFIEFVTUVOVEFSLgogKiBCYXNlbGluZSBlbSBzY3JpcHRzL2RhdGEtbGF5ZXItYmFzZWxpbmUuanNvbi4gQW8gcmVkdXppciwgcm9kZSBjb20KICogLS11cGRhdGUtYmFzZWxpbmUgcGFyYSB0cmF2YXIgbyBub3ZvIHRldG8gKHJhdGNoZXQgYXBlcnRhLCBudW5jYSBhZnJvdXhhKS4KICoKICogUmVncmEtYWx2byAoV2F2ZSAzKTogY29tcG9uZW50ZXMgZSBww6FnaW5hcyBudW5jYSBjaGFtYW0gc3VwYWJhc2UgZGlyZXRvIOKAlAogKiBzZW1wcmUgdmlhIGhvb2tzIGRlIGRvbcOtbmlvIG91IHNlcnZpY2VzLgogKi8KaW1wb3J0IHsgcmVhZEZpbGVTeW5jLCByZWFkZGlyU3luYywgc3RhdFN5bmMsIHdyaXRlRmlsZVN5bmMsIGV4aXN0c1N5bmMgfSBmcm9tICdmcyc7CmltcG9ydCB7IGpvaW4gfSBmcm9tICdwYXRoJzsKCmNvbnN0IFJPT1QgPSBwcm9jZXNzLmN3ZCgpOwpjb25zdCBCQVNFTElORV9QQVRIID0gam9pbihST09ULCAnc2NyaXB0cycsICdkYXRhLWxheWVyLWJhc2VsaW5lLmpzb24nKTsKY29uc3QgVVBEQVRFID0gcHJvY2Vzcy5hcmd2LmluY2x1ZGVzKCctLXVwZGF0ZS1iYXNlbGluZScpOwpjb25zdCBMQVlFUlMgPSBbJ3NyYy9jb21wb25lbnRzJywgJ3NyYy9wYWdlcycsICdzcmMvZmVhdHVyZXMnLCAnc3JjL2hvb2tzJ107CmNvbnN0IENBTExfUkUgPSAvc3VwYWJhc2VccypcLlxzKmZyb21ccypcKC9nOwoKZnVuY3Rpb24gY291bnRMYXllcihkaXIpIHsKICBsZXQgY291bnQgPSAwOwogIGNvbnN0IGFicyA9IGpvaW4oUk9PVCwgZGlyKTsKICBpZiAoIWV4aXN0c1N5bmMoYWJzKSkgcmV0dXJuIDA7CiAgKGZ1bmN0aW9uIHdhbGsoZCkgewogICAgZm9yIChjb25zdCBmIG9mIHJlYWRkaXJTeW5jKGQpKSB7CiAgICAgIGNvbnN0IHAgPSBqb2luKGQsIGYpOwogICAgICBpZiAoc3RhdFN5bmMocCkuaXNEaXJlY3RvcnkoKSkgeyB3YWxrKHApOyBjb250aW51ZTsgfQogICAgICBpZiAoIS9cLih0c3x0c3gpJC8udGVzdChmKSB8fCAvXC4odGVzdHxzcGVjfHN0b3JpZXMpXC4vLnRlc3QoZikpIGNvbnRpbnVlOwogICAgICBpZiAoL19fdGVzdHNfXy8udGVzdChwKSkgY29udGludWU7CiAgICAgIGNvdW50ICs9IChyZWFkRmlsZVN5bmMocCwgJ3V0Zi04JykubWF0Y2goQ0FMTF9SRSkgfHwgW10pLmxlbmd0aDsKICAgIH0KICB9KShhYnMpOwogIHJldHVybiBjb3VudDsKfQoKY29uc3QgY3VycmVudCA9IE9iamVjdC5mcm9tRW50cmllcyhMQVlFUlMubWFwKChsKSA9PiBbbCwgY291bnRMYXllcihsKV0pKTsKCmlmIChVUERBVEUgfHwgIWV4aXN0c1N5bmMoQkFTRUxJTkVfUEFUSCkpIHsKICB3cml0ZUZpbGVTeW5jKEJBU0VMSU5FX1BBVEgsIEpTT04uc3RyaW5naWZ5KHsgdXBkYXRlZEF0OiBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCkuc2xpY2UoMCwgMTApLCBjYWxsczogY3VycmVudCB9LCBudWxsLCAyKSArICdcbicpOwogIGNvbnNvbGUubG9nKCfwn5OMIEJhc2VsaW5lIGRhdGEtbGF5ZXIgZ3JhdmFkbzonLCBKU09OLnN0cmluZ2lmeShjdXJyZW50KSk7CiAgcHJvY2Vzcy5leGl0KDApOwp9Cgpjb25zdCBiYXNlbGluZSA9IEpTT04ucGFyc2UocmVhZEZpbGVTeW5jKEJBU0VMSU5FX1BBVEgsICd1dGYtOCcpKS5jYWxsczsKbGV0IGZhaWxlZCA9IGZhbHNlOwpmb3IgKGNvbnN0IGxheWVyIG9mIExBWUVSUykgewogIGNvbnN0IGN1ciA9IGN1cnJlbnRbbGF5ZXJdOwogIGNvbnN0IG1heCA9IGJhc2VsaW5lW2xheWVyXSA/PyAwOwogIGNvbnN0IHN0YXR1cyA9IGN1ciA+IG1heCA/ICfinYwnIDogY3VyIDwgbWF4ID8gJ+Ksh++4jyAnIDogJ+KchSc7CiAgY29uc29sZS5sb2coYCR7c3RhdHVzfSAke2xheWVyLnBhZEVuZCgxNil9ICR7Y3VyfSBjaGFtYWRhcyBzdXBhYmFzZS5mcm9tKCkgKHRldG86ICR7bWF4fSlgKTsKICBpZiAoY3VyID4gbWF4KSBmYWlsZWQgPSB0cnVlOwp9CmlmIChmYWlsZWQpIHsKICBjb25zb2xlLmVycm9yKCdcbuKdjCBjaGVjay1kYXRhLWxheWVyOiBub3ZhcyBjaGFtYWRhcyBkaXJldGFzIGEgc3VwYWJhc2UuZnJvbSgpIGVtIGNhbWFkYSBkZSBVSS4nKTsKICBjb25zb2xlLmVycm9yKCcgICBNb3ZhIG8gYWNlc3NvIGEgZGFkb3MgcGFyYSB1bSBob29rIGRlIGRvbcOtbmlvIG91IHNlcnZpY2UgKEAvZmVhdHVyZXMvPGRvbWluaW8+L2hvb2tzIHwgc2VydmljZXMvKS4nKTsKICBwcm9jZXNzLmV4aXQoMSk7Cn0KY29uc3QgcmVkdWNlZCA9IExBWUVSUy5zb21lKChsKSA9PiBjdXJyZW50W2xdIDwgKGJhc2VsaW5lW2xdID8/IDApKTsKaWYgKHJlZHVjZWQpIGNvbnNvbGUubG9nKCdcbvCfkqEgUmVkdcOnw7VlcyBkZXRlY3RhZGFzIOKAlCByb2RlIGBub2RlIHNjcmlwdHMvY2hlY2stZGF0YS1sYXllci5tanMgLS11cGRhdGUtYmFzZWxpbmVgIHBhcmEgYXBlcnRhciBvIHJhdGNoZXQuJyk7CmNvbnNvbGUubG9nKCfinIUgY2hlY2stZGF0YS1sYXllcjogZGVudHJvIGRvIHRldG8uJyk7Cg==
+#!/usr/bin/env node
+/**
+ * check-data-layer.mjs — Ratchet de arquitetura da camada de dados (Refactor Wave 1, 2026-07-06)
+ *
+ * Problema: chamadas diretas `supabase.from(...)` espalhadas em camadas de UI
+ * (components/pages) misturam regra de negócio com apresentação e travam a
+ * migração para services/hooks por domínio.
+ *
+ * Estratégia ratchet: o número de chamadas por camada NÃO PODE AUMENTAR.
+ * Baseline em scripts/data-layer-baseline.json. Ao reduzir, rode com
+ * --update-baseline para travar o novo teto (ratchet aperta, nunca afrouxa).
+ *
+ * Regra-alvo (Wave 3): componentes e páginas nunca chamam supabase direto —
+ * sempre via hooks de domínio ou services.
+ */
+import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
+
+const ROOT = process.cwd();
+const BASELINE_PATH = join(ROOT, 'scripts', 'data-layer-baseline.json');
+const UPDATE = process.argv.includes('--update-baseline');
+const LAYERS = ['src/components', 'src/pages', 'src/features', 'src/hooks'];
+const CALL_RE = /supabase\s*\.\s*from\s*\(/g;
+
+function countLayer(dir) {
+  let count = 0;
+  const abs = join(ROOT, dir);
+  if (!existsSync(abs)) return 0;
+  (function walk(d) {
+    for (const f of readdirSync(d)) {
+      const p = join(d, f);
+      if (statSync(p).isDirectory()) { walk(p); continue; }
+      if (!/\.(ts|tsx)$/.test(f) || /\.(test|spec|stories)\./.test(f)) continue;
+      if (/__tests__/.test(p)) continue;
+      count += (readFileSync(p, 'utf-8').match(CALL_RE) || []).length;
+    }
+  })(abs);
+  return count;
+}
+
+const current = Object.fromEntries(LAYERS.map((l) => [l, countLayer(l)]));
+
+if (UPDATE || !existsSync(BASELINE_PATH)) {
+  writeFileSync(BASELINE_PATH, JSON.stringify({ updatedAt: new Date().toISOString().slice(0, 10), calls: current }, null, 2) + '\n');
+  console.log('📌 Baseline data-layer gravado:', JSON.stringify(current));
+  process.exit(0);
+}
+
+const baseline = JSON.parse(readFileSync(BASELINE_PATH, 'utf-8')).calls;
+let failed = false;
+for (const layer of LAYERS) {
+  const cur = current[layer];
+  const max = baseline[layer] ?? 0;
+  const status = cur > max ? '❌' : cur < max ? '⬇️ ' : '✅';
+  console.log(`${status} ${layer.padEnd(16)} ${cur} chamadas supabase.from() (teto: ${max})`);
+  if (cur > max) failed = true;
+}
+if (failed) {
+  console.error('\n❌ check-data-layer: novas chamadas diretas a supabase.from() em camada de UI.');
+  console.error('   Mova o acesso a dados para um hook de domínio ou service (@/features/<dominio>/hooks | services/).');
+  process.exit(1);
+}
+const reduced = LAYERS.some((l) => current[l] < (baseline[l] ?? 0));
+if (reduced) console.log('\n💡 Reduções detectadas — rode `node scripts/check-data-layer.mjs --update-baseline` para apertar o ratchet.');
+console.log('✅ check-data-layer: dentro do teto.');

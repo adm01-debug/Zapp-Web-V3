@@ -1,1 +1,63 @@
-aW1wb3J0IHsgbW90aW9uIH0gZnJvbSAnZnJhbWVyLW1vdGlvbic7CmltcG9ydCB7IEF2YXRhciwgQXZhdGFyRmFsbGJhY2sgfSBmcm9tICdAL2NvbXBvbmVudHMvdWkvYXZhdGFyJzsKaW1wb3J0IHsgQmFkZ2UgfSBmcm9tICdAL2NvbXBvbmVudHMvdWkvYmFkZ2UnOwppbXBvcnQgeyBTdGFyLCBBbGVydENpcmNsZSB9IGZyb20gJ2x1Y2lkZS1yZWFjdCc7CmltcG9ydCB0eXBlIHsgRW1haWxUaHJlYWQgfSBmcm9tICdAL2hvb2tzL3VzZUVtYWlsJzsKaW1wb3J0IHsgZ2V0SW5pdGlhbHNGcm9tTmFtZU9yRW1haWwgfSBmcm9tICdAL2xpYi9mb3JtYXR0ZXJzJzsKCgpmdW5jdGlvbiBmb3JtYXRUaHJlYWREYXRlKGRhdGVTdHI6IHN0cmluZyk6IHN0cmluZyB7CiAgY29uc3QgZGF0ZSA9IG5ldyBEYXRlKGRhdGVTdHIpOwogIGNvbnN0IG5vdyA9IG5ldyBEYXRlKCk7CiAgY29uc3QgZGlmZiA9IG5vdy5nZXRUaW1lKCkgLSBkYXRlLmdldFRpbWUoKTsKICBpZiAoZGlmZiA8IDg2NDAwMDAwICYmIGRhdGUuZ2V0RGF0ZSgpID09PSBub3cuZ2V0RGF0ZSgpKSByZXR1cm4gZGF0ZS50b0xvY2FsZVRpbWVTdHJpbmcoJ3B0LUJSJywgeyBob3VyOiAnMi1kaWdpdCcsIG1pbnV0ZTogJzItZGlnaXQnIH0pOwogIGlmIChkaWZmIDwgNjA0ODAwMDAwKSByZXR1cm4gZGF0ZS50b0xvY2FsZURhdGVTdHJpbmcoJ3B0LUJSJywgeyB3ZWVrZGF5OiAnc2hvcnQnIH0pOwogIHJldHVybiBkYXRlLnRvTG9jYWxlRGF0ZVN0cmluZygncHQtQlInLCB7IGRheTogJzItZGlnaXQnLCBtb250aDogJ3Nob3J0JyB9KTsKfQoKaW50ZXJmYWNlIFRocmVhZExpc3RJdGVtUHJvcHMgewogIHRocmVhZDogRW1haWxUaHJlYWQ7CiAgaXNTZWxlY3RlZDogYm9vbGVhbjsKICBvbkNsaWNrOiAoKSA9PiB2b2lkOwp9CgpleHBvcnQgZnVuY3Rpb24gVGhyZWFkTGlzdEl0ZW0oeyB0aHJlYWQsIGlzU2VsZWN0ZWQsIG9uQ2xpY2sgfTogVGhyZWFkTGlzdEl0ZW1Qcm9wcykgewogIGNvbnN0IGRpc3BsYXlOYW1lID0gdGhyZWFkLmNvbnRhY3Q/Lm5hbWUgfHwgdGhyZWFkLnNuaXBwZXQ/LnNwbGl0KCcgJylbMF0gfHwgJ0Rlc2NvbmhlY2lkbyc7CgogIHJldHVybiAoCiAgICA8bW90aW9uLmJ1dHRvbgogICAgICBpbml0aWFsPXt7IG9wYWNpdHk6IDAsIHg6IC0xMCB9fQogICAgICBhbmltYXRlPXt7IG9wYWNpdHk6IDEsIHg6IDAgfX0KICAgICAgb25DbGljaz17b25DbGlja30KICAgICAgY2xhc3NOYW1lPXtgdy1mdWxsIHRleHQtbGVmdCBwLTMgZmxleCBpdGVtcy1zdGFydCBnYXAtMyB0cmFuc2l0aW9uLWNvbG9ycyBib3JkZXItYiBib3JkZXItc2Vjb25kYXJ5LzEwICR7CiAgICAgICAgaXNTZWxlY3RlZCA/ICdiZy1wcmltYXJ5LzUgYm9yZGVyLWwtMiBib3JkZXItbC1wcmltYXJ5JyA6ICdob3ZlcjpiZy1zZWNvbmRhcnkvNScKICAgICAgfSAke3RocmVhZC5pc191bnJlYWQgPyAnJyA6ICdvcGFjaXR5LTgwJ31gfQogICAgPgogICAgICA8QXZhdGFyIGNsYXNzTmFtZT0iaC05IHctOSBzaHJpbmstMCBtdC0wLjUiPgogICAgICAgIDxBdmF0YXJGYWxsYmFjayBjbGFzc05hbWU9e2B0ZXh0LXhzICR7dGhyZWFkLmlzX3VucmVhZCA/ICdiZy1wcmltYXJ5LzEwIHRleHQtcHJpbWFyeSBmb250LWJvbGQnIDogJ2JnLXNlY29uZGFyeS8yMCd9YH0+CiAgICAgICAgICB7Z2V0SW5pdGlhbHNGcm9tTmFtZU9yRW1haWwodGhyZWFkLmNvbnRhY3Q/Lm5hbWUsIHRocmVhZC5jb250YWN0Py5lbWFpbCl9CiAgICAgICAgPC9BdmF0YXJGYWxsYmFjaz4KICAgICAgPC9BdmF0YXI+CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4LTEgbWluLXctMCI+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0xLjUiPgogICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPXtgdGV4dC1zbSB0cnVuY2F0ZSAke3RocmVhZC5pc191bnJlYWQgPyAnZm9udC1zZW1pYm9sZCcgOiAnZm9udC1ub3JtYWwnfWB9PntkaXNwbGF5TmFtZX08L3NwYW4+CiAgICAgICAgICB7dGhyZWFkLm1lc3NhZ2VfY291bnQgPiAxICYmIDxCYWRnZSB2YXJpYW50PSJvdXRsaW5lIiBjbGFzc05hbWU9InRleHQtWzlweF0gcHgtMSBweS0wIHNocmluay0wIj57dGhyZWFkLm1lc3NhZ2VfY291bnR9PC9CYWRnZT59CiAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtWzEwcHhdIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCBtbC1hdXRvIHNocmluay0wIj57dGhyZWFkLmxhc3RfbWVzc2FnZV9hdCAmJiBmb3JtYXRUaHJlYWREYXRlKHRocmVhZC5sYXN0X21lc3NhZ2VfYXQpfTwvc3Bhbj4KICAgICAgICA8L2Rpdj4KICAgICAgICA8cCBjbGFzc05hbWU9e2B0ZXh0LXhzIHRydW5jYXRlICR7dGhyZWFkLmlzX3VucmVhZCA/ICd0ZXh0LWZvcmVncm91bmQgZm9udC1tZWRpdW0nIDogJ3RleHQtbXV0ZWQtZm9yZWdyb3VuZCd9YH0+e3RocmVhZC5zdWJqZWN0IHx8ICcoU2VtIGFzc3VudG8pJ308L3A+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0xLjUgbXQtMC41Ij4KICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1bMTBweF0gdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIHRydW5jYXRlIGZsZXgtMSI+e3RocmVhZC5zbmlwcGV0fTwvcD4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMC41IHNocmluay0wIj4KICAgICAgICAgICAge3RocmVhZC5pc19zdGFycmVkICYmIDxTdGFyIGNsYXNzTmFtZT0idy0zIGgtMyB0ZXh0LXdhcm5pbmcgZmlsbC13YXJuaW5nIiAvPn0KICAgICAgICAgICAge3RocmVhZC5pc19pbXBvcnRhbnQgJiYgPEFsZXJ0Q2lyY2xlIGNsYXNzTmFtZT0idy0zIGgtMyB0ZXh0LXdhcm5pbmciIC8+fQogICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CiAgICAgICAge3RocmVhZC50YWdzLmxlbmd0aCA+IDAgJiYgKAogICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0xIG10LTEiPgogICAgICAgICAgICB7dGhyZWFkLnRhZ3Muc2xpY2UoMCwgMykubWFwKHRhZyA9PiA8QmFkZ2Uga2V5PXt0YWd9IHZhcmlhbnQ9InNlY29uZGFyeSIgY2xhc3NOYW1lPSJ0ZXh0LVs5cHhdIHB4LTEgcHktMCI+e3RhZ308L0JhZGdlPil9CiAgICAgICAgICA8L2Rpdj4KICAgICAgICApfQogICAgICA8L2Rpdj4KICAgIDwvbW90aW9uLmJ1dHRvbj4KICApOwp9Cg==
+import { motion } from 'framer-motion';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Star, AlertCircle } from 'lucide-react';
+import type { EmailThread } from '@/hooks/useEmail';
+import { getInitialsFromNameOrEmail } from '@/lib/formatters';
+
+
+function formatThreadDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  if (diff < 86400000 && date.getDate() === now.getDate()) return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (diff < 604800000) return date.toLocaleDateString('pt-BR', { weekday: 'short' });
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+}
+
+interface ThreadListItemProps {
+  thread: EmailThread;
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+export function ThreadListItem({ thread, isSelected, onClick }: ThreadListItemProps) {
+  const displayName = thread.contact?.name || thread.snippet?.split(' ')[0] || 'Desconhecido';
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      onClick={onClick}
+      className={`w-full text-left p-3 flex items-start gap-3 transition-colors border-b border-secondary/10 ${
+        isSelected ? 'bg-primary/5 border-l-2 border-l-primary' : 'hover:bg-secondary/5'
+      } ${thread.is_unread ? '' : 'opacity-80'}`}
+    >
+      <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+        <AvatarFallback className={`text-xs ${thread.is_unread ? 'bg-primary/10 text-primary font-bold' : 'bg-secondary/20'}`}>
+          {getInitialsFromNameOrEmail(thread.contact?.name, thread.contact?.email)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className={`text-sm truncate ${thread.is_unread ? 'font-semibold' : 'font-normal'}`}>{displayName}</span>
+          {thread.message_count > 1 && <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0">{thread.message_count}</Badge>}
+          <span className="text-[10px] text-muted-foreground ml-auto shrink-0">{thread.last_message_at && formatThreadDate(thread.last_message_at)}</span>
+        </div>
+        <p className={`text-xs truncate ${thread.is_unread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>{thread.subject || '(Sem assunto)'}</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-[10px] text-muted-foreground truncate flex-1">{thread.snippet}</p>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {thread.is_starred && <Star className="w-3 h-3 text-warning fill-warning" />}
+            {thread.is_important && <AlertCircle className="w-3 h-3 text-warning" />}
+          </div>
+        </div>
+        {thread.tags.length > 0 && (
+          <div className="flex items-center gap-1 mt-1">
+            {thread.tags.slice(0, 3).map(tag => <Badge key={tag} variant="secondary" className="text-[9px] px-1 py-0">{tag}</Badge>)}
+          </div>
+        )}
+      </div>
+    </motion.button>
+  );
+}
