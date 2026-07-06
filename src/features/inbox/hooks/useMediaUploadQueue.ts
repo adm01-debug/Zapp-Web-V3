@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { log } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validateFile } from '@/utils/whatsappFileTypes';
@@ -64,7 +65,7 @@ export function useMediaUploadQueue(contactId: string) {
   const persist = useCallback(async (id: string, partial: Partial<MediaUploadItem>) => {
     try {
       const { file, ...updateData } = partial; // Don't try to persist File object
-      await (supabase as any).from('media_upload_queue').update(updateData as any).eq('id', id);
+      await safeClient.from('media_upload_queue', (q) => q.update(updateData as Record<string, unknown>).eq('id', id));
     } catch (err) {
       log.error('[MediaQueue] persist failed', err);
     }
@@ -196,7 +197,7 @@ export function useMediaUploadQueue(contactId: string) {
       }
 
       try {
-        const { error: dbError } = await (supabase as any).from('media_upload_queue').insert({
+        const { error: dbError } = await safeClient.from('media_upload_queue', (q) => q.insert({
           id: item.id,
           contact_id: contactId,
           file_name: item.fileName,
@@ -207,7 +208,7 @@ export function useMediaUploadQueue(contactId: string) {
           status: 'pending',
           max_retries: item.maxRetries,
           metadata: { category: item.category },
-        });
+        }));
         if (dbError) throw dbError;
       } catch (err) {
         log.error('[MediaQueue] insert row failed', err);

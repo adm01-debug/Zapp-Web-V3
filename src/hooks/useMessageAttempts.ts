@@ -13,7 +13,7 @@
  * permissão" graciosamente.
  */
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 export type AttemptStatus = 'pending' | 'retrying' | 'succeeded' | 'failed' | 'abandoned';
 
@@ -54,37 +54,28 @@ export function useMessageAttempts(
 
       // Tentativa primária: idempotency_key padrão `msg:<id>`.
       const primaryKey = `msg:${messageRowId}`;
-      const { data: byKey, error: keyErr } = await (supabase as any)
-        .from('failed_messages')
-        .select(
-          'id,status,retry_count,max_retries,error_code,error_message,http_status,last_retry_reason,last_attempt_at,next_attempt_at,succeeded_at,created_at,updated_at',
-        )
-        .eq('idempotency_key', primaryKey)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const SELECT = 'id,status,retry_count,max_retries,error_code,error_message,http_status,last_retry_reason,last_attempt_at,next_attempt_at,succeeded_at,created_at,updated_at';
+      const { data: byKeyRows, error: keyErr } = await safeClient.from<MessageAttemptRow>(
+        'failed_messages',
+        (q) => q.select(SELECT).eq('idempotency_key', primaryKey).order('created_at', { ascending: false }).limit(1),
+      );
 
       // 42501/permission/RLS → trata como "sem permissão", não erro.
       if (keyErr && !/permission|denied|row-level/i.test(keyErr.message)) {
         throw new Error(keyErr.message);
       }
-      if (byKey) return byKey as MessageAttemptRow;
+      if (byKeyRows[0]) return byKeyRows[0];
 
       // Fallback: payload->>'message_id' (reprocessos legados).
-      const { data: byPayload, error: pErr } = await (supabase as any)
-        .from('failed_messages')
-        .select(
-          'id,status,retry_count,max_retries,error_code,error_message,http_status,last_retry_reason,last_attempt_at,next_attempt_at,succeeded_at,created_at,updated_at',
-        )
-        .eq('payload->>message_id', messageRowId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: byPayloadRows, error: pErr } = await safeClient.from<MessageAttemptRow>(
+        'failed_messages',
+        (q) => q.select(SELECT).eq('payload->>message_id', messageRowId).order('created_at', { ascending: false }).limit(1),
+      );
 
       if (pErr && !/permission|denied|row-level/i.test(pErr.message)) {
         throw new Error(pErr.message);
       }
-      return (byPayload as MessageAttemptRow | null) ?? null;
+      return byPayloadRows[0] ?? null;
     },
   });
 }
