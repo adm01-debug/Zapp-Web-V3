@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from "@/integrations/supabase/client";
+import { safeClient } from "@/integrations/supabase/safeClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -114,17 +115,14 @@ export default function AdminAutomationsPage() {
   const load = async () => {
     setLoading(true);
     const [{ data: rulesData, error }, { data: chs }, { data: deps }] = await Promise.all([
-      (supabase as any)
-        .from('automations')
-        .select("*")
-        .order("name", { ascending: true }),
-      (supabase as any).from('service_channels').select("id,name").order("name"),
+      safeClient.from<Rule>('automations', (q) => q.select("*").order("name", { ascending: true })),
+      safeClient.from<Channel>('service_channels', (q) => q.select("id,name").order("name")),
       supabase.from('departments').select("id,name").order("name"),
     ]);
     if (!mountedRef.current) return;
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    setRules((rulesData ?? []) as Rule[]);
-    setChannels((chs ?? []) as Channel[]);
+    setRules(rulesData ?? []);
+    setChannels(chs ?? []);
     setDepartments((deps ?? []) as Department[]);
     setLoading(false);
   };
@@ -187,10 +185,10 @@ export default function AdminAutomationsPage() {
       channel_id: editing.channel_id || null,
       department_id: editing.department_id || null,
     };
-    const op = editing.id
-      ? (supabase as any).from('automations').update(payload).eq("id", editing.id)
-      : (supabase as any).from('automations').insert(payload);
-    const { error } = await op;
+    const ruleId = editing.id;
+    const { error } = ruleId
+      ? await safeClient.from('automations', (q) => q.update(payload).eq("id", ruleId))
+      : await safeClient.from('automations', (q) => q.insert(payload));
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
