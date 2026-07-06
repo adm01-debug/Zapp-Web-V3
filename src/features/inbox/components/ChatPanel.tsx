@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChatScheduleMessage } from './chat/hooks/useChatScheduleMessage';
 import { useChatQuickReplyControl } from './chat/hooks/useChatQuickReplyControl';
-import { AnimatePresence } from 'framer-motion';
 import { Conversation, Message } from '@/types/chat';
 import { FileUploaderRef } from './FileUploader';
 import { useTypingPresence } from '@/hooks/useTypingPresence';
@@ -26,7 +25,6 @@ import { TicketHistorySheet } from './TicketHistorySheet';
 import { ChatMessagesArea, ChatMessagesAreaRef } from './chat/ChatMessagesArea';
 import type { LoadOlderProps } from './chat/loadOlderTypes';
 import { ChatInputArea } from './chat/ChatInputArea';
-import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { AutomationSuggestionsBar } from './chat/AutomationSuggestionsBar';
 import { useAutomations } from '@/hooks/useAutomations';
 import { SendErrorBanner } from './chat/SendErrorBanner';
@@ -44,14 +42,12 @@ import { useInitialHighlight } from './chat/hooks/useInitialHighlight';
 import { useChatDragAndDrop } from './chat/hooks/useChatDragAndDrop';
 import { ChatTemplatesOverlay } from './chat/ChatTemplatesOverlay';
 import { ChatMonitoringDialog } from './chat/ChatMonitoringDialog';
+import { ChatPanelOverlays } from './chat/ChatPanelOverlays';
+import { useChatAutoScroll } from './chat/hooks/useChatAutoScroll';
 import { useTransferConversation } from '@/features/inbox/hooks/useTransferConversation';
 import { useInboxShortcuts } from '@/features/inbox/hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useUserRole } from '@/features/auth/hooks/useUserRole';
-
-const WhisperMode = lazy(() => import('./WhisperMode').then(m => ({ default: m.WhisperMode })));
-const VisualValidationChecklist = lazy(() => import('./VisualValidationChecklist').then(m => ({ default: m.VisualValidationChecklist })));
-const NextBestActionEngine = lazy(() => import('./NextBestActionEngine').then(m => ({ default: m.NextBestActionEngine })));
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {
