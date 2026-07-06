@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Zap, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TRIGGER_TYPES, ACTION_TYPES } from './automationConstants';
-import type { AutomationRow } from './useAutomations';
+import type { AutomationRow } from '@/hooks/automations/useAutomations';
 
 interface AutomationEditorDialogProps {
   open: boolean;

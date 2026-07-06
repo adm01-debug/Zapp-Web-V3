@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
-import { useMonitoringData } from './useMonitoringData';
-import { useMonitoringActions } from './useMonitoringActions';
+import { useMonitoringData } from '@/hooks/monitoring/useMonitoringData';
+import { useMonitoringActions } from '@/hooks/monitoring/useMonitoringActions';
 import { useMonitoringNotifications } from './useMonitoringNotifications';
 import type { TimePeriod } from './types';
 

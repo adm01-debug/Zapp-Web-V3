@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import {
   type MessageTemplate, type SendMode, buildMessage, collectAllImages,
 } from './sendProductUtils';
-import { useContactSearch, useSendToContact } from './useSendProduct';
+import { useContactSearch, useSendToContact } from '@/hooks/catalog/useSendProduct';
 import { ContactSelectionStep } from './ContactSelectionStep';
 
 interface SendProductDialogProps {

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSentimentData, getSentimentColor, getSentimentBg } from './useSentimentData';
+import { useSentimentData, getSentimentColor, getSentimentBg } from '@/hooks/dashboard/useSentimentData';
 import { OverviewTab, AgentsTab, AlertsTab, DistributionTab } from './SentimentTabContent';
 
 export function SentimentAlertsDashboard() {

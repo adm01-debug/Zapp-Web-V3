@@ -115,3 +115,25 @@ Ofensores restantes (informativo): distribuídos em cauda longa (≤5 calls/arqu
 | src/pages | 40 | **40** |
 | src/features | 220 | 220 (informativo) |
 | src/hooks | 249 | 269 (informativo — recebeu extrações) |
+
+## Sessão 2026-07-06 (noite) — auto-ratchet + realocação em massa + W4 final + SIM M (banco real)
+
+**Simulação: SIM L (cauda 106 arquivos/238 calls) · SIM M (information_schema do banco REAL) · SIM N (design do auto-tighten).**
+
+### Entregas
+1. **ratchet-tighten.yml**: workflow que auto-aperta o baseline no push para main (down-only nos escopos hard; reverte se detectar subida). Fim da "gordura" no teto.
+2. **Realocação em massa** (8 hooks que moravam em components/pages): useAutomations, useSendProduct, useAIProviders, useMediaUpload, useSentimentData, useMonitoringActions, useMonitoringData, useRolesPageState → `src/hooks/*`.
+3. **W4 concluída para Contact**: types/chat.ts e ContactBirthdayPanel agora derivam do schema (`Pick` núcleo + `Partial<Pick>` opcionais + extensões client-side explícitas: `avatar`, `createdAt: Date`, `birthday`).
+
+### 🚨 Achados do banco real (SIM M — decisões de produto pendentes)
+- `public.contacts` tem **50 colunas**; `types.ts` gerado conhece **26** → **regenerar types é prioridade** (sessão dedicada: mudança em massa de tipos).
+- **`birthday` NÃO existe no banco** → ContactBirthdayPanel está funcionalmente inerte (filtra campo que nunca vem). Decidir: criar coluna, mapear de `metadata`, ou remover o painel.
+
+### Ratchets
+| escopo | antes | depois |
+|---|---|---|
+| src/components | 124 | **105** |
+| src/pages | 40 | **36** |
+
+### Próximo batch W3 (cauda)
+AdminChannelsPage (6), HmacSelfTestPage (6), OmnichannelManager (5) + demais ≤4.
