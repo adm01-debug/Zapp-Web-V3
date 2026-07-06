@@ -46,7 +46,7 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
 
       const messageIds = messages.map(m => m.id);
       
-      const { data: allReceipts, error: recError } = await supabase
+      const { data: allReceipts, error: recError } = await (supabase as any) /* TS2589: schema 678 */
         .from('team_message_receipts')
         .select(`
           status,

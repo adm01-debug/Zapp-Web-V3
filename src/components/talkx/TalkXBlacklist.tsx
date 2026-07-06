@@ -55,7 +55,7 @@ export function TalkXBlacklist() {
   const { data: blacklist = [], isLoading } = useQuery({
     queryKey: ['talkx-blacklist'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('talkx_blacklist')
         .select('*, contacts:contact_id(name, phone, company, avatar_url)')
         .order('created_at', { ascending: false });

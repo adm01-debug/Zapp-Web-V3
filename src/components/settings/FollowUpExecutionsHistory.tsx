@@ -20,7 +20,7 @@ export function FollowUpExecutionsHistory() {
   const { data: executions = [], isLoading } = useQuery({
     queryKey: ['followup-executions'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('followup_executions')
         .select('*, sequence:followup_sequences(name), contact:contacts(name, phone)')
         .order('created_at', { ascending: false })

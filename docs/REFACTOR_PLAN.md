@@ -164,3 +164,28 @@ Gera do **postgres-meta vivo** do stack (http interno, porta 8080) com dois pós
 - `useKnowledgeBaseSearch`: RPC retorna `rank` + `tags` agregada — shape local preservado via conversão explícita
 
 ### Gates: tsc 0 (628→0) · parity 20/20 · dead-code ✅ · eslint 0 errors · role temporário de introspecção dropado
+
+## Sessão 2026-07-07 — Sentinela de drift + W3 batch-3 + campanha TS2589
+
+### 🛰️ Sentinela de drift de schema (melhoria 1% da sessão anterior, entregue)
+- `ops.fn_schema_fingerprint()`: md5 determinístico de colunas(public) + constraints f/p dos schemas cobertos pelo types (public,zapp,evo,email_app,vendas,financeiro,ai,bpm). **Lição**: connames duplicados entre schemas (partições espelhadas em `archive`) causavam empate no ORDER BY → hash instável; fix = chave de ordenação única (nspname, relação, conname) + escopo fechado. Validado: 5 medições = 1 hash.
+- `ops.types_sync_state` (single-row) + `ops.check_types_sync()` integrado ao `run_all_checks` (**24 checks**).
+- Cron `types-drift-weekly` (seg 10:00 BRT) loga em `ops.schema_drift_log` (kind=types_sync) com a action de regeneração.
+- `gen-types.mjs` fecha o loop: ao rodar, marca o schema como sincronizado.
+- Teste adversarial: drift simulado → WARN detectado → restaurado → OK ✅.
+- **Validação de campo**: o auto-ratchet (PR #241) estreou no merge da #243 — commit `40822f555` do ratchet-bot apertou o baseline sozinho.
+
+### 🔧 W3 batch-3 — 3 extrações (protocolo §4b, fingerprint-parity)
+| Origem | Hook | Nota |
+|---|---|---|
+| OmnichannelManager (237L) | hooks/omnichannel/useOmnichannelChannels | parity 4/4; ChannelType → union no data-layer |
+| HmacSelfTestPage (454L) | hooks/admin/useHmacSelfTest | cast-workaround de hmac_selftest_audit removido (regen #243) — a query ficou *visível* ao fingerprinter (extra esperado, runtime idêntico) |
+| AdminChannelsPage (536L) | hooks/admin/useAdminChannels | 4 casts de RPC removidos (Functions tipadas); save/runAction retornam boolean p/ resets no call-site |
+
+### ⚔️ Campanha TS2589 (schema 678 × inferência profunda)
+Embeds aninhados estouram a instanciação do compilador. Fixes: casts pontuais comentados; varreduras preventivas (7+12 arquivos) + **slayer automatizado** (loop tsc→patch em bg) exterminou a cauda (useSalesPipeline, QueueDetails). tsc final: **0**.
+
+### 📏 Correção de instrumento no ratchet
+O parser contava só `supabase.from` — casts `(supabase as any).from` (inclusive legados pré-sessão: useConnectionsActions ×4, TeamFiles ×3…) eram invisíveis. Regex ampliado; **baseline recalibrado para a contagem verdadeira**: components 105 · pages 64 · features 263 · hooks 323 (total 755). A série histórica anterior subcontava — este é o novo marco honesto.
+
+### Gates: tsc 0 · build ✅ · parity 20/20 · eslint 0 · dead-code ✅

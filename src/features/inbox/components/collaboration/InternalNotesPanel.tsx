@@ -21,7 +21,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const { data: notes, isLoading } = useQuery({
     queryKey: ['internal-notes', contactId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('contact_notes')
         .select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
         .eq('contact_id', contactId)

@@ -69,7 +69,7 @@ export const useQueuesQuery = () =>
   useQuery({
     queryKey: ['dashboard-queues'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('queues')
         .select(`id, name, color, queue_members (profile_id, is_active, profiles (id, is_active))`)
         .eq('is_active', true);

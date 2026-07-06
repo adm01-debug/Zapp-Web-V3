@@ -97,4 +97,6 @@ out = out.replace(/keyof DefaultSchema\["Tables"\]\s*$/gm, 'keyof (DefaultSchema
          .replace(/DefaultSchema\["Tables"\]\[(TableName|DefaultSchemaTableNameOrOptions)\] extends \{\s*\n(\s*)Insert: infer I/g, '(DefaultSchema["Tables"] & DefaultSchema["Views"])[$1] extends {\n$2Insert: infer I')
          .replace(/DefaultSchema\["Tables"\]\[(TableName|DefaultSchemaTableNameOrOptions)\] extends \{\s*\n(\s*)Update: infer U/g, '(DefaultSchema["Tables"] & DefaultSchema["Views"])[$1] extends {\n$2Update: infer U');
 writeFileSync('src/integrations/supabase/types.ts', out);
+// fecha o loop do sentinel: marca o schema atual como sincronizado com o types.ts recém-gerado
+await q("INSERT INTO ops.types_sync_state (id, fingerprint, notes) VALUES (1, ops.fn_schema_fingerprint(), 'gen-types.mjs') ON CONFLICT (id) DO UPDATE SET fingerprint=EXCLUDED.fingerprint, captured_at=now(), notes=EXCLUDED.notes").catch(e=>console.warn('sentinel não atualizado:',e.message));
 console.log(`✅ types.ts: ${L.length} linhas | never→Row: ${fixedNever} (views: ${insteadOf.join(',')}) | relationships injetados: ${injectedRels}`);

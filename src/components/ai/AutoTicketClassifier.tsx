@@ -51,7 +51,7 @@ export function AutoTicketClassifier() {
     setLoading(true);
     try {
       // Fetch AI-tagged contacts
-      const { data: tags, error } = await supabase
+      const { data: tags, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('ai_conversation_tags')
         .select('*, contacts(name, phone)')
         .order('created_at', { ascending: false })

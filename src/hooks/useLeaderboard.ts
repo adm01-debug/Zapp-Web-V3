@@ -28,7 +28,7 @@ export function useLeaderboard() {
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const { data: stats, error } = await supabase
+      const { data: stats, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('agent_stats')
         .select(`*, profiles:profile_id (id, name, avatar_url, is_active)`)
         .order('xp', { ascending: false })

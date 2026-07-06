@@ -33,7 +33,7 @@ export default function AdminSecurityLogsPage() {
   useEffect(() => {
     let mounted = true;
     const fetchLogs = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('security_audit_logs')
         .select(`
           *,

@@ -29,7 +29,7 @@ export function useRolesPageState() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any) /* TS2589: schema 678 */
       .from('user_roles')
       .select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`)
       .order('role');

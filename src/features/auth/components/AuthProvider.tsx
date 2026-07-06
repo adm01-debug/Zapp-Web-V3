@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: perms } = await supabase
+      const { data: perms } = await (supabase as any) /* TS2589: schema 678 */
         .from('role_permissions')
         .select('permissions(name)')
         .in('role', roleNames as never);

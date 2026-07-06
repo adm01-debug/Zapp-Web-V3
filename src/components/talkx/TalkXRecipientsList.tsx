@@ -23,7 +23,7 @@ export function TalkXRecipientsList({ campaignId }: Props) {
   const { data: recipients = [], isLoading } = useQuery({
     queryKey: ['talkx-recipients-list', campaignId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('talkx_recipients')
         .select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)')
         .eq('campaign_id', campaignId)

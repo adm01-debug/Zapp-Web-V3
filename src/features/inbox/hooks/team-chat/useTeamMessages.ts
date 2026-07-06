@@ -24,7 +24,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
     queryFn: async ({ pageParam }) => {
       if (!conversationId) return { messages: [], nextCursor: null };
       
-      let query = supabase
+      let query = (supabase as any) /* TS2589: schema 678 */
         .from('team_messages')
         .select('*, sender:profiles!team_messages_sender_id_fkey(id, name, avatar_url)')
         .eq('conversation_id', conversationId)

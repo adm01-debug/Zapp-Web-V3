@@ -44,7 +44,7 @@ export default function QueueDetails() {
       if (queueError) throw queueError;
       setQueue(queueData);
 
-      const { data: membersData } = await supabase.from('queue_members').select('id, profile_id, profile:profiles(name, avatar_url, is_active)').eq('queue_id', id);
+      const { data: membersData } = await (supabase as any) /* TS2589: schema 678 */.from('queue_members').select('id, profile_id, profile:profiles(name, avatar_url, is_active)').eq('queue_id', id);
       setMembers(membersData as unknown as QueueMember[]);
 
       const { data: contactsData } = await dbFrom('contacts').select('id, name, phone, avatar_url, assigned_to, created_at').eq('queue_id', id).order('created_at', { ascending: false }).limit(50);

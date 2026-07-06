@@ -20,7 +20,7 @@ const ROOT = process.cwd();
 const BASELINE_PATH = join(ROOT, 'scripts', 'data-layer-baseline.json');
 const UPDATE = process.argv.includes('--update-baseline');
 const LAYERS = ['src/components', 'src/pages', 'src/features', 'src/hooks'];
-const CALL_RE = /supabase\s*\.\s*from\s*\(/g;
+const CALL_RE = /supabase(\s+as\s+any\)\s*(?:\/\*[^*]*\*\/)?)?\s*\n?\s*\.from\(/g; // conta supabase.from e (supabase as any).from — casts TS2589 não escapam do ratchet
 
 function countLayer(dir) {
   let count = 0;

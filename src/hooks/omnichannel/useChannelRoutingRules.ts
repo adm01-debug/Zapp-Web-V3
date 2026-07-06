@@ -29,7 +29,7 @@ export function useChannelRoutingRules() {
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ['channel-routing-rules'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('channel_routing_rules')
         .select('*, queue:queues(name), channel_connection:channel_connections_safe(name)')
         .order('priority', { ascending: true });

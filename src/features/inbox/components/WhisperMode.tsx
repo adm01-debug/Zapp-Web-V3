@@ -43,7 +43,7 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
     queryKey: ['whispers', contactId],
     queryFn: async () => {
       if (!contactIsUUID) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
         .from('whisper_messages')
         .select('*, sender:profiles!whisper_messages_sender_id_fkey(name, avatar_url)')
         .eq('contact_id', contactId)

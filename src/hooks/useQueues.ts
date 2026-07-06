@@ -54,7 +54,7 @@ export function useQueues() {
       if (queuesError) throw queuesError;
 
       // Fetch queue members with profiles
-      const { data: membersData, error: membersError } = await supabase
+      const { data: membersData, error: membersError } = await (supabase as any) /* TS2589: embed profiles c/ schema 678 */
         .from('queue_members')
         .select(`
           *,
