@@ -43,7 +43,7 @@ import { useChatDragAndDrop } from './chat/hooks/useChatDragAndDrop';
 import { ChatTemplatesOverlay } from './chat/ChatTemplatesOverlay';
 import { ChatMonitoringDialog } from './chat/ChatMonitoringDialog';
 import { ChatPanelOverlays } from './chat/ChatPanelOverlays';
-import { useChatAutoScroll } from './chat/hooks/useChatAutoScroll';
+import { useChatAutoScroll } from '../hooks/useChatAutoScroll';
 import { useTransferConversation } from '@/features/inbox/hooks/useTransferConversation';
 import { useInboxShortcuts } from '@/features/inbox/hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -152,17 +152,11 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
   // Monitora atraso na entrega (SLA Delivery)
   useSLADelivery({ contactId: conversation.contact.id, messages });
 
-  const lastMsgIdRef = useRef<string | null>(null);
+  const { bindScrollListener } = useChatAutoScroll({ messages, isContactTyping, messagesAreaRef });
   useEffect(() => {
-    const lastId = messages[messages.length - 1]?.id ?? null;
-    // Only auto-scroll when a new message was appended at the end (not when older ones were prepended)
-    if (lastId !== lastMsgIdRef.current) {
-      lastMsgIdRef.current = lastId;
-      messagesAreaRef.current?.scrollToBottom();
-    } else if (isContactTyping) {
-      messagesAreaRef.current?.scrollToBottom();
-    }
-  }, [messages, isContactTyping]);
+    const el = messagesAreaRef.current?.getScrollContainer();
+    return el ? bindScrollListener(el) : undefined;
+  }, [bindScrollListener, conversation.id]);
 
   useInboxShortcuts({
     onSearchFocus: () => {
@@ -314,11 +308,13 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
           setFailuresOnly={setFailuresOnly}
         />
 
-        <SectionErrorBoundary sectionName="NextBestAction">
-          <Suspense fallback={null}>
-            <NextBestActionEngine contactId={conversation.contact.id} contactName={conversation.contact.name} />
-          </Suspense>
-        </SectionErrorBoundary>
+        <ChatPanelOverlays
+          contactId={conversation.contact.id}
+          contactName={conversation.contact.name}
+          showVisualValidation={dialogs.visualValidation}
+          onCloseVisualValidation={() => closeDialog('visualValidation')}
+          showWhisper={dialogs.whisper}
+        />
 
         <ChatMessagesArea ref={messagesAreaRef} messages={visibleMessages} isContactTyping={isContactTyping} typingUserName={typingUsers[0]?.name || conversation.contact.name}
           ttsLoading={ttsLoading} ttsPlaying={ttsPlaying} ttsMessageId={ttsMessageId} instanceName={instanceName}
@@ -334,14 +330,6 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
 
         <ChatQuickRepliesPopover show={dialogs.quickReplies} replies={filteredQuickReplies} onSelect={handleQuickReply} onClose={() => closeDialog('quickReplies')} selectedIndex={selectedQuickReplyIndex} />
 
-        <AnimatePresence>
-          {dialogs.visualValidation && (
-            <SectionErrorBoundary sectionName="VisualValidation">
-              <Suspense fallback={null}>
-                <VisualValidationChecklist onClose={() => closeDialog('visualValidation')} />
-              </Suspense>
-            </SectionErrorBoundary>
-          )}
         </AnimatePresence>
 
         {dialogs.whisper && (
