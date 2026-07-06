@@ -189,3 +189,29 @@ Embeds aninhados estouram a instanciação do compilador. Fixes: casts pontuais 
 O parser contava só `supabase.from` — casts `(supabase as any).from` (inclusive legados pré-sessão: useConnectionsActions ×4, TeamFiles ×3…) eram invisíveis. Regex ampliado; **baseline recalibrado para a contagem verdadeira**: components 105 · pages 64 · features 263 · hooks 323 (total 755). A série histórica anterior subcontava — este é o novo marco honesto.
 
 ### Gates: tsc 0 · build ✅ · parity 20/20 · eslint 0 · dead-code ✅
+
+## Sessão 2026-07-07 (tarde) — Alerta WhatsApp p/ drift + W3 batch-4
+
+### 📱 Drift de schema → push WhatsApp (melhoria 1% da sessão anterior entregue)
+**Cadeia completa**: `types-drift-weekly` (cron pg_cron seg 13:00 UTC, jobid 126, dono `postgres`) →
+insere em `evo.evolution_alerts` (severity=critical, alert_type=types_schema_drift) →
+`ops-notify-critical-alerts` (cron existente) → WhatsApp do time.
+
+**Lições de guerra críticas desta implementação**:
+- `evo.evolution_alerts.resolved` é **coluna gerada** (`resolved_at IS NOT NULL`) — UPDATE SET resolved=... = 400. Solução: UPDATE SET resolved_at=now(), resolved_by=...
+- O cron `types-drift-weekly` foi criado inicialmente como `supabase_admin` (dono pelo meta). pg_cron exige que o dono rodado execute com permissões suficientes → job migrado para `postgres` (via unschedule + schedule via MCP supabase).
+- `ops.fn_schema_fingerprint()` v4 (final): usa **pg_catalog puro** (sem `regclass::text`) para invariância entre roles — `regclass::text` resolve schema_search_path → mesmo objeto = strings diferentes dependendo do role observador. 5 medições × 2 roles = 1 hash. Fingerprint atual: `bf56d1b14083...`
+- Deduplicação robusta no INSERT: `WHERE NOT EXISTS (SELECT 1 FROM evo.evolution_alerts WHERE alert_type=... AND coalesce(resolved,false)=false)`
+- **Smoke test completo**: simula drift → insere alerta → dedup (2ª exec = 0 rows) → restaura schema → auto-resolve via SET resolved_at → alertas_abertos=0 ✅
+
+### 🔧 W3 batch-4 — 2 extrações
+| Origem | Hook | Correções de produção reveladas |
+|---|---|---|
+| AdminAutomationsPage (731L) | hooks/admin/useAdminAutomations | **Payload com colunas fantasmas** (priority/cooldown_seconds/channel_id/department_id não existem na view) — save quebrava com PostgREST 400 em produção, silenciado pelos casts. **adjustPriority corrompia trigger_count** (métrica real de execuções) com valores de campo inexistente. Ambos documentados em REFACTOR_PLAN como decisões de produto pendentes. |
+| DepartmentsPage (382L) | hooks/admin/useDepartmentsAdmin | Casts removidos (types #243). save/removeDepartment → boolean p/ resets no call-site. |
+
+**Ratchet**: pages **64 → 51** (−13 calls em 1 batch!) · tsc 0 · build 1m07s · parity 20/20 · eslint 0 · dead-code ✅
+
+### 📋 Decisões de produto pendentes (documentadas, lado do usuário)
+1. `automations`: criar colunas `priority`, `cooldown_seconds`, `channel_id`, `department_id` na view (e nas tabelas base) — ou remover os campos da UI de edição
+2. `automations`: setas de prioridade removidas (corrupção ativa de `trigger_count`); redesenhar UX quando a coluna `priority` existir no banco
