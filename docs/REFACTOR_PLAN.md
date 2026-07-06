@@ -137,3 +137,30 @@ Ofensores restantes (informativo): distribuídos em cauda longa (≤5 calls/arqu
 
 ### Próximo batch W3 (cauda)
 AdminChannelsPage (6), HmacSelfTestPage (6), OmnichannelManager (5) + demais ≤4.
+
+## Sessão 2026-07-06 (madrugada) — Regeneração de types.ts (melhoria estrutural #1)
+
+**Simulação: SIM O (drift-audit: 8.704 comparações de coluna) · SIM P (tsc empírico, 8 rodadas) · SIM Q (estratégia de geração no self-hosted).**
+
+### O problema
+`types.ts` conhecia **156 entidades / contacts com 26 colunas**; o banco real tem **678 entidades / contacts com 50 colunas** — quase metade do schema invisível para o TypeScript.
+
+### A solução — `scripts/gen-types.mjs` (ferramenta permanente)
+Gera do **postgres-meta vivo** do stack (http interno, porta 8080) com dois pós-processos evidence-based:
+1. **INSTEAD OF never→Row**: information_schema marca colunas de views como não-updatable mesmo com triggers INSTEAD OF; consultamos `pg_trigger` e restauramos os tipos reais (52 colunas em app_notifications/contacts/conversation_pins/messages).
+2. **Relationships em views**: PostgREST resolve embeds via FKs das tabelas base (mapeamento view→base via `pg_depend/pg_rewrite`); injetamos **3.267 relationships** equivalentes para os embeds tiparem.
+3. Helpers `TablesInsert/TablesUpdate` estendidos para cobrir Views (escrevemos em views por design — ADR-001).
+
+### Lição de guerra
+`/query` do meta serializa arrays PG como string (`"{col}"`) — relationships com `columns` malformado envenenam a inferência global do client (**628 erros em cascata**). Fix: `to_jsonb()`. Teste binário de isolamento identificou a causa.
+
+### 🐛 Bugs runtime REAIS que o types velho escondia (corrigidos)
+- `useAdminData`: insert em user_roles sem `role_key`/`workspace_id` (NOT NULL sem default) — **falhava em produção**
+- `RateLimitConfigPanel`: seed sem `block_duration_minutes` — tabela está vazia porque o seed nunca funcionou
+- `ForgotPassword`: insert sem `status`
+
+### 📋 Decisões de produto registradas
+- `useTags`: a entidade `tags` no schema atual é ponte contato↔tag (exige contact_id/tag_name); criação de tag-catálogo precisa de definição (cast preserva comportamento até lá)
+- `useKnowledgeBaseSearch`: RPC retorna `rank` + `tags` agregada — shape local preservado via conversão explícita
+
+### Gates: tsc 0 (628→0) · parity 20/20 · dead-code ✅ · eslint 0 errors · role temporário de introspecção dropado

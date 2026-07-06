@@ -109,7 +109,7 @@ export function useMediaLibrary(type: MediaType) {
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from(type).select('*').order('created_at', { ascending: false }).limit(1000);
+      const { data, error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.select('*').order('created_at', { ascending: false }).limit(1000);
       if (error) { log.error(`Error fetching ${type}:`, error); toast.error(`Erro ao carregar ${type === 'stickers' ? 'figurinhas' : type === 'audio_memes' ? 'áudios' : 'emojis'}`); }
       setItems((data as MediaItem[]) || []);
     } catch (err) { log.error(`Unexpected error fetching ${type}:`, err); setItems([]); }
@@ -131,7 +131,7 @@ export function useMediaLibrary(type: MediaType) {
   const handleToggleFavorite = async (item: MediaItem) => {
     const newValue = !item.is_favorite;
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_favorite: newValue } : i));
-    const { error } = await supabase.from(type).update({ is_favorite: newValue }).eq('id', item.id);
+    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ is_favorite: newValue }).eq('id', item.id);
     if (error) { setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_favorite: !newValue } : i)); toast.error('Erro ao atualizar favorito'); }
   };
 
@@ -146,7 +146,7 @@ export function useMediaLibrary(type: MediaType) {
     if (toDelete.length === 0) return;
     for (const item of toDelete) { await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url); }
     const ids = [...selected];
-    const { error } = await supabase.from(type).delete().in('id', ids);
+    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.delete().in('id', ids);
     if (error) { toast.error('Erro ao excluir itens'); return; }
     setItems(prev => prev.filter(i => !selected.has(i.id)));
     setSelected(new Set());
@@ -158,7 +158,7 @@ export function useMediaLibrary(type: MediaType) {
     if (ids.length === 0) return;
     const oldItems = items.filter(i => selected.has(i.id)).map(i => ({ id: i.id, category: i.category }));
     setItems(prev => prev.map(i => selected.has(i.id) ? { ...i, category: newCategory } : i));
-    const { error } = await supabase.from(type).update({ category: newCategory }).in('id', ids);
+    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ category: newCategory }).in('id', ids);
     if (error) { setItems(prev => prev.map(i => { const old = oldItems.find(o => o.id === i.id); return old ? { ...i, category: old.category } : i; })); toast.error('Erro ao alterar categorias'); return; }
     toast.success(`${ids.length} itens movidos para "${newCategory}"`);
   };
@@ -174,7 +174,7 @@ export function useMediaLibrary(type: MediaType) {
         const body = type === 'audio_memes' ? { audio_url: item.audio_url || '', file_name: item.name || '' } : { image_url: item.image_url || '' };
         const { data, error } = await supabase.functions.invoke(fnName, { body });
         if (data?.category && data.category !== item.category) {
-          const { error } = await supabase.from(type).update({ category: data.category }).eq('id', item.id);
+          const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ category: data.category }).eq('id', item.id);
           if (!error) { setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: data.category } : i)); updated++; }
           else errors++;
         }
@@ -189,7 +189,7 @@ export function useMediaLibrary(type: MediaType) {
   const handleSingleCategoryChange = async (item: MediaItem, newCategory: string) => {
     const oldCategory = item.category;
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: newCategory } : i));
-    const { error } = await supabase.from(type).update({ category: newCategory }).eq('id', item.id);
+    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ category: newCategory }).eq('id', item.id);
     if (error) { setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: oldCategory } : i)); toast.error('Erro ao alterar categoria'); }
   };
 
@@ -198,7 +198,7 @@ export function useMediaLibrary(type: MediaType) {
     if (!trimmed) { toast.error('O nome não pode ser vazio'); return; }
     const oldName = item.name;
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, name: trimmed } : i));
-    const { error } = await supabase.from(type).update({ name: trimmed }).eq('id', item.id);
+    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ name: trimmed }).eq('id', item.id);
     if (error) { setItems(prev => prev.map(i => i.id === item.id ? { ...i, name: oldName } : i)); toast.error('Erro ao renomear'); return; }
     setEditingId(null);
     toast.success('Nome atualizado');
@@ -206,7 +206,7 @@ export function useMediaLibrary(type: MediaType) {
 
   const handleDelete = async (item: MediaItem) => {
     await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
-    const { error } = await supabase.from(type).delete().eq('id', item.id);
+    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.delete().eq('id', item.id);
     if (error) { toast.error('Erro ao excluir item'); return; }
     setItems(prev => prev.filter(i => i.id !== item.id));
     toast.success('Item excluído');

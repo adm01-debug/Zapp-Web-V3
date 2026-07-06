@@ -60,6 +60,7 @@ export default function ForgotPassword() {
           reason: reason || null,
           ip_address: null, // Could get from an API if needed
           user_agent: navigator.userAgent,
+          status: 'pending', // NOT NULL sem default no schema
         });
 
       if (insertError) throw insertError;

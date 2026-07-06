@@ -66,7 +66,7 @@ export function useAdminQueues() {
     setLoading(true);
     const [q, m, s, p, d, c, cq] = await Promise.all([
       (supabase as any).from('queues').select("*").order("priority", { ascending: false }),
-      supabase.from('queue_members').select("id,queue_id,profile_id,profile:profiles(id,name,avatar_url)"),
+      (supabase as any).from('queue_members').select("id,queue_id,profile_id,profile:profiles(id,name,avatar_url)") /* TS2589 c/ schema 678 entidades */,
       supabase.from('queue_skill_requirements').select("*"),
       supabase.from('profiles').select("id,name,avatar_url").eq("is_active", true).order("name"),
       supabase.from('departments').select("id,name").order("name"),

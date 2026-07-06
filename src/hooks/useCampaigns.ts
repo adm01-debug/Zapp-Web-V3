@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database, Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
-type CampaignRow = Database['public']['Tables']['campaigns']['Row'];
-type CampaignInsert = Database['public']['Tables']['campaigns']['Insert'];
-type CampaignUpdate = Database['public']['Tables']['campaigns']['Update'];
+type CampaignRow = Tables<'campaigns'>;
+type CampaignInsert = TablesInsert<'campaigns'>;
+type CampaignUpdate = TablesUpdate<'campaigns'>;
 
 export type Campaign = CampaignRow & {
   target_filter: Record<string, unknown> | null;
