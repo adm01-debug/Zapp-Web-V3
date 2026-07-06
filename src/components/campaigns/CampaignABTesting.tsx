@@ -44,7 +44,7 @@ export function CampaignABTesting({ campaignId }: CampaignABTestingProps) {
       .eq('campaign_id', campaignId)
       .order('created_at');
     if (data) {
-      const typedVariants: ABVariant[] = (data as any[]).map(v => ({
+      const typedVariants: ABVariant[] = data.map(v => ({
         ...v,
         send_count: v.send_count || 0,
         delivered_count: v.delivered_count || 0,
