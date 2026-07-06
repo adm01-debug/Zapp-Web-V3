@@ -21,6 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { AlertInstanceDetailDialog } from '@/features/admin';
+import { formatDateTimeCompact } from '@/lib/formatters';
 
 interface AlertRow {
   id: string;
@@ -48,10 +49,6 @@ const STATUS = [
   { value: 'resolved', label: 'Resolvidos' },
 ] as const;
 
-function formatDate(iso: string | null) {
-  if (!iso) return '—';
-  try { return format(new Date(iso), 'dd/MM HH:mm:ss', { locale: ptBR }); } catch { return iso; }
-}
 
 function TypeBadge({ type }: { type: string }) {
   const lower = type.toLowerCase();
@@ -297,7 +294,7 @@ export default function AdminAlertHistoryPage() {
                     className={cn(!resolved && 'bg-warning/5', 'cursor-pointer hover:bg-muted/50')}
                     onClick={() => setDetailInstance(row.source ?? null)}
                   >
-                    <TableCell className="whitespace-nowrap text-xs">{formatDate(row.created_at)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">{formatDateTimeCompact(row.created_at)}</TableCell>
                     <TableCell><TypeBadge type={row.alert_type} /></TableCell>
                     <TableCell className="font-medium text-sm">{row.title}</TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-md truncate" title={row.message}>{row.message}</TableCell>
@@ -306,7 +303,7 @@ export default function AdminAlertHistoryPage() {
                       {resolved ? (
                         <Badge variant="outline" className="text-[10px] gap-1 bg-success/10 text-success border-success/30">
                           <CheckCircle2 className="w-3 h-3" />
-                          Resolvido · {formatDate(row.resolved_at)}
+                          Resolvido · {formatDateTimeCompact(row.resolved_at)}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-[10px] gap-1 bg-warning/10 text-warning border-warning/30">

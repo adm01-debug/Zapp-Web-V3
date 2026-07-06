@@ -1,12 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
+import type { QuickReply } from '@/types/chat';
 
-interface QuickReply {
-  id: string;
-  shortcut: string;
-  title: string;
-  content: string;
-  category: string;
-}
 
 interface Params {
   inputValue: string;

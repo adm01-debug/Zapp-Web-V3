@@ -39,14 +39,18 @@ dados pulverizado em camadas de UI e (c) tipos/utils de domínio duplicados.
 | D | Este plano (`docs/REFACTOR_PLAN.md`) | Roadmap versionado |
 | E | Ratchet `scripts/check-data-layer.mjs` + `npm run check:datalayer` (baseline `data-layer-baseline.json`) | Teto congelado: components 212 / pages 50 / features 220 / hooks 230. Só pode cair. |
 
-## 3. Roadmap — próximas ondas (prioridade por impacto × risco)
+## 2b. Status de execução (atualizado 2026-07-06, mesma sessão)
 
-### Wave 2 — Triagem da allowlist de código morto (risco baixo)
-Os 51 arquivos em `scripts/dead-code-allowlist.txt` não têm importador, mas o
-basename aparece em strings/comentários. Triagem manual: deletar, reconectar ou
-justificar em comentário na própria allowlist. Meta: allowlist ≤ 10.
-Inclui decidir os primitivos não usados de `src/components/ui/` (hoje excluídos
-do guard por dependência do `generate-component-registry`).
+| Onda | Status | Resultado |
+|---|---|---|
+| Fase 0 — Simulação adversarial | ✅ | 1.326 cenários (grafo 51+arestas, 894 exec de paridade, 35 tipos, 346 call-sites). Preveniu 2 quebras (lib/mcp, __mocks__). |
+| Wave 2 — Triagem allowlist | ✅ **superada** | 158 mortos removidos em cascata (6 iterações); allowlist final = 2 itens justificados (meta era ≤10) |
+| Wave 5 — Utils canônicos | ✅ (grupos comprovados) | 3 canônicas + 20 testes de paridade permanentes. Famílias divergentes documentadas — NÃO forçar. |
+| Wave 4 — Tipos canônicos | ✅ (shapes idênticos) | QuickReply 4→1, ChatMessage-AI 4→1. Contact×9/Profile×6 divergem: exigem adapters (backlog). |
+| Wave 6 — Convergência | 🟡 parcial | Pasta tripla de testes eliminada (src/tests removida). Migração components/→features/ = programa dedicado. |
+| Wave 3 — Data layer | 🟡 blueprint + ratchet v2 | useMetaCapi = padrão-referência (componente 0 refs supabase). Total 712→659. Guard v2: hard-fail UI + teto global. |
+
+## 3. Roadmap — próximas ondas (prioridade por impacto × risco)
 
 ### Wave 3 — Camada de dados por domínio (maior impacto)
 Extrair as 262 chamadas de components+pages para hooks/services por domínio,
@@ -55,8 +59,7 @@ seguindo o padrão já existente em `features/*/hooks`:
 2. Query/mutation vive em `@/features/<dominio>/hooks` (React Query) ou
    `@/features/<dominio>/services` para lógica sem estado de UI.
 3. A cada PR: `node scripts/check-data-layer.mjs --update-baseline` para apertar o ratchet.
-Ordem sugerida (maiores ofensores primeiro): `pages/admin/*`, `components/contacts/*`,
-`components/settings/*`. Meta de saída: components=0, pages=0.
+Blueprint pronto: `src/hooks/meta-capi/useMetaCapi.ts`. Ordem por ofensores (SIM D): SalesPipelineView(10), AdminQueuesPage(9), EvolutionApiIntegrationView(8), SkillBasedRoutingSettings(8), DepartmentManagementDialog(7). Meta de saída: components=0, pages=0.
 
 ### Wave 4 — Tipos canônicos de domínio (risco médio)
 Criar `src/types/domain/` (ou expandir `src/types/`) com `Contact`, `ChatMessage`,

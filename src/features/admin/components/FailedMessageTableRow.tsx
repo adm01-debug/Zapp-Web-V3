@@ -12,6 +12,7 @@ import {
   getRootCauseMeta,
 } from '@/lib/failureRootCause';
 import { FailedMessageRow } from '@/features/admin';
+import { formatDateTimeCompact } from '@/lib/formatters';
 
 const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted', string> = {
   warning: 'bg-warning/15 text-warning-foreground border-warning/40',
@@ -20,14 +21,6 @@ const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted'
   muted: 'bg-muted text-muted-foreground border-border',
 };
 
-function formatDate(iso: string | null) {
-  if (!iso) return '—';
-  try {
-    return format(new Date(iso), "dd/MM HH:mm:ss", { locale: ptBR });
-  } catch {
-    return iso;
-  }
-}
 
 function shortJid(jid: string | null) {
   if (!jid) return '—';
@@ -135,7 +128,7 @@ export function FailedMessageTableRow({
           ? formatDistanceToNow(new Date(row.next_attempt_at), { addSuffix: true, locale: ptBR })
           : '—'}
       </TableCell>
-      <TableCell className="text-xs" data-testid="failed-message-created-at">{formatDate(row.created_at)}</TableCell>
+      <TableCell className="text-xs" data-testid="failed-message-created-at">{formatDateTimeCompact(row.created_at)}</TableCell>
       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-end gap-1">
           {row.remote_jid && (
