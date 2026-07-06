@@ -47,14 +47,23 @@ if (UPDATE || !existsSync(BASELINE_PATH)) {
 }
 
 const baseline = JSON.parse(readFileSync(BASELINE_PATH, 'utf-8')).calls;
+// Modelo v2 (Wave 3): hard-fail apenas em camadas de UI pura (components/pages).
+// hooks/features são destino legítimo de migração; o teto GLOBAL impede
+// crescimento líquido enquanto permite realocar UI -> hooks de domínio.
+const HARD_LAYERS = new Set(['src/components', 'src/pages']);
 let failed = false;
+let curTotal = 0, baseTotal = 0;
 for (const layer of LAYERS) {
   const cur = current[layer];
   const max = baseline[layer] ?? 0;
-  const status = cur > max ? '❌' : cur < max ? '⬇️ ' : '✅';
-  console.log(`${status} ${layer.padEnd(16)} ${cur} chamadas supabase.from() (teto: ${max})`);
-  if (cur > max) failed = true;
+  curTotal += cur; baseTotal += max;
+  const hard = HARD_LAYERS.has(layer);
+  const status = cur > max ? (hard ? '❌' : 'ℹ️ ') : cur < max ? '⬇️ ' : '✅';
+  console.log(`${status} ${layer.padEnd(16)} ${cur} chamadas supabase.from() (teto${hard ? '' : ' informativo'}: ${max})`);
+  if (hard && cur > max) failed = true;
 }
+console.log(`   TOTAL            ${curTotal} (teto global: ${baseTotal})`);
+if (curTotal > baseTotal) { failed = true; console.error('❌ crescimento líquido de chamadas diretas no total.'); }
 if (failed) {
   console.error('\n❌ check-data-layer: novas chamadas diretas a supabase.from() em camada de UI.');
   console.error('   Mova o acesso a dados para um hook de domínio ou service (@/features/<dominio>/hooks | services/).');
