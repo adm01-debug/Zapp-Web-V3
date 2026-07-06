@@ -84,7 +84,6 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
   // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
   const { roles: userRoles } = useUserRole();
   const isDevExact = userRoles.includes('dev');
-  const [selectedQuickReplyIndex, setSelectedQuickReplyIndex] = useState(0);
   const { dialogs, openDialog, closeDialog, toggleDialog, resetDialogs } = useChatDialogs();
   const [historyOpen, setHistoryOpen] = useState(false);
 
