@@ -101,10 +101,10 @@ export function useAdminAutomations() {
       trigger_type: editing.trigger_type,
       trigger_config: editing.trigger_config,
       actions: editing.actions,
-      // Contrato real da view public.automations (verificado no banco):
-      // priority/cooldown_seconds/channel_id/department_id NÃO existem — enviá-los
-      // causava PostgREST 400 (save quebrado em produção, escondido por casts).
-      // Decisão de produto pendente no REFACTOR_PLAN: criar as colunas ou remover a UI.
+      priority: editing.priority ?? 100,
+      cooldown_seconds: editing.cooldown_seconds ?? 300,
+      channel_id: editing.channel_id || null,
+      department_id: editing.department_id || null,
     };
     const op = editing.id
       ? supabase.from('automations').update(payload).eq("id", editing.id)
@@ -136,12 +136,14 @@ export function useAdminAutomations() {
     load();
   };
 
-  // adjustPriority REMOVIDO: gravava trigger_count (métrica real de execuções)
-  // com valores derivados de 'priority' (campo inexistente no schema) — dano ativo.
-  // Decisão de produto no REFACTOR_PLAN: criar coluna priority ou remover as setas da UI.
+  const adjustPriority = async (r: Rule, delta: number) => {
+    const newPriority = Math.min(999, Math.max(1, (r.priority ?? 100) + delta));
+    const { error } = await supabase.from('automations').update({ priority: newPriority }).eq('id', r.id);
+    if (!error) load();
+  };
 
   const channelMap = useMemo(() => Object.fromEntries(channels.map((c) => [c.id, c.name])), [channels]);
   const deptMap = useMemo(() => Object.fromEntries(departments.map((d) => [d.id, d.name])), [departments]);
 
-  return { rules, channels, departments, loading, load, save, remove, toggleActive, channelMap, deptMap };
+  return { rules, channels, departments, loading, load, save, remove, toggleActive, adjustPriority, channelMap, deptMap };
 }
