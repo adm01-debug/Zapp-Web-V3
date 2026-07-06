@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +19,7 @@ interface AuditLog {
   resource: string;
   action: string;
   status: string;
-  details: any;
+  details: unknown;
   created_at: string;
   profiles?: {
     name: string;
@@ -33,23 +34,15 @@ export default function AdminSecurityLogsPage() {
   useEffect(() => {
     let mounted = true;
     const fetchLogs = async () => {
-      const { data, error } = await supabase
-        .from('security_audit_logs')
-        .select(`
-          *,
-          profiles:user_id (
-            name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
+      const { data, error } = await safeClient.from<AuditLog>(
+        'security_audit_logs',
+        (q) => q.select('*, profiles:user_id (name, email)').order('created_at', { ascending: false }).limit(50),
+      );
       if (!mounted) return;
       if (error) {
         log.error('Error fetching audit logs', error);
       } else {
-        setLogs(data as any[]);
+        setLogs(data);
       }
       setLoading(false);
     };
@@ -63,7 +56,7 @@ export default function AdminSecurityLogsPage() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'security_audit_logs' },
         (payload) => {
-          setLogs((prev) => [payload.new as any, ...prev].slice(0, 50));
+          setLogs((prev) => [payload.new as AuditLog, ...prev].slice(0, 50));
         }
       )
       .subscribe();

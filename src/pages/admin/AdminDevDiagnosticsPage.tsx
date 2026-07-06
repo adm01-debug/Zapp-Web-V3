@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { safeClient } from "@/integrations/supabase/safeClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ type DiagnosticLog = {
   id: string;
   action: string;
   category: string;
-  details: any;
+  details: unknown;
   created_at: string;
 };
 
@@ -33,27 +33,25 @@ export default function AdminDevDiagnosticsPage() {
 
   async function loadLogs() {
     setLoading(true);
-    const { data, error } = await (supabase as any)
-      .from('dev_diagnostic_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
-
+    const { data, error } = await safeClient.from<DiagnosticLog>(
+      'dev_diagnostic_logs',
+      (q) => q.select('*').order('created_at', { ascending: false }).limit(50),
+    );
     if (error) {
       toast({ title: "Erro ao carregar logs", description: error.message, variant: "destructive" });
     } else {
-      setLogs(data || []);
+      setLogs(data);
     }
     setLoading(false);
   }
 
   async function logAccess() {
     if (!isDev) return;
-    await (supabase as any).from('dev_diagnostic_logs').insert({
+    await safeClient.from('dev_diagnostic_logs', (q) => q.insert({
       action: 'Access Dev Diagnostics',
       category: 'Audit',
-      details: { user_agent: navigator.userAgent, screen: `${window.innerWidth}x${window.innerHeight}` }
-    });
+      details: { user_agent: navigator.userAgent, screen: `${window.innerWidth}x${window.innerHeight}` },
+    }));
   }
 
   useEffect(() => {

@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, Search, AlertTriangle, CheckCircle2, Webhook, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { safeClient } from "@/integrations/supabase/safeClient";
 import { whatsapp } from "@/lib/whatsappAdapter";
 
 type ModeFilter = "all" | "official" | "unofficial";
@@ -92,39 +93,45 @@ function useWhatsAppLogs(mode: ModeFilter, search: string) {
     async function load() {
       setLoading(true);
       try {
-        // Envios
-        let sendQ = (supabase as any)
-          .from('provider_message_log')
-          .select("id,provider,instance_name,direction,remote_jid,delivery_status,http_status,error_code,error_message,received_at,delivered_at")
-          .order("received_at", { ascending: false })
-          .limit(150);
-        if (mode === "official") sendQ = sendQ.in("provider", OFFICIAL_PROVIDERS);
-        if (mode === "unofficial") sendQ = sendQ.in("provider", UNOFFICIAL_PROVIDERS);
-        if (search) sendQ = sendQ.or(`remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`);
-
-        // Webhooks Cloud (sempre busca; filtramos no client por modo)
-        const pingQ = supabase
-          .from('whatsapp_cloud_webhook_pings')
-          .select("id,kind,meta,created_at")
-          .order("created_at", { ascending: false })
-          .limit(150);
-
-        // Erros
-        let errQ = (supabase as any)
-          .from('dispatch_error_logs')
-          .select("id,instance_name,channel_type,remote_jid,error_code,error_message,http_status,retry_count,occurred_at")
-          .order("occurred_at", { ascending: false })
-          .limit(150);
-        if (mode === "official") errQ = errQ.in("channel_type", OFFICIAL_CHANNELS);
-        if (mode === "unofficial") errQ = errQ.in("channel_type", UNOFFICIAL_CHANNELS);
-        if (search) errQ = errQ.or(`remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`);
-
-        const [sR, pR, eR] = await Promise.all([sendQ, pingQ, errQ]);
+        const [sR, pR, eR] = await Promise.all([
+          safeClient.from<SendLogRow>(
+            'provider_message_log',
+            (q) => {
+              let query = q
+                .select('id,provider,instance_name,direction,remote_jid,delivery_status,http_status,error_code,error_message,received_at,delivered_at')
+                .order('received_at', { ascending: false })
+                .limit(150);
+              if (mode === 'official') query = query.in('provider', OFFICIAL_PROVIDERS);
+              if (mode === 'unofficial') query = query.in('provider', UNOFFICIAL_PROVIDERS);
+              if (search) query = query.or(`remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`);
+              return query;
+            },
+          ),
+          // Webhooks Cloud (sempre busca; filtramos no client por modo)
+          supabase
+            .from('whatsapp_cloud_webhook_pings')
+            .select('id,kind,meta,created_at')
+            .order('created_at', { ascending: false })
+            .limit(150),
+          safeClient.from<ErrorLogRow>(
+            'dispatch_error_logs',
+            (q) => {
+              let query = q
+                .select('id,instance_name,channel_type,remote_jid,error_code,error_message,http_status,retry_count,occurred_at')
+                .order('occurred_at', { ascending: false })
+                .limit(150);
+              if (mode === 'official') query = query.in('channel_type', OFFICIAL_CHANNELS);
+              if (mode === 'unofficial') query = query.in('channel_type', UNOFFICIAL_CHANNELS);
+              if (search) query = query.or(`remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`);
+              return query;
+            },
+          ),
+        ]);
         if (cancelled) return;
-        setSends((sR.data ?? []) as SendLogRow[]);
+        setSends(sR.data);
         // Webhook Cloud só faz sentido no modo oficial; no não-oficial fica vazio.
-        setPings(mode === "unofficial" ? [] : ((pR.data ?? []) as WebhookPingRow[]));
-        setErrors((eR.data ?? []) as ErrorLogRow[]);
+        setPings(mode === 'unofficial' ? [] : ((pR.data ?? []) as WebhookPingRow[]));
+        setErrors(eR.data);
       } finally {
         if (!cancelled) setLoading(false);
       }

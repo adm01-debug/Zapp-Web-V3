@@ -22,6 +22,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -125,19 +126,21 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      let q = (supabase as any)
-        .from('hmac_selftest_audit')
-        .select(
-          'id, instance, ok, duration_ms, error, message, good_accepted, tampered_rejected, created_at',
-        )
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(2000); // teto defensivo para a janela
-      if (instanceFilter !== ALL_INSTANCES) q = q.eq('instance', instanceFilter);
-      const { data, error } = await q;
+      const { data, error } = await safeClient.from<AuditRow>(
+        'hmac_selftest_audit',
+        (q) => {
+          let query = q
+            .select('id, instance, ok, duration_ms, error, message, good_accepted, tampered_rejected, created_at')
+            .gte('created_at', since)
+            .order('created_at', { ascending: false })
+            .limit(2000);
+          if (instanceFilter !== ALL_INSTANCES) query = query.eq('instance', instanceFilter);
+          return query;
+        },
+      );
       // Return empty array when table is not yet provisioned (pending migration)
       if (error) return [] as AuditRow[];
-      return (data as AuditRow[]) ?? [];
+      return data;
     },
     retry: false,
     staleTime: 5_000,
@@ -150,16 +153,14 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
   const { data: instanceOptions } = useQuery({
     queryKey: ['hmac-selftest-audit-instances', range],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('hmac_selftest_audit')
-        .select('instance')
-        .gte('created_at', since)
-        .not('instance', 'is', null)
-        .limit(1000);
+      const { data, error } = await safeClient.from<{ instance: string | null }>(
+        'hmac_selftest_audit',
+        (q) => q.select('instance').gte('created_at', since).not('instance', 'is', null).limit(1000),
+      );
       // Return empty list when table is not yet provisioned
       if (error) return [] as string[];
       const set = new Set<string>();
-      (data ?? []).forEach((r: { instance: string | null }) => {
+      data.forEach((r) => {
         if (r.instance) set.add(r.instance);
       });
       return Array.from(set).sort();
