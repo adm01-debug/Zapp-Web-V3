@@ -1,4 +1,6 @@
 // Shared helpers for Evolution API webhook and sync functions
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 
 export interface WebhookPayload {
   event: string;
