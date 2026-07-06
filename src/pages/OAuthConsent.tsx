@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
 // Minimal typed wrapper — supabase.auth.oauth is in beta and TS types may lag.
 type OAuthNs = {
-  getAuthorizationDetails: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
+  getAuthorizationDetails: (
+    id: string
+  ) => Promise<{ data: any; error: { message: string } | null }>;
   approveAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
   denyAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
 };
@@ -20,7 +22,7 @@ function oauth(): OAuthNs {
 export default function OAuthConsent() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const authorizationId = params.get("authorization_id") ?? "";
+  const authorizationId = params.get('authorization_id') ?? '';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [details, setDetails] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export default function OAuthConsent() {
     let active = true;
     (async () => {
       if (!authorizationId) {
-        setError("Parâmetro authorization_id ausente.");
+        setError('Parâmetro authorization_id ausente.');
         return;
       }
       const { data: sess } = await supabase.auth.getSession();
@@ -71,7 +73,7 @@ export default function OAuthConsent() {
     const target = data?.redirect_url ?? data?.redirect_to;
     if (!target) {
       setBusy(false);
-      setError("O servidor de autorização não retornou uma URL de redirect.");
+      setError('O servidor de autorização não retornou uma URL de redirect.');
       return;
     }
     window.location.href = target;
@@ -79,10 +81,14 @@ export default function OAuthConsent() {
 
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-md w-full">
-          <CardHeader><CardTitle>Não foi possível carregar</CardTitle></CardHeader>
-          <CardContent><p className="text-sm text-muted-foreground">{error}</p></CardContent>
+      <main className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Não foi possível carregar</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </CardContent>
         </Card>
       </main>
     );
@@ -90,31 +96,31 @@ export default function OAuthConsent() {
 
   if (!details) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-background">
+      <main className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </main>
     );
   }
 
-  const clientName = details.client?.name ?? "um aplicativo externo";
+  const clientName = details.client?.name ?? 'um aplicativo externo';
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="max-w-md w-full">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Conectar {clientName} à sua conta</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Isso permite que <strong>{clientName}</strong> use o ZAPP Web em seu nome, respeitando suas
-            permissões (RLS). Você pode revogar o acesso a qualquer momento.
+            Isso permite que <strong>{clientName}</strong> use o ZAPP Web em seu nome, respeitando
+            suas permissões (RLS). Você pode revogar o acesso a qualquer momento.
           </p>
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" disabled={busy} onClick={() => decide(false)}>
               Negar
             </Button>
             <Button disabled={busy} onClick={() => decide(true)}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aprovar"}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Aprovar'}
             </Button>
           </div>
         </CardContent>

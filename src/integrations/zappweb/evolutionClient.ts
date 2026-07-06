@@ -35,11 +35,9 @@ const DEFAULT_URL =
  * NÃO é mais lida do banco (REVOKE aplicado em 2026-07-05).
  * Para trocar a key: atualizar VITE_EVOLUTION_API_KEY no Vercel e re-deploy.
  */
-const DEFAULT_KEY =
-  (import.meta.env.VITE_EVOLUTION_API_KEY as string | undefined) || '';
+const DEFAULT_KEY = (import.meta.env.VITE_EVOLUTION_API_KEY as string | undefined) || '';
 
-const DEFAULT_INSTANCE =
-  (import.meta.env.VITE_ZAPPWEB_INSTANCE as string | undefined) || 'wpp2';
+const DEFAULT_INSTANCE = (import.meta.env.VITE_ZAPPWEB_INSTANCE as string | undefined) || 'wpp2';
 
 // ─── Cache de URL (sem credenciais) ──────────────────────────────────────
 const urlCache = new Map<string, { api_url: string; at: number }>();
@@ -75,7 +73,7 @@ const circuitBreaker = {
         log.error(
           `[evolutionClient] circuit breaker OPEN — ${
             this.THRESHOLD
-          } erros auth consecutivos. Suspenso por ${this.OPEN_MS / 60000} min.`,
+          } erros auth consecutivos. Suspenso por ${this.OPEN_MS / 60000} min.`
         );
       }
     } else {
@@ -107,7 +105,7 @@ export function stripJid(numberOrJid: string): string {
  * api_key: vem exclusivamente de VITE_EVOLUTION_API_KEY (nunca do banco).
  */
 export async function getEvolutionCredentials(
-  instance: string = DEFAULT_INSTANCE,
+  instance: string = DEFAULT_INSTANCE
 ): Promise<EvolutionCredentials> {
   // Cache de URL (sem credenciais)
   const cached = urlCache.get(instance);
@@ -143,21 +141,23 @@ export async function getEvolutionCredentials(
 async function evoFetch<T>(
   path: string,
   init: RequestInit,
-  instance: string = DEFAULT_INSTANCE,
+  instance: string = DEFAULT_INSTANCE
 ): Promise<T> {
   // Circuit breaker check
   if (circuitBreaker.isOpen()) {
     const remainingMin = Math.ceil((circuitBreaker.openUntil - Date.now()) / 60_000);
     log.warn(
-      `[evolutionClient] circuit breaker OPEN — bloqueando chamada. Abre em ~${remainingMin}min.`,
+      `[evolutionClient] circuit breaker OPEN — bloqueando chamada. Abre em ~${remainingMin}min.`
     );
-    throw new Error(`Evolution API temporariamente suspensa (circuit breaker aberto). Aguarde ${remainingMin} minutos.`);
+    throw new Error(
+      `Evolution API temporariamente suspensa (circuit breaker aberto). Aguarde ${remainingMin} minutos.`
+    );
   }
 
   const creds = await getEvolutionCredentials(instance);
   if (!creds.api_key) {
     throw new Error(
-      'Evolution API key não configurada. Defina VITE_EVOLUTION_API_KEY no ambiente de deploy.',
+      'Evolution API key não configurada. Defina VITE_EVOLUTION_API_KEY no ambiente de deploy.'
     );
   }
 
@@ -190,15 +190,15 @@ async function evoFetch<T>(
 
 // ─── Mensageria ──────────────────────────────────────────────────────────
 
-export async function sendText(
-  number: string,
-  text: string,
-  instance: string = DEFAULT_INSTANCE,
-) {
-  return evoFetch(`/message/sendText/${instance}`, {
-    method: 'POST',
-    body: JSON.stringify({ number: stripJid(number), text }),
-  }, instance);
+export async function sendText(number: string, text: string, instance: string = DEFAULT_INSTANCE) {
+  return evoFetch(
+    `/message/sendText/${instance}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ number: stripJid(number), text }),
+    },
+    instance
+  );
 }
 
 export async function sendMedia(
@@ -209,33 +209,42 @@ export async function sendMedia(
     caption?: string;
     fileName?: string;
   },
-  instance: string = DEFAULT_INSTANCE,
+  instance: string = DEFAULT_INSTANCE
 ) {
-  return evoFetch(`/message/sendMedia/${instance}`, {
-    method: 'POST',
-    body: JSON.stringify({ ...params, number: stripJid(params.number) }),
-  }, instance);
+  return evoFetch(
+    `/message/sendMedia/${instance}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ ...params, number: stripJid(params.number) }),
+    },
+    instance
+  );
 }
 
 export async function sendWhatsAppAudio(
   number: string,
   audioUrl: string,
-  instance: string = DEFAULT_INSTANCE,
+  instance: string = DEFAULT_INSTANCE
 ) {
-  return evoFetch(`/message/sendWhatsAppAudio/${instance}`, {
-    method: 'POST',
-    body: JSON.stringify({ number: stripJid(number), audio: audioUrl }),
-  }, instance);
+  return evoFetch(
+    `/message/sendWhatsAppAudio/${instance}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ number: stripJid(number), audio: audioUrl }),
+    },
+    instance
+  );
 }
 
-export async function markChatRead(
-  number: string,
-  instance: string = DEFAULT_INSTANCE,
-) {
-  return evoFetch(`/chat/markChatUnread/${instance}`, {
-    method: 'PUT',
-    body: JSON.stringify({ number: stripJid(number), unread: false }),
-  }, instance);
+export async function markChatRead(number: string, instance: string = DEFAULT_INSTANCE) {
+  return evoFetch(
+    `/chat/markChatUnread/${instance}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ number: stripJid(number), unread: false }),
+    },
+    instance
+  );
 }
 
 // ─── Status ──────────────────────────────────────────────────────────────
@@ -245,7 +254,7 @@ export async function markChatRead(
  * Guarda-se contra circuit breaker aberto — retorna 'unknown' nesse caso.
  */
 export async function getConnectionState(
-  instance: string = DEFAULT_INSTANCE,
+  instance: string = DEFAULT_INSTANCE
 ): Promise<{ state: string; source: 'api' | 'circuit_open' | 'error' }> {
   if (circuitBreaker.isOpen()) {
     return { state: 'unknown', source: 'circuit_open' };
@@ -254,7 +263,7 @@ export async function getConnectionState(
     const data = await evoFetch<{ instance?: { state?: string }; state?: string }>(
       `/instance/connectionState/${instance}`,
       { method: 'GET' },
-      instance,
+      instance
     );
     const state = data?.instance?.state ?? data?.state ?? 'unknown';
     return { state, source: 'api' };

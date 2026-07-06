@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { QuickReply } from '@/types/chat';
 
-
 interface Params {
   inputValue: string;
   dbQuickReplies: QuickReply[];
@@ -39,7 +38,7 @@ export function useChatQuickReplyControl({
     if (!inputValue.startsWith('/')) return [];
     const q = inputValue.slice(1).toLowerCase();
     return dbQuickReplies.filter(
-      (r) => r.shortcut.toLowerCase().includes(q) || r.title.toLowerCase().includes(q),
+      (r) => r.shortcut.toLowerCase().includes(q) || r.title.toLowerCase().includes(q)
     );
   }, [dbQuickReplies, inputValue]);
 
@@ -50,7 +49,7 @@ export function useChatQuickReplyControl({
       setTimeout(() => focusInput(), 10);
       incrementUseCount(reply.id);
     },
-    [setInputValue, closeQuickReplies, focusInput, incrementUseCount],
+    [setInputValue, closeQuickReplies, focusInput, incrementUseCount]
   );
 
   const handleKeyDown = useCallback(
@@ -80,7 +79,15 @@ export function useChatQuickReplyControl({
       }
       baseHandleKeyDown(e, slashCommandsOpen);
     },
-    [quickRepliesOpen, filtered, selectedIndex, handleQuickReply, closeQuickReplies, baseHandleKeyDown, slashCommandsOpen],
+    [
+      quickRepliesOpen,
+      filtered,
+      selectedIndex,
+      handleQuickReply,
+      closeQuickReplies,
+      baseHandleKeyDown,
+      slashCommandsOpen,
+    ]
   );
 
   const handleInputChange = useCallback(
@@ -94,7 +101,7 @@ export function useChatQuickReplyControl({
         closeQuickReplies();
       }
     },
-    [baseHandleInputChange, quickRepliesOpen, openQuickReplies, closeQuickReplies],
+    [baseHandleInputChange, quickRepliesOpen, openQuickReplies, closeQuickReplies]
   );
 
   return { filtered, selectedIndex, handleQuickReply, handleKeyDown, handleInputChange };

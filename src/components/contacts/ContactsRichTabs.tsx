@@ -26,10 +26,18 @@ interface Props {
   contactCountByType: Record<string, number>;
 }
 
-export function ContactsRichTabs({ activeTab, setActiveTab, totalCount, contactCountByType }: Props) {
+export function ContactsRichTabs({
+  activeTab,
+  setActiveTab,
+  totalCount,
+  contactCountByType,
+}: Props) {
   const typedTabs = useMemo(
-    () => TAB_ORDER.filter((k) => k !== 'all' && k !== 'duplicates' && k !== 'trash' && CONTACT_TYPE_CONFIG[k]),
-    [],
+    () =>
+      TAB_ORDER.filter(
+        (k) => k !== 'all' && k !== 'duplicates' && k !== 'trash' && CONTACT_TYPE_CONFIG[k]
+      ),
+    []
   );
 
   return (
@@ -37,7 +45,7 @@ export function ContactsRichTabs({ activeTab, setActiveTab, totalCount, contactC
       <TabsList className="h-auto flex-wrap justify-start gap-1 bg-muted/40 p-1">
         <TabsTrigger value="all" className="gap-2 data-[state=active]:bg-background">
           Todos
-          <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+          <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
             {(contactCountByType.all ?? totalCount).toLocaleString('pt-BR')}
           </Badge>
         </TabsTrigger>
@@ -51,26 +59,26 @@ export function ContactsRichTabs({ activeTab, setActiveTab, totalCount, contactC
                 {cfg?.label || key}
               </span>
               {count > 0 && (
-                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
                   {count.toLocaleString('pt-BR')}
                 </Badge>
               )}
             </TabsTrigger>
           );
         })}
-        <div className="w-px h-6 bg-border mx-1 my-auto hidden sm:block" />
+        <div className="mx-1 my-auto hidden h-6 w-px bg-border sm:block" />
         <TabsTrigger
           value="duplicates"
-          className="gap-2 data-[state=active]:bg-background text-warning-foreground hover:text-warning-foreground transition-colors"
+          className="gap-2 text-warning-foreground transition-colors hover:text-warning-foreground data-[state=active]:bg-background"
         >
-          <GitMerge className="w-3.5 h-3.5" />
+          <GitMerge className="h-3.5 w-3.5" />
           Duplicados
         </TabsTrigger>
         <TabsTrigger
           value="trash"
-          className="gap-2 data-[state=active]:bg-background text-destructive hover:text-destructive/80 transition-colors"
+          className="gap-2 text-destructive transition-colors hover:text-destructive/80 data-[state=active]:bg-background"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="h-3.5 w-3.5" />
           Lixeira
         </TabsTrigger>
       </TabsList>

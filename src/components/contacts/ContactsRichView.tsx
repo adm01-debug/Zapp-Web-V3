@@ -37,23 +37,46 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = () => {
   const { crud, highContrast, setHighContrast } = state;
 
   const {
-    contacts, totalCount, loading,
-    contactCountByType, uniqueCompanies, uniqueJobTitles, uniqueTags,
-    searchInput, handleSearchChange, clearSearch,
-    activeTab, setActiveTab,
-    filterCompany, setFilterCompany,
-    filterJobTitle, setFilterJobTitle,
-    filterTag, setFilterTag,
-    filterDateRange, setFilterDateRange,
-    sortBy, setSortBy,
-    activeFiltersCount, clearFilters,
-    showFilters, setShowFilters,
-    selectedIds, openContactChat,
-    isAddDialogOpen, setIsAddDialogOpen,
-    isEditDialogOpen, setIsEditDialogOpen, editingContact,
-    handleEditContact: _handleEditContact, openEditDialog,
-    showSuccess, setShowSuccess,
-    deleteTarget, setDeleteTarget, handleDeleteContact,
+    contacts,
+    totalCount,
+    loading,
+    contactCountByType,
+    uniqueCompanies,
+    uniqueJobTitles,
+    uniqueTags,
+    searchInput,
+    handleSearchChange,
+    clearSearch,
+    activeTab,
+    setActiveTab,
+    filterCompany,
+    setFilterCompany,
+    filterJobTitle,
+    setFilterJobTitle,
+    filterTag,
+    setFilterTag,
+    filterDateRange,
+    setFilterDateRange,
+    sortBy,
+    setSortBy,
+    activeFiltersCount,
+    clearFilters,
+    showFilters,
+    setShowFilters,
+    selectedIds,
+    openContactChat,
+    isAddDialogOpen,
+    setIsAddDialogOpen,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    editingContact,
+    handleEditContact: _handleEditContact,
+    openEditDialog,
+    showSuccess,
+    setShowSuccess,
+    deleteTarget,
+    setDeleteTarget,
+    handleDeleteContact,
   } = crud;
 
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -70,42 +93,47 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = () => {
   // Stub de CRM batch
   const getCRMData = (_phone: string) => null;
 
-  const contactsForContent: Contact[] = useMemo(
-    () => (contacts as Contact[]) ?? [],
-    [contacts],
-  );
+  const contactsForContent: Contact[] = useMemo(() => (contacts as Contact[]) ?? [], [contacts]);
 
-  const handleContactClick = useCallback((contactId: string) => {
-    const contact = contactsForContent.find((c) => c.id === contactId);
-    if (contact) setQuickViewContact(contact);
-  }, [contactsForContent]);
+  const handleContactClick = useCallback(
+    (contactId: string) => {
+      const contact = contactsForContent.find((c) => c.id === contactId);
+      if (contact) setQuickViewContact(contact);
+    },
+    [contactsForContent]
+  );
 
   const contactsForStats = useMemo(
     () => contactsForContent.map((c) => ({ created_at: c.created_at })),
-    [contactsForContent],
+    [contactsForContent]
   );
 
   const contactsForBirthday = useMemo(
-    () => contactsForContent.map((c) => ({
-      id: c.id,
-      name: c.name,
-      avatar_url: c.avatar_url,
-      birthday: null as string | null,
-    })),
-    [contactsForContent],
+    () =>
+      contactsForContent.map((c) => ({
+        id: c.id,
+        name: c.name,
+        avatar_url: c.avatar_url,
+        birthday: null as string | null,
+      })),
+    [contactsForContent]
   );
 
   const handleDeleteMany = useCallback(
-    (ids: string[]) => { ids.forEach((id) => handleDeleteContact(id)); },
-    [handleDeleteContact],
+    (ids: string[]) => {
+      ids.forEach((id) => handleDeleteContact(id));
+    },
+    [handleDeleteContact]
   );
 
   return (
-    <div className={cn(
-      'flex flex-col h-full overflow-y-auto bg-background transition-all duration-300',
-      highContrast && 'high-contrast-mode',
-    )}>
-      <div className="px-4 py-4 lg:px-6 space-y-4 max-w-[1600px] w-full mx-auto">
+    <div
+      className={cn(
+        'flex h-full flex-col overflow-y-auto bg-background transition-all duration-300',
+        highContrast && 'high-contrast-mode'
+      )}
+    >
+      <div className="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-4 lg:px-6">
         <ContactsRichHeader
           totalCount={totalCount}
           contactCountByType={contactCountByType}
@@ -233,9 +261,18 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = () => {
         contact={quickViewContact}
         isOpen={!!quickViewContact}
         onClose={() => setQuickViewContact(null)}
-        onEdit={(c) => { setQuickViewContact(null); openEditDialog(c as never); }}
-        onDelete={(c) => { setQuickViewContact(null); setDeleteTarget(c as never); }}
-        onOpenChat={(phone) => { setQuickViewContact(null); openContactChat(phone); }}
+        onEdit={(c) => {
+          setQuickViewContact(null);
+          openEditDialog(c as never);
+        }}
+        onDelete={(c) => {
+          setQuickViewContact(null);
+          setDeleteTarget(c as never);
+        }}
+        onOpenChat={(phone) => {
+          setQuickViewContact(null);
+          openContactChat(phone);
+        }}
       />
     </div>
   );

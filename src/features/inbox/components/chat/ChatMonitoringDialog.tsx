@@ -19,7 +19,7 @@ const EMPTY_METRICS = {
 export function ChatMonitoringDialog({ open, onOpenChange, metrics }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-h-[90vh] max-w-4xl">
         <DialogHeader>
           <DialogTitle>Métricas de Envio e Performance</DialogTitle>
         </DialogHeader>

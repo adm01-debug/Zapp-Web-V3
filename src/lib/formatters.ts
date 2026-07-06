@@ -105,10 +105,7 @@ export function getInitials(name: string, maxChars = 2): string {
  * Parity-preserving consolidation of the local helpers previously duplicated in
  * EmailChatBubble, and ThreadListItem (Refactor Wave 1).
  */
-export function getInitialsFromNameOrEmail(
-  name?: string | null,
-  email?: string | null,
-): string {
+export function getInitialsFromNameOrEmail(name?: string | null, email?: string | null): string {
   if (name) {
     return name
       .split(' ')
@@ -140,7 +137,11 @@ export function formatDateTimeCompact(iso: string | null): string {
  */
 export function formatTimeHMS(iso: string): string {
   try {
-    return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return new Date(iso).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   } catch {
     return iso;
   }

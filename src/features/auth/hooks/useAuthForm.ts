@@ -5,9 +5,15 @@ import { useWebAuthn } from '@/hooks/useWebAuthn';
 import { toast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { checkAccountLock, recordFailedLogin, clearLoginAttempts, formatLockTime } from '@/lib/loginAttempts';
+import {
+  checkAccountLock,
+  recordFailedLogin,
+  clearLoginAttempts,
+  formatLockTime,
+} from '@/lib/loginAttempts';
 
-const passwordSchema = z.string()
+const passwordSchema = z
+  .string()
   .min(8, 'Senha deve ter no mínimo 8 caracteres')
   .regex(/[A-Z]/, 'Deve conter pelo menos uma letra maiúscula')
   .regex(/[a-z]/, 'Deve conter pelo menos uma letra minúscula')
@@ -39,14 +45,19 @@ export function useAuthForm() {
   const rawNext = searchParams.get('next');
   const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
   const { user, signIn, signUp } = useAuth();
-  const { isSupported, isPlatformAuthenticatorAvailable, authenticateWithPasskey, loading: passkeyLoading } = useWebAuthn();
+  const {
+    isSupported,
+    isPlatformAuthenticatorAvailable,
+    authenticateWithPasskey,
+    loading: passkeyLoading,
+  } = useWebAuthn();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
   const [passkeyAvailable, setPasskeyAvailable] = useState(false);
   const [lockStatus, setLockStatus] = useState<LockStatus>({
     isLocked: false,
     remainingTime: 0,
-    attempts: 0
+    attempts: 0,
   });
   const [formData, setFormData] = useState({
     name: '',
@@ -61,14 +72,16 @@ export function useAuthForm() {
 
   useEffect(() => {
     if (isSupported()) {
-      isPlatformAuthenticatorAvailable().then(setPasskeyAvailable).catch(() => {});
+      isPlatformAuthenticatorAvailable()
+        .then(setPasskeyAvailable)
+        .catch(() => {});
     }
   }, [isSupported, isPlatformAuthenticatorAvailable]);
 
   useEffect(() => {
     if (lockStatus.remainingTime > 0) {
       const timer = setInterval(() => {
-        setLockStatus(prev => {
+        setLockStatus((prev) => {
           const newTime = prev.remainingTime - 1;
           if (newTime <= 0) return { ...prev, isLocked: false, remainingTime: 0 };
           return { ...prev, remainingTime: newTime };
@@ -92,7 +105,7 @@ export function useAuthForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+
     const result = loginSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -106,7 +119,11 @@ export function useAuthForm() {
     const currentLock = await checkAccountLock(formData.email);
     if (currentLock.isLocked) {
       setLockStatus(currentLock);
-      toast({ title: 'Conta bloqueada', description: `Muitas tentativas. Aguarde ${formatLockTime(currentLock.remainingTime)}.`, variant: 'destructive' });
+      toast({
+        title: 'Conta bloqueada',
+        description: `Muitas tentativas. Aguarde ${formatLockTime(currentLock.remainingTime)}.`,
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -118,14 +135,19 @@ export function useAuthForm() {
       const lockResult = await recordFailedLogin(formData.email);
       setLockStatus(lockResult);
       if (lockResult.isLocked) {
-        toast({ title: 'Conta bloqueada temporariamente', description: `Após ${lockResult.attempts} tentativas, sua conta foi bloqueada por ${formatLockTime(lockResult.remainingTime)}.`, variant: 'destructive' });
+        toast({
+          title: 'Conta bloqueada temporariamente',
+          description: `Após ${lockResult.attempts} tentativas, sua conta foi bloqueada por ${formatLockTime(lockResult.remainingTime)}.`,
+          variant: 'destructive',
+        });
       } else {
         const remainingAttempts = 5 - lockResult.attempts;
         toast({
           title: 'Erro ao entrar',
-          description: error.message === 'Invalid login credentials' 
-            ? `Email ou senha incorretos. ${remainingAttempts > 0 ? `${remainingAttempts} tentativa${remainingAttempts > 1 ? 's' : ''} restante${remainingAttempts > 1 ? 's' : ''}.` : ''}`
-            : error.message,
+          description:
+            error.message === 'Invalid login credentials'
+              ? `Email ou senha incorretos. ${remainingAttempts > 0 ? `${remainingAttempts} tentativa${remainingAttempts > 1 ? 's' : ''} restante${remainingAttempts > 1 ? 's' : ''}.` : ''}`
+              : error.message,
           variant: 'destructive',
         });
       }
@@ -139,7 +161,7 @@ export function useAuthForm() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+
     const result = signupSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -155,7 +177,9 @@ export function useAuthForm() {
     setLoading(false);
 
     if (error) {
-      const errorMessage = error.message.includes('already registered') ? 'Este email já está cadastrado' : error.message;
+      const errorMessage = error.message.includes('already registered')
+        ? 'Este email já está cadastrado'
+        : error.message;
       toast({ title: 'Erro ao criar conta', description: errorMessage, variant: 'destructive' });
     } else {
       toast({ title: 'Conta criada!', description: 'Você já pode fazer login.' });
@@ -184,10 +208,18 @@ export function useAuthForm() {
         redirect_uri: `${window.location.origin}/auth?next=${encodeURIComponent(nextPath)}`,
       });
       if (error) {
-        toast({ title: 'Erro ao conectar com Google', description: error.message, variant: 'destructive' });
+        toast({
+          title: 'Erro ao conectar com Google',
+          description: error.message,
+          variant: 'destructive',
+        });
       }
     } catch {
-      toast({ title: 'Login social indisponível', description: 'Tente novamente mais tarde.', variant: 'destructive' });
+      toast({
+        title: 'Login social indisponível',
+        description: 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
     }
   };
 

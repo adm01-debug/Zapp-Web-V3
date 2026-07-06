@@ -2,14 +2,12 @@ import { lazy, Suspense } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
-const WhisperMode = lazy(() =>
-  import('../WhisperMode').then((m) => ({ default: m.WhisperMode })),
-);
+const WhisperMode = lazy(() => import('../WhisperMode').then((m) => ({ default: m.WhisperMode })));
 const VisualValidationChecklist = lazy(() =>
-  import('../VisualValidationChecklist').then((m) => ({ default: m.VisualValidationChecklist })),
+  import('../VisualValidationChecklist').then((m) => ({ default: m.VisualValidationChecklist }))
 );
 const NextBestActionEngine = lazy(() =>
-  import('../NextBestActionEngine').then((m) => ({ default: m.NextBestActionEngine })),
+  import('../NextBestActionEngine').then((m) => ({ default: m.NextBestActionEngine }))
 );
 
 interface Props {

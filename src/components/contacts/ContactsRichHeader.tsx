@@ -40,28 +40,31 @@ export function ContactsRichHeader({
 }: Props) {
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
         <ContactStatsCards
           totalCount={totalCount}
           contactCountByType={contactCountByType}
           uniqueCompanies={uniqueCompanies}
           contacts={contactsForStats}
         />
-        <ContactBirthdayPanel contacts={contactsForBirthday} onContactClick={onBirthdayContactClick} />
+        <ContactBirthdayPanel
+          contacts={contactsForBirthday}
+          onContactClick={onBirthdayContactClick}
+        />
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-br from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent sm:text-4xl">
+          <h1 className="bg-gradient-to-br from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl">
             Hub de Contatos
           </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5 font-medium text-foreground/80">
-              <Users className="w-4 h-4 text-primary/60" />
+              <Users className="h-4 w-4 text-primary/60" />
               {totalCount.toLocaleString('pt-BR')} registros
             </span>
-            <span className="w-1 h-1 rounded-full bg-border" />
-            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase">
+            <span className="h-1 w-1 rounded-full bg-border" />
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary">
               Hana Smart View
             </span>
           </div>
@@ -72,41 +75,43 @@ export function ContactsRichHeader({
             size="sm"
             onClick={onToggleHighContrast}
             className={cn(
-              'hidden md:flex gap-2 transition-all',
+              'hidden gap-2 transition-all md:flex',
               !highContrast
                 ? 'border-muted-foreground/20 hover:border-primary/40 hover:bg-primary/5'
-                : 'bg-foreground text-background hover:bg-foreground/90',
+                : 'bg-foreground text-background hover:bg-foreground/90'
             )}
             title="Alto Contraste"
           >
-            <Zap className={cn('w-4 h-4', highContrast ? 'text-warning' : 'text-muted-foreground')} />
+            <Zap
+              className={cn('h-4 w-4', highContrast ? 'text-warning' : 'text-muted-foreground')}
+            />
             <span className="sr-only">Contraste</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={onOpenShortcuts}
-            className="hidden md:flex gap-2 border-muted-foreground/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
+            className="hidden gap-2 border-muted-foreground/20 transition-all hover:border-primary/40 hover:bg-primary/5 md:flex"
             title="Atalhos de Teclado (?)"
           >
-            <Keyboard className="w-4 h-4 text-muted-foreground" />
+            <Keyboard className="h-4 w-4 text-muted-foreground" />
             <span className="sr-only">Atalhos</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={onOpenImport}
-            className="gap-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all"
+            className="gap-2 border-primary/20 transition-all hover:border-primary/40 hover:bg-primary/5"
           >
-            <Upload className="w-4 h-4 text-primary" />
-            <span className="hidden sm:inline font-medium">Importar CSV</span>
+            <Upload className="h-4 w-4 text-primary" />
+            <span className="hidden font-medium sm:inline">Importar CSV</span>
           </Button>
           <Button
             size="sm"
             onClick={onOpenAdd}
-            className="gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-medium"
+            className="gap-2 font-medium shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30"
           >
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="h-4 w-4" />
             Novo Registro
           </Button>
         </div>

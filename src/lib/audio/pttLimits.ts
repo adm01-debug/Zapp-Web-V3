@@ -21,7 +21,6 @@ export interface PttValidationResult {
   durationSec?: number;
 }
 
-
 function formatSeconds(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
@@ -59,7 +58,10 @@ export function probeAudioDuration(blob: Blob): Promise<number | undefined> {
     audio.src = url;
 
     // Safety net: alguns codecs travam o `loadedmetadata` em Chromium.
-    setTimeout(() => { cleanup(); resolve(undefined); }, 4000);
+    setTimeout(() => {
+      cleanup();
+      resolve(undefined);
+    }, 4000);
   });
 }
 
@@ -73,7 +75,7 @@ export function probeAudioDuration(blob: Blob): Promise<number | undefined> {
 export async function validatePttBlob(
   blob: Blob,
   /** Override opcional para testes ou contas com limites menores. */
-  limits: { maxBytes?: number; maxDurationSec?: number; minDurationSec?: number } = {},
+  limits: { maxBytes?: number; maxDurationSec?: number; minDurationSec?: number } = {}
 ): Promise<PttValidationResult> {
   const maxBytes = limits.maxBytes ?? MAX_PTT_SIZE_BYTES;
   const maxDuration = limits.maxDurationSec ?? MAX_PTT_DURATION_SEC;

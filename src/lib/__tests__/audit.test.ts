@@ -4,7 +4,7 @@ const mockRpc = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    rpc: (...args: any[]) => mockRpc(...args),
+    rpc: (...args: Parameters<typeof mockRpc>) => mockRpc(...args),
   },
 }));
 
@@ -28,11 +28,14 @@ describe('audit logging', () => {
       details: { method: 'password' },
     });
 
-    expect(mockRpc).toHaveBeenCalledWith('log_audit_event', expect.objectContaining({
-      p_action: 'login',
-      p_entity_type: 'auth',
-      p_entity_id: UUID_A,
-    }));
+    expect(mockRpc).toHaveBeenCalledWith(
+      'log_audit_event',
+      expect.objectContaining({
+        p_action: 'login',
+        p_entity_type: 'auth',
+        p_entity_id: UUID_A,
+      })
+    );
   });
 
   it('handles RPC error without throwing', async () => {
@@ -49,23 +52,29 @@ describe('audit logging', () => {
       details: { contactName: 'John' },
     });
 
-    expect(mockRpc).toHaveBeenCalledWith('log_audit_event', expect.objectContaining({
-      p_action: 'contact_created',
-      p_entity_type: 'contact',
-      p_entity_id: null,
-      p_details: { contactName: 'John', entity_id_text: 'c1' },
-      p_user_agent: expect.any(String),
-    }));
+    expect(mockRpc).toHaveBeenCalledWith(
+      'log_audit_event',
+      expect.objectContaining({
+        p_action: 'contact_created',
+        p_entity_type: 'contact',
+        p_entity_id: null,
+        p_details: { contactName: 'John', entity_id_text: 'c1' },
+        p_user_agent: expect.any(String),
+      })
+    );
   });
 
   it('sends null for optional fields when not provided', async () => {
     await logAudit({ action: 'logout' });
 
-    expect(mockRpc).toHaveBeenCalledWith('log_audit_event', expect.objectContaining({
-      p_action: 'logout',
-      p_entity_type: null,
-      p_entity_id: null,
-      p_details: null,
-    }));
+    expect(mockRpc).toHaveBeenCalledWith(
+      'log_audit_event',
+      expect.objectContaining({
+        p_action: 'logout',
+        p_entity_type: null,
+        p_entity_id: null,
+        p_details: null,
+      })
+    );
   });
 });

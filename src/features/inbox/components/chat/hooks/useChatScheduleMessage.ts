@@ -56,6 +56,6 @@ export function useChatScheduleMessage({ contactId, scheduleMessage, onDone }: P
         log.error('Failed to schedule message:', err);
       }
     },
-    [contactId, scheduleMessage, onDone],
+    [contactId, scheduleMessage, onDone]
   );
 }

@@ -18,7 +18,10 @@ export const PERIOD_MS: Record<PeriodFilter, number> = {
 export const STATUS_STYLES: Record<SLAStatus, { label: string; className: string }> = {
   ok: { label: 'Dentro do SLA', className: 'bg-success/15 text-success border-success/30' },
   warning: { label: 'Em risco', className: 'bg-warning/15 text-warning border-warning/30' },
-  breached: { label: 'Violado', className: 'bg-destructive/15 text-destructive border-destructive/30' },
+  breached: {
+    label: 'Violado',
+    className: 'bg-destructive/15 text-destructive border-destructive/30',
+  },
   na: { label: '—', className: 'bg-muted/40 text-muted-foreground border-border/40' },
 };
 
@@ -63,10 +66,16 @@ export function loadFilters(): { status: SLAStatus[]; period: PeriodFilter; scop
       const status = Array.isArray(parsed.status)
         ? parsed.status.filter((s: string): s is SLAStatus => ALL_STATUSES.includes(s as SLAStatus))
         : ALL_STATUSES;
-      const period: PeriodFilter = ['24h', '7d', '30d', 'all'].includes(parsed.period) ? parsed.period : 'all';
-      const scope: SLAScope = ['current', 'queue', 'agent', 'none'].includes(parsed.scope) ? parsed.scope : 'current';
+      const period: PeriodFilter = ['24h', '7d', '30d', 'all'].includes(parsed.period)
+        ? parsed.period
+        : 'all';
+      const scope: SLAScope = ['current', 'queue', 'agent', 'none'].includes(parsed.scope)
+        ? parsed.scope
+        : 'current';
       return { status: status.length ? status : ALL_STATUSES, period, scope };
     }
-  } catch { /* storage unavailable */ }
+  } catch {
+    /* storage unavailable */
+  }
   return { status: ALL_STATUSES, period: 'all', scope: 'current' };
 }

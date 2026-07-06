@@ -2,7 +2,13 @@ import { useMemo, useState, useEffect } from 'react';
 import { format, formatDistanceStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  MessageCircle, Reply, Clock, CheckCircle2, RotateCcw, Activity, AlertTriangle,
+  MessageCircle,
+  Reply,
+  Clock,
+  CheckCircle2,
+  RotateCcw,
+  Activity,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -55,7 +61,9 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
         FILTER_STORAGE_KEY,
         JSON.stringify({ status: statusFilter, period: periodFilter, scope })
       );
-    } catch { /* storage unavailable */ }
+    } catch {
+      /* storage unavailable */
+    }
   }, [statusFilter, periodFilter, scope]);
 
   const { data: timeline, isLoading } = useConversationSLATimeline(remoteJid, contact.id);
@@ -74,17 +82,19 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
   const firstResponseLimit = sla?.firstResponseMinutes ?? 5;
   const resolutionLimit = sla?.resolutionMinutes ?? 60;
 
-  const firstResponseStatus: SLAStatus = scope === 'none' || !timeline
-    ? 'na'
-    : timeline.isAwaitingFirstResponse
-      ? getSLAStatus(timeline.awaitingMs, firstResponseLimit)
-      : getSLAStatus(timeline.firstResponseDurationMs, firstResponseLimit);
+  const firstResponseStatus: SLAStatus =
+    scope === 'none' || !timeline
+      ? 'na'
+      : timeline.isAwaitingFirstResponse
+        ? getSLAStatus(timeline.awaitingMs, firstResponseLimit)
+        : getSLAStatus(timeline.firstResponseDurationMs, firstResponseLimit);
 
-  const resolutionStatus: SLAStatus = scope === 'none' || !timeline
-    ? 'na'
-    : timeline.resolutionDurationMs !== null
-      ? getSLAStatus(timeline.resolutionDurationMs, resolutionLimit)
-      : 'na';
+  const resolutionStatus: SLAStatus =
+    scope === 'none' || !timeline
+      ? 'na'
+      : timeline.resolutionDurationMs !== null
+        ? getSLAStatus(timeline.resolutionDurationMs, resolutionLimit)
+        : 'na';
 
   const handleOpenConversation = useMemo(() => {
     return () => {
@@ -92,13 +102,15 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
         window.dispatchEvent(
           new CustomEvent('inbox:focus-conversation', {
             detail: { contactId: contact.id, remoteJid, conversationId: conversation.id },
-          }),
+          })
         );
-      } catch { /* SSR / older browsers — no-op */ }
+      } catch {
+        /* SSR / older browsers — no-op */
+      }
 
       const detailsPanel =
         document.querySelector<HTMLElement>(
-          `[data-contact-details][data-contact-id="${contact.id}"]`,
+          `[data-contact-details][data-contact-id="${contact.id}"]`
         ) || document.querySelector<HTMLElement>('[data-contact-details]');
 
       const target = detailsPanel || document.querySelector<HTMLElement>('[data-chat-panel]');
@@ -126,7 +138,7 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
       <div className="space-y-3 py-2">
         {[0, 1, 2].map((i) => (
           <div key={i} className="flex gap-3">
-            <Skeleton className="w-[22px] h-[22px] rounded-full" />
+            <Skeleton className="h-[22px] w-[22px] rounded-full" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-3 w-32" />
               <Skeleton className="h-2.5 w-24" />
@@ -177,11 +189,11 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
   const attributionSource = timeline.firstResponseAttributionSource;
   const attributionFromEvents = attributionSource === 'assign-event';
   const firstResponseAgentName = attributionFromEvents
-    ? timeline.firstResponseBy?.agentName ?? null
-    : assignedTo?.name ?? null;
+    ? (timeline.firstResponseBy?.agentName ?? null)
+    : (assignedTo?.name ?? null);
   const firstResponseQueueName = attributionFromEvents
-    ? timeline.firstResponseBy?.queueName ?? null
-    : queue?.name ?? null;
+    ? (timeline.firstResponseBy?.queueName ?? null)
+    : (queue?.name ?? null);
 
   let attributionNote: string | null = null;
   let attributionTone: 'fallback' | 'info' = 'info';
@@ -191,12 +203,14 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
       attributionNote = `Atribuição calculada do assign em ${format(w.from, 'HH:mm', { locale: ptBR })} até a resposta em ${format(w.to, 'HH:mm', { locale: ptBR })}`;
       attributionTone = 'info';
     } else if (attributionSource === 'pre-contact-assign') {
-      attributionNote = 'Sem evento de assign após o contato — exibindo a atribuição atual da conversa';
+      attributionNote =
+        'Sem evento de assign após o contato — exibindo a atribuição atual da conversa';
       attributionTone = 'fallback';
     } else if (attributionSource === 'insufficient-events') {
-      attributionNote = firstResponseAgentName || firstResponseQueueName
-        ? 'Sem eventos de assign no período — atribuição estimada pelo estado atual'
-        : 'Sem eventos suficientes para identificar agente/fila';
+      attributionNote =
+        firstResponseAgentName || firstResponseQueueName
+          ? 'Sem eventos de assign no período — atribuição estimada pelo estado atual'
+          : 'Sem eventos suficientes para identificar agente/fila';
       attributionTone = 'fallback';
     }
   }
@@ -212,7 +226,11 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
           key="first-response"
           index={i}
           icon={timeline.isAwaitingFirstResponse ? AlertTriangle : Reply}
-          label={timeline.isAwaitingFirstResponse ? 'Aguardando primeira resposta' : 'Primeira resposta do agente'}
+          label={
+            timeline.isAwaitingFirstResponse
+              ? 'Aguardando primeira resposta'
+              : 'Primeira resposta do agente'
+          }
           timestamp={timeline.firstResponseAt}
           durationLabel={firstResponseDurationLabel}
           status={firstResponseStatus}
@@ -293,7 +311,8 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
   }
 
   const filteredMilestones = milestones.filter(
-    (m) => m.alwaysVisible || (statusFilter.includes(m.status) && isWithinPeriod(m.date, periodFilter))
+    (m) =>
+      m.alwaysVisible || (statusFilter.includes(m.status) && isWithinPeriod(m.date, periodFilter))
   );
 
   const clearFilters = () => {
@@ -324,16 +343,17 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
         </div>
       ) : (
         <div role="list" aria-label="Marcos de SLA da conversa" className="relative">
-          <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border/50" />
+          <div className="absolute bottom-3 left-[11px] top-3 w-px bg-border/50" />
           {filteredMilestones.map((m, i) => m.render(i))}
         </div>
       )}
 
-      <p className="pl-1 text-[10px] text-muted-foreground/80 leading-relaxed">
-        Avaliado por: <span className="text-foreground/80 font-medium">{SCOPE_LABELS[scope]}</span>
+      <p className="pl-1 text-[10px] leading-relaxed text-muted-foreground/80">
+        Avaliado por: <span className="font-medium text-foreground/80">{SCOPE_LABELS[scope]}</span>
         {scope !== 'none' && sla && (
           <>
-            {' · Regra '}<span className="text-foreground/80 font-medium">{sla.ruleName}</span>
+            {' · Regra '}
+            <span className="font-medium text-foreground/80">{sla.ruleName}</span>
             {' · '}1ª resp. {sla.firstResponseMinutes}min · Resolução {sla.resolutionMinutes}min
           </>
         )}

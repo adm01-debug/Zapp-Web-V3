@@ -38,11 +38,16 @@ export function useChatDragAndDrop(fileUploaderRef: React.RefObject<FileUploader
         fileUploaderRef.current.handleExternalFiles(files);
       }
     },
-    [fileUploaderRef],
+    [fileUploaderRef]
   );
 
   return {
     isDraggingOver,
-    dragHandlers: { onDragEnter: handleDragEnter, onDragLeave: handleDragLeave, onDragOver: handleDragOver, onDrop: handleDrop },
+    dragHandlers: {
+      onDragEnter: handleDragEnter,
+      onDragLeave: handleDragLeave,
+      onDragOver: handleDragOver,
+      onDrop: handleDrop,
+    },
   };
 }

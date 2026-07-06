@@ -30,7 +30,9 @@ export function useMetaCapi() {
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchEvents = useCallback(async () => {
@@ -41,12 +43,17 @@ export function useMetaCapi() {
       .order('event_time', { ascending: false })
       .limit(100);
     if (!mountedRef.current) return;
-    if (error) { setLoading(false); return; }
+    if (error) {
+      setLoading(false);
+      return;
+    }
     if (data) setEvents(data);
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,19 +64,25 @@ export function useMetaCapi() {
         .in('key', ['meta_pixel_id', 'meta_capi_auto_track']);
       if (cancelled) return;
       if (data) {
-        const pixel = data.find(d => d.key === 'meta_pixel_id');
-        const auto = data.find(d => d.key === 'meta_capi_auto_track');
+        const pixel = data.find((d) => d.key === 'meta_pixel_id');
+        const auto = data.find((d) => d.key === 'meta_capi_auto_track');
         if (pixel?.value) setPixelId(pixel.value);
         if (auto?.value) setAutoTrack(auto.value === 'true');
       }
     };
     loadConfig();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const saveConfig = useCallback(async () => {
     const upsert = async (key: string, value: string) => {
-      const { data: existing } = await supabase.from('global_settings').select('id').eq('key', key).maybeSingle();
+      const { data: existing } = await supabase
+        .from('global_settings')
+        .select('id')
+        .eq('key', key)
+        .maybeSingle();
       if (existing) {
         await supabase.from('global_settings').update({ value }).eq('key', key);
       } else {
@@ -81,17 +94,33 @@ export function useMetaCapi() {
     toast({ title: 'Configurações salvas!' });
   }, [pixelId, autoTrack]);
 
-  const sendTestEvent = useCallback(async (eventName: string) => {
-    const { error: insertErr } = await supabase.from('meta_capi_events').insert({
-      event_name: eventName,
-      pixel_id: pixelId || null,
-      action_source: 'chat',
-      custom_data: { test: true, value: 0 },
-    });
-    if (insertErr) { toast({ title: 'Erro', description: insertErr.message, variant: 'destructive' }); return; }
-    toast({ title: `Evento "${eventName}" registrado!` });
-    fetchEvents();
-  }, [pixelId, fetchEvents]);
+  const sendTestEvent = useCallback(
+    async (eventName: string) => {
+      const { error: insertErr } = await supabase.from('meta_capi_events').insert({
+        event_name: eventName,
+        pixel_id: pixelId || null,
+        action_source: 'chat',
+        custom_data: { test: true, value: 0 },
+      });
+      if (insertErr) {
+        toast({ title: 'Erro', description: insertErr.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: `Evento "${eventName}" registrado!` });
+      fetchEvents();
+    },
+    [pixelId, fetchEvents]
+  );
 
-  return { events, loading, pixelId, setPixelId, autoTrack, setAutoTrack, fetchEvents, saveConfig, sendTestEvent };
+  return {
+    events,
+    loading,
+    pixelId,
+    setPixelId,
+    autoTrack,
+    setAutoTrack,
+    fetchEvents,
+    saveConfig,
+    sendTestEvent,
+  };
 }

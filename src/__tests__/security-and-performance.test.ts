@@ -25,7 +25,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 describe('Security - RLS & Access Control', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     const chain = {
       select: mockSelect.mockReturnThis(),
       insert: mockInsert.mockReturnThis(),
@@ -36,7 +36,7 @@ describe('Security - RLS & Access Control', () => {
       limit: mockLimit.mockReturnThis(),
       maybeSingle: mockMaybeSingle,
     };
-    
+
     mockFrom.mockReturnValue(chain);
   });
 
@@ -93,18 +93,21 @@ describe('Security - Audit Logging', () => {
       details: { method: 'password' },
     });
 
-    expect(mockRpc).toHaveBeenCalledWith('log_audit_event', expect.objectContaining({
-      p_action: 'login',
-      p_entity_type: 'auth',
-      p_entity_id: uuid,
-    }));
+    expect(mockRpc).toHaveBeenCalledWith(
+      'log_audit_event',
+      expect.objectContaining({
+        p_action: 'login',
+        p_entity_type: 'auth',
+        p_entity_id: uuid,
+      })
+    );
   });
 
   it('should handle audit log failures gracefully', async () => {
     mockRpc.mockResolvedValue({ error: new Error('DB error') });
 
     const { logAudit } = await import('@/lib/audit');
-    
+
     // Should not throw
     await expect(logAudit({ action: 'login' })).resolves.not.toThrow();
   });
@@ -113,32 +116,38 @@ describe('Security - Audit Logging', () => {
 describe('Security - Export Blocking', () => {
   it('should block PDF export', async () => {
     const { exportToPDF } = await import('@/utils/exportReport');
-    expect(() => exportToPDF({
-      title: 'Test',
-      generatedAt: new Date(),
-      columns: [],
-      rows: [],
-    })).toThrow('Exportação bloqueada');
+    expect(() =>
+      exportToPDF({
+        title: 'Test',
+        generatedAt: new Date(),
+        columns: [],
+        rows: [],
+      })
+    ).toThrow('Exportação bloqueada');
   });
 
   it('should block Excel export', async () => {
     const { exportToExcel } = await import('@/utils/exportReport');
-    expect(() => exportToExcel({
-      title: 'Test',
-      generatedAt: new Date(),
-      columns: [],
-      rows: [],
-    })).toThrow('Exportação bloqueada');
+    expect(() =>
+      exportToExcel({
+        title: 'Test',
+        generatedAt: new Date(),
+        columns: [],
+        rows: [],
+      })
+    ).toThrow('Exportação bloqueada');
   });
 
   it('should block CSV export', async () => {
     const { exportToCSV } = await import('@/utils/exportReport');
-    expect(() => exportToCSV({
-      title: 'Test',
-      generatedAt: new Date(),
-      columns: [],
-      rows: [],
-    })).toThrow('Exportação bloqueada');
+    expect(() =>
+      exportToCSV({
+        title: 'Test',
+        generatedAt: new Date(),
+        columns: [],
+        rows: [],
+      })
+    ).toThrow('Exportação bloqueada');
   });
 });
 

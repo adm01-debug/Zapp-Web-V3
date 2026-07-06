@@ -30,7 +30,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /** Split entityId into a UUID-safe value + a text fallback merged into details. */
 export function normalizeEntityId(
   entityId: string | null | undefined,
-  details?: Record<string, unknown>,
+  details?: Record<string, unknown>
 ): { entityId: string | null; details: Record<string, unknown> | null } {
   const trimmed = typeof entityId === 'string' ? entityId.trim() : '';
   if (!trimmed) return { entityId: null, details: details ?? null };

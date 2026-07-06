@@ -1,6 +1,17 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Keyboard, UserPlus, Search, Info, Grid, List, Table, Map, BarChart3, X } from 'lucide-react';
+import {
+  Keyboard,
+  UserPlus,
+  Search,
+  Info,
+  Grid,
+  List,
+  Table,
+  Map,
+  BarChart3,
+  X,
+} from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -33,26 +44,26 @@ export function ContactsShortcutHelp({ open, onClose }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 p-4 backdrop-blur-md"
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.95, y: 10 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 10 }}
-            className="bg-card border border-border shadow-2xl rounded-2xl p-6 max-w-md w-full relative"
+            className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Keyboard className="w-5 h-5 text-primary" />
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <Keyboard className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <h2 className="text-xl font-bold">Atalhos de Teclado</h2>
                 <p className="text-sm text-muted-foreground">Aumente sua produtividade</p>
               </div>
               <Button variant="ghost" size="icon" className="ml-auto" onClick={onClose}>
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
@@ -61,9 +72,10 @@ export function ContactsShortcutHelp({ open, onClose }: Props) {
                 <ShortcutColumn title="Ações" items={ACTIONS} />
                 <ShortcutColumn title="Visualizações" items={VIEWS} />
               </div>
-              <div className="pt-4 border-t border-border/50 text-center">
-                <p className="text-xs text-muted-foreground italic">
-                  Pressione <kbd className="px-1 py-0.5 rounded bg-muted text-[9px]">Esc</kbd> para fechar
+              <div className="border-t border-border/50 pt-4 text-center">
+                <p className="text-xs italic text-muted-foreground">
+                  Pressione <kbd className="rounded bg-muted px-1 py-0.5 text-[9px]">Esc</kbd> para
+                  fechar
                 </p>
               </div>
             </div>
@@ -83,13 +95,17 @@ interface Item {
 function ShortcutColumn({ title, items }: { title: string; items: Item[] }) {
   return (
     <div className="space-y-3">
-      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{title}</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        {title}
+      </p>
       {items.map(({ icon: Icon, label, kbd }) => (
         <div key={label} className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-2">
-            <Icon className="w-3.5 h-3.5" /> {label}
+            <Icon className="h-3.5 w-3.5" /> {label}
           </span>
-          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px]">{kbd}</kbd>
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px]">
+            {kbd}
+          </kbd>
         </div>
       ))}
     </div>

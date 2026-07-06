@@ -62,7 +62,9 @@ export function useContactsKeyboardShortcuts({
       }
       if (key === 'f') {
         e.preventDefault();
-        const input = document.querySelector('input[placeholder*="Buscar"]') as HTMLInputElement | null;
+        const input = document.querySelector(
+          'input[placeholder*="Buscar"]'
+        ) as HTMLInputElement | null;
         if (input) {
           input.focus();
           toast.info('Atalho: Focar Busca', { duration: 1000 });

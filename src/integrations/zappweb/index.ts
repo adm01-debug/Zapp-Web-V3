@@ -6,11 +6,7 @@
  *   • ESCRITA  → evolutionClient (Evolution API HTTP)
  *   • MÍDIA    → media_url já vem do proxy Cloudflare R2
  */
-export {
-  zappSupabase,
-  ZAPPWEB_INSTANCE,
-  ZAPPWEB_CONFIG,
-} from './supabaseClient';
+export { zappSupabase, ZAPPWEB_INSTANCE, ZAPPWEB_CONFIG } from './supabaseClient';
 
 export {
   sendText,

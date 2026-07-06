@@ -31,33 +31,48 @@ export function ContactsBulkActionBar({
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-foreground text-background px-4 py-2 sm:py-3 rounded-full sm:rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-4 border border-background/10 backdrop-blur-xl w-[90%] sm:w-auto"
+          className="fixed bottom-6 left-1/2 z-50 flex w-[90%] -translate-x-1/2 items-center gap-2 rounded-full border border-background/10 bg-foreground px-4 py-2 text-background shadow-2xl backdrop-blur-xl sm:w-auto sm:gap-4 sm:rounded-2xl sm:py-3"
         >
           <div className="flex items-center gap-2 border-r border-background/20 pr-2 sm:pr-4">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
               {selectedIds.length}
             </div>
-            <span className="text-sm font-semibold whitespace-nowrap">Selecionados</span>
+            <span className="whitespace-nowrap text-sm font-semibold">Selecionados</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-background hover:bg-background/10 h-9 px-3 gap-2" onClick={onBulkTag}>
-              <TagIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Etiquetar</span>
-            </Button>
-            <Button variant="ghost" size="sm" className="text-background hover:bg-background/10 h-9 px-3 gap-2" onClick={onMerge}>
-              <GitMerge className="w-4 h-4" />
-              <span className="hidden sm:inline">Mesclar</span>
-            </Button>
-            <Button variant="ghost" size="sm" className="text-background hover:bg-background/10 h-9 px-3 gap-2" onClick={onExportCSV}>
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Exportar</span>
-            </Button>
-            <div className="w-px h-6 bg-background/20 mx-1" />
             <Button
               variant="ghost"
               size="sm"
-              className="text-destructive-foreground hover:bg-destructive/20 h-9 px-3 gap-2"
+              className="h-9 gap-2 px-3 text-background hover:bg-background/10"
+              onClick={onBulkTag}
+            >
+              <TagIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Etiquetar</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 gap-2 px-3 text-background hover:bg-background/10"
+              onClick={onMerge}
+            >
+              <GitMerge className="h-4 w-4" />
+              <span className="hidden sm:inline">Mesclar</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 gap-2 px-3 text-background hover:bg-background/10"
+              onClick={onExportCSV}
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar</span>
+            </Button>
+            <div className="mx-1 h-6 w-px bg-background/20" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 gap-2 px-3 text-destructive-foreground hover:bg-destructive/20"
               onClick={() => {
                 const count = selectedIds.length;
                 toast.error(`Excluir ${count} contatos?`, {
@@ -71,13 +86,18 @@ export function ContactsBulkActionBar({
                 });
               }}
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="h-4 w-4" />
               <span className="hidden sm:inline">Excluir</span>
             </Button>
           </div>
 
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-background hover:bg-background/10 rounded-full" onClick={onClear}>
-            <X className="w-4 h-4" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full text-background hover:bg-background/10"
+            onClick={onClear}
+          >
+            <X className="h-4 w-4" />
           </Button>
         </motion.div>
       )}
