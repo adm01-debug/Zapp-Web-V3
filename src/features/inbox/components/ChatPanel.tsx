@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChatScheduleMessage } from './chat/hooks/useChatScheduleMessage';
 import { useChatQuickReplyControl } from './chat/hooks/useChatQuickReplyControl';
-import { AnimatePresence } from 'framer-motion';
 import { Conversation, Message } from '@/types/chat';
 import { FileUploaderRef } from './FileUploader';
 import { useTypingPresence } from '@/hooks/useTypingPresence';
@@ -26,7 +25,6 @@ import { TicketHistorySheet } from './TicketHistorySheet';
 import { ChatMessagesArea, ChatMessagesAreaRef } from './chat/ChatMessagesArea';
 import type { LoadOlderProps } from './chat/loadOlderTypes';
 import { ChatInputArea } from './chat/ChatInputArea';
-import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { AutomationSuggestionsBar } from './chat/AutomationSuggestionsBar';
 import { useAutomations } from '@/hooks/useAutomations';
 import { SendErrorBanner } from './chat/SendErrorBanner';
@@ -44,14 +42,12 @@ import { useInitialHighlight } from './chat/hooks/useInitialHighlight';
 import { useChatDragAndDrop } from './chat/hooks/useChatDragAndDrop';
 import { ChatTemplatesOverlay } from './chat/ChatTemplatesOverlay';
 import { ChatMonitoringDialog } from './chat/ChatMonitoringDialog';
+import { ChatPanelOverlays } from './chat/ChatPanelOverlays';
+import { useChatAutoScroll } from '../hooks/useChatAutoScroll';
 import { useTransferConversation } from '@/features/inbox/hooks/useTransferConversation';
 import { useInboxShortcuts } from '@/features/inbox/hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useUserRole } from '@/features/auth/hooks/useUserRole';
-
-const WhisperMode = lazy(() => import('./WhisperMode').then(m => ({ default: m.WhisperMode })));
-const VisualValidationChecklist = lazy(() => import('./VisualValidationChecklist').then(m => ({ default: m.VisualValidationChecklist })));
-const NextBestActionEngine = lazy(() => import('./NextBestActionEngine').then(m => ({ default: m.NextBestActionEngine })));
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {
@@ -156,17 +152,11 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
   // Monitora atraso na entrega (SLA Delivery)
   useSLADelivery({ contactId: conversation.contact.id, messages });
 
-  const lastMsgIdRef = useRef<string | null>(null);
+  const { bindScrollListener } = useChatAutoScroll({ messages, isContactTyping, messagesAreaRef });
   useEffect(() => {
-    const lastId = messages[messages.length - 1]?.id ?? null;
-    // Only auto-scroll when a new message was appended at the end (not when older ones were prepended)
-    if (lastId !== lastMsgIdRef.current) {
-      lastMsgIdRef.current = lastId;
-      messagesAreaRef.current?.scrollToBottom();
-    } else if (isContactTyping) {
-      messagesAreaRef.current?.scrollToBottom();
-    }
-  }, [messages, isContactTyping]);
+    const el = messagesAreaRef.current?.getScrollContainer();
+    return el ? bindScrollListener(el) : undefined;
+  }, [bindScrollListener, conversation.id]);
 
   useInboxShortcuts({
     onSearchFocus: () => {
@@ -318,11 +308,13 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
           setFailuresOnly={setFailuresOnly}
         />
 
-        <SectionErrorBoundary sectionName="NextBestAction">
-          <Suspense fallback={null}>
-            <NextBestActionEngine contactId={conversation.contact.id} contactName={conversation.contact.name} />
-          </Suspense>
-        </SectionErrorBoundary>
+        <ChatPanelOverlays
+          contactId={conversation.contact.id}
+          contactName={conversation.contact.name}
+          showVisualValidation={dialogs.visualValidation}
+          onCloseVisualValidation={() => closeDialog('visualValidation')}
+          showWhisper={dialogs.whisper}
+        />
 
         <ChatMessagesArea ref={messagesAreaRef} messages={visibleMessages} isContactTyping={isContactTyping} typingUserName={typingUsers[0]?.name || conversation.contact.name}
           ttsLoading={ttsLoading} ttsPlaying={ttsPlaying} ttsMessageId={ttsMessageId} instanceName={instanceName}
@@ -338,23 +330,6 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
 
         <ChatQuickRepliesPopover show={dialogs.quickReplies} replies={filteredQuickReplies} onSelect={handleQuickReply} onClose={() => closeDialog('quickReplies')} selectedIndex={selectedQuickReplyIndex} />
 
-        <AnimatePresence>
-          {dialogs.visualValidation && (
-            <SectionErrorBoundary sectionName="VisualValidation">
-              <Suspense fallback={null}>
-                <VisualValidationChecklist onClose={() => closeDialog('visualValidation')} />
-              </Suspense>
-            </SectionErrorBoundary>
-          )}
-        </AnimatePresence>
-
-        {dialogs.whisper && (
-          <SectionErrorBoundary sectionName="WhisperMode">
-            <Suspense fallback={null}>
-              <WhisperMode contactId={conversation.contact.id} className="mx-3 mb-2" defaultExpanded={true} />
-            </Suspense>
-          </SectionErrorBoundary>
-        )}
 
         <SendErrorBanner
           error={handlers.lastSendError}
