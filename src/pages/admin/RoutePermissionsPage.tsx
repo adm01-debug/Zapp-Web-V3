@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,19 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Plus, Trash2, Lock, Search, Shield } from "lucide-react";
-import { invalidateRouteRolesCache } from "@/features/auth";
 import type { AppRole } from "@/features/auth";
+import { useRoutePermissions, ALL_ROLES, type RoutePermission } from '@/hooks/admin/useRoutePermissions';
 
-type RoutePermission = {
-  path: string;
-  allowed_roles: AppRole[];
-  description: string | null;
-  is_system: boolean;
-  updated_at: string;
-};
 
-const ALL_ROLES: AppRole[] = ["dev", "admin", "manager", "supervisor", "agent"];
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ROLE_LABELS: Record<AppRole, string> = {
   dev: "Dev",
   admin: "Admin",
@@ -37,32 +28,13 @@ const ROLE_LABELS: Record<AppRole, string> = {
 
 export default function RoutePermissionsPage() {
   const { toast } = useToast();
-  const [rows, setRows] = useState<RoutePermission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [savingPath, setSavingPath] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [dirty, setDirty] = useState<Record<string, AppRole[]>>({});
   const [newOpen, setNewOpen] = useState(false);
   const [newPath, setNewPath] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newRoles, setNewRoles] = useState<AppRole[]>([]);
-
-  async function load() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('route_permissions')
-      .select("path, allowed_roles, description, is_system, updated_at")
-      .order("path", { ascending: true });
-    if (error) {
-      toast({ title: "Erro ao carregar permissões", description: error.message, variant: "destructive" });
-    } else {
-      setRows((data ?? []) as RoutePermission[]);
-      setDirty({});
-    }
-    setLoading(false);
-  }
-
-  useEffect(() => { void load(); }, []);
+  const { rows, loading, savingPath, load, saveRow, deleteRow, createRow } = useRoutePermissions();
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -93,56 +65,8 @@ export default function RoutePermissionsPage() {
     return current.some(r => !a.has(r)) || original.some(r => !current.includes(r));
   }
 
-  async function saveRow(path: string) {
-    setSavingPath(path);
-    const next = getRolesFor(path);
-    const { error } = await supabase
-      .from('route_permissions')
-      .update({ allowed_roles: next })
-      .eq("path", path);
-    setSavingPath(null);
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-      return;
-    }
-    invalidateRouteRolesCache(path);
-    toast({ title: "Permissão atualizada", description: path });
-    await load();
-  }
 
-  async function deleteRow(path: string) {
-    const { error } = await supabase.from('route_permissions').delete().eq("path", path);
-    if (error) {
-      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
-      return;
-    }
-    invalidateRouteRolesCache(path);
-    toast({ title: "Rota removida", description: path });
-    await load();
-  }
 
-  async function createRow() {
-    const path = newPath.trim();
-    if (!path.startsWith("/")) {
-      toast({ title: "Path inválido", description: "Use um caminho começando com /", variant: "destructive" });
-      return;
-    }
-    const { error } = await supabase.from('route_permissions').insert({
-      path,
-      allowed_roles: newRoles,
-      description: newDesc.trim() || null,
-      is_system: false,
-    });
-    if (error) {
-      toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
-      return;
-    }
-    setNewOpen(false);
-    setNewPath(""); setNewDesc(""); setNewRoles([]);
-    invalidateRouteRolesCache();
-    toast({ title: "Rota cadastrada", description: path });
-    await load();
-  }
 
   return (
     <div className="container mx-auto p-6 space-y-6 max-w-6xl">
@@ -225,7 +149,7 @@ export default function RoutePermissionsPage() {
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setNewOpen(false)}>Cancelar</Button>
-              <Button onClick={createRow}>Cadastrar</Button>
+              <Button onClick={() => { void (async()=>{ if(await createRow(newPath, newRoles, newDesc)) { setNewOpen(false); setNewPath(""); setNewDesc(""); setNewRoles([]); } })(); }}>Cadastrar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -291,7 +215,7 @@ export default function RoutePermissionsPage() {
                               size="sm"
                               variant={changed ? "default" : "outline"}
                               disabled={!changed || savingPath === row.path}
-                              onClick={() => saveRow(row.path)}
+                              onClick={() => void saveRow(row.path, getRolesFor(row.path))}
                             >
                               <Save className="w-3.5 h-3.5 mr-1" />
                               Salvar
