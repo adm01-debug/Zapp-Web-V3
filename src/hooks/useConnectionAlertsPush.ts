@@ -31,7 +31,7 @@ export function useConnectionAlertsPush() {
               type?: string;
               title?: string;
               message?: string;
-              metadata?: Record<string, unknown>;
+              metadata?: { connection_id?: string; reason?: string; [key: string]: unknown };
             };
             if (n?.type !== "connection_alert") return;
             if (Notification.permission !== "granted") return;
@@ -39,8 +39,8 @@ export function useConnectionAlertsPush() {
               new Notification(n.title ?? "Alerta de conexão", {
                 body: n.message ?? "",
                 icon: "/favicon.ico",
-                tag: `conn-${(n.metadata as any)?.connection_id ?? "unknown"}`,
-                requireInteraction: (n.metadata as any)?.reason === "disconnected",
+                tag: `conn-${n.metadata?.connection_id ?? "unknown"}`,
+                requireInteraction: n.metadata?.reason === "disconnected",
               });
             } catch {
               /* ignore */

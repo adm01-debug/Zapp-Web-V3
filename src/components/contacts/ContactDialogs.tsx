@@ -81,7 +81,7 @@ export function ContactDialogs({
                 phone: editingContact.phone,
                 email: editingContact.email || '',
                 company: editingContact.company || '',
-                tags: (editingContact as any).tags || [],
+                tags: editingContact.tags ?? [],
               }}
               onSaved={handleSaved}
               onCancel={() => setIsEditDialogOpen(false)}

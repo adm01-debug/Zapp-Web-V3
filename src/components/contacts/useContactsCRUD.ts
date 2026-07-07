@@ -22,7 +22,7 @@ const EMPTY_CONTACT: ContactFormData = {
   company: '', phone: '', email: '', contact_type: 'cliente',
 };
 
-export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'nickname' | 'surname' | 'job_title' | 'company' | 'phone' | 'email' | 'contact_type'>;
+export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'nickname' | 'surname' | 'job_title' | 'company' | 'phone' | 'email' | 'contact_type' | 'tags'>;
 
 export function useContactsCRUD() {
   const { profile } = useAuth();

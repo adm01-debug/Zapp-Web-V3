@@ -9,6 +9,7 @@ import { ExternalProduct } from '@/hooks/useExternalCatalog';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
+import { type DialogKey } from '@/features/inbox/components/chat/hooks/useChatDialogs';
 
 interface UseChatPanelHandlersOptions {
   conversationId: string;
@@ -20,9 +21,9 @@ interface UseChatPanelHandlersOptions {
   applySignature: (text: string) => string;
   handleTypingStart: () => void;
   handleTypingStop: () => void;
-  openDialog: (key: string) => void;
-  closeDialog: (key: string) => void;
-  handleSetActiveTool: (tool: any) => void;
+  openDialog: (key: DialogKey) => void;
+  closeDialog: (key: DialogKey) => void;
+  handleSetActiveTool: (tool: string | null) => void;
 }
 
 export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
@@ -165,7 +166,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     if (e.key === 'w' && e.altKey) { e.preventDefault(); setIsWhisper(prev => !prev); }
     if (e.key === 'Escape' && slashCommandsOpen) closeDialog('slashCommands');
   }, [handleSend, openDialog, closeDialog, handleSetActiveTool]);
-  const handleSlashCommand = useCallback((command: SlashCommand, subCommand?: string) => {
+  const handleSlashCommand = useCallback((command: Pick<SlashCommand, 'id'> & Partial<SlashCommand>, subCommand?: string) => {
     closeDialog('slashCommands'); setInputValue('');
     switch (command.id) {
       case 'transfer': openDialog('transferDialog'); break;
