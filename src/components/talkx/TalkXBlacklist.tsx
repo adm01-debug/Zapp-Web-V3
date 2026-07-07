@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
 import { ShieldBan, Trash2, Plus, Search, UserX, AlertTriangle } from 'lucide-react';
@@ -55,12 +56,12 @@ export function TalkXBlacklist() {
   const { data: blacklist = [], isLoading } = useQuery({
     queryKey: ['talkx-blacklist'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
-        .from('talkx_blacklist')
-        .select('*, contacts:contact_id(name, phone, company, avatar_url)')
-        .order('created_at', { ascending: false });
+      const { data, error } = await safeClient.from<BlacklistEntry>(
+        'talkx_blacklist',
+        q => q.select('*, contacts:contact_id(name, phone, company, avatar_url)').order('created_at', { ascending: false }),
+      );
       if (error) throw error;
-      return (data ?? []) as unknown as BlacklistEntry[];
+      return data ?? [];
     },
   });
 
