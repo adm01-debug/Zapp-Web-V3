@@ -16,10 +16,7 @@
     "incremental": true,
     "tsBuildInfoFile": "./.tsbuildinfo",
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false,
     "forceConsistentCasingInFileNames": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
     "paths": {
       "@/*": ["./src/*"],
       "@/admin": ["./src/features/admin"],
@@ -29,13 +26,9 @@
       "@/sla": ["./src/features/sla"]
     },
     "skipLibCheck": true,
-    "strict": false,
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "strictBindCallApply": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "target": "ES2020",
     "useDefineForClassFields": true
   },
