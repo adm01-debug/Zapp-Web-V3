@@ -96,6 +96,31 @@ let out = L.join('\n');
 out = out.replace(/keyof DefaultSchema\["Tables"\]\s*$/gm, 'keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])')
          .replace(/DefaultSchema\["Tables"\]\[(TableName|DefaultSchemaTableNameOrOptions)\] extends \{\s*\n(\s*)Insert: infer I/g, '(DefaultSchema["Tables"] & DefaultSchema["Views"])[$1] extends {\n$2Insert: infer I')
          .replace(/DefaultSchema\["Tables"\]\[(TableName|DefaultSchemaTableNameOrOptions)\] extends \{\s*\n(\s*)Update: infer U/g, '(DefaultSchema["Tables"] & DefaultSchema["Views"])[$1] extends {\n$2Update: infer U');
+// Preservar cauda do Lovable (DatabaseWithoutInternals + helpers ~252L)
+// O gen-types.mjs só gera o bloco 'export type Database = {}' principal.
+// A cauda começa logo após o fechamento do Database e contém tipos auxiliares.
+{
+  let existingTail = '';
+  try {
+    const existingContent = fs.readFileSync('src/integrations/supabase/types.ts', 'utf8');
+    const L = existingContent.split('\n');
+    let depth = 0, inDb = false, dbEndLine = -1;
+    for (let i = 0; i < L.length; i++) {
+      if (/^export type Database = \{$/.test(L[i])) { inDb = true; depth = 1; continue; }
+      if (inDb) {
+        for (const c of L[i]) { if (c === '{') depth++; else if (c === '}') depth--; }
+        if (depth === 0) { dbEndLine = i; break; }
+      }
+    }
+    if (dbEndLine > 0) existingTail = L.slice(dbEndLine + 1).join('\n');
+  } catch {}
+  if (existingTail && existingTail.includes('DatabaseWithoutInternals')) {
+    out = out.trimEnd() + '\n' + existingTail;
+    console.log('✅ Cauda Lovable preservada (' + existingTail.split('\n').length + 'L)');
+  } else {
+    console.warn('⚠️ Cauda Lovable não encontrada — tipos auxiliares podem ficar ausentes');
+  }
+}
 writeFileSync('src/integrations/supabase/types.ts', out);
 // fecha o loop do sentinel: marca o schema atual como sincronizado com o types.ts recém-gerado
 await q("INSERT INTO ops.types_sync_state (id, fingerprint, notes) VALUES (1, ops.fn_schema_fingerprint(), 'gen-types.mjs') ON CONFLICT (id) DO UPDATE SET fingerprint=EXCLUDED.fingerprint, captured_at=now(), notes=EXCLUDED.notes").catch(e=>console.warn('sentinel não atualizado:',e.message));
