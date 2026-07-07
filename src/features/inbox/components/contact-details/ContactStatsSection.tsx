@@ -8,6 +8,14 @@ interface ContactStatsSectionProps {
   contactId: string;
 }
 
+interface ContactSpecificStats {
+  totalMessages?: number;
+  avgResponseTimeMinutes?: number;
+  totalConversations?: number;
+  csatAverage?: number | null;
+  csatCount?: number;
+}
+
 // Mini sparkline SVG component
 function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   if (data.length < 2) return null;
@@ -36,8 +44,10 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-export function ContactStatsSection({ contactId }: ContactStatsSectionProps) {
-  const { stats, isLoading } = (useContactStats as any)(contactId);
+export function ContactStatsSection({ contactId: _contactId }: ContactStatsSectionProps) {
+  const result = useContactStats();
+  const { isLoading } = result;
+  const stats = result.stats as unknown as ContactSpecificStats | null;
 
   if (isLoading) {
     return (
