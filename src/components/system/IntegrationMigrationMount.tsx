@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { safeClient } from "@/integrations/supabase/safeClient";
 import { invalidateWhatsAppModeCache } from "@/lib/whatsappAdapter";
 import { getLogger } from "@/lib/logger";
 
@@ -25,8 +26,7 @@ export function IntegrationMigrationMount() {
       try {
         const { data: session } = await supabase.auth.getSession();
         if (!session?.session) return; // só roda se usuário autenticado
-        // deno-lint-ignore no-explicit-any
-        const { data, error: rpcError } = await supabase.rpc("rpc_migrate_whatsapp_integration" as any);
+        const { data, error: rpcError } = await safeClient.rpc('rpc_migrate_whatsapp_integration');
         if (rpcError) {
           log.warn('WhatsApp integration migration failed', rpcError.message);
           return;
