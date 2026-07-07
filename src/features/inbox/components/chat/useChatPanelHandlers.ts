@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
 import { type DialogKey } from '@/features/inbox/components/chat/hooks/useChatDialogs';
+import { type ActiveTool } from '@/features/inbox/components/chat/ChatHeaderToolbar';
 
 interface UseChatPanelHandlersOptions {
   conversationId: string;
@@ -23,7 +24,7 @@ interface UseChatPanelHandlersOptions {
   handleTypingStop: () => void;
   openDialog: (key: DialogKey) => void;
   closeDialog: (key: DialogKey) => void;
-  handleSetActiveTool: (tool: string | null) => void;
+  handleSetActiveTool: (tool: ActiveTool) => void;
 }
 
 export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
