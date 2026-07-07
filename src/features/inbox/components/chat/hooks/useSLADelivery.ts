@@ -12,7 +12,7 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
     if (!contactId || !messages.length) return;
     
     const checkDeliveryDelay = async () => {
-      const { data: customRule } = await (supabase as any)
+      const { data: customRule } = await supabase
         .from('sla_delivery_rules')
         .select('*')
         .eq('contact_id', contactId)

@@ -126,7 +126,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       }
 
       // Enhanced Transcription with Backend Fallback Support
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      type SpeechRecognitionCtor = new() => { lang: string; continuous: boolean; interimResults: boolean; onresult: ((e: Event) => void) | null; onerror: ((e: Event) => void) | null; start(): void; stop(): void; };
+      const W = window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
+      const SpeechRecognition = W.SpeechRecognition || W.webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.lang = 'pt-BR';

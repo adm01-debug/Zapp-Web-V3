@@ -6,8 +6,17 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+type ThemeDebugInfo = {
+  presetId: string;
+  presetName: string;
+  hasPresetFont: boolean;
+  fontOrigin: string;
+  activeFont: string;
+  mode: string;
+};
+
 export function ThemeDebugTooltip() {
-  const debug = (window as any).__THEME_DEBUG__;
+  const debug = (window as Window & { __THEME_DEBUG__?: ThemeDebugInfo }).__THEME_DEBUG__;
   
   if (!debug) return null;
 

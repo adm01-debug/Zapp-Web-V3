@@ -22,7 +22,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
   const { data: config, isLoading } = useQuery({
     queryKey: ['sla-delivery-config', contactId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('sla_delivery_rules')
         .select('*')
         .eq('contact_id', contactId)
@@ -54,13 +54,13 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
       };
 
       if (config?.id) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('sla_delivery_rules')
           .update(payload)
           .eq('id', config.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('sla_delivery_rules')
           .insert(payload);
         if (error) throw error;

@@ -1,20 +1,21 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QueueMetricsDashboard } from '../monitoring/QueueMetricsDashboard';
+import type { QueueMetrics } from '@/features/inbox/hooks/useMessageQueue';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  metrics: Parameters<typeof QueueMetricsDashboard>[0]['metrics'];
+  metrics: QueueMetrics | null | undefined;
 }
 
-const EMPTY_METRICS = {
+const EMPTY_METRICS: QueueMetrics = {
   totalSent: 0,
   totalFailed: 0,
   totalRetries: 0,
   averageLatency: 0,
   byType: {},
   byConversation: {},
-} as const;
+};
 
 export function ChatMonitoringDialog({ open, onOpenChange, metrics }: Props) {
   return (
@@ -23,7 +24,7 @@ export function ChatMonitoringDialog({ open, onOpenChange, metrics }: Props) {
         <DialogHeader>
           <DialogTitle>Métricas de Envio e Performance</DialogTitle>
         </DialogHeader>
-        <QueueMetricsDashboard metrics={metrics ?? (EMPTY_METRICS as never)} />
+        <QueueMetricsDashboard metrics={metrics ?? EMPTY_METRICS} />
       </DialogContent>
     </Dialog>
   );
