@@ -1,1 +1,375 @@
-LyoqCiAqIFphcCBXZWJiIOKAlCBFdm9sdXRpb24gQVBJIENsaWVudCAoRVNDUklUQSAvIGVudmlvKQogKgogKiBTRUNVUklUWSBGSVggMjAyNi0wNy0wNSAoYXVkaXRvcmlhIENsYXVkZSk6CiAqICAtIGFwaV9rZXkgUkVNT1ZJREEgZGEgbGVpdHVyYSB2aWEgUG9zdGdSRVNUIChSRVZPS0UgYXBsaWNhZG8gbm8gREIpLgogKiAgLSBEQiBjb25zdWx0YWRvIGFwZW5hcyBwYXJhIGFwaV91cmwgZSBoZWFsdGhfc3RhdHVzIHZpYSB2aWV3IHNlZ3VyYQogKiAgICBgZXZvbHV0aW9uX2luc3RhbmNlc19wdWJsaWNgIChzZW0gYXBpX2tleSwgc2VtIGluc3RhbmNlX3Rva2VuKS4KICogIC0gQ2lyY3VpdCBicmVha2VyOiAzIGVycm9zIDQwMS80MDMgY29uc2VjdXRpdm9zIOKGkiBzdXNwZW5kZSAzMCBtaW4uCiAqICAtIEppdHRlciBubyBUVEwgZGUgY2FjaGU6IGV2aXRhIHRodW5kZXJpbmcgaGVyZCBlbSBtdWx0aS10YWIuCiAqCiAqIElOVEVHUkHDh8ODTyBGVUxMIHYzIDIwMjYtMDctMDY6CiAqICAtIGFwaV9rZXkgYWdvcmEgcmVzb2x2aWRhIGVtIFJVTlRJTUUgdmlhIGVkZ2UgZm4gYGV2b2x1dGlvbi1jcmVkZW50aWFsc2AKICogICAgKEpXVCBkbyB1c3XDoXJpbyDihpIgVmF1bHQg4oaSIGhlYWRlciBYLUV2b2x1dGlvbi1LZXkpLiBPIHNlY3JldCBkZWl4YSBkZQogKiAgICBkZXBlbmRlciBkZSBidWlsZC10aW1lIGUgTlVOQ0EgZW50cmEgbm8gYnVuZGxlIHDDumJsaWNvIGRvIFZpdGUuCiAqICAtIFZJVEVfRVZPTFVUSU9OX0FQSV9LRVkgcGFzc2EgYSBzZXIgT1ZFUlJJREUgb3BjaW9uYWwgKGVtZXJnw6puY2lhIC8KICogICAgcm90YcOnw6NvIG1hbnVhbCkg4oCUIHByb2R1w6fDo28gbsOjbyBleGlnZSBtYWlzIGVudiB2YXIgbm8gVmVyY2VsLgogKiAgLSBDYWNoZSBkYSBrZXk6IFRUTCA1NXMgKDwgbWF4LWFnZT02MCBkYSBmbikgKyBqaXR0ZXIsIHNpbmdsZS1mbGlnaHQKICogICAgKG11bHRpLWNvbXBvbmVudGUvbXVsdGktdGFiIG7Do28gZXN0b3VyYSBhIGZuKSwgYnVzdCBhdXRvbcOhdGljbyBlbQogKiAgICA0MDEvNDAzIChyb3Rhw6fDo28gc2VydmVyLXNpZGUgw6kgYWJzb3J2aWRhIG5vIHJlcXVlc3Qgc2VndWludGUpLgogKgogKiBFbmRwb2ludHMgY29iZXJ0b3M6CiAqICAtIFBPU1QgL21lc3NhZ2Uvc2VuZFRleHQve2luc3RhbmNlfQogKiAgLSBQT1NUIC9tZXNzYWdlL3NlbmRNZWRpYS97aW5zdGFuY2V9CiAqICAtIFBPU1QgL21lc3NhZ2Uvc2VuZFdoYXRzQXBwQXVkaW8ve2luc3RhbmNlfQogKiAgLSBQVVQgIC9jaGF0L21hcmtDaGF0VW5yZWFkL3tpbnN0YW5jZX0KICogIC0gR0VUICAvaW5zdGFuY2UvZmV0Y2hJbnN0YW5jZXMKICogIC0gR0VUICAvaW5zdGFuY2UvY29ubmVjdGlvblN0YXRlL3tpbnN0YW5jZX0KICovCmltcG9ydCB7CiAgc3VwYWJhc2UsCiAgU1VQQUJBU0VfUkVTT0xWRURfVVJMLAogIFNVUEFCQVNFX1JFU09MVkVEX0FOT05fS0VZLAp9IGZyb20gJ0AvaW50ZWdyYXRpb25zL3N1cGFiYXNlL2NsaWVudCc7CmltcG9ydCB7IGxvZyB9IGZyb20gJ0AvbGliL2xvZ2dlcic7CgpleHBvcnQgaW50ZXJmYWNlIEV2b2x1dGlvbkNyZWRlbnRpYWxzIHsKICBhcGlfdXJsOiBzdHJpbmc7CiAgYXBpX2tleTogc3RyaW5nOwogIGluc3RhbmNlX25hbWU6IHN0cmluZzsKfQoKY29uc3QgREVGQVVMVF9VUkwgPQogIChpbXBvcnQubWV0YS5lbnYuVklURV9FVk9MVVRJT05fQVBJX1VSTCBhcyBzdHJpbmcgfCB1bmRlZmluZWQpIHx8CiAgJ2h0dHBzOi8vZXZvbHV0aW9uLmF0b21pY2Fici5jb20uYnInOwoKLyoqCiAqIE9WRVJSSURFIG9wY2lvbmFsIChlbWVyZ8OqbmNpYS9yb3Rhw6fDo28gbWFudWFsIGZvcmEgZGUgYmFuZGEpLiBRdWFuZG8gYXVzZW50ZQogKiDigJQgbyBjYXNvIHBhZHLDo28gZW0gcHJvZHXDp8OjbyDigJQgYSBrZXkgw6kgb2J0aWRhIGVtIHJ1bnRpbWUgdmlhIGVkZ2UgZm4KICogYGV2b2x1dGlvbi1jcmVkZW50aWFsc2AgKEpXVC1nYXRlZCwgVmF1bHQtYmFja2VkKS4gQXNzaW0gbyBzZWNyZXQgbnVuY2Egw6kKICogZW1idXRpZG8gbm8gYnVuZGxlIHDDumJsaWNvLgogKi8KY29uc3QgRU5WX0tFWV9PVkVSUklERSA9CiAgKGltcG9ydC5tZXRhLmVudi5WSVRFX0VWT0xVVElPTl9BUElfS0VZIGFzIHN0cmluZyB8IHVuZGVmaW5lZCkgfHwgJyc7Cgpjb25zdCBERUZBVUxUX0lOU1RBTkNFID0KICAoaW1wb3J0Lm1ldGEuZW52LlZJVEVfWkFQUFdFQl9JTlNUQU5DRSBhcyBzdHJpbmcgfCB1bmRlZmluZWQpIHx8ICd3cHAyJzsKCi8vIOKUgOKUgOKUgCBDYWNoZSBkZSBVUkwgKHNlbSBjcmVkZW5jaWFpcykg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACmNvbnN0IHVybENhY2hlID0gbmV3IE1hcDxzdHJpbmcsIHsgYXBpX3VybDogc3RyaW5nOyBhdDogbnVtYmVyIH0+KCk7Ci8vIFRUTCBiYXNlIDUgbWluIGNvbSDCsTIwJSBqaXR0ZXIgcGFyYSBldml0YXIgdGh1bmRlcmluZyBoZXJkIGVtIG11bHRpLXRhYgpjb25zdCBVUkxfVFRMX0JBU0VfTVMgPSA1ICogNjBfMDAwOwpmdW5jdGlvbiB1cmxUdGxXaXRoSml0dGVyKCk6IG51bWJlciB7CiAgcmV0dXJuIFVSTF9UVExfQkFTRV9NUyAqICgwLjggKyBNYXRoLnJhbmRvbSgpICogMC40KTsKfQoKLy8g4pSA4pSA4pSAIENhY2hlIGRhIGFwaV9rZXkgKGVkZ2UgZm4gZXZvbHV0aW9uLWNyZWRlbnRpYWxzKSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKY29uc3QgS0VZX1RUTF9CQVNFX01TID0gNTVfMDAwOyAvLyA8IENhY2hlLUNvbnRyb2wgbWF4LWFnZT02MCBkYSBlZGdlIGZuCmxldCBrZXlDYWNoZTogeyBrZXk6IHN0cmluZzsgYXQ6IG51bWJlciB9IHwgbnVsbCA9IG51bGw7CmxldCBrZXlJbmZsaWdodDogUHJvbWlzZTxzdHJpbmc+IHwgbnVsbCA9IG51bGw7CmZ1bmN0aW9uIGtleVR0bFdpdGhKaXR0ZXIoKTogbnVtYmVyIHsKICByZXR1cm4gS0VZX1RUTF9CQVNFX01TICogKDAuOSArIE1hdGgucmFuZG9tKCkgKiAwLjIpOwp9CgovKiogSW52YWxpZGEgbyBjYWNoZSBkYSBrZXkgKHJvdGHDp8OjbyBzZXJ2ZXItc2lkZSBkZXRlY3RhZGEgdmlhIDQwMS80MDMpLiAqLwpmdW5jdGlvbiBidXN0S2V5Q2FjaGUoKTogdm9pZCB7CiAga2V5Q2FjaGUgPSBudWxsOwp9Cgphc3luYyBmdW5jdGlvbiBmZXRjaEtleUZyb21FZGdlKCk6IFByb21pc2U8c3RyaW5nPiB7CiAgY29uc3QgeyBkYXRhOiBzZXNzaW9uRGF0YSB9ID0gYXdhaXQgc3VwYWJhc2UuYXV0aC5nZXRTZXNzaW9uKCk7CiAgY29uc3QgdG9rZW4gPSBzZXNzaW9uRGF0YS5zZXNzaW9uPy5hY2Nlc3NfdG9rZW47CiAgaWYgKCF0b2tlbikgewogICAgbG9nLndhcm4oCiAgICAgICdbZXZvbHV0aW9uQ2xpZW50XSBTZW0gc2Vzc8OjbyBhdXRlbnRpY2FkYSDigJQgZWRnZSBmbiBldm9sdXRpb24tY3JlZGVudGlhbHMgaW5kaXNwb27DrXZlbC4nCiAgICApOwogICAgcmV0dXJuICcnOwogIH0KICBjb25zdCByZXMgPSBhd2FpdCBmZXRjaCgKICAgIGAke1NVUEFCQVNFX1JFU09MVkVEX1VSTH0vZnVuY3Rpb25zL3YxL2V2b2x1dGlvbi1jcmVkZW50aWFsc2AsCiAgICB7CiAgICAgIG1ldGhvZDogJ0dFVCcsCiAgICAgIGhlYWRlcnM6IHsKICAgICAgICBBdXRob3JpemF0aW9uOiBgQmVhcmVyICR7dG9rZW59YCwKICAgICAgICBhcGlrZXk6IFNVUEFCQVNFX1JFU09MVkVEX0FOT05fS0VZLAogICAgICB9LAogICAgfQogICk7CiAgaWYgKCFyZXMub2spIHsKICAgIGxvZy53YXJuKAogICAgICBgW2V2b2x1dGlvbkNsaWVudF0gZXZvbHV0aW9uLWNyZWRlbnRpYWxzIHJlc3BvbmRldSAke3Jlcy5zdGF0dXN9IOKAlCBrZXkgaW5kaXNwb27DrXZlbC5gCiAgICApOwogICAgcmV0dXJuICcnOwogIH0KICBjb25zdCBrZXkgPSByZXMuaGVhZGVycy5nZXQoJ1gtRXZvbHV0aW9uLUtleScpID8/ICcnOwogIGlmICgha2V5KSB7CiAgICBsb2cud2FybigKICAgICAgJ1tldm9sdXRpb25DbGllbnRdIGV2b2x1dGlvbi1jcmVkZW50aWFscyAyMDAgc2VtIGhlYWRlciBYLUV2b2x1dGlvbi1LZXkgKGNoZWNhciBBY2Nlc3MtQ29udHJvbC1FeHBvc2UtSGVhZGVycykuJwogICAgKTsKICB9CiAgcmV0dXJuIGtleTsKfQoKLyoqCiAqIFJlc29sdmUgYSBhcGlfa2V5OiBvdmVycmlkZSBkZSBlbnYgKHNlIGRlZmluaWRvKSDihpIgY2FjaGUg4oaSIGVkZ2UgZm4KICogKHNpbmdsZS1mbGlnaHQpLiBSZXRvcm5hICcnIHF1YW5kbyBuZW5odW1hIGZvbnRlIGVzdMOhIGRpc3BvbsOtdmVsOwogKiBldm9GZXRjaCBjb252ZXJ0ZSBlbSBlcnJvIGNsYXJvIHBhcmEgbyBjYWxsZXIuCiAqLwphc3luYyBmdW5jdGlvbiBnZXRFdm9sdXRpb25BcGlLZXkoKTogUHJvbWlzZTxzdHJpbmc+IHsKICBpZiAoRU5WX0tFWV9PVkVSUklERSkgcmV0dXJuIEVOVl9LRVlfT1ZFUlJJREU7CiAgaWYgKGtleUNhY2hlICYmIERhdGUubm93KCkgLSBrZXlDYWNoZS5hdCA8IGtleVR0bFdpdGhKaXR0ZXIoKSkgewogICAgcmV0dXJuIGtleUNhY2hlLmtleTsKICB9CiAgaWYgKCFrZXlJbmZsaWdodCkgewogICAga2V5SW5mbGlnaHQgPSBmZXRjaEtleUZyb21FZGdlKCkKICAgICAgLnRoZW4oKGtleSkgPT4gewogICAgICAgIGlmIChrZXkpIGtleUNhY2hlID0geyBrZXksIGF0OiBEYXRlLm5vdygpIH07CiAgICAgICAgcmV0dXJuIGtleTsKICAgICAgfSkKICAgICAgLmNhdGNoKChlcnI6IHVua25vd24pID0+IHsKICAgICAgICBsb2cud2FybignW2V2b2x1dGlvbkNsaWVudF0gRmFsaGEgYW8gYnVzY2FyIGtleSBuYSBlZGdlIGZuOicsIGVycik7CiAgICAgICAgcmV0dXJuICcnOwogICAgICB9KQogICAgICAuZmluYWxseSgoKSA9PiB7CiAgICAgICAga2V5SW5mbGlnaHQgPSBudWxsOwogICAgICB9KTsKICB9CiAgcmV0dXJuIGtleUluZmxpZ2h0Owp9CgovLyDilIDilIDilIAgQ2lyY3VpdCBCcmVha2VyIChhdXRoIGVycm9ycyA0MDEvNDAzKSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKY29uc3QgY2lyY3VpdEJyZWFrZXIgPSB7CiAgY29uc2VjdXRpdmVBdXRoRXJyb3JzOiAwLAogIG9wZW5VbnRpbDogMCwKICBUSFJFU0hPTEQ6IDMsCiAgT1BFTl9NUzogMzAgKiA2MF8wMDAsIC8vIDMwIG1pbnV0b3MKCiAgaXNPcGVuKCk6IGJvb2xlYW4gewogICAgaWYgKERhdGUubm93KCkgPCB0aGlzLm9wZW5VbnRpbCkgcmV0dXJuIHRydWU7CiAgICBpZiAodGhpcy5vcGVuVW50aWwgPiAwKSB7CiAgICAgIC8vIFJlc2V0YXIgYW8gZmVjaGFyCiAgICAgIHRoaXMub3BlblVudGlsID0gMDsKICAgICAgdGhpcy5jb25zZWN1dGl2ZUF1dGhFcnJvcnMgPSAwOwogICAgICBsb2cuaW5mbygnW2V2b2x1dGlvbkNsaWVudF0gY2lyY3VpdCBicmVha2VyIENMT1NFRCDigJQgcmV0b21hbmRvIGNoYW1hZGFzJyk7CiAgICB9CiAgICByZXR1cm4gZmFsc2U7CiAgfSwKCiAgcmVjb3JkRXJyb3Ioc3RhdHVzOiBudW1iZXIpOiB2b2lkIHsKICAgIGlmIChzdGF0dXMgPT09IDQwMSB8fCBzdGF0dXMgPT09IDQwMykgewogICAgICAvLyBLZXkgcG9kZSB0ZXIgc2lkbyByb3RhY2lvbmFkYSBubyBWYXVsdCDigJQgcHLDs3hpbWEgdGVudGF0aXZhIHJlZmF6IG8KICAgICAgLy8gZmV0Y2ggbmEgZWRnZSBmbiBlbSB2ZXogZGUgcmV1dGlsaXphciB1bWEga2V5IHBvc3NpdmVsbWVudGUgbW9ydGEuCiAgICAgIGJ1c3RLZXlDYWNoZSgpOwogICAgICB0aGlzLmNvbnNlY3V0aXZlQXV0aEVycm9ycysrOwogICAgICBpZiAodGhpcy5jb25zZWN1dGl2ZUF1dGhFcnJvcnMgPj0gdGhpcy5USFJFU0hPTEQpIHsKICAgICAgICB0aGlzLm9wZW5VbnRpbCA9IERhdGUubm93KCkgKyB0aGlzLk9QRU5fTVM7CiAgICAgICAgbG9nLmVycm9yKAogICAgICAgICAgYFtldm9sdXRpb25DbGllbnRdIGNpcmN1aXQgYnJlYWtlciBPUEVOIOKAlCAkewogICAgICAgICAgICB0aGlzLlRIUkVTSE9MRAogICAgICAgICAgfSBlcnJvcyBhdXRoIGNvbnNlY3V0aXZvcy4gU3VzcGVuc28gcG9yICR7dGhpcy5PUEVOX01TIC8gNjAwMDB9IG1pbi5gCiAgICAgICAgKTsKICAgICAgfQogICAgfSBlbHNlIHsKICAgICAgLy8gRXJyb3MgbsOjby1hdXRoIG7Do28gY29udGFtIHBhcmEgbyBjaXJjdWl0IGJyZWFrZXIKICAgICAgdGhpcy5jb25zZWN1dGl2ZUF1dGhFcnJvcnMgPSAwOwogICAgfQogIH0sCgogIHJlY29yZFN1Y2Nlc3MoKTogdm9pZCB7CiAgICB0aGlzLmNvbnNlY3V0aXZlQXV0aEVycm9ycyA9IDA7CiAgfSwKfTsKCmZ1bmN0aW9uIG5vcm1hbGl6ZVVybCh1cmw6IHN0cmluZyk6IHN0cmluZyB7CiAgbGV0IHUgPSAodXJsIHx8ICcnKS50cmltKCk7CiAgaWYgKCF1KSByZXR1cm4gdTsKICBpZiAoIS9eaHR0cHM/OlwvXC8vaS50ZXN0KHUpKSB1ID0gYGh0dHBzOi8vJHt1fWA7CiAgcmV0dXJuIHUucmVwbGFjZSgvXC8rJC8sICcnKTsKfQoKZXhwb3J0IGZ1bmN0aW9uIHN0cmlwSmlkKG51bWJlck9ySmlkOiBzdHJpbmcpOiBzdHJpbmcgewogIHJldHVybiAobnVtYmVyT3JKaWQgfHwgJycpLnJlcGxhY2UoL0BzXC53aGF0c2FwcFwubmV0JC9pLCAnJykucmVwbGFjZSgvQGNcLnVzJC9pLCAnJyk7Cn0KCi8qKgogKiBSZXRvcm5hIGNyZWRlbmNpYWlzIHBhcmEgYSBpbnN0w6JuY2lhIHNvbGljaXRhZGEuCiAqCiAqIGFwaV91cmw6IGNvbnN1bHRhZG8gdmlhIGBldm9sdXRpb25faW5zdGFuY2VzX3B1YmxpY2AgKHZpZXcgc2VndXJhLCBzZW0gYXBpX2tleSkuCiAqIGFwaV9rZXk6IG92ZXJyaWRlIGRlIGVudiBPVSBydW50aW1lIHZpYSBlZGdlIGZuIGBldm9sdXRpb24tY3JlZGVudGlhbHNgCiAqICAgICAgICAgIChudW5jYSBsaWRhIGRvIGJhbmNvIHBlbG8gYnJvd3NlciDigJQgUkVWT0tFIGRlIDIwMjYtMDctMDUgbWFudGlkbykuCiAqLwpleHBvcnQgYXN5bmMgZnVuY3Rpb24gZ2V0RXZvbHV0aW9uQ3JlZGVudGlhbHMoCiAgaW5zdGFuY2U6IHN0cmluZyA9IERFRkFVTFRfSU5TVEFOQ0UKKTogUHJvbWlzZTxFdm9sdXRpb25DcmVkZW50aWFscz4gewogIGNvbnN0IGFwaV9rZXkgPSBhd2FpdCBnZXRFdm9sdXRpb25BcGlLZXkoKTsKCiAgLy8gQ2FjaGUgZGUgVVJMIChzZW0gY3JlZGVuY2lhaXMpCiAgY29uc3QgY2FjaGVkID0gdXJsQ2FjaGUuZ2V0KGluc3RhbmNlKTsKICBpZiAoY2FjaGVkICYmIERhdGUubm93KCkgLSBjYWNoZWQuYXQgPCB1cmxUdGxXaXRoSml0dGVyKCkpIHsKICAgIHJldHVybiB7IGFwaV91cmw6IGNhY2hlZC5hcGlfdXJsLCBhcGlfa2V5LCBpbnN0YW5jZV9uYW1lOiBpbnN0YW5jZSB9OwogIH0KCiAgdHJ5IHsKICAgIC8vIENvbnN1bHRhIHZpZXcgU0VHVVJBIOKAlCBzZW0gYXBpX2tleSwgc2VtIGluc3RhbmNlX3Rva2VuIChSRVZPS0UgYXBsaWNhZG8gMjAyNi0wNy0wNSkKICAgIGNvbnN0IHsgZGF0YSB9ID0gYXdhaXQgKHN1cGFiYXNlIGFzIGFueSkKICAgICAgLmZyb20oJ2V2b2x1dGlvbl9pbnN0YW5jZXNfcHVibGljJykKICAgICAgLnNlbGVjdCgnaW5zdGFuY2VfbmFtZSwgYXBpX3VybCwgaXNfYWN0aXZlJykKICAgICAgLmVxKCdpbnN0YW5jZV9uYW1lJywgaW5zdGFuY2UpCiAgICAgIC5lcSgnaXNfYWN0aXZlJywgdHJ1ZSkKICAgICAgLm1heWJlU2luZ2xlKCk7CgogICAgaWYgKGRhdGE/LmFwaV91cmwpIHsKICAgICAgY29uc3QgYXBpX3VybCA9IG5vcm1hbGl6ZVVybChkYXRhLmFwaV91cmwpOwogICAgICB1cmxDYWNoZS5zZXQoaW5zdGFuY2UsIHsgYXBpX3VybCwgYXQ6IERhdGUubm93KCkgfSk7CiAgICAgIHJldHVybiB7IGFwaV91cmwsIGFwaV9rZXksIGluc3RhbmNlX25hbWU6IGluc3RhbmNlIH07CiAgICB9CiAgfSBjYXRjaCAoZXJyKSB7CiAgICBsb2cud2FybignW2V2b2x1dGlvbkNsaWVudF0gRmFsaGEgYW8gY2FycmVnYXIgYXBpX3VybCBkYSBCRCwgdXNhbmRvIGZhbGxiYWNrIGVudjonLCBlcnIpOwogIH0KCiAgcmV0dXJuIHsKICAgIGFwaV91cmw6IG5vcm1hbGl6ZVVybChERUZBVUxUX1VSTCksCiAgICBhcGlfa2V5LAogICAgaW5zdGFuY2VfbmFtZTogaW5zdGFuY2UsCiAgfTsKfQoKYXN5bmMgZnVuY3Rpb24gZXZvRmV0Y2g8VD4oCiAgcGF0aDogc3RyaW5nLAogIGluaXQ6IFJlcXVlc3RJbml0LAogIGluc3RhbmNlOiBzdHJpbmcgPSBERUZBVUxUX0lOU1RBTkNFCik6IFByb21pc2U8VD4gewogIC8vIENpcmN1aXQgYnJlYWtlciBjaGVjawogIGlmIChjaXJjdWl0QnJlYWtlci5pc09wZW4oKSkgewogICAgY29uc3QgcmVtYWluaW5nTWluID0gTWF0aC5jZWlsKChjaXJjdWl0QnJlYWtlci5vcGVuVW50aWwgLSBEYXRlLm5vdygpKSAvIDYwXzAwMCk7CiAgICBsb2cud2FybigKICAgICAgYFtldm9sdXRpb25DbGllbnRdIGNpcmN1aXQgYnJlYWtlciBPUEVOIOKAlCBibG9xdWVhbmRvIGNoYW1hZGEuIEFicmUgZW0gfiR7cmVtYWluaW5nTWlufW1pbi5gCiAgICApOwogICAgdGhyb3cgbmV3IEVycm9yKAogICAgICBgRXZvbHV0aW9uIEFQSSB0ZW1wb3JhcmlhbWVudGUgc3VzcGVuc2EgKGNpcmN1aXQgYnJlYWtlciBhYmVydG8pLiBBZ3VhcmRlICR7cmVtYWluaW5nTWlufSBtaW51dG9zLmAKICAgICk7CiAgfQoKICBjb25zdCBjcmVkcyA9IGF3YWl0IGdldEV2b2x1dGlvbkNyZWRlbnRpYWxzKGluc3RhbmNlKTsKICBpZiAoIWNyZWRzLmFwaV9rZXkpIHsKICAgIHRocm93IG5ldyBFcnJvcigKICAgICAgJ0V2b2x1dGlvbiBBUEkga2V5IGluZGlzcG9uw612ZWw6IHNlc3PDo28gZXhwaXJhZGEvZWRnZSBmbiBldm9sdXRpb24tY3JlZGVudGlhbHMgaW5hY2Vzc8OtdmVsLiAnICsKICAgICAgICAnUmVmYcOnYSBvIGxvZ2luIG91IGRlZmluYSBWSVRFX0VWT0xVVElPTl9BUElfS0VZIGNvbW8gb3ZlcnJpZGUgZGUgZW1lcmfDqm5jaWEuJwogICAgKTsKICB9CgogIGNvbnN0IHVybCA9IGAke2NyZWRzLmFwaV91cmx9JHtwYXRofWA7CiAgY29uc3QgaGVhZGVycyA9IG5ldyBIZWFkZXJzKGluaXQuaGVhZGVycyk7CiAgaGVhZGVycy5zZXQoJ2FwaWtleScsIGNyZWRzLmFwaV9rZXkpOwogIGlmIChpbml0LmJvZHkgJiYgIWhlYWRlcnMuaGFzKCdDb250ZW50LVR5cGUnKSkgewogICAgaGVhZGVycy5zZXQoJ0NvbnRlbnQtVHlwZScsICdhcHBsaWNhdGlvbi9qc29uJyk7CiAgfQoKICBjb25zdCByZXMgPSBhd2FpdCBmZXRjaCh1cmwsIHsgLi4uaW5pdCwgaGVhZGVycyB9KTsKCiAgaWYgKCFyZXMub2spIHsKICAgIGNpcmN1aXRCcmVha2VyLnJlY29yZEVycm9yKHJlcy5zdGF0dXMpOwogICAgY29uc3QgYm9keSA9IGF3YWl0IHJlcy50ZXh0KCkuY2F0Y2goKCkgPT4gJycpOwogICAgY29uc3QgZXJyID0gbmV3IEVycm9yKGBFdm9sdXRpb24gQVBJICR7cmVzLnN0YXR1c306ICR7Ym9keSB8fCByZXMuc3RhdHVzVGV4dH1gKTsKICAgIChlcnIgYXMgYW55KS5zdGF0dXMgPSByZXMuc3RhdHVzOwogICAgdGhyb3cgZXJyOwogIH0KCiAgY2lyY3VpdEJyZWFrZXIucmVjb3JkU3VjY2VzcygpOwoKICB0cnkgewogICAgcmV0dXJuIChhd2FpdCByZXMuanNvbigpKSBhcyBUOwogIH0gY2F0Y2ggKGVycikgewogICAgbG9nLmVycm9yKCdbZXZvbHV0aW9uQ2xpZW50XSBGYWxoYSBhbyBwcm9jZXNzYXIgSlNPTiBkZSByZXNwb3N0YTonLCBlcnIpOwogICAgcmV0dXJuIHt9IGFzIFQ7CiAgfQp9CgovLyDilIDilIDilIAgTWVuc2FnZXJpYSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBzZW5kVGV4dChudW1iZXI6IHN0cmluZywgdGV4dDogc3RyaW5nLCBpbnN0YW5jZTogc3RyaW5nID0gREVGQVVMVF9JTlNUQU5DRSkgewogIHJldHVybiBldm9GZXRjaCgKICAgIGAvbWVzc2FnZS9zZW5kVGV4dC8ke2luc3RhbmNlfWAsCiAgICB7CiAgICAgIG1ldGhvZDogJ1BPU1QnLAogICAgICBib2R5OiBKU09OLnN0cmluZ2lmeSh7IG51bWJlcjogc3RyaXBKaWQobnVtYmVyKSwgdGV4dCB9KSwKICAgIH0sCiAgICBpbnN0YW5jZQogICk7Cn0KCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBzZW5kTWVkaWEoCiAgcGFyYW1zOiB7CiAgICBudW1iZXI6IHN0cmluZzsKICAgIG1lZGlhdHlwZTogJ2ltYWdlJyB8ICd2aWRlbycgfCAnZG9jdW1lbnQnOwogICAgbWVkaWE6IHN0cmluZzsgLy8gVVJMIHDDumJsaWNhCiAgICBjYXB0aW9uPzogc3RyaW5nOwogICAgZmlsZU5hbWU/OiBzdHJpbmc7CiAgfSwKICBpbnN0YW5jZTogc3RyaW5nID0gREVGQVVMVF9JTlNUQU5DRQopIHsKICByZXR1cm4gZXZvRmV0Y2goCiAgICBgL21lc3NhZ2Uvc2VuZE1lZGlhLyR7aW5zdGFuY2V9YCwKICAgIHsKICAgICAgbWV0aG9kOiAnUE9TVCcsCiAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KHsgLi4ucGFyYW1zLCBudW1iZXI6IHN0cmlwSmlkKHBhcmFtcy5udW1iZXIpIH0pLAogICAgfSwKICAgIGluc3RhbmNlCiAgKTsKfQoKZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHNlbmRXaGF0c0FwcEF1ZGlvKAogIG51bWJlcjogc3RyaW5nLAogIGF1ZGlvVXJsOiBzdHJpbmcsCiAgaW5zdGFuY2U6IHN0cmluZyA9IERFRkFVTFRfSU5TVEFOQ0UKKSB7CiAgcmV0dXJuIGV2b0ZldGNoKAogICAgYC9tZXNzYWdlL3NlbmRXaGF0c0FwcEF1ZGlvLyR7aW5zdGFuY2V9YCwKICAgIHsKICAgICAgbWV0aG9kOiAnUE9TVCcsCiAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KHsgbnVtYmVyOiBzdHJpcEppZChudW1iZXIpLCBhdWRpbzogYXVkaW9VcmwgfSksCiAgICB9LAogICAgaW5zdGFuY2UKICApOwp9CgpleHBvcnQgYXN5bmMgZnVuY3Rpb24gbWFya0NoYXRSZWFkKG51bWJlcjogc3RyaW5nLCBpbnN0YW5jZTogc3RyaW5nID0gREVGQVVMVF9JTlNUQU5DRSkgewogIHJldHVybiBldm9GZXRjaCgKICAgIGAvY2hhdC9tYXJrQ2hhdFVucmVhZC8ke2luc3RhbmNlfWAsCiAgICB7CiAgICAgIG1ldGhvZDogJ1BVVCcsCiAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KHsgbnVtYmVyOiBzdHJpcEppZChudW1iZXIpLCB1bnJlYWQ6IGZhbHNlIH0pLAogICAgfSwKICAgIGluc3RhbmNlCiAgKTsKfQoKLy8g4pSA4pSA4pSAIFN0YXR1cyDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCi8qKgogKiBWZXJpZmljYSBvIGVzdGFkbyBkZSBjb25leMOjbyBkYSBpbnN0w6JuY2lhLgogKiBHdWFyZGEtc2UgY29udHJhIGNpcmN1aXQgYnJlYWtlciBhYmVydG8g4oCUIHJldG9ybmEgJ3Vua25vd24nIG5lc3NlIGNhc28uCiAqLwpleHBvcnQgYXN5bmMgZnVuY3Rpb24gZ2V0Q29ubmVjdGlvblN0YXRlKAogIGluc3RhbmNlOiBzdHJpbmcgPSBERUZBVUxUX0lOU1RBTkNFCik6IFByb21pc2U8eyBzdGF0ZTogc3RyaW5nOyBzb3VyY2U6ICdhcGknIHwgJ2NpcmN1aXRfb3BlbicgfCAnZXJyb3InIH0+IHsKICBpZiAoY2lyY3VpdEJyZWFrZXIuaXNPcGVuKCkpIHsKICAgIHJldHVybiB7IHN0YXRlOiAndW5rbm93bicsIHNvdXJjZTogJ2NpcmN1aXRfb3BlbicgfTsKICB9CiAgdHJ5IHsKICAgIGNvbnN0IGRhdGEgPSBhd2FpdCBldm9GZXRjaDx7IGluc3RhbmNlPzogeyBzdGF0ZT86IHN0cmluZyB9OyBzdGF0ZT86IHN0cmluZyB9PigKICAgICAgYC9pbnN0YW5jZS9jb25uZWN0aW9uU3RhdGUvJHtpbnN0YW5jZX1gLAogICAgICB7IG1ldGhvZDogJ0dFVCcgfSwKICAgICAgaW5zdGFuY2UKICAgICk7CiAgICBjb25zdCBzdGF0ZSA9IGRhdGE/Lmluc3RhbmNlPy5zdGF0ZSA/PyBkYXRhPy5zdGF0ZSA/PyAndW5rbm93bic7CiAgICByZXR1cm4geyBzdGF0ZSwgc291cmNlOiAnYXBpJyB9OwogIH0gY2F0Y2ggKGVycikgewogICAgbG9nLndhcm4oJ1tldm9sdXRpb25DbGllbnRdIGdldENvbm5lY3Rpb25TdGF0ZSBmYWxob3U6JywgZXJyKTsKICAgIHJldHVybiB7IHN0YXRlOiAnZXJyb3InLCBzb3VyY2U6ICdlcnJvcicgfTsKICB9Cn0KCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBmZXRjaEluc3RhbmNlcyhpbnN0YW5jZTogc3RyaW5nID0gREVGQVVMVF9JTlNUQU5DRSkgewogIHJldHVybiBldm9GZXRjaDx1bmtub3duW10+KCcvaW5zdGFuY2UvZmV0Y2hJbnN0YW5jZXMnLCB7IG1ldGhvZDogJ0dFVCcgfSwgaW5zdGFuY2UpOwp9Cg==
+/**
+ * Zap Webb — Evolution API Client (ESCRITA / envio)
+ *
+ * SECURITY FIX 2026-07-05 (auditoria Claude):
+ *  - api_key REMOVIDA da leitura via PostgREST (REVOKE aplicado no DB).
+ *  - DB consultado apenas para api_url e health_status via view segura
+ *    `evolution_instances_public` (sem api_key, sem instance_token).
+ *  - Circuit breaker: 3 erros 401/403 consecutivos → suspende 30 min.
+ *  - Jitter no TTL de cache: evita thundering herd em multi-tab.
+ *
+ * INTEGRAÇÃO FULL v3 2026-07-06:
+ *  - api_key agora resolvida em RUNTIME via edge fn `evolution-credentials`
+ *    (JWT do usuário → Vault → header X-Evolution-Key). O secret deixa de
+ *    depender de build-time e NUNCA entra no bundle público do Vite.
+ *  - VITE_EVOLUTION_API_KEY passa a ser OVERRIDE opcional (emergência /
+ *    rotação manual) — produção não exige mais env var no Vercel.
+ *  - Cache da key: TTL 55s (< max-age=60 da fn) + jitter, single-flight
+ *    (multi-componente/multi-tab não estoura a fn), bust automático em
+ *    401/403 (rotação server-side é absorvida no request seguinte).
+ *
+ * Endpoints cobertos:
+ *  - POST /message/sendText/{instance}
+ *  - POST /message/sendMedia/{instance}
+ *  - POST /message/sendWhatsAppAudio/{instance}
+ *  - PUT  /chat/markChatUnread/{instance}
+ *  - GET  /instance/fetchInstances
+ *  - GET  /instance/connectionState/{instance}
+ */
+import {
+  supabase,
+  SUPABASE_RESOLVED_URL,
+  SUPABASE_RESOLVED_ANON_KEY,
+} from '@/integrations/supabase/client';
+import { log } from '@/lib/logger';
+
+export interface EvolutionCredentials {
+  api_url: string;
+  api_key: string;
+  instance_name: string;
+}
+
+const DEFAULT_URL =
+  (import.meta.env.VITE_EVOLUTION_API_URL as string | undefined) ||
+  'https://evolution.atomicabr.com.br';
+
+/**
+ * OVERRIDE opcional (emergência/rotação manual fora de banda). Quando ausente
+ * — o caso padrão em produção — a key é obtida em runtime via edge fn
+ * `evolution-credentials` (JWT-gated, Vault-backed). Assim o secret nunca é
+ * embutido no bundle público.
+ */
+const ENV_KEY_OVERRIDE =
+  (import.meta.env.VITE_EVOLUTION_API_KEY as string | undefined) || '';
+
+const DEFAULT_INSTANCE =
+  (import.meta.env.VITE_ZAPPWEB_INSTANCE as string | undefined) || 'wpp2';
+
+// ─── Cache de URL (sem credenciais) ───────────────────────────────────────
+const urlCache = new Map<string, { api_url: string; at: number }>();
+// TTL base 5 min com ±20% jitter para evitar thundering herd em multi-tab
+const URL_TTL_BASE_MS = 5 * 60_000;
+function urlTtlWithJitter(): number {
+  return URL_TTL_BASE_MS * (0.8 + Math.random() * 0.4);
+}
+
+// ─── Cache da api_key (edge fn evolution-credentials) ────────────────────
+const KEY_TTL_BASE_MS = 55_000; // < Cache-Control max-age=60 da edge fn
+let keyCache: { key: string; at: number } | null = null;
+let keyInflight: Promise<string> | null = null;
+function keyTtlWithJitter(): number {
+  return KEY_TTL_BASE_MS * (0.9 + Math.random() * 0.2);
+}
+
+/** Invalida o cache da key (rotação server-side detectada via 401/403). */
+function bustKeyCache(): void {
+  keyCache = null;
+}
+
+async function fetchKeyFromEdge(): Promise<string> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) {
+    log.warn(
+      '[evolutionClient] Sem sessão autenticada — edge fn evolution-credentials indisponível.'
+    );
+    return '';
+  }
+  const res = await fetch(
+    `${SUPABASE_RESOLVED_URL}/functions/v1/evolution-credentials`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_RESOLVED_ANON_KEY,
+      },
+    }
+  );
+  if (!res.ok) {
+    log.warn(
+      `[evolutionClient] evolution-credentials respondeu ${res.status} — key indisponível.`
+    );
+    return '';
+  }
+  const key = res.headers.get('X-Evolution-Key') ?? '';
+  if (!key) {
+    log.warn(
+      '[evolutionClient] evolution-credentials 200 sem header X-Evolution-Key (checar Access-Control-Expose-Headers).'
+    );
+  }
+  return key;
+}
+
+/**
+ * Resolve a api_key: override de env (se definido) → cache → edge fn
+ * (single-flight). Retorna '' quando nenhuma fonte está disponível;
+ * evoFetch converte em erro claro para o caller.
+ */
+async function getEvolutionApiKey(): Promise<string> {
+  if (ENV_KEY_OVERRIDE) return ENV_KEY_OVERRIDE;
+  if (keyCache && Date.now() - keyCache.at < keyTtlWithJitter()) {
+    return keyCache.key;
+  }
+  if (!keyInflight) {
+    keyInflight = fetchKeyFromEdge()
+      .then((key) => {
+        if (key) keyCache = { key, at: Date.now() };
+        return key;
+      })
+      .catch((err: unknown) => {
+        log.warn('[evolutionClient] Falha ao buscar key na edge fn:', err);
+        return '';
+      })
+      .finally(() => {
+        keyInflight = null;
+      });
+  }
+  return keyInflight;
+}
+
+// ─── Circuit Breaker (auth errors 401/403) ────────────────────────────────
+const circuitBreaker = {
+  consecutiveAuthErrors: 0,
+  openUntil: 0,
+  THRESHOLD: 3,
+  OPEN_MS: 30 * 60_000, // 30 minutos
+
+  isOpen(): boolean {
+    if (Date.now() < this.openUntil) return true;
+    if (this.openUntil > 0) {
+      // Resetar ao fechar
+      this.openUntil = 0;
+      this.consecutiveAuthErrors = 0;
+      log.info('[evolutionClient] circuit breaker CLOSED — retomando chamadas');
+    }
+    return false;
+  },
+
+  recordError(status: number): void {
+    if (status === 401 || status === 403) {
+      // Key pode ter sido rotacionada no Vault — próxima tentativa refaz o
+      // fetch na edge fn em vez de reutilizar uma key possivelmente morta.
+      bustKeyCache();
+      this.consecutiveAuthErrors++;
+      if (this.consecutiveAuthErrors >= this.THRESHOLD) {
+        this.openUntil = Date.now() + this.OPEN_MS;
+        log.error(
+          `[evolutionClient] circuit breaker OPEN — ${
+            this.THRESHOLD
+          } erros auth consecutivos. Suspenso por ${this.OPEN_MS / 60000} min.`
+        );
+      }
+    } else {
+      // Erros não-auth não contam para o circuit breaker
+      this.consecutiveAuthErrors = 0;
+    }
+  },
+
+  recordSuccess(): void {
+    this.consecutiveAuthErrors = 0;
+  },
+};
+
+function normalizeUrl(url: string): string {
+  let u = (url || '').trim();
+  if (!u) return u;
+  if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+  return u.replace(/\/+$/, '');
+}
+
+export function stripJid(numberOrJid: string): string {
+  return (numberOrJid || '').replace(/@s\.whatsapp\.net$/i, '').replace(/@c\.us$/i, '');
+}
+
+/**
+ * Retorna credenciais para a instância solicitada.
+ *
+ * api_url: consultado via `evolution_instances_public` (view segura, sem api_key).
+ * api_key: override de env OU runtime via edge fn `evolution-credentials`
+ *          (nunca lida do banco pelo browser — REVOKE de 2026-07-05 mantido).
+ */
+export async function getEvolutionCredentials(
+  instance: string = DEFAULT_INSTANCE
+): Promise<EvolutionCredentials> {
+  const api_key = await getEvolutionApiKey();
+
+  // Cache de URL (sem credenciais)
+  const cached = urlCache.get(instance);
+  if (cached && Date.now() - cached.at < urlTtlWithJitter()) {
+    return { api_url: cached.api_url, api_key, instance_name: instance };
+  }
+
+  try {
+    // Consulta view SEGURA — sem api_key, sem instance_token (REVOKE aplicado 2026-07-05)
+    const { data } = await (supabase as any)
+      .from('evolution_instances_public')
+      .select('instance_name, api_url, is_active')
+      .eq('instance_name', instance)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (data?.api_url) {
+      const api_url = normalizeUrl(data.api_url);
+      urlCache.set(instance, { api_url, at: Date.now() });
+      return { api_url, api_key, instance_name: instance };
+    }
+  } catch (err) {
+    log.warn('[evolutionClient] Falha ao carregar api_url da BD, usando fallback env:', err);
+  }
+
+  return {
+    api_url: normalizeUrl(DEFAULT_URL),
+    api_key,
+    instance_name: instance,
+  };
+}
+
+async function evoFetch<T>(
+  path: string,
+  init: RequestInit,
+  instance: string = DEFAULT_INSTANCE
+): Promise<T> {
+  // Circuit breaker check
+  if (circuitBreaker.isOpen()) {
+    const remainingMin = Math.ceil((circuitBreaker.openUntil - Date.now()) / 60_000);
+    log.warn(
+      `[evolutionClient] circuit breaker OPEN — bloqueando chamada. Abre em ~${remainingMin}min.`
+    );
+    throw new Error(
+      `Evolution API temporariamente suspensa (circuit breaker aberto). Aguarde ${remainingMin} minutos.`
+    );
+  }
+
+  const creds = await getEvolutionCredentials(instance);
+  if (!creds.api_key) {
+    throw new Error(
+      'Evolution API key indisponível: sessão expirada/edge fn evolution-credentials inacessível. ' +
+        'Refaça o login ou defina VITE_EVOLUTION_API_KEY como override de emergência.'
+    );
+  }
+
+  const url = `${creds.api_url}${path}`;
+  const headers = new Headers(init.headers);
+  headers.set('apikey', creds.api_key);
+  if (init.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const res = await fetch(url, { ...init, headers });
+
+  if (!res.ok) {
+    circuitBreaker.recordError(res.status);
+    const body = await res.text().catch(() => '');
+    const err = new Error(`Evolution API ${res.status}: ${body || res.statusText}`);
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  circuitBreaker.recordSuccess();
+
+  try {
+    return (await res.json()) as T;
+  } catch (err) {
+    log.error('[evolutionClient] Falha ao processar JSON de resposta:', err);
+    return {} as T;
+  }
+}
+
+// ─── Mensageria ───────────────────────────────────────────────────────────
+
+export async function sendText(number: string, text: string, instance: string = DEFAULT_INSTANCE) {
+  return evoFetch(
+    `/message/sendText/${instance}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ number: stripJid(number), text }),
+    },
+    instance
+  );
+}
+
+export async function sendMedia(
+  params: {
+    number: string;
+    mediatype: 'image' | 'video' | 'document';
+    media: string; // URL pública
+    caption?: string;
+    fileName?: string;
+  },
+  instance: string = DEFAULT_INSTANCE
+) {
+  return evoFetch(
+    `/message/sendMedia/${instance}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ ...params, number: stripJid(params.number) }),
+    },
+    instance
+  );
+}
+
+export async function sendWhatsAppAudio(
+  number: string,
+  audioUrl: string,
+  instance: string = DEFAULT_INSTANCE
+) {
+  return evoFetch(
+    `/message/sendWhatsAppAudio/${instance}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ number: stripJid(number), audio: audioUrl }),
+    },
+    instance
+  );
+}
+
+export async function markChatRead(number: string, instance: string = DEFAULT_INSTANCE) {
+  return evoFetch(
+    `/chat/markChatUnread/${instance}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ number: stripJid(number), unread: false }),
+    },
+    instance
+  );
+}
+
+// ─── Status ──────────────────────────────────────────────────────────────
+
+/**
+ * Verifica o estado de conexão da instância.
+ * Guarda-se contra circuit breaker aberto — retorna 'unknown' nesse caso.
+ */
+export async function getConnectionState(
+  instance: string = DEFAULT_INSTANCE
+): Promise<{ state: string; source: 'api' | 'circuit_open' | 'error' }> {
+  if (circuitBreaker.isOpen()) {
+    return { state: 'unknown', source: 'circuit_open' };
+  }
+  try {
+    const data = await evoFetch<{ instance?: { state?: string }; state?: string }>(
+      `/instance/connectionState/${instance}`,
+      { method: 'GET' },
+      instance
+    );
+    const state = data?.instance?.state ?? data?.state ?? 'unknown';
+    return { state, source: 'api' };
+  } catch (err) {
+    log.warn('[evolutionClient] getConnectionState falhou:', err);
+    return { state: 'error', source: 'error' };
+  }
+}
+
+export async function fetchInstances(instance: string = DEFAULT_INSTANCE) {
+  return evoFetch<unknown[]>('/instance/fetchInstances', { method: 'GET' }, instance);
+}
