@@ -1,18 +1,39 @@
+import { safeClient } from "@/integrations/supabase/safeClient";
 import { supabase } from "@/integrations/supabase/client";
 import { getLogger } from '@/lib/logger';
 
 const diagLog = getLogger('diagnostics');
 
+interface DiagStep {
+  step: string;
+  status: 'pass' | 'fail';
+  details: unknown;
+}
+
+interface DiagResult {
+  timestamp: string;
+  steps: DiagStep[];
+}
+
+interface SystemConnectionRow {
+  id?: string;
+  name?: string;
+  provider?: string;
+  config?: { url?: string; anon_key?: string; [key: string]: unknown };
+  is_active?: boolean;
+  created_by?: string;
+}
+
 /**
  * Rotina de Verificação Automatizada: Fluxo de Conexão
- * 
+ *
  * Este script valida:
  * 1. A conectividade com o endpoint do Supabase Self-Hosted.
  * 2. A persistência de dados na tabela system_connections.
  * 3. A integridade do RLS (se o registro é visível após o save).
  */
-export async function runConnectionDiagnostics() {
-  const diagnostics: any = {
+export async function runConnectionDiagnostics(): Promise<DiagResult> {
+  const diagnostics: DiagResult = {
     timestamp: new Date().toISOString(),
     steps: []
   };
@@ -32,21 +53,18 @@ export async function runConnectionDiagnostics() {
     record('Auth Check', 'pass', { user: session.user.email });
 
     // Passo 2: Buscar Configuração Atual no Banco
-    const { data: currentConfigs, error: fetchError } = await (supabase as any)
-      .from('system_connections')
-      .select('*')
-      .eq('name', 'FATOR X')
-      .eq('provider', 'supabase_external')
-      .maybeSingle();
+    const { data: currentConfigs, error: fetchError } = await safeClient.single<SystemConnectionRow>(
+      'system_connections',
+      q => q.select('*').eq('name', 'FATOR X').eq('provider', 'supabase_external')
+    );
 
     if (fetchError || !currentConfigs) {
       record('Fetch Current Config', 'fail', 'Configuração "FATOR X" não encontrada em system_connections.');
       return diagnostics;
     }
-    
-    const configData = currentConfigs as any;
-    const externalUrl = configData.config?.url;
-    const externalKey = configData.config?.anon_key;
+
+    const externalUrl = currentConfigs.config?.url;
+    const externalKey = currentConfigs.config?.anon_key;
 
     if (!externalUrl || !externalKey) {
       record('Config Validation', 'fail', 'URL ou Anon Key ausentes na configuração do banco.');
@@ -64,51 +82,47 @@ export async function runConnectionDiagnostics() {
       } else {
         record('External Connectivity', 'fail', { status: res.status, msg: 'Endpoint retornou erro 500+' });
       }
-    } catch (e: any) {
-      record('External Connectivity', 'fail', { error: e.message });
+    } catch (e: unknown) {
+      record('External Connectivity', 'fail', { error: e instanceof Error ? e.message : String(e) });
     }
 
     // Passo 4: Testar Escrita/Leitura no system_connections (Verificar RLS)
     const testName = `DIAG_TEST_${Math.floor(Math.random() * 1000)}`;
-    const { data: saveResult, error: saveError, status: saveStatus } = await (supabase as any)
-      .from('system_connections')
-      .upsert({
+    const { data: savedRows, error: saveError } = await safeClient.from<SystemConnectionRow>(
+      'system_connections',
+      q => q.upsert({
         name: testName,
         provider: 'diagnostic_test',
         config: { url: 'test', anon_key: 'test' },
         is_active: false,
         created_by: session.user.id
-      }, { onConflict: 'name' })
-      .select();
+      }, { onConflict: 'name' }).select()
+    );
 
     if (saveError) {
-      record('Database Write (RLS)', 'fail', { error: saveError, status: saveStatus });
+      record('Database Write (RLS)', 'fail', { error: saveError.message });
     } else {
-      const savedData = saveResult as any[];
-      record('Database Write (RLS)', 'pass', { id: savedData?.[0]?.id, status: saveStatus });
+      record('Database Write (RLS)', 'pass', { id: savedRows?.[0]?.id });
 
       // Passo 5: Verificação de Visibilidade (Read-back)
-      const { data: verify, error: verifyError } = await (supabase as any)
-        .from('system_connections')
-        .select('*')
-        .eq('name', testName)
-        .maybeSingle();
-
-      const verifyData = verify as any;
+      const { data: verifyData, error: verifyError } = await safeClient.single<SystemConnectionRow>(
+        'system_connections',
+        q => q.select('*').eq('name', testName)
+      );
 
       if (verifyError || !verifyData) {
         record('Data Read-back (RLS)', 'fail', { error: verifyError?.message || 'Registro inserido não foi encontrado no SELECT' });
       } else {
         record('Data Read-back (RLS)', 'pass', { verified_id: verifyData.id });
-        
+
         // Limpeza
-        await (supabase as any).from('system_connections').delete().eq('name', testName);
+        await safeClient.from('system_connections', q => q.delete().eq('name', testName));
         record('Cleanup', 'pass', 'Registro de teste removido.');
       }
     }
 
-  } catch (e: any) {
-    record('Global Error', 'fail', { message: e.message });
+  } catch (e: unknown) {
+    record('Global Error', 'fail', { message: e instanceof Error ? e.message : String(e) });
   }
 
   return diagnostics;

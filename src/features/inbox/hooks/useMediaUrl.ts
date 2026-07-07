@@ -156,7 +156,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     if (originalUrl) {
       try {
         const hash = await buildFileHash(originalUrl);
-        const { data: cacheRow } = await (supabase as any)
+        const { data: cacheRow } = await supabase
           .from('media_cache')
           .select('storage_path')
           .eq('file_hash', hash)
@@ -192,7 +192,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         // Audit & Cache Persistence
         try {
           const hash = await buildFileHash(dataUrl);
-          await (supabase as any).from('media_cache').upsert({
+          await supabase.from('media_cache').upsert({
             file_hash: hash,
             storage_path: dataUrl, // Em cenários reais, enviaríamos para o storage e salvaríamos a URL
             mime_type: mime,

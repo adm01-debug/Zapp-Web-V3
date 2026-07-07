@@ -72,7 +72,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .eq('entity_id', messageId)
           .order('created_at', { ascending: false })
           .limit(20),
-        (supabase as any)
+        supabase
           .from('outbound_delivery_audit')
           .select('*')
           .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
@@ -90,13 +90,13 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       // Adiciona entradas do outbound_delivery_audit (FATOR X) ao histórico
       const outboundEntries = (outboundAuditRes.data ?? []).map((e) => ({
         id: e.id,
-        action: `OUTBOUND_${e.message_type.toUpperCase()}`,
+        action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
         createdAt: e.created_at,
         details: {
           status: e.status,
           latency: e.latency_ms,
           instance: e.instance_name,
-          error_code: e.error_code,
+          error_message: e.error_message,
           ...(typeof e.metadata === 'object' && e.metadata !== null ? e.metadata : {})
         },
       }));

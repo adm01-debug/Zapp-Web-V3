@@ -60,7 +60,7 @@ export const AdminProvidersPage = () => {
     const ok = await upsertProvider({
       id: editing.provider_id,
       ...editing,
-    } as any);
+    });
     if (ok) setEditorOpen(false);
   };
 

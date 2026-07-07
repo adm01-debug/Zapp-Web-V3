@@ -5,6 +5,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/features/auth';
 
@@ -16,6 +17,16 @@ export interface Step {
   is_active: boolean;
 }
 
+export interface SequenceRow {
+  id: string;
+  name: string;
+  is_active: boolean;
+  trigger_event: string;
+  created_at: string;
+  created_by: string | null;
+  followup_steps: Step[];
+}
+
 export function useFollowUpSequences() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -23,11 +34,10 @@ export function useFollowUpSequences() {
   const { data: sequences = [], isLoading } = useQuery({
     queryKey: ['followup-sequences'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
-        .from('followup_sequences')
-        .select('*, followup_steps(*)') 
-        .order('created_at', { ascending: false });
-      return data || [];
+      const { data } = await safeClient.from<SequenceRow>('followup_sequences', q =>
+        q.select('*, followup_steps(*)').order('created_at', { ascending: false }),
+      );
+      return data ?? [];
     },
   });
 

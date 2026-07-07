@@ -18,7 +18,7 @@ const Install = () => {
   useEffect(() => {
     // Detect iOS
     const ua = navigator.userAgent;
-    setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream);
+    setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as Window & { MSStream?: unknown }).MSStream);
 
     // Check if already installed
     if (window.matchMedia("(display-mode: standalone)").matches) {

@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import type { Deal } from '@/components/pipeline/DealCard';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -36,7 +37,7 @@ export function useSalesPipeline() {
     setLoading(true);
     const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([
       supabase.from('sales_pipeline_stages').select('*').order('position'),
-      (supabase as any) /* TS2589: schema 678 */.from('sales_deals').select('*, contacts(name, phone), profiles!sales_deals_assigned_to_fkey(name)').order('created_at', { ascending: false }),
+      safeClient.from<Deal & { contacts: { name: string; phone: string } | null; profiles: { name: string } | null }>('sales_deals', q => q.select('*, contacts(name, phone), profiles!sales_deals_assigned_to_fkey(name)').order('created_at', { ascending: false })),
       dbFrom('contacts').select('id, name, phone').limit(200),
       supabase.from('profiles').select('id, name').eq('is_active', true),
     ]);

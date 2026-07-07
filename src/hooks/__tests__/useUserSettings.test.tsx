@@ -64,6 +64,7 @@ describe('useUserSettings', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: mockSettings, error: null }),
           maybeSingle: vi.fn().mockResolvedValue({ data: mockSettings, error: null }),
         }),
       }),
@@ -89,6 +90,7 @@ describe('useUserSettings', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockRejectedValue(new Error('fail')),
           maybeSingle: vi.fn().mockRejectedValue(new Error('fail')),
         }),
       }),

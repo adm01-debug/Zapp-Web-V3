@@ -110,7 +110,7 @@ export function EmailChatReplyBar({
       const ccList = cc.split(',').map(s => s.trim()).filter(Boolean);
       const bccList = bcc.split(',').map(s => s.trim()).filter(Boolean);
 
-      await (emailSendMessage as any)({
+      await emailSendMessage({
         accountId,
         to: toList,
         cc: ccList,
@@ -119,8 +119,8 @@ export function EmailChatReplyBar({
         bodyHtml,
         bodyPlain: plainText,
         threadId: threadEmailId,
-        attachments: processedAttachments as any,
-        signature: true
+        attachments: processedAttachments,
+        signature: true,
       });
 
       // Registra resposta no SLA

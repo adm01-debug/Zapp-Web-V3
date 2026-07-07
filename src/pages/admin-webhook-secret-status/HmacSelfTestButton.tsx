@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, ShieldAlert, FlaskConical, Loader2, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 
@@ -72,7 +73,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       const { data: userData , error } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      await (supabase as any).from('hmac_selftest_audit').insert({
+      await safeClient.from('hmac_selftest_audit', q => q.insert({
         instance: instanceName,
         ok: !!payload.ok,
         duration_ms: payload.duration_ms ?? fallbackDurationMs,
@@ -82,7 +83,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
         tampered_rejected:
           payload.tampered ? !payload.tampered.accepted : null,
         executed_by: uid,
-      });
+      }));
     } catch (err) {
       log.warn('Failed to write audit record', err);
     }
@@ -103,13 +104,10 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       if (!uid) return;
 
       // Busca alerta ativo (não resolvido) para este source
-      const { data: existing , error: existingErr } = await (supabase as any)
-        .from('warroom_alerts')
-        .select('id')
-        .eq('source', source)
-        .is('resolved_at', null)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const { data: existing } = await safeClient.from<{ id: string }>(
+        'warroom_alerts',
+        q => q.select('id').eq('source', source).is('resolved_at', null).order('created_at', { ascending: false }).limit(1),
+      );
 
       const activeAlertId = existing?.[0]?.id ?? null;
 
@@ -125,19 +123,18 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
                 .join(' | ')
             : (payload.error ?? payload.message ?? 'Falha no self-test HMAC');
           const summary = `${phasePrefix}${detail}${reqSuffix}`;
-          await (supabase as any).from('warroom_alerts').insert({
+          await safeClient.from('warroom_alerts', q => q.insert({
             alert_type: 'error',
             title: `HMAC self-test falhou (${instanceName ?? 'selftest'})`,
             message: summary.slice(0, 500),
             source,
-          });
+          }));
           toast.warning('Alerta ativo registrado para esta falha de HMAC');
         }
       } else {
         // OK: resolve alertas ativos deste source
         if (activeAlertId) {
-          await (supabase as any)
-            .from('warroom_alerts')
+          await safeClient.from('warroom_alerts', q => q
             .update({
               resolved_at: new Date().toISOString(),
               resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
@@ -145,7 +142,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
               is_read: true,
             })
             .eq('source', source)
-            .is('resolved_at', null);
+            .is('resolved_at', null));
           toast.success('Alertas anteriores de HMAC resolvidos automaticamente');
         }
       }

@@ -19,7 +19,8 @@ export interface SLAAlertHistoryEntry {
 const PAGE_SIZE = 100;
 
 async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
-  const { data, error } = await (supabase as any)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any) /* TS2589: schema too deep for sla_history */
     .from('sla_history')
     .select(`
       id,
@@ -40,7 +41,7 @@ async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
 
   if (error) throw error;
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row) => {
     const thread = row.conversation_threads;
     const contact = thread?.contacts;
     
@@ -70,7 +71,7 @@ export function useSLAAlertHistory() {
 
   const resolveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('sla_history')
         .update({ is_resolved: true, resolved_at: new Date().toISOString() })
         .eq('id', id);

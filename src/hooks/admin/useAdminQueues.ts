@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 
 export type QueueStatus = "active" | "paused" | "archived";
@@ -65,22 +66,22 @@ export function useAdminQueues() {
   const load = async () => {
     setLoading(true);
     const [q, m, s, p, d, c, cq] = await Promise.all([
-      (supabase as any).from('queues').select("*").order("priority", { ascending: false }),
-      (supabase as any).from('queue_members').select("id,queue_id,profile_id,profile:profiles(id,name,avatar_url)") /* TS2589 c/ schema 678 entidades */,
+      safeClient.from<Queue>('queues', query => query.select("*").order("priority", { ascending: false })),
+      safeClient.from<QueueMember>('queue_members', query => query.select("id,queue_id,profile_id,profile:profiles(id,name,avatar_url)")),
       supabase.from('queue_skill_requirements').select("*"),
       supabase.from('profiles').select("id,name,avatar_url").eq("is_active", true).order("name"),
       supabase.from('departments').select("id,name").order("name"),
-      (supabase as any).from('service_channels').select("id,name,channel_type,default_queue_id").neq("status", "archived").order("name"),
-      (supabase as any).from('channel_queues').select("*"),
+      safeClient.from<ServiceChannel>('service_channels', query => query.select("id,name,channel_type,default_queue_id").neq("status", "archived").order("name")),
+      safeClient.from<ChannelQueue>('channel_queues', query => query.select("*")),
     ]);
     if (!mountedRef.current) return;
-    setQueues((q.data ?? []) as Queue[]);
+    setQueues(q.data ?? []);
     setMembers((m.data ?? []) as unknown as QueueMember[]);
     setSkills((s.data ?? []) as QueueSkill[]);
     setProfiles((p.data ?? []) as Profile[]);
     setDepartments((d.data ?? []) as Department[]);
-    setChannels((c.data ?? []) as ServiceChannel[]);
-    setChannelQueues((cq.data ?? []) as ChannelQueue[]);
+    setChannels(c.data ?? []);
+    setChannelQueues(cq.data ?? []);
     setLoading(false);
   };
 
@@ -106,8 +107,8 @@ export function useAdminQueues() {
       overflow_queue_id: editing.overflow_queue_id ?? null,
     };
     const { error } = editing.id
-      ? await (supabase as any).from('queues').update(payload).eq("id", editing.id)
-      : await (supabase as any).from('queues').insert(payload);
+      ? await safeClient.from('queues', q => q.update(payload).eq("id", editing.id!))
+      : await safeClient.from('queues', q => q.insert(payload));
     if (error) {
       toast({ title: "Erro ao salvar fila", description: error.message, variant: "destructive" });
       return;
@@ -119,7 +120,7 @@ export function useAdminQueues() {
 
   const remove = async (id: string) => {
     if (!confirm("Excluir esta fila? Membros, regras e vínculos serão removidos.")) return;
-    const { error } = await supabase.from('queues').delete().eq("id", id);
+    const { error } = await safeClient.from('queues', q => q.delete().eq("id", id));
     if (error) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
       return;
@@ -132,7 +133,7 @@ export function useAdminQueues() {
     const args = q.status === "paused"
       ? { p_queue_id: q.id }
       : { p_queue_id: q.id, p_reason: prompt("Motivo da pausa (opcional)") || null };
-    const { error } = await supabase.rpc(fn as never, args as never);
+    const { error } = await safeClient.rpc(fn, args);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
@@ -143,9 +144,9 @@ export function useAdminQueues() {
 
   const addMember = async () => {
     if (!memberDialog || !newMemberId) return;
-    const { error } = await supabase.from('queue_members').insert({
+    const { error } = await safeClient.from('queue_members', q => q.insert({
       queue_id: memberDialog.id, profile_id: newMemberId,
-    } as never);
+    }));
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
@@ -155,15 +156,15 @@ export function useAdminQueues() {
   };
 
   const removeMember = async (id: string) => {
-    await supabase.from('queue_members').delete().eq("id", id);
+    await safeClient.from('queue_members', q => q.delete().eq("id", id));
     load();
   };
 
   const addSkill = async () => {
     if (!memberDialog || !newSkill.name.trim()) return;
-    const { error } = await supabase.from('queue_skill_requirements').insert({
+    const { error } = await safeClient.from('queue_skill_requirements', q => q.insert({
       queue_id: memberDialog.id, skill_name: newSkill.name.trim(), min_level: newSkill.level,
-    } as never);
+    }));
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
@@ -173,15 +174,15 @@ export function useAdminQueues() {
   };
 
   const removeSkill = async (id: string) => {
-    await supabase.from('queue_skill_requirements').delete().eq("id", id);
+    await safeClient.from('queue_skill_requirements', q => q.delete().eq("id", id));
     load();
   };
 
   const linkChannel = async () => {
     if (!memberDialog || !newChannelId) return;
-    const { error } = await supabase.rpc("rpc_link_channel_queue" as never, {
+    const { error } = await safeClient.rpc("rpc_link_channel_queue", {
       p_channel_id: newChannelId, p_queue_id: memberDialog.id, p_priority: 0, p_is_active: true,
-    } as never);
+    });
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
@@ -192,9 +193,9 @@ export function useAdminQueues() {
 
   const unlinkChannel = async (channelId: string) => {
     if (!memberDialog) return;
-    const { error } = await supabase.rpc("rpc_unlink_channel_queue" as never, {
+    const { error } = await safeClient.rpc("rpc_unlink_channel_queue", {
       p_channel_id: channelId, p_queue_id: memberDialog.id,
-    } as never);
+    });
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;

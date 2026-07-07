@@ -211,7 +211,7 @@ export async function getEvolutionCredentials(
 
   try {
     // Consulta view SEGURA — sem api_key, sem instance_token (REVOKE aplicado 2026-07-05)
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from('evolution_instances_public')
       .select('instance_name, api_url, is_active')
       .eq('instance_name', instance)
@@ -270,8 +270,7 @@ async function evoFetch<T>(
   if (!res.ok) {
     circuitBreaker.recordError(res.status);
     const body = await res.text().catch(() => '');
-    const err = new Error(`Evolution API ${res.status}: ${body || res.statusText}`);
-    (err as any).status = res.status;
+    const err = Object.assign(new Error(`Evolution API ${res.status}: ${body || res.statusText}`), { status: res.status });
     throw err;
   }
 

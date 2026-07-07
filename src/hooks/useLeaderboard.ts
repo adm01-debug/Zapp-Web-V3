@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { log } from '@/lib/logger';
 
 export interface LeaderboardAgent {
@@ -28,11 +29,10 @@ export function useLeaderboard() {
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const { data: stats, error } = await (supabase as any) /* TS2589: schema 678 */
-        .from('agent_stats')
-        .select(`*, profiles:profile_id (id, name, avatar_url, is_active)`)
-        .order('xp', { ascending: false })
-        .limit(10);
+      type AgentStatRow = { id: string; profile_id: string; xp: number; level: number; current_streak: number; messages_sent: number; messages_received: number; avg_response_time_seconds: number | null; customer_satisfaction_score: number | null; achievements_count: number; profiles: { id: string; name: string; avatar_url: string | null; is_active: boolean | null } | null };
+      const { data: stats, error } = await safeClient.from<AgentStatRow>('agent_stats', q =>
+        q.select('*, profiles:profile_id (id, name, avatar_url, is_active)').order('xp', { ascending: false }).limit(10),
+      );
 
       if (error) throw error;
       if (!stats || stats.length === 0) { setAgents([]); return; }
@@ -52,7 +52,7 @@ export function useLeaderboard() {
       });
 
       setAgents(stats.map((stat, index) => {
-        const profile = stat.profiles as { id: string; name: string; avatar_url: string | null; is_active: boolean | null } | null;
+        const profile = Array.isArray(stat.profiles) ? stat.profiles[0] ?? null : stat.profiles;
         const agentAchievements = achievementsByProfile[stat.profile_id] || [];
         return {
           id: stat.id, profile_id: stat.profile_id,

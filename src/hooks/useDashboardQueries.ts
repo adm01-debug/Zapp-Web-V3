@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { DashboardFilters } from './useDashboardData';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -69,10 +70,13 @@ export const useQueuesQuery = () =>
   useQuery({
     queryKey: ['dashboard-queues'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
-        .from('queues')
-        .select(`id, name, color, queue_members (profile_id, is_active, profiles (id, is_active))`)
-        .eq('is_active', true);
+      const { data, error } = await safeClient.from<{
+        id: string; name: string; color: string;
+        queue_members: { profile_id: string; is_active: boolean; profiles: { id: string; is_active: boolean } | null }[];
+      }>('queues', q =>
+        q.select(`id, name, color, queue_members (profile_id, is_active, profiles (id, is_active))`)
+          .eq('is_active', true)
+      );
       if (error) throw error;
       return data || [];
     },

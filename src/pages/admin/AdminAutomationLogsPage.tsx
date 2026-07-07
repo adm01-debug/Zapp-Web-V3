@@ -94,7 +94,7 @@ export default function AdminAutomationLogsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    let q = (supabase as any)
+    let q = supabase
       .from('automation_executions')
       .select("*")
       .order("created_at", { ascending: false })
@@ -114,7 +114,7 @@ export default function AdminAutomationLogsPage() {
     if (!mountedRef.current) return;
     if (error) {
       // Silently show empty state when table doesn't exist yet (pending migration)
-      const isMissing = error.message?.includes('does not exist') || (error as any).code === '42P01';
+      const isMissing = error.message?.includes('does not exist') || (error as { code?: string }).code === '42P01';
       if (!isMissing) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
       }

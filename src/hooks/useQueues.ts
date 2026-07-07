@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -54,12 +55,9 @@ export function useQueues() {
       if (queuesError) throw queuesError;
 
       // Fetch queue members with profiles
-      const { data: membersData, error: membersError } = await (supabase as any) /* TS2589: embed profiles c/ schema 678 */
-        .from('queue_members')
-        .select(`
-          *,
-          profile:profiles(id, name, avatar_url, is_active)
-        `);
+      const { data: membersData, error: membersError } = await safeClient.from<QueueMember>('queue_members', q =>
+        q.select('*, profile:profiles(id, name, avatar_url, is_active)'),
+      );
 
       if (membersError) throw membersError;
 

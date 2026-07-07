@@ -7,12 +7,21 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { TalkXRecipientsList } from './TalkXRecipientsList';
 import { motion } from 'framer-motion';
 import type { TalkXCampaign } from '@/hooks/useTalkX';
 
 interface Props {
   campaignId: string;
+}
+
+interface RecipientExportRow {
+  status: string;
+  personalized_message: string | null;
+  error_message: string | null;
+  sent_at: string | null;
+  contacts: { name: string | null; nickname: string | null; phone: string | null; company: string | null } | null;
 }
 
 export function TalkXLiveMonitor({ campaignId }: Props) {
@@ -61,15 +70,14 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
   }, [campaignId]);
 
   const handleExportCSV = async () => {
-    const { data: recipients , error: recipientsErr } = await (supabase as any) /* TS2589: schema 678 */
-      .from('talkx_recipients')
-      .select('*, contacts:contact_id(name, nickname, phone, company)')
-      .eq('campaign_id', campaignId)
-      .order('created_at');
+    const { data: recipients } = await safeClient.from<RecipientExportRow>(
+      'talkx_recipients',
+      q => q.select('*, contacts:contact_id(name, nickname, phone, company)').eq('campaign_id', campaignId).order('created_at', { ascending: true }),
+    );
 
     if (!recipients || recipients.length === 0) return;
 
-    const rows = recipients.map((r: any) => ({
+    const rows = recipients.map((r) => ({
       Nome: r.contacts?.name || '',
       Apelido: r.contacts?.nickname || '',
       Telefone: r.contacts?.phone || '',

@@ -3,9 +3,42 @@ import * as ResizablePrimitive from "react-resizable-panels";
 
 import { cn } from "@/lib/utils";
 
-const RP = ResizablePrimitive as any;
+type PanelGroupProps = React.HTMLAttributes<HTMLDivElement> & {
+  direction?: 'horizontal' | 'vertical';
+  id?: string;
+  autoSaveId?: string;
+  storage?: unknown;
+  onLayout?: (sizes: number[]) => void;
+};
 
-const ResizablePanelGroup = ({ className, ...props }: React.ComponentProps<typeof RP.PanelGroup>) => (
+type PanelProps = React.HTMLAttributes<HTMLDivElement> & {
+  defaultSize?: number;
+  minSize?: number;
+  maxSize?: number;
+  id?: string;
+  order?: number;
+  collapsible?: boolean;
+  collapsedSize?: number;
+  onCollapse?: () => void;
+  onExpand?: () => void;
+  onResize?: (size: number) => void;
+};
+
+type PanelResizeHandleProps = React.HTMLAttributes<HTMLDivElement> & {
+  disabled?: boolean;
+  id?: string;
+  onDragging?: (isDragging: boolean) => void;
+};
+
+interface ResizablePanelsModule {
+  PanelGroup: React.ForwardRefExoticComponent<PanelGroupProps & React.RefAttributes<unknown>>;
+  Panel: React.ForwardRefExoticComponent<PanelProps & React.RefAttributes<unknown>>;
+  PanelResizeHandle: React.ForwardRefExoticComponent<PanelResizeHandleProps & React.RefAttributes<unknown>>;
+}
+
+const RP = ResizablePrimitive as unknown as ResizablePanelsModule;
+
+const ResizablePanelGroup = ({ className, ...props }: PanelGroupProps) => (
   <RP.PanelGroup
     className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
     {...props}
@@ -18,7 +51,7 @@ const ResizableHandle = ({
   withHandle,
   className,
   ...props
-}: React.ComponentProps<typeof RP.PanelResizeHandle> & {
+}: PanelResizeHandleProps & {
   withHandle?: boolean;
 }) => (
   <RP.PanelResizeHandle

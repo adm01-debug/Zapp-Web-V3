@@ -48,7 +48,8 @@ export function useDepartmentManagement(initialDepartment: DeptRef, open: boolea
         .single();
       if (error) throw error;
 
-      setWhatsappMode((data.whatsapp_mode as any) || 'none');
+      const wMode = data.whatsapp_mode;
+      setWhatsappMode(wMode === 'evolution' || wMode === 'official' ? wMode : 'none');
       setWhatsappApiKey(data.whatsapp_api_key || '');
       setWhatsappInstanceId(data.whatsapp_instance_id || '');
 
@@ -107,9 +108,9 @@ export function useDepartmentManagement(initialDepartment: DeptRef, open: boolea
         department_id: department.id,
         created_by: currentUser.id,
         code,
-        email: 'default@temp.com', // Added dummy email to fix TS error
+        email: 'default@temp.com',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      } as any);
+      });
       if (error) throw error;
     },
     onSuccess: () => {

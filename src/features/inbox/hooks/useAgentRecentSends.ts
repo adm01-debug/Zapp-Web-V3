@@ -32,7 +32,7 @@ export function useAgentRecentSends() {
   const query = useQuery({
     queryKey: ['agent-recent-sends'],
     queryFn: async () => {
-      const { data: sends, error: sendsErr } = await (supabase as any)
+      const { data: sends, error: sendsErr } = await supabase
         .from('evolution_send_idempotency')
         .select('idem_key, instance_name, http_status, external_message_id, created_at, path')
         .order('created_at', { ascending: false })

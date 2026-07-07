@@ -1,12 +1,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailSaveDraft, emailDeleteDraft } from './gmail/gmailApi';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useEmailDraft');
-const supabase = _supabase as any;
 const AUTO_SAVE_DELAY_MS = 30_000;
 
 export interface DraftState {
@@ -47,12 +45,10 @@ export function useEmailDraft(accountId: string | null, threadId?: string) {
       if (localId) {
         await safeClient.from('email_drafts', (q) => q.update(payload).eq('id', localId));
       } else {
-        const { data, error } = await supabase
-          .from('email_drafts')
-          .insert(payload)
-          .select('id')
-          .single();
-        localId = data?.id;
+        const { data: insertData } = await safeClient.single<{ id: string }>('email_drafts', q =>
+          q.insert(payload).select('id')
+        );
+        localId = insertData?.id;
       }
 
       const emailResult = await emailSaveDraft({
@@ -68,7 +64,7 @@ export function useEmailDraft(accountId: string | null, threadId?: string) {
       setDraft(prev => ({
         ...prev,
         id: localId,
-        email_draft_id: (emailResult as any)?.draftId,
+        email_draft_id: (emailResult as { draftId?: string })?.draftId,
         isDirty: false,
         lastSaved: new Date(),
       }));

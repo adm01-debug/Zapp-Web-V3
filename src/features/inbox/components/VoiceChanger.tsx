@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert";
 import { ELEVENLABS_VOICES, type ElevenLabsVoice } from './VoiceSelector';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 interface VoiceChangerProps {
   audioBlob?: Blob;
@@ -99,21 +100,21 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
       let taskId = activeTaskId;
       
       if (!taskId) {
-        const { data: task, error: queueError } = await (supabase as any)
-          .from('voice_conversion_queue')
-          .insert({
-            input_audio_url: audioUrl || 'blob-input', 
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        const { data: task, error: queueError } = await safeClient.single<{ id: string; status: string }>(
+          'voice_conversion_queue',
+          q => q.insert({
+            input_audio_url: audioUrl || 'blob-input',
             voice_preset: voice.id,
             status: 'pending',
-            user_id: (await supabase.auth.getUser()).data.user?.id,
+            user_id: userId,
             message_id: messageId,
-            conversation_id: conversationId
-          })
-          .select()
-          .single();
+            conversation_id: conversationId,
+          }).select()
+        );
 
         if (queueError) throw queueError;
-        taskId = task.id;
+        taskId = task?.id ?? null;
         setActiveTaskId(taskId);
       }
 
@@ -168,10 +169,10 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
       setShowCloneWarning(false);
       
       // Update telemetry for successful local delivery
-      void (supabase as any).rpc('record_voice_telemetry', {
+      void safeClient.rpc('record_voice_telemetry', {
         p_queue_id: taskId,
         p_duration_ms: Date.now() - conversionStartTime,
-        p_status: 'completed'
+        p_status: 'completed',
       });
       
     } catch (error: any) {
@@ -179,12 +180,12 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
       const conversionDuration = Date.now() - conversionStartTime;
       
       // Update telemetry for local failure
-      void (supabase as any).rpc('record_voice_telemetry', {
+      void safeClient.rpc('record_voice_telemetry', {
         p_queue_id: activeTaskId || '00000000-0000-0000-0000-000000000000',
         p_duration_ms: conversionDuration,
         p_status: 'failed',
         p_error_type: msg.substring(0, 50),
-        p_error_detail: msg
+        p_error_detail: msg,
       });
 
       const MAX_RETRIES = 2;

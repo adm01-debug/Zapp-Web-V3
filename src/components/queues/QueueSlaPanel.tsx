@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Clock, RefreshCw, Users, Zap, Filter } from 'lucide-react';
-import { useQueueSlaPanel, QueueSlaFilters, QueueSlaRow } from '@/hooks/useQueueSlaPanel';
+import { useQueueSlaPanel, QueueSlaFilters, QueueSlaRow, SlaStatusFilter } from '@/hooks/useQueueSlaPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -105,7 +105,7 @@ export const QueueSlaPanel = () => {
           <Select
             value={filters.sla_status ?? '__all'}
             onValueChange={(v) =>
-              setFilters((f) => ({ ...f, sla_status: v === '__all' ? null : (v as any) }))
+              setFilters((f) => ({ ...f, sla_status: v === '__all' ? null : v as SlaStatusFilter }))
             }
           >
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status SLA" /></SelectTrigger>
@@ -223,7 +223,7 @@ function QueueRow({
       <td>
         <Select
           value={row.sla_priority}
-          onValueChange={(v) => onUpdate(row.queue_id, { sla_priority: v as any })}
+          onValueChange={(v) => onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })}
         >
           <SelectTrigger className="h-8 w-[110px]">
             <Badge className={cn('text-[10px]', PRIORITY_COLOR[row.sla_priority])}>

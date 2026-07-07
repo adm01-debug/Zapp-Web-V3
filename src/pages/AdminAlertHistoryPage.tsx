@@ -106,7 +106,7 @@ export default function AdminAlertHistoryPage() {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['admin-alert-history', hoursBack, statusFilter, typeFilter, instanceFilter],
     queryFn: async () => {
-      let q = (supabase as any)
+      let q = supabase
         .from('warroom_alerts')
         .select(
           'id, alert_type, title, message, source, is_read, resolved_at, resolved_reason, created_at'
@@ -175,7 +175,7 @@ export default function AdminAlertHistoryPage() {
   }, [data]);
 
   async function resolveAlert(id: string) {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('warroom_alerts')
       .update({
         resolved_at: new Date().toISOString(),

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
@@ -43,11 +44,9 @@ export function useBusinessHours(connectionId: string) {
   const { data: businessHours, isLoading: loadingHours, refetch: refetchHours } = useQuery({
     queryKey: ['business-hours', connectionId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('business_hours')
-        .select('*')
-        .eq('whatsapp_connection_id', connectionId)
-        .order('day_of_week');
+      const { data, error } = await safeClient.from<BusinessHour>('business_hours', q =>
+        q.select('*').eq('whatsapp_connection_id', connectionId).order('day_of_week'),
+      );
 
       if (error) throw error;
 
@@ -56,7 +55,7 @@ export function useBusinessHours(connectionId: string) {
         return DEFAULT_HOURS.map(h => ({ ...h, whatsapp_connection_id: connectionId }));
       }
 
-      return data as BusinessHour[];
+      return data;
     },
     enabled: !!connectionId,
   });
@@ -87,15 +86,15 @@ export function useBusinessHours(connectionId: string) {
     mutationFn: async ({ hours, away }: { hours: BusinessHour[]; away: AwayMessage }) => {
       // Upsert business hours
       for (const hour of hours) {
-        const { error } = await (supabase as any)
-          .from('business_hours')
-          .upsert({
+        const { error } = await safeClient.from('business_hours', q =>
+          q.upsert({
             whatsapp_connection_id: connectionId,
             day_of_week: hour.day_of_week,
             is_enabled: hour.is_enabled,
             start_time: hour.start_time,
             end_time: hour.end_time,
-          }, { onConflict: 'whatsapp_connection_id,day_of_week' });
+          }, { onConflict: 'whatsapp_connection_id,day_of_week' }),
+        );
 
         if (error) throw error;
       }

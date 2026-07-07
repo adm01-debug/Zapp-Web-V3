@@ -7,6 +7,7 @@
  */
 import { useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
 
@@ -50,14 +51,14 @@ export function useHmacSelfTest(instance: string, includeNegative: boolean) {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      const { error: insertError } = await (supabase as any).from('hmac_selftest_audit').insert({
+      const { error: insertError } = await safeClient.from('hmac_selftest_audit', q => q.insert({
         instance,
         ok: !!payload.ok,
         duration_ms: payload.duration_ms ?? fallbackMs,
         error: payload.error ?? null,
         message: payload.message ?? null,
         executed_by: uid,
-      });
+      }));
       if (insertError) {
         log.warn('audit insert failed', insertError);
       }
@@ -99,15 +100,14 @@ export function useHmacSelfTest(instance: string, includeNegative: boolean) {
         });
         if (insertAlertError) log.warn('warroom_alerts insert failed', insertAlertError);
       } else if (payload.ok && activeId) {
-        const { error: resolveError } = await (supabase as any).from('warroom_alerts')
-          .update({
+        const { error: resolveError } = await safeClient.from('warroom_alerts', q =>
+          q.update({
             resolved_at: new Date().toISOString(),
             resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
             dismissed_by: uid,
             is_read: true,
-          })
-          .eq('source', source)
-          .is('resolved_at', null);
+          }).eq('source', source).is('resolved_at', null),
+        );
         if (resolveError) log.warn('warroom_alerts resolve failed', resolveError);
       }
     } catch (e) {

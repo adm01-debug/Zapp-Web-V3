@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -40,21 +40,22 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['conversation-timeline', contactId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
-        .from('conversation_events')
-        .select(`
-          id, event_type, from_agent_id, to_agent_id, 
+      const { data, error } = await safeClient.from<TimelineEvent>(
+        'conversation_events',
+        q => q.select(`
+          id, event_type, from_agent_id, to_agent_id,
           from_queue_id, to_queue_id, metadata, performed_by, created_at,
           from_agent:profiles!conversation_events_from_agent_id_fkey(name),
           to_agent:profiles!conversation_events_to_agent_id_fkey(name),
           from_queue:queues!conversation_events_from_queue_id_fkey(name),
           to_queue:queues!conversation_events_to_queue_id_fkey(name)
         `)
-        .eq('contact_id', contactId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+          .eq('contact_id', contactId)
+          .order('created_at', { ascending: false })
+          .limit(50)
+      );
       if (error) throw error;
-      return (data || []) as unknown as TimelineEvent[];
+      return data || [];
     },
   });
 

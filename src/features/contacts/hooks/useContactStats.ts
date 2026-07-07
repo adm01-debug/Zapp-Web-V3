@@ -48,7 +48,7 @@ export function useContactStats(): UseContactStatsReturn {
     setError(null);
 
     try {
-      const { data, error: rpcErr } = await (supabase as any).rpc('rpc_contact_stats');
+      const { data, error: rpcErr } = await supabase.rpc('rpc_contact_stats');
 
       if (!mountedRef.current) return;
       if (rpcErr) throw new Error(rpcErr.message);

@@ -55,7 +55,8 @@ export const safeClient = {
         }
       }
 
-      const { data, error } = await queryBuilder((supabase as any).from(table));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await queryBuilder(supabase.from(table as any));
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
@@ -91,7 +92,8 @@ export const safeClient = {
         }
       }
 
-      const { data, error } = await queryBuilder((supabase as any).from(table)).single();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await queryBuilder(supabase.from(table as any)).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
@@ -127,6 +129,7 @@ export const safeClient = {
         }
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await supabase.rpc(name as any, params);
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
@@ -163,9 +166,11 @@ export const safeClient = {
     try {
       let exists = false;
       if (type === 'table') {
-        const { error } = await (supabase as any).from(name).select('count', { count: 'exact', head: true }).limit(0);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await supabase.from(name as any).select('count', { count: 'exact', head: true }).limit(0);
         exists = !error || !error.message || !error.message.toLowerCase().includes('does not exist');
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await supabase.rpc(name as any).limit(0);
         if (!error) {
           exists = true;
@@ -196,7 +201,7 @@ export const safeClient = {
     else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
     try {
-      await supabase.rpc('rpc_update_email_health_state' as any, {
+      await this.rpc('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: telemetry.recentFailures.length,
         p_metadata: {
@@ -304,7 +309,7 @@ export const safeClient = {
 
     // Persistir falha no banco para monitoramento assíncrono
     try {
-      await supabase.rpc('rpc_log_email_health' as any, {
+      await this.rpc('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,

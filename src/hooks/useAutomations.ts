@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getExternalSupabase } from "@/integrations/supabase/externalClient";
+import { safeClient } from "@/integrations/supabase/safeClient";
 import { log } from "@/lib/logger";
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
@@ -12,14 +13,26 @@ const getClient = () => getExternalSupabase();
  * Roda em intervalo curto e dispara registros de execução pendentes.
  */
 
+interface SlaEscalate {
+  enabled?: boolean;
+  level?: string;
+  reason?: string | null;
+}
+
 interface AutomationRule {
   id: string;
   name: string;
   trigger_type: string;
-  trigger_config: any;
-  actions: any;
+  trigger_config: Record<string, unknown>;
+  actions: Record<string, unknown>;
   is_active: boolean;
   priority: number;
+}
+
+interface MsgRow {
+  created_at: string;
+  from_me: boolean;
+  content: string;
 }
 
 interface UseAutomationsArgs {
@@ -98,15 +111,15 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...msgs].sort(
-        (a: any, b: any) =>
-          new Date(a.message_timestamp).getTime() -
-          new Date(b.message_timestamp).getTime(),
+      const sorted = (msgs as unknown as MsgRow[]).sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() -
+          new Date(b.created_at).getTime(),
       );
-      const last: any = sorted[sorted.length - 1];
+      const last = sorted[sorted.length - 1];
       if (!last) return;
 
-      const lastTime = new Date(last.message_timestamp).getTime();
+      const lastTime = new Date(last.created_at).getTime();
       const ageSec = (Date.now() - lastTime) / 1000;
 
       // Snapshot de tags do contato para gatilhos tag_applied/tag_removed
@@ -114,12 +127,12 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        const { data: contact } = await (client as any).rpc("rpc_get_contact", {
+        const { data: contact } = await client.rpc("rpc_get_contact", {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
-        const c: any = Array.isArray(contact) ? contact[0] : contact;
-        currentTags = Array.isArray(c?.tags) ? c.tags.map((t: any) => String(t)) : [];
+        const c = (Array.isArray(contact) ? contact[0] : contact) as { tags?: unknown[] } | null;
+        currentTags = Array.isArray(c?.tags) ? c.tags.map((t: unknown) => String(t)) : [];
         if (prevTagsRef.current !== null) {
           const prev = prevTagsRef.current;
           addedTags = currentTags.filter((t) => !prev.includes(t));
@@ -138,7 +151,7 @@ export function useAutomations({
         if (rule.trigger_type === "first_response_pending") {
           const thresh = Number(cfg.threshold_seconds ?? 60);
           // Última msg é do cliente e nenhuma resposta posterior
-          const lastInboundIdx = [...sorted].reverse().findIndex((m: any) => !m.from_me);
+          const lastInboundIdx = [...sorted].reverse().findIndex((m) => !m.from_me);
           if (lastInboundIdx === 0 && ageSec >= thresh) {
             matched = true;
             payload.age_seconds = Math.round(ageSec);
@@ -157,7 +170,7 @@ export function useAutomations({
             }
           }
         } else if (rule.trigger_type === "keyword_match") {
-          const kws: string[] = Array.isArray(cfg.keywords) ? cfg.keywords : [];
+          const kws: string[] = Array.isArray(cfg.keywords) ? (cfg.keywords as unknown[]).map(String) : [];
           if (!last.from_me && typeof last.content === "string" && kws.length) {
             const text = last.content.toLowerCase();
             const hit = kws.find((k) => text.includes(k.toLowerCase()));
@@ -169,7 +182,7 @@ export function useAutomations({
         } else if (rule.trigger_type === "tag_applied") {
           // Aceita 'tag' (string) ou 'tags' (array). Se vazio, qualquer tag adicionada dispara.
           const wanted: string[] = Array.isArray(cfg.tags)
-            ? cfg.tags.map((t: any) => String(t))
+            ? (cfg.tags as unknown[]).map((t: unknown) => String(t))
             : cfg.tag
               ? [String(cfg.tag)]
               : [];
@@ -182,7 +195,7 @@ export function useAutomations({
           }
         } else if (rule.trigger_type === "tag_removed") {
           const wanted: string[] = Array.isArray(cfg.tags)
-            ? cfg.tags.map((t: any) => String(t))
+            ? (cfg.tags as unknown[]).map((t: unknown) => String(t))
             : cfg.tag
               ? [String(cfg.tag)]
               : [];
@@ -198,14 +211,14 @@ export function useAutomations({
         if (!matched) continue;
 
         // Registra execução respeitando cooldown (RPC)
-        const { data: execId , error: execIdErr } = await (supabase as any).rpc(
+        const { data: execId } = await safeClient.rpc<string>(
           "rpc_register_automation_execution",
           {
             p_rule_id: rule.id,
             p_remote_jid: remoteJid,
             p_instance_name: instanceName,
             p_assigned_to: assignedTo,
-            p_trigger_payload: payload as any,
+            p_trigger_payload: payload,
           },
         );
 
@@ -214,7 +227,7 @@ export function useAutomations({
         const actions = rule.actions ?? {};
 
         // Escalonar SLA: aplica tag de sistema sla:<level> e remove níveis anteriores
-        const escalate = actions.escalate_sla;
+        const escalate = actions.escalate_sla as SlaEscalate | undefined;
         let slaTags: string[] = [];
         if (escalate?.enabled) {
           const level = String(escalate.level ?? "high");
@@ -223,19 +236,18 @@ export function useAutomations({
 
         // Aplicar tags (escalada SLA + tags configuradas)
         const cfgTags: string[] = Array.isArray(actions.apply_tags)
-          ? actions.apply_tags
+          ? (actions.apply_tags as unknown[]).map((t) => String(t))
           : [];
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            await (client as any).rpc("rpc_upsert_contact", {
+            await client.rpc("rpc_upsert_contact", {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
             });
-            await (supabase as any)
-              .from('automation_executions')
-              .update({
+            await safeClient.from('automation_executions', q =>
+              q.update({
                 applied_tags: allTags,
                 trigger_payload: {
                   ...payload,
@@ -243,13 +255,13 @@ export function useAutomations({
                     ? { sla_escalated_to: escalate.level, sla_reason: escalate.reason ?? null }
                     : {}),
                 },
-              })
-              .eq("id", execId);
-          } catch (e: any) {
+              }).eq("id", execId)
+            );
+          } catch (e: unknown) {
             log.warn("[automation] apply_tags/escalate failed", e);
-            await (supabase as any).rpc("rpc_record_automation_error", {
+            await safeClient.rpc("rpc_record_automation_error", {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: e instanceof Error ? e.message : String(e),
               p_context: { stage: "apply_tags_or_escalate", tags: allTags },
             });
           }
@@ -263,7 +275,7 @@ export function useAutomations({
                 executionId: execId,
                 ruleId: rule.id,
                 remoteJid,
-                recentMessages: sorted.map((m: any) => ({
+                recentMessages: sorted.map((m) => ({
                   from_me: m.from_me,
                   content: m.content,
                 })),
@@ -272,29 +284,28 @@ export function useAutomations({
 
             // Auto envio
             if (actions.auto_send) {
-              const { data: exec , error: execErr } = await (supabase as any)
-                .from('automation_executions')
-                .select("suggestion_text")
-                .eq("id", execId)
-                .maybeSingle();
+              const { data: execRows } = await safeClient.from<{ suggestion_text: string | null }>(
+                'automation_executions',
+                q => q.select("suggestion_text").eq("id", execId).limit(1)
+              );
+              const exec = execRows?.[0];
               if (exec?.suggestion_text) {
-                await (client as any).rpc("rpc_insert_message", {
+                await client.rpc("rpc_insert_message", {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
                   p_message_type: "text",
                 });
-                await (supabase as any)
-                  .from('automation_executions')
-                  .update({ status: "executed", acted_at: new Date().toISOString() })
-                  .eq("id", execId);
+                await safeClient.from('automation_executions', q =>
+                  q.update({ status: "executed", acted_at: new Date().toISOString() }).eq("id", execId)
+                );
               }
             }
-          } catch (e: any) {
+          } catch (e: unknown) {
             log.warn("[automation] suggest_reply failed", e);
-            await (supabase as any).rpc("rpc_record_automation_error", {
+            await safeClient.rpc("rpc_record_automation_error", {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: e instanceof Error ? e.message : String(e),
               p_context: { stage: "suggest_reply_or_autosend" },
             });
           }

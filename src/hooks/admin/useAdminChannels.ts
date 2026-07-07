@@ -7,6 +7,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
@@ -47,12 +48,10 @@ export function useAdminChannels(statusFilter: string, search: string) {
     setLoading(true);
     try {
       const [chRes, qRes, wRes] = await Promise.all([
-        (supabase as any).rpc("rpc_list_service_channels",
-          {
-            p_status: statusFilter === "all" ? null : statusFilter,
-            p_search: search.trim() || null,
-          },
-        ),
+        safeClient.rpc<ServiceChannel[]>("rpc_list_service_channels", {
+          p_status: statusFilter === "all" ? null : statusFilter,
+          p_search: search.trim() || null,
+        }),
         supabase.from('queues').select("id,name,color").order("name"),
         supabase.from('whatsapp_connections').select("id,name,phone_number").order("name"),
       ]);
@@ -87,22 +86,20 @@ export function useAdminChannels(statusFilter: string, search: string) {
       return false;
     }
     try {
-      const { error } = await (supabase as any).rpc("rpc_upsert_service_channel",
-        {
-          p_id: editing.id ?? null,
-          p_name: editing.name.trim(),
-          p_display_name: editing.display_name?.trim() || null,
-          p_channel_type: editing.channel_type ?? "whatsapp",
-          p_whatsapp_connection_id: editing.whatsapp_connection_id ?? null,
-          p_default_queue_id: editing.default_queue_id ?? null,
-          p_routing_mode: editing.routing_mode ?? "manual",
-          p_sticky_enabled: !!editing.sticky_enabled,
-          p_sticky_ttl_hours: editing.sticky_ttl_hours ?? 24,
-          p_is_default: !!editing.is_default,
-          p_description: editing.description?.trim() || null,
-          p_color: editing.color ?? "#3B82F6",
-        },
-      );
+      const { error } = await safeClient.rpc("rpc_upsert_service_channel", {
+        p_id: editing.id ?? null,
+        p_name: editing.name.trim(),
+        p_display_name: editing.display_name?.trim() || null,
+        p_channel_type: editing.channel_type ?? "whatsapp",
+        p_whatsapp_connection_id: editing.whatsapp_connection_id ?? null,
+        p_default_queue_id: editing.default_queue_id ?? null,
+        p_routing_mode: editing.routing_mode ?? "manual",
+        p_sticky_enabled: !!editing.sticky_enabled,
+        p_sticky_ttl_hours: editing.sticky_ttl_hours ?? 24,
+        p_is_default: !!editing.is_default,
+        p_description: editing.description?.trim() || null,
+        p_color: editing.color ?? "#3B82F6",
+      });
       if (error) throw new Error(error.message);
       toast({ title: editing.id ? "Canal atualizado" : "Canal criado" });
       load();
@@ -125,7 +122,7 @@ export function useAdminChannels(statusFilter: string, search: string) {
         kind === "purge"
           ? { p_id: channel.id }
           : { p_id: channel.id, p_reason: actionReason.trim() || null };
-      const { error } = await (supabase as any).rpc(rpcName, args); // dinâmico legítimo (3 RPCs, mesma shape)
+      const { error } = await safeClient.rpc(rpcName, args); // dinâmico legítimo (3 RPCs, mesma shape)
       if (error) throw new Error(error.message);
       toast({
         title:
@@ -143,9 +140,7 @@ export function useAdminChannels(statusFilter: string, search: string) {
 
   const reactivate = async (channel: ServiceChannel) => {
     try {
-      const { error } = await (supabase as any).rpc("rpc_reactivate_service_channel",
-        { p_id: channel.id },
-      );
+      const { error } = await safeClient.rpc("rpc_reactivate_service_channel", { p_id: channel.id });
       if (error) throw new Error(error.message);
       toast({ title: "Canal reativado" });
       load();

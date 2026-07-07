@@ -56,7 +56,7 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
     // Telemetry — fire-and-forget; never blocks the navigation.
     if (search && search.trim().length >= 2) {
       supabase
-        .rpc('rpc_record_search_click' as any, {
+        .rpc('rpc_record_search_click', {
           p_query: search.trim(),
           p_result_id: result.id,
           p_result_type: result.type,

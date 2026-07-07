@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 
 interface ClassifiedTicket {
@@ -51,30 +52,30 @@ export function AutoTicketClassifier() {
     setLoading(true);
     try {
       // Fetch AI-tagged contacts
-      const { data: tags, error } = await (supabase as any) /* TS2589: schema 678 */
-        .from('ai_conversation_tags')
-        .select('*, contacts(name, phone)')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      type AiTagRow = { contact_id: string; tag_name: string; confidence: number | null; created_at: string; contacts: { name: string | null; phone: string | null } | null };
+      const { data: tags, error } = await safeClient.from<AiTagRow>(
+        'ai_conversation_tags',
+        q => q.select('*, contacts(name, phone)').order('created_at', { ascending: false }).limit(100),
+      );
 
       if (!error && tags) {
         const grouped = new Map<string, ClassifiedTicket>();
-        tags.forEach((tag: Record<string, unknown>) => {
-          const contactId = tag.contact_id as string;
-          const contact = tag.contacts as Record<string, string> | null;
+        tags.forEach((tag) => {
+          const contactId = tag.contact_id;
+          const contact = tag.contacts;
           if (!grouped.has(contactId)) {
             grouped.set(contactId, {
               contactId,
               contactName: contact?.name || 'Desconhecido',
-              category: classifyTag(tag.tag_name as string),
-              priority: derivePriority(tag.tag_name as string, (tag.confidence as number) || 0),
-              confidence: ((tag.confidence as number) || 0.7) * 100,
-              tags: [tag.tag_name as string],
+              category: classifyTag(tag.tag_name),
+              priority: derivePriority(tag.tag_name, tag.confidence ?? 0),
+              confidence: (tag.confidence ?? 0.7) * 100,
+              tags: [tag.tag_name],
               lastMessage: '',
             });
           } else {
             const existing = grouped.get(contactId)!;
-            existing.tags.push(tag.tag_name as string);
+            existing.tags.push(tag.tag_name);
           }
         });
 

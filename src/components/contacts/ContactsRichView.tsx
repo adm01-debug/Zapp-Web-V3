@@ -209,8 +209,8 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = () => {
               activeFiltersCount={activeFiltersCount}
               onToggleSelect={state.handleToggleSelect}
               onContactClick={handleContactClick}
-              onEdit={(c) => openEditDialog(c as never)}
-              onDelete={(c) => setDeleteTarget(c as never)}
+              onEdit={(c) => openEditDialog(c)}
+              onDelete={(c) => setDeleteTarget(c)}
               onSelectIds={crud.setSelectedIds}
               onAddContact={() => setIsAddDialogOpen(true)}
               onClearSearch={clearSearch}
@@ -263,11 +263,11 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = () => {
         onClose={() => setQuickViewContact(null)}
         onEdit={(c) => {
           setQuickViewContact(null);
-          openEditDialog(c as never);
+          openEditDialog(c);
         }}
         onDelete={(c) => {
           setQuickViewContact(null);
-          setDeleteTarget(c as never);
+          setDeleteTarget(c);
         }}
         onOpenChat={(phone) => {
           setQuickViewContact(null);

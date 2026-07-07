@@ -46,7 +46,7 @@ export function useAIProviders() {
         const { error } = await supabase.from('ai_providers').update(record).eq('id', editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('ai_providers').insert(record as never);
+        const { error } = await supabase.from('ai_providers').insert(record);
         if (error) throw error;
       }
     },

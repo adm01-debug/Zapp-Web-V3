@@ -145,7 +145,7 @@ export function InstanceSettingsDialog({ open, onOpenChange, instanceName, conne
   };
 
   const loadProfile = async () => {
-    try { const data = await fetchProfile(instanceName) as any; if (data && mountedRef.current) setProfile({ name: data.name ?? '', status: data.status ?? '', pictureUrl: data.profilePictureUrl ?? '' }); }
+    try { const raw = await fetchProfile(instanceName) as { name?: string; status?: string; profilePictureUrl?: string } | null; if (raw && mountedRef.current) setProfile({ name: raw.name ?? '', status: raw.status ?? '', pictureUrl: raw.profilePictureUrl ?? '' }); }
     catch (err) { log.error('Error loading profile:', err); }
   };
 

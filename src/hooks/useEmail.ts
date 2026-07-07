@@ -346,7 +346,7 @@ export function useEmail() {
       p_thread_id: threadId,
       p_read:      read,
       p_message_ids: null
-    } as any);
+    });
 
     if (!rpcErr) {
       setThreads(prev => prev.map(t =>
@@ -556,7 +556,7 @@ export function useEmail() {
           const ut = mapBaseThreadRow(payload.new);
           setThreads(prev => prev.map(t => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t)));
         } else if (payload.eventType === 'DELETE') {
-          const deletedId = (payload.old as any)?.id;
+          const deletedId = (payload.old as { id?: string })?.id;
           if (!deletedId) return;
           setThreads(prev => prev.filter(t => t.id !== deletedId));
         }

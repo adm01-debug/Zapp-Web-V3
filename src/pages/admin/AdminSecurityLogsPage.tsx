@@ -33,7 +33,8 @@ export default function AdminSecurityLogsPage() {
   useEffect(() => {
     let mounted = true;
     const fetchLogs = async () => {
-      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any) /* TS2589: security_audit_logs type too deep */
         .from('security_audit_logs')
         .select(`
           *,
@@ -49,7 +50,7 @@ export default function AdminSecurityLogsPage() {
       if (error) {
         log.error('Error fetching audit logs', error);
       } else {
-        setLogs(data as any[]);
+        setLogs(data as AuditLog[]);
       }
       setLoading(false);
     };
@@ -63,7 +64,7 @@ export default function AdminSecurityLogsPage() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'security_audit_logs' },
         (payload) => {
-          setLogs((prev) => [payload.new as any, ...prev].slice(0, 50));
+          setLogs((prev) => [payload.new as AuditLog, ...prev].slice(0, 50));
         }
       )
       .subscribe();

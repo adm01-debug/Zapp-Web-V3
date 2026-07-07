@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 
@@ -40,14 +41,14 @@ export function useAudioMemes(open: boolean) {
   const fetchMemes = useCallback(async () => {
     setLoading(true);
     // RPC usa auth.uid() server-side; assinatura: (p_category, p_only_favorites, p_search)
-    const { data, error } = await (supabase as any).rpc('fn_list_audio_memes_for_user', {
+    const { data, error } = await safeClient.rpc<AudioMemeItem[]>('fn_list_audio_memes_for_user', {
       p_category: null,
       p_only_favorites: false,
       p_search: null,
     });
 
     if (!error && data) {
-      setMemes(data as AudioMemeItem[]);
+      setMemes(data);
     } else if (error) {
       log.error('fetchMemes error', error);
       const { data: basicData } = await supabase.from('audio_memes').select('*').order('use_count', { ascending: false });
@@ -222,7 +223,7 @@ export function useAudioMemes(open: boolean) {
     setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m));
     // Incrementa use_count no banco (RPC)
     try {
-      await (supabase as any).rpc('fn_increment_meme_use', { p_meme_id: meme.id });
+      await safeClient.rpc('fn_increment_meme_use', { p_meme_id: meme.id });
     } catch (err) {
       log.error('fn_increment_meme_use error', err);
     }
@@ -237,7 +238,7 @@ export function useAudioMemes(open: boolean) {
     setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, is_favorite: newVal } : m));
 
     // RPC usa auth.uid() — só recebe o meme_id
-    const { error } = await (supabase as any).rpc('fn_toggle_user_meme_favorite', {
+    const { error } = await safeClient.rpc('fn_toggle_user_meme_favorite', {
       p_meme_id: meme.id,
     });
 

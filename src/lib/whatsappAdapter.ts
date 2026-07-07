@@ -33,6 +33,7 @@ export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
   const now = Date.now();
   if (!force && cachedMode && now < cacheExpiresAt) return cachedMode;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await supabase.rpc("rpc_get_whatsapp_mode" as any);
     if (error) throw error;
     const mode = (data as string) === "official" ? "official" : "unofficial";
@@ -230,7 +231,7 @@ async function invokeCloud(body: Record<string, unknown>) {
   );
   if (error) throw error;
   if (data && typeof data === "object" && "error" in data) {
-    throw new Error((data as any).error ?? "cloud_send_failed");
+    throw new Error((data as { error?: string }).error ?? "cloud_send_failed");
   }
   return data;
 }

@@ -34,7 +34,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         .eq('conversation_id', conversationId);
       const ids = (msgs || []).map((m: any) => m.id);
       if (!ids.length) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('team_message_reactions')
         .select('*')
         .in('message_id', ids);
@@ -64,13 +64,13 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         (r) => r.message_id === messageId && r.profile_id === profile.id && r.emoji === emoji
       );
       if (existing) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('team_message_reactions')
           .delete()
           .eq('id', existing.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('team_message_reactions')
           .insert({ message_id: messageId, profile_id: profile.id, emoji });
         if (error) throw error;

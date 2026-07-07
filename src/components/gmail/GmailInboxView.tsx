@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useEmail, type EmailThread } from '@/hooks/useEmail';
 import { EmailLabelSidebar } from './GmailLabelSidebar';
 import { EmailAccountSelector } from './GmailAccountSelector';
+import { type TokenStatus } from '@/hooks/useGmailOAuthFlow';
 
 interface EmailInboxViewProps {
   onSelectThread?: (thread: EmailThread) => void;
@@ -112,13 +113,12 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
               <EmailAccountSelector
                 accounts={accounts}
                 activeAccountId={activeAccountId}
-                tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as any}
+                tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as Record<string, TokenStatus>}
                 isSyncing={isSyncing}
                 onSelectAccount={setActiveAccountId}
                 onAddAccount={startOAuth}
                 onDisconnect={disconnect}
                 onSync={syncNow}
-                {...({ compact: true } as any)}
               />
             </div>
           )}

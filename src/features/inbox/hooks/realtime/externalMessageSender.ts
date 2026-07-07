@@ -190,11 +190,10 @@ export async function sendExternalAudio(
   });
 
   if (convId) {
-    void (supabase as any).from('conversation_audit_logs').insert({
+    void supabase.from('conversation_audit_logs').insert({
       conversation_id: convId,
-      event_type: 'send_attempt',
-      status: 'starting',
-      metadata: { messageType: 'audio', isPtt: opts.isPtt ?? true }
+      action: 'send_attempt',
+      metadata: { messageType: 'audio', isPtt: opts.isPtt ?? true, status: 'starting' }
     });
   }
 
@@ -270,11 +269,10 @@ export async function sendExternalAudio(
   optimistic.status = 'sent';
 
   if (convId) {
-    void (supabase as any).from('conversation_audit_logs').insert({
+    void supabase.from('conversation_audit_logs').insert({
       conversation_id: convId,
-      event_type: 'delivered',
-      status: 'success',
-      metadata: { external_id: externalId }
+      action: 'delivered',
+      metadata: { external_id: externalId, status: 'success' }
     });
   }
 

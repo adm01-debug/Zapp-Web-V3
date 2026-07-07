@@ -7,7 +7,7 @@ export function useUpdateTeamMessageStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ messageId, status, conversationId }: { messageId: string; status: 'delivered' | 'read'; conversationId: string }) => {
-      const { error } = await (supabase as any).from('team_messages').update({ status }).eq('id', messageId);
+      const { error } = await supabase.from('team_messages').update({ status }).eq('id', messageId);
       if (error) throw error;
       return { conversationId, messageId, status };
     },
@@ -160,7 +160,7 @@ export function useCreateTeamConversation() {
 
       // Conversa de departamento: única por departamento (índice UNIQUE parcial no banco)
       if (type === 'department' && departmentId) {
-        const { data: existingDeptConv, error: deptErr } = await (supabase as any)
+        const { data: existingDeptConv, error: deptErr } = await supabase
           .from('team_conversations')
           .select('*')
           .eq('department_id', departmentId)
@@ -171,7 +171,7 @@ export function useCreateTeamConversation() {
         if (existingDeptConv) return existingDeptConv;
       }
 
-      const { data: conv, error: convErr } = await (supabase as any).from('team_conversations').insert({
+      const { data: conv, error: convErr } = await supabase.from('team_conversations').insert({
         type,
         name: name || null,
         created_by: profile.id,
@@ -215,7 +215,7 @@ export function useTransferTeamConversation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ conversationId, departmentId, metadata }: { conversationId: string; departmentId: string; metadata?: any }) => {
-      const { data, error } = await (supabase as any).from('team_conversations').update({
+      const { data, error } = await supabase.from('team_conversations').update({
         department_id: departmentId,
         metadata: metadata || {},
         updated_at: new Date().toISOString()

@@ -10,11 +10,22 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import { EmailAccount } from '@/types/gmail';
-const supabase = _supabase as any;
 import { emailRefreshToken, emailRevokeAccount, emailRegisterWatch } from './gmail/gmailApi';
+
+interface EmailAccountRow {
+  id: string;
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  picture_url: string | null;
+  token_expiry: string | null;
+  is_active: boolean;
+  created_at: string;
+}
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 
@@ -50,11 +61,13 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   // ── Carrega contas ──────────────────────────────────────────────────
 
   const loadAccounts = useCallback(async () => {
-    const { data, error } = await (supabase as any)
-      .from('email_accounts')
-      .select('id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at')
-      .eq('is_active', true)
-      .order('created_at');
+    const { data, error } = await safeClient.from<EmailAccountRow>(
+      'email_accounts',
+      q => q
+        .select('id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at')
+        .eq('is_active', true)
+        .order('created_at')
+    );
 
     if (error) {
       log.error('Erro ao carregar contas Email', error);
@@ -98,16 +111,17 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       const result = await emailRefreshToken(accountId);
 
       // Atualiza token_expiry local
+      const refreshed = result as { token_expiry?: string };
       setAccounts(prev =>
         prev.map(a =>
           a.id === accountId
-            ? { ...a, token_expiry: (result as any).token_expiry }
+            ? { ...a, token_expiry: refreshed.token_expiry ?? a.token_expiry }
             : a
         )
       );
       setTokenStatus(prev => ({ ...prev, [accountId]: 'valid' }));
 
-      log.info(`Token refreshed for account ${accountId}, expires at ${(result as any).token_expiry}`);
+      log.info(`Token refreshed for account ${accountId}, expires at ${refreshed.token_expiry}`);
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
       setTokenStatus(prev => ({ ...prev, [accountId]: 'expired' }));
@@ -146,14 +160,15 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     if (!acc.watch_expiry || watchExpiry - Date.now() < renewThreshold) {
       try {
         const result = await emailRegisterWatch(accountId);
+        const watched = result as { expiration?: string };
         setAccounts(prev =>
           prev.map(a =>
             a.id === accountId
-              ? { ...a, watch_expiry: (result as any).expiration }
+              ? { ...a, watch_expiry: watched.expiration ?? a.watch_expiry }
               : a
           )
         );
-        log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${(result as any).expiration}`);
+        log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${watched.expiration}`);
       } catch (err) {
         log.warn(`Não foi possível renovar watch para ${accountId}`, err);
       }

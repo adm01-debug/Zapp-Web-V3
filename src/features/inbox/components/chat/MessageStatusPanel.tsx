@@ -51,6 +51,8 @@ interface MessageStatusPanelProps {
     error_reason?: string | null;
     /** Timestamp em que a conversa foi marcada como lida pelo agente. */
     contact_read_at?: string | null;
+    remote_jid?: string | null;
+    contact_id?: string | null;
   };
 }
 
@@ -126,10 +128,10 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
   message,
 }: MessageStatusPanelProps) {
   const { data: stats } = useDeliveryStats(
-    message.sender === 'agent' ? (message as any).remote_jid : (message as any).contact_id
+    message.sender === 'agent' ? message.remote_jid ?? undefined : message.contact_id ?? undefined
   );
   const isSent = message.sender === 'agent';
-  const isFailed = TERMINAL_FAILURES.has(message.status as never);
+  const isFailed = (TERMINAL_FAILURES as Set<string>).has(message.status);
 
   const lastUpdate = message.status_updated_at ?? message.updated_at ?? null;
   const sentStamp = message.created_at ?? message.timestamp ?? null;
