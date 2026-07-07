@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { SLAStatus } from '@/types/gmail';
 
 export type { SLAStatus };
 
-const supabase = _supabase as any;
+interface EmailThreadRow {
+  thread_id: string;
+  last_message_at: string | null;
+  unread_count: number;
+}
 
 export interface EmailSLARecord {
   thread_id: string;
@@ -185,7 +188,7 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
   useEffect(() => {
     if (!accountId || isMockId(accountId)) return;
 
-    safeClient.from<any>('email_threads', (q) =>
+    safeClient.from<EmailThreadRow>('email_threads', (q) =>
       q.select('thread_id, last_message_at, unread_count')
        .eq('account_id', accountId)
        .gt('unread_count', 0)
