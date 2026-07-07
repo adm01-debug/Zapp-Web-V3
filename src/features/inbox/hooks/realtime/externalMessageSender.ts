@@ -190,7 +190,7 @@ export async function sendExternalAudio(
   });
 
   if (convId) {
-    void (supabase as any).from('conversation_audit_logs').insert({
+    void supabase.from('conversation_audit_logs').insert({
       conversation_id: convId,
       event_type: 'send_attempt',
       status: 'starting',
@@ -270,7 +270,7 @@ export async function sendExternalAudio(
   optimistic.status = 'sent';
 
   if (convId) {
-    void (supabase as any).from('conversation_audit_logs').insert({
+    void supabase.from('conversation_audit_logs').insert({
       conversation_id: convId,
       event_type: 'delivered',
       status: 'success',
