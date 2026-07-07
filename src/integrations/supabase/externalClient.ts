@@ -17,6 +17,7 @@
  * causada por env vars ausentes no build.
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from './types';
 import { supabase } from './client';
 import { createLogger } from '@/lib/logger';
 
@@ -54,8 +55,8 @@ export let isExternalConfigured = Boolean(EXTERNAL_URL && EXTERNAL_ANON_KEY);
  * Nunca é `null`: cai para o client principal autenticado quando as envs
  * dedicadas não existem (mesmo banco após a consolidação single-database).
  */
-export let externalSupabase: SupabaseClient = isExternalConfigured
-  ? createClient(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
+export let externalSupabase: SupabaseClient<Database> = isExternalConfigured
+  ? createClient<Database>(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -68,7 +69,7 @@ export let externalSupabase: SupabaseClient = isExternalConfigured
         },
       },
     })
-  : (supabase as unknown as SupabaseClient);
+  : supabase;
 
 if (!isExternalConfigured) {
   // Expected in production (single-database FATOR X): VITE_EXTERNAL_* are not
@@ -92,7 +93,7 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   isExternalConfigured = true;
 
   // Re-create the client instance
-  (externalSupabase as any) = createClient(url, key, {
+  externalSupabase = createClient<Database>(url, key, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -109,6 +110,6 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   log.info('Runtime config updated successfully');
 }
 
-export function getExternalSupabase(): SupabaseClient {
+export function getExternalSupabase(): SupabaseClient<Database> {
   return externalSupabase;
 }

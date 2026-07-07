@@ -38,7 +38,7 @@ export const emailApi = {
       .order('requested_at', { ascending: false })
       .range(from, to);
 
-    return { data: data as EmailRevalidationJob[] | null, count, error };
+    return { data: data as unknown as EmailRevalidationJob[] | null, count, error };
   },
 
   getHealthSummary: async () => {
