@@ -120,12 +120,11 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       const sugg = suggestions.find((s) => s.id === id);
       if (!sugg?.recommended_tag) return false;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (getClient() as any)?.rpc("rpc_upsert_contact", {
+        await getClient()?.rpc("rpc_upsert_contact" as never, {
           p_remote_jid: sugg.remote_jid,
           p_instance: sugg.instance_name,
           p_tags: [sugg.recommended_tag],
-        });
+        } as never);
         await safeClient.from('automation_executions', q =>
           q.update({ applied_tags: [sugg.recommended_tag] }).eq("id", id)
         );
