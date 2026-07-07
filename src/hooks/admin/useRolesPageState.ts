@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase as _sb } from '@/integrations/supabase/client';
-const supabase: any = _sb;
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 
 type RoleType = 'dev' | 'admin' | 'manager' | 'supervisor' | 'agent';
@@ -29,17 +29,17 @@ export function useRolesPageState() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any) /* TS2589: schema 678 */
-      .from('user_roles')
-      .select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`)
-      .order('role');
+    type RoleRow = { id: string; user_id: string; role: string; profiles: { name: string; email: string | null; avatar_url: string | null } | { name: string; email: string | null; avatar_url: string | null }[] | null };
+    const { data, error } = await safeClient.from<RoleRow>('user_roles', q =>
+      q.select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`).order('role'),
+    );
 
     if (!error && data) {
       setUsers(data.map(u => ({
         id: u.id,
         user_id: u.user_id,
         role: u.role as RoleType,
-        profile: Array.isArray(u.profiles) ? u.profiles[0] : u.profiles
+        profile: Array.isArray(u.profiles) ? u.profiles[0] : (u.profiles ?? undefined),
       })));
     }
     setLoading(false);

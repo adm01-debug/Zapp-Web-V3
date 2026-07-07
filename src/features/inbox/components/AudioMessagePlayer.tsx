@@ -4,6 +4,7 @@ import { Play, Pause, Loader2, FileText, Volume2, RefreshCw, Sparkles, CheckCirc
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { log } from '@/lib/logger';
@@ -13,6 +14,13 @@ import { AudioVolumeControl } from './AudioVolumeControl';
 import { dbFrom, dbTable } from '@/integrations/datasource/db';
 import { VoiceChanger } from './VoiceChanger';
 import { Badge } from '@/components/ui/badge';
+
+interface VoiceConversionRow {
+  id: string;
+  status: string | null;
+  error_message: string | null;
+  output_audio_url: string | null;
+}
 
 interface AudioMessagePlayerProps {
   audioUrl: string | null;
@@ -68,11 +76,11 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
         table: 'voice_conversion_queue',
         filter: `message_id=eq.${messageId}` 
       }, (payload) => {
-        const newData = payload.new as any;
+        const newData = payload.new as VoiceConversionRow;
         if (newData.status) setVoiceStatus(newData.status);
         if (newData.error_message) setVoiceError(newData.error_message);
         if (newData.id) setVoiceTaskId(newData.id);
-        
+
         if (newData.status === 'completed' && newData.output_audio_url && onVoiceChange) {
           toast({ title: 'Conversão concluída', description: 'A voz do áudio foi alterada com sucesso.' });
           // Fetch the new audio and trigger update
@@ -84,18 +92,15 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
       .subscribe();
       
     const fetchStatus = async () => {
-      const { data } = await (supabase as any)
-        .from('voice_conversion_queue')
-        .select('*')
-        .eq('message_id', messageId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (data) {
-        setVoiceStatus((data as any).status);
-        setVoiceError((data as any).error_message);
-        setVoiceTaskId((data as any).id);
+      const { data } = await safeClient.from<VoiceConversionRow>(
+        'voice_conversion_queue',
+        q => q.select('*').eq('message_id', messageId).order('created_at', { ascending: false }).limit(1)
+      );
+      const row = data?.[0];
+      if (row) {
+        setVoiceStatus(row.status);
+        setVoiceError(row.error_message);
+        setVoiceTaskId(row.id);
       }
     };
     
@@ -188,7 +193,7 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 // Simula clique no centro se não houver coordenadas
-                handleSeek({ currentTarget: e.currentTarget, clientX: e.currentTarget.getBoundingClientRect().left + (e.currentTarget.clientWidth * (progress / 100)) } as any);
+                handleSeek({ currentTarget: e.currentTarget, clientX: e.currentTarget.getBoundingClientRect().left + (e.currentTarget.clientWidth * (progress / 100)) } as React.MouseEvent<HTMLElement>);
               }
               if (e.key === 'ArrowRight') {
                 e.preventDefault();

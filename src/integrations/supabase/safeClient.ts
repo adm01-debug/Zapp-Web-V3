@@ -196,7 +196,7 @@ export const safeClient = {
     else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
     try {
-      await supabase.rpc('rpc_update_email_health_state' as any, {
+      await this.rpc('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: telemetry.recentFailures.length,
         p_metadata: {
@@ -304,7 +304,7 @@ export const safeClient = {
 
     // Persistir falha no banco para monitoramento assíncrono
     try {
-      await supabase.rpc('rpc_log_email_health' as any, {
+      await this.rpc('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,

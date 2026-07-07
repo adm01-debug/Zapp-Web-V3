@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 export interface EmailRevalidationJob {
   id: string;
@@ -21,6 +22,7 @@ export const emailApi = {
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let query = (supabase as any).from('email_revalidation_jobs').select('*', { count: 'exact' });
 
     if (filters?.status && filters.status !== 'all') {
@@ -39,39 +41,41 @@ export const emailApi = {
 
     return { data: data as EmailRevalidationJob[] | null, count, error };
   },
-  getHealthSummary: async () => {
-    const { data, error } = await (supabase as any)
-      .from('email_health_summary')
-      .select('*')
-      .eq('id', 'current')
-      .maybeSingle();
 
-    return { data: data as EmailHealthSummary | null, error };
+  getHealthSummary: async () => {
+    const { data, error } = await safeClient.from<EmailHealthSummary>(
+      'email_health_summary',
+      q => q.select('*').eq('id', 'current')
+    );
+    return { data: data?.[0] ?? null, error };
   },
+
   markThreadRead: async (threadId: string, read: boolean) => {
-    return await (supabase as any).rpc('rpc_email_mark_thread_read', {
+    return safeClient.rpc('rpc_email_mark_thread_read', {
       p_thread_id: threadId,
       p_read: read
     });
   },
+
   getTokenStatus: async () => {
-    return await (supabase as any).rpc('rpc_email_token_status');
+    return safeClient.rpc('rpc_email_token_status');
   },
+
   retryJob: async (jobId: string) => {
-    const { data: job } = await (supabase as any)
-      .from('email_revalidation_jobs')
-      .select('*')
-      .eq('id', jobId)
-      .single();
+    const { data: jobs } = await safeClient.from<EmailRevalidationJob>(
+      'email_revalidation_jobs',
+      q => q.select('*').eq('id', jobId)
+    );
+    const job = jobs?.[0];
 
     if (!job) throw new Error('Job não encontrado');
 
-    return await (supabase as any)
-      .from('email_revalidation_jobs')
-      .insert({
+    return safeClient.from('email_revalidation_jobs', q =>
+      q.insert({
         status: 'pending',
         requested_by: job.requested_by,
         result: { retry_of: jobId }
-      });
+      })
+    );
   }
 };

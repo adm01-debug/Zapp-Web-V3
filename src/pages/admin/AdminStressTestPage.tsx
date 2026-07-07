@@ -29,6 +29,7 @@ import { AlertTriangle, Play, Square, CheckCircle2, XCircle, Loader2, Download, 
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { runStressTest, type RunSummary } from '@/lib/stressTest/runner';
 import {
@@ -58,7 +59,7 @@ export default function AdminStressTestPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Data
-  const [queues, setQueues] = useState<any[]>([]);
+  const [queues, setQueues] = useState<{ id: string; name: string }[]>([]);
 
   // Run state
   const [status, setStatus] = useState<StressRunStatus>('idle');
@@ -91,7 +92,7 @@ export default function AdminStressTestPage() {
   }) => {
     const sample = await sampleFor(type, idx);
     let messageId: string | undefined;
-    let result: any;
+    let result: { key?: { id?: string }; messageId?: string; id?: string } | undefined;
     let accessibility: StressResult['accessibility'] | undefined;
 
     // Check media accessibility if URL exists
@@ -121,26 +122,26 @@ export default function AdminStressTestPage() {
       case 'image':
         result = await evo.sendMediaMessage({
           instanceName: instance, number: phone,
-          mediatype: 'image', mimetype: 'image/jpeg', media: sample.url!,
+          mediaType: 'image', mimetype: 'image/jpeg', mediaUrl: sample.url!,
           fileName: sample.fileName, caption: sample.caption,
           idempotencyKey: `stress_${idx}_${Date.now()}`
-        } as any);
+        });
         break;
       case 'video':
         result = await evo.sendMediaMessage({
           instanceName: instance, number: phone,
-          mediatype: 'video', mimetype: 'video/mp4', media: sample.url!,
+          mediaType: 'video', mimetype: 'video/mp4', mediaUrl: sample.url!,
           fileName: sample.fileName, caption: sample.caption,
           idempotencyKey: `stress_${idx}_${Date.now()}`
-        } as any);
+        });
         break;
       case 'document':
         result = await evo.sendMediaMessage({
           instanceName: instance, number: phone,
-          mediatype: 'document', mimetype: 'application/pdf', media: sample.url!,
+          mediaType: 'document', mimetype: 'application/pdf', mediaUrl: sample.url!,
           fileName: sample.fileName, caption: sample.caption,
           idempotencyKey: `stress_${idx}_${Date.now()}`
-        } as any);
+        });
         break;
       case 'audio_voice':
       case 'audio_meme':
@@ -157,9 +158,9 @@ export default function AdminStressTestPage() {
       case 'location':
         result = await evo.sendLocationMessage({
           instanceName: instance, number: phone,
-          latitude: sample.latitude, longitude: sample.longitude, name: sample.name,
+          latitude: sample.latitude, longitude: sample.longitude, locationName: sample.name,
           idempotencyKey: `stress_${idx}_${Date.now()}`
-        } as any);
+        });
         break;
     }
     messageId = result?.key?.id ?? result?.messageId ?? result?.id;
@@ -167,11 +168,18 @@ export default function AdminStressTestPage() {
   }, [evo]);
 
   // ── Persist incremental updates to stress_test_runs ───────
-  const persistRun = useCallback(async (
-    id: string, partial: Partial<{ status: string; ended_at: string; total_sent: number; total_failed: number; results: StressResult[]; abort_reason: string; metrics_summary: any }>
-  ) => {
+  type StressRunUpdate = {
+    status?: string;
+    ended_at?: string;
+    total_sent?: number;
+    total_failed?: number;
+    results?: StressResult[];
+    abort_reason?: string;
+    metrics_summary?: Record<string, number | undefined>;
+  };
+  const persistRun = useCallback(async (id: string, partial: StressRunUpdate) => {
     try {
-      await (supabase as any).from('stress_test_runs').update(partial as any).eq('id', id);
+      await safeClient.from('stress_test_runs', q => q.update(partial).eq('id', id));
     } catch (e) {
       log.warn('Falha ao persistir progresso', e);
     }
@@ -207,17 +215,16 @@ export default function AdminStressTestPage() {
     }
 
     // Cria o registro do run
-    const { data: insertData, error: insertErr } = await (supabase as any)
-      .from('stress_test_runs')
-      .insert({
+    const { data: insertData, error: insertErr } = await safeClient.single<{ id: string }>(
+      'stress_test_runs',
+      q => q.insert({
         started_by: userId,
         target_phone: phone,
         instance_name: instance,
         total_planned: total,
         status: 'running',
-      })
-      .select('id')
-      .single();
+      }).select('id')
+    );
 
     if (insertErr || !insertData) {
       toast.error(`Não foi possível criar o registro do teste: ${insertErr?.message ?? 'desconhecido'}`);
@@ -251,23 +258,23 @@ export default function AdminStressTestPage() {
           const latency = Math.round(performance.now() - start);
           
           // Log metrics to DB for throughput/latency analysis
-          void (supabase as any).from('stress_test_metrics').insert({
+          void safeClient.from('stress_test_metrics', q => q.insert({
             run_id: id,
             task_type: args.type,
             latency_ms: latency,
             status: 'success'
-          });
+          }));
 
           return res;
         } catch (err) {
           const latency = Math.round(performance.now() - start);
-          void (supabase as any).from('stress_test_metrics').insert({
+          void safeClient.from('stress_test_metrics', q => q.insert({
             run_id: id,
             task_type: args.type,
             latency_ms: latency,
             status: 'failed',
             error_message: err instanceof Error ? err.message : String(err)
-          });
+          }));
           throw err;
         }
       },
@@ -306,14 +313,15 @@ export default function AdminStressTestPage() {
     abortRef.current = null;
     
     // Aggregate metrics for final report
-    const { data: metrics } = await (supabase as any)
-      .from('stress_test_metrics')
-      .select('latency_ms, status')
-      .eq('run_id', id);
-      
-    const latencies = metrics?.map(m => m.latency_ms).sort((a, b) => a - b) || [];
+    const { data: metrics } = await safeClient.from<{ latency_ms: number; status: string }>(
+      'stress_test_metrics',
+      q => q.select('latency_ms, status').eq('run_id', id)
+    );
+
+    const metricsRows = metrics ?? [];
+    const latencies = metricsRows.map(m => m.latency_ms).sort((a, b) => a - b);
     const avgLatency = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;
-    const p95Latency = latencies[Math.floor(latencies.length * 0.95)] || 0;
+    const p95Latency = latencies[Math.floor(latencies.length * 0.95)] ?? 0;
     const throughput = latencies.length > 0 ? Number((latencies.length / ((performance.now() - startTimeManual) / 1000)).toFixed(2)) : 0;
 
     await persistRun(id, {
@@ -327,7 +335,7 @@ export default function AdminStressTestPage() {
         avg_latency: avgLatency,
         p95_latency: p95Latency,
         throughput_msg_sec: throughput,
-        success_rate: metrics?.length ? (metrics.filter(m => m.status === 'success').length / metrics.length) * 100 : 0
+        success_rate: metricsRows.length ? (metricsRows.filter(m => m.status === 'success').length / metricsRows.length) * 100 : 0
       }
     });
 
@@ -511,7 +519,7 @@ export default function AdminStressTestPage() {
                 {showAdvanced ? 'Esconder Avançado' : 'Configurações Avançadas'}
               </Button>
             </div>
-            <Select value={failurePolicy} onValueChange={(v: any) => setFailurePolicy(v)} disabled={isRunning}>
+            <Select value={failurePolicy} onValueChange={(v: 'stop_first' | 'continue' | 'stop_after_n') => setFailurePolicy(v)} disabled={isRunning}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="stop_first">Parar imediatamente na 1ª falha</SelectItem>

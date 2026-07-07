@@ -77,7 +77,7 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
           status,
           is_default: false,
           api_type: 'evolution',
-        } as never);
+        });
 
         if (insertError) {
           log.warn(`Failed to sync ${instanceName}`, { error: insertError.message });

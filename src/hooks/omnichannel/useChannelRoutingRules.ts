@@ -5,6 +5,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
@@ -29,12 +30,12 @@ export function useChannelRoutingRules() {
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ['channel-routing-rules'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
-        .from('channel_routing_rules')
-        .select('*, queue:queues(name), channel_connection:channel_connections_safe(name)')
-        .order('priority', { ascending: true });
+      const { data, error } = await safeClient.from<RoutingRule>('channel_routing_rules', q =>
+        q.select('*, queue:queues(name), channel_connection:channel_connections_safe(name)')
+          .order('priority', { ascending: true }),
+      );
       if (error) throw error;
-      return (data || []) as RoutingRule[];
+      return data ?? [];
     },
   });
 

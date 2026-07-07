@@ -37,7 +37,8 @@ export function TranscriptionsHistoryView() {
         .not('transcription', 'is', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setTranscriptions((data || []).map((item: any) => ({
+      type RawRow = { id: string; content: string; transcription: string; media_url: string | null; created_at: string; contact_id: string; contacts: { name: string; phone: string; avatar_url: string | null } | null };
+      setTranscriptions((data || []).map((item: RawRow) => ({
         id: item.id, content: item.content, transcription: item.transcription, media_url: item.media_url,
         created_at: item.created_at, contact_id: item.contact_id,
         contact_name: item.contacts?.name || 'Desconhecido', contact_phone: item.contacts?.phone || '', contact_avatar: item.contacts?.avatar_url || null,
