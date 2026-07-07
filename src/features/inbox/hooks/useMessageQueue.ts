@@ -188,7 +188,7 @@ export function useMessageQueue(
               // Observability: Telemetry for failures
               log.error(`[QUEUE_ERROR] id=${itemToProcess.id} contact=${contactId} attempt=${itemToProcess.retryCount} err=${errorMsg}`);
               
-              const analytics = (window as any).analytics;
+              const analytics = (window as Window & { analytics?: { track: (event: string, props?: Record<string, unknown>) => void } }).analytics;
               const startTimeStr = new Date(startTime).toISOString();
               const durationMs = Date.now() - startTime;
               

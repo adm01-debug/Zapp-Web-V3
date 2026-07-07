@@ -270,8 +270,7 @@ async function evoFetch<T>(
   if (!res.ok) {
     circuitBreaker.recordError(res.status);
     const body = await res.text().catch(() => '');
-    const err = new Error(`Evolution API ${res.status}: ${body || res.statusText}`);
-    (err as any).status = res.status;
+    const err = Object.assign(new Error(`Evolution API ${res.status}: ${body || res.statusText}`), { status: res.status });
     throw err;
   }
 

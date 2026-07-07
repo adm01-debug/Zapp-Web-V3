@@ -104,8 +104,8 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
     const catFromUrl = params.get('failureCategory');
     if (catFromUrl) {
       const validCategories: (FailureCategory | 'all')[] = ['all', 'auth', 'http_4xx', 'http_5xx', 'network', 'unknown'];
-      if (validCategories.includes(catFromUrl as any)) {
-        setFailureCategoryFilter(catFromUrl as any);
+      if ((validCategories as string[]).includes(catFromUrl)) {
+        setFailureCategoryFilter(catFromUrl as FailureCategory | 'all');
       }
     }
   }, []);
