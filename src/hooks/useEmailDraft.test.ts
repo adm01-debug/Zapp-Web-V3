@@ -26,8 +26,9 @@ vi.mock('@/integrations/supabase/safeClient', () => ({
         eq: vi.fn().mockResolvedValue({ error: null }),
       };
       if (cb) cb(q);
-      return { error: null };
+      return Promise.resolve({ data: null, error: null });
     }),
+    single: vi.fn().mockResolvedValue({ data: { id: 'new_id' }, error: null }),
   },
 }));
 
