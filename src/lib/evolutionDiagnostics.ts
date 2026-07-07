@@ -44,7 +44,7 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
       });
       
       // 3. Test API Key Permissions
-      const instances = Array.isArray(proxyData) ? proxyData : (proxyData as any)?.instances;
+      const instances = Array.isArray(proxyData) ? proxyData : (proxyData as Record<string, unknown>)?.instances;
       if (Array.isArray(instances)) {
         results.push({
           step: 'Global API Key (Evolution)',

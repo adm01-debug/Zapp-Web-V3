@@ -159,12 +159,12 @@ export const contactsDB = {
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    return (data as any).contacts as ExternalContact;
+    return (data as typeof data & { contacts: ExternalContact }).contacts;
   },
 
   /** Update contact fields */
   async update(contactId: string, fields: Partial<ExternalContact>): Promise<ExternalContact | null> {
-    const { updated_at, ...rest } = fields as any;
+    const { updated_at: _updated_at, ...rest } = fields;
     const { data, error } = await getClient()
       .from('contacts')
       .update({ ...rest, updated_at: new Date().toISOString() })
