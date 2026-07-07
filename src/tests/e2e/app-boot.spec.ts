@@ -1,1 +1,44 @@
-LyoqCiAqIGFwcC1ib290IOKAlCBzdWl0ZSBFMkUgSEVSTcOJVElDQSAoMjAyNi0wNy0wNikKICoKICogQ09OVEVYVE86IG8gcGxheXdyaWdodC5jb25maWcudHMgYXBvbnRhIHRlc3REaXI9Li9zcmMvdGVzdHMvZTJlLCBxdWUgZXN0YXZhCiAqIFZBWklPLiBQbGF5d3JpZ2h0IGNvbSB6ZXJvIHRlc3RlcyBzYWkgY29tIGV4aXQgMSBlbSB+M3Mg4oCUIG8gam9iICJFMkUgdGVzdHMiCiAqIGRvIENJIGZpY291IHZlcm1lbGhvIHBlcnDDqXR1byBlbSBtYWluIHNlbSBuZW5odW0gdGVzdGUgcm9kYXIgZGUgZmF0by4KICoKICogRXN0YSBzdWl0ZSByb2RhIDEwMCUgY29udHJhIG8gdml0ZSBkZXYgc2VydmVyIGxvY2FsIGNvbSBlbnYgcGxhY2Vob2xkZXIKICogKHNlbSBiYWNrZW5kIHZpdm8sIHNlbSBjcmVkZW5jaWFpcyk6IHZhbGlkYSBxdWUgbyBTUEEgc2VydmUsIG1vbnRhIFJlYWN0CiAqIGRlbnRybyBkZSAjcm9vdCBlIGRlZmluZSB0w610dWxvLiBDb2JlcnR1cmEgcmVhbCBkZSBib290LCBuw6NvIGRlY29yYXRpdmEuCiAqIEEgc3VpdGUgY29tcGxldGEgKC4vZTJlIG5hIHJhaXopIGV4aWdlIGJhY2tlbmQgKyBsb2dpbiBlIHBlcnRlbmNlIGFvCiAqIHNtb2tlIHByZS1kZXBsb3kg4oCUIGZvcmEgZGVzdGUgZ2F0ZSBlZsOqbWVybyAoZGVjaXPDo28gasOhIGRvY3VtZW50YWRhIG5vCiAqIHF1YWxpdHktZ2F0ZS55bWwpLgogKgogKiBOb3RhOiBpbmRleC5odG1sIHRlbSBzYWZldHktcmVsb2FkIGRlIDZzIHF1YW5kbyAjcm9vdCBmaWNhIHZhemlvOyBvcyBwb2xscwogKiBhYmFpeG8gdG9sZXJhbSB1bSByZWxvYWQgaW50ZXJtZWRpw6FyaW8uCiAqLwppbXBvcnQgeyB0ZXN0LCBleHBlY3QgfSBmcm9tICdAcGxheXdyaWdodC90ZXN0JzsKCnRlc3QuZGVzY3JpYmUoJ2FwcCBib290IChoZXJtZXRpYyBzbW9rZSknLCAoKSA9PiB7CiAgdGVzdCgnU1BBIHNoZWxsIHJlc3BvbmRlIGNvbSBIVFRQIDwgNDAwIGUgI3Jvb3QgcHJlc2VudGUnLCBhc3luYyAoeyBwYWdlIH0pID0+IHsKICAgIGNvbnN0IHJlc3BvbnNlID0gYXdhaXQgcGFnZS5nb3RvKCcvJyk7CiAgICBleHBlY3QocmVzcG9uc2UsICdwYWdlLmdvdG8gZGV2ZSByZXRvcm5hciByZXNwb25zZScpLm5vdC50b0JlTnVsbCgpOwogICAgZXhwZWN0KHJlc3BvbnNlIS5zdGF0dXMoKSwgJ3N0YXR1cyBIVFRQIGRvIHNoZWxsJykudG9CZUxlc3NUaGFuKDQwMCk7CiAgICBhd2FpdCBleHBlY3QocGFnZS5sb2NhdG9yKCcjcm9vdCcpKS50b0JlQXR0YWNoZWQoKTsKICB9KTsKCiAgdGVzdCgnUmVhY3QgbW9udGEgY29udGXDumRvIGRlbnRybyBkZSAjcm9vdCcsIGFzeW5jICh7IHBhZ2UgfSkgPT4gewogICAgYXdhaXQgcGFnZS5nb3RvKCcvJyk7CiAgICBhd2FpdCBleHBlY3QKICAgICAgLnBvbGwoYXN5bmMgKCkgPT4gcGFnZS5sb2NhdG9yKCcjcm9vdCAqJykuY291bnQoKSwgewogICAgICAgIHRpbWVvdXQ6IDMwXzAwMCwKICAgICAgICBtZXNzYWdlOiAnI3Jvb3QgZGV2ZSByZWNlYmVyIGZpbGhvcyAoYXBwIFJlYWN0IG1vbnRhZG8pJywKICAgICAgfSkKICAgICAgLnRvQmVHcmVhdGVyVGhhbigwKTsKICB9KTsKCiAgdGVzdCgnZG9jdW1lbnRvIGRlZmluZSA8dGl0bGU+IG7Do28tdmF6aW8nLCBhc3luYyAoeyBwYWdlIH0pID0+IHsKICAgIGF3YWl0IHBhZ2UuZ290bygnLycpOwogICAgYXdhaXQgZXhwZWN0CiAgICAgIC5wb2xsKGFzeW5jICgpID0+IChhd2FpdCBwYWdlLnRpdGxlKCkpLnRyaW0oKS5sZW5ndGgsIHsgdGltZW91dDogMTVfMDAwIH0pCiAgICAgIC50b0JlR3JlYXRlclRoYW4oMCk7CiAgfSk7Cn0pOwo=
+/**
+ * app-boot — suite E2E HERMÉTICA (2026-07-06)
+ *
+ * CONTEXTO: o playwright.config.ts aponta testDir=./src/tests/e2e, que estava
+ * VAZIO. Playwright com zero testes sai com exit 1 em ~3s — o job "E2E tests"
+ * do CI ficou vermelho perpétuo em main sem nenhum teste rodar de fato.
+ *
+ * Esta suite roda 100% contra o vite dev server local com env placeholder
+ * (sem backend vivo, sem credenciais): valida que o SPA serve, monta React
+ * dentro de #root e define título. Cobertura real de boot, não decorativa.
+ * A suite completa (./e2e na raiz) exige backend + login e pertence ao
+ * smoke pre-deploy — fora deste gate efêmero (decisão já documentada no
+ * quality-gate.yml).
+ *
+ * Nota: index.html tem safety-reload de 6s quando #root fica vazio; os polls
+ * abaixo toleram um reload intermediário.
+ */
+import { test, expect } from '@playwright/test';
+
+test.describe('app boot (hermetic smoke)', () => {
+  test('SPA shell responde com HTTP < 400 e #root presente', async ({ page }) => {
+    const response = await page.goto('/');
+    expect(response, 'page.goto deve retornar response').not.toBeNull();
+    expect(response!.status(), 'status HTTP do shell').toBeLessThan(400);
+    await expect(page.locator('#root')).toBeAttached();
+  });
+
+  test('React monta conteúdo dentro de #root', async ({ page }) => {
+    await page.goto('/');
+    await expect
+      .poll(async () => page.locator('#root *').count(), {
+        timeout: 30_000,
+        message: '#root deve receber filhos (app React montado)',
+      })
+      .toBeGreaterThan(0);
+  });
+
+  test('documento define <title> não-vazio', async ({ page }) => {
+    await page.goto('/');
+    await expect
+      .poll(async () => (await page.title()).trim().length, { timeout: 15_000 })
+      .toBeGreaterThan(0);
+  });
+});
