@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,19 +25,15 @@ export function ChatbotExecutionsDashboard() {
   const { data: executions = [], isLoading } = useQuery({
     queryKey: ['chatbot-executions', statusFilter],
     queryFn: async () => {
-      let query = (supabase as any) /* TS2589: schema 678 */
-        .from('chatbot_executions')
-        .select('*, flow:chatbot_flows(name), contact:contacts(name, phone)')
-        .order('created_at', { ascending: false })
-        .limit(200);
-
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data, error } = await query;
+      type ExecRow = { id: string; status: string; created_at: string; flow: { name: string } | null; contact: { name: string | null; phone: string | null } | null };
+      const { data, error } = await safeClient.from<ExecRow>(
+        'chatbot_executions',
+        q => statusFilter !== 'all'
+          ? q.select('*, flow:chatbot_flows(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).limit(200).eq('status', statusFilter)
+          : q.select('*, flow:chatbot_flows(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).limit(200),
+      );
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
   });
 
