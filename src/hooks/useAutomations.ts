@@ -30,7 +30,7 @@ interface AutomationRule {
 }
 
 interface MsgRow {
-  message_timestamp: string;
+  created_at: string;
   from_me: boolean;
   content: string;
 }
@@ -111,15 +111,15 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = (msgs as MsgRow[]).sort(
+      const sorted = (msgs as unknown as MsgRow[]).sort(
         (a, b) =>
-          new Date(a.message_timestamp).getTime() -
-          new Date(b.message_timestamp).getTime(),
+          new Date(a.created_at).getTime() -
+          new Date(b.created_at).getTime(),
       );
       const last = sorted[sorted.length - 1];
       if (!last) return;
 
-      const lastTime = new Date(last.message_timestamp).getTime();
+      const lastTime = new Date(last.created_at).getTime();
       const ageSec = (Date.now() - lastTime) / 1000;
 
       // Snapshot de tags do contato para gatilhos tag_applied/tag_removed
