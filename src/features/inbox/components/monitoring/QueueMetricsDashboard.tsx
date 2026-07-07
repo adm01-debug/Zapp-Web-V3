@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend 
 } from 'recharts';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { QueueMetrics } from '@/features/inbox/hooks/useMessageQueue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,9 +25,10 @@ export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React
     let cancelled = false;
     const fetchSTS = async () => {
       try {
-        const { data, error } = await (supabase as any)
-          .from('sts_performance_metrics')
-          .select('*');
+        const { data, error } = await safeClient.from<Record<string, unknown>>(
+          'sts_performance_metrics',
+          q => q.select('*')
+        );
         if (!cancelled && !error && data) setStsMetrics(data);
       } catch (err) {
         if (!cancelled) log.error('Failed to fetch STS metrics', err);
