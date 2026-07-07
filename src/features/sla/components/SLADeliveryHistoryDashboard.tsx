@@ -20,7 +20,7 @@ export const SLADeliveryHistoryDashboard = () => {
   const { data: violations, isLoading } = useQuery({
     queryKey: ['sla-delivery-violations', statusFilter],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from('sla_delivery_violations')
         .select(`
           *,
@@ -43,7 +43,7 @@ export const SLADeliveryHistoryDashboard = () => {
   const resolveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('sla_delivery_violations')
         .update({
           is_resolved: true,
@@ -137,7 +137,7 @@ export const SLADeliveryHistoryDashboard = () => {
                         <CheckCircle2 className="w-3 h-3" />
                         Resolvido
                       </div>
-                      <span className="text-[10px] text-muted-foreground">por {(v as any).resolved_by_profile?.display_name || 'Agente'}</span>
+                      <span className="text-[10px] text-muted-foreground">por {(v as typeof v & { resolved_by_profile?: { display_name?: string | null } }).resolved_by_profile?.display_name || 'Agente'}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 text-warning text-xs">

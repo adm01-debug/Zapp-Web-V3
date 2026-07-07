@@ -64,7 +64,7 @@ export function dbTable(entity: LogicalEntity): string {
 export function dbFrom(entity: LogicalEntity): any {
   const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
-  return (dbClient(entity) as any).from(mapping.table);
+  return dbClient(entity).from(mapping.table as any);
 }
 
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {
@@ -116,7 +116,7 @@ export async function dbRpc<P extends object, R>(
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (client as any).rpc(def.name, merged as any);
+    const { data, error } = await client.rpc(def.name as any, merged as Record<string, unknown>);
     const durationMs = Math.round(performance.now() - startedAt);
     const errorMessage = error ? error.message ?? 'rpc error' : undefined;
 
@@ -125,8 +125,8 @@ export async function dbRpc<P extends object, R>(
       source,
       target: def.name,
       durationMs,
-      limit: (merged as any).p_limit ?? null,
-      offset: (merged as any).p_offset ?? null,
+      limit: (merged as Record<string, unknown>).p_limit as number | null ?? null,
+      offset: (merged as Record<string, unknown>).p_offset as number | null ?? null,
       filters: merged as Record<string, unknown>,
       recordCount: Array.isArray(data) ? data.length : null,
       errorMessage,
@@ -146,8 +146,8 @@ export async function dbRpc<P extends object, R>(
       source,
       target: def.name,
       durationMs,
-      limit: (merged as any).p_limit ?? null,
-      offset: (merged as any).p_offset ?? null,
+      limit: (merged as Record<string, unknown>).p_limit as number | null ?? null,
+      offset: (merged as Record<string, unknown>).p_offset as number | null ?? null,
       filters: merged as Record<string, unknown>,
       recordCount: null,
       errorMessage: message,

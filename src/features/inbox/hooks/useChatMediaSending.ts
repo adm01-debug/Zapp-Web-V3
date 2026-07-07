@@ -68,7 +68,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
       // FALHA 9 FIX: Try evolution_contacts first, fallback to contacts
       let connectionId: string | null = null;
 
-      const { data: evoContact , error: evoContactErr } = await (supabase as any)
+      const { data: evoContact , error: evoContactErr } = await supabase
         .from('evolution_contacts')
         .select('whatsapp_connection_id')
         .eq('id', contactId)

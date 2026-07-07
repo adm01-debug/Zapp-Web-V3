@@ -19,7 +19,7 @@ export interface SLAAlertHistoryEntry {
 const PAGE_SIZE = 100;
 
 async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('sla_history')
     .select(`
       id,
@@ -40,7 +40,7 @@ async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
 
   if (error) throw error;
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row) => {
     const thread = row.conversation_threads;
     const contact = thread?.contacts;
     
