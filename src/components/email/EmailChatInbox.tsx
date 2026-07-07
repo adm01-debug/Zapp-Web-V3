@@ -8,6 +8,7 @@ import { EmailChatThread } from './EmailChatThread';
 import { EmailSearchBar } from './EmailSearchBar';
 import { EmailAccountSelector } from '../gmail/GmailAccountSelector';
 import { type EmailSearchResult } from '@/hooks/useEmailSearch';
+import { type TokenStatus } from '@/hooks/useGmailOAuthFlow';
 
 interface EmailChatInboxProps {
   className?: string;
@@ -86,7 +87,7 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
           <EmailAccountSelector
             accounts={accounts}
             activeAccountId={activeAccountId}
-            tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as any}
+            tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as Record<string, TokenStatus>}
             isSyncing={isSyncing}
             onSelectAccount={setActiveAccountId}
             onAddAccount={startOAuth}

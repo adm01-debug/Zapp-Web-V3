@@ -346,6 +346,7 @@ interface SendMessageParams {
     mimeType: string;
     data:     string; // base64
   }>;
+  signature?: boolean;
 }
 
 /**

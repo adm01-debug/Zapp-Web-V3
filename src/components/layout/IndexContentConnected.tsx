@@ -37,7 +37,7 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(function IndexCo
     navDirectionRef
   } = useIndexNavigation(user, loading);
 
-  (useEmailOAuthFlow as any)({ user, loading, onNavigate: setCurrentView });
+  useEmailOAuthFlow();
   useIndexKeyboardShortcuts({ goBack, goForward, canGoBack, setCurrentView });
 
   // Notifications & Alerts
