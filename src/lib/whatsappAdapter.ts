@@ -33,6 +33,7 @@ export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
   const now = Date.now();
   if (!force && cachedMode && now < cacheExpiresAt) return cachedMode;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await supabase.rpc("rpc_get_whatsapp_mode" as any);
     if (error) throw error;
     const mode = (data as string) === "official" ? "official" : "unofficial";

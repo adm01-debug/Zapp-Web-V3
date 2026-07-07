@@ -55,6 +55,7 @@ export const safeClient = {
         }
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await queryBuilder(supabase.from(table as any));
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
@@ -91,6 +92,7 @@ export const safeClient = {
         }
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await queryBuilder(supabase.from(table as any)).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
@@ -127,6 +129,7 @@ export const safeClient = {
         }
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await supabase.rpc(name as any, params);
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
@@ -163,9 +166,11 @@ export const safeClient = {
     try {
       let exists = false;
       if (type === 'table') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await supabase.from(name as any).select('count', { count: 'exact', head: true }).limit(0);
         exists = !error || !error.message || !error.message.toLowerCase().includes('does not exist');
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await supabase.rpc(name as any).limit(0);
         if (!error) {
           exists = true;

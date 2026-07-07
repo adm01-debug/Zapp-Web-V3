@@ -50,7 +50,7 @@ export default function AdminSecurityLogsPage() {
       if (error) {
         log.error('Error fetching audit logs', error);
       } else {
-        setLogs(data as any[]);
+        setLogs(data as AuditLog[]);
       }
       setLoading(false);
     };
