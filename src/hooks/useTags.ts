@@ -60,19 +60,17 @@ export function useTags() {
         .eq('user_id', user?.id)
         .maybeSingle();
 
-      const { data: tag, error } = await supabase
-        .from('tags')
-        .insert({
+      const { error } = await safeClient.from('tags', q =>
+        q.insert({
           name: data.name,
           color: data.color,
           description: data.description || null,
           created_by: profile?.id || null,
         })
-        .select()
-        .single();
+      );
 
       if (error) throw error;
-      return tag;
+      return null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });

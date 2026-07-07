@@ -193,7 +193,7 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 // Simula clique no centro se não houver coordenadas
-                handleSeek({ currentTarget: e.currentTarget, clientX: e.currentTarget.getBoundingClientRect().left + (e.currentTarget.clientWidth * (progress / 100)) } as React.MouseEvent<HTMLElement>);
+                handleSeek({ currentTarget: e.currentTarget, clientX: e.currentTarget.getBoundingClientRect().left + (e.currentTarget.clientWidth * (progress / 100)) } as unknown as React.MouseEvent<HTMLDivElement>);
               }
               if (e.key === 'ArrowRight') {
                 e.preventDefault();

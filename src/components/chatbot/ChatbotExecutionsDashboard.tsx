@@ -25,7 +25,7 @@ export function ChatbotExecutionsDashboard() {
   const { data: executions = [], isLoading } = useQuery({
     queryKey: ['chatbot-executions', statusFilter],
     queryFn: async () => {
-      type ExecRow = { id: string; status: string; created_at: string; flow: { name: string } | null; contact: { name: string | null; phone: string | null } | null };
+      type ExecRow = { id: string; status: string; created_at: string; completed_at: string | null; started_at: string | null; error_message: string | null; flow: { name: string } | null; contact: { name: string | null; phone: string | null } | null };
       const { data, error } = await safeClient.from<ExecRow>(
         'chatbot_executions',
         q => statusFilter !== 'all'

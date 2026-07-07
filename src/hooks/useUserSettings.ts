@@ -107,7 +107,7 @@ export function useUserSettings() {
       try {
         const { data, error } = await safeClient.single<UserSettings>('user_settings', q => q.select('*').eq('user_id', user.id));
 
-        if (error && error.code !== 'PGRST116') {
+        if (error && (error as { code?: string }).code !== 'PGRST116') {
           // PGRST116 = no rows returned
           log.error('Error fetching settings:', error);
           return;

@@ -59,7 +59,7 @@ export function useRolesPageState() {
   const handleAddRole = async () => {
     if (!selectedUser || !selectedRole) return;
     setUpdating(true);
-    const { error } = await supabase.from('user_roles').insert({ user_id: selectedUser, role: selectedRole });
+    const { error } = await safeClient.from('user_roles', q => q.insert({ user_id: selectedUser, role: selectedRole }));
     if (error) toast.error('Erro ao adicionar role');
     else { toast.success('Role adicionada com sucesso'); setShowAddDialog(false); setSelectedUser(''); fetchUsers(); }
     setUpdating(false);

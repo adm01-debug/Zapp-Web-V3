@@ -127,7 +127,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         }
         throw error;
       }
-      const list = (data ?? []) as RpcRow[];
+      const list = (data ?? []) as unknown as RpcRow[];
       const filtered = list.filter((r) => {
         if (errorCode) {
           const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');

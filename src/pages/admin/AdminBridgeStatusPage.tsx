@@ -49,6 +49,21 @@ const log = getLogger('AdminBridgeStatusPage');
 
 type BridgeStatus = "online" | "degraded" | "offline" | "loading";
 
+interface IncidentRow {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  started_at: string;
+  resolved_at: string | null;
+}
+
+interface AlertRow {
+  id: string;
+  title: string;
+  alert_type: string;
+}
+
 export default function BridgeStatusPage() {
   const { toast } = useToast();
   const mountedRef = useMountedRef();
@@ -60,8 +75,8 @@ export default function BridgeStatusPage() {
   const [lovableDb, setLovableDb] = useState<boolean | null>(null);
   const [externalDb, setExternalDb] = useState<boolean | null>(null);
   const [whatsappTransport, setWhatsappTransport] = useState<string>("...");
-  const [activeAlerts, setActiveAlerts] = useState<Record<string, unknown>[]>([]);
-  const [incidents, setIncidents] = useState<Record<string, unknown>[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<AlertRow[]>([]);
+  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [instanceCount, setInstanceCount] = useState<number>(0);
   const [recentTraffic, setRecentTraffic] = useState<{count: number, last_at: string | null}>({count: 0, last_at: null});
   const [diagResults, setDiagResults] = useState<DiagnosticResult[] | null>(null);
@@ -133,7 +148,7 @@ export default function BridgeStatusPage() {
 
       // 5. Check Active Alerts
       try {
-        const { data: alerts } = await safeClient.from<Record<string, unknown>>(
+        const { data: alerts } = await safeClient.from<AlertRow>(
           'v_alerts_active',
           q => q.select('*').limit(5)
         );
@@ -171,7 +186,7 @@ export default function BridgeStatusPage() {
   }, [toast, mountedRef]);
 
   const fetchIncidents = useCallback(async () => {
-    const { data } = await safeClient.from<Record<string, unknown>>(
+    const { data } = await safeClient.from<IncidentRow>(
       'system_health_incidents',
       q => q.select('*').order('started_at', { ascending: false }).limit(10)
     );

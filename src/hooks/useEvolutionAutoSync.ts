@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { getLogger } from '@/lib/logger';
 import { normalizePhone, isSamePhone } from '@/lib/phoneUtils';
@@ -70,14 +71,14 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
           i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
         const status = i.instance?.status === 'open' ? 'connected' : 'disconnected';
 
-        const { error: insertError } = await supabase.from('whatsapp_connections').insert({
+        const { error: insertError } = await safeClient.from('whatsapp_connections', q => q.insert({
           name,
           phone_number: phone,
           instance_id: instanceName,
           status,
           is_default: false,
           api_type: 'evolution',
-        });
+        }));
 
         if (insertError) {
           log.warn(`Failed to sync ${instanceName}`, { error: insertError.message });

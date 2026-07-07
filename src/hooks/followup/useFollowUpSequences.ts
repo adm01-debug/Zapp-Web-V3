@@ -17,6 +17,16 @@ export interface Step {
   is_active: boolean;
 }
 
+export interface SequenceRow {
+  id: string;
+  name: string;
+  is_active: boolean;
+  trigger_event: string;
+  created_at: string;
+  created_by: string | null;
+  followup_steps: Step[];
+}
+
 export function useFollowUpSequences() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -24,7 +34,7 @@ export function useFollowUpSequences() {
   const { data: sequences = [], isLoading } = useQuery({
     queryKey: ['followup-sequences'],
     queryFn: async () => {
-      const { data } = await safeClient.from<Record<string, unknown>>('followup_sequences', q =>
+      const { data } = await safeClient.from<SequenceRow>('followup_sequences', q =>
         q.select('*, followup_steps(*)').order('created_at', { ascending: false }),
       );
       return data ?? [];
