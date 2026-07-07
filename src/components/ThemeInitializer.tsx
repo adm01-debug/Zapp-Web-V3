@@ -77,7 +77,7 @@ export function ThemeInitializer() {
       root.style.setProperty('--font-display', targetFont);
 
       // Debug registry for the ThemeDebugTooltip
-      (window as Window & { __THEME_DEBUG__: object }).__THEME_DEBUG__ = {
+      (window as unknown as { __THEME_DEBUG__: object }).__THEME_DEBUG__ = {
         presetId: preset.id,
         presetName: preset.name,
         hasPresetFont: !!preset.font,
