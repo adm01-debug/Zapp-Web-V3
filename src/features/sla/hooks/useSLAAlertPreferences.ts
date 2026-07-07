@@ -97,7 +97,7 @@ export function useSLAAlertPreferences() {
     async (next: SLAAlertPreferences) => {
       if (!user?.id) return { error: new Error('Not authenticated') };
       setIsSaving(true);
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('sla_alert_preferences')
         .upsert({ user_id: user.id, ...next }, { onConflict: 'user_id' });
       setIsSaving(false);

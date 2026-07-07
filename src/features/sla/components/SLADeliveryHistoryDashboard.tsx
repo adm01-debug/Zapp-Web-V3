@@ -20,7 +20,8 @@ export const SLADeliveryHistoryDashboard = () => {
   const { data: violations, isLoading } = useQuery({
     queryKey: ['sla-delivery-violations', statusFilter],
     queryFn: async () => {
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any) /* TS2589: sla_delivery_violations type too deep */
         .from('sla_delivery_violations')
         .select(`
           *,
@@ -43,7 +44,8 @@ export const SLADeliveryHistoryDashboard = () => {
   const resolveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any) /* TS2589: sla_delivery_violations type too deep */
         .from('sla_delivery_violations')
         .update({
           is_resolved: true,

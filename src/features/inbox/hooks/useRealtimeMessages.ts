@@ -423,10 +423,10 @@ export function useRealtimeMessages() {
       filtered = filtered.filter(conv => {
         if (statusFilter === 'unread') return conv.unreadCount > 0;
         if (statusFilter === 'open') {
-          return !conv.lastMessage || conv.lastMessage.sender === 'contact' || (conv.contact as any).routing_status === 'pending';
+          return !conv.lastMessage || conv.lastMessage.sender === 'contact' || (conv.contact as ConversationContact & { routing_status?: string }).routing_status === 'pending';
         }
         if (statusFilter === 'closed') {
-          return conv.lastMessage?.sender === 'agent' && (conv.contact as any).routing_status !== 'pending';
+          return conv.lastMessage?.sender === 'agent' && (conv.contact as ConversationContact & { routing_status?: string }).routing_status !== 'pending';
         }
         return true; 
       });

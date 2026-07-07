@@ -33,7 +33,7 @@ export default function AdminDevDiagnosticsPage() {
 
   async function loadLogs() {
     setLoading(true);
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('dev_diagnostic_logs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -49,7 +49,7 @@ export default function AdminDevDiagnosticsPage() {
 
   async function logAccess() {
     if (!isDev) return;
-    await (supabase as any).from('dev_diagnostic_logs').insert({
+    await supabase.from('dev_diagnostic_logs').insert({
       action: 'Access Dev Diagnostics',
       category: 'Audit',
       details: { user_agent: navigator.userAgent, screen: `${window.innerWidth}x${window.innerHeight}` }
