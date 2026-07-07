@@ -127,11 +127,10 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: contact } = await (client as any).rpc("rpc_get_contact", {
+        const { data: contact } = await client.rpc("rpc_get_contact" as never, {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
-        });
+        } as never);
         const c = (Array.isArray(contact) ? contact[0] : contact) as { tags?: unknown[] } | null;
         currentTags = Array.isArray(c?.tags) ? c.tags.map((t: unknown) => String(t)) : [];
         if (prevTagsRef.current !== null) {
@@ -242,12 +241,11 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (client as any).rpc("rpc_upsert_contact", {
+            await client.rpc("rpc_upsert_contact" as never, {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
-            });
+            } as never);
             await safeClient.from('automation_executions', q =>
               q.update({
                 applied_tags: allTags,
@@ -292,13 +290,12 @@ export function useAutomations({
               );
               const exec = execRows?.[0];
               if (exec?.suggestion_text) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await (client as any).rpc("rpc_insert_message", {
+                await client.rpc("rpc_insert_message" as never, {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
                   p_message_type: "text",
-                });
+                } as never);
                 await safeClient.from('automation_executions', q =>
                   q.update({ status: "executed", acted_at: new Date().toISOString() }).eq("id", execId)
                 );

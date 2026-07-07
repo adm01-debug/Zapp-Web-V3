@@ -346,7 +346,7 @@ export function useEmail() {
       p_thread_id: threadId,
       p_read:      read,
       p_message_ids: null
-    } as any);
+    });
 
     if (!rpcErr) {
       setThreads(prev => prev.map(t =>
