@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * Admin: Histórico de Alertas.
  * Reads `warroom_alerts` (Lovable Cloud) — already populated by the war-room

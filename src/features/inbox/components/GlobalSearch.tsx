@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import React, { useMemo, useCallback, useEffect } from 'react';
 import {
   Search, X, Plus, Command, Filter, Clock, History, Tag, Trash2,

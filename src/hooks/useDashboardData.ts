@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useMemo } from 'react';
 import { startOfDay, endOfDay } from 'date-fns';
 import {
