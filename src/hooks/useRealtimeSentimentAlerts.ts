@@ -103,7 +103,12 @@ export function useRealtimeSentimentAlerts() {
         },
         (payload) => {
           log.debug('Realtime payload', { payload });
-          void handleNewAlert(payload.new as SentimentAlertPayload);
+          const parsed = safeParseEvent(sentimentAlertAuditRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn('sentiment_alert payload rejeitado', parsed.error);
+            return;
+          }
+          void handleNewAlert(parsed.data as SentimentAlertPayload);
         }
       )
       .subscribe((status) => {
