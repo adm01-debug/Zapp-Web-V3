@@ -499,8 +499,24 @@ describe('warRoomAlertRowSchema', () => {
   });
 
   it('rejeita quando faltam campos obrigatórios (missing)', () => {
-    const r = warRoomAlertRowSchema.safeParse({ id: UUID, alert_type: 'x' });
+    const r = warRoomAlertRowSchema.safeParse({ id: UUID, alert_type: 'critical' });
     expect(r.success).toBe(false);
+  });
+
+  it('rejeita alert_type fora do enum (info/warning/critical/sla_breach)', () => {
+    const r = warRoomAlertRowSchema.safeParse({
+      id: UUID, alert_type: 'error', title: 't', message: 'm',
+      source: null, is_read: null, created_at: null,
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('aceita sla_breach como alert_type válido', () => {
+    const r = warRoomAlertRowSchema.safeParse({
+      id: UUID, alert_type: 'sla_breach', title: 't', message: 'm',
+      source: 'sla-monitor', is_read: false, created_at: null,
+    });
+    expect(r.success).toBe(true);
   });
 });
 

@@ -179,11 +179,20 @@ export const teamMessageRowSchema = z
   })
   .passthrough();
 
+/** Enum de tipos de alerta do War Room (espelha public.warroom_alert_type). */
+export const warRoomAlertTypeSchema = z.enum([
+  'info',
+  'warning',
+  'critical',
+  'sla_breach',
+]);
+export type WarRoomAlertType = z.infer<typeof warRoomAlertTypeSchema>;
+
 /** Linha de `warroom_alerts`. */
 export const warRoomAlertRowSchema = z
   .object({
     id: uuidSchema,
-    alert_type: z.string(),
+    alert_type: warRoomAlertTypeSchema,
     title: z.string(),
     message: z.string(),
     source: z.string().nullable(),
