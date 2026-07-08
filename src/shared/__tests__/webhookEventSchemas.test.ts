@@ -1,0 +1,332 @@
+import { describe, expect, it } from 'vitest';
+import {
+  ContractErrorCode,
+  contactRowSchema,
+  evolutionMessageUpsertSchema,
+  failedMessageRowSchema,
+  gmailPushSchema,
+  messageRowSchema,
+  realtimeEnvelopeFor,
+  realtimeEnvelopeSchema,
+  safeParseEvent,
+  whatsappCloudWebhookSchema,
+} from '@/shared/webhookEventSchemas';
+
+// ---------------------- Realtime envelope ----------------------
+
+describe('realtimeEnvelopeSchema', () => {
+  it('aceita INSERT com row completa', () => {
+    const r = realtimeEnvelopeSchema.safeParse({
+      schema: 'public',
+      table: 'messages',
+      eventType: 'INSERT',
+      new: { id: 'x', content: 'oi' },
+      old: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('aceita DELETE com new=null', () => {
+    const r = realtimeEnvelopeSchema.safeParse({
+      schema: 'public',
+      table: 'messages',
+      eventType: 'DELETE',
+      new: null,
+      old: { id: 'x' },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita eventType desconhecido', () => {
+    const r = realtimeEnvelopeSchema.safeParse({
+      schema: 'public',
+      table: 'messages',
+      eventType: 'MERGE',
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejeita quando table está ausente', () => {
+    const r = realtimeEnvelopeSchema.safeParse({
+      schema: 'public',
+      eventType: 'INSERT',
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+// ---------------------- Row schemas tolerantes a null ----------------------
+
+describe('row schemas — tolerância a null', () => {
+  it('messageRowSchema aceita todos os campos anuláveis como null', () => {
+    const r = messageRowSchema.safeParse({
+      id: '11111111-1111-4111-8111-111111111111',
+      contact_id: null,
+      content: null,
+      sender: null,
+      status: null,
+      channel_type: null,
+      external_id: null,
+      media_url: null,
+      media_type: null,
+      created_at: null,
+      agent_id: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('messageRowSchema rejeita id ausente', () => {
+    const r = messageRowSchema.safeParse({ contact_id: null });
+    expect(r.success).toBe(false);
+  });
+
+  it('messageRowSchema preserva campos extras (passthrough)', () => {
+    const r = messageRowSchema.safeParse({
+      id: '11111111-1111-4111-8111-111111111111',
+      contact_id: null,
+      content: 'x',
+      sender: 'agent',
+      status: null,
+      channel_type: null,
+      external_id: null,
+      media_url: null,
+      media_type: null,
+      created_at: null,
+      agent_id: null,
+      _custom: 'preservado',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect((r.data as Record<string, unknown>)._custom).toBe('preservado');
+  });
+
+  it('contactRowSchema aceita phone null e queue_id null', () => {
+    const r = contactRowSchema.safeParse({
+      id: '11111111-1111-4111-8111-111111111111',
+      remote_jid: null,
+      phone: null,
+      push_name: null,
+      assigned_to: null,
+      queue_id: null,
+      contact_type: null,
+      updated_at: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('failedMessageRowSchema aceita retry_count null', () => {
+    const r = failedMessageRowSchema.safeParse({
+      id: '11111111-1111-4111-8111-111111111111',
+      instance_name: null,
+      message_id: null,
+      error_message: null,
+      retry_count: null,
+      status: null,
+      created_at: null,
+    });
+    expect(r.success).toBe(true);
+  });
+});
+
+// ---------------------- Evolution webhook ----------------------
+
+describe('evolutionMessageUpsertSchema', () => {
+  const base = {
+    event: 'messages.upsert' as const,
+    instance: 'inst-1',
+    data: {
+      key: {
+        id: 'ABC',
+        remoteJid: '5511999999999@s.whatsapp.net',
+        fromMe: false,
+      },
+      pushName: null,
+      message: null,
+      messageType: null,
+      messageTimestamp: null,
+    },
+  };
+
+  it('aceita payload mínimo', () => {
+    expect(evolutionMessageUpsertSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('aceita fromMe ausente (default false)', () => {
+    const { fromMe: _fromMe, ...key } = base.data.key;
+    void _fromMe;
+    const r = evolutionMessageUpsertSchema.safeParse({
+      ...base,
+      data: { ...base.data, key },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita remoteJid mal-formado', () => {
+    const r = evolutionMessageUpsertSchema.safeParse({
+      ...base,
+      data: { ...base.data, key: { ...base.data.key, remoteJid: 'not-a-jid' } },
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejeita quando event é outro', () => {
+    const r = evolutionMessageUpsertSchema.safeParse({
+      ...base,
+      event: 'contacts.upsert',
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejeita quando data.key.id está vazio', () => {
+    const r = evolutionMessageUpsertSchema.safeParse({
+      ...base,
+      data: { ...base.data, key: { ...base.data.key, id: '' } },
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+// ---------------------- WhatsApp Cloud ----------------------
+
+describe('whatsappCloudWebhookSchema', () => {
+  it('aceita status update', () => {
+    const r = whatsappCloudWebhookSchema.safeParse({
+      object: 'whatsapp_business_account',
+      entry: [
+        {
+          id: 'x',
+          changes: [
+            {
+              field: 'messages',
+              value: {
+                statuses: [
+                  { id: 'wamid.abc', status: 'delivered', timestamp: '123' },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita status fora do enum', () => {
+    const r = whatsappCloudWebhookSchema.safeParse({
+      object: 'x',
+      entry: [
+        {
+          id: 'x',
+          changes: [
+            {
+              field: 'messages',
+              value: {
+                statuses: [{ id: 'a', status: 'queued', timestamp: '1' }],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejeita entry vazio', () => {
+    const r = whatsappCloudWebhookSchema.safeParse({
+      object: 'x',
+      entry: [],
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+// ---------------------- Gmail push ----------------------
+
+describe('gmailPushSchema', () => {
+  it('aceita historyId numérico e string', () => {
+    expect(
+      gmailPushSchema.safeParse({ emailAddress: 'a@b.com', historyId: 12 }).success,
+    ).toBe(true);
+    expect(
+      gmailPushSchema.safeParse({ emailAddress: 'a@b.com', historyId: '12' }).success,
+    ).toBe(true);
+  });
+
+  it('rejeita email inválido', () => {
+    expect(
+      gmailPushSchema.safeParse({ emailAddress: 'nao-email', historyId: '1' }).success,
+    ).toBe(false);
+  });
+});
+
+// ---------------------- safeParseEvent envelope ----------------------
+
+describe('safeParseEvent', () => {
+  it('devolve ok:true com data em sucesso', () => {
+    const r = safeParseEvent(gmailPushSchema, {
+      emailAddress: 'a@b.com',
+      historyId: '1',
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.historyId).toBe('1');
+  });
+
+  it('devolve ok:false com code padrão INVALID_PAYLOAD e path detalhado', () => {
+    const r = safeParseEvent(gmailPushSchema, { emailAddress: 'x', historyId: 1 });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.code).toBe(ContractErrorCode.INVALID_PAYLOAD);
+      expect(r.error.details.length).toBeGreaterThan(0);
+      expect(r.error.details[0]?.path).toBe('emailAddress');
+    }
+  });
+
+  it('permite sobrescrever code', () => {
+    const r = safeParseEvent(
+      realtimeEnvelopeSchema,
+      { table: 'x' },
+      ContractErrorCode.INVALID_EVENT_SHAPE,
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe(ContractErrorCode.INVALID_EVENT_SHAPE);
+  });
+});
+
+// ---------------------- realtimeEnvelopeFor (integração) ----------------------
+
+describe('realtimeEnvelopeFor(messageRowSchema)', () => {
+  const envelope = realtimeEnvelopeFor(messageRowSchema);
+
+  it('valida envelope + row juntos', () => {
+    const r = envelope.safeParse({
+      schema: 'public',
+      table: 'messages',
+      eventType: 'INSERT',
+      new: {
+        id: '11111111-1111-4111-8111-111111111111',
+        contact_id: null,
+        content: 'oi',
+        sender: 'client',
+        status: null,
+        channel_type: null,
+        external_id: null,
+        media_url: null,
+        media_type: null,
+        created_at: null,
+        agent_id: null,
+      },
+      old: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita quando new.id não é uuid', () => {
+    const r = envelope.safeParse({
+      schema: 'public',
+      table: 'messages',
+      eventType: 'INSERT',
+      new: { id: 'nope' },
+      old: null,
+    });
+    expect(r.success).toBe(false);
+  });
+});

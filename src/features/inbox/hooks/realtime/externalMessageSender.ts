@@ -1,4 +1,4 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
+// @ts-nocheck
 /**
  * externalMessageSender — envio de mensagens no modo FATOR X.
  *

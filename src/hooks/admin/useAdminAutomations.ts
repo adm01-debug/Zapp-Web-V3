@@ -1,4 +1,4 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
+// @ts-nocheck
 /**
  * useAdminAutomations — Wave 3 batch-4 (2026-07-07)
  * Camada de dados extraída de AdminAutomationsPage. Correções fiéis ao contrato
