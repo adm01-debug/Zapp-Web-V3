@@ -124,12 +124,32 @@ export const notificationRowSchema = z
   })
   .passthrough();
 
+/**
+ * Vocabulário conhecido de `conversation_events.event_type`. Novos tipos
+ * cunhados por edge functions são tolerados (fallback `z.string()` via union)
+ * para não quebrar o cliente durante rollout progressivo.
+ */
+export const conversationEventTypeSchema = z.union([
+  z.enum([
+    'assign',
+    'unassign',
+    'transfer',
+    'queue_transfer',
+    'overload_reassign',
+    'absence_reassign',
+    'close',
+    'reopen',
+    'sla_alert',
+  ]),
+  z.string().min(1),
+]);
+
 /** Linha de `conversation_events`. */
 export const conversationEventRowSchema = z
   .object({
     id: uuidSchema,
     contact_id: uuidSchema,
-    event_type: z.string(),
+    event_type: conversationEventTypeSchema,
     from_agent_id: uuidSchema.nullable(),
     to_agent_id: uuidSchema.nullable(),
     from_queue_id: uuidSchema.nullable(),
@@ -140,6 +160,22 @@ export const conversationEventRowSchema = z
   })
   .passthrough();
 
+/** Enum estrito de `conversation_transfers.status` (bate com o CHECK do DB). */
+export const conversationTransferStatusSchema = z.enum([
+  'pending',
+  'accepted',
+  'completed',
+  'returned',
+  'canceled',
+]);
+
+/** Enum estrito de `conversation_transfers.transfer_type`. */
+export const conversationTransferTypeSchema = z.enum([
+  'direct',
+  'queue',
+  'internal',
+]);
+
 /** Linha de `conversation_transfers`. */
 export const conversationTransferRowSchema = z
   .object({
@@ -149,9 +185,9 @@ export const conversationTransferRowSchema = z
     to_agent_id: uuidSchema.nullable(),
     from_queue_id: uuidSchema.nullable(),
     to_queue_id: uuidSchema.nullable(),
-    status: z.string(),
-    transfer_type: z.string(),
-    priority: z.string().nullable(),
+    status: conversationTransferStatusSchema,
+    transfer_type: conversationTransferTypeSchema,
+    priority: z.number().int().nullable(), // DB: integer nullable
     ticket_number: z.string(),
     contact_id: uuidSchema.nullable(),
     remote_jid: z.string().nullable(),
