@@ -47,7 +47,12 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
           table: 'evolution_messages',
         },
         wrapMessagesHandler<{ new: Record<string, unknown>; old?: Record<string, unknown> }>('useTranscriptionNotifications', (payload) => {
-          const newData = payload.new as { id: string; transcription_status?: string; transcription?: string; contact_id?: string };
+          const parsed = safeParseEvent(evolutionMessageRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn('evolution_messages UPDATE payload rejeitado', parsed.error);
+            return;
+          }
+          const newData = parsed.data as unknown as { id: string; transcription_status?: string; transcription?: string; contact_id?: string };
           const oldData = payload.old as { transcription_status?: string } | undefined;
 
           // Check if transcription just completed
