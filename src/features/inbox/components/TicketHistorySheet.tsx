@@ -152,7 +152,17 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) throw error;
-      return (data ?? []) as RemoteEvent[];
+      const rows = Array.isArray(data) ? data : [];
+      const valid: RemoteEvent[] = [];
+      for (const row of rows) {
+        const parsed = safeParseEvent(conversationEventRowSchema, row);
+        if (!parsed.ok) {
+          log.warn('conversation_events row rejeitada', parsed.error);
+          continue;
+        }
+        valid.push(row as RemoteEvent);
+      }
+      return valid;
     },
   });
 
