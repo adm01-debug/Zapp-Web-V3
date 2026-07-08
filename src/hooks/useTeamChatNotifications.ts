@@ -4,6 +4,10 @@ import { useAuth } from '@/features/auth';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { getLogger } from '@/lib/logger';
+import {
+  safeParseEvent,
+  teamMessageNotificationRowSchema,
+} from '@/shared/webhookEventSchemas';
 
 const log = getLogger('TeamChatNotifications');
 
