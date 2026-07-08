@@ -93,7 +93,7 @@ export function useHmacSelfTest(instance: string, includeNegative: boolean) {
           ? failed.map((s) => `${s.name}${s.failed_phase ? `@${s.failed_phase}` : ''}: ${s.reason ?? '—'}`).join(' | ')
           : (payload.error ?? payload.message ?? 'Falha no self-test HMAC');
         const { error: insertAlertError } = await supabase.from('warroom_alerts').insert({
-          alert_type: 'error',
+          alert_type: 'critical',
           title: `HMAC self-test falhou (${instance})`,
           message: `${phasePrefix}${detail}${reqSuffix}`.slice(0, 500),
           source,
