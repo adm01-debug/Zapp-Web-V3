@@ -101,27 +101,36 @@ function describeRemote(e: RemoteEvent, nameMap: Record<string, string>): Unifie
 }
 
 function describeAudit(e: any): UnifiedEvent {
+  // Após migração: linhas de `audit_logs` (entity_type='conversation')
+  // guardam o antigo `event_type/status/error_message/attempt_number` dentro
+  // de `details`. Retrocompatível com o shape antigo `conversation_audit_logs`.
+  const details = (e.details ?? {}) as Record<string, any>;
+  const action: string = e.action ?? e.event_type ?? 'audit';
+  const status: string | undefined = details.status ?? e.status;
+  const errorMessage: string | undefined = details.error_message ?? e.error_message;
+  const attemptNumber: number | undefined = details.attempt_number ?? e.attempt_number;
+
   let label = 'Evento de Outbound';
-  let detail = e.status;
-  
-  if (e.event_type === 'send_attempt') {
+  let detail: string | undefined = status;
+
+  if (action === 'send_attempt') {
     label = 'Tentativa de Envio';
-    detail = `Tentativa #${e.attempt_number || 1}`;
-  } else if (e.event_type === 'delivered') {
+    detail = `Tentativa #${attemptNumber || 1}`;
+  } else if (action === 'delivered') {
     label = 'Entregue com Sucesso';
     detail = 'Mensagem recebida pelo WhatsApp';
-  } else if (e.event_type === 'failed') {
+  } else if (action === 'failed') {
     label = 'Falha no Envio';
-    detail = e.error_message || 'Erro desconhecido';
+    detail = errorMessage || 'Erro desconhecido';
   }
 
-  return { 
-    id: e.id, 
-    source: 'audit', 
-    type: e.event_type, 
-    at: e.created_at, 
-    label, 
-    detail 
+  return {
+    id: e.id,
+    source: 'audit',
+    type: action,
+    at: e.created_at,
+    label,
+    detail,
   };
 }
 
@@ -148,9 +157,10 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     enabled: open && !!contactId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('conversation_audit_logs')
-        .select('*')
-        .eq('conversation_id', contactId!)
+        .from('audit_logs')
+        .select('id, action, entity_type, entity_id, details, created_at')
+        .eq('entity_type', 'conversation')
+        .eq('entity_id', contactId!)
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) return [];

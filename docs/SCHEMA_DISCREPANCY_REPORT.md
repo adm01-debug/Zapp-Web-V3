@@ -100,3 +100,19 @@ rg -oIN "\.from\(\s*['\"]([a-z][a-z0-9_]*)['\"]" -r '$1' src/ -t ts -t tsx | sor
 psql -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public'" -tA | sort > /tmp/db.txt
 comm -23 /tmp/used.txt /tmp/db.txt  # tabelas fantasma
 ```
+
+---
+
+## Atualizações — 2026-07-08 (sessão safeParseEvent + audit_logs)
+
+**Concluído nesta sessão:**
+
+- ✅ `safeParseEvent` aplicado em `useZappMessages` (Realtime `evolution_messages` INSERT/UPDATE), `useWarRoomAlerts` (INSERT `warroom_alerts`) e `useSLANotifications` (INSERT/UPDATE `conversation_sla`). Payloads inválidos são descartados com log em vez de propagar.
+- ✅ Novos schemas Zod: `warRoomAlertRowSchema`, `conversationSlaRowSchema`, `evolutionMessageRowSchema`. Cobertos por 9 novos testes (missing/null/UUID inválido).
+- ✅ Regressão SLA: `src/features/sla/hooks/__tests__/useSLANotifications.test.tsx` (4 casos: happy path, missing id, contact_id null, sem breach).
+- ✅ `conversation_audit_logs` → `audit_logs` (entity_type='conversation', entity_id=<conversationId>, details={...}) em `messageSender.ts`, `externalMessageSender.ts` e leitura em `TicketHistorySheet.tsx`. `describeAudit` retrocompatível lê `action || event_type` e `details.*`. Teste de regressão em `TicketHistorySheet.audit-mapping.test.ts` garante que ninguém volte a chamar `.from('conversation_audit_logs')`.
+- ✅ P3 órfão removido: `src/pages/admin/AdminStressTestPage.tsx` + rota `/admin/stress-test` deletados (dependiam de `stress_test_runs`/`stress_test_metrics`, tabelas inexistentes).
+
+**Adiado (não removido nesta sessão):**
+
+- `salespeople` — vive no **DB externo Fator X** (`getExternalSupabase`), não no schema Supabase Lovable Cloud. Ainda em uso ativo via `useExternalCargos` + aba CRM 360 “Vendedores”. Remoção exige plano separado com o time de dados; permanece no relatório apenas como referência.

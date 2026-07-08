@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePushNotifications } from './usePushNotifications';
 import { getLogger } from '@/lib/logger';
+import { warRoomAlertRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
 
 const log = getLogger('useWarRoomAlerts');
 
@@ -69,7 +70,12 @@ export function useWarRoomAlerts(soundEnabled = true) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'warroom_alerts' },
         (payload) => {
-          const alert = payload.new as WarRoomAlert;
+          const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn('warroom_alerts INSERT payload rejeitado', parsed.error);
+            return;
+          }
+          const alert = parsed.data as WarRoomAlert;
           queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
 
           // Play sound

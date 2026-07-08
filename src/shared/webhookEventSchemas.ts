@@ -179,6 +179,51 @@ export const teamMessageRowSchema = z
   })
   .passthrough();
 
+/** Linha de `warroom_alerts`. */
+export const warRoomAlertRowSchema = z
+  .object({
+    id: uuidSchema,
+    alert_type: z.string(),
+    title: z.string(),
+    message: z.string(),
+    source: z.string().nullable(),
+    is_read: z.boolean().nullable(),
+    created_at: z.string().nullable(),
+  })
+  .passthrough();
+
+/** Linha de `conversation_sla` (Realtime). */
+export const conversationSlaRowSchema = z
+  .object({
+    id: uuidSchema,
+    contact_id: uuidSchema.nullable(),
+    first_message_at: z.string(),
+    first_response_at: z.string().nullable(),
+    resolved_at: z.string().nullable(),
+    first_response_breached: z.boolean().nullable(),
+    resolution_breached: z.boolean().nullable(),
+  })
+  .passthrough();
+
+/** Linha de `evolution_messages` (schema externo Fator X). */
+export const evolutionMessageRowSchema = z
+  .object({
+    id: z.string().min(1),
+    message_id: z.string().min(1),
+    remote_jid: z.string().min(1),
+    instance_name: z.string().min(1),
+    from_me: z.boolean(),
+    message_type: z.string(),
+    content: z.string().nullable(),
+    media_url: z.string().nullable(),
+    status: z.string().nullable(),
+    created_at: z.string(),
+    deleted_at: z.string().nullable(),
+    contact_id: z.string().nullable(),
+    conversation_id: z.string().nullable(),
+  })
+  .passthrough();
+
 // ---------- Incoming webhook payloads ----------
 
 /** Evolution API — evento `messages.upsert`. */

@@ -465,3 +465,93 @@ describe('teamMessageRowSchema', () => {
   });
 });
 
+
+// ---------------------- WarRoom / SLA / Evolution rows ----------------------
+
+import {
+  warRoomAlertRowSchema,
+  conversationSlaRowSchema,
+  evolutionMessageRowSchema,
+} from '@/shared/webhookEventSchemas';
+
+const UUID = '11111111-1111-4111-8111-111111111111';
+
+describe('warRoomAlertRowSchema', () => {
+  it('aceita linha completa', () => {
+    const r = warRoomAlertRowSchema.safeParse({
+      id: UUID,
+      alert_type: 'critical',
+      title: 'Down',
+      message: 'x',
+      source: null,
+      is_read: false,
+      created_at: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('tolera source/is_read/created_at nulos (P0)', () => {
+    const r = warRoomAlertRowSchema.safeParse({
+      id: UUID, alert_type: 'info', title: 't', message: 'm',
+      source: null, is_read: null, created_at: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita quando faltam campos obrigatórios (missing)', () => {
+    const r = warRoomAlertRowSchema.safeParse({ id: UUID, alert_type: 'x' });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe('conversationSlaRowSchema', () => {
+  it('aceita linha com contact_id null', () => {
+    const r = conversationSlaRowSchema.safeParse({
+      id: UUID,
+      contact_id: null,
+      first_message_at: new Date().toISOString(),
+      first_response_at: null,
+      resolved_at: null,
+      first_response_breached: null,
+      resolution_breached: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita quando id não é UUID', () => {
+    const r = conversationSlaRowSchema.safeParse({
+      id: 'not-uuid', contact_id: null,
+      first_message_at: '2026-01-01', first_response_at: null,
+      resolved_at: null, first_response_breached: null, resolution_breached: null,
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('safeParseEvent devolve erro estruturado para SLA missing', () => {
+    const result = safeParseEvent(conversationSlaRowSchema, { id: UUID });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.details.length).toBeGreaterThan(0);
+  });
+});
+
+describe('evolutionMessageRowSchema', () => {
+  it('aceita mensagem com media_url/content nulos', () => {
+    const r = evolutionMessageRowSchema.safeParse({
+      id: 'row-1', message_id: 'm-1', remote_jid: '5511@s.whatsapp.net',
+      instance_name: 'inst', from_me: false, message_type: 'text',
+      content: null, media_url: null, status: null,
+      created_at: '2026-01-01T00:00:00Z', deleted_at: null,
+      contact_id: null, conversation_id: null,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita from_me ausente', () => {
+    const r = evolutionMessageRowSchema.safeParse({
+      id: 'x', message_id: 'y', remote_jid: 'z', instance_name: 'i',
+      message_type: 't', content: null, media_url: null, status: null,
+      created_at: 'now', deleted_at: null, contact_id: null, conversation_id: null,
+    });
+    expect(r.success).toBe(false);
+  });
+});
