@@ -109,6 +109,76 @@ export const failedMessageRowSchema = z
   })
   .passthrough();
 
+/** Linha de `notifications`. */
+export const notificationRowSchema = z
+  .object({
+    id: uuidSchema,
+    user_id: uuidSchema,
+    title: z.string(),
+    message: z.string(),
+    type: z.string(),
+    is_read: z.boolean().nullable(),
+    metadata: z.record(z.string(), z.unknown()).nullable(),
+    created_at: z.string(),
+    read_at: z.string().nullable(),
+  })
+  .passthrough();
+
+/** Linha de `conversation_events`. */
+export const conversationEventRowSchema = z
+  .object({
+    id: uuidSchema,
+    contact_id: uuidSchema,
+    event_type: z.string(),
+    from_agent_id: uuidSchema.nullable(),
+    to_agent_id: uuidSchema.nullable(),
+    from_queue_id: uuidSchema.nullable(),
+    to_queue_id: uuidSchema.nullable(),
+    metadata: z.record(z.string(), z.unknown()).nullable(),
+    performed_by: uuidSchema.nullable(),
+    created_at: z.string(),
+  })
+  .passthrough();
+
+/** Linha de `conversation_transfers`. */
+export const conversationTransferRowSchema = z
+  .object({
+    id: uuidSchema,
+    source_conversation_id: uuidSchema,
+    from_agent_id: uuidSchema.nullable(),
+    to_agent_id: uuidSchema.nullable(),
+    from_queue_id: uuidSchema.nullable(),
+    to_queue_id: uuidSchema.nullable(),
+    status: z.string(),
+    transfer_type: z.string(),
+    priority: z.string().nullable(),
+    ticket_number: z.string(),
+    contact_id: uuidSchema.nullable(),
+    remote_jid: z.string().nullable(),
+    contact_name: z.string().nullable(),
+    metadata: z.record(z.string(), z.unknown()).nullable(),
+    created_at: z.string().nullable(),
+  })
+  .passthrough();
+
+/** Linha de `team_messages` (chat interno). */
+export const teamMessageRowSchema = z
+  .object({
+    id: uuidSchema,
+    conversation_id: uuidSchema,
+    sender_id: uuidSchema,
+    content: z.string(),
+    message_type: z.string(),
+    reply_to_id: uuidSchema.nullable(),
+    is_edited: z.boolean().nullable(),
+    media_url: z.string().nullable(),
+    media_type: z.string().nullable(),
+    status: z.enum(['sent', 'delivered', 'read', 'failed']),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .passthrough();
+
 // ---------- Incoming webhook payloads ----------
 
 /** Evolution API — evento `messages.upsert`. */
