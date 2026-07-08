@@ -60,7 +60,19 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
           .limit(50)
       );
       if (error) throw error;
-      return data || [];
+      // Rejeição silenciosa de linhas malformadas (id/contact_id/event_type ausentes,
+      // enums totalmente fora do vocabulário conhecido/aberto). Preserva joins via passthrough.
+      const rows = Array.isArray(data) ? data : [];
+      const valid: TimelineEvent[] = [];
+      for (const row of rows) {
+        const parsed = safeParseEvent(conversationEventRowSchema, row);
+        if (!parsed.ok) {
+          log.warn('conversation_events row rejeitada', parsed.error);
+          continue;
+        }
+        valid.push(row as TimelineEvent);
+      }
+      return valid;
     },
   });
 
