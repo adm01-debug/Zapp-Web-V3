@@ -28,7 +28,7 @@
     "skipLibCheck": true,
     "strict": true,
     "noImplicitReturns": true,
-    "//": "noUncheckedIndexedAccess/noUnusedLocals/noUnusedParameters foram relaxados em 2026-07 para desbloquear merges. O ESLint continua sinalizando imports/variáveis não usadas; o retrofit incremental de noUncheckedIndexedAccess está trilhado em backlog e será reintroduzido por módulo.",
+    "//noUncheckedRelaxed": "Relaxado em 2026-07 para desbloquear merges. ESLint segue sinalizando unused; retrofit incremental de noUncheckedIndexedAccess está no backlog.",
     "noUncheckedIndexedAccess": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
