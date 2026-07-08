@@ -22,6 +22,10 @@ import { CheckCircle2, Clock, Circle, UserCheck, UserMinus, UserPlus, Wand2 } fr
 import { supabase } from '@/integrations/supabase/client';
 import { useTicketStatus } from '@/features/inbox';
 import type { TicketEvent } from '@/lib/inbox/ticketStore';
+import { conversationEventRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('TicketHistorySheet');
 
 interface TicketHistorySheetProps {
   contactId: string | null;
