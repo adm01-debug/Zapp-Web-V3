@@ -338,9 +338,6 @@ import {
   conversationEventRowSchema,
   conversationTransferRowSchema,
   teamMessageRowSchema,
-  realtimeEnvelopeFor,
-  safeParseEvent,
-  ContractErrorCode,
 } from '../webhookEventSchemas';
 
 describe('notificationRowSchema', () => {
