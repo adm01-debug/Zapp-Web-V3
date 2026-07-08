@@ -579,7 +579,7 @@ import {
   teamMessageNotificationRowSchema,
 } from '@/shared/webhookEventSchemas';
 
-const SENTIMENT_UUID = '11111111-1111-1111-1111-111111111111';
+const SENTIMENT_UUID = '11111111-1111-4111-8111-111111111111';
 
 describe('sentimentAlertAuditRowSchema', () => {
   it('aceita payload completo', () => {
