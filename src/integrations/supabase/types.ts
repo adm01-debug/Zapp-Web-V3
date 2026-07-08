@@ -7508,7 +7508,7 @@ export type Database = {
       }
       warroom_alerts: {
         Row: {
-          alert_type: string
+          alert_type: Database["public"]["Enums"]["warroom_alert_type"]
           created_at: string | null
           dismissed_by: string | null
           id: string
@@ -7518,7 +7518,7 @@ export type Database = {
           title: string
         }
         Insert: {
-          alert_type?: string
+          alert_type?: Database["public"]["Enums"]["warroom_alert_type"]
           created_at?: string | null
           dismissed_by?: string | null
           id?: string
@@ -7528,7 +7528,7 @@ export type Database = {
           title: string
         }
         Update: {
-          alert_type?: string
+          alert_type?: Database["public"]["Enums"]["warroom_alert_type"]
           created_at?: string | null
           dismissed_by?: string | null
           id?: string
@@ -9220,6 +9220,7 @@ export type Database = {
         | "google_calendar"
         | "google_drive"
         | "dropbox"
+      warroom_alert_type: "info" | "warning" | "critical" | "sla_breach"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9377,6 +9378,7 @@ export const Constants = {
         "google_drive",
         "dropbox",
       ],
+      warroom_alert_type: ["info", "warning", "critical", "sla_breach"],
     },
   },
 } as const
