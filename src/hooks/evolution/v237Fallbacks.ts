@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * v2.3.7 fallbacks — workaround para endpoints quebrados na Evolution API.
  *

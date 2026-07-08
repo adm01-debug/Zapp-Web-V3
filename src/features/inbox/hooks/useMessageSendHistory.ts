@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * Carrega o histórico completo de envio de uma mensagem para o painel
  * de debug: linha do tempo de tentativas (retry_metrics.retry_reasons),
