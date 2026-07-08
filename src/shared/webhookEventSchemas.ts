@@ -214,6 +214,51 @@ export const conversationSlaRowSchema = z
   })
   .passthrough();
 
+/**
+ * Linha de `audit_logs` filtrada por `action='sentiment_alert'`.
+ * `details` carrega o payload semântico do alerta (contact_id/name/score).
+ */
+export const sentimentAlertDetailsSchema = z
+  .object({
+    type: z.string().optional(),
+    contact_id: z.string().optional(),
+    contact_name: z.string().optional(),
+    contact_phone: z.string().optional(),
+    sentiment_score: z.number().optional(),
+    consecutive_low: z.number().int().nonnegative().optional(),
+    agent_name: z.string().optional(),
+    message: z.string().optional(),
+  })
+  .passthrough();
+
+export const sentimentAlertAuditRowSchema = z
+  .object({
+    id: uuidSchema,
+    action: z.literal('sentiment_alert'),
+    entity_id: uuidSchema.nullable(),
+    entity_type: z.string().nullable(),
+    user_id: uuidSchema.nullable(),
+    details: sentimentAlertDetailsSchema.nullable(),
+    created_at: z.string(),
+  })
+  .passthrough();
+
+/**
+ * Linha de `zapp.team_messages` (Realtime) — subset consumido pelo hook de
+ * notificações de chat interno. `media_type` é opcional/null porque mensagens
+ * puramente textuais não trazem esse campo.
+ */
+export const teamMessageNotificationRowSchema = z
+  .object({
+    id: uuidSchema,
+    conversation_id: uuidSchema,
+    sender_id: uuidSchema,
+    content: z.string(),
+    media_type: z.string().nullable().optional(),
+    created_at: z.string(),
+  })
+  .passthrough();
+
 /** Linha de `evolution_messages` (schema externo Fator X). */
 export const evolutionMessageRowSchema = z
   .object({
