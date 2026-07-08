@@ -584,11 +584,11 @@ const SENTIMENT_UUID = '11111111-1111-1111-1111-111111111111';
 describe('sentimentAlertAuditRowSchema', () => {
   it('aceita payload completo', () => {
     const r = sentimentAlertAuditRowSchema.safeParse({
-      id: UUID,
+      id: SENTIMENT_UUID,
       action: 'sentiment_alert',
-      entity_id: UUID,
+      entity_id: SENTIMENT_UUID,
       entity_type: 'contact',
-      user_id: UUID,
+      user_id: SENTIMENT_UUID,
       details: { contact_id: 'c1', contact_name: 'João', sentiment_score: 10, consecutive_low: 3 },
       created_at: '2026-07-08T12:00:00Z',
     });
@@ -597,7 +597,7 @@ describe('sentimentAlertAuditRowSchema', () => {
 
   it('aceita entity_id/user_id/details=null', () => {
     const r = sentimentAlertAuditRowSchema.safeParse({
-      id: UUID,
+      id: SENTIMENT_UUID,
       action: 'sentiment_alert',
       entity_id: null,
       entity_type: null,
@@ -610,7 +610,7 @@ describe('sentimentAlertAuditRowSchema', () => {
 
   it('rejeita action divergente', () => {
     const r = sentimentAlertAuditRowSchema.safeParse({
-      id: UUID,
+      id: SENTIMENT_UUID,
       action: 'other',
       entity_id: null, entity_type: null, user_id: null, details: null,
       created_at: '2026-07-08T12:00:00Z',
@@ -642,7 +642,7 @@ describe('sentimentAlertAuditRowSchema', () => {
 describe('teamMessageNotificationRowSchema', () => {
   it('aceita mensagem de texto sem media_type', () => {
     const r = teamMessageNotificationRowSchema.safeParse({
-      id: UUID, conversation_id: UUID, sender_id: UUID,
+      id: SENTIMENT_UUID, conversation_id: SENTIMENT_UUID, sender_id: SENTIMENT_UUID,
       content: 'olá', created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(true);
@@ -650,7 +650,7 @@ describe('teamMessageNotificationRowSchema', () => {
 
   it('aceita media_type=null explicitamente', () => {
     const r = teamMessageNotificationRowSchema.safeParse({
-      id: UUID, conversation_id: UUID, sender_id: UUID,
+      id: SENTIMENT_UUID, conversation_id: SENTIMENT_UUID, sender_id: SENTIMENT_UUID,
       content: '', media_type: null, created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(true);
@@ -659,16 +659,16 @@ describe('teamMessageNotificationRowSchema', () => {
   it('aceita media_type conhecido (image/audio/video/document)', () => {
     for (const media_type of ['image', 'audio', 'video', 'document', 'sticker']) {
       const r = teamMessageNotificationRowSchema.safeParse({
-        id: UUID, conversation_id: UUID, sender_id: UUID,
+        id: SENTIMENT_UUID, conversation_id: SENTIMENT_UUID, sender_id: SENTIMENT_UUID,
         content: '', media_type, created_at: '2026-07-08T12:00:00Z',
       });
       expect(r.success).toBe(true);
     }
   });
 
-  it('rejeita conversation_id não-UUID', () => {
+  it('rejeita conversation_id não-SENTIMENT_UUID', () => {
     const r = teamMessageNotificationRowSchema.safeParse({
-      id: UUID, conversation_id: 'not-uuid', sender_id: UUID,
+      id: SENTIMENT_UUID, conversation_id: 'not-uuid', sender_id: SENTIMENT_UUID,
       content: '', created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(false);
@@ -676,7 +676,7 @@ describe('teamMessageNotificationRowSchema', () => {
 
   it('rejeita content ausente (missing)', () => {
     const r = teamMessageNotificationRowSchema.safeParse({
-      id: UUID, conversation_id: UUID, sender_id: UUID,
+      id: SENTIMENT_UUID, conversation_id: SENTIMENT_UUID, sender_id: SENTIMENT_UUID,
       created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(false);
