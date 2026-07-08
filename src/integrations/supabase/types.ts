@@ -571,13 +571,17 @@ export type Database = {
       automations: {
         Row: {
           actions: Json
+          channel_id: string | null
+          cooldown_seconds: number
           created_at: string
           created_by: string | null
+          department_id: string | null
           description: string | null
           id: string
           is_active: boolean
           last_triggered_at: string | null
           name: string
+          priority: number
           trigger_config: Json
           trigger_count: number
           trigger_type: string
@@ -585,13 +589,17 @@ export type Database = {
         }
         Insert: {
           actions?: Json
+          channel_id?: string | null
+          cooldown_seconds?: number
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           last_triggered_at?: string | null
           name: string
+          priority?: number
           trigger_config?: Json
           trigger_count?: number
           trigger_type?: string
@@ -599,13 +607,17 @@ export type Database = {
         }
         Update: {
           actions?: Json
+          channel_id?: string | null
+          cooldown_seconds?: number
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           last_triggered_at?: string | null
           name?: string
+          priority?: number
           trigger_config?: Json
           trigger_count?: number
           trigger_type?: string
@@ -624,6 +636,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -6892,7 +6918,9 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           created_by: string | null
+          department_id: string | null
           id: string
+          metadata: Json
           name: string | null
           type: string
           updated_at: string
@@ -6901,7 +6929,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           id?: string
+          metadata?: Json
           name?: string | null
           type?: string
           updated_at?: string
@@ -6910,7 +6940,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           id?: string
+          metadata?: Json
           name?: string | null
           type?: string
           updated_at?: string
@@ -6928,6 +6960,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -6990,6 +7036,7 @@ export type Database = {
           message_type: string
           reply_to_id: string | null
           sender_id: string
+          status: string
           updated_at: string
         }
         Insert: {
@@ -7003,6 +7050,7 @@ export type Database = {
           message_type?: string
           reply_to_id?: string | null
           sender_id: string
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -7016,6 +7064,7 @@ export type Database = {
           message_type?: string
           reply_to_id?: string | null
           sender_id?: string
+          status?: string
           updated_at?: string
         }
         Relationships: [

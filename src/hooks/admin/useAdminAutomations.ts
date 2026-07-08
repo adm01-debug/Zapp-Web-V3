@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * useAdminAutomations — Wave 3 batch-4 (2026-07-07)
  * Camada de dados extraída de AdminAutomationsPage. Correções fiéis ao contrato
@@ -76,7 +76,7 @@ export function useAdminAutomations() {
       supabase.from('automations')
         .select("*")
         .order("name", { ascending: true }),
-      supabase.from('service_channels').select("id,name").order("name"),
+      supabase.from('channel_connections').select("id,name").order("name"),
       supabase.from('departments').select("id,name").order("name"),
     ]);
     if (!mountedRef.current) return;

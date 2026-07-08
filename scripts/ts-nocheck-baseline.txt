@@ -48,11 +48,9 @@ src/features/inbox/components/useGlobalSearchData.ts
 src/features/inbox/hooks/realtime/avatarBatchStore.ts
 src/features/inbox/hooks/realtime/externalMessageSender.ts
 src/features/inbox/hooks/realtime/messageSender.ts
-src/features/inbox/hooks/team-chat/useTeamChatMutations.ts
 src/features/inbox/hooks/team-chat/useTeamConversations.ts
 src/features/inbox/hooks/team-chat/useTeamMessageReactions.ts
 src/features/inbox/hooks/useAgentRecentSends.ts
-src/features/inbox/hooks/useChatMediaSending.ts
 src/features/inbox/hooks/useIncomingCallBroadcast.ts
 src/features/inbox/hooks/useMediaUrl.ts
 src/features/inbox/hooks/useMessageReactions.ts
@@ -62,7 +60,6 @@ src/features/inbox/hooks/useMessagesCursor.ts
 src/features/sla/hooks/useSLAAlertHistory.ts
 src/features/sla/hooks/useSLAAlertPreferences.ts
 src/hooks/__tests__/useExternalCatalog.test.ts
-src/hooks/admin/useAdminAutomations.ts
 src/hooks/admin/useDepartmentsAdmin.ts
 src/hooks/campaigns/useCampaignABTesting.ts
 src/hooks/evolution/v237Fallbacks.ts

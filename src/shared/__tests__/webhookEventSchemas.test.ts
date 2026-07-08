@@ -330,3 +330,138 @@ describe('realtimeEnvelopeFor(messageRowSchema)', () => {
     expect(r.success).toBe(false);
   });
 });
+
+// ---------- Novos row schemas (2026-07-08) ----------
+
+import {
+  notificationRowSchema,
+  conversationEventRowSchema,
+  conversationTransferRowSchema,
+  teamMessageRowSchema,
+} from '../webhookEventSchemas';
+
+describe('notificationRowSchema', () => {
+  const base = {
+    id: '11111111-1111-4111-8111-111111111111',
+    user_id: '22222222-2222-4222-8222-222222222222',
+    title: 'Nova mensagem',
+    message: 'Cliente aguardando',
+    type: 'inbox',
+    is_read: false,
+    metadata: null,
+    created_at: '2026-07-08T10:00:00Z',
+    read_at: null,
+  };
+
+  it('aceita payload completo', () => {
+    expect(notificationRowSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('aceita is_read null e read_at null', () => {
+    expect(
+      notificationRowSchema.safeParse({ ...base, is_read: null, read_at: null }).success,
+    ).toBe(true);
+  });
+
+  it('rejeita quando campo obrigatório title está ausente', () => {
+    const { title, ...withoutTitle } = base;
+    expect(notificationRowSchema.safeParse(withoutTitle).success).toBe(false);
+  });
+});
+
+describe('conversationEventRowSchema', () => {
+  const base = {
+    id: '11111111-1111-4111-8111-111111111111',
+    contact_id: '22222222-2222-4222-8222-222222222222',
+    event_type: 'transfer',
+    from_agent_id: null,
+    to_agent_id: null,
+    from_queue_id: null,
+    to_queue_id: null,
+    metadata: null,
+    performed_by: null,
+    created_at: '2026-07-08T10:00:00Z',
+  };
+
+  it('aceita todos os campos opcionais como null', () => {
+    expect(conversationEventRowSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('rejeita event_type ausente', () => {
+    const { event_type, ...bad } = base;
+    expect(conversationEventRowSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe('conversationTransferRowSchema', () => {
+  const base = {
+    id: '11111111-1111-4111-8111-111111111111',
+    source_conversation_id: '22222222-2222-4222-8222-222222222222',
+    from_agent_id: null,
+    to_agent_id: null,
+    from_queue_id: null,
+    to_queue_id: null,
+    status: 'pending',
+    transfer_type: 'queue',
+    priority: null,
+    ticket_number: 'T-001',
+    contact_id: null,
+    remote_jid: null,
+    contact_name: null,
+    metadata: null,
+    created_at: null,
+  };
+
+  it('aceita created_at null (coluna nullable no banco)', () => {
+    expect(conversationTransferRowSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('rejeita ticket_number ausente', () => {
+    const { ticket_number, ...bad } = base;
+    expect(conversationTransferRowSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe('teamMessageRowSchema', () => {
+  const base = {
+    id: '11111111-1111-4111-8111-111111111111',
+    conversation_id: '22222222-2222-4222-8222-222222222222',
+    sender_id: '33333333-3333-4333-8333-333333333333',
+    content: 'oi',
+    message_type: 'text',
+    reply_to_id: null,
+    is_edited: null,
+    media_url: null,
+    media_type: null,
+    status: 'sent' as const,
+    created_at: '2026-07-08T10:00:00Z',
+    updated_at: '2026-07-08T10:00:00Z',
+  };
+
+  it('aceita status sent (default)', () => {
+    expect(teamMessageRowSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('rejeita status fora do enum', () => {
+    expect(
+      teamMessageRowSchema.safeParse({ ...base, status: 'processing' }).success,
+    ).toBe(false);
+  });
+
+  it('safeParseEvent envelopa e devolve error estruturado', () => {
+    const envelope = realtimeEnvelopeFor(teamMessageRowSchema);
+    const result = safeParseEvent(envelope, {
+      schema: 'public',
+      table: 'team_messages',
+      eventType: 'INSERT',
+      new: { ...base, status: 'lolwut' },
+      old: null,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe(ContractErrorCode.INVALID_PAYLOAD);
+      expect(result.error.details.length).toBeGreaterThan(0);
+    }
+  });
+});
+
