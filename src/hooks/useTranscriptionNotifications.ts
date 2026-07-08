@@ -5,6 +5,10 @@ import { playNotificationSound, showBrowserNotification, requestNotificationPerm
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
 import { dbTable } from '@/integrations/datasource/db';
+import { evolutionMessageRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useTranscriptionNotifications');
 
 interface TranscriptionNotificationOptions {
   enabled?: boolean;
