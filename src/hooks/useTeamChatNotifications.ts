@@ -97,7 +97,12 @@ export function useTeamChatNotifications(activeConversationId: string | null) {
         schema: 'zapp',
         table: 'team_messages',
       }, async (payload) => {
-        const msg = payload.new as {
+        const parsed = safeParseEvent(teamMessageNotificationRowSchema, payload.new);
+        if (!parsed.ok) {
+          log.warn('team_messages INSERT payload rejeitado', parsed.error);
+          return;
+        }
+        const msg = parsed.data as {
           id: string;
           conversation_id: string;
           sender_id: string;
