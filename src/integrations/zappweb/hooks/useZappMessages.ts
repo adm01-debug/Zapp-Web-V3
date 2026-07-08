@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { zappSupabase, ZAPPWEB_INSTANCE } from '../supabaseClient';
 import type { EvolutionMessage } from '../types';
 import { log } from '@/lib/logger';
+import { evolutionMessageRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
 
 interface Options {
   remoteJid: string | null;
@@ -67,7 +68,12 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
           filter: `instance_name=eq.${instance}`,
         },
         (payload) => {
-          const msg = payload.new as EvolutionMessage;
+          const parsed = safeParseEvent(evolutionMessageRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn('[useZappMessages] INSERT payload rejeitado', parsed.error);
+            return;
+          }
+          const msg = parsed.data as unknown as EvolutionMessage;
           if (msg.remote_jid !== remoteJid) return;
           setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         },
@@ -81,7 +87,12 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
           filter: `instance_name=eq.${instance}`,
         },
         (payload) => {
-          const upd = payload.new as EvolutionMessage;
+          const parsed = safeParseEvent(evolutionMessageRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn('[useZappMessages] UPDATE payload rejeitado', parsed.error);
+            return;
+          }
+          const upd = parsed.data as unknown as EvolutionMessage;
           if (upd.remote_jid !== remoteJid) return;
           setMessages((prev) => prev.map((m) => (m.id === upd.id ? { ...m, ...upd } : m)));
         },
