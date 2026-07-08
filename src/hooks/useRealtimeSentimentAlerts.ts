@@ -5,6 +5,10 @@ import { playNotificationSound } from '@/utils/notificationSound';
 import { showBrowserNotification, requestNotificationPermission } from '@/utils/notificationSound';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { getLogger } from '@/lib/logger';
+import {
+  safeParseEvent,
+  sentimentAlertAuditRowSchema,
+} from '@/shared/webhookEventSchemas';
 
 const log = getLogger('SentimentAlerts');
 
