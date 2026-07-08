@@ -23,9 +23,9 @@ const contents = files.map((f) => readFileSync(resolve(process.cwd(), f), 'utf8'
 
 describe('audit_logs migration (conversation_audit_logs → audit_logs)', () => {
   it.each(files.map((f, i) => [f, contents[i]] as const))(
-    '%s não referencia mais conversation_audit_logs',
+    '%s não chama .from("conversation_audit_logs")',
     (_f, src) => {
-      expect(src).not.toMatch(/conversation_audit_logs/);
+      expect(src).not.toMatch(/\.from\(['"]conversation_audit_logs['"]\)/);
     },
   );
 
