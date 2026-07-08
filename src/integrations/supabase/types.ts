@@ -6918,7 +6918,9 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           created_by: string | null
+          department_id: string | null
           id: string
+          metadata: Json
           name: string | null
           type: string
           updated_at: string
@@ -6927,7 +6929,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           id?: string
+          metadata?: Json
           name?: string | null
           type?: string
           updated_at?: string
@@ -6936,7 +6940,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           id?: string
+          metadata?: Json
           name?: string | null
           type?: string
           updated_at?: string
@@ -6954,6 +6960,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
             referencedColumns: ["id"]
           },
         ]
