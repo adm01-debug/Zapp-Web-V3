@@ -65,33 +65,21 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
     if (instanceName) return instanceName;
 
     try {
-      // FALHA 9 FIX: Try evolution_contacts first, fallback to contacts
       let connectionId: string | null = null;
 
-      const { data: evoContact } = await supabase
-        .from('evolution_contacts')
-        .select('instance_name')
+      const { data: contact } = await supabase
+        .from('contacts')
+        .select('whatsapp_connection_id')
         .eq('id', contactId)
         .maybeSingle();
 
-      if (evoContact?.instance_name) {
-        setInstanceName(evoContact.instance_name);
-        return evoContact.instance_name;
-      } else {
-        // Fallback to contacts table
-        const { data: contact , error: contactErr } = await supabase
-          .from('contacts')
-          .select('whatsapp_connection_id')
-          .eq('id', contactId)
-          .maybeSingle();
-        if (contact?.whatsapp_connection_id) {
-          connectionId = contact.whatsapp_connection_id;
-        }
+      if (contact?.whatsapp_connection_id) {
+        connectionId = contact.whatsapp_connection_id;
       }
 
       if (connectionId) {
         setWhatsappConnectionId(connectionId);
-        const { data: conn , error: connErr } = await supabase
+        const { data: conn } = await supabase
           .from('whatsapp_connections')
           .select('instance_id')
           .eq('id', connectionId)
@@ -102,7 +90,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         }
       }
 
-      const { data: fallbackConn , error: fallbackConnErr } = await supabase
+      const { data: fallbackConn } = await supabase
         .from('whatsapp_connections')
         .select('instance_id')
         .eq('status', 'connected')
