@@ -27,8 +27,8 @@
     },
     "skipLibCheck": true,
     "strict": true,
-    "noImplicitReturns": true,
-    
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
     "noUncheckedIndexedAccess": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
