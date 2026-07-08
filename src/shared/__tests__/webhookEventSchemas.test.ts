@@ -571,3 +571,114 @@ describe('evolutionMessageRowSchema', () => {
     expect(r.success).toBe(false);
   });
 });
+
+// ---------------------- sentimentAlertAuditRowSchema ----------------------
+
+import {
+  sentimentAlertAuditRowSchema,
+  teamMessageNotificationRowSchema,
+} from '@/shared/webhookEventSchemas';
+
+const UUID = '11111111-1111-1111-1111-111111111111';
+
+describe('sentimentAlertAuditRowSchema', () => {
+  it('aceita payload completo', () => {
+    const r = sentimentAlertAuditRowSchema.safeParse({
+      id: UUID,
+      action: 'sentiment_alert',
+      entity_id: UUID,
+      entity_type: 'contact',
+      user_id: UUID,
+      details: { contact_id: 'c1', contact_name: 'João', sentiment_score: 10, consecutive_low: 3 },
+      created_at: '2026-07-08T12:00:00Z',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('aceita entity_id/user_id/details=null', () => {
+    const r = sentimentAlertAuditRowSchema.safeParse({
+      id: UUID,
+      action: 'sentiment_alert',
+      entity_id: null,
+      entity_type: null,
+      user_id: null,
+      details: null,
+      created_at: '2026-07-08T12:00:00Z',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejeita action divergente', () => {
+    const r = sentimentAlertAuditRowSchema.safeParse({
+      id: UUID,
+      action: 'other',
+      entity_id: null, entity_type: null, user_id: null, details: null,
+      created_at: '2026-07-08T12:00:00Z',
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejeita id ausente (missing)', () => {
+    const r = sentimentAlertAuditRowSchema.safeParse({
+      action: 'sentiment_alert',
+      entity_id: null, entity_type: null, user_id: null, details: null,
+      created_at: '2026-07-08T12:00:00Z',
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('safeParseEvent devolve detalhes de erro estruturados', () => {
+    const out = safeParseEvent(sentimentAlertAuditRowSchema, { action: 'sentiment_alert' });
+    expect(out.ok).toBe(false);
+    if (!out.ok) {
+      expect(out.error.code).toBe(ContractErrorCode.INVALID_PAYLOAD);
+      expect(out.error.details.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+// ---------------------- teamMessageNotificationRowSchema ----------------------
+
+describe('teamMessageNotificationRowSchema', () => {
+  it('aceita mensagem de texto sem media_type', () => {
+    const r = teamMessageNotificationRowSchema.safeParse({
+      id: UUID, conversation_id: UUID, sender_id: UUID,
+      content: 'olá', created_at: '2026-07-08T12:00:00Z',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('aceita media_type=null explicitamente', () => {
+    const r = teamMessageNotificationRowSchema.safeParse({
+      id: UUID, conversation_id: UUID, sender_id: UUID,
+      content: '', media_type: null, created_at: '2026-07-08T12:00:00Z',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('aceita media_type conhecido (image/audio/video/document)', () => {
+    for (const media_type of ['image', 'audio', 'video', 'document', 'sticker']) {
+      const r = teamMessageNotificationRowSchema.safeParse({
+        id: UUID, conversation_id: UUID, sender_id: UUID,
+        content: '', media_type, created_at: '2026-07-08T12:00:00Z',
+      });
+      expect(r.success).toBe(true);
+    }
+  });
+
+  it('rejeita conversation_id não-UUID', () => {
+    const r = teamMessageNotificationRowSchema.safeParse({
+      id: UUID, conversation_id: 'not-uuid', sender_id: UUID,
+      content: '', created_at: '2026-07-08T12:00:00Z',
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejeita content ausente (missing)', () => {
+    const r = teamMessageNotificationRowSchema.safeParse({
+      id: UUID, conversation_id: UUID, sender_id: UUID,
+      created_at: '2026-07-08T12:00:00Z',
+    });
+    expect(r.success).toBe(false);
+  });
+});
