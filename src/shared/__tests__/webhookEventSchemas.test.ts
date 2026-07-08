@@ -420,6 +420,85 @@ describe('conversationTransferRowSchema', () => {
     const { ticket_number, ...bad } = base;
     expect(conversationTransferRowSchema.safeParse(bad).success).toBe(false);
   });
+
+  it('rejeita status fora do enum (ex. "processing")', () => {
+    expect(
+      conversationTransferRowSchema.safeParse({ ...base, status: 'processing' }).success,
+    ).toBe(false);
+  });
+
+  it('rejeita transfer_type fora do enum (ex. "broadcast")', () => {
+    expect(
+      conversationTransferRowSchema.safeParse({ ...base, transfer_type: 'broadcast' }).success,
+    ).toBe(false);
+  });
+
+  it('rejeita priority como string (DB é integer)', () => {
+    expect(
+      conversationTransferRowSchema.safeParse({ ...base, priority: 'high' }).success,
+    ).toBe(false);
+  });
+
+  it('aceita priority integer', () => {
+    expect(
+      conversationTransferRowSchema.safeParse({ ...base, priority: 3 }).success,
+    ).toBe(true);
+  });
+
+  it('rejeita source_conversation_id ausente (missing)', () => {
+    const { source_conversation_id, ...bad } = base;
+    expect(conversationTransferRowSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('rejeita source_conversation_id null (não-nullable no banco)', () => {
+    expect(
+      conversationTransferRowSchema.safeParse({ ...base, source_conversation_id: null }).success,
+    ).toBe(false);
+  });
+});
+
+describe('conversationEventRowSchema — tightening', () => {
+  const base = {
+    id: '11111111-1111-4111-8111-111111111111',
+    contact_id: '22222222-2222-4222-8222-222222222222',
+    event_type: 'transfer',
+    from_agent_id: null,
+    to_agent_id: null,
+    from_queue_id: null,
+    to_queue_id: null,
+    metadata: null,
+    performed_by: null,
+    created_at: '2026-07-08T10:00:00Z',
+  };
+
+  it('aceita event_type conhecido do vocabulário (sla_alert)', () => {
+    expect(
+      conversationEventRowSchema.safeParse({ ...base, event_type: 'sla_alert' }).success,
+    ).toBe(true);
+  });
+
+  it('aceita event_type customizado (fallback string) para tolerar rollout', () => {
+    expect(
+      conversationEventRowSchema.safeParse({ ...base, event_type: 'custom_event' }).success,
+    ).toBe(true);
+  });
+
+  it('rejeita event_type vazio (string vazia)', () => {
+    expect(
+      conversationEventRowSchema.safeParse({ ...base, event_type: '' }).success,
+    ).toBe(false);
+  });
+
+  it('rejeita contact_id null (não-nullable no banco)', () => {
+    expect(
+      conversationEventRowSchema.safeParse({ ...base, contact_id: null }).success,
+    ).toBe(false);
+  });
+
+  it('rejeita id ausente (missing)', () => {
+    const { id, ...bad } = base;
+    expect(conversationEventRowSchema.safeParse(bad).success).toBe(false);
+  });
 });
 
 describe('teamMessageRowSchema', () => {
