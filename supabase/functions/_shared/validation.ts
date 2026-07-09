@@ -338,6 +338,7 @@ export function contractErrorResponse(
     code,
     message,
     requestId,
+    fields: issues.map(i => i.path?.join('.') || 'root'),
     details: issues.map(i => ({
       path: i.path?.join('.') || 'root',
       message: i.message
