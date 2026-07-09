@@ -168,6 +168,29 @@ export const WebhookContractSchemas = {
 
 export type ContractVersionMap = Record<string, z.ZodTypeAny>;
 
+export interface ContractLifecycle {
+  current: string;
+  supported: string[];
+  deprecated?: Record<string, { sunset: string; replacement: string }>;
+}
+
+export const ContractLifecycles: Record<string, ContractLifecycle> = {
+  'evolution-webhook': {
+    current: 'v2',
+    supported: ['v1', 'v2'],
+    deprecated: {
+      v1: { sunset: '2027-01-01', replacement: 'v2' },
+    },
+  },
+  'whatsapp-cloud-webhook': {
+    current: 'v2',
+    supported: ['v1', 'v2'],
+    deprecated: {
+      v1: { sunset: '2027-01-01', replacement: 'v2' },
+    },
+  },
+};
+
 const specificEdgeFunctionSchemas: Partial<
   Record<(typeof EDGE_FUNCTION_NAMES)[number], ContractVersionMap>
 > = {
@@ -221,6 +244,16 @@ export const EdgeFunctionContractSchemas: Record<string, ContractVersionMap> = O
 
 export function getContractSchema(name: string, version = 'v1'): z.ZodTypeAny | undefined {
   return EdgeFunctionContractSchemas[name]?.[version];
+}
+
+export function getContractLifecycle(name: string): ContractLifecycle {
+  const versions = Object.keys(EdgeFunctionContractSchemas[name] ?? {});
+  return (
+    ContractLifecycles[name] ?? {
+      current: versions.includes('v1') ? 'v1' : (versions[0] ?? 'v1'),
+      supported: versions,
+    }
+  );
 }
 
 export function validateContractPayload(name: string, version: string, payload: unknown) {
