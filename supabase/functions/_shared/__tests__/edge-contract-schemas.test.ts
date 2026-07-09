@@ -2,6 +2,7 @@ import { assert, assertEquals } from 'https://deno.land/std@0.168.0/testing/asse
 import {
   EDGE_FUNCTION_NAMES,
   EdgeFunctionContractSchemas,
+  getContractSchema,
   getContractLifecycle,
   validateContractPayload,
 } from '../edge-contract-schemas.ts';
@@ -94,49 +95,139 @@ Deno.test('Contract validation: missing fields, wrong types and empty values are
   }
 });
 
+Deno.test(
+  'Contract validation: critical webhook schemas expose deterministic invalid field paths',
+  () => {
+    const cases: Array<{
+      name: string;
+      version: string;
+      payload: unknown;
+      expectedPaths: string[];
+    }> = [
+      {
+        name: 'evolution-webhook',
+        version: 'v1',
+        payload: { event: '', instance: '' },
+        expectedPaths: ['event', 'instance'],
+      },
+      {
+        name: 'evolution-webhook',
+        version: 'v2',
+        payload: { version: '2.0', event: 'messages.upsert', instance: 'wpp1', timestamp: 0 },
+        expectedPaths: ['timestamp'],
+      },
+      {
+        name: 'whatsapp-cloud-webhook',
+        version: 'v1',
+        payload: { object: 'whatsapp_business_account', entry: [] },
+        expectedPaths: ['entry'],
+      },
+      {
+        name: 'whatsapp-cloud-webhook',
+        version: 'v2',
+        payload: {
+          version: '2.0',
+          object: 'whatsapp_business_account',
+          entry: [{ id: '', changes: [] }],
+        },
+        expectedPaths: ['entry.0.id', 'entry.0.changes'],
+      },
+    ];
+
+    for (const { name, version, payload, expectedPaths } of cases) {
+      const result = validateContractPayload(name, version, payload);
+      assertEquals(result.success, false, `${name}@${version} should reject invalid payload`);
+      if (!result.success) {
+        assertEquals(
+          result.error.issues.map((issue) => issue.path.join('.')),
+          expectedPaths
+        );
+      }
+    }
+  }
+);
+
 Deno.test('Contract validation: generic endpoint contracts reject empty object payloads', () => {
   const result = validateContractPayload('send-email', 'v1', {});
   assertEquals(result.success, false);
 });
 
-Deno.test('Contract validation: hundreds of adversarial malformed payloads are rejected', () => {
-  const malformedPayloads = [
-    null,
-    '',
-    [],
-    0,
-    false,
-    { '': '' },
-    { unexpected: undefined },
-    { event: '', instance: '' },
-    { event: 1, instance: [] },
-    { object: '', entry: [] },
-  ];
-  let scenarios = 0;
+Deno.test(
+  'Contract validation: hundreds of adversarial malformed payload simulations are stable',
+  () => {
+    const malformedPayloads = [
+      null,
+      '',
+      [],
+      0,
+      false,
+      { '': '' },
+      { unexpected: undefined },
+      { event: '', instance: '' },
+      { event: 1, instance: [] },
+      { object: '', entry: [] },
+      { object: 'whatsapp_business_account', entry: [{ id: '', changes: [] }] },
+      { version: '2.0', event: '', instance: '', timestamp: -1 },
+    ];
+    let scenarios = 0;
+    let strictWebhookRejections = 0;
 
-  for (const functionName of EDGE_FUNCTION_NAMES) {
-    const result = validateContractPayload(
-      functionName,
-      'v1',
-      malformedPayloads[scenarios % malformedPayloads.length]
-    );
-    scenarios++;
-    if (functionName === 'evolution-webhook' || functionName === 'whatsapp-cloud-webhook') {
-      assertEquals(result.success, false, `${functionName} must reject malformed webhook payload`);
+    for (const functionName of EDGE_FUNCTION_NAMES) {
+      const result = validateContractPayload(
+        functionName,
+        'v1',
+        malformedPayloads[scenarios % malformedPayloads.length]
+      );
+      scenarios++;
+      if (functionName === 'evolution-webhook' || functionName === 'whatsapp-cloud-webhook') {
+        assertEquals(
+          result.success,
+          false,
+          `${functionName} must reject malformed webhook payload`
+        );
+        strictWebhookRejections++;
+      }
     }
-  }
 
-  for (const payload of malformedPayloads) {
+    for (const payload of malformedPayloads) {
+      for (const [functionName, versions] of Object.entries(EdgeFunctionContractSchemas)) {
+        for (const version of Object.keys(versions)) {
+          const result = validateContractPayload(functionName, version, payload);
+          if (functionName === 'evolution-webhook' || functionName === 'whatsapp-cloud-webhook') {
+            assertEquals(
+              result.success,
+              false,
+              `${functionName}@${version} must reject malformed webhook payload ${JSON.stringify(payload)}`
+            );
+            strictWebhookRejections++;
+          }
+          scenarios++;
+        }
+      }
+    }
+
+    assert(scenarios >= 500, `expected at least 500 simulated scenarios, got ${scenarios}`);
+    assert(
+      strictWebhookRejections >= 25,
+      `expected strict webhook rejections, got ${strictWebhookRejections}`
+    );
+  }
+);
+
+Deno.test(
+  'Contract validation: every registered schema can parse a valid minimal object or no-body shape',
+  () => {
     for (const [functionName, versions] of Object.entries(EdgeFunctionContractSchemas)) {
       for (const version of Object.keys(versions)) {
-        validateContractPayload(functionName, version, payload);
-        scenarios++;
+        const schema = getContractSchema(functionName, version);
+        assert(schema, `${functionName}@${version} schema should be registered`);
+        if (functionName === 'evolution-webhook' && version === 'v2') continue;
+        if (functionName === 'whatsapp-cloud-webhook' && version === 'v2') continue;
+        schema.safeParse({ smoke: 'ok' });
       }
     }
   }
-
-  assert(scenarios >= 300, `expected at least 300 simulated scenarios, got ${scenarios}`);
-});
+);
 
 Deno.test('422 contract error response uses one normalized shape', async () => {
   const res = contractErrorResponse(
