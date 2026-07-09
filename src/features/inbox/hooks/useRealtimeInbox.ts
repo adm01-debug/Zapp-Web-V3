@@ -304,6 +304,12 @@ export function useRealtimeInbox() {
     loadingOlderMessages,
     hasMoreMessages,
     whisperCount,
+    // FIX Bug#2-residual: exponha o flag para que RealtimeInboxView possa
+    // decidir se chama markAsRead no pendingContactId effect.
+    // Em external mode, markAsRead é de localRealtime (state tree diferente do
+    // externalData que é exibido), logo é no-op visual e gera 15×23 partition
+    // scans desnecessários. handleSelectConversation já cuida via Evolution API.
+    useExternalDb: USE_EXTERNAL_DB,
     batcherStatus: USE_EXTERNAL_DB ? null : localRealtime.batcherStatus,
     deliveryAlert,
     messageQueue,
