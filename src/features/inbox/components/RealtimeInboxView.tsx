@@ -18,6 +18,7 @@ import { useSLAAlerts } from '@/features/sla/hooks/useSLAAlerts';
 import { useDepartmentAgents } from '@/features/auth';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
 import { useAriaAnnouncer } from '@/hooks/useAriaAnnouncer';
+import { isValidUUID } from '@/utils/uuid';
 import { WifiOff, RefreshCw, Loader2, MessageSquarePlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -229,7 +230,16 @@ export function RealtimeInboxView() {
     inboxFilters.setSubTab('attending');
     inbox.setSelectedContactId(inbox.pendingContactId);
     inbox.setSelectedContact(inbox.pendingContactId);
-    inbox.markAsRead(inbox.pendingContactId);
+    // FIX Bug#2: Only call markAsRead for valid UUIDs. In external-DB mode the
+    // pendingContactId can be a WhatsApp JID (e.g. "5564984450900@s.whatsapp.net")
+    // coming from the ?contact= URL param set by openContactInChat.
+    // Calling markAsRead with a JID causes a PostgREST 400 and floods the console
+    // with 15 WARNs per click (one per tryDispatch retry).
+    // The Evolution API read receipt is already handled by handleSelectConversation
+    // via supabase.functions.invoke('evolution-api', { action: 'read-messages' }).
+    if (isValidUUID(inbox.pendingContactId)) {
+      inbox.markAsRead(inbox.pendingContactId);
+    }
     inbox.setPendingContactId(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inbox.pendingContactId, inbox.loading]);
