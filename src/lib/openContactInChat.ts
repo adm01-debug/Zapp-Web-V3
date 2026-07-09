@@ -13,6 +13,12 @@
  * chamada mais nova substitui a anterior, evitando acúmulo de múltiplos loops
  * de 15 tentativas simultâneos quando o usuário navega rapidamente entre
  * contatos.
+ *
+ * CORREÇÃO BUG #3: `remoteJid` é normalizado para sempre incluir o sufixo
+ * `@s.whatsapp.net` quando fornecido como número puro (ex: "5564984450900").
+ * Sem isso, o `handshakeId` ficava como bare phone, passava pelo guard
+ * `!pending.includes('@')` em useInboxDeepLinks como se fosse UUID, e chegava
+ * em markAsRead 15× via loop tryDispatch, gerando 15 WARNs por clique.
  */
 import { supabase } from '@/integrations/supabase/client';
 
@@ -73,7 +79,14 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
   if (!contactId) return false;
 
   const phone = opts.phone ?? jidToPhone(opts.remoteJid) ?? null;
-  const remoteJid = opts.remoteJid ?? (phone ? `${phone}@s.whatsapp.net` : undefined);
+
+  // FIX Bug#3: Normalize remoteJid — opts.remoteJid may arrive as a bare phone
+  // number (e.g. "5564984450900") without the "@s.whatsapp.net" suffix.
+  // Bare numbers bypass useInboxDeepLinks' `!pending.includes('@')` guard and
+  // are mistakenly treated as UUIDs, causing markAsRead to warn 15× per click.
+  const remoteJid = opts.remoteJid
+    ? (opts.remoteJid.includes('@') ? opts.remoteJid : `${opts.remoteJid}@s.whatsapp.net`)
+    : (phone ? `${phone}@s.whatsapp.net` : undefined);
 
   // handshakeId para os globals legacy — Inbox em modo externo procura o JID
   const handshakeId = remoteJid ?? contactId;
