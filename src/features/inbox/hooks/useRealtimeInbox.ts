@@ -18,7 +18,9 @@ import { useInboxSource } from './useInboxSource';
 const log = getLogger('useRealtimeInbox');
 
 // Feature flag: use external evolution DB (FATOR X) as data source.
-const USE_EXTERNAL_DB = true;
+// FIX: tipo explícito 'boolean' (não literal 'true') para preservar a branch
+// !USE_EXTERNAL_DB no compilador TypeScript quando o modo local for reativado.
+const USE_EXTERNAL_DB: boolean = true;
 
 export function useRealtimeInbox() {
   const { profile } = useAuth();
@@ -197,7 +199,7 @@ export function useRealtimeInbox() {
               caption: i === 0 ? content : undefined,
               onProgress: (p) => {
                 const total = ((i / attachments.length) * 100) + (p / attachments.length);
-                messageQueue.updateProgress(item.id, total);
+                messageQueue.updateProgress(item.id, p / attachments.length + (i / attachments.length) * 100);
               }
             });
             if (optimistic.external_id) item.externalId = optimistic.external_id;
@@ -304,12 +306,9 @@ export function useRealtimeInbox() {
     loadingOlderMessages,
     hasMoreMessages,
     whisperCount,
-    // FIX Bug#2-residual: exponha o flag para que RealtimeInboxView possa
-    // decidir se chama markAsRead no pendingContactId effect.
-    // Em external mode, markAsRead é de localRealtime (state tree diferente do
-    // externalData que é exibido), logo é no-op visual e gera 15×23 partition
-    // scans desnecessários. handleSelectConversation já cuida via Evolution API.
-    useExternalDb: USE_EXTERNAL_DB,
+    // FIX Bug#2-residual + TypeScript: useExternalDb é boolean (não literal 'true').
+    // Permite que !inbox.useExternalDb funcione corretamente em local mode futuro.
+    useExternalDb: USE_EXTERNAL_DB as boolean,
     batcherStatus: USE_EXTERNAL_DB ? null : localRealtime.batcherStatus,
     deliveryAlert,
     messageQueue,
