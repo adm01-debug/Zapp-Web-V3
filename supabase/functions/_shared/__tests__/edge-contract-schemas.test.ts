@@ -4,6 +4,7 @@ import {
   EdgeFunctionContractSchemas,
   getContractSchema,
   getContractLifecycle,
+  parseContractRequest,
   validateContractPayload,
 } from '../contract-schemas.ts'; // UNIFIED: importa de contract-schemas que re-exporta edge-contract-schemas
 import { contractErrorResponse } from '../validation.ts';
@@ -254,3 +255,87 @@ Deno.test('422 contract error response uses one normalized shape', async () => {
     ],
   });
 });
+
+Deno.test('Runtime contract gate: valid v1/v2 webhook requests parse consistently', async () => {
+  const v1 = await parseContractRequest(
+    new Request('https://edge.test/evolution-webhook', {
+      method: 'POST',
+      body: JSON.stringify({ event: 'messages.upsert', instance: 'wpp1', data: { id: 'msg-1' } }),
+    }),
+    'evolution-webhook',
+    { requestId: 'runtime-v1' }
+  );
+  assertEquals(v1.success, true);
+  if (v1.success) {
+    assertEquals(v1.version, 'v1');
+    assertEquals(v1.lifecycle.current, 'v2');
+  }
+
+  const v2 = await parseContractRequest(
+    new Request('https://edge.test/evolution-webhook', {
+      method: 'POST',
+      body: JSON.stringify({
+        version: '2.0',
+        event: 'messages.upsert',
+        instance: 'wpp1',
+        timestamp: 1,
+        data: { id: 'msg-1' },
+      }),
+    }),
+    'evolution-webhook',
+    { requestId: 'runtime-v2' }
+  );
+  assertEquals(v2.success, true);
+  if (v2.success) {
+    assertEquals(v2.version, 'v2');
+    assertEquals(v2.lifecycle.deprecated?.v1?.replacement, 'v2');
+  }
+});
+
+Deno.test(
+  'Runtime contract gate: invalid JSON and schema failures return normalized 422 responses',
+  async () => {
+    const invalidJson = await parseContractRequest(
+      new Request('https://edge.test/evolution-webhook', {
+        method: 'POST',
+        body: '{',
+      }),
+      'evolution-webhook',
+      { requestId: 'bad-json' }
+    );
+    assertEquals(invalidJson.success, false);
+    if (!invalidJson.success) {
+      assertEquals(invalidJson.response.status, 422);
+      assertEquals(await invalidJson.response.json(), {
+        error: true,
+        code: 'invalid_json',
+        message: 'Invalid JSON body for evolution-webhook@v2',
+        requestId: 'bad-json',
+        fields: ['body'],
+        details: [{ path: 'body', message: 'Request body must be valid JSON' }],
+      });
+    }
+
+    const invalidSchema = await parseContractRequest(
+      new Request('https://edge.test/evolution-webhook', {
+        method: 'POST',
+        body: JSON.stringify({ event: '', instance: '' }),
+      }),
+      'evolution-webhook',
+      { requestId: 'bad-schema' }
+    );
+    assertEquals(invalidSchema.success, false);
+    if (!invalidSchema.success) {
+      assertEquals(invalidSchema.response.status, 422);
+      const body = await invalidSchema.response.json();
+      assertEquals(body.code, 'contract_violation');
+      assertEquals(body.message, 'Payload validation failed for evolution-webhook@v1');
+      assertEquals(body.requestId, 'bad-schema');
+      assertEquals(body.fields, ['event', 'instance']);
+      assertEquals(
+        body.details.map((detail: { path: string }) => detail.path),
+        ['event', 'instance']
+      );
+    }
+  }
+);

@@ -4,6 +4,7 @@ import {
   EvolutionWebhookV2Schema,
   MetaWebhookPayloadSchema,
 } from './webhook-schemas.ts';
+import { contractErrorResponse } from './validation.ts';
 
 export { z };
 
@@ -267,4 +268,82 @@ export function validateContractPayload(name: string, version: string, payload: 
     };
   }
   return schema.safeParse(payload);
+}
+
+export interface ContractParseOptions {
+  version?: string;
+  requestId?: string;
+}
+
+export type ContractParseResult<T = unknown> =
+  | { success: true; data: T; version: string; lifecycle: ContractLifecycle }
+  | { success: false; response: Response; version: string; lifecycle: ContractLifecycle };
+
+function inferContractVersion(name: string, payload: unknown, explicitVersion?: string): string {
+  if (explicitVersion) return explicitVersion;
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    !Array.isArray(payload) &&
+    'version' in payload &&
+    (payload as { version?: unknown }).version === '2.0' &&
+    getContractSchema(name, 'v2')
+  ) {
+    return 'v2';
+  }
+  return getContractSchema(name, 'v1') ? 'v1' : getContractLifecycle(name).current;
+}
+
+/**
+ * Runtime contract gate for Edge Functions.
+ *
+ * Handlers should call this once at the HTTP boundary and return
+ * `result.response` whenever `success === false`. All schema failures use the
+ * same 422 payload shape: `{ error, code, message, requestId, fields, details }`.
+ */
+export async function parseContractRequest<T = unknown>(
+  req: Request,
+  contractName: string,
+  options: ContractParseOptions = {}
+): Promise<ContractParseResult<T>> {
+  let payload: unknown;
+  const lifecycle = getContractLifecycle(contractName);
+
+  try {
+    payload = await req.json();
+  } catch {
+    const version = options.version ?? lifecycle.current;
+    return {
+      success: false,
+      version,
+      lifecycle,
+      response: contractErrorResponse(
+        'invalid_json',
+        `Invalid JSON body for ${contractName}@${version}`,
+        [{ path: ['body'], message: 'Request body must be valid JSON' }],
+        options.requestId,
+        req
+      ),
+    };
+  }
+
+  const version = inferContractVersion(contractName, payload, options.version);
+  const result = validateContractPayload(contractName, version, payload);
+
+  if (!result.success) {
+    return {
+      success: false,
+      version,
+      lifecycle,
+      response: contractErrorResponse(
+        'contract_violation',
+        `Payload validation failed for ${contractName}@${version}`,
+        result.error.issues,
+        options.requestId,
+        req
+      ),
+    };
+  }
+
+  return { success: true, data: result.data as T, version, lifecycle };
 }

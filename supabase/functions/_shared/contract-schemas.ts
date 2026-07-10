@@ -185,7 +185,12 @@ export {
   getContractSchema,
   getContractLifecycle,
   validateContractPayload,
+  parseContractRequest,
   EDGE_FUNCTION_NAMES,
   WebhookContractSchemas,
   ContractLifecycles,
+} from './edge-contract-schemas.ts';
+export type {
+  ContractParseOptions,
+  ContractParseResult,
 } from './edge-contract-schemas.ts';
