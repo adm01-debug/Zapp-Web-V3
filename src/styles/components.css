@@ -163,13 +163,22 @@
     backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
   }
 
-  /* Garante que superfícies translúcidas tradicionais virem opacas e vívidas */
+  /* Garante que superfícies translúcidas tradicionais virem opacas e vívidas.
+   * IMPORTANTE: escopado a `.dark` — em light mode forçar #000 quebra contraste
+   * das labels/textos do form de auth (foreground escuro sobre fundo preto). */
+  .dark .bg-background\/80, .dark .bg-background\/90, .dark .bg-background\/95, .dark .bg-background\/60, .dark .bg-background\/50, .dark .bg-background\/70,
+  .dark .bg-card\/80, .dark .bg-card\/90, .dark .bg-card\/95, .dark .bg-card\/60, .dark .bg-card\/50, .dark .bg-card\/70,
+  .dark .bg-popover\/80, .dark .bg-popover\/90, .dark .bg-popover\/95,
+  .dark .bg-muted\/10, .dark .bg-muted\/20, .dark .bg-muted\/30, .dark .bg-muted\/40, .dark .bg-muted\/50, .dark .bg-muted\/60, .dark .bg-muted\/70, .dark .bg-muted\/80, .dark .bg-muted\/90 {
+    background-color: #000000 !important;
+    opacity: 1 !important;
+  }
+
+  /* Em light mode, apenas remove transparência (mantém a cor do token). */
   .bg-background\/80, .bg-background\/90, .bg-background\/95, .bg-background\/60, .bg-background\/50, .bg-background\/70,
   .bg-card\/80, .bg-card\/90, .bg-card\/95, .bg-card\/60, .bg-card\/50, .bg-card\/70,
-  .bg-popover\/80, .bg-popover\/90, .bg-popover\/95,
-  .bg-muted\/10, .bg-muted\/20, .bg-muted\/30, .bg-muted\/40, .bg-muted\/50, .bg-muted\/60, .bg-muted\/70, .bg-muted\/80, .bg-muted\/90 { 
-    background-color: #000000 !important; 
-    opacity: 1 !important; 
+  .bg-popover\/80, .bg-popover\/90, .bg-popover\/95 {
+    opacity: 1 !important;
   }
 
   /* Garante que o fundo da aplicação seja sempre PRETO OLED em Dark Mode */
