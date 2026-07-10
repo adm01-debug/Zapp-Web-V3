@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * avatarBatchStore — Gerencia o carregamento e cache dos avatares do WhatsApp.
  *

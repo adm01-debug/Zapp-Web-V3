@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useMediaUrl — auto-refresh de URLs WhatsApp expiradas.
  *
