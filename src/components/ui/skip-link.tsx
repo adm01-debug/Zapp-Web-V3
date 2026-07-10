@@ -56,9 +56,20 @@ export const SkipLink = forwardRef<HTMLAnchorElement, SkipLinkProps>(function Sk
   );
 });
 
-// Enhanced skip links container with multiple navigation options
+// Enhanced skip links container with multiple navigation options.
+// Renders ONLY the skip links whose targets exist on the current page so axe
+// `skip-link` (all skip links must have a focusable target) never fires on
+// routes like /auth where the shell IDs aren't mounted.
+const SKIP_TARGETS = [
+  { href: '#main-content', label: 'Pular para conteúdo principal', Icon: LayoutDashboard },
+  { href: '#main-navigation', label: 'Pular para navegação', Icon: Navigation },
+  { href: '#inbox-section', label: 'Pular para conversas', Icon: MessageSquare },
+  { href: '#search-input', label: 'Pular para busca', Icon: Search },
+] as const;
+
 export function SkipLinks() {
   const [showIndicator, setShowIndicator] = useState(false);
+  const [availableHrefs, setAvailableHrefs] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -71,6 +82,27 @@ export function SkipLinks() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Poll targets on route/DOM change — cheap query, only during idle mount.
+  useEffect(() => {
+    const compute = () => {
+      const next = new Set<string>();
+      for (const { href } of SKIP_TARGETS) {
+        if (document.querySelector(href)) next.add(href);
+      }
+      setAvailableHrefs(prev => {
+        if (prev.size === next.size && [...prev].every(h => next.has(h))) return prev;
+        return next;
+      });
+    };
+    compute();
+    const observer = new MutationObserver(() => compute());
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  const visible = SKIP_TARGETS.filter(t => availableHrefs.has(t.href));
+  if (visible.length === 0) return null;
 
   return (
     <nav className="skip-links-container" aria-label="Links de navegação rápida">
@@ -89,21 +121,11 @@ export function SkipLinks() {
         )}
       </AnimatePresence>
 
-      <SkipLink href="#main-content" icon={<LayoutDashboard className="h-4 w-4" />}>
-        Pular para conteúdo principal
-      </SkipLink>
-
-      <SkipLink href="#main-navigation" icon={<Navigation className="h-4 w-4" />}>
-        Pular para navegação
-      </SkipLink>
-
-      <SkipLink href="#inbox-section" icon={<MessageSquare className="h-4 w-4" />}>
-        Pular para conversas
-      </SkipLink>
-
-      <SkipLink href="#search-input" icon={<Search className="h-4 w-4" />}>
-        Pular para busca
-      </SkipLink>
+      {visible.map(({ href, label, Icon }) => (
+        <SkipLink key={href} href={href} icon={<Icon className="h-4 w-4" />}>
+          {label}
+        </SkipLink>
+      ))}
     </nav>
   );
 }

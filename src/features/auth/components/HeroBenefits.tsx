@@ -74,7 +74,7 @@ export function HeroBenefits() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 + index * 0.1 }}
             whileHover={{ scale: 1.02, x: 5 }}
-            className="flex flex-col lg:flex-row items-center lg:items-start gap-1.5 lg:gap-3 p-2 lg:p-3 rounded-lg bg-card/50 border border-border/30 hover:border-primary/30 transition-all cursor-default text-center lg:text-left"
+            className="flex flex-col lg:flex-row items-center lg:items-start gap-1.5 lg:gap-3 p-2 lg:p-3 rounded-lg bg-card border border-border/30 hover:border-primary/30 transition-all cursor-default text-center lg:text-left"
           >
             <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <benefit.icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary" />
