@@ -17,7 +17,8 @@ interface RpcArgs {
 
 function fromCloudText(): RpcArgs {
   const payload = {
-    entry: [{ changes: [{ value: {
+    object: "whatsapp_business_account",
+    entry: [{ id: "ENTRY_1", changes: [{ field: "messages", value: {
       metadata: { phone_number_id: "PN" },
       messages: [{ id: "wamid.X1", from: "5511999999999", timestamp: "1", type: "text", text: { body: "olá" } }],
     } }] }],
@@ -67,7 +68,8 @@ Deno.test("parity: Evolution and Cloud produce identical RPC shape (excluding me
 
 Deno.test("parity: phone with formatting normalizes to bare-digits JID in Cloud", () => {
   const payload = {
-    entry: [{ changes: [{ value: {
+    object: "whatsapp_business_account",
+    entry: [{ id: "ENTRY_1", changes: [{ field: "messages", value: {
       metadata: { phone_number_id: "PN" },
       messages: [{ id: "w", from: "5511999999999", timestamp: "1", type: "text", text: { body: "x" } }],
     } }] }],

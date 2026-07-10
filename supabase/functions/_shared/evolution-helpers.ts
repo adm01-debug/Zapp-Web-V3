@@ -336,3 +336,52 @@ export async function handleReactionEvent(supabase: any, instance: string, react
     }
   }
 }
+
+// ─── [RESTORE 2026-07-10] Exports perdidos em merge — dependidos por
+// evolution-webhook/index.ts e evolution-webhook-handlers.ts ─────────────────
+
+/**
+ * Filtro PostgREST nome-OU-uuid para whatsapp_connections.
+ * (Mesma implementação validada em connection-health-check/index.ts.)
+ */
+export function instanceOrFilter(instance: string): string {
+  const safe = String(instance).replace(/[",()\\]/g, '');
+  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
+}
+
+export interface DeadLetterInput {
+  event_type: string;
+  instance?: string | null;
+  payload?: unknown;
+  error_message: string;
+  error_stack?: string | null;
+  request_id?: string | null;
+}
+
+/**
+ * Roteia um evento com falha de handler para a DLQ `evolution_webhook_dlq`
+ * (via camada public.*). Colunas mapeadas 1:1 ao schema evo.evolution_webhook_dlq
+ * (event_type/instance_name/error_message NOT NULL — defaults defensivos).
+ * Fail-safe: nunca lança — perda da DLQ não pode derrubar a resposta 200 ao
+ * Evolution (evita retry-storm). request_id vai apenas para o log.
+ */
+// deno-lint-ignore no-explicit-any
+export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
+  try {
+    const { error } = await supabase.from('evolution_webhook_dlq').insert({
+      event_type: input.event_type || 'unknown',
+      instance_name: input.instance || 'unknown',
+      payload: input.payload ?? null,
+      error_message: (input.error_message || 'unknown_error').slice(0, 2000),
+      error_stack: input.error_stack ? String(input.error_stack).slice(0, 8000) : null,
+      status: 'pending',
+      queue_name: 'edge:evolution-webhook',
+      consumer_version: 'edge-webhook:v1',
+    });
+    if (error) {
+      console.error(`[dlq] insert failed (request_id=${input.request_id ?? '-'}): ${error.message}`);
+    }
+  } catch (e) {
+    console.error(`[dlq] insert exception (request_id=${input.request_id ?? '-'}): ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
