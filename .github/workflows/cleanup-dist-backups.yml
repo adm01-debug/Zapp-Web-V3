@@ -1,20 +1,13 @@
 name: Cleanup .dist-backups tracking
 
-# One-shot workflow: remove os 5521 arquivos .dist-backups/ do git tracking.
-# Executar MANUALMENTE via Actions → "Run workflow".
-# Após a execução, este arquivo pode ser deletado.
+# One-shot: remove 5521 arquivos .dist-backups/ do git tracking (113 MB).
+# Trigger manual via Actions UI.
 
 on:
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: 'Digite "CONFIRMAR" para executar'
-        required: true
-        default: ''
 
 jobs:
   cleanup:
-    if: github.event.inputs.confirm == 'CONFIRMAR'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,23 +26,22 @@ jobs:
 
       - name: Remove .dist-backups from tracking
         run: |
-          if git ls-files --error-unmatch .dist-backups/LATEST 2>/dev/null; then
-            echo ".dist-backups/ tracked — removing from git index..."
+          COUNT=$(git ls-files .dist-backups/ | wc -l)
+          echo "Arquivos .dist-backups/ no tracking: $COUNT"
+          if [ "$COUNT" -gt "0" ]; then
             git rm -r --cached .dist-backups/
-            echo ".dist-backups/" >> .gitignore
+            grep -qxF '.dist-backups/' .gitignore || echo '.dist-backups/' >> .gitignore
             git add .gitignore
             git commit -m "chore(repo): remove .dist-backups/ do tracking [skip ci]
 
-          113 MB / 5521 arquivos gerados automaticamente pelo Vercel.
-          Adicionado ao .gitignore para não ser re-trackado.
-          Cleanup executado via GitHub Actions (GITHUB_TOKEN)."
+          $COUNT arquivos removidos (113 MB). Gerado automaticamente pelo Vercel.
+          Adicionado ao .gitignore. Cleanup via GitHub Actions."
             git push origin main
-            echo "✅ .dist-backups/ removido com sucesso"
+            echo "SUCCESS: $COUNT arquivos removidos"
           else
-            echo ".dist-backups/ já não está trackado — nada a fazer."
+            echo "SKIP: .dist-backups/ ja nao esta no tracking"
           fi
 
-      - name: Verify cleanup
+      - name: Result
         run: |
-          echo "Files remaining in .dist-backups/ tracking:"
-          git ls-files .dist-backups/ | wc -l
+          echo "Tracking pos-cleanup: $(git ls-files .dist-backups/ | wc -l) arquivos"
