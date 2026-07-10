@@ -33,7 +33,9 @@ export function ProtectedRoute({
   const [permissionChecking, setPermissionChecking] = useState(false);
 
   // Dynamic override from route_permissions table.
-  const overrideRoles = useRouteRoles(routePath ?? location.pathname);
+  // Skip lookup while unauthenticated — RLS forbids anon SELECT and would spam
+  // "permission denied" warnings on the /auth screen.
+  const overrideRoles = useRouteRoles(user ? (routePath ?? location.pathname) : undefined);
 
   const loading = authLoading || (rolesLoading && roles.length === 0) || permissionChecking;
 
