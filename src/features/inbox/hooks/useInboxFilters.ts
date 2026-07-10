@@ -277,8 +277,12 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
       if (mainTab === 'open') {
         result = result.filter(c => {
           const s = statusOf(c.contact.id);
-          const isOpenOrProgress = s === 'open' || s === 'in_progress';
-          
+          // Bug fix: TicketTabs contabiliza como "aberto" tudo que não é `resolved`
+          // (inclui `pending`, `waiting`, `snoozed` etc). O filtro precisa seguir
+          // o mesmo critério, senão o contador diverge da lista renderizada
+          // ("Aguardando 33" com "Nenhuma conversa encontrada").
+          const isOpenOrProgress = s !== 'resolved' && s !== 'archived' && s !== 'closed';
+
           if (!isOpenOrProgress) return false;
 
           // Apply statusFilter if provided (legacy unread button etc)
