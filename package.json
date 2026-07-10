@@ -23,6 +23,7 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "test:e2e:reactions": "playwright test --config=playwright.e2e.config.ts e2e/whatsapp-reactions-realtime.spec.ts",
+    "test:a11y": "playwright test --config=playwright.a11y.config.ts",
     "test:stress": "bun run scripts/stress-test.ts",
     "test:fuzz": "bun run scripts/fuzz-edge-functions.ts",
     "regen:trilha": "bun run scripts/regen-trilha-mensagens.ts",
