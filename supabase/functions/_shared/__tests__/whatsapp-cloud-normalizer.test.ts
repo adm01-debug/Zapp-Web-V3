@@ -48,7 +48,7 @@ Deno.test("normalizer: text message → unified incoming event", () => {
 Deno.test("normalizer: image with caption → image event with mediaId/mime", () => {
   const payload = {
     object: "whatsapp_business_account",
-    entry: [{ changes: [{ field: "messages", value: {
+    entry: [{ id: "ENTRY_1", changes: [{ field: "messages", value: {
       metadata: { phone_number_id: "PN" },
       messages: [{ id: "wamid.IMG", from: "5511", timestamp: "1", type: "image",
         image: { id: "MEDIA_ABC", mime_type: "image/jpeg", caption: "look" } }],
@@ -65,7 +65,8 @@ Deno.test("normalizer: image with caption → image event with mediaId/mime", ()
 
 Deno.test("normalizer: audio voice flag preserved in metadata", () => {
   const payload = {
-    entry: [{ changes: [{ value: {
+    object: "whatsapp_business_account",
+    entry: [{ id: "ENTRY_1", changes: [{ field: "messages", value: {
       metadata: { phone_number_id: "PN" },
       messages: [{ id: "w", from: "5511", timestamp: "1", type: "audio",
         audio: { id: "A1", mime_type: "audio/ogg", voice: true } }],
@@ -80,7 +81,8 @@ Deno.test("normalizer: audio voice flag preserved in metadata", () => {
 
 Deno.test("normalizer: status events (delivered/read/failed)", () => {
   const payload = {
-    entry: [{ changes: [{ value: {
+    object: "whatsapp_business_account",
+    entry: [{ id: "ENTRY_1", changes: [{ field: "messages", value: {
       metadata: { phone_number_id: "PN" },
       statuses: [
         { id: "wamid.A", status: "delivered", timestamp: "1" },
