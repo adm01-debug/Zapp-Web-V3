@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import React, { useMemo, useCallback, useEffect } from 'react';
 import {
   Search, X, Plus, Command, Filter, Clock, History, Tag, Trash2,
@@ -57,11 +56,10 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
     // Telemetry — fire-and-forget; never blocks the navigation.
     if (search && search.trim().length >= 2) {
       supabase
-        .rpc('rpc_record_search_click', {
-          p_query: search.trim(),
-          p_result_id: result.id,
-          p_result_type: result.type,
-        })
+        .rpc(
+          'rpc_record_search_click' as unknown as Parameters<typeof supabase.rpc>[0],
+          { p_query: search.trim(), p_result_id: result.id, p_result_type: result.type } as unknown as Parameters<typeof supabase.rpc>[1],
+        )
         .then(({ error }) => { if (error) log.warn('rpc_record_search_click failed', error); }, () => {});
     }
     onSelectResult(result);

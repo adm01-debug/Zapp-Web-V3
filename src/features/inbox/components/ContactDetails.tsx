@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { EditContactDialog } from './contact-details/EditContactDialog';
 import { Conversation } from '@/types/chat';
