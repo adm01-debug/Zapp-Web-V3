@@ -5,6 +5,8 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { TalkxSendV1Schema } from "../_shared/contract-schemas.ts";
 import { requireAdminOrSupervisor, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 function getGreeting(): string {
@@ -81,11 +83,13 @@ Deno.serve(async (req) => {
     const evolutionKey = Deno.env.get("EVOLUTION_API_KEY")!;
 
     const supabase = createClient(supabaseUrl, serviceKey);
-    const { campaignId, action } = await req.json();
-
-    if (!campaignId) {
-      return new Response(JSON.stringify({ error: "campaignId required" }), { status: 400, headers });
-    }
+    // Contrato talkx-send@v1 (estrito): campaignId UUID + action enum.
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('talkx-send', { v1: TalkxSendV1Schema }, req, raw, {
+      requestId, extraHeaders: headers,
+    });
+    if (!parsed.ok) return parsed.response;
+    const { campaignId, action } = parsed.data as { campaignId: string; action?: string };
 
     // Handle pause/cancel
     if (action === "pause" || action === "cancel") {
