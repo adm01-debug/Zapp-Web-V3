@@ -50,7 +50,11 @@ export function SLARuleFormDialog({ open, onOpenChange, scope, editingRule }: SL
       setScopeValue('');
       setContactSearch('');
     }
-  }, [open, editingRule]);
+    // FIX B8: dep no `editingRule?.id` em vez do objeto inteiro, para não
+    // resetar o form a cada re-render do pai quando a referência muda mas a
+    // regra em edição é a mesma.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingRule?.id]);
 
   const { companies, jobTitles, queues, agents, contacts } = useSLAScopeOptions(open, scope, contactSearch);
 
