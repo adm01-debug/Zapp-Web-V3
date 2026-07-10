@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend 
 } from 'recharts';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { QueueMetrics } from '@/features/inbox/hooks/useMessageQueue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,17 +17,28 @@ interface QueueMetricsDashboardProps {
 const log = getLogger('QueueMetricsDashboard');
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
+interface StsPerformanceMetric {
+  voice_preset:    string;
+  total_requests:  number;
+  failed_requests: number;
+  error_rate:      number;
+  avg_latency_ms:  number;
+  p99_latency:     number | null;
+  latest_error:    string | null;
+}
+
 export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React.memo(({ metrics }) => {
-  const [stsMetrics, setStsMetrics] = useState<any[]>([]);
+  const [stsMetrics, setStsMetrics] = useState<StsPerformanceMetric[]>([]);
   const [loadingSts, setLoadingSts] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const fetchSTS = async () => {
       try {
-        const { data, error } = await (supabase as any)
-          .from('sts_performance_metrics')
-          .select('*');
+        const { data, error } = await safeClient.from<StsPerformanceMetric>(
+          'sts_performance_metrics',
+          (q) => q.select('*'),
+        );
         if (!cancelled && !error && data) setStsMetrics(data);
       } catch (err) {
         if (!cancelled) log.error('Failed to fetch STS metrics', err);

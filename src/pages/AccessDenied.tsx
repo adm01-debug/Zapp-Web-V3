@@ -8,10 +8,14 @@ import { getLogger } from "@/lib/logger";
 
 const log = getLogger('AccessDenied');
 
+interface LocationState {
+  from?: { pathname: string };
+}
+
 export default function AccessDenied() {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || "/";
+  const from = (location.state as LocationState)?.from?.pathname || "/";
 
   useEffect(() => {
     // Log unauthorized access attempt locally for telemetry

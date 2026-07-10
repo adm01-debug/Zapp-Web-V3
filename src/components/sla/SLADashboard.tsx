@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertTriangle, CheckCircle2, RefreshCw, ShieldAlert,
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 const log = getLogger('SLADashboard');
 
@@ -56,12 +56,12 @@ export const SLADashboard: React.FC<Props> = ({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any).rpc('get_sla_dashboard', {
+      const { data, error } = await safeClient.rpc<SLAStats>('get_sla_dashboard', {
         p_instance_name: instanceName,
         p_days: days,
       });
       if (error) throw error;
-      if (mountedRef.current) setStats(data as unknown as SLAStats);
+      if (mountedRef.current) setStats(data);
     } catch (err) {
       log.error('Failed to load SLA dashboard', err);
     } finally { if (mountedRef.current) setLoading(false); }

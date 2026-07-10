@@ -7,10 +7,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Search, Filter, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+
+interface SlaDeliveryViolation {
+  id:               string;
+  contact_id:       string;
+  message_id:       string;
+  detected_at:      string;
+  delivered_at:     string;
+  severity:         'breached' | 'warning' | string;
+  is_resolved:      boolean;
+  resolved_at:      string | null;
+  resolved_by:      string | null;
+  resolution_notes: string | null;
+  resolved_by_profile: { display_name: string | null } | null;
+}
 
 export const SLADeliveryHistoryDashboard = () => {
   const queryClient = useQueryClient();
@@ -20,38 +35,34 @@ export const SLADeliveryHistoryDashboard = () => {
   const { data: violations, isLoading } = useQuery({
     queryKey: ['sla-delivery-violations', statusFilter],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from('sla_delivery_violations')
-        .select(`
-          *,
-          resolved_by_profile:profiles!resolved_by(display_name)
-        `)
-        .order('detected_at', { ascending: false });
-
-      if (statusFilter === 'pending') {
-        query = query.eq('is_resolved', false);
-      } else if (statusFilter === 'resolved') {
-        query = query.eq('is_resolved', true);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await safeClient.from<SlaDeliveryViolation>(
+        'sla_delivery_violations',
+        (q) => {
+          let query = q
+            .select('*, resolved_by_profile:profiles!resolved_by(display_name)')
+            .order('detected_at', { ascending: false });
+          if (statusFilter === 'pending') query = query.eq('is_resolved', false);
+          else if (statusFilter === 'resolved') query = query.eq('is_resolved', true);
+          return query;
+        },
+      );
       if (error) throw error;
-      return data;
+      return data ?? [];
     }
   });
 
   const resolveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await (supabase as any)
-        .from('sla_delivery_violations')
-        .update({
+      const { error } = await safeClient.from(
+        'sla_delivery_violations',
+        (q) => q.update({
           is_resolved: true,
           resolved_at: new Date().toISOString(),
           resolved_by: user?.id,
-          resolution_notes: notes
-        })
-        .eq('id', id);
+          resolution_notes: notes,
+        }).eq('id', id),
+      );
       if (error) throw error;
     },
     onSuccess: () => {
@@ -137,7 +148,7 @@ export const SLADeliveryHistoryDashboard = () => {
                         <CheckCircle2 className="w-3 h-3" />
                         Resolvido
                       </div>
-                      <span className="text-[10px] text-muted-foreground">por {(v as any).resolved_by_profile?.display_name || 'Agente'}</span>
+                      <span className="text-[10px] text-muted-foreground">por {v.resolved_by_profile?.display_name || 'Agente'}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 text-warning text-xs">

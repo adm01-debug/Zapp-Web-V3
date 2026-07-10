@@ -12,7 +12,7 @@ import {
   Users, MessageCircle, MessageSquare, Webhook,
   RefreshCw, AlertTriangle, Bot, Bell,
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { SLADashboard } from '@/components/sla/SLADashboard';
 
 const log = getLogger('PlatformHealthDashboard');
@@ -73,13 +73,13 @@ export const PlatformHealthDashboard: React.FC<Props> = ({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: health, error } = await (supabase as any).rpc('get_platform_health', {
+      const { data: health, error } = await safeClient.rpc<PlatformHealth>('get_platform_health', {
         p_instance_name: instanceName,
         p_days: 1,
       });
       if (!mountedRef.current) return;
       if (error) throw error;
-      setData(health as unknown as PlatformHealth);
+      setData(health);
       setLastUpdated(new Date());
     } catch (err) {
       log.error('Failed to load platform health', err);

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SLADashboardData {
@@ -84,11 +84,9 @@ export function EmailSLADashboard({ className }: EmailSLADashboardProps) {
 
   const load = useCallback(async () => {
     setIsLoading(true);
-    const { data: rows } = await (supabase as any)
-      .from('v_email_sla_dashboard')
-      .select('*');
+    const { data: rows } = await safeClient.from<SLADashboardData>('v_email_sla_dashboard', (q) => q.select('*'));
     if (mountedRef.current) {
-      setData((rows ?? []) as SLADashboardData[]);
+      setData(rows ?? []);
       setLastRefresh(new Date());
       setIsLoading(false);
     }
