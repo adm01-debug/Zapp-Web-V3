@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
+import { useDepartmentsAdmin, type Department } from '@/hooks/admin/useDepartmentsAdmin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,16 +34,6 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Pencil, Trash2, Building2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
-interface Department {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  member_count?: number;
-}
 
 function slugify(input: string): string {
   return input
@@ -57,9 +46,7 @@ function slugify(input: string): string {
 }
 
 export default function DepartmentsPage() {
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { departments, loading, saving, save, removeDepartment } = useDepartmentsAdmin();
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Department | null>(null);
@@ -68,43 +55,6 @@ export default function DepartmentsPage() {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [isActive, setIsActive] = useState(true);
-
-  const fetchDepartments = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await safeClient.from<Department>(
-      'departments',
-      (q) => q.select('*').order('name'),
-    );
-
-    if (error) {
-      toast.error('Erro ao carregar departamentos');
-      setLoading(false);
-      return;
-    }
-
-    // Count members per department
-    const ids = (data ?? []).map((d) => d.id);
-    let counts: Record<string, number> = {};
-    if (ids.length) {
-      const { data: profilesByDept , error: profilesByDeptErr } = await supabase
-        .from('profiles')
-        .select('department_id')
-        .in('department_id', ids);
-      counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {
-        if (p.department_id) acc[p.department_id] = (acc[p.department_id] ?? 0) + 1;
-        return acc;
-      }, {});
-    }
-
-    setDepartments(
-      (data ?? []).map((d) => ({ ...d, member_count: counts[d.id] ?? 0 })),
-    );
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    void fetchDepartments();
-  }, [fetchDepartments]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -131,59 +81,15 @@ export default function DepartmentsPage() {
   const handleSave = async () => {
     const trimmedName = name.trim();
     const finalSlug = slug.trim() || slugify(trimmedName);
-
-    if (!trimmedName) {
-      toast.error('Nome é obrigatório');
-      return;
-    }
-    if (!finalSlug) {
-      toast.error('Identificador (slug) inválido');
-      return;
-    }
-
-    setSaving(true);
-    const payload = {
-      name: trimmedName,
-      slug: finalSlug,
-      description: description.trim() || null,
-      is_active: isActive,
-    };
-
-    const { error } = editingId
-      ? await safeClient.from('departments', (q) => q.update(payload).eq('id', editingId))
-      : await safeClient.from('departments', (q) => q.insert(payload));
-
-    setSaving(false);
-
-    if (error) {
-      toast.error(
-        error.message.includes('duplicate')
-          ? 'Já existe um departamento com esse nome ou identificador'
-          : 'Erro ao salvar departamento',
-      );
-      return;
-    }
-
-    toast.success(editingId ? 'Departamento atualizado' : 'Departamento criado');
-    setShowDialog(false);
-    resetForm();
-    void fetchDepartments();
+    if (!trimmedName) { toast.error('Nome é obrigatório'); return; }
+    if (!finalSlug) { toast.error('Identificador (slug) inválido'); return; }
+    const ok = await save({ name: trimmedName, slug: finalSlug, description: description.trim() || null, is_active: isActive }, editingId);
+    if (ok) { setShowDialog(false); resetForm(); }
   };
 
   const handleDelete = async () => {
     if (!toDelete) return;
-    setSaving(true);
-    const { error } = await supabase.from('departments').delete().eq('id', toDelete.id);
-    setSaving(false);
-
-    if (error) {
-      toast.error('Erro ao remover departamento');
-      return;
-    }
-
-    toast.success('Departamento removido');
-    setToDelete(null);
-    void fetchDepartments();
+    if (await removeDepartment(toDelete.id)) setToDelete(null);
   };
 
   return (

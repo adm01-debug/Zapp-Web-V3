@@ -20,7 +20,6 @@
  *    erro explícito para o caller orientar o usuário.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { safeClient } from "@/integrations/supabase/safeClient";
 import { getLogger } from "@/lib/logger";
 
 const log = getLogger('whatsappAdapter');
@@ -34,9 +33,10 @@ export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
   const now = Date.now();
   if (!force && cachedMode && now < cacheExpiresAt) return cachedMode;
   try {
-    const { data, error } = await safeClient.rpc<string>('rpc_get_whatsapp_mode');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await supabase.rpc("rpc_get_whatsapp_mode" as any);
     if (error) throw error;
-    const mode = data === "official" ? "official" : "unofficial";
+    const mode = (data as string) === "official" ? "official" : "unofficial";
     cachedMode = mode;
     cacheExpiresAt = now + 30_000;
     return mode;
@@ -203,7 +203,7 @@ export interface SendTemplateParams {
   remoteJid: string;
   name: string;
   language?: string;
-  components?: unknown[];
+  components?: any[];
 }
 
 export interface PresenceParams {
@@ -231,7 +231,7 @@ async function invokeCloud(body: Record<string, unknown>) {
   );
   if (error) throw error;
   if (data && typeof data === "object" && "error" in data) {
-    throw new Error((data as Record<string, unknown>).error as string ?? "cloud_send_failed");
+    throw new Error((data as { error?: string }).error ?? "cloud_send_failed");
   }
   return data;
 }

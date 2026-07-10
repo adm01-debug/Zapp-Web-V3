@@ -16,12 +16,13 @@ interface TeamFilesProps {
 
 interface WhisperFile {
   id: string;
+  contact_id: string;
   file_name: string;
   file_url: string;
-  file_size: number;
-  file_type: string;
+  file_size: number | null;
+  file_type: string | null;
+  sender_id: string | null;
   created_at: string;
-  contact_id: string;
 }
 
 export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) {
@@ -30,14 +31,14 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  const { data: files = [], isLoading } = useQuery<WhisperFile[]>({
+  const { data: files = [], isLoading } = useQuery({
     queryKey: ['team-files', contactId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from('whisper_files', (q) =>
-        q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
+      const { data } = await safeClient.from<WhisperFile>(
+        'whisper_files',
+        q => q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
       );
-      if (error) throw error;
-      return (data ?? []) as WhisperFile[];
+      return data ?? [];
     },
   });
 
@@ -58,16 +59,14 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         .getPublicUrl(filePath);
 
       const { data: { user } } = await supabase.auth.getUser();
-      const { error: dbError } = await safeClient.from('whisper_files', (q) =>
-        q.insert({
-          contact_id: contactId,
-          file_name: file.name,
-          file_url: publicUrl,
-          file_size: file.size,
-          file_type: file.type,
-          sender_id: user?.id,
-        })
-      );
+      const { error: dbError } = await safeClient.from('whisper_files', q => q.insert({
+        contact_id: contactId,
+        file_name: file.name,
+        file_url: publicUrl,
+        file_size: file.size,
+        file_type: file.type,
+        sender_id: user?.id,
+      }));
 
       if (dbError) throw dbError;
     },
@@ -75,15 +74,15 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
       toast({ title: 'Arquivo enviado', description: 'O documento interno foi salvo com sucesso.' });
     },
-    onError: (error: unknown) => {
-      toast({ title: 'Erro no upload', description: (error as { message?: string })?.message, variant: 'destructive' });
+    onError: (error: Error) => {
+      toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
     },
     onSettled: () => setIsUploading(false),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await safeClient.from('whisper_files', (q) => q.delete().eq('id', id));
+      const { error } = await safeClient.from('whisper_files', q => q.delete().eq('id', id));
       if (error) throw error;
     },
     onSuccess: () => {
@@ -106,12 +105,14 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   };
 
   const filteredFiles = files.filter(file => {
-    const matchesSearch = file.file_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const fileName = file.file_name || '';
+    const fileType = file.file_type || '';
+    const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'all' ||
-      (typeFilter === 'image' && file.file_type.startsWith('image/')) ||
-      (typeFilter === 'pdf' && file.file_type === 'application/pdf') ||
-      (typeFilter === 'doc' && (file.file_type.includes('word') || file.file_type.includes('document'))) ||
-      (typeFilter === 'other' && !file.file_type.startsWith('image/') && file.file_type !== 'application/pdf' && !file.file_type.includes('word'));
+      (typeFilter === 'image' && fileType.startsWith('image/')) ||
+      (typeFilter === 'pdf' && fileType === 'application/pdf') ||
+      (typeFilter === 'doc' && (fileType.includes('word') || fileType.includes('document'))) ||
+      (typeFilter === 'other' && !fileType.startsWith('image/') && fileType !== 'application/pdf' && !fileType.includes('word'));
     return matchesSearch && matchesType;
   });
 

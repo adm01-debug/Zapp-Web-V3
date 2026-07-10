@@ -120,6 +120,7 @@ export function EmailChatReplyBar({
         bodyPlain: plainText,
         threadId: threadEmailId,
         attachments: processedAttachments,
+        signature: true,
       });
 
       // Registra resposta no SLA

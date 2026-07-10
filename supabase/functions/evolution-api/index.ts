@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Logger, checkRateLimit, getClientIP, getCorsHeaders, handleCors, authorizeRoles, errorResponse } from "../_shared/validation.ts";
 import { EVOLUTION_ENVELOPE_VERSION, proxyToEvolution, resolvePrivateBucketUrl } from "../_shared/evolution-api-proxy.ts";
@@ -9,7 +8,7 @@ import { isInstancePaused, recordAuthFailureAndMaybePause } from "../_shared/ins
 import { WEBHOOK_EVENTS } from "../_shared/evolution-sync-actions.ts";
 
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
@@ -55,9 +54,44 @@ serve(async (req) => {
     });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: 'backend_misconfigured', hint: 'SUPABASE_URL/SERVICE_ROLE ausentes' }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+
+  // Always authenticate — body action may differ from the URL path segment, so skipping
+  // auth based on the URL alone creates a bypass. Try self-hosted first (published app),
+  // then Cloud, so JWTs from either backend are accepted.
+  const selfUrlForAuth = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+  const selfAnonForAuth = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY');
+  const cloudUrlForAuth = Deno.env.get('SUPABASE_URL');
+  const cloudAnonForAuth = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY');
+  const authHeader = req.headers.get('Authorization') || '';
+  const authCandidates: Array<{ url: string; key: string }> = [];
+  if (selfUrlForAuth && selfAnonForAuth) authCandidates.push({ url: selfUrlForAuth, key: selfAnonForAuth });
+  if (cloudUrlForAuth && cloudAnonForAuth) authCandidates.push({ url: cloudUrlForAuth, key: cloudAnonForAuth });
+  let authedUser: { id: string; email: string | undefined } | null = null;
+  for (const c of authCandidates) {
+    try {
+      const uc = createClient(c.url, c.key, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data, error } = await uc.auth.getUser();
+      if (!error && data?.user) { authedUser = { id: data.user.id, email: data.user.email }; break; }
+    } catch { /* try next */ }
+  }
+  if (!authedUser) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const _u = authedUser;
+  void _u;
 
   const SEND_PER_INSTANCE_PER_MIN = Number(Deno.env.get('EVOLUTION_SEND_RATE_PER_INSTANCE') ?? '60');
 
@@ -92,7 +126,7 @@ serve(async (req) => {
   
   const idemKey = (req.headers.get('idempotency-key')
     || req.headers.get('x-idempotency-key')
-    || (!isMultipart && typeof (bodyForAction as any).__idemKey === 'string' ? (bodyForAction as any).__idemKey : '')
+    || (!isMultipart && typeof (bodyForAction as Record<string, unknown>).__idemKey === 'string' ? (bodyForAction as Record<string, unknown>).__idemKey : '')
     || '').trim() || undefined;
 
   const proxy = (path: string, method = 'POST', proxyBody?: unknown) =>
@@ -107,6 +141,14 @@ serve(async (req) => {
       instance = (body as Record<string, unknown>).instanceName as string || (body as Record<string, unknown>).instance as string;
     }
 
+    // Prevent path traversal: instance names must be safe identifiers only
+    const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,128}$/;
+    if (instance && !INSTANCE_RE.test(instance)) {
+      return new Response(JSON.stringify({ error: 'Invalid instance name' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Guarda anti-"instância fantasma" (incidente wpp2 2026-07-04): as rotas da
     // Evolution usam o NOME da instância; um UUID aqui é quase sempre o
     // instance_id interno enviado por engano pelo cliente. Auto-criar com esse
@@ -115,7 +157,7 @@ serve(async (req) => {
     const instanceLooksLikeUuid = (v: unknown): boolean => typeof v === 'string' && UUID_RE.test(v.trim());
     const resolveInstanceNameById = async (id: string): Promise<string | null> => {
       try {
-        const r = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, { headers: { apikey: evolutionApiKey } });
+        const r = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, { headers: { apikey: evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
         if (!r.ok) return null;
         const list = await r.json();
         if (!Array.isArray(list)) return null;
@@ -155,7 +197,7 @@ serve(async (req) => {
     }
 
     if (action === 'create-instance') {
-      await authorizeRoles(req, supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, ['admin', 'dev']);
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
       if (instanceLooksLikeUuid(instance)) {
         const resolved = await resolveInstanceNameById(String(instance));
         return new Response(JSON.stringify({
@@ -167,19 +209,19 @@ serve(async (req) => {
           resolvedInstanceName: resolved,
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      return await proxy('/instance/create', 'POST', { instanceName: instance, qrcode: (body as any).qrcode ?? true, integration: (body as any).integration || 'WHATSAPP-BAILEYS', token: (body as any).token, number: (body as any).number, businessId: (body as any).businessId, wabaId: (body as any).wabaId, phoneNumberId: (body as any).phoneNumberId, webhook: (body as any).webhook, chatwoot: (body as any).chatwoot, typebot: (body as any).typebot, proxy: (body as any).proxy });
+      return await proxy('/instance/create', 'POST', { instanceName: instance, qrcode: (body as Record<string, unknown>).qrcode ?? true, integration: (body as Record<string, unknown>).integration || 'WHATSAPP-BAILEYS', token: (body as Record<string, unknown>).token, number: (body as Record<string, unknown>).number, businessId: (body as Record<string, unknown>).businessId, wabaId: (body as Record<string, unknown>).wabaId, phoneNumberId: (body as Record<string, unknown>).phoneNumberId, webhook: (body as Record<string, unknown>).webhook, chatwoot: (body as Record<string, unknown>).chatwoot, typebot: (body as Record<string, unknown>).typebot, proxy: (body as Record<string, unknown>).proxy });
     }
-    if (action === 'list-instances') return await proxy(`/instance/fetchInstances${(body as any).instanceName ? `?instanceName=${(body as any).instanceName}` : ''}`, 'GET');
+    if (action === 'list-instances') return await proxy(`/instance/fetchInstances${(body as Record<string, unknown>).instanceName ? `?instanceName=${encodeURIComponent(String((body as Record<string, unknown>).instanceName))}` : ''}`, 'GET');
 
 
     if (action === 'connect') {
-      let connectUrl = `${evolutionApiUrl}/instance/connect/${instance}`;
+      let connectUrl = `${evolutionApiUrl}/instance/connect/${encodeURIComponent(String(instance))}`;
 
       const doConnect = async () => {
-        const response = await fetch(connectUrl, { method: 'GET', headers: { 'apikey': evolutionApiKey } });
+        const response = await fetch(connectUrl, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
         const text = await response.text();
-        let data: any = {};
-        try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+        let data: Record<string, unknown> = {};
+        try { data = text ? JSON.parse(text) as Record<string, unknown> : {}; } catch { data = { raw: text }; }
         return { response, data };
       };
 
@@ -221,7 +263,7 @@ serve(async (req) => {
         }
         console.warn(`[evolution-api][connect] instanceName era UUID; resolvido para "${resolved}" via fetchInstances (auto-heal, sem create).`);
         instance = resolved;
-        connectUrl = `${evolutionApiUrl}/instance/connect/${resolved}`;
+        connectUrl = `${evolutionApiUrl}/instance/connect/${encodeURIComponent(resolved)}`;
         ({ response, data } = await doConnect());
         if (response.status === 401 || response.status === 403) {
           recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'connect' });
@@ -231,19 +273,20 @@ serve(async (req) => {
         const createResponse = await fetch(`${evolutionApiUrl}/instance/create`, {
           method: 'POST',
           headers: { 'apikey': evolutionApiKey, 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(15_000),
           body: JSON.stringify({
             instanceName: instance,
-            qrcode: (body as any).qrcode ?? true,
-            integration: (body as any).integration || 'WHATSAPP-BAILEYS',
-            token: (body as any).token,
-            number: (body as any).number,
-            businessId: (body as any).businessId,
-            wabaId: (body as any).wabaId,
-            phoneNumberId: (body as any).phoneNumberId,
-            webhook: (body as any).webhook,
-            chatwoot: (body as any).chatwoot,
-            typebot: (body as any).typebot,
-            proxy: (body as any).proxy,
+            qrcode: (body as Record<string, unknown>).qrcode ?? true,
+            integration: (body as Record<string, unknown>).integration || 'WHATSAPP-BAILEYS',
+            token: (body as Record<string, unknown>).token,
+            number: (body as Record<string, unknown>).number,
+            businessId: (body as Record<string, unknown>).businessId,
+            wabaId: (body as Record<string, unknown>).wabaId,
+            phoneNumberId: (body as Record<string, unknown>).phoneNumberId,
+            webhook: (body as Record<string, unknown>).webhook,
+            chatwoot: (body as Record<string, unknown>).chatwoot,
+            typebot: (body as Record<string, unknown>).typebot,
+            proxy: (body as Record<string, unknown>).proxy,
           }),
         });
         const createData = await createResponse.json();
@@ -274,8 +317,8 @@ serve(async (req) => {
       if (response.ok && data?.qrcode?.base64) {
         await supabase
           .from('whatsapp_connections')
-          .update({ qr_code: data.qrcode.base64, status: 'pending', instance_id: instance })
-          .eq('instance_id', instance);
+          .update({ qr_code: data.qrcode.base64, status: 'qr_pending' })
+          .eq('instance_name', instance);
       }
 
       if (!response.ok) {
@@ -292,6 +335,7 @@ serve(async (req) => {
     }
 
     if (action === 'reprocess-failed-webhooks') {
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
       const { data: failed, error } = await supabase
         .from('webhook_reprocess_queue')
         .select('*')
@@ -299,7 +343,7 @@ serve(async (req) => {
         .lt('next_retry_at', new Date().toISOString())
         .limit(10);
       
-      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+      if (error) return new Response(JSON.stringify({ error: 'Failed to fetch queue' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       
       const results = [];
       for (const item of failed) {
@@ -311,7 +355,8 @@ serve(async (req) => {
           const resp = await fetch(webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
-            body: JSON.stringify(item.payload)
+            body: JSON.stringify(item.payload),
+            signal: AbortSignal.timeout(15_000),
           });
           
           if (resp.ok) {
@@ -327,21 +372,22 @@ serve(async (req) => {
             results.push({ id: item.id, status: 'retry_scheduled', nextRetry });
           }
         } catch (e) {
-          results.push({ id: item.id, status: 'error', message: (e as Error).message });
+          console.error('[evolution-api] reprocess error:', e instanceof Error ? e.message : String(e));
+          results.push({ id: item.id, status: 'error' });
         }
       }
       return new Response(JSON.stringify({ success: true, processed: results.length, details: results }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'status') {
-      const response = await fetch(`${evolutionApiUrl}/instance/connectionState/${instance}`, { method: 'GET', headers: { 'apikey': evolutionApiKey } });
+      const response = await fetch(`${evolutionApiUrl}/instance/connectionState/${instance}`, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
       const text = await response.text();
-      let data: any = {};
-      try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+      let data: Record<string, unknown> = {};
+      try { data = text ? JSON.parse(text) as Record<string, unknown> : {}; } catch { data = { raw: text }; }
 
       if (response.status === 401 || response.status === 403) {
         recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'status' });
-        await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_id', instance);
+        await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_name', instance);
         return new Response(JSON.stringify({
           version: EVOLUTION_ENVELOPE_VERSION,
           status: 'disconnected',
@@ -357,7 +403,7 @@ serve(async (req) => {
       const rawState = data?.instance?.state || data?.state;
       const status = rawState === 'open' ? 'connected' : 'disconnected';
       
-      await supabase.from('whatsapp_connections').update({ status, qr_code: null }).eq('instance_id', instance);
+      await supabase.from('whatsapp_connections').update({ status, qr_code: null }).eq('instance_name', instance);
       return new Response(JSON.stringify({ ...data, status, state: rawState }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -384,16 +430,17 @@ serve(async (req) => {
 
     if (action === 'disconnect') {
       let upstreamStatus = 0;
-      let data: any = null;
+      let data: unknown = null;
       let attempts = 0;
       const MAX_ATTEMPTS = 2;
 
       while (attempts < MAX_ATTEMPTS) {
         attempts++;
         try {
-          const response = await fetch(`${evolutionApiUrl}/instance/logout/${instance}`, { 
-            method: 'DELETE', 
-            headers: { 'apikey': evolutionApiKey } 
+          const response = await fetch(`${evolutionApiUrl}/instance/logout/${instance}`, {
+            method: 'DELETE',
+            headers: { 'apikey': evolutionApiKey },
+            signal: AbortSignal.timeout(10_000),
           });
           upstreamStatus = response.status;
           try { 
@@ -407,7 +454,7 @@ serve(async (req) => {
           const isTransient = upstreamStatus === 503 || upstreamStatus === 504 || upstreamStatus === 502;
 
           if (response.ok || alreadyClosed) {
-            await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_id', instance);
+            await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_name', instance);
             return new Response(JSON.stringify({ 
               success: true, 
               statusCode: upstreamStatus, 
@@ -424,7 +471,8 @@ serve(async (req) => {
           // Wait 500ms before retry
           await new Promise(r => setTimeout(r, 500));
         } catch (e) {
-          data = { message: (e as Error).message };
+          console.error('[evolution-api] disconnect fetch error:', (e as Error).message);
+          data = { message: 'Upstream request failed' };
           if (attempts >= MAX_ATTEMPTS) break;
           await new Promise(r => setTimeout(r, 500));
         }
@@ -444,25 +492,25 @@ serve(async (req) => {
     }
 
     if (action === 'delete-instance') {
-      await authorizeRoles(req, supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, ['admin', 'dev']);
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
       return await proxy(`/instance/delete/${instance}`, 'DELETE', body);
     }
-    if (action === 'set-presence') return await proxy(`/instance/setPresence/${instance}`, 'POST', { presence: (body as any).presence });
+    if (action === 'set-presence') return await proxy(`/instance/setPresence/${instance}`, 'POST', { presence: (body as Record<string, unknown>).presence });
 
-    if (action === 'set-settings') return await proxy(`/settings/set/${instance}`, 'POST', { rejectCall: (body as any).rejectCall, msgCall: (body as any).msgCall, groupsIgnore: (body as any).groupsIgnore, alwaysOnline: (body as any).alwaysOnline, readMessages: (body as any).readMessages, readStatus: (body as any).readStatus, syncFullHistory: (body as any).syncFullHistory });
+    if (action === 'set-settings') return await proxy(`/settings/set/${instance}`, 'POST', { rejectCall: (body as Record<string, unknown>).rejectCall, msgCall: (body as Record<string, unknown>).msgCall, groupsIgnore: (body as Record<string, unknown>).groupsIgnore, alwaysOnline: (body as Record<string, unknown>).alwaysOnline, readMessages: (body as Record<string, unknown>).readMessages, readStatus: (body as Record<string, unknown>).readStatus, syncFullHistory: (body as Record<string, unknown>).syncFullHistory });
     if (action === 'get-settings') return await proxy(`/settings/find/${instance}`, 'GET');
 
     if (action === 'set-webhook') {
       // Accept both flat body { url, events, ... } and nested { webhook: { url, events, ... } }
       // The monitoring UI sends nested; direct API callers send flat. Both must work.
-      const wb = (typeof (body as any).webhook === 'object' && (body as any).webhook !== null)
-        ? (body as any).webhook as Record<string, unknown>
+      const wb = (typeof (body as Record<string, unknown>).webhook === 'object' && (body as Record<string, unknown>).webhook !== null)
+        ? (body as Record<string, unknown>).webhook as Record<string, unknown>
         : {} as Record<string, unknown>;
-      const webhookUrl = (wb.url as string | undefined) || (body as any).url as string | undefined;
-      const webhookEnabled = wb.enabled ?? (body as any).enabled ?? true;
-      const webhookByEvents = wb.webhookByEvents ?? (body as any).webhookByEvents ?? false;
-      const webhookBase64 = wb.webhookBase64 ?? (body as any).webhookBase64 ?? true;
-      const webhookEvents = (wb.events as string[] | undefined) || (body as any).events as string[] | undefined || WEBHOOK_EVENTS;
+      const webhookUrl = (wb.url as string | undefined) || (body as Record<string, unknown>).url as string | undefined;
+      const webhookEnabled = wb.enabled ?? (body as Record<string, unknown>).enabled ?? true;
+      const webhookByEvents = wb.webhookByEvents ?? (body as Record<string, unknown>).webhookByEvents ?? false;
+      const webhookBase64 = wb.webhookBase64 ?? (body as Record<string, unknown>).webhookBase64 ?? true;
+      const webhookEvents = (wb.events as string[] | undefined) || (body as Record<string, unknown>).events as string[] | undefined || WEBHOOK_EVENTS;
       return await proxy(`/webhook/set/${instance}`, 'POST', {
         webhook: { enabled: webhookEnabled, url: webhookUrl, webhookByEvents, webhookBase64, events: webhookEvents },
       });
@@ -470,15 +518,15 @@ serve(async (req) => {
     if (action === 'get-webhook') return await proxy(`/webhook/find/${instance}`, 'GET');
 
     if (action === 'send-text') {
-      const sendTextPayload: Record<string, unknown> = { number: (body as any).number, text: (body as any).text };
-      if ((body as any).delay !== undefined) sendTextPayload.delay = (body as any).delay;
-      if ((body as any).quoted !== undefined) sendTextPayload.quoted = (body as any).quoted;
-      if ((body as any).mentionsEveryOne !== undefined) sendTextPayload.mentionsEveryOne = (body as any).mentionsEveryOne;
-      if ((body as any).mentioned !== undefined) sendTextPayload.mentioned = (body as any).mentioned;
-      if ((body as any).linkPreview !== undefined) sendTextPayload.linkPreview = (body as any).linkPreview;
+      const sendTextPayload: Record<string, unknown> = { number: (body as Record<string, unknown>).number, text: (body as Record<string, unknown>).text };
+      if ((body as Record<string, unknown>).delay !== undefined) sendTextPayload.delay = (body as Record<string, unknown>).delay;
+      if ((body as Record<string, unknown>).quoted !== undefined) sendTextPayload.quoted = (body as Record<string, unknown>).quoted;
+      if ((body as Record<string, unknown>).mentionsEveryOne !== undefined) sendTextPayload.mentionsEveryOne = (body as Record<string, unknown>).mentionsEveryOne;
+      if ((body as Record<string, unknown>).mentioned !== undefined) sendTextPayload.mentioned = (body as Record<string, unknown>).mentioned;
+      if ((body as Record<string, unknown>).linkPreview !== undefined) sendTextPayload.linkPreview = (body as Record<string, unknown>).linkPreview;
       return await proxy(`/message/sendText/${instance}`, 'POST', sendTextPayload);
     }
-    if (action === 'send-media') return await proxy(`/message/sendMedia/${instance}`, 'POST', { number: (body as any).number, mediatype: (body as any).mediaType || (body as any).mediatype, mimetype: (body as any).mimetype, caption: (body as any).caption, media: (body as any).mediaUrl || (body as any).media, fileName: (body as any).fileName, delay: (body as any).delay });
+    if (action === 'send-media') return await proxy(`/message/sendMedia/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, mediatype: (body as Record<string, unknown>).mediaType || (body as Record<string, unknown>).mediatype, mimetype: (body as Record<string, unknown>).mimetype, caption: (body as Record<string, unknown>).caption, media: (body as Record<string, unknown>).mediaUrl || (body as Record<string, unknown>).media, fileName: (body as Record<string, unknown>).fileName, delay: (body as Record<string, unknown>).delay });
 
     if (action === 'send-audio') {
       if (isMultipart) {
@@ -515,37 +563,37 @@ serve(async (req) => {
         if (videoFile) evolutionFormData.append('video', videoFile);
         return await proxy(`/message/sendPtv/${instance}`, 'POST', evolutionFormData);
       }
-      const rawVideo = (body as any).video ?? (body as any).videoUrl ?? (body as any).mediaUrl;
+      const rawVideo = (body as Record<string, unknown>).video ?? (body as Record<string, unknown>).videoUrl ?? (body as Record<string, unknown>).mediaUrl;
       let videoSource: unknown = typeof rawVideo === 'string'
         ? rawVideo.trim().replace(/^"+|"+$/g, '').replace(/\.supabase\.co"\//, '.supabase.co/')
         : rawVideo;
       if (typeof videoSource === 'string') videoSource = await resolvePrivateBucketUrl(supabase, videoSource, ['whatsapp-media']);
-      const ptvPayload: Record<string, unknown> = { number: (body as any).number, video: videoSource };
-      if ((body as any).delay) ptvPayload.delay = (body as any).delay;
+      const ptvPayload: Record<string, unknown> = { number: (body as Record<string, unknown>).number, video: videoSource };
+      if ((body as Record<string, unknown>).delay) ptvPayload.delay = (body as Record<string, unknown>).delay;
       return await proxy(`/message/sendPtv/${instance}`, 'POST', ptvPayload);
     }
 
-    if (action === 'send-location') return await proxy(`/message/sendLocation/${instance}`, 'POST', { number: (body as any).number, name: (body as any).locationName || (body as any).name, address: (body as any).locationAddress || (body as any).address, latitude: (body as any).latitude, longitude: (body as any).longitude });
-    if (action === 'send-contact') return await proxy(`/message/sendContact/${instance}`, 'POST', { number: (body as any).number, contact: (body as any).contact });
-    if (action === 'send-reaction') return await proxy(`/message/sendReaction/${instance}`, 'POST', { key: (body as any).key, reaction: (body as any).reaction });
+    if (action === 'send-location') return await proxy(`/message/sendLocation/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, name: (body as Record<string, unknown>).locationName || (body as Record<string, unknown>).name, address: (body as Record<string, unknown>).locationAddress || (body as Record<string, unknown>).address, latitude: (body as Record<string, unknown>).latitude, longitude: (body as Record<string, unknown>).longitude });
+    if (action === 'send-contact') return await proxy(`/message/sendContact/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, contact: (body as Record<string, unknown>).contact });
+    if (action === 'send-reaction') return await proxy(`/message/sendReaction/${instance}`, 'POST', { key: (body as Record<string, unknown>).key, reaction: (body as Record<string, unknown>).reaction });
     
-    if (action === 'send-poll') return await proxy(`/message/sendPoll/${instance}`, 'POST', { number: (body as any).number, name: (body as any).name || (body as any).question, selectableCount: (body as any).selectableCount || 1, values: (body as any).values || (body as any).options });
+    if (action === 'send-poll') return await proxy(`/message/sendPoll/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, name: (body as Record<string, unknown>).name || (body as Record<string, unknown>).question, selectableCount: (body as Record<string, unknown>).selectableCount || 1, values: (body as Record<string, unknown>).values || (body as Record<string, unknown>).options });
     if (action === 'send-sticker') {
-      let finalStickerUrl = (body as any).sticker || (body as any).mediaUrl;
+      let finalStickerUrl = (body as Record<string, unknown>).sticker || (body as Record<string, unknown>).mediaUrl;
       if (typeof finalStickerUrl === 'string') finalStickerUrl = await resolvePrivateBucketUrl(supabase, finalStickerUrl, ['whatsapp-media']);
-      return await proxy(`/message/sendSticker/${instance}`, 'POST', { number: (body as any).number, sticker: finalStickerUrl });
+      return await proxy(`/message/sendSticker/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, sticker: finalStickerUrl });
     }
     
-    if (action === 'send-list') return await proxy(`/message/sendList/${instance}`, 'POST', { number: (body as any).number, title: (body as any).title, description: (body as any).description, footer: (body as any).footer, buttonText: (body as any).buttonText, sections: (body as any).sections });
-    if (action === 'send-buttons') return await proxy(`/message/sendButtons/${instance}`, 'POST', { number: (body as any).number, title: (body as any).title, description: (body as any).description, footer: (body as any).footer, buttons: (body as any).buttons });
+    if (action === 'send-list') return await proxy(`/message/sendList/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, title: (body as Record<string, unknown>).title, description: (body as Record<string, unknown>).description, footer: (body as Record<string, unknown>).footer, buttonText: (body as Record<string, unknown>).buttonText, sections: (body as Record<string, unknown>).sections });
+    if (action === 'send-buttons') return await proxy(`/message/sendButtons/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, title: (body as Record<string, unknown>).title, description: (body as Record<string, unknown>).description, footer: (body as Record<string, unknown>).footer, buttons: (body as Record<string, unknown>).buttons });
     if (action === 'send-status') return await proxy(`/message/sendStatus/${instance}`, 'POST', body);
-    if (action === 'send-template') return await proxy(`/message/sendTemplate/${instance}`, 'POST', { number: (body as any).number, template: (body as any).template });
-    if (action === 'mark-read') return await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages: (body as any).readMessages || [(body as any).key] });
-    if (action === 'mark-unread') return await proxy(`/chat/markMessageAsUnread/${instance}`, 'POST', { readMessages: (body as any).readMessages || [(body as any).key] });
+    if (action === 'send-template') return await proxy(`/message/sendTemplate/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, template: (body as Record<string, unknown>).template });
+    if (action === 'mark-read') return await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages: (body as Record<string, unknown>).readMessages || [(body as Record<string, unknown>).key] });
+    if (action === 'mark-unread') return await proxy(`/chat/markMessageAsUnread/${instance}`, 'POST', { readMessages: (body as Record<string, unknown>).readMessages || [(body as Record<string, unknown>).key] });
 
 
     if (action === 'read-messages') {
-      const remoteJid = (body as any).remoteJid || (body as any).chat;
+      const remoteJid = (body as Record<string, unknown>).remoteJid || (body as Record<string, unknown>).chat;
       if (!remoteJid) {
         return new Response(JSON.stringify({ ok: false, skipped: true, reason: 'missing remoteJid' }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -559,29 +607,29 @@ serve(async (req) => {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (err) {
-        return new Response(JSON.stringify({ ok: false, skipped: true, error: err instanceof Error ? err.message : 'proxy failed' }), {
+        return new Response(JSON.stringify({ ok: false, skipped: true, error: 'proxy error' }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
 
-    if (action === 'archive-chat') return await proxy(`/message/archiveChat/${instance}`, 'POST', { lastMessage: (body as any).lastMessage, chat: (body as any).chat, archive: (body as any).archive ?? true });
-    if (action === 'delete-message') return await proxy(`/message/delete/${instance}`, 'DELETE', { id: (body as any).id, remoteJid: (body as any).remoteJid, fromMe: (body as any).fromMe });
-    if (action === 'update-message') return await proxy(`/message/update/${instance}`, 'PUT', { number: (body as any).number, key: (body as any).key, text: (body as any).text });
+    if (action === 'archive-chat') return await proxy(`/message/archiveChat/${instance}`, 'POST', { lastMessage: (body as Record<string, unknown>).lastMessage, chat: (body as Record<string, unknown>).chat, archive: (body as Record<string, unknown>).archive ?? true });
+    if (action === 'delete-message') return await proxy(`/message/delete/${instance}`, 'DELETE', { id: (body as Record<string, unknown>).id, remoteJid: (body as Record<string, unknown>).remoteJid, fromMe: (body as Record<string, unknown>).fromMe });
+    if (action === 'update-message') return await proxy(`/message/update/${instance}`, 'PUT', { number: (body as Record<string, unknown>).number, key: (body as Record<string, unknown>).key, text: (body as Record<string, unknown>).text });
 
     if (action === 'find-chats') {
       const t0 = Date.now();
       const endpoint = `/chat/findChats/${instance}`;
-      const response = await proxy(endpoint, 'POST', { where: (body as any).where || {} });
+      const response = await proxy(endpoint, 'POST', { where: (body as Record<string, unknown>).where || {} });
       const data = await response.json();
       maybeLogFallback({ action: 'find-chats', endpoint, instance: instance ? String(instance) : null, status: response.status, data, primary_ms: Date.now() - t0, supabase });
       if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify(normalizeChatList(data)), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    if (action === 'find-messages') return await proxy(`/chat/findMessages/${instance}`, 'POST', { where: (body as any).where || {}, page: (body as any).page, offset: (body as any).offset });
+    if (action === 'find-messages') return await proxy(`/chat/findMessages/${instance}`, 'POST', { where: (body as Record<string, unknown>).where || {}, page: (body as Record<string, unknown>).page, offset: (body as Record<string, unknown>).offset });
 
     if (action === 'find-status-messages') {
-      const response = await proxy(`/chat/findMessages/${instance}`, 'POST', { where: { key: { remoteJid: 'status@broadcast' } }, page: (body as any).page ?? 1, offset: (body as any).offset ?? 200 });
+      const response = await proxy(`/chat/findMessages/${instance}`, 'POST', { where: { key: { remoteJid: 'status@broadcast' } }, page: (body as Record<string, unknown>).page ?? 1, offset: (body as Record<string, unknown>).offset ?? 200 });
       const data = await response.json();
       if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       const records = Array.isArray(data?.messages?.records) ? data.messages.records : [];
@@ -591,32 +639,32 @@ serve(async (req) => {
     if (action === 'find-contacts') {
       const t0 = Date.now();
       const endpoint = `/chat/findContacts/${instance}`;
-      const response = await proxy(endpoint, 'POST', { where: (body as any).where || {} });
+      const response = await proxy(endpoint, 'POST', { where: (body as Record<string, unknown>).where || {} });
       const data = await response.json();
       maybeLogFallback({ action: 'find-contacts', endpoint, instance: instance ? String(instance) : null, status: response.status, data, primary_ms: Date.now() - t0, supabase });
       if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify(normalizeContactList(data)), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    if (action === 'check-numbers') return await proxy(`/chat/whatsappNumbers/${instance}`, 'POST', { numbers: (body as any).numbers });
-    if (action === 'get-media-base64') return await proxy(`/chat/getBase64FromMediaMessage/${instance}`, 'POST', { message: (body as any).message, convertToMp4: (body as any).convertToMp4 ?? false });
+    if (action === 'check-numbers') return await proxy(`/chat/whatsappNumbers/${instance}`, 'POST', { numbers: (body as Record<string, unknown>).numbers });
+    if (action === 'get-media-base64') return await proxy(`/chat/getBase64FromMediaMessage/${instance}`, 'POST', { message: (body as Record<string, unknown>).message, convertToMp4: (body as Record<string, unknown>).convertToMp4 ?? false });
     if (action === 'delete-for-everyone') return await proxy(`/chat/deleteMessageForEveryone/${instance}`, 'DELETE', body);
     if (action === 'edit-message') return await proxy(`/chat/updateMessage/${instance}`, 'PUT', body);
 
-    if (action === 'create-group') return await proxy(`/group/create/${instance}`, 'POST', { subject: (body as any).subject, description: (body as any).description, participants: (body as any).participants });
-    if (action === 'list-groups') return await proxy(`/group/fetchAllGroups/${instance}?getParticipants=${(body as any).getParticipants ?? 'false'}`, 'GET');
-    if (action === 'group-info') return await proxy(`/group/findGroupInfos/${instance}?groupJid=${(body as any).groupJid}`, 'GET');
-    if (action === 'group-participants') return await proxy(`/group/participants/${instance}?groupJid=${(body as any).groupJid}`, 'GET');
-    if (action === 'update-group-name') return await proxy(`/group/updateGroupSubject/${instance}`, 'PUT', { groupJid: (body as any).groupJid, subject: (body as any).subject });
-    if (action === 'update-group-description') return await proxy(`/group/updateGroupDescription/${instance}`, 'PUT', { groupJid: (body as any).groupJid, description: (body as any).description });
-    if (action === 'update-participants') return await proxy(`/group/updateParticipant/${instance}`, 'PUT', { groupJid: (body as any).groupJid, action: (body as any).action, participants: (body as any).participants });
-    if (action === 'update-group-setting') return await proxy(`/group/updateSetting/${instance}`, 'PUT', { groupJid: (body as any).groupJid, action: (body as any).action });
-    if (action === 'group-invite-code') return await proxy(`/group/inviteCode/${instance}?groupJid=${(body as any).groupJid}`, 'GET');
-    if (action === 'revoke-invite-code') return await proxy(`/group/revokeInviteCode/${instance}`, 'PUT', { groupJid: (body as any).groupJid });
-    if (action === 'invite-info') return await proxy(`/group/inviteInfo/${instance}?inviteCode=${(body as any).inviteCode}`, 'GET');
-    if (action === 'accept-invite') return await proxy(`/group/acceptInviteCode/${instance}`, 'POST', { inviteCode: (body as any).inviteCode });
-    if (action === 'leave-group') return await proxy(`/group/leaveGroup/${instance}`, 'DELETE', { groupJid: (body as any).groupJid });
-    if (action === 'update-group-picture') return await proxy(`/group/updateGroupPicture/${instance}`, 'PUT', { groupJid: (body as any).groupJid, image: (body as any).image });
-    if (action === 'toggle-ephemeral') return await proxy(`/group/toggleEphemeral/${instance}`, 'POST', { groupJid: (body as any).groupJid, expiration: (body as any).expiration });
+    if (action === 'create-group') return await proxy(`/group/create/${instance}`, 'POST', { subject: (body as Record<string, unknown>).subject, description: (body as Record<string, unknown>).description, participants: (body as Record<string, unknown>).participants });
+    if (action === 'list-groups') return await proxy(`/group/fetchAllGroups/${instance}?getParticipants=${encodeURIComponent(String((body as Record<string, unknown>).getParticipants ?? 'false'))}`, 'GET');
+    if (action === 'group-info') return await proxy(`/group/findGroupInfos/${instance}?groupJid=${encodeURIComponent(String((body as Record<string, unknown>).groupJid ?? ''))}`, 'GET');
+    if (action === 'group-participants') return await proxy(`/group/participants/${instance}?groupJid=${encodeURIComponent(String((body as Record<string, unknown>).groupJid ?? ''))}`, 'GET');
+    if (action === 'update-group-name') return await proxy(`/group/updateGroupSubject/${instance}`, 'PUT', { groupJid: (body as Record<string, unknown>).groupJid, subject: (body as Record<string, unknown>).subject });
+    if (action === 'update-group-description') return await proxy(`/group/updateGroupDescription/${instance}`, 'PUT', { groupJid: (body as Record<string, unknown>).groupJid, description: (body as Record<string, unknown>).description });
+    if (action === 'update-participants') return await proxy(`/group/updateParticipant/${instance}`, 'PUT', { groupJid: (body as Record<string, unknown>).groupJid, action: (body as Record<string, unknown>).action, participants: (body as Record<string, unknown>).participants });
+    if (action === 'update-group-setting') return await proxy(`/group/updateSetting/${instance}`, 'PUT', { groupJid: (body as Record<string, unknown>).groupJid, action: (body as Record<string, unknown>).action });
+    if (action === 'group-invite-code') return await proxy(`/group/inviteCode/${instance}?groupJid=${encodeURIComponent(String((body as Record<string, unknown>).groupJid ?? ''))}`, 'GET');
+    if (action === 'revoke-invite-code') return await proxy(`/group/revokeInviteCode/${instance}`, 'PUT', { groupJid: (body as Record<string, unknown>).groupJid });
+    if (action === 'invite-info') return await proxy(`/group/inviteInfo/${instance}?inviteCode=${encodeURIComponent(String((body as Record<string, unknown>).inviteCode ?? ''))}`, 'GET');
+    if (action === 'accept-invite') return await proxy(`/group/acceptInviteCode/${instance}`, 'POST', { inviteCode: (body as Record<string, unknown>).inviteCode });
+    if (action === 'leave-group') return await proxy(`/group/leaveGroup/${instance}`, 'DELETE', { groupJid: (body as Record<string, unknown>).groupJid });
+    if (action === 'update-group-picture') return await proxy(`/group/updateGroupPicture/${instance}`, 'PUT', { groupJid: (body as Record<string, unknown>).groupJid, image: (body as Record<string, unknown>).image });
+    if (action === 'toggle-ephemeral') return await proxy(`/group/toggleEphemeral/${instance}`, 'POST', { groupJid: (body as Record<string, unknown>).groupJid, expiration: (body as Record<string, unknown>).expiration });
 
     if (action === 'fetch-profile') {
       const t0 = Date.now();
@@ -642,81 +690,81 @@ serve(async (req) => {
       if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify(normalizeProfile(data)), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    if (action === 'update-profile-name') return await proxy(`/profile/updateProfileName/${instance}`, 'PUT', { name: (body as any).name });
-    if (action === 'update-profile-status') return await proxy(`/profile/updateProfileStatus/${instance}`, 'PUT', { status: (body as any).status });
-    if (action === 'update-profile-picture') return await proxy(`/profile/updateProfilePicture/${instance}`, 'PUT', { picture: (body as any).picture });
+    if (action === 'update-profile-name') return await proxy(`/profile/updateProfileName/${instance}`, 'PUT', { name: (body as Record<string, unknown>).name });
+    if (action === 'update-profile-status') return await proxy(`/profile/updateProfileStatus/${instance}`, 'PUT', { status: (body as Record<string, unknown>).status });
+    if (action === 'update-profile-picture') return await proxy(`/profile/updateProfilePicture/${instance}`, 'PUT', { picture: (body as Record<string, unknown>).picture });
     if (action === 'remove-profile-picture') return await proxy(`/profile/removeProfilePicture/${instance}`, 'DELETE');
-    if (action === 'fetch-profile-picture') return await proxy(`/profile/fetchProfilePicture/${instance}?number=${(body as any).number}`, 'GET');
-    if (action === 'fetch-business-profile') return await proxy(`/profile/fetchBusinessProfile/${instance}`, 'POST', { number: (body as any).number });
-    if (action === 'update-privacy') return await proxy(`/profile/updatePrivacySettings/${instance}`, 'PUT', { readreceipts: (body as any).readreceipts, profile: (body as any).profile, status: (body as any).status, online: (body as any).online, last: (body as any).last, groupadd: (body as any).groupadd });
+    if (action === 'fetch-profile-picture') return await proxy(`/profile/fetchProfilePicture/${instance}?number=${encodeURIComponent(String((body as Record<string, unknown>).number ?? ''))}`, 'GET');
+    if (action === 'fetch-business-profile') return await proxy(`/profile/fetchBusinessProfile/${instance}`, 'POST', { number: (body as Record<string, unknown>).number });
+    if (action === 'update-privacy') return await proxy(`/profile/updatePrivacySettings/${instance}`, 'PUT', { readreceipts: (body as Record<string, unknown>).readreceipts, profile: (body as Record<string, unknown>).profile, status: (body as Record<string, unknown>).status, online: (body as Record<string, unknown>).online, last: (body as Record<string, unknown>).last, groupadd: (body as Record<string, unknown>).groupadd });
 
     if (action === 'find-labels') return await proxy(`/label/findLabels/${instance}`, 'GET');
-    if (action === 'handle-label') return await proxy(`/label/handleLabel/${instance}`, 'POST', { number: (body as any).number, labelId: (body as any).labelId, action: (body as any).action });
+    if (action === 'handle-label') return await proxy(`/label/handleLabel/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, labelId: (body as Record<string, unknown>).labelId, action: (body as Record<string, unknown>).action });
 
-    if (action === 'set-chatwoot') return await proxy(`/chatwoot/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, accountId: (body as any).accountId, token: (body as any).token, url: (body as any).url, signMsg: (body as any).signMsg ?? true, reopenConversation: (body as any).reopenConversation ?? true, conversationPending: (body as any).conversationPending ?? false, nameInbox: (body as any).nameInbox, mergeBrazilContacts: (body as any).mergeBrazilContacts ?? true, importContacts: (body as any).importContacts ?? true, importMessages: (body as any).importMessages ?? true, daysLimitImportMessages: (body as any).daysLimitImportMessages ?? 7, signDelimiter: (body as any).signDelimiter, autoCreate: (body as any).autoCreate ?? false });
+    if (action === 'set-chatwoot') return await proxy(`/chatwoot/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, accountId: (body as Record<string, unknown>).accountId, token: (body as Record<string, unknown>).token, url: (body as Record<string, unknown>).url, signMsg: (body as Record<string, unknown>).signMsg ?? true, reopenConversation: (body as Record<string, unknown>).reopenConversation ?? true, conversationPending: (body as Record<string, unknown>).conversationPending ?? false, nameInbox: (body as Record<string, unknown>).nameInbox, mergeBrazilContacts: (body as Record<string, unknown>).mergeBrazilContacts ?? true, importContacts: (body as Record<string, unknown>).importContacts ?? true, importMessages: (body as Record<string, unknown>).importMessages ?? true, daysLimitImportMessages: (body as Record<string, unknown>).daysLimitImportMessages ?? 7, signDelimiter: (body as Record<string, unknown>).signDelimiter, autoCreate: (body as Record<string, unknown>).autoCreate ?? false });
     if (action === 'get-chatwoot') return await proxy(`/chatwoot/find/${instance}`, 'GET');
     if (action === 'delete-chatwoot') return await proxy(`/chatwoot/delete/${instance}`, 'DELETE');
 
-    if (action === 'set-typebot') return await proxy(`/typebot/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, url: (body as any).url, typebot: (body as any).typebot, expire: (body as any).expire ?? 20, keywordFinish: (body as any).keywordFinish ?? '#fim', delayMessage: (body as any).delayMessage ?? 1000, unknownMessage: (body as any).unknownMessage, listeningFromMe: (body as any).listeningFromMe ?? false, stopBotFromMe: (body as any).stopBotFromMe ?? true, keepOpen: (body as any).keepOpen ?? false, debounceTime: (body as any).debounceTime ?? 10, triggerType: (body as any).triggerType, triggerOperator: (body as any).triggerOperator, triggerValue: (body as any).triggerValue });
+    if (action === 'set-typebot') return await proxy(`/typebot/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, url: (body as Record<string, unknown>).url, typebot: (body as Record<string, unknown>).typebot, expire: (body as Record<string, unknown>).expire ?? 20, keywordFinish: (body as Record<string, unknown>).keywordFinish ?? '#fim', delayMessage: (body as Record<string, unknown>).delayMessage ?? 1000, unknownMessage: (body as Record<string, unknown>).unknownMessage, listeningFromMe: (body as Record<string, unknown>).listeningFromMe ?? false, stopBotFromMe: (body as Record<string, unknown>).stopBotFromMe ?? true, keepOpen: (body as Record<string, unknown>).keepOpen ?? false, debounceTime: (body as Record<string, unknown>).debounceTime ?? 10, triggerType: (body as Record<string, unknown>).triggerType, triggerOperator: (body as Record<string, unknown>).triggerOperator, triggerValue: (body as Record<string, unknown>).triggerValue });
     if (action === 'get-typebot') return await proxy(`/typebot/find/${instance}`, 'GET');
     if (action === 'delete-typebot') return await proxy(`/typebot/delete/${instance}`, 'DELETE');
-    if (action === 'typebot-sessions') return await proxy(`/typebot/fetchSessions/${instance}${(body as any).typebotId ? `?typebotId=${(body as any).typebotId}` : ''}`, 'GET');
-    if (action === 'typebot-change-status') return await proxy(`/typebot/changeStatus/${instance}`, 'POST', { remoteJid: (body as any).remoteJid, status: (body as any).status });
-    if (action === 'start-typebot') return await proxy(`/typebot/startTypebot/${instance}`, 'POST', { remoteJid: (body as any).remoteJid, url: (body as any).url, typebot: (body as any).typebot, variables: (body as any).variables });
+    if (action === 'typebot-sessions') return await proxy(`/typebot/fetchSessions/${instance}${(body as Record<string, unknown>).typebotId ? `?typebotId=${encodeURIComponent(String((body as Record<string, unknown>).typebotId))}` : ''}`, 'GET');
+    if (action === 'typebot-change-status') return await proxy(`/typebot/changeStatus/${instance}`, 'POST', { remoteJid: (body as Record<string, unknown>).remoteJid, status: (body as Record<string, unknown>).status });
+    if (action === 'start-typebot') return await proxy(`/typebot/startTypebot/${instance}`, 'POST', { remoteJid: (body as Record<string, unknown>).remoteJid, url: (body as Record<string, unknown>).url, typebot: (body as Record<string, unknown>).typebot, variables: (body as Record<string, unknown>).variables });
 
-    if (action === 'set-openai') return await proxy(`/openai/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, openAiApiKey: (body as any).openAiApiKey, expire: (body as any).expire ?? 30, keywordFinish: (body as any).keywordFinish ?? '#sair', delayMessage: (body as any).delayMessage ?? 1000, listeningFromMe: (body as any).listeningFromMe ?? false, stopBotFromMe: (body as any).stopBotFromMe ?? true, speechToText: (body as any).speechToText ?? false, botType: (body as any).botType ?? 'chatCompletion', assistantId: (body as any).assistantId, model: (body as any).model ?? 'gpt-4o', systemMessage: (body as any).systemMessage, maxTokens: (body as any).maxTokens ?? 500, temperature: (body as any).temperature ?? 0.7, triggerType: (body as any).triggerType ?? 'all', triggerOperator: (body as any).triggerOperator, triggerValue: (body as any).triggerValue, functionUrl: (body as any).functionUrl });
+    if (action === 'set-openai') return await proxy(`/openai/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, openAiApiKey: (body as Record<string, unknown>).openAiApiKey, expire: (body as Record<string, unknown>).expire ?? 30, keywordFinish: (body as Record<string, unknown>).keywordFinish ?? '#sair', delayMessage: (body as Record<string, unknown>).delayMessage ?? 1000, listeningFromMe: (body as Record<string, unknown>).listeningFromMe ?? false, stopBotFromMe: (body as Record<string, unknown>).stopBotFromMe ?? true, speechToText: (body as Record<string, unknown>).speechToText ?? false, botType: (body as Record<string, unknown>).botType ?? 'chatCompletion', assistantId: (body as Record<string, unknown>).assistantId, model: (body as Record<string, unknown>).model ?? 'gpt-4o', systemMessage: (body as Record<string, unknown>).systemMessage, maxTokens: (body as Record<string, unknown>).maxTokens ?? 500, temperature: (body as Record<string, unknown>).temperature ?? 0.7, triggerType: (body as Record<string, unknown>).triggerType ?? 'all', triggerOperator: (body as Record<string, unknown>).triggerOperator, triggerValue: (body as Record<string, unknown>).triggerValue, functionUrl: (body as Record<string, unknown>).functionUrl });
     if (action === 'get-openai') return await proxy(`/openai/find/${instance}`, 'GET');
     if (action === 'delete-openai') return await proxy(`/openai/delete/${instance}`, 'DELETE');
 
-    if (action === 'set-dify') return await proxy(`/dify/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, apiUrl: (body as any).apiUrl, apiKey: (body as any).apiKey, botType: (body as any).botType ?? 'chatBot', expire: (body as any).expire ?? 30, triggerType: (body as any).triggerType ?? 'all', keywordFinish: (body as any).keywordFinish, listeningFromMe: (body as any).listeningFromMe ?? false, stopBotFromMe: (body as any).stopBotFromMe ?? true, speechToText: (body as any).speechToText ?? false });
+    if (action === 'set-dify') return await proxy(`/dify/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, apiUrl: (body as Record<string, unknown>).apiUrl, apiKey: (body as Record<string, unknown>).apiKey, botType: (body as Record<string, unknown>).botType ?? 'chatBot', expire: (body as Record<string, unknown>).expire ?? 30, triggerType: (body as Record<string, unknown>).triggerType ?? 'all', keywordFinish: (body as Record<string, unknown>).keywordFinish, listeningFromMe: (body as Record<string, unknown>).listeningFromMe ?? false, stopBotFromMe: (body as Record<string, unknown>).stopBotFromMe ?? true, speechToText: (body as Record<string, unknown>).speechToText ?? false });
     if (action === 'get-dify') return await proxy(`/dify/find/${instance}`, 'GET');
     if (action === 'delete-dify') return await proxy(`/dify/delete/${instance}`, 'DELETE');
 
-    if (action === 'set-flowise') return await proxy(`/flowise/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, apiUrl: (body as any).apiUrl, apiKey: (body as any).apiKey, chatflowId: (body as any).chatflowId, expire: (body as any).expire ?? 30, triggerType: (body as any).triggerType, triggerValue: (body as any).triggerValue });
+    if (action === 'set-flowise') return await proxy(`/flowise/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, apiUrl: (body as Record<string, unknown>).apiUrl, apiKey: (body as Record<string, unknown>).apiKey, chatflowId: (body as Record<string, unknown>).chatflowId, expire: (body as Record<string, unknown>).expire ?? 30, triggerType: (body as Record<string, unknown>).triggerType, triggerValue: (body as Record<string, unknown>).triggerValue });
     if (action === 'get-flowise') return await proxy(`/flowise/find/${instance}`, 'GET');
     if (action === 'delete-flowise') return await proxy(`/flowise/delete/${instance}`, 'DELETE');
 
-    if (action === 'set-evolution-bot') return await proxy(`/evolutionBot/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, expire: (body as any).expire ?? 10, keywordFinish: (body as any).keywordFinish ?? '#sair', delayMessage: (body as any).delayMessage ?? 800, triggerType: (body as any).triggerType, triggerOperator: (body as any).triggerOperator, triggerValue: (body as any).triggerValue, unknownMessage: (body as any).unknownMessage, listeningFromMe: (body as any).listeningFromMe ?? false, stopBotFromMe: (body as any).stopBotFromMe ?? true, apiUrl: (body as any).apiUrl, apiKey: (body as any).apiKey });
+    if (action === 'set-evolution-bot') return await proxy(`/evolutionBot/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, expire: (body as Record<string, unknown>).expire ?? 10, keywordFinish: (body as Record<string, unknown>).keywordFinish ?? '#sair', delayMessage: (body as Record<string, unknown>).delayMessage ?? 800, triggerType: (body as Record<string, unknown>).triggerType, triggerOperator: (body as Record<string, unknown>).triggerOperator, triggerValue: (body as Record<string, unknown>).triggerValue, unknownMessage: (body as Record<string, unknown>).unknownMessage, listeningFromMe: (body as Record<string, unknown>).listeningFromMe ?? false, stopBotFromMe: (body as Record<string, unknown>).stopBotFromMe ?? true, apiUrl: (body as Record<string, unknown>).apiUrl, apiKey: (body as Record<string, unknown>).apiKey });
     if (action === 'get-evolution-bot') return await proxy(`/evolutionBot/find/${instance}`, 'GET');
     if (action === 'delete-evolution-bot') return await proxy(`/evolutionBot/delete/${instance}`, 'DELETE');
 
-    if (action === 'set-rabbitmq') return await proxy(`/rabbitmq/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, events: (body as any).events });
+    if (action === 'set-rabbitmq') return await proxy(`/rabbitmq/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, events: (body as Record<string, unknown>).events });
     if (action === 'get-rabbitmq') return await proxy(`/rabbitmq/find/${instance}`, 'GET');
-    if (action === 'set-sqs') return await proxy(`/sqs/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, events: (body as any).events });
+    if (action === 'set-sqs') return await proxy(`/sqs/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, events: (body as Record<string, unknown>).events });
     if (action === 'get-sqs') return await proxy(`/sqs/find/${instance}`, 'GET');
     if (action === 'create-template') return await proxy(`/template/create/${instance}`, 'POST', body);
     if (action === 'find-templates') return await proxy(`/template/find/${instance}`, 'GET');
     if (action === 'delete-template') return await proxy(`/template/delete/${instance}`, 'DELETE', body);
-    if (action === 'update-block-status') return await proxy(`/chat/updateBlockStatus/${instance}`, 'POST', { number: (body as any).number, status: (body as any).status });
-    if (action === 'offer-call') return await proxy(`/call/offerCall/${instance}`, 'POST', { number: (body as any).number, isVideo: (body as any).isVideo ?? false, callDuration: (body as any).callDuration ?? 5 });
-    if (action === 'send-chat-presence') return await proxy(`/chat/sendPresence/${instance}`, 'POST', { number: (body as any).number, presence: (body as any).presence, delay: (body as any).delay ?? 1200 });
+    if (action === 'update-block-status') return await proxy(`/chat/updateBlockStatus/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, status: (body as Record<string, unknown>).status });
+    if (action === 'offer-call') return await proxy(`/call/offerCall/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, isVideo: (body as Record<string, unknown>).isVideo ?? false, callDuration: (body as Record<string, unknown>).callDuration ?? 5 });
+    if (action === 'send-chat-presence') return await proxy(`/chat/sendPresence/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, presence: (body as Record<string, unknown>).presence, delay: (body as Record<string, unknown>).delay ?? 1200 });
 
-    if (action === 'get-catalog') return await proxy(`/business/getCatalog/${instance}`, 'POST', { number: (body as any).number, limit: (body as any).limit, cursor: (body as any).cursor });
-    if (action === 'get-collections') return await proxy(`/business/getCollections/${instance}`, 'POST', { number: (body as any).number, limit: (body as any).limit, cursor: (body as any).cursor });
-    if (action === 'set-proxy') return await proxy(`/proxy/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, host: (body as any).host, port: (body as any).port, protocol: (body as any).protocol, username: (body as any).username, password: (body as any).password });
+    if (action === 'get-catalog') return await proxy(`/business/getCatalog/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, limit: (body as Record<string, unknown>).limit, cursor: (body as Record<string, unknown>).cursor });
+    if (action === 'get-collections') return await proxy(`/business/getCollections/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, limit: (body as Record<string, unknown>).limit, cursor: (body as Record<string, unknown>).cursor });
+    if (action === 'set-proxy') return await proxy(`/proxy/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, host: (body as Record<string, unknown>).host, port: (body as Record<string, unknown>).port, protocol: (body as Record<string, unknown>).protocol, username: (body as Record<string, unknown>).username, password: (body as Record<string, unknown>).password });
     if (action === 'get-proxy') return await proxy(`/proxy/find/${instance}`, 'GET');
-    if (action === 'set-evoai') return await proxy(`/evoai/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, apiUrl: (body as any).apiUrl, apiKey: (body as any).apiKey, agentId: (body as any).agentId, expire: (body as any).expire ?? 30, triggerType: (body as any).triggerType ?? 'all', triggerOperator: (body as any).triggerOperator, triggerValue: (body as any).triggerValue, keywordFinish: (body as any).keywordFinish, delayMessage: (body as any).delayMessage ?? 1000, unknownMessage: (body as any).unknownMessage, listeningFromMe: (body as any).listeningFromMe ?? false, stopBotFromMe: (body as any).stopBotFromMe ?? true, keepOpen: (body as any).keepOpen ?? false, debounceTime: (body as any).debounceTime ?? 10, speechToText: (body as any).speechToText ?? false });
+    if (action === 'set-evoai') return await proxy(`/evoai/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, apiUrl: (body as Record<string, unknown>).apiUrl, apiKey: (body as Record<string, unknown>).apiKey, agentId: (body as Record<string, unknown>).agentId, expire: (body as Record<string, unknown>).expire ?? 30, triggerType: (body as Record<string, unknown>).triggerType ?? 'all', triggerOperator: (body as Record<string, unknown>).triggerOperator, triggerValue: (body as Record<string, unknown>).triggerValue, keywordFinish: (body as Record<string, unknown>).keywordFinish, delayMessage: (body as Record<string, unknown>).delayMessage ?? 1000, unknownMessage: (body as Record<string, unknown>).unknownMessage, listeningFromMe: (body as Record<string, unknown>).listeningFromMe ?? false, stopBotFromMe: (body as Record<string, unknown>).stopBotFromMe ?? true, keepOpen: (body as Record<string, unknown>).keepOpen ?? false, debounceTime: (body as Record<string, unknown>).debounceTime ?? 10, speechToText: (body as Record<string, unknown>).speechToText ?? false });
     if (action === 'get-evoai') return await proxy(`/evoai/find/${instance}`, 'GET');
     if (action === 'delete-evoai') return await proxy(`/evoai/delete/${instance}`, 'DELETE');
-    if (action === 'set-n8n') return await proxy(`/n8n/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, webhookUrl: (body as any).webhookUrl, expire: (body as any).expire ?? 30, triggerType: (body as any).triggerType ?? 'all', triggerOperator: (body as any).triggerOperator, triggerValue: (body as any).triggerValue, keywordFinish: (body as any).keywordFinish, delayMessage: (body as any).delayMessage ?? 1000, unknownMessage: (body as any).unknownMessage, listeningFromMe: (body as any).listeningFromMe ?? false, stopBotFromMe: (body as any).stopBotFromMe ?? true, keepOpen: (body as any).keepOpen ?? false, debounceTime: (body as any).debounceTime ?? 10 });
+    if (action === 'set-n8n') return await proxy(`/n8n/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, webhookUrl: (body as Record<string, unknown>).webhookUrl, expire: (body as Record<string, unknown>).expire ?? 30, triggerType: (body as Record<string, unknown>).triggerType ?? 'all', triggerOperator: (body as Record<string, unknown>).triggerOperator, triggerValue: (body as Record<string, unknown>).triggerValue, keywordFinish: (body as Record<string, unknown>).keywordFinish, delayMessage: (body as Record<string, unknown>).delayMessage ?? 1000, unknownMessage: (body as Record<string, unknown>).unknownMessage, listeningFromMe: (body as Record<string, unknown>).listeningFromMe ?? false, stopBotFromMe: (body as Record<string, unknown>).stopBotFromMe ?? true, keepOpen: (body as Record<string, unknown>).keepOpen ?? false, debounceTime: (body as Record<string, unknown>).debounceTime ?? 10 });
     if (action === 'get-n8n') return await proxy(`/n8n/find/${instance}`, 'GET');
     if (action === 'delete-n8n') return await proxy(`/n8n/delete/${instance}`, 'DELETE');
-    if (action === 'set-kafka') return await proxy(`/kafka/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, events: (body as any).events });
+    if (action === 'set-kafka') return await proxy(`/kafka/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, events: (body as Record<string, unknown>).events });
     if (action === 'get-kafka') return await proxy(`/kafka/find/${instance}`, 'GET');
-    if (action === 'set-nats') return await proxy(`/nats/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, events: (body as any).events });
+    if (action === 'set-nats') return await proxy(`/nats/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, events: (body as Record<string, unknown>).events });
     if (action === 'get-nats') return await proxy(`/nats/find/${instance}`, 'GET');
-    if (action === 'set-pusher') return await proxy(`/pusher/set/${instance}`, 'POST', { enabled: (body as any).enabled ?? true, appId: (body as any).appId, key: (body as any).key, secret: (body as any).secret, cluster: (body as any).cluster, events: (body as any).events });
+    if (action === 'set-pusher') return await proxy(`/pusher/set/${instance}`, 'POST', { enabled: (body as Record<string, unknown>).enabled ?? true, appId: (body as Record<string, unknown>).appId, key: (body as Record<string, unknown>).key, secret: (body as Record<string, unknown>).secret, cluster: (body as Record<string, unknown>).cluster, events: (body as Record<string, unknown>).events });
     if (action === 'get-pusher') return await proxy(`/pusher/find/${instance}`, 'GET');
 
     return new Response(JSON.stringify({ error: 'Unknown action', action }), {
       status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error: any) {
-    if (error.status) return errorResponse(error.message, error.status, req);
+  } catch (error: unknown) {
+    const errWithStatus = error as { status?: number } | null;
+    if (errWithStatus?.status) return errorResponse('Internal server error', errWithStatus.status, req);
     const log = new Logger('evolution-api', req);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    log.error('Unhandled error', { error: message });
-    return new Response(JSON.stringify({ error: message }), {
+    log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

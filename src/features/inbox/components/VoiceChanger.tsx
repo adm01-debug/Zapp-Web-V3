@@ -98,24 +98,23 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
 
       // 1. Create or get task in queue
       let taskId = activeTaskId;
-
+      
       if (!taskId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: taskRows, error: queueError } = await safeClient.from<{ id: string }>(
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        const { data: task, error: queueError } = await safeClient.single<{ id: string; status: string }>(
           'voice_conversion_queue',
-          (q) => q.insert({
+          q => q.insert({
             input_audio_url: audioUrl || 'blob-input',
             voice_preset: voice.id,
             status: 'pending',
-            user_id: user?.id,
+            user_id: userId,
             message_id: messageId,
             conversation_id: conversationId,
-          }).select(),
+          }).select()
         );
-        const task = taskRows[0] ?? null;
 
         if (queueError) throw queueError;
-        taskId = task.id;
+        taskId = task?.id ?? null;
         setActiveTaskId(taskId);
       }
 
@@ -176,8 +175,8 @@ export const VoiceChanger = memo(function VoiceChanger({ audioBlob, audioUrl, on
         p_status: 'completed',
       });
       
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+    } catch (error: any) {
+      const msg = error.message || 'Erro desconhecido';
       const conversionDuration = Date.now() - conversionStartTime;
       
       // Update telemetry for local failure

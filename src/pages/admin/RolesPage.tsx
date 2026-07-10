@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Shield, Users, UserPlus, Trash2, Search, Loader2, Crown, Eye, Headphones, Code } from 'lucide-react';
 import { useUserRole } from '@/features/auth';
-import { useRolesPageState } from './useRolesPageState';
+import { useRolesPageState } from '@/hooks/admin/useRolesPageState';
 import { PermissionMatrix } from '@/features/auth';
 import { VisibilityGrantsManager } from '@/features/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

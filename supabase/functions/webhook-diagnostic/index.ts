@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';
+import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,15 +13,30 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+
+    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'full-diagnostic';
-    const instanceName = body.instanceName;
+    const rawInstanceName: unknown = body.instanceName;
+
+    // Validate instanceName to prevent path traversal in Evolution API URLs
+    const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+    if (rawInstanceName !== undefined && rawInstanceName !== null) {
+      if (typeof rawInstanceName !== 'string' || !INSTANCE_RE.test(rawInstanceName)) {
+        return new Response(
+          JSON.stringify({ error: 'instanceName contains invalid characters' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    const instanceName = rawInstanceName as string | undefined;
 
     const results: Record<string, unknown> = { timestamp: new Date().toISOString(), action };
 
@@ -183,7 +199,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
+    console.error('[webhook-diagnostic] error:', err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

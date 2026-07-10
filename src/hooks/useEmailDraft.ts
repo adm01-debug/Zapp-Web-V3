@@ -45,10 +45,10 @@ export function useEmailDraft(accountId: string | null, threadId?: string) {
       if (localId) {
         await safeClient.from('email_drafts', (q) => q.update(payload).eq('id', localId));
       } else {
-        const { data } = await safeClient.from('email_drafts', (q) =>
-          q.insert(payload).select('id').single()
+        const { data: insertData } = await safeClient.single<{ id: string }>('email_drafts', q =>
+          q.insert(payload).select('id')
         );
-        localId = (data as { id?: string } | null)?.id;
+        localId = insertData?.id;
       }
 
       const emailResult = await emailSaveDraft({
@@ -64,7 +64,7 @@ export function useEmailDraft(accountId: string | null, threadId?: string) {
       setDraft(prev => ({
         ...prev,
         id: localId,
-        email_draft_id: (emailResult as { draftId?: string } | null)?.draftId,
+        email_draft_id: (emailResult as { draftId?: string })?.draftId,
         isDirty: false,
         lastSaved: new Date(),
       }));

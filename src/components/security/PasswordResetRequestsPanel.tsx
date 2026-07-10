@@ -40,9 +40,9 @@ export function PasswordResetRequestsPanel() {
 
   const fetchRequests = async () => {
     try {
-      const { data, error } = await safeClient.from<ResetRequest>('password_reset_requests_safe', (q) => q.select('*').order('created_at', { ascending: false }));
+      const { data, error } = await safeClient.from<ResetRequest>('password_reset_requests_safe', q => q.select('*').order('created_at', { ascending: false }));
       if (error) throw error;
-      setRequests(data);
+      setRequests(data ?? []);
     } catch (error) { log.error('Error fetching requests:', error); toast.error('Erro ao carregar solicitações'); }
     finally { setLoading(false); }
   };

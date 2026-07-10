@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { whatsappConnectionService } from '@/features/connections/services/whatsappConnectionService';
@@ -32,21 +31,19 @@ export function useConnectionsActions(
     const instanceName = isOfficial ? `official_${Date.now().toString(36)}` : whatsappConnectionService.generateInstanceName(newConnection.name);
     
     try {
-      const { data: insertedRows, error } = await safeClient.from<Record<string, unknown>>(
-        'whatsapp_connections',
-        (q) => q.insert({
+      const { data, error } = await safeClient.single<Record<string, unknown>>('whatsapp_connections', q =>
+        q.insert({
           name: newConnection.name,
           phone_number: newConnection.phone_number,
           instance_id: instanceName,
           status: 'disconnected',
           is_default: connections.length === 0,
           api_type: newConnection.api_type,
-        }).select(),
+        }).select()
       );
+      
       if (error) throw error;
-      const data = insertedRows[0] ?? null;
-      if (!data) throw new Error('Falha ao criar conexão');
-
+      
       setConnections(prev => [...prev, data]);
       
       toast({
@@ -68,8 +65,8 @@ export function useConnectionsActions(
 
   const handleSetDefault = useCallback(async (id: string) => {
     try {
-      await supabase.from('whatsapp_connections').update({ is_default: false }).neq('id', id);
-      const { error } = await supabase.from('whatsapp_connections').update({ is_default: true }).eq('id', id);
+      await safeClient.from('whatsapp_connections', q => q.update({ is_default: false }).neq('id', id));
+      const { error } = await safeClient.from('whatsapp_connections', q => q.update({ is_default: true }).eq('id', id));
       if (error) throw error;
       setConnections(prev => prev.map(c => ({ ...c, is_default: c.id === id })));
       toast({ title: 'Conexão padrão atualizada' });
@@ -85,7 +82,7 @@ export function useConnectionsActions(
       if (evoName) {
         await deleteInstance(evoName).catch(e => log.warn('Failed to delete evolution instance:', e));
       }
-      const { error } = await supabase.from('whatsapp_connections').delete().eq('id', connection.id);
+      const { error } = await safeClient.from('whatsapp_connections', q => q.delete().eq('id', connection.id));
       if (error) throw error;
       setConnections(prev => prev.filter(c => c.id !== connection.id));
       toast({ title: 'Conexão removida' });

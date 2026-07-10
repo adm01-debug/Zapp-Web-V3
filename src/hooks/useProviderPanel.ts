@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
-import { dbRpc, dbFrom } from '@/integrations/datasource/db';
-import { RPC } from '@/integrations/datasource/rpcCatalog';
 
 export type ProviderType = 'evolution' | 'wppconnect' | 'baileys' | 'custom';
 
@@ -50,17 +50,17 @@ export function useProviderPanel() {
 
   const fetchPanel = useCallback(async () => {
     setLoading(true);
-    const [{ data: panelData }, { data: logsData }] = await Promise.all([
-      dbRpc(RPC.providerPanel, {}),
-      dbRpc(RPC.providerSessionTimeline, {
+    const [panelResult, logsResult] = await Promise.all([
+      safeClient.rpc<ProviderRow[]>('rpc_provider_panel'),
+      safeClient.rpc<ProviderLog[]>('rpc_provider_session_timeline', {
         p_provider_id: selectedProviderId,
         p_session_id: null,
         p_limit: 100,
       }),
     ]);
     if (!mountedRef.current) return;
-    setRows((panelData as ProviderRow[]) ?? []);
-    setLogs((logsData as ProviderLog[]) ?? []);
+    setRows(panelResult.data ?? []);
+    setLogs(logsResult.data ?? []);
     setLoading(false);
   }, [selectedProviderId]);
 
@@ -71,18 +71,18 @@ export function useProviderPanel() {
   }, [fetchPanel]);
 
   const upsertProvider = async (payload: Partial<ProviderRow> & { id?: string; auth_token?: string }) => {
-    const { id, ...rest } = payload;
+    const { id, auth_token, name, provider_type, base_url, priority, is_active } = payload;
     const data = {
-      name: rest.name,
-      provider_type: rest.provider_type,
-      base_url: rest.base_url,
-      auth_token: rest.auth_token ?? null,
-      priority: rest.priority ?? 10,
-      is_active: rest.is_active ?? true,
+      name,
+      provider_type,
+      base_url,
+      auth_token: auth_token ?? null,
+      priority: priority ?? 10,
+      is_active: is_active ?? true,
     };
     const op = id
-      ? dbFrom('provider_configs').update(data).eq('id', id)
-      : dbFrom('provider_configs').insert(data);
+      ? safeClient.from('provider_configs', q => q.update(data).eq('id', id))
+      : safeClient.from('provider_configs', q => q.insert(data));
     const { error } = await op;
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -94,7 +94,7 @@ export function useProviderPanel() {
   };
 
   const deleteProvider = async (id: string) => {
-    const { error } = await dbFrom('provider_configs').delete().eq('id', id);
+    const { error } = await safeClient.from('provider_configs', q => q.delete().eq('id', id));
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
       return;
@@ -109,7 +109,7 @@ export function useProviderPanel() {
       toast({ title: 'Falha no healthcheck', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Healthcheck executado', description: `${data?.checked ?? 0} provedor(es) verificado(s).` });
+    toast({ title: 'Healthcheck executado', description: `${(data as { checked?: number })?.checked ?? 0} provedor(es) verificado(s).` });
     fetchPanel();
   };
 

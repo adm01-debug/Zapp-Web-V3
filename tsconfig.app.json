@@ -16,10 +16,7 @@
     "incremental": true,
     "tsBuildInfoFile": "./.tsbuildinfo",
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false,
     "forceConsistentCasingInFileNames": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
     "paths": {
       "@/*": ["./src/*"],
       "@/admin": ["./src/features/admin"],
@@ -29,17 +26,19 @@
       "@/sla": ["./src/features/sla"]
     },
     "skipLibCheck": true,
-    "strict": false,
-    "strictNullChecks": false,
+    "strict": true,
     "noImplicitAny": false,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "strictBindCallApply": true,
+    "noImplicitReturns": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "target": "ES2020",
     "useDefineForClassFields": true
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/__tests__/resolve-jid-exhaustive.test.ts"
   ]
 }

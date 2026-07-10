@@ -17,27 +17,17 @@ interface QueueMetricsDashboardProps {
 const log = getLogger('QueueMetricsDashboard');
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-interface StsPerformanceMetric {
-  voice_preset:    string;
-  total_requests:  number;
-  failed_requests: number;
-  error_rate:      number;
-  avg_latency_ms:  number;
-  p99_latency:     number | null;
-  latest_error:    string | null;
-}
-
 export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React.memo(({ metrics }) => {
-  const [stsMetrics, setStsMetrics] = useState<StsPerformanceMetric[]>([]);
+  const [stsMetrics, setStsMetrics] = useState<any[]>([]);
   const [loadingSts, setLoadingSts] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const fetchSTS = async () => {
       try {
-        const { data, error } = await safeClient.from<StsPerformanceMetric>(
+        const { data, error } = await safeClient.from<Record<string, unknown>>(
           'sts_performance_metrics',
-          (q) => q.select('*'),
+          q => q.select('*')
         );
         if (!cancelled && !error && data) setStsMetrics(data);
       } catch (err) {

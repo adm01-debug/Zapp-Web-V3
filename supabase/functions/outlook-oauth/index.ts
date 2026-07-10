@@ -40,14 +40,14 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
   );
 
   const clientId     = Deno.env.get('MICROSOFT_CLIENT_ID');
   const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET');
   const redirectUri  = Deno.env.get('MICROSOFT_REDIRECT_URI') ??
-    `${Deno.env.get('SUPABASE_URL')}/functions/v1/outlook-oauth`;
+    `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/outlook-oauth`;
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
@@ -97,6 +97,7 @@ serve(async (req) => {
           grant_type:   'authorization_code',
           scope:        SCOPES,
         }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!tokenRes.ok) {
@@ -109,6 +110,7 @@ serve(async (req) => {
       // Buscar informações do usuário via Graph API
       const profileRes = await fetch(`${GRAPH_BASE}/me?$select=mail,displayName,userPrincipalName`, {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       const profile = profileRes.ok ? await profileRes.json() : {};
@@ -128,7 +130,7 @@ serve(async (req) => {
           smtp_port:    587,
           smtp_use_tls: true,
           username:     email,
-          password_hash: JSON.stringify({
+          password_encrypted: JSON.stringify({
             access_token:  tokens.access_token,
             refresh_token: tokens.refresh_token,
             expires_in:    tokens.expires_in,
@@ -140,7 +142,7 @@ serve(async (req) => {
         .select('id, email')
         .single();
 
-      if (error) return json({ error: error.message }, 500);
+      if (error) { console.error('[outlook-oauth] upsert error', error.message); return json({ error: 'Internal server error' }, 500); }
       return json({ success: true, accountId: data.id, email: data.email, displayName: profile.displayName });
     }
 
@@ -151,13 +153,13 @@ serve(async (req) => {
 
       const { data: account } = await supabase
         .from('imap_smtp_accounts')
-        .select('email, password_hash')
+        .select('email, password_encrypted')
         .eq('id', accountId)
         .single();
 
       if (!account) return json({ error: 'Conta não encontrada' }, 404);
 
-      const creds = JSON.parse(account.password_hash);
+      const creds = JSON.parse(account.password_encrypted);
       const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
 
       // Buscar mensagens via Graph API
@@ -165,6 +167,7 @@ serve(async (req) => {
 
       const msgsRes = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!msgsRes.ok) return json({ error: 'Falha ao buscar mensagens' }, 502);
@@ -184,13 +187,13 @@ serve(async (req) => {
 
       const { data: account } = await supabase
         .from('imap_smtp_accounts')
-        .select('email, password_hash')
+        .select('email, password_encrypted')
         .eq('id', accountId)
         .single();
 
       if (!account) return json({ error: 'Conta não encontrada' }, 404);
 
-      const creds = JSON.parse(account.password_hash);
+      const creds = JSON.parse(account.password_encrypted);
       const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
 
       const message = {
@@ -214,6 +217,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ message, saveToSentItems: true }),
+        signal: AbortSignal.timeout(15_000),
       });
 
       if (!sendRes.ok) {
@@ -231,13 +235,13 @@ serve(async (req) => {
 
       const { data: account } = await supabase
         .from('imap_smtp_accounts')
-        .select('password_hash')
+        .select('password_encrypted')
         .eq('id', accountId)
         .single();
 
       if (!account) return json({ error: 'Conta não encontrada' }, 404);
 
-      const creds = JSON.parse(account.password_hash);
+      const creds = JSON.parse(account.password_encrypted);
       const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
 
       await fetch(`${GRAPH_BASE}/me/messages/${messageId}`, {
@@ -247,6 +251,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isRead }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       return json({ success: true });
@@ -259,17 +264,18 @@ serve(async (req) => {
 
       const { data: account } = await supabase
         .from('imap_smtp_accounts')
-        .select('password_hash')
+        .select('password_encrypted')
         .eq('id', accountId)
         .single();
 
       if (!account) return json({ error: 'Conta não encontrada' }, 404);
 
-      const creds = JSON.parse(account.password_hash);
+      const creds = JSON.parse(account.password_encrypted);
       const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
 
       const msgRes = await fetch(`${GRAPH_BASE}/me/messages/${messageId}?$select=id,subject,body,from,toRecipients,ccRecipients,receivedDateTime,isRead`, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(10_000),
       });
 
       if (!msgRes.ok) return json({ error: 'Mensagem não encontrada' }, 404);
@@ -293,9 +299,8 @@ serve(async (req) => {
     return json({ error: `Ação desconhecida: ${action}` }, 400);
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[outlook-oauth]', msg);
-    return json({ error: msg }, 500);
+    console.error('[outlook-oauth]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });
 
@@ -328,6 +333,7 @@ async function refreshTokenIfNeeded(
       grant_type:   'refresh_token',
       scope:        SCOPES,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) return creds.access_token;

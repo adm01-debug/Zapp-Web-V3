@@ -4,8 +4,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
 
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+const supabase = createClient((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!, { auth: { persistSession: false } });
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, x-api-key", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
+
+interface SentimentResult {
+  sentiment: string;
+  score: number;
+  emotions?: Record<string, number>;
+  intent: string;
+  urgency: string;
+  keywords: string[];
+  summary?: string;
+}
 
 // Vault-resolved OPENAI_API_KEY — fetched lazily on first use
 let _openAiKey: string | null | undefined;
@@ -14,20 +24,20 @@ async function getOpenAIKey(): Promise<string | null> {
   return _openAiKey;
 }
 
-function safeParseJson(raw: string): any | null {
-  try { return JSON.parse(raw); } catch {}
+function safeParseJson(raw: string): SentimentResult | null {
+  try { return JSON.parse(raw) as SentimentResult; } catch {}
   const m = raw.match(/\{[\s\S]*\}/);
-  if (m) try { return JSON.parse(m[0]); } catch {}
-  try { return JSON.parse(raw.replace(/```json?|```/g, "").trim()); } catch {}
+  if (m) try { return JSON.parse(m[0]) as SentimentResult; } catch {}
+  try { return JSON.parse(raw.replace(/```json?|```/g, "").trim()) as SentimentResult; } catch {}
   return null;
 }
 
-async function analyzeRule(text: string) {
+async function analyzeRule(text: string): Promise<SentimentResult> {
   const { data } = await supabase.rpc("fn_analyze_sentiment", { p_text: text });
-  return data?.[0] || { sentiment: "neutral", score: 0, intent: "geral", urgency: "low", keywords: [] };
+  return (data?.[0] as SentimentResult) || { sentiment: "neutral", score: 0, intent: "geral", urgency: "low", keywords: [] };
 }
 
-async function analyzeAI(text: string) {
+async function analyzeAI(text: string): Promise<SentimentResult> {
   const openAiKey = await getOpenAIKey();
   if (!openAiKey) return analyzeRule(text);
   const prompt = `Analise o sentimento. Mensagem: "${text.slice(0, 1500)}"\nResponda APENAS JSON:\n{"sentiment":"positive|negative|neutral|mixed","score":-1..1,"emotions":{"joy":0-1,"anger":0-1,"sadness":0-1,"fear":0-1,"surprise":0-1},"intent":"pergunta|reclamacao|elogio|pedido_orcamento|acompanhamento|geral","urgency":"low|medium|high|critical","keywords":[...],"summary":"..."}`;
@@ -38,7 +48,7 @@ async function analyzeAI(text: string) {
   } catch { return analyzeRule(text); }
 }
 
-async function saveAnalysis(remoteJid: string, msgId: string | null, text: string, a: any) {
+async function saveAnalysis(remoteJid: string, msgId: string | null, text: string, a: SentimentResult) {
   const { data: c } = await supabase.from("evolution_contacts").select("id").eq("remote_jid", remoteJid).maybeSingle();
   const { data: cv } = await supabase.from("evolution_conversations").select("id").eq("remote_jid", remoteJid).order("updated_at", { ascending: false }).limit(1).maybeSingle();
   const sV = ["positive","negative","neutral","mixed"].includes(a.sentiment) ? a.sentiment : "neutral";
@@ -80,9 +90,9 @@ Deno.serve(async (req: Request) => {
       const since = new Date(Date.now() - days * 86400000).toISOString();
       const { data } = await supabase.from("evolution_sentiment_analysis").select("sentiment, sentiment_score, intent, urgency, created_at").gte("created_at", since);
       if (!data?.length) return new Response(JSON.stringify({ success: true, metrics: { period_days: days, total_analyzed: 0 } }), { headers: { ...cors, "Content-Type": "application/json" } });
-      const sd: any = { positive: 0, negative: 0, neutral: 0, mixed: 0 };
-      const ud: any = { low: 0, medium: 0, high: 0, critical: 0 };
-      const id: any = {};
+      const sd: Record<string, number> = { positive: 0, negative: 0, neutral: 0, mixed: 0 };
+      const ud: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
+      const id: Record<string, number> = {};
       let ts = 0;
       for (const a of data) {
         sd[a.sentiment] = (sd[a.sentiment] || 0) + 1;

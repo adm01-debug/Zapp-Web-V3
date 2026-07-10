@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useRef, useEffect } from 'react';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -66,11 +67,11 @@ export function EmailChatThread({
               <span className=" text-[11px] text-[hsl(var(--muted-foreground))] font-semibold uppercase tracking-[0.04em]">
                 {thread.message_count} {thread.message_count === 1 ? 'mensagem' : 'mensagens'}
               </span>
-              {(thread.participant_emails?.length ?? 0) > 0 && (
+              {thread.participant_emails && thread.participant_emails.length > 0 && (
                 <>
                   <span className="mx-1.5 w-1 h-1 rounded-full bg-border" />
                   <span className=" text-[11px] text-[hsl(var(--muted-foreground))] font-semibold truncate max-w-md uppercase tracking-[0.04em]">
-                    {thread.participant_emails!.join(', ')}
+                    {thread.participant_emails.join(', ')}
                   </span>
                 </>
               )}

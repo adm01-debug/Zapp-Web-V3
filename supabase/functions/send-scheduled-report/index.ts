@@ -1,10 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { ScheduledReportSchema, parseBody } from "../_shared/schemas.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   const log = new Logger("send-scheduled-report");
 
@@ -90,16 +94,29 @@ Deno.serve(async (req) => {
     const emailHtml = buildReportEmail(reportData);
 
     if (resendApiKey && report.recipients?.length > 0) {
-      for (const recipient of report.recipients) {
-        const emailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            from: "reports@noreply.lovable.app", to: recipient,
-            subject: `📊 ${reportData.title} - ${reportData.period}`, html: emailHtml,
-          }),
+      const emailResults = await Promise.allSettled(
+        report.recipients.map(async (recipient: string) => {
+          const emailResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: "reports@noreply.lovable.app", to: recipient,
+              subject: `📊 ${reportData.title} - ${reportData.period}`, html: emailHtml,
+            }),
+            signal: AbortSignal.timeout(15_000),
+          });
+          if (!emailResponse.ok) {
+            const errText = await emailResponse.text();
+            log.error(`Failed to send to ${recipient}`, { error: errText });
+            throw new Error(`Resend API error ${emailResponse.status}`);
+          }
+        })
+      );
+      const emailFailures = emailResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      if (emailFailures.length > 0) {
+        log.error(`${emailFailures.length} email(s) failed`, {
+          errors: emailFailures.map(r => r.reason instanceof Error ? r.reason.message : String(r.reason)),
         });
-        if (!emailResponse.ok) log.error(`Failed to send to ${recipient}`, { error: await emailResponse.text() });
       }
     }
 
@@ -110,7 +127,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, reportData }, 200, req);
   } catch (error) {
     log.error("Error sending report", { error: (error as Error).message });
-    return errorResponse((error as Error).message, 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });
 

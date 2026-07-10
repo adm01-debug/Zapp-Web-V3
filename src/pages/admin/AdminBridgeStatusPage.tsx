@@ -49,6 +49,21 @@ const log = getLogger('AdminBridgeStatusPage');
 
 type BridgeStatus = "online" | "degraded" | "offline" | "loading";
 
+interface IncidentRow {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  started_at: string;
+  resolved_at: string | null;
+}
+
+interface AlertRow {
+  id: string;
+  title: string;
+  alert_type: string;
+}
+
 export default function BridgeStatusPage() {
   const { toast } = useToast();
   const mountedRef = useMountedRef();
@@ -60,8 +75,8 @@ export default function BridgeStatusPage() {
   const [lovableDb, setLovableDb] = useState<boolean | null>(null);
   const [externalDb, setExternalDb] = useState<boolean | null>(null);
   const [whatsappTransport, setWhatsappTransport] = useState<string>("...");
-  const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
-  const [incidents, setIncidents] = useState<any[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<AlertRow[]>([]);
+  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [instanceCount, setInstanceCount] = useState<number>(0);
   const [recentTraffic, setRecentTraffic] = useState<{count: number, last_at: string | null}>({count: 0, last_at: null});
   const [diagResults, setDiagResults] = useState<DiagnosticResult[] | null>(null);
@@ -120,26 +135,25 @@ export default function BridgeStatusPage() {
       if (mountedRef.current) setWhatsappTransport(currentTransportLabel);
 
       // 4. Check Recent Message Traffic
-      // safeClient.from strips count; fetch up to 100 rows and use data.length as proxy
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data: recentMsgs } = await safeClient.from<{ received_at: string }>(
+      const { data: lastMsg } = await safeClient.from<{ received_at: string }>(
         'provider_message_log',
-        (q) => q.select('received_at').gt('received_at', fiveMinsAgo).order('received_at', { ascending: false }).limit(100),
+        q => q.select('received_at').gt('received_at', fiveMinsAgo).order('received_at', { ascending: false }).limit(1)
       );
 
       if (mountedRef.current) setRecentTraffic({
-        count: recentMsgs?.length ?? 0,
-        last_at: recentMsgs?.[0]?.received_at ?? null,
+        count: lastMsg?.length ?? 0,
+        last_at: lastMsg?.[0]?.received_at || null
       });
 
       // 5. Check Active Alerts
       try {
-        const { data: alerts } = await safeClient.from(
+        const { data: alerts } = await safeClient.from<AlertRow>(
           'v_alerts_active',
-          (q) => q.select('*').limit(5),
+          q => q.select('*').limit(5)
         );
-        if (mountedRef.current) setActiveAlerts(alerts ?? []);
-      } catch (e) {
+        if (mountedRef.current) setActiveAlerts(alerts || []);
+      } catch {
         if (mountedRef.current) setActiveAlerts([]);
       }
 
@@ -172,11 +186,11 @@ export default function BridgeStatusPage() {
   }, [toast, mountedRef]);
 
   const fetchIncidents = useCallback(async () => {
-    const { data } = await safeClient.from(
+    const { data } = await safeClient.from<IncidentRow>(
       'system_health_incidents',
-      (q) => q.select('*').order('started_at', { ascending: false }).limit(10),
+      q => q.select('*').order('started_at', { ascending: false }).limit(10)
     );
-    if (mountedRef.current) setIncidents(data ?? []);
+    if (mountedRef.current) setIncidents(data || []);
   }, [mountedRef]);
 
   useEffect(() => {
@@ -186,14 +200,14 @@ export default function BridgeStatusPage() {
     // Configura Subscriptions Real-time
     const trafficSub = supabase
       .channel('traffic-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' }, () => {
+      .on('postgres_changes',{ event: 'INSERT', schema: 'zapp', table: 'provider_message_log' }, () => {
         setRecentTraffic(prev => ({ ...prev, count: prev.count + 1, last_at: new Date().toISOString() }));
       })
       .subscribe();
 
     const alertsSub = supabase
       .channel('health-incidents')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_health_incidents' }, () => {
+      .on('postgres_changes',{ event: '*', schema: 'public', table: 'system_health_incidents' }, () => {
         void fetchIncidents();
         void checkHealth();
       })

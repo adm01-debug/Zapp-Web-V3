@@ -1,13 +1,8 @@
 // Edge function: gera sugestão de resposta para uma execução de automação
 // Usa Lovable AI Gateway (sem API key do usuário) + Knowledge Base + Tag Recommender
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-cron-secret",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 interface Body {
   executionId: string;
@@ -83,8 +78,8 @@ async function fetchKnowledgeContext(
 }
 
 async function fetchExternalTags(): Promise<ExtTag[]> {
-  const url = Deno.env.get("EXTERNAL_SUPABASE_URL");
-  const key = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+  const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   if (!url || !key) return [];
   try {
     const ext = createClient(url, key);
@@ -154,15 +149,16 @@ async function callAi(
       tools,
       tool_choice: { type: "function", function: { name: "suggest_response" } },
     }),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (resp.status === 429) throw new Response(
     JSON.stringify({ error: "Rate limit. Tente novamente em instantes." }),
-    { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    { status: 429, headers: { "Content-Type": "application/json" } },
   );
   if (resp.status === 402) throw new Response(
     JSON.stringify({ error: "Créditos de IA esgotados na workspace." }),
-    { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    { status: 402, headers: { "Content-Type": "application/json" } },
   );
   if (!resp.ok) throw new Error(`AI gateway: ${resp.status}`);
 
@@ -187,7 +183,7 @@ async function callAi(
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
   // Internal-only: called by the automation engine with service role.
   const denied = requireServiceRoleOrCron(req);
@@ -195,8 +191,8 @@ Deno.serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+    const SERVICE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
     const body = (await req.json()) as Body;
@@ -265,7 +261,22 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         suggestion = ai.reply || template || "";
         recommendedTag = ai.recommended_tag;
       } catch (e) {
-        if (e instanceof Response) return e; // 429/402 com payload já formatado
+        if (e instanceof Response) {
+          // Re-wrap with CORS headers so browsers receive the 429/402 error properly.
+          // Parse and re-serialise so stack traces or internal details from the upstream
+          // API are never forwarded verbatim to the browser (CodeQL: stack-trace exposure).
+          let safeBody: string;
+          try {
+            const raw = await e.json() as Record<string, unknown>;
+            safeBody = JSON.stringify({ error: raw.error ?? raw.message ?? 'Request failed' });
+          } catch {
+            safeBody = JSON.stringify({ error: 'Request failed' });
+          }
+          return new Response(safeBody, {
+            status: e.status,
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+          });
+        }
         throw e;
       }
     }
@@ -285,13 +296,13 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         recommended_tag: recommendedTag,
         kb_sources: kbSources,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error("automation-suggest-reply error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "unknown" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 });

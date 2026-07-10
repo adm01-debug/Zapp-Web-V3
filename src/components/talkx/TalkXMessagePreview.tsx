@@ -3,15 +3,9 @@ import { Eye, ChevronLeft, ChevronRight, Building2, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Contact {
-  id: string;
-  name: string;
-  nickname: string | null;
-  phone: string;
-  company: string | null;
-  avatar_url: string | null;
-}
+type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'nickname' | 'phone' | 'company' | 'avatar_url'>;
 
 interface Props {
   messageTemplate: string;

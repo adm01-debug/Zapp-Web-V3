@@ -168,8 +168,7 @@ Deno.serve(async (req) => {
     log.done(200, { messageId: msg.id, requestId });
     return jsonResponse({ success: true, messageId: msg.id, contactId: contact.id, requestId }, 200, req);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Internal server error';
-    log.error('Unhandled error', { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

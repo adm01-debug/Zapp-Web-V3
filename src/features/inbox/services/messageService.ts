@@ -75,8 +75,8 @@ export const messageService = {
 
       // Sort all messages by timestamp
       allData.sort((a, b) => {
-        const timeA = new Date(a.created_at ?? a.timestamp ?? 0).getTime();
-        const timeB = new Date(b.created_at ?? b.timestamp ?? 0).getTime();
+        const timeA = new Date(a.created_at ?? '').getTime();
+        const timeB = new Date(b.created_at ?? '').getTime();
         return timeA - timeB;
       });
 

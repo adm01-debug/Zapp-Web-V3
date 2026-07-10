@@ -31,7 +31,7 @@ export function useConnectionAlertsPush() {
               type?: string;
               title?: string;
               message?: string;
-              metadata?: Record<string, unknown>;
+              metadata?: { connection_id?: string; reason?: string; [key: string]: unknown };
             };
             if (n?.type !== "connection_alert") return;
             if (Notification.permission !== "granted") return;

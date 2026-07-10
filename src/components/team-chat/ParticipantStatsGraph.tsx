@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useUserSettings } from '@/hooks/useUserSettings';
 
 interface ParticipantStatsGraphProps {
@@ -46,19 +47,17 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
 
       const messageIds = messages.map(m => m.id);
       
-      const { data: allReceipts, error: recError } = await supabase
-        .from('team_message_receipts')
-        .select(`
-          status,
-          profile_id,
-          profiles(name)
-        `)
-        .in('message_id', messageIds);
+      type ReceiptRow = { status: string; profile_id: string | null; profiles: { name: string | null } | null };
+      const { data: allReceipts, error: recError } = await safeClient.from<ReceiptRow>(
+        'team_message_receipts',
+        q => q.select('status, profile_id, profiles(name)').in('message_id', messageIds),
+      );
 
       if (recError) throw recError;
 
-      const statsMap: Record<string, any> = {};
-      
+      type StatEntry = { name: string; sent: number; delivered: number; read: number };
+      const statsMap: Record<string, StatEntry> = {};
+
       messages.forEach(m => {
         const senderId = m.sender_id;
         if (senderId) {
@@ -70,7 +69,7 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
       });
 
       if (allReceipts) {
-        allReceipts.forEach((r: any) => {
+        allReceipts.forEach((r) => {
           const pid = r.profile_id;
           if (pid) {
             if (!statsMap[pid]) {

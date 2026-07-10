@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 
@@ -146,21 +146,20 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
         : 'not-applicable';
 
       if (contactId) {
-        const { data: events } = await supabase
-          .from('conversation_events')
-          .select(`
+        const { data: events } = await safeClient.from<ConversationEventRow>('conversation_events', q =>
+          q.select(`
             event_type, created_at, performed_by, from_agent_id, to_agent_id,
             from_queue_id, to_queue_id,
             performed_by_profile:profiles!conversation_events_performed_by_fkey(id, name),
             to_agent:profiles!conversation_events_to_agent_id_fkey(id, name),
             to_queue:queues!conversation_events_to_queue_id_fkey(id, name)
-          `)
-          .eq('contact_id', contactId)
-          .in('event_type', ['close', 'reopen', 'assign'])
-          .order('created_at', { ascending: false })
-          .limit(50);
+          `).eq('contact_id', contactId)
+            .in('event_type', ['close', 'reopen', 'assign'])
+            .order('created_at', { ascending: false })
+            .limit(50),
+        );
 
-        const eventRows = (events || []) as unknown as ConversationEventRow[];
+        const eventRows = events ?? [];
         const lastClose = eventRows.find((e) => e.event_type === 'close');
         const lastReopen = eventRows.find((e) => e.event_type === 'reopen');
 

@@ -6,7 +6,7 @@
  * Erros de RLS (42501/403) viram `deniedReason` em PT-BR sem quebrar a lista.
  */
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 
 export interface TransferRow {
@@ -43,14 +43,10 @@ export function useTransfersPaginated(filters: TransfersFilters = {}) {
   return useQuery<{ rows: TransferRow[]; total: number; deniedReason: string | null }>({
     queryKey: ['transfers-paginated', { status, priority, from, to, page, pageSize }],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_transfers_paginated' as never, {
-        p_status: status,
-        p_priority: priority,
-        p_from: from,
-        p_to: to,
-        p_limit: pageSize,
-        p_offset: page * pageSize,
-      } as never);
+      const { data, error } = await safeClient.rpc<Array<TransferRow & { total_count?: number | string }>>(
+        'rpc_list_transfers_paginated',
+        { p_status: status, p_priority: priority, p_from: from, p_to: to, p_limit: pageSize, p_offset: page * pageSize }
+      );
       if (error) {
         if (isRlsDeniedError(error)) {
           return { rows: [], total: 0, deniedReason: formatAdminError(error, 'as transferências') };

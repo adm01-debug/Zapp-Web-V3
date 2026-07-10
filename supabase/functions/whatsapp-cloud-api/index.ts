@@ -64,6 +64,7 @@ async function callGraph(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   });
   const text = await res.text();
   let parsed: unknown = text;
@@ -98,8 +99,8 @@ async function persistOutbound(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+  const supabaseAnonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!;
 
   try {
     // Basic staff authorization for all actions
@@ -115,12 +116,12 @@ Deno.serve(async (req) => {
   if (!instanceName) return jsonResponse({ error: true, message: 'Missing instanceName' }, 400, req);
 
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
   );
-  const externalUrl = Deno.env.get('EXTERNAL_SUPABASE_URL');
-  const externalKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')
-    ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+  const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+  const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
+    ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   const externalClient = externalUrl && externalKey
     ? createClient(externalUrl, externalKey)
     : null;
@@ -137,7 +138,7 @@ Deno.serve(async (req) => {
   // PING / status
   if (action === 'ping' || action === 'status' || action === 'instance-info') {
     const url = `https://graph.facebook.com/${creds.graph_api_version}/${creds.phone_number_id}?fields=display_phone_number,verified_name,quality_rating`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${creds.access_token}` } });
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${creds.access_token}` }, signal: AbortSignal.timeout(10_000) });
     const data = await res.json().catch(() => ({}));
     return jsonResponse({ ok: res.ok, status: res.status, data }, 200, req);
   }
@@ -223,6 +224,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { Authorization: `Bearer ${creds.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ messaging_product: 'whatsapp', status: 'read', message_id: wamid }),
+        signal: AbortSignal.timeout(10_000),
       });
       const data = await res.json().catch(() => ({}));
       return jsonResponse({ ok: res.ok, status: res.status, data }, 200, req);
@@ -278,9 +280,11 @@ Deno.serve(async (req) => {
     messageId: wamid,
     raw: data,
   }, 200, req);
-  } catch (error: any) {
-    if (error.status) return errorResponse(error.message, error.status, req);
+  } catch (error: unknown) {
     console.error("[whatsapp-cloud-api] Global Error:", error);
-    return errorResponse(error.message || 'Internal Server Error', 500, req);
+    if (error instanceof Error && 'status' in error) {
+      return errorResponse(error.message, (error as { status: number }).status, req);
+    }
+    return errorResponse('Internal server error', 500, req);
   }
 });

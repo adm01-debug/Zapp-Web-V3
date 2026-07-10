@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
 import { newRequestId } from '@/lib/withRequestId';
@@ -71,13 +72,13 @@ export function useTalkX() {
     queryKey: ['talkx-recipients', selectedCampaignId],
     queryFn: async () => {
       if (!selectedCampaignId) return [];
-      const { data, error } = await supabase
-        .from('talkx_recipients')
-        .select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)')
-        .eq('campaign_id', selectedCampaignId)
-        .order('created_at');
+      const { data, error } = await safeClient.from<TalkXRecipient>('talkx_recipients', q =>
+        q.select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)')
+          .eq('campaign_id', selectedCampaignId)
+          .order('created_at'),
+      );
       if (error) throw error;
-      return (data ?? []) as unknown as TalkXRecipient[];
+      return data ?? [];
     },
     enabled: !!selectedCampaignId,
   });

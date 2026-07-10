@@ -3,17 +3,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { supabase as _supabase } from '@/integrations/supabase/client';
-
-interface SigQuery extends PromiseLike<{ data: unknown; error: { message: string } | null }> {
-  select(cols: string): SigQuery;
-  eq(col: string, val: unknown): SigQuery;
-  order(col: string, opts: { ascending: boolean }): SigQuery;
-  update(vals: Record<string, unknown>): SigQuery;
-  insert(vals: Record<string, unknown>): SigQuery;
-  delete(): SigQuery;
-}
-const supabase = _supabase as unknown as { from: (t: string) => SigQuery };
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 
 export interface EmailSignature {
@@ -33,13 +23,10 @@ export function useEmailSignature(accountId: string | null) {
   const load = useCallback(async () => {
     if (!accountId) { setSignatures([]); return; }
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('email_signatures')
-      .select('*')
-      .eq('account_id', accountId)
-      .order('is_default', { ascending: false });
-
-    if (!error) setSignatures((data ?? []) as EmailSignature[]);
+    const { data, error } = await safeClient.from<EmailSignature>('email_signatures', q =>
+      q.select('*').eq('account_id', accountId).order('is_default', { ascending: false })
+    );
+    if (!error) setSignatures(data ?? []);
     setIsLoading(false);
   }, [accountId]);
 
@@ -49,15 +36,14 @@ export function useEmailSignature(accountId: string | null) {
     if (!accountId) return;
 
     if (sig.id) {
-      const { error } = await supabase
-        .from('email_signatures')
-        .update({ name: sig.name, html_content: sig.html_content, is_default: sig.is_default ?? false })
-        .eq('id', sig.id);
+      const { error } = await safeClient.from('email_signatures', q =>
+        q.update({ name: sig.name, html_content: sig.html_content, is_default: sig.is_default ?? false }).eq('id', sig.id!)
+      );
       if (error) { toast.error('Erro ao salvar assinatura'); return; }
     } else {
-      const { error } = await supabase
-        .from('email_signatures')
-        .insert({ account_id: accountId, name: sig.name, html_content: sig.html_content, is_default: sig.is_default ?? false });
+      const { error } = await safeClient.from('email_signatures', q =>
+        q.insert({ account_id: accountId, name: sig.name, html_content: sig.html_content, is_default: sig.is_default ?? false })
+      );
       if (error) { toast.error('Erro ao criar assinatura'); return; }
     }
 
@@ -66,7 +52,7 @@ export function useEmailSignature(accountId: string | null) {
   }, [accountId, load]);
 
   const remove = useCallback(async (id: string) => {
-    const { error } = await supabase.from('email_signatures').delete().eq('id', id);
+    const { error } = await safeClient.from('email_signatures', q => q.delete().eq('id', id));
     if (error) { toast.error('Erro ao excluir assinatura'); return; }
     toast.success('Assinatura excluída');
     await load();
@@ -74,16 +60,12 @@ export function useEmailSignature(accountId: string | null) {
 
   const setDefault = useCallback(async (id: string) => {
     if (!accountId) return;
-    // Remove default de todas
-    await supabase
-      .from('email_signatures')
-      .update({ is_default: false })
-      .eq('account_id', accountId);
-    // Define nova
-    await supabase
-      .from('email_signatures')
-      .update({ is_default: true })
-      .eq('id', id);
+    await safeClient.from('email_signatures', q =>
+      q.update({ is_default: false }).eq('account_id', accountId!)
+    );
+    await safeClient.from('email_signatures', q =>
+      q.update({ is_default: true }).eq('id', id)
+    );
     await load();
   }, [accountId, load]);
 

@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
 import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import {
@@ -77,8 +77,13 @@ serve(async (req) => {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  // FIX B5: falhar com 503 legível em vez de crashar (BOOT_ERROR 500) quando env está incompleta.
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'SUPABASE_URL/SERVICE_ROLE ausentes' }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // HMAC validation before reading body as JSON so we can verify on raw text.
@@ -196,10 +201,18 @@ serve(async (req) => {
   }
 
   // Rate Limit guard: conta apenas eventos UNICOS (idempotency ja filtrou retries)
+  // [FIX 2026-07-06] Limites por event-type: eventos de sync de alto volume recebiam 429
+  // em bursts normais (sync grupos, atualizacao em massa de contatos). Default 300/min mantido.
+  const EVENT_RATE_LIMITS: Record<string, number> = {
+    "chats.update":    2000, // sync de chat: gerado por toda mensagem recebida
+    "contacts.update": 1000, // importacao/sync de contatos em massa
+    "messages.upsert":  600, // 2x default: bursts em grupos grandes
+    "groups.upsert":    600, // sincronizacao inicial de grupos
+  };
   const rateLimit = await checkRateLimit(supabase, {
     instanceId: instance || 'unknown',
     eventType: event,
-    limit: 300, // 300 events per minute per instance/event
+    limit: EVENT_RATE_LIMITS[event] ?? 300,
   });
   if (!rateLimit.allowed) {
     await auditWebhookEvent(supabase, {
@@ -228,6 +241,14 @@ serve(async (req) => {
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
           .or(instanceOrFilter(instance));
       }
+      // [FIX 2026-07-06] QR alert: notificar admin via n8n (fire-and-forget, nao bloqueia)
+      const _n8nQrUrl = 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
+      fetch(_n8nQrUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
+        signal: AbortSignal.timeout(4000),
+      }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
     }
 
     if (event === 'messages.upsert') {

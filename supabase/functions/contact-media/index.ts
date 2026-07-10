@@ -126,8 +126,8 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Missing Authorization header" }, 401);
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+  const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'));
   if (!supabaseUrl || !anonKey) {
     return jsonResponse({ error: "Server misconfigured" }, 500);
   }
@@ -179,8 +179,9 @@ Deno.serve(async (req) => {
 
   const { data, error } = await q;
   if (error) {
+    console.error("[contact-media] query error", error.message);
     return jsonResponse(
-      { error: "Failed to load media", detail: error.message },
+      { error: "Failed to load media" },
       500,
     );
   }

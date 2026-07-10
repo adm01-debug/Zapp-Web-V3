@@ -45,9 +45,16 @@ export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId, us
     }
 
     // 3) Custom events
+    // FIX B2: em external mode (FATOR X), a Inbox indexa por remote_jid; priorizar
+    // o JID quando disponível para evitar que o UUID sobrescreva o handshake correto.
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { contactId?: string; messageId?: string } | undefined;
-      if (detail?.contactId) setPendingContactId(detail.contactId);
+      const detail = (e as CustomEvent).detail as
+        | { contactId?: string; remoteJid?: string; messageId?: string }
+        | undefined;
+      const resolvedId = useExternalDb
+        ? (detail?.remoteJid ?? detail?.contactId)
+        : detail?.contactId;
+      if (resolvedId) setPendingContactId(resolvedId);
       if (detail?.messageId) setPendingMessageId(detail.messageId);
     };
 

@@ -5,6 +5,8 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { TalkxSendV1Schema } from "../_shared/contract-schemas.ts";
 import { requireAdminOrSupervisor, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 function getGreeting(): string {
@@ -33,11 +35,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2, timeoutMs = 15_000): Promise<Response> {
   let lastError: Error | null = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
       if (response.ok || (response.status >= 400 && response.status < 500)) return response;
       lastError = new Error(`HTTP ${response.status}`);
     } catch (err) {
@@ -75,17 +77,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
     const evolutionUrl = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
     const evolutionKey = Deno.env.get("EVOLUTION_API_KEY")!;
 
     const supabase = createClient(supabaseUrl, serviceKey);
-    const { campaignId, action } = await req.json();
-
-    if (!campaignId) {
-      return new Response(JSON.stringify({ error: "campaignId required" }), { status: 400, headers });
-    }
+    // Contrato talkx-send@v1 (estrito): campaignId UUID + action enum.
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('talkx-send', { v1: TalkxSendV1Schema }, req, raw, {
+      requestId, extraHeaders: headers,
+    });
+    if (!parsed.ok) return parsed.response;
+    const { campaignId, action } = parsed.data as { campaignId: string; action?: string };
 
     // Handle pause/cancel
     if (action === "pause" || action === "cancel") {
@@ -173,6 +177,7 @@ Deno.serve(async (req) => {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: evolutionKey },
             body: JSON.stringify({ number: phone, presence: "composing" }),
+            signal: AbortSignal.timeout(5_000),
           });
         } catch { /* Presence update is best-effort */ }
 
@@ -250,7 +255,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     log.error("Talk X error", { error: err instanceof Error ? err.message : String(err) });
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers }
     );
   }

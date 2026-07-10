@@ -100,6 +100,63 @@ export function getInitials(name: string, maxChars = 2): string {
     .join('');
 }
 
+/**
+ * Get initials from a display name, falling back to the e-mail's first letter.
+ * Parity-preserving consolidation of the local helpers previously duplicated in
+ * EmailChatBubble, and ThreadListItem (Refactor Wave 1).
+ */
+export function getInitialsFromNameOrEmail(name?: string | null, email?: string | null): string {
+  if (name) {
+    return name
+      .split(' ')
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+  if (email) return email[0]?.toUpperCase() ?? '?';
+  return '?';
+}
+
+/**
+ * Compact date-time "dd/MM HH:mm:ss" (pt-BR). Null-safe. (Wave 5 — parity-proven
+ * consolidation of 3 identical local impls: FailedMessageTableRow, AdminAlertHistoryPage, AdminWebhookEventsPage)
+ */
+export function formatDateTimeCompact(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    return format(new Date(iso), 'dd/MM HH:mm:ss', { locale: ptBR });
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * Time as "HH:MM:SS" (pt-BR locale). (Wave 5 — parity-proven consolidation of
+ * QrAttemptHistory + AgentRecentSendsPopover)
+ */
+export function formatTimeHMS(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * Bytes → "N B" | "N.N KB" | "N.N MB". (Wave 5 — parity-proven consolidation of
+ * EmailAttachmentPreview + pttLimits)
+ */
+export function formatBytesCompact(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // ─── Number Formatting ──────────────────────────────────────────────
 
 /**

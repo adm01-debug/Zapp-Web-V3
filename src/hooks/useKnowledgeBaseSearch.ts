@@ -39,7 +39,7 @@ export function useKnowledgeBaseSearch() {
         max_results: 5,
       });
       if (error) throw error;
-      return (data ?? []) as KBArticle[];
+      return (data ?? []) as unknown as KBArticle[] /* RPC retorna rank+tags agregada; shape local preservado (runtime idêntico) */;
     },
     enabled: debouncedQuery.length >= 2,
   });

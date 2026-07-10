@@ -22,14 +22,23 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('Connections');
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface SystemConnection {
-  id: string;
+interface SystemConnectionRow {
+  id?: string;
+  name?: string;
+  provider?: string;
+  config?: { url?: string; anon_key?: string };
+  is_active?: boolean;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface SystemConnectionPayload {
   name: string;
   provider: string;
-  config: { url?: string; anon_key?: string } | null;
+  config: { url: string; anon_key: string };
   is_active: boolean;
-  created_at: string;
-  created_by?: string | null;
+  created_by?: string;
 }
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
@@ -61,7 +70,7 @@ const DEFAULT_EXTERNAL_KEY = initialConfig.key;
 
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
-  const [connections, setConnections] = useState<SystemConnection[]>([]);
+  const [connections, setConnections] = useState<SystemConnectionRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [externalUrl, setExternalUrl] = useState(DEFAULT_EXTERNAL_URL);
@@ -90,7 +99,7 @@ export default function AdminConnectionsPage() {
         
         if (rolesError) throw rolesError;
         
-        const hasAccess = !!roles?.some((r) => r.role === 'admin' || r.role === 'dev');
+        const hasAccess = !!roles?.some((r: { role: string }) => r.role === 'admin' || r.role === 'dev');
         setIsAdmin(hasAccess);
         
         if (!hasAccess) {
@@ -128,14 +137,14 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
-    const { data, error } = await safeClient.from('system_connections', (q) =>
-      q.select('*').order('created_at', { ascending: false })
+    const { data, error } = await safeClient.from<SystemConnectionRow>(
+      'system_connections',
+      q => q.select('*').order('created_at', { ascending: false })
     );
 
     if (!error && data) {
-      const rows = data as unknown as SystemConnection[];
-      setConnections(rows);
-      const fatorX = rows.find((c) => c.provider === 'supabase_external' || c.name === 'FATOR X');
+      setConnections(data);
+      const fatorX = data.find(c => c.provider === 'supabase_external' || c.name === 'FATOR X');
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
         setExternalUrl(fatorX.config.url);
         setDraftUrl(fatorX.config.url);
@@ -200,7 +209,7 @@ export default function AdminConnectionsPage() {
       return;
     }
 
-    const payload: Omit<SystemConnection, 'id' | 'created_at'> = {
+    const payload: SystemConnectionPayload = {
       name: 'FATOR X',
       provider: 'supabase_external',
       config: { url: draftUrl, anon_key: draftKey },
@@ -208,12 +217,12 @@ export default function AdminConnectionsPage() {
     };
 
     try {
-      const existing = connections.find((c) => c.provider === 'supabase_external' || c.name === 'FATOR X');
-      const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
+      const existing = connections.find(c => c.provider === 'supabase_external' || c.name === 'FATOR X');
+      const insertPayload: SystemConnectionPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
       const { data, error } = existing
-        ? await safeClient.from('system_connections', (q) => q.update(payload).eq('id', existing.id).select())
-        : await safeClient.from('system_connections', (q) => q.insert(insertPayload).select());
+        ? await safeClient.from<SystemConnectionRow>('system_connections', q => q.update(payload).eq('id', existing.id ?? '').select())
+        : await safeClient.from<SystemConnectionRow>('system_connections', q => q.insert(insertPayload).select());
 
       if (error) {
         const msg = `Falha na escrita [Provider: ${payload.provider}]: ${error.message}`;
@@ -222,25 +231,28 @@ export default function AdminConnectionsPage() {
         return;
       }
 
-      // Se o data vier vazio (RLS falha silenciosa em alguns drivers)
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        const msg = `Requisição sem erro mas nenhum dado retornado. Verifique se as permissões de RLS permitem a inserção/atualização.`;
+      // Se data vier vazio (RLS falha silenciosa em alguns drivers)
+      if (!data || data.length === 0) {
+        const msg = `A requisição foi enviada, mas nenhum dado foi retornado. Verifique se as permissões de RLS permitem a inserção/atualização.`;
         setSaveError(msg);
         toast({ title: 'Escrita não confirmada', description: msg, variant: 'destructive' });
         return;
       }
 
-      // Validação Pós-Save: SELECT confirma persistência real no banco
+      // Validação Pós-Save (SELECT para confirmar persistência no Self-Hosted)
       toast({ title: 'Confirmando gravação...', description: 'Aguardando sincronização do banco.' });
+
+      // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Use .limit(1) — safeClient.from always returns T[], so maybeSingle inside is wrong
-      const { data: verifyRows, error: verifyError } = await safeClient.from('system_connections', (q) =>
-        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X').limit(1)
+      const { data: verifyRows, error: verifyError } = await safeClient.from<{ id: string; updated_at: string }>(
+        'system_connections',
+        q => q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X')
       );
+      const verify = verifyRows?.[0];
 
-      if (verifyError || !verifyRows || verifyRows.length === 0) {
-        const msg = `SELECT de validação falhou: ${verifyError?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
+      if (verifyError || !verify) {
+        const msg = `O SELECT de validação falhou: ${verifyError?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
         setSaveError(msg);
         toast({ title: 'Confirmação falhou', description: msg, variant: 'destructive' });
         return;

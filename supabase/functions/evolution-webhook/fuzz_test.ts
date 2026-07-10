@@ -35,7 +35,7 @@ Deno.test("Fuzz - Record Extraction", () => {
   ];
 
   for (const s of scenarios) {
-    const records = toEventRecords(s.event, s.data as any);
+    const records = toEventRecords(s.data, [s.event]);
     assert(Array.isArray(records), `toEventRecords should always return array for: ${JSON.stringify(s)}`);
     if (s.expectedCount !== undefined) {
       // Just check it doesn't crash and returns an array
@@ -56,7 +56,7 @@ Deno.test("Fuzz - Thousands of Payload Variants (Simulated)", () => {
     
     // Test normalization and record extraction with these random combinations
     const norm = normalizeEventName(payload.event as string);
-    const records = toEventRecords(norm, payload.data as any);
+    const records = toEventRecords(norm, payload.data as unknown as string[]);
     assert(Array.isArray(records));
   }
 });

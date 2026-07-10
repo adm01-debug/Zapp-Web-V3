@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,83 +6,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Trophy, Trash2, FlaskConical } from 'lucide-react';
-import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-
-interface ABVariant {
-  id: string;
-  campaign_id: string;
-  variant_name: string;
-  message_content: string;
-  media_url: string | null;
-  send_count: number;
-  delivered_count: number;
-  read_count: number;
-  response_count: number;
-  is_winner: boolean;
-}
+import { useCampaignABTesting, type ABVariant } from '@/hooks/campaigns/useCampaignABTesting';
 
 interface CampaignABTestingProps {
   campaignId: string;
 }
 
 export function CampaignABTesting({ campaignId }: CampaignABTestingProps) {
-  const [variants, setVariants] = useState<ABVariant[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newContent, setNewContent] = useState('');
+  const { variants, loading, addVariant, deleteVariant, declareWinner } = useCampaignABTesting(campaignId);
 
-  useEffect(() => { loadVariants(); }, [campaignId]);
-
-  const loadVariants = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('campaign_ab_variants')
-      .select('*')
-      .eq('campaign_id', campaignId)
-      .order('created_at');
-    if (data) {
-      const typedVariants: ABVariant[] = data.map(v => ({
-        ...v,
-        send_count: v.send_count || 0,
-        delivered_count: v.delivered_count || 0,
-        read_count: v.read_count || 0,
-        response_count: v.response_count || 0
-      }));
-      setVariants(typedVariants);
-    }
-    setLoading(false);
-  };
-
-  const addVariant = async () => {
-    if (!newContent.trim()) return;
-    const name = newName || String.fromCharCode(65 + variants.length);
-    const { error } = await supabase.from('campaign_ab_variants').insert({
-      campaign_id: campaignId,
-      variant_name: name,
-      message_content: newContent.trim(),
-    });
-    if (!error) {
-      toast.success(`Variante ${name} criada`);
+  const handleAddVariant = async () => {
+    const ok = await addVariant(newName, newContent);
+    if (ok) {
       setDialogOpen(false);
       setNewName('');
       setNewContent('');
-      loadVariants();
     }
-  };
-
-  const deleteVariant = async (id: string) => {
-    await supabase.from('campaign_ab_variants').delete().eq('id', id);
-    toast.success('Variante removida');
-    loadVariants();
-  };
-
-  const declareWinner = async (id: string) => {
-    await supabase.from('campaign_ab_variants').update({ is_winner: false }).eq('campaign_id', campaignId);
-    await supabase.from('campaign_ab_variants').update({ is_winner: true }).eq('id', id);
-    toast.success('Vencedor declarado!');
-    loadVariants();
   };
 
   const getConversionRate = (v: ABVariant) => {
@@ -169,7 +111,7 @@ export function CampaignABTesting({ campaignId }: CampaignABTestingProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={addVariant} disabled={!newContent.trim()}>Criar</Button>
+            <Button onClick={handleAddVariant} disabled={!newContent.trim()}>Criar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

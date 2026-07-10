@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * useContactStats.ts — Estatísticas de contatos para dashboard CRM
  *
@@ -10,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ContactStatsData {
   total: number;
@@ -48,13 +49,13 @@ export function useContactStats(): UseContactStatsReturn {
     setError(null);
 
     try {
-      const { data, error: rpcErr } = await safeClient.rpc<ContactStatsData>('rpc_contact_stats');
+      const { data, error: rpcErr } = await supabase.rpc('rpc_contact_stats');
 
       if (!mountedRef.current) return;
       if (rpcErr) throw new Error(rpcErr.message);
 
       // Supabase retorna o JSONB como objeto direto
-      const statsData = data as ContactStatsData;
+      const statsData = data as unknown as ContactStatsData;
       setStats(statsData);
     } catch (err) {
       if (mountedRef.current) setError(err instanceof Error ? err : new Error(String(err)));

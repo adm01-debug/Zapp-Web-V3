@@ -130,8 +130,7 @@ Deno.serve(async (req) => {
 
       case 'authentication-options': {
         const challenge = generateChallenge();
-        // deno-lint-ignore no-explicit-any
-        let allowCredentials: any[] = [];
+        let allowCredentials: Array<{ id: string; type: string; transports: string[] }> = [];
         let authUserId: string | null = null;
 
         if (userEmail) {
@@ -186,8 +185,7 @@ Deno.serve(async (req) => {
         return errorResponse('Invalid action', 400, req);
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

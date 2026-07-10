@@ -17,7 +17,7 @@ export const whatsappConnectionService = {
     const QR_TTL_MAX_MS = 300_000;
 
     if (!result || typeof result !== 'object') return { ttlMs: QR_TTL_DEFAULT_MS, source: 'default' };
-    const r = result as { count?: unknown; qrcode?: { count?: unknown; ttl?: unknown }; ttl?: unknown; expires_in?: unknown };
+    const r = result as Record<string, unknown> & { qrcode?: Record<string, unknown> };
     const candidates = [
       r.count,
       r.qrcode?.count,

@@ -4,6 +4,7 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { useContactsSearch } from '@/hooks/useContactsSearch';
 import { openContactInChat } from '@/lib/openContactInChat';
 import { dbFrom } from '@/integrations/datasource/db';
+import type { Tables } from '@/integrations/supabase/types';
 
 interface ContactFormData {
   name: string;
@@ -21,19 +22,7 @@ const EMPTY_CONTACT: ContactFormData = {
   company: '', phone: '', email: '', contact_type: 'cliente',
 };
 
-export interface Contact {
-  id: string;
-  name: string;
-  nickname: string | null;
-  surname: string | null;
-  job_title: string | null;
-  company: string | null;
-  phone: string;
-  email: string | null;
-  contact_type: string | null;
-  /** Display-only. Tags are managed via FATOR X RPC (rpc_upsert_contact), not this CRUD hook. */
-  tags?: string[];
-}
+export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'nickname' | 'surname' | 'job_title' | 'company' | 'phone' | 'email' | 'contact_type' | 'tags'>;
 
 export function useContactsCRUD() {
   const { profile } = useAuth();

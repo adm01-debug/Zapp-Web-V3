@@ -7,9 +7,9 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEmail, type EmailThread } from '@/hooks/useEmail';
-import { type TokenStatus } from '@/hooks/useGmailOAuthFlow';
 import { EmailLabelSidebar } from './GmailLabelSidebar';
 import { EmailAccountSelector } from './GmailAccountSelector';
+import { type TokenStatus } from '@/hooks/useGmailOAuthFlow';
 
 interface EmailInboxViewProps {
   onSelectThread?: (thread: EmailThread) => void;
@@ -113,14 +113,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
               <EmailAccountSelector
                 accounts={accounts}
                 activeAccountId={activeAccountId}
-                tokenStatus={Object.fromEntries(
-                  tokenStatus.map(s => [
-                    s.account_id,
-                    (s.token_status === 'expiring_soon' ? 'expiring' :
-                     s.token_status === 'no_token' ? 'disconnected' :
-                     s.token_status) as TokenStatus,
-                  ])
-                )}
+                tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as Record<string, TokenStatus>}
                 isSyncing={isSyncing}
                 onSelectAccount={setActiveAccountId}
                 onAddAccount={startOAuth}

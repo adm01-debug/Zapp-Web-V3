@@ -159,3 +159,13 @@ if (!isSupabaseConfigured) {
     return channel;
   }) as typeof supabase.channel;
 }
+
+// ---------------------------------------------------------------------------
+// Resolved connection constants (read-only)
+// ---------------------------------------------------------------------------
+// Consumidos por integration clients (ex.: zappweb/evolutionClient) que
+// precisam chamar Edge Functions com a MESMA URL/anon key que este módulo
+// resolveu — sem duplicar a lógica de resolução acima (fonte única).
+// Adição 2026-07-06 (integração full front↔Evolution via edge fn).
+export const SUPABASE_RESOLVED_URL = supabaseUrl;
+export const SUPABASE_RESOLVED_ANON_KEY = supabaseAnonKey;

@@ -1,8 +1,14 @@
-// external-db-proxy v1.7 (2026-07-03)
+// external-db-proxy v1.8 (2026-07-04)
 // Proxy autorizado para consultas de tabelas operacionais.
 // Evolution/FATOR X usa o Supabase self-hosted atomicabr e o schema `evo`.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { requireUser } from "../_shared/auth.ts";
+
+type DynamicSupabaseClient = ReturnType<typeof createClient> & {
+  schema(schema: string): DynamicSupabaseClient;
+  from(table: string): ReturnType<ReturnType<typeof createClient>["from"]>;
+};
 
 type RequestBody = {
   schema?: unknown;
@@ -35,28 +41,103 @@ function pickEnv(name: string): string | undefined {
   return value;
 }
 
+function pickEnvWithSource(names: string[]): { value?: string; source?: string } {
+  for (const name of names) {
+    const v = pickEnv(name);
+    if (v) return { value: v, source: name };
+  }
+  return {};
+}
+
+function pickUrlWithSource(names: string[]): { value?: string; source?: string } {
+  for (const name of names) {
+    const raw = pickEnv(name);
+    if (!raw) continue;
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    try {
+      return { value: new URL(withProtocol).origin, source: name };
+    } catch {
+      // try next
+    }
+  }
+  return {};
+}
+
 function isSafeIdent(value: string): boolean {
   return SAFE_IDENT_RE.test(value);
 }
 
-const EXTERNAL_URL = pickEnv("EXTERNAL_SUPABASE_URL");
-const EXTERNAL_KEY = pickEnv("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? pickEnv("EXTERNAL_SUPABASE_ANON_KEY");
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function pickServiceRoleKeyWithSource(names: string[]): { value?: string; source?: string; rejected?: Array<{ source: string; role: string }> } {
+  const rejected: Array<{ source: string; role: string }> = [];
+  for (const name of names) {
+    const value = pickEnv(name);
+    if (!value) continue;
+    const payload = decodeJwtPayload(value);
+    const role = (payload?.role as string) ?? "unknown";
+    if (role === "service_role") return { value, source: name, rejected };
+    rejected.push({ source: name, role });
+  }
+  return { rejected };
+}
+
+const URL_PICK = pickUrlWithSource(["SELFHOSTED_SUPABASE_URL", "EXTERNAL_SUPABASE_URL"]);
+const KEY_PICK = pickServiceRoleKeyWithSource([
+  "SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY",
+  "EXTERNAL_SUPABASE_SERVICE_ROLE_KEY",
+]);
+
+const EXTERNAL_URL = URL_PICK.value;
+const EXTERNAL_KEY = KEY_PICK.value;
+const URL_SOURCE = URL_PICK.source ?? "none";
+const KEY_SOURCE = KEY_PICK.source ?? "none";
+const ENV_SET = URL_SOURCE.startsWith("SELFHOSTED_") || KEY_SOURCE.startsWith("SELFHOSTED_") ? "SELFHOSTED_*" : URL_SOURCE.startsWith("EXTERNAL_") || KEY_SOURCE.startsWith("EXTERNAL_") ? "EXTERNAL_*" : "unknown";
+
+const KEY_PAYLOAD = EXTERNAL_KEY ? decodeJwtPayload(EXTERNAL_KEY) : null;
+const KEY_ROLE = (KEY_PAYLOAD?.role as string) ?? "unknown";
+const KEY_ISS = (KEY_PAYLOAD?.iss as string) ?? "unknown";
+const KEY_REF = (KEY_PAYLOAD?.ref as string) ?? "unknown";
+
+console.log("[external-db-proxy] env resolved", {
+  url_source: URL_SOURCE,
+  key_source: KEY_SOURCE,
+  env_set: ENV_SET,
+  target_url: EXTERNAL_URL,
+  key_role: KEY_ROLE,
+  key_iss: KEY_ISS,
+  key_ref: KEY_REF,
+});
+
+if (KEY_PICK.rejected?.length) {
+  console.warn("[external-db-proxy] WARN: chaves rejeitadas por não serem service_role", { rejected: KEY_PICK.rejected });
+}
 
 const TARGET_URL = EXTERNAL_URL ?? "";
 const TARGET_KEY = EXTERNAL_KEY ?? "";
 const targetName = "self-hosted-external";
 
-let supabase: ReturnType<typeof createClient> | null = null;
+let supabase: DynamicSupabaseClient | null = null;
 let bootError: string | null = null;
 
 try {
-  if (!EXTERNAL_URL || !/^https?:\/\//i.test(EXTERNAL_URL)) {
-    throw new Error("EXTERNAL_SUPABASE_URL ausente ou inválida — configure com a URL do Supabase self-hosted.");
+  if (!EXTERNAL_URL) {
+    throw new Error("SELFHOSTED_SUPABASE_URL/EXTERNAL_SUPABASE_URL ausente ou inválida — configure a URL do backend self-hosted.");
   }
   if (!EXTERNAL_KEY) {
-    throw new Error("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente — configure com a service_role do self-hosted.");
+    throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente ou inválida — configure uma chave service_role válida do self-hosted.");
   }
-  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } });
+  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } }) as DynamicSupabaseClient;
 } catch (error) {
   bootError = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o proxy.";
   console.error("[external-db-proxy] boot error:", bootError);
@@ -144,10 +225,61 @@ function jsonResponse(payload: Record<string, unknown>, status: number): Respons
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
+  // Health GET does not require auth; all data-access paths (POST + health=1) do
+  const url = new URL(req.url);
+  const isHealthGet = req.method === "GET" && !url.searchParams.get("health") && !url.searchParams.get("check");
+
+  if (!isHealthGet) {
+    // Decode caller JWT (untrusted, signature not checked) purely for diagnostics.
+    // This surfaces iss/ref/role/sub BEFORE requireUser runs, so a 401 can be
+    // traced to the exact token the client sent without re-decoding downstream.
+    const rawAuth = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+    const bearer = rawAuth.toLowerCase().startsWith("bearer ") ? rawAuth.slice(7).trim() : "";
+    const callerPayload = bearer ? decodeJwtPayload(bearer) : null;
+    const callerInfo = {
+      cid: req.headers.get("x-correlation-id") ?? undefined,
+      rid: req.headers.get("x-request-id") ?? undefined,
+      token_present: Boolean(bearer),
+      token_len: bearer.length || 0,
+      token_role: (callerPayload?.role as string) ?? "unknown",
+      token_iss: (callerPayload?.iss as string) ?? "unknown",
+      token_ref: (callerPayload?.ref as string) ?? "unknown",
+      token_sub: (callerPayload?.sub as string) ?? "unknown",
+      token_aud: (callerPayload?.aud as string) ?? "unknown",
+      token_exp: (callerPayload?.exp as number) ?? null,
+      token_exp_in_s: typeof callerPayload?.exp === "number"
+        ? (callerPayload.exp as number) - Math.floor(Date.now() / 1000)
+        : null,
+      // Which backend the fast-path in requireUser will TRY first.
+      expected_backend: (callerPayload?.iss as string) === `${EXTERNAL_URL}/auth/v1`
+        ? "self-hosted"
+        : "cloud-or-fallback",
+    };
+    console.log("[external-db-proxy] incoming JWT", callerInfo);
+
+    const authed = await requireUser(req);
+    if (authed instanceof Response) {
+      console.error("[external-db-proxy] requireUser REJECTED", {
+        ...callerInfo,
+        status: authed.status,
+        hint: callerInfo.token_iss === "unknown"
+          ? "JWT ausente ou malformado — cliente não enviou Authorization Bearer válido."
+          : callerInfo.expected_backend === "self-hosted"
+            ? `Token emitido por ${callerInfo.token_iss} — confirme que SELFHOSTED_SUPABASE_ANON_KEY corresponde ao JWT_SECRET desse issuer.`
+            : `Token iss=${callerInfo.token_iss} não bate com EXTERNAL_URL=${EXTERNAL_URL}/auth/v1 — confira SUPABASE_URL/SUPABASE_ANON_KEY do projeto cloud emissor.`,
+      });
+      return authed;
+    }
+    console.log("[external-db-proxy] requireUser OK", {
+      ...callerInfo,
+      user_id: authed.user.id,
+    });
+  }
+
   if (bootError || !supabase) {
     return jsonResponse({
       error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
-      hint: "Configure EXTERNAL_SUPABASE_URL e EXTERNAL_SUPABASE_SERVICE_ROLE_KEY com o banco correto das tabelas Evolution.",
+      hint: "Configure SELFHOSTED_SUPABASE_URL e SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY (ou aliases EXTERNAL_*) no runtime das Edge Functions.",
       data: [],
       count: 0,
     }, 503);
@@ -169,26 +301,31 @@ Deno.serve(async (req) => {
           if (error) {
             const err = error as { code?: string; message: string };
             const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
-            return { ...p, ok: false, exists: !missing, missing_table: missing, error: err.message, code: err.code ?? null, latency_ms: Date.now() - t0 };
+            console.error(`[external-db-proxy] probe ${p.schema}.${p.table}:`, err.code, err.message);
+            return { ...p, ok: false, exists: !missing, missing_table: missing, latency_ms: Date.now() - t0 };
           }
           return { ...p, ok: true, exists: true, missing_table: false, latency_ms: Date.now() - t0 };
         } catch (e) {
-          return { ...p, ok: false, exists: false, missing_table: false, error: e instanceof Error ? e.message : "probe failed", latency_ms: Date.now() - t0 };
+          console.error(`[external-db-proxy] probe exception ${p.schema}.${p.table}:`, e instanceof Error ? e.message : e);
+          return { ...p, ok: false, exists: false, missing_table: false, latency_ms: Date.now() - t0 };
         }
       }));
       const allOk = checks.every((c) => c.ok);
       return jsonResponse({
         ok: allOk,
         fn: "external-db-proxy",
-        version: "1.7",
+        version: "1.10-issuer-fastpath",
         target: targetName,
+        env_set: ENV_SET,
+        url_source: URL_SOURCE,
+        key_source: KEY_SOURCE,
         checks,
         hint: allOk ? undefined : "Se missing_table=true, aplique a migration no self-hosted e exponha o schema 'evo' em config.toml → [api].schemas.",
         latency_ms: Date.now() - startH,
         ts: Date.now(),
       }, allOk ? 200 : 503);
     }
-    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.7", target: targetName, ts: Date.now() }, 200);
+    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.10-issuer-fastpath", target: targetName, env_set: ENV_SET, ts: Date.now() }, 200);
   }
 
   if (req.method !== "POST") {
@@ -219,11 +356,14 @@ Deno.serve(async (req) => {
 
     try {
       const { data, error } = await supabase.rpc(rpc, params);
-      if (error) return jsonResponse({ error: error.message, cid, rid, data: null }, 400);
+      if (error) {
+        console.error('[external-db-proxy] rpc error', { rpc, cid, code: error.code, message: error.message });
+        return jsonResponse({ error: "Database operation failed", cid, rid, data: null }, 500);
+      }
       return jsonResponse({ ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "RPC failed";
-      return jsonResponse({ error: message, cid, rid, data: null }, 500);
+      console.error('[external-db-proxy] rpc exception', { rpc, cid, message: error instanceof Error ? error.message : String(error) });
+      return jsonResponse({ error: "Database operation failed", cid, rid, data: null }, 500);
     }
   }
 
@@ -267,7 +407,7 @@ Deno.serve(async (req) => {
     } else if (filter) {
       for (const [key, value] of Object.entries(filter)) {
         if (!isSafeIdent(key)) continue;
-        query = query.eq(key, value);
+        query = query.eq(key, value as {});
       }
     }
 
@@ -294,8 +434,28 @@ Deno.serve(async (req) => {
           latency_ms: Date.now() - start,
         }, 503);
       }
-      return jsonResponse({ error: err.message, code: err.code, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 400);
+      const isUnauthorized = /unauthorized|jwt|invalid signature|invalid api key|jws/i.test(err.message ?? "");
+      if (isUnauthorized) {
+        console.error('[external-db-proxy] AUTH MISMATCH — service_role key não é aceita pelo self-hosted', {
+          schema, table, cid,
+          target_url: EXTERNAL_URL,
+          key_source: KEY_SOURCE,
+          key_role: KEY_ROLE,
+          key_iss: KEY_ISS,
+          key_ref: KEY_REF,
+          message: err.message,
+        });
+        return jsonResponse({
+          error: "Self-hosted rejeitou a service_role key (assinatura inválida).",
+          hint: `A chave em '${KEY_SOURCE}' (role=${KEY_ROLE}, iss=${KEY_ISS}, ref=${KEY_REF}) não corresponde ao JWT_SECRET de ${EXTERNAL_URL}. Copie a service_role key EXATA do painel do self-hosted (Settings → API) e atualize o secret.`,
+          cid, rid, data: [], count: 0, latency_ms: Date.now() - start,
+        }, 502);
+      }
+      console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
+      return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
     }
+
+
 
     return jsonResponse({
       ok: true,
@@ -310,7 +470,7 @@ Deno.serve(async (req) => {
       latency_ms: Date.now() - start,
     }, 200);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Query failed";
-    return jsonResponse({ error: message, cid, rid, data: [], count: 0 }, 500);
+    console.error('[external-db-proxy] query exception', { schema, table, message: error instanceof Error ? error.message : String(error), cid });
+    return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0 }, 500);
   }
 });

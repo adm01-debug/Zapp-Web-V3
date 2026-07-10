@@ -5,11 +5,12 @@ import { undoToast } from '@/lib/undoToast';
 import { useAuth } from '@/features/auth';
 import { Message, InteractiveMessage, InteractiveButton, LocationMessage } from '@/types/chat';
 import { SlashCommand } from '@/features/inbox/components/SlashCommands';
-import { DialogKey } from './ChatPanelHandlerTypes';
 import { ExternalProduct } from '@/hooks/useExternalCatalog';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
+import { type DialogKey } from '@/features/inbox/components/chat/hooks/useChatDialogs';
+import { type ActiveTool } from '@/features/inbox/components/chat/ChatHeaderToolbar';
 
 interface UseChatPanelHandlersOptions {
   conversationId: string;
@@ -23,7 +24,7 @@ interface UseChatPanelHandlersOptions {
   handleTypingStop: () => void;
   openDialog: (key: DialogKey) => void;
   closeDialog: (key: DialogKey) => void;
-  handleSetActiveTool: (tool: any) => void;
+  handleSetActiveTool: (tool: ActiveTool) => void;
 }
 
 export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
@@ -166,7 +167,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     if (e.key === 'w' && e.altKey) { e.preventDefault(); setIsWhisper(prev => !prev); }
     if (e.key === 'Escape' && slashCommandsOpen) closeDialog('slashCommands');
   }, [handleSend, openDialog, closeDialog, handleSetActiveTool]);
-  const handleSlashCommand = useCallback((command: SlashCommand, subCommand?: string) => {
+  const handleSlashCommand = useCallback((command: Pick<SlashCommand, 'id'> & Partial<SlashCommand>, subCommand?: string) => {
     closeDialog('slashCommands'); setInputValue('');
     switch (command.id) {
       case 'transfer': openDialog('transferDialog'); break;

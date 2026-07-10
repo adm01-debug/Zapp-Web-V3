@@ -7,8 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth';
-import { CHECKLIST_STEPS } from './checklistSteps';
-import type { ChecklistStep } from './checklistSteps';
+import { CHECKLIST_STEPS } from '@/lib/onboarding/checklistSteps';
+import type { ChecklistStep } from '@/lib/onboarding/checklistSteps';
 
 interface OnboardingChecklistProps {
   onNavigate?: (view: string) => void;

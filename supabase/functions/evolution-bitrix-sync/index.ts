@@ -4,9 +4,41 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+interface BitrixResult {
+  success: boolean;
+  error?: string;
+  result?: unknown;
+}
+
+interface QueuePayload {
+  full_name?: string;
+  push_name?: string;
+  phone_number?: string;
+  email?: string;
+  notes?: string;
+  title?: string;
+  value?: number | string;
+  stage?: string;
+  bitrix_id?: number;
+  contact_id?: string;
+}
+
+interface QueueItem {
+  id: string;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  operation: "create" | "update";
+  entity_type: "contact" | "deal";
+  payload: QueuePayload;
+  local_id?: string;
+  created_at: string;
+  next_attempt_at?: string | null;
+}
 
 // Vault-resolved BITRIX_WEBHOOK_URL — fetched lazily on first use
 let _bitrixUrl: string | null | undefined;
@@ -18,7 +50,7 @@ async function getBitrixUrl(): Promise<string | null> {
   return _bitrixUrl;
 }
 
-async function bitrixCall(method: string, params: any) {
+async function bitrixCall(method: string, params: Record<string, unknown>): Promise<BitrixResult> {
   const url = await getBitrixUrl();
   if (!url) return { success: false, error: "BITRIX_WEBHOOK_URL não configurada" };
   try {
@@ -27,21 +59,21 @@ async function bitrixCall(method: string, params: any) {
     const d = await r.json();
     if (d.error) return { success: false, error: d.error_description || d.error };
     return { success: true, result: d.result };
-  } catch (e) { return { success: false, error: (e as Error).message }; }
+  } catch (e) { return { success: false, error: e instanceof Error ? e.message : "network error" }; }
 }
 
-const STAGE_MAP: any = { "novo_cliente":"NEW","novo_pedido":"PREPARATION","orcamento_enviado":"PREPAYMENT_INVOICE","pagamento_pendente":"EXECUTING","pago":"FINAL_INVOICE","em_producao":"EXECUTING","pedido_enviado":"EXECUTING","pedido_finalizado":"WON","perdido":"LOSE" };
+const STAGE_MAP: Record<string, string> = { "novo_cliente":"NEW","novo_pedido":"PREPARATION","orcamento_enviado":"PREPAYMENT_INVOICE","pagamento_pendente":"EXECUTING","pago":"FINAL_INVOICE","em_producao":"EXECUTING","pedido_enviado":"EXECUTING","pedido_finalizado":"WON","perdido":"LOSE" };
 
-function toBitrixContact(c: any) {
-  const bc: any = { NAME: c.full_name || c.push_name || "Contato WhatsApp", PHONE: [], SOURCE_ID: "WHATSAPP" };
-  if (c.phone_number) bc.PHONE.push({ VALUE: c.phone_number, VALUE_TYPE: "MOBILE" });
+function toBitrixContact(c: QueuePayload): Record<string, unknown> {
+  const bc: Record<string, unknown> = { NAME: c.full_name || c.push_name || "Contato WhatsApp", PHONE: [] as Array<Record<string, string>>, SOURCE_ID: "WHATSAPP" };
+  if (c.phone_number) (bc.PHONE as Array<Record<string, string>>).push({ VALUE: c.phone_number, VALUE_TYPE: "MOBILE" });
   if (c.email) bc.EMAIL = [{ VALUE: c.email, VALUE_TYPE: "WORK" }];
   if (c.notes) bc.COMMENTS = c.notes;
   return bc;
 }
 
-function toBitrixDeal(d: any, contactId?: number) {
-  const bd: any = { TITLE: d.title || "Pedido WhatsApp", SOURCE_ID: "WHATSAPP" };
+function toBitrixDeal(d: QueuePayload, contactId?: number): Record<string, unknown> {
+  const bd: Record<string, unknown> = { TITLE: d.title || "Pedido WhatsApp", SOURCE_ID: "WHATSAPP" };
   if (d.value) bd.OPPORTUNITY = Number(d.value);
   if (d.stage) bd.STAGE_ID = STAGE_MAP[d.stage] || "NEW";
   if (contactId) bd.CONTACT_ID = contactId;
@@ -68,17 +100,18 @@ async function processQueue() {
     return { processed: 0, success: 0, failed: 0 };
   }
 
-  const items = (data || []).filter((i: any) => (i.attempts || 0) < (i.max_attempts || 3));
+  const rows = (data || []) as QueueItem[];
+  const items = rows.filter(i => (i.attempts || 0) < (i.max_attempts || 3));
 
-  // Mark exhausted rows (pending but attempts >= max_attempts) as failed so they don't re-block
-  const exhausted = (data || []).filter((i: any) => (i.attempts || 0) >= (i.max_attempts || 3));
-  for (const ex of exhausted) {
+  // Bulk-mark exhausted rows (pending but attempts >= max_attempts) as failed in one query
+  const exhaustedIds = rows.filter(i => (i.attempts || 0) >= (i.max_attempts || 3)).map(i => i.id);
+  if (exhaustedIds.length > 0) {
     const { error: exErr } = await supabase
       .from("evolution_bitrix_queue")
       .update({ status: "failed", last_error: "max_attempts exceeded" })
-      .eq("id", ex.id)
+      .in("id", exhaustedIds)
       .eq("status", "pending");
-    if (exErr) console.error(`[processQueue] mark exhausted ${ex.id}:`, exErr.message);
+    if (exErr) console.error("[processQueue] mark exhausted batch:", exErr.message);
   }
 
   if (!items.length) return { processed: 0, success: 0, failed: 0 };
@@ -98,11 +131,11 @@ async function processQueue() {
     }
     if (!claimed || claimed === 0) continue; // already claimed by a concurrent worker
 
-    let result: any;
+    let result: BitrixResult;
     if (item.operation === "create") {
       if (item.entity_type === "contact") {
         const r = await bitrixCall("crm.contact.add", { fields: toBitrixContact(item.payload) });
-        if (r.success) await supabase.from("evolution_contacts").update({ bitrix_id: r.result }).eq("id", item.local_id);
+        if (r.success) await supabase.from("evolution_contacts").update({ bitrix_id: r.result as number }).eq("id", item.local_id);
         result = r;
       } else {
         let cid: number | undefined;
@@ -111,7 +144,7 @@ async function processQueue() {
           if (c?.bitrix_id) cid = c.bitrix_id;
         }
         const r = await bitrixCall("crm.deal.add", { fields: toBitrixDeal(item.payload, cid) });
-        if (r.success) await supabase.from("evolution_deals").update({ bitrix_id: r.result }).eq("id", item.local_id);
+        if (r.success) await supabase.from("evolution_deals").update({ bitrix_id: r.result as number }).eq("id", item.local_id);
         result = r;
       }
     } else if (item.operation === "update") {

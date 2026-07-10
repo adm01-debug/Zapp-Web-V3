@@ -29,9 +29,23 @@ jobs:
         run: bun install
 
       - name: Lint (advisory — pre-existing debt)
+        # BUGFIX 2026-07-06: `set +e` só evita abort no meio do script; o exit
+        # code do step é o do ÚLTIMO comando. Sem `exit 0`, um lint vermelho
+        # derrubava o job inteiro e pulava Type Check/Tests/E2E — exatamente o
+        # que "advisory" prometia não fazer. Padrão agora idêntico ao ci.yml.
         run: |
           set +e
           npm run lint
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=ESLint debt::npm run lint falhou em débito pré-existente (exit $status). Advisory até a limpeza da baseline."
+          fi
+          exit 0
+
+      - name: Refactor guards (ratchets — dead code + data layer)
+        run: |
+          node scripts/check-dead-code.mjs
+          node scripts/check-data-layer.mjs
           status=$?
           if [ "$status" -ne 0 ]; then
             echo "::warning title=ESLint debt::ESLint has pre-existing violations. Tracked as follow-up cleanup debt."
@@ -62,6 +76,9 @@ jobs:
         run: bunx playwright install --with-deps
 
       - name: E2E Tests
+        # Suite hermética em src/tests/e2e (app-boot.spec.ts): sobe o vite dev
+        # com env placeholder e valida boot real do SPA. A suite ./e2e (raiz)
+        # exige backend vivo + credenciais e pertence ao smoke pre-deploy.
         run: npm run test:e2e
 
       # NOTE: the old "Smoke Tests" step ran `playwright test tests/e2e/smoke.spec.ts`

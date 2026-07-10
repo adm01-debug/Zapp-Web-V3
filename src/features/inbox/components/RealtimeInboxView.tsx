@@ -18,6 +18,7 @@ import { useSLAAlerts } from '@/features/sla/hooks/useSLAAlerts';
 import { useDepartmentAgents } from '@/features/auth';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
 import { useAriaAnnouncer } from '@/hooks/useAriaAnnouncer';
+import { isValidUUID } from '@/utils/uuid';
 import { WifiOff, RefreshCw, Loader2, MessageSquarePlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -229,7 +230,26 @@ export function RealtimeInboxView() {
     inboxFilters.setSubTab('attending');
     inbox.setSelectedContactId(inbox.pendingContactId);
     inbox.setSelectedContact(inbox.pendingContactId);
-    inbox.markAsRead(inbox.pendingContactId);
+
+    // ── markAsRead guard (Bug#2 + Bug#2-residual) ───────────────────────────
+    // Bug#2: pendingContactId pode ser JID (ex: "5564984450900@s.whatsapp.net")
+    //   → isValidUUID() bloqueia para evitar 400 no PostgREST.
+    //
+    // Bug#2-residual: Em external mode (inbox.useExternalDb=true), markAsRead
+    //   vem de localRealtime (state tree DIFERENTE de externalData.conversations).
+    //   Logo é um no-op visual. Adicionalmente, o retry loop de openContactInChat
+    //   (15 tentativas × 200ms) despacha open-contact-chat 15 vezes, e cada
+    //   dispatch causa um setPendingContactId(UUID) → markAsRead(UUID).
+    //   Resultado: 15 × 23 partições = 345 partition scans por navegação, sem
+    //   nenhum benefício visual. Em external mode, handleSelectConversation já
+    //   envia o read receipt via supabase.functions.invoke('evolution-api').
+    //
+    // DECISÃO: chamar markAsRead APENAS em local mode.
+    if (!inbox.useExternalDb && isValidUUID(inbox.pendingContactId)) {
+      inbox.markAsRead(inbox.pendingContactId);
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     inbox.setPendingContactId(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inbox.pendingContactId, inbox.loading]);

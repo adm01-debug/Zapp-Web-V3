@@ -20,7 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Save, Loader2, User, Shield, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { sanitizeText, sanitizeHtml } from '@/lib/sanitize';
 import { validatePhone } from '@/lib/phoneUtils';
@@ -130,11 +129,10 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
           if (updateError) throw updateError;
         } else {
           // Use versioned update to detect concurrent edits
-          const { data: result, error: rpcError } = await safeClient.rpc<{ error?: string } & Record<string, unknown>>('update_contact_versioned', {
-            p_contact_id:       contact.id,
-            p_expected_version: contact.version,
-            p_updates:          data,
-          });
+          const { data: result, error: rpcError } = await safeClient.rpc<{ error?: string } & Partial<ConflictInfo>>(
+            'update_contact_versioned',
+            { p_contact_id: contact.id, p_expected_version: contact.version, p_updates: data }
+          );
 
           if (rpcError) throw rpcError;
 

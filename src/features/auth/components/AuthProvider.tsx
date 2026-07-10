@@ -5,6 +5,7 @@ import { authService, Profile } from '@/features/auth/services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '@/features/auth/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 
 
@@ -69,15 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: perms } = await supabase
-        .from('role_permissions')
-        .select('permissions(name)')
-        .in('role', roleNames as never);
+      const { data: perms } = await safeClient.from<{ permissions: { name: string } | null }>(
+        'role_permissions',
+        q => q.select('permissions(name)').in('role', roleNames)
+      );
 
       if (perms) {
         const permNames = perms
-          .map((p) => (p.permissions as unknown as { name: string } | null)?.name)
-          .filter(Boolean) as string[];
+          .map((p) => p.permissions?.name)
+          .filter((n): n is string => typeof n === 'string');
         setPermissions([...new Set(permNames)]);
       }
     } catch (err: unknown) {

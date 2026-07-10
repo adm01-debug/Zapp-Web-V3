@@ -159,7 +159,7 @@ export const contactsDB = {
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    return (data as unknown as { contacts: ExternalContact }).contacts;
+    return (data as typeof data & { contacts: ExternalContact }).contacts;
   },
 
   /** Update contact fields */

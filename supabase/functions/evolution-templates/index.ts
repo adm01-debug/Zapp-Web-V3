@@ -3,10 +3,13 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+const supabase = createClient((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!, { auth: { persistSession: false } });
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, x-api-key", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
 
-let _cfg: any = null;
+interface TemplateConfig { url: string; key: string; instance: string; }
+interface TemplateRow { is_active?: boolean; approval_status?: string | null; content?: string | null; [key: string]: unknown; }
+
+let _cfg: TemplateConfig | null = null;
 async function getConfig() {
   if (_cfg) return _cfg;
   const [{ data: url }, { data: key }, { data: instance }] = await Promise.all([
@@ -26,7 +29,7 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function replaceVars(content: string, vars: any) {
+function replaceVars(content: string, vars: Record<string, unknown>) {
   let r = content;
   for (const [k, v] of Object.entries(vars || {})) {
     // escapeRegex prevents template variable keys from being interpreted as regex patterns
@@ -46,7 +49,7 @@ async function sendMsg(jid: string, text: string) {
   } catch (e) { return { ok: false, response: { error: (e as Error).message }, status: 0 }; }
 }
 
-function validate(tpl: any) {
+function validate(tpl: TemplateRow | null | undefined) {
   if (!tpl) return { ok: false, error: "template not found" };
   if (tpl.is_active === false) return { ok: false, error: "template inactive" };
   if (tpl.approval_status && tpl.approval_status !== "approved") return { ok: false, error: `not approved (${tpl.approval_status})` };

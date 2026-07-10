@@ -1,16 +1,19 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { AiConversationAnalysisSchema, parseBody } from "../_shared/schemas.ts";
-import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { callAiWithTracking } from "../_shared/ai-usage.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
   const log = new Logger("ai-conversation-analysis");
-  const userId = extractUserIdFromRequest(req);
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const userId = authed.user.id;
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`analysis:${ip}`, 10, 60_000);
     if (!allowed) return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
@@ -20,11 +23,15 @@ Deno.serve(async (req) => {
 
     const { messages, contactName, contactId } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    // Caller-scoped client (RLS enforced) — used for contact reads and analysis writes
+    const callerClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY"), {
+      global: { headers: { authorization: req.headers.get("authorization") || "" } },
+    });
 
     let contactContext = '';
     if (contactId) {
-      const { data: contact } = await supabase
+      // Use callerClient for contactId-scoped reads so RLS prevents cross-tenant data access
+      const { data: contact } = await callerClient
         .from('contacts')
         .select('name, company, tags, ai_priority, ai_sentiment, notes, contact_type')
         .eq('id', contactId)
@@ -38,7 +45,7 @@ Deno.serve(async (req) => {
         if (contact.ai_sentiment) contactContext += `, Sentimento anterior: ${contact.ai_sentiment}`;
       }
 
-      const { data: prevAnalyses } = await supabase
+      const { data: prevAnalyses } = await callerClient
         .from('conversation_analyses')
         .select('sentiment, sentiment_score, summary, urgency, created_at')
         .eq('contact_id', contactId)
@@ -206,7 +213,8 @@ Responda em português brasileiro.`;
     let analysisId: string | null = null;
 
     if (contactId) {
-      const { data: insertedAnalysis, error: insertError } = await supabase
+      // Use callerClient for insert so RLS prevents cross-tenant writes
+      const { data: insertedAnalysis, error: insertError } = await callerClient
         .from('conversation_analyses')
         .insert({
           contact_id: contactId,
@@ -235,7 +243,7 @@ Responda em português brasileiro.`;
         analysisId = insertedAnalysis?.id ?? null;
       }
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await callerClient
         .from('contacts')
         .update({
           ai_sentiment: analysisData.sentiment,
@@ -255,6 +263,6 @@ Responda em português brasileiro.`;
     return jsonResponse({ ...analysisData, analysisId }, 200, req);
   } catch (error) {
     log.error("Error analyzing conversation", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Unknown error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { requireUser } from "../_shared/auth.ts";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const TranscriptSchema = z.object({
   transcript: z.string().min(1).max(2000).transform(s => s.trim()),
@@ -86,6 +87,15 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("voice-agent");
+
+  let authed;
+  try {
+    authed = await requireUser(req);
+  } catch (authErr) {
+    log.error('Auth check failed', { error: authErr instanceof Error ? authErr.message : String(authErr) });
+    return errorResponse('Unauthorized', 401, req);
+  }
+  if (authed instanceof Response) return authed;
 
   try {
     const LOVABLE_API_KEY = requireEnv('LOVABLE_API_KEY');

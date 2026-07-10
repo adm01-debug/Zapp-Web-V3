@@ -1,12 +1,12 @@
 // Message-related webhook handlers: send, update, delete, set, edited
 
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   isRecord, normalizePhone, resolveEventJid, toEventRecords, shouldUpdateStatus,
   getConnectionByInstance, getContactByPhone,
 } from "./evolution-helpers.ts";
 
-// deno-lint-ignore no-explicit-any
-export async function handleSendMessage(supabase: any, instance: string, data: unknown, baseData: Record<string, unknown>) {
+export async function handleSendMessage(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
   for (const entry of toEventRecords(data, ['messages'])) {
@@ -73,8 +73,7 @@ export async function handleSendMessage(supabase: any, instance: string, data: u
   }
 }
 
-// deno-lint-ignore no-explicit-any
-export async function handleMessagesUpdate(supabase: any, instance: string, data: unknown, baseData: Record<string, unknown>) {
+export async function handleMessagesUpdate(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
   // Mapeamento canônico ACK do WhatsApp/Baileys (Evolution v2):
   //   PENDING(0) → sending; SERVER_ACK(1) → sent; DELIVERY_ACK(2) → delivered;
   //   READ(3) → read; PLAYED(4) → played (áudio reproduzido).
@@ -132,8 +131,7 @@ export async function handleMessagesUpdate(supabase: any, instance: string, data
   }
 }
 
-// deno-lint-ignore no-explicit-any
-export async function handleMessagesDelete(supabase: any, instance: string, data: unknown, baseData: Record<string, unknown>) {
+export async function handleMessagesDelete(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
   for (const entry of toEventRecords(data, ['messages', 'keys'])) {
@@ -176,8 +174,7 @@ export async function handleMessagesDelete(supabase: any, instance: string, data
   }
 }
 
-// deno-lint-ignore no-explicit-any
-export async function handleMessagesSet(supabase: any, instance: string, data: unknown) {
+export async function handleMessagesSet(supabase: SupabaseClient, instance: string, data: unknown) {
   const messages = toEventRecords(data, ['messages']);
   if (messages.length === 0) return;
 
@@ -227,8 +224,7 @@ export async function handleMessagesSet(supabase: any, instance: string, data: u
   console.log(`messages.set: synced ${synced}, skipped ${skipped} for ${instance}`);
 }
 
-// deno-lint-ignore no-explicit-any
-export async function handleMessagesEdited(supabase: any, instance: string, data: unknown, baseData: Record<string, unknown>) {
+export async function handleMessagesEdited(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
   for (const entry of toEventRecords(data, ['messages'])) {

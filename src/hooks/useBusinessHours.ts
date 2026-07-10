@@ -44,14 +44,14 @@ export function useBusinessHours(connectionId: string) {
   const { data: businessHours, isLoading: loadingHours, refetch: refetchHours } = useQuery({
     queryKey: ['business-hours', connectionId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<BusinessHour>(
-        'business_hours',
-        (q) => q.select('*').eq('whatsapp_connection_id', connectionId).order('day_of_week'),
+      const { data, error } = await safeClient.from<BusinessHour>('business_hours', q =>
+        q.select('*').eq('whatsapp_connection_id', connectionId).order('day_of_week'),
       );
 
       if (error) throw error;
 
-      if (data.length === 0) {
+      // If no data, return defaults
+      if (!data || data.length === 0) {
         return DEFAULT_HOURS.map(h => ({ ...h, whatsapp_connection_id: connectionId }));
       }
 
@@ -86,14 +86,14 @@ export function useBusinessHours(connectionId: string) {
     mutationFn: async ({ hours, away }: { hours: BusinessHour[]; away: AwayMessage }) => {
       // Upsert business hours
       for (const hour of hours) {
-        const { error } = await safeClient.from('business_hours', (q) =>
+        const { error } = await safeClient.from('business_hours', q =>
           q.upsert({
             whatsapp_connection_id: connectionId,
             day_of_week: hour.day_of_week,
             is_enabled: hour.is_enabled,
             start_time: hour.start_time,
             end_time: hour.end_time,
-          }, { onConflict: 'whatsapp_connection_id,day_of_week' })
+          }, { onConflict: 'whatsapp_connection_id,day_of_week' }),
         );
 
         if (error) throw error;

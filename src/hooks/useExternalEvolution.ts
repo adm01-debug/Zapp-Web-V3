@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * useExternalEvolution — Hooks for reading evolution_messages from external FATOR X DB
  * Replaces the local DB reads for the Inbox when external DB is the source of truth.
@@ -141,8 +142,9 @@ export function reconcileOptimistic(
         // Telemetria enriquecida para áudio (PTT vs Gravado vs Meme)
         let messageType = m.message_type;
         if (messageType === 'audio') {
-          const isPtt = m.media_meta?.ptt === true;
-          const isMeme = !!m.audio_meme_id;
+          const mAudio = m as unknown as { media_meta?: { ptt?: boolean }; audio_meme_id?: string };
+          const isPtt = mAudio.media_meta?.ptt === true;
+          const isMeme = !!mAudio.audio_meme_id;
           messageType = isMeme ? 'audio_meme' : (isPtt ? 'audio_ptt' : 'audio_recorded');
         }
 
@@ -180,8 +182,9 @@ export function reconcileOptimistic(
         // Telemetria enriquecida para áudio fallback (PTT vs Gravado vs Meme)
         let messageType = m.message_type;
         if (messageType === 'audio') {
-          const isPtt = m.media_meta?.ptt === true;
-          const isMeme = !!m.audio_meme_id;
+          const mAudio = m as unknown as { media_meta?: { ptt?: boolean }; audio_meme_id?: string };
+          const isPtt = mAudio.media_meta?.ptt === true;
+          const isMeme = !!mAudio.audio_meme_id;
           messageType = isMeme ? 'audio_meme' : (isPtt ? 'audio_ptt' : 'audio_recorded');
         }
 
@@ -364,8 +367,17 @@ const USE_MOCKS =
   typeof window !== 'undefined' &&
   window.localStorage?.getItem('mockConversations') === '1';
 
+interface ContactEnrichmentData {
+  tags?: unknown;
+  company?: string;
+  ai_sentiment?: string;
+  name?: string;
+  push_name?: string;
+  avatar_url?: string;
+  [key: string]: unknown;
+}
 // ─── Global Enrichment Cache to avoid redundant RPC calls ──────────
-const contactEnrichmentCache = new Map<string, { data: any; timestamp: number }>();
+const contactEnrichmentCache = new Map<string, { data: ContactEnrichmentData; timestamp: number }>();
 const CACHE_TTL = 300_000; // 5 minutes
 
 // ─── Hook: External Conversations (list for sidebar) ──────────
@@ -409,8 +421,8 @@ export function useExternalConversations(enabled = true) {
           // Individual calls are safer as rpc_get_contacts (plural) is missing in FATOR X.
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
-            jidsToFetch.map(jid => 
-              queryExternalProxy<any>({
+            jidsToFetch.map(jid =>
+              queryExternalProxy<ContactEnrichmentData>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',
                 params: {
@@ -530,8 +542,8 @@ export function useExternalMessages(remoteJid: string | null) {
       // Mantemos quaisquer otimistas que ainda não foram reconciliadas.
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens
-        const currentAvatar = (queryClient.getQueryData(['contact', remoteJid]) as { avatar_url?: string } | undefined)?.avatar_url ||
-                             (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as { avatar_url?: string } | undefined)?.avatar_url;
+        const currentAvatar = (queryClient.getQueryData(['contact', remoteJid]) as { avatar_url?: string | null } | undefined)?.avatar_url ||
+                             (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as { avatar_url?: string | null } | undefined)?.avatar_url;
 
         // Propaga o avatar para todas as mensagens (canônicas e otimistas remanescentes)
         const additionsWithAvatar = additions.map(m => ({ ...m, contactAvatar: currentAvatar }));
@@ -576,8 +588,8 @@ export function useExternalMessages(remoteJid: string | null) {
       const mapped = newOnes.map(evolutionToRealtimeMessage);
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens poladas
-        const currentAvatar = (queryClient.getQueryData(['contact', remoteJid]) as { avatar_url?: string } | undefined)?.avatar_url ||
-                             (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as { avatar_url?: string } | undefined)?.avatar_url;
+        const currentAvatar = (queryClient.getQueryData(['contact', remoteJid]) as { avatar_url?: string | null } | undefined)?.avatar_url ||
+                             (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as { avatar_url?: string | null } | undefined)?.avatar_url;
 
         const additionsWithAvatar = additions.map(m => ({ ...m, contactAvatar: currentAvatar }));
         return [...filteredPrev, ...additionsWithAvatar];

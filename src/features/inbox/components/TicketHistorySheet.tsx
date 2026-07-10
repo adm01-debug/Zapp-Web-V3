@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * Drawer com histórico do atendimento.
  *
@@ -19,9 +20,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Clock, Circle, UserCheck, UserMinus, UserPlus, Wand2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { useTicketStatus } from '@/features/inbox';
 import type { TicketEvent } from '@/lib/inbox/ticketStore';
+import { conversationEventRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('TicketHistorySheet');
 
 interface TicketHistorySheetProps {
   contactId: string | null;
@@ -101,27 +105,36 @@ function describeRemote(e: RemoteEvent, nameMap: Record<string, string>): Unifie
 }
 
 function describeAudit(e: any): UnifiedEvent {
+  // Após migração: linhas de `audit_logs` (entity_type='conversation')
+  // guardam o antigo `event_type/status/error_message/attempt_number` dentro
+  // de `details`. Retrocompatível com o shape antigo `conversation_audit_logs`.
+  const details = (e.details ?? {}) as Record<string, any>;
+  const action: string = e.action ?? e.event_type ?? 'audit';
+  const status: string | undefined = details.status ?? e.status;
+  const errorMessage: string | undefined = details.error_message ?? e.error_message;
+  const attemptNumber: number | undefined = details.attempt_number ?? e.attempt_number;
+
   let label = 'Evento de Outbound';
-  let detail = e.status;
-  
-  if (e.event_type === 'send_attempt') {
+  let detail: string | undefined = status;
+
+  if (action === 'send_attempt') {
     label = 'Tentativa de Envio';
-    detail = `Tentativa #${e.attempt_number || 1}`;
-  } else if (e.event_type === 'delivered') {
+    detail = `Tentativa #${attemptNumber || 1}`;
+  } else if (action === 'delivered') {
     label = 'Entregue com Sucesso';
     detail = 'Mensagem recebida pelo WhatsApp';
-  } else if (e.event_type === 'failed') {
+  } else if (action === 'failed') {
     label = 'Falha no Envio';
-    detail = e.error_message || 'Erro desconhecido';
+    detail = errorMessage || 'Erro desconhecido';
   }
 
-  return { 
-    id: e.id, 
-    source: 'audit', 
-    type: e.event_type, 
-    at: e.created_at, 
-    label, 
-    detail 
+  return {
+    id: e.id,
+    source: 'audit',
+    type: action,
+    at: e.created_at,
+    label,
+    detail,
   };
 }
 
@@ -139,7 +152,17 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) throw error;
-      return (data ?? []) as RemoteEvent[];
+      const rows = Array.isArray(data) ? data : [];
+      const valid: RemoteEvent[] = [];
+      for (const row of rows) {
+        const parsed = safeParseEvent(conversationEventRowSchema, row);
+        if (!parsed.ok) {
+          log.warn('conversation_events row rejeitada', parsed.error);
+          continue;
+        }
+        valid.push(row as RemoteEvent);
+      }
+      return valid;
     },
   });
 
@@ -147,12 +170,15 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     queryKey: ['conversation-audit-logs', contactId],
     enabled: open && !!contactId,
     queryFn: async () => {
-      const { data, error } = await safeClient.from<Record<string, unknown>>(
-        'conversation_audit_logs',
-        (q) => q.select('*').eq('conversation_id', contactId!).order('created_at', { ascending: false }).limit(50),
-      );
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('id, action, entity_type, entity_id, details, created_at')
+        .eq('entity_type', 'conversation')
+        .eq('entity_id', contactId!)
+        .order('created_at', { ascending: false })
+        .limit(50);
       if (error) return [];
-      return data;
+      return data ?? [];
     },
   });
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { safeClient } from "@/integrations/supabase/safeClient";
 
 /**
  * Estatísticas de telemetria de fallback FATOR X agregadas pela RPC
@@ -37,9 +37,7 @@ export function useEvolutionFallbackStats(windowHours = 24) {
   return useQuery<FallbackStats>({
     queryKey: ["evolution-fallback-stats", windowHours],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("rpc_evolution_fallback_stats" as never, {
-        p_hours: windowHours,
-      } as never);
+      const { data, error } = await safeClient.rpc<FallbackStats>('rpc_evolution_fallback_stats', { p_hours: windowHours });
       if (error) throw error;
       return data as unknown as FallbackStats;
     },

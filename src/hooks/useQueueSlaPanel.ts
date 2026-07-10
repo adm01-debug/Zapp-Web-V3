@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { dbFrom } from '@/integrations/datasource/db';
 import { useToast } from '@/hooks/use-toast';
 
 export type SlaStatusFilter = 'on_track' | 'at_risk' | 'breached' | null;
@@ -53,7 +52,7 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
       setError(error.message);
       setRows([]);
     } else {
-      setRows(data ?? []);
+      setRows((data ?? []) as QueueSlaRow[]);
     }
     setLoading(false);
   }, [filters.skill_name, filters.channel_type, filters.sla_status]);
@@ -68,7 +67,7 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
     queueId: string,
     patch: Partial<Pick<QueueSlaRow, 'sla_priority' | 'routing_weight' | 'auto_rebalance_enabled'>>,
   ) => {
-    const { error } = await dbFrom('queues').update(patch).eq('id', queueId);
+    const { error } = await safeClient.from('queues', q => q.update(patch).eq('id', queueId));
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
       return false;

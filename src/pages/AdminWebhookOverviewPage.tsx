@@ -6,8 +6,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format, subHours } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { subHours } from 'date-fns';
 import {
   Webhook, RefreshCw, Activity, CheckCircle2, XCircle, Server, AlertTriangle,
 } from 'lucide-react';
@@ -32,6 +31,7 @@ import { queryExternalProxy } from '@/lib/externalProxy';
 import { openWebhookEventsWithFilters } from '@/lib/webhookEventsDeepLink';
 import { cn } from '@/lib/utils';
 import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';
+import { formatDateTimeCompact } from '@/lib/formatters';
 import {
   aggregateByType,
   aggregateByTypeAndInstance,
@@ -51,14 +51,6 @@ const RANGE_OPTIONS = [
 // Asking for more just wastes a round-trip and risks Postgres timeouts.
 const HARD_LIMIT = 200;
 
-function formatTime(iso: string | null): string {
-  if (!iso) return '—';
-  try {
-    return format(new Date(iso), "dd/MM HH:mm:ss", { locale: ptBR });
-  } catch {
-    return iso;
-  }
-}
 
 const AUTO_REFRESH_STORAGE_KEY = 'zappweb:webhook-overview:auto-refresh';
 const AUTO_REFRESH_INTERVAL_MS = 60_000;
@@ -451,7 +443,7 @@ export default function AdminWebhookOverviewPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {formatTime(row.lastAt)}
+                          {formatDateTimeCompact(row.lastAt)}
                         </TableCell>
                       </TableRow>
                     );

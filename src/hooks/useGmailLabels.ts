@@ -60,11 +60,11 @@ export function useEmailLabels(accountId: string | null) {
   const getLabelCount = useCallback(async (labelId: string): Promise<{ thread_count: number; unread_count: number }> => {
     if (!accountId) return { thread_count: 0, unread_count: 0 };
 
-    const { data: threads } = await safeClient.from<{ id: string; unread_count: number | null }>(
-      'email_threads',
-      (q) => q.select('id, unread_count').eq('account_id', accountId).contains('label_ids', [labelId]),
+    const { data } = await safeClient.from<{ id: string; unread_count: number }>('email_threads', q =>
+      q.select('id, unread_count').eq('account_id', accountId).contains('label_ids', [labelId])
     );
 
+    const threads = data ?? [];
     return {
       thread_count: threads.length,
       unread_count: threads.reduce((s, t) => s + (t.unread_count ?? 0), 0),

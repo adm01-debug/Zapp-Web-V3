@@ -54,10 +54,6 @@ export interface RealtimeMessage {
   /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
   contactAvatar?: string | null;
   reactions?: any[] | null;
-  /** Meta-informações brutas da Evolution API (PTT, isPtv, etc.) */
-  media_meta?: Record<string, unknown> | null;
-  /** ID de meme de áudio, quando aplicável */
-  audio_meme_id?: string | null;
 }
 
 export interface ConversationContact {
@@ -81,7 +77,6 @@ export interface ConversationContact {
   ai_sentiment: string | null;
   channel_type: string | null;
   channel_connection_id: string | null;
-  routing_status?: string | null;
 }
 
 export interface ConversationWithMessages {
@@ -428,10 +423,10 @@ export function useRealtimeMessages() {
       filtered = filtered.filter(conv => {
         if (statusFilter === 'unread') return conv.unreadCount > 0;
         if (statusFilter === 'open') {
-          return !conv.lastMessage || conv.lastMessage.sender === 'contact' || conv.contact.routing_status === 'pending';
+          return !conv.lastMessage || conv.lastMessage.sender === 'contact' || (conv.contact as ConversationContact & { routing_status?: string }).routing_status === 'pending';
         }
         if (statusFilter === 'closed') {
-          return conv.lastMessage?.sender === 'agent' && conv.contact.routing_status !== 'pending';
+          return conv.lastMessage?.sender === 'agent' && (conv.contact as ConversationContact & { routing_status?: string }).routing_status !== 'pending';
         }
         return true; 
       });

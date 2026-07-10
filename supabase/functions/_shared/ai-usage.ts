@@ -2,7 +2,7 @@
  * Shared AI Usage Logger for Edge Functions.
  * Logs token consumption per user to ai_usage_logs table.
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 
 interface AiUsageEntry {
   functionName: string;
@@ -48,9 +48,8 @@ export function extractUserIdFromRequest(req: Request): string | null {
 }
 
 /** Resolve profile_id from user_id via profiles table */
-// deno-lint-ignore no-explicit-any
 async function resolveProfileId(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null | undefined
 ): Promise<string | null> {
   if (!userId) return null;
@@ -70,8 +69,8 @@ async function resolveProfileId(
 /** Log AI usage to database (fire-and-forget, non-blocking) */
 export async function logAiUsage(entry: AiUsageEntry): Promise<void> {
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+    const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!supabaseUrl || !serviceRoleKey) return;
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);

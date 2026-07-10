@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,14 +44,15 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
     queryKey: ['whispers', contactId],
     queryFn: async () => {
       if (!contactIsUUID) return [];
-      const { data, error } = await supabase
-        .from('whisper_messages')
-        .select('*, sender:profiles!whisper_messages_sender_id_fkey(name, avatar_url)')
-        .eq('contact_id', contactId)
-        .order('created_at', { ascending: true })
-        .limit(50);
+      const { data, error } = await safeClient.from<WhisperMessage>(
+        'whisper_messages',
+        q => q.select('*, sender:profiles!whisper_messages_sender_id_fkey(name, avatar_url)')
+          .eq('contact_id', contactId)
+          .order('created_at', { ascending: true })
+          .limit(50)
+      );
       if (error) throw error;
-      return ((data || []) as unknown) as WhisperMessage[];
+      return data || [];
     },
     enabled: !!contactId && !!profile && contactIsUUID,
     refetchOnWindowFocus: false,
@@ -66,7 +68,7 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
         content: content ?? null,
         audio_url: audioUrl ?? null,
       };
-      const { error } = await supabase.from('whisper_messages').insert(payload as never);
+      const { error } = await safeClient.from('whisper_messages', q => q.insert(payload));
       if (error) throw error;
     },
     onSuccess: () => {

@@ -3,6 +3,7 @@
 // Opcionalmente persiste o sticky e atribui o contato (assigned_to + queue_id).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,116 +33,108 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !serviceKey) {
-    return new Response(JSON.stringify({ error: "missing_env" }), {
+  const err500 = (msg: string) =>
+    new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  }
 
-  let body: RouteRequest;
   try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "invalid_json" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+        status: 405,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-  if (!body.contact_id || typeof body.contact_id !== "string") {
-    return new Response(
-      JSON.stringify({ error: "contact_id_required" }),
-      {
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+
+    const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    if (!url || !serviceKey) return err500("missing_env");
+
+    let body: RouteRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "invalid_json" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
-  }
+      });
+    }
 
-  const admin = createClient(url, serviceKey, {
-    auth: { persistSession: false },
-  });
-
-  // 1) Resolver agente
-  const { data: resolved, error: resolveErr } = await admin.rpc(
-    "fn_resolve_agent_for_routing",
-    {
-      p_contact_id: body.contact_id,
-      p_channel_connection_id: body.channel_connection_id ?? null,
-      p_queue_id: body.queue_id ?? null,
-    },
-  );
-
-  if (resolveErr) {
-    console.error("[ticket-router] resolve error", resolveErr);
-    return new Response(
-      JSON.stringify({ error: "resolve_failed", detail: resolveErr.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
-  }
-
-  const result = resolved as RouteResponse;
-
-  // 2) Aplicar (opcional)
-  if (body.apply && result.agent_profile_id) {
-    const { error: updErr } = await admin
-      .from("contacts")
-      .update({
-        assigned_to: result.agent_profile_id,
-        queue_id: result.queue_id,
-      })
-      .eq("id", body.contact_id);
-
-    if (updErr) {
-      console.error("[ticket-router] update contact error", updErr);
+    if (!body.contact_id || typeof body.contact_id !== "string") {
       return new Response(
-        JSON.stringify({
-          ...result,
-          applied: false,
-          error: "update_failed",
-          detail: updErr.message,
-        }),
+        JSON.stringify({ error: "contact_id_required" }),
         {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
 
-    const { error: stickyErr } = await admin.rpc(
-      "fn_register_sticky_assignment",
+    const admin = createClient(url, serviceKey, {
+      auth: { persistSession: false },
+    });
+
+    // 1) Resolver agente
+    const { data: resolved, error: resolveErr } = await admin.rpc(
+      "fn_resolve_agent_for_routing",
       {
         p_contact_id: body.contact_id,
-        p_agent_profile_id: result.agent_profile_id,
         p_channel_connection_id: body.channel_connection_id ?? null,
-        p_queue_id: result.queue_id,
+        p_queue_id: body.queue_id ?? null,
       },
     );
 
-    if (stickyErr) {
-      console.warn("[ticket-router] sticky write failed", stickyErr);
+    if (resolveErr) {
+      console.error("[ticket-router] resolve error", resolveErr);
+      return err500("resolve_failed");
     }
 
-    result.applied = true;
-  } else {
-    result.applied = false;
-  }
+    const result = resolved as RouteResponse;
 
-  return new Response(JSON.stringify(result), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+    // 2) Aplicar (opcional)
+    if (body.apply && result.agent_profile_id) {
+      const { error: updErr } = await admin
+        .from("contacts")
+        .update({
+          assigned_to: result.agent_profile_id,
+          queue_id: result.queue_id,
+        })
+        .eq("id", body.contact_id);
+
+      if (updErr) {
+        console.error("[ticket-router] update contact error", updErr);
+        return err500("update_failed");
+      }
+
+      const { error: stickyErr } = await admin.rpc(
+        "fn_register_sticky_assignment",
+        {
+          p_contact_id: body.contact_id,
+          p_agent_profile_id: result.agent_profile_id,
+          p_channel_connection_id: body.channel_connection_id ?? null,
+          p_queue_id: result.queue_id,
+        },
+      );
+
+      if (stickyErr) {
+        console.warn("[ticket-router] sticky write failed", stickyErr);
+      }
+
+      result.applied = true;
+    } else {
+      result.applied = false;
+    }
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("[ticket-router] unhandled error:", err instanceof Error ? err.message : String(err));
+    return err500("internal_server_error");
+  }
 });

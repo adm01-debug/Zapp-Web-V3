@@ -27,8 +27,7 @@ function classifySeverity(durationMs: number, hasError: boolean): string {
   return "ok";
 }
 
-// deno-lint-ignore no-explicit-any
-async function emitTelemetry(supabaseAdmin: any, payload: TelemetryPayload): Promise<void> {
+async function emitTelemetry(supabaseAdmin: ReturnType<typeof createClient>, payload: TelemetryPayload): Promise<void> {
   try {
     await supabaseAdmin.from("query_telemetry").insert({
       operation: payload.operation,
@@ -88,8 +87,7 @@ Deno.serve(async (req) => {
 
     try {
       if (action === "select" && table) {
-        // deno-lint-ignore no-explicit-any
-        let query: any = supabaseAdmin.from(table).select(params?.select as string || "*", {
+        let query = supabaseAdmin.from(table).select(params?.select as string || "*", {
           count: (countMode as "exact" | "planned" | "estimated") || undefined,
         });
         if (params?.filters) {
@@ -119,8 +117,7 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
       } else if (action === "update" && table) {
-        // deno-lint-ignore no-explicit-any
-        let query: any = supabaseAdmin.from(table).update(params?.values || {});
+        let query = supabaseAdmin.from(table).update(params?.values || {});
         if (params?.match) {
           for (const [k, v] of Object.entries(params.match)) {
             query = query.eq(k, v as string);
@@ -131,8 +128,7 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = Array.isArray(data) ? data.length : 0;
       } else if (action === "delete" && table) {
-        // deno-lint-ignore no-explicit-any
-        let query: any = supabaseAdmin.from(table).delete();
+        let query = supabaseAdmin.from(table).delete();
         if (params?.match) {
           for (const [k, v] of Object.entries(params.match)) {
             query = query.eq(k, v as string);

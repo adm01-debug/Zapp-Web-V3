@@ -54,9 +54,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const ANON = Deno.env.get('SUPABASE_ANON_KEY');
+    const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+    const SERVICE_ROLE = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    const ANON = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'));
     if (!SUPABASE_URL || !SERVICE_ROLE || !ANON) {
       return jsonResponse({ error: 'Missing Supabase environment' }, 500);
     }
@@ -94,7 +94,8 @@ Deno.serve(async (req) => {
       .in('key', ['sla_alert_webhook_url', 'sla_alert_webhook_method']);
 
     if (settingsErr) {
-      return jsonResponse({ error: `Settings read failed: ${settingsErr.message}` }, 500);
+      console.error('[sla-alert-forward] DB error reading settings:', settingsErr.message);
+      return jsonResponse({ error: 'Internal server error' }, 500);
     }
 
     const map = new Map((settings ?? []).map((r) => [r.key, r.value]));
@@ -131,13 +132,13 @@ Deno.serve(async (req) => {
         ok ? 200 : 502,
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return jsonResponse({ forwarded: false, reason: 'fetch_failed', error: msg }, 502);
+      console.error('[sla-alert-forward] fetch failed', err instanceof Error ? err.message : String(err));
+      return jsonResponse({ forwarded: false, reason: 'fetch_failed', error: 'Network error forwarding alert' }, 502);
     } finally {
       clearTimeout(timer);
     }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return jsonResponse({ error: msg }, 500);
+    console.error('[sla-alert-forward]', err instanceof Error ? err.message : String(err));
+    return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });

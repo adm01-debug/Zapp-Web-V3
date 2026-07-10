@@ -5,6 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_AUTH_URL  = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -24,13 +25,13 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
   );
 
   const clientId     = Deno.env.get('GOOGLE_CLIENT_ID')!;
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
-  const redirectUri  = Deno.env.get('GMAIL_REDIRECT_URI') ?? `${Deno.env.get('SUPABASE_URL')}/functions/v1/gmail-oauth`;
+  const redirectUri  = Deno.env.get('GMAIL_REDIRECT_URI') ?? `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/gmail-oauth`;
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -60,7 +61,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ url: `${GOOGLE_AUTH_URL}?${params}`, state }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: jsonHeaders }
       );
     }
 
@@ -68,7 +69,7 @@ serve(async (req) => {
     if (action === 'exchangeCode') {
       const { code, userId } = body;
       if (!code || !userId) {
-        return new Response(JSON.stringify({ error: 'code e userId obrigatórios' }), { status: 400, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'code e userId obrigatórios' }), { status: 400, headers: jsonHeaders });
       }
 
       const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
@@ -81,16 +82,18 @@ serve(async (req) => {
           redirect_uri:  redirectUri,
           grant_type:    'authorization_code',
         }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       const tokens = await tokenRes.json();
       if (tokens.error) {
-        return new Response(JSON.stringify({ error: tokens.error_description ?? tokens.error }), { status: 400, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: tokens.error_description ?? tokens.error }), { status: 400, headers: jsonHeaders });
       }
 
       // Busca perfil do usuário
       const profileRes = await fetch(GOOGLE_USERINFO, {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       const profile = await profileRes.json();
 
@@ -114,12 +117,13 @@ serve(async (req) => {
         .single();
 
       if (upsertErr) {
-        return new Response(JSON.stringify({ error: upsertErr.message }), { status: 500, headers: corsHeaders });
+        console.error('[gmail-oauth] account upsert failed', upsertErr.message);
+        return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: jsonHeaders });
       }
 
       return new Response(
         JSON.stringify({ success: true, accountId: account.id, email: account.email }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: jsonHeaders }
       );
     }
 
@@ -127,7 +131,7 @@ serve(async (req) => {
     if (action === 'refresh') {
       const { accountId } = body;
       if (!accountId) {
-        return new Response(JSON.stringify({ error: 'accountId obrigatório' }), { status: 400, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'accountId obrigatório' }), { status: 400, headers: jsonHeaders });
       }
 
       const { data: account, error: fetchErr } = await supabase
@@ -137,7 +141,7 @@ serve(async (req) => {
         .single();
 
       if (fetchErr || !account) {
-        return new Response(JSON.stringify({ error: 'Conta não encontrada' }), { status: 404, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'Conta não encontrada' }), { status: 404, headers: jsonHeaders });
       }
 
       const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
@@ -149,13 +153,14 @@ serve(async (req) => {
           client_secret: clientSecret,
           grant_type:    'refresh_token',
         }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       const tokens = await tokenRes.json();
       if (tokens.error) {
         // Token revogado — marcar conta inativa
         await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
-        return new Response(JSON.stringify({ error: 'refresh_token inválido — reconecte a conta' }), { status: 401, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'refresh_token inválido — reconecte a conta' }), { status: 401, headers: jsonHeaders });
       }
 
       const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();
@@ -168,7 +173,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ access_token: tokens.access_token, token_expiry: expiresAt }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: jsonHeaders }
       );
     }
 
@@ -176,7 +181,7 @@ serve(async (req) => {
     if (action === 'revoke') {
       const { accountId } = body;
       if (!accountId) {
-        return new Response(JSON.stringify({ error: 'accountId obrigatório' }), { status: 400, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'accountId obrigatório' }), { status: 400, headers: jsonHeaders });
       }
 
       const { data: account } = await supabase
@@ -186,11 +191,17 @@ serve(async (req) => {
         .single();
 
       if (account?.access_token) {
-        await fetch(GOOGLE_REVOKE, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ token: account.access_token }),
-        });
+        // Best-effort — a network failure or timeout must not block account deletion
+        try {
+          await fetch(GOOGLE_REVOKE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ token: account.access_token }),
+            signal: AbortSignal.timeout(10_000),
+          });
+        } catch (revokeErr) {
+          console.warn('[gmail-oauth] Google revoke failed (continuing with DB deletion)', revokeErr instanceof Error ? revokeErr.message : String(revokeErr));
+        }
       }
 
       await supabase.from('gmail_accounts').delete().eq('id', accountId);
@@ -225,10 +236,10 @@ serve(async (req) => {
       );
     }
 
-    return new Response(JSON.stringify({ error: 'Ação desconhecida' }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Ação desconhecida' }), { status: 400, headers: jsonHeaders });
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: corsHeaders });
+    console.error('[gmail-oauth]', err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: jsonHeaders });
   }
 });

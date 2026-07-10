@@ -73,7 +73,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       const { data: userData , error } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      await safeClient.from('hmac_selftest_audit', (q) => q.insert({
+      await safeClient.from('hmac_selftest_audit', q => q.insert({
         instance: instanceName,
         ok: !!payload.ok,
         duration_ms: payload.duration_ms ?? fallbackDurationMs,
@@ -104,12 +104,12 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       if (!uid) return;
 
       // Busca alerta ativo (não resolvido) para este source
-      const { data: existingRows } = await safeClient.from<{ id: string }>(
+      const { data: existing } = await safeClient.from<{ id: string }>(
         'warroom_alerts',
-        (q) => q.select('id').eq('source', source).is('resolved_at', null).order('created_at', { ascending: false }).limit(1),
+        q => q.select('id').eq('source', source).is('resolved_at', null).order('created_at', { ascending: false }).limit(1),
       );
 
-      const activeAlertId = existingRows[0]?.id ?? null;
+      const activeAlertId = existing?.[0]?.id ?? null;
 
       if (!payload.ok) {
         // Falha: cria alerta se ainda não houver um aberto
@@ -123,7 +123,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
                 .join(' | ')
             : (payload.error ?? payload.message ?? 'Falha no self-test HMAC');
           const summary = `${phasePrefix}${detail}${reqSuffix}`;
-          await safeClient.from('warroom_alerts', (q) => q.insert({
+          await safeClient.from('warroom_alerts', q => q.insert({
             alert_type: 'error',
             title: `HMAC self-test falhou (${instanceName ?? 'selftest'})`,
             message: summary.slice(0, 500),
@@ -134,17 +134,15 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       } else {
         // OK: resolve alertas ativos deste source
         if (activeAlertId) {
-          await safeClient.from('warroom_alerts', (q) =>
-            q
-              .update({
-                resolved_at: new Date().toISOString(),
-                resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
-                dismissed_by: uid,
-                is_read: true,
-              })
-              .eq('source', source)
-              .is('resolved_at', null),
-          );
+          await safeClient.from('warroom_alerts', q => q
+            .update({
+              resolved_at: new Date().toISOString(),
+              resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
+              dismissed_by: uid,
+              is_read: true,
+            })
+            .eq('source', source)
+            .is('resolved_at', null));
           toast.success('Alertas anteriores de HMAC resolvidos automaticamente');
         }
       }

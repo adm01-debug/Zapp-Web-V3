@@ -28,7 +28,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
 
@@ -126,16 +126,16 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       }
 
       // Enhanced Transcription with Backend Fallback Support
-      type SRCtor = new() => SpeechRecognition;
-      const w = window as Window & { SpeechRecognition?: SRCtor; webkitSpeechRecognition?: SRCtor };
-      const SpeechRecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition;
-      if (SpeechRecognitionCtor) {
-        const recognition = new SpeechRecognitionCtor();
+      type SpeechRecognitionCtor = new() => { lang: string; continuous: boolean; interimResults: boolean; onresult: ((e: Event) => void) | null; onerror: ((e: Event) => void) | null; start(): void; stop(): void; };
+      const W = window as Window & { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
+      const SpeechRecognition = W.SpeechRecognition || W.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
         recognition.lang = 'pt-BR';
         recognition.continuous = true;
         recognition.interimResults = true;
-
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
+        
+        recognition.onresult = (event: any) => {
           let interimTranscript = '';
           for (let i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
@@ -146,7 +146,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           }
         };
 
-        recognition.onerror = async (event: SpeechRecognitionErrorEvent) => {
+        recognition.onerror = async (event: any) => {
           log.warn('Speech recognition error:', event.error);
           if (event.error === 'no-speech') return;
           

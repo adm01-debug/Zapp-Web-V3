@@ -1,3 +1,4 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
@@ -47,8 +48,8 @@ export function useSLAAlertPreferences() {
     }
     setIsLoading(true);
 
-    void (supabase as unknown as { from: typeof supabase.from })
-      .from('sla_alert_preferences' as Parameters<typeof supabase.from>[0])
+    void supabase
+      .from('sla_alert_preferences')
       .select('enabled, alert_first_response, alert_resolution, severity_warning, severity_breached')
       .eq('user_id', user.id)
       .maybeSingle()
@@ -58,8 +59,8 @@ export function useSLAAlertPreferences() {
         if (error) {
           // Codigos que indicam tabela inexistente (ambiente sem migration)
           // ou linha não encontrada: tratar como defaults silenciosamente.
-          const code = (error as { code?: string }).code ?? '';
-          const msg  = error.message ?? '';
+          const code = error?.code ?? '';
+          const msg  = error?.message ?? '';
           const isTableMissing =
             code === 'PGRST116' ||
             code === 'PGRST204' ||
@@ -97,8 +98,8 @@ export function useSLAAlertPreferences() {
     async (next: SLAAlertPreferences) => {
       if (!user?.id) return { error: new Error('Not authenticated') };
       setIsSaving(true);
-      const { error } = await (supabase as unknown as { from: typeof supabase.from })
-        .from('sla_alert_preferences' as Parameters<typeof supabase.from>[0])
+      const { error } = await supabase
+        .from('sla_alert_preferences')
         .upsert({ user_id: user.id, ...next }, { onConflict: 'user_id' });
       setIsSaving(false);
       if (!error) setPreferences(next);

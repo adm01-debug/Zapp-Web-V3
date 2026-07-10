@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { SicoobBridgeReplySchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser, requireServiceRoleOnly, getBearer } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -9,7 +10,25 @@ Deno.serve(async (req) => {
   const log = new Logger("sicoob-bridge-reply");
 
   try {
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Dual-mode auth: user JWT (frontend) or service-role (Postgres trigger).
+    const bearer = getBearer(req);
+    const isServiceRole = bearer === serviceRoleKey;
+    let agent_id: string | null = null;
+
+    if (isServiceRole) {
+      // Internal caller (Postgres trigger) — no user context, agent_id from body
+      const denied = requireServiceRoleOnly(req);
+      if (denied) return denied;
+    } else {
+      const authed = await requireUser(req);
+      if (authed instanceof Response) return authed;
+      agent_id = authed.user.id;
+    }
+
     const sicoobGiftsUrl = Deno.env.get('SICOOB_GIFTS_URL');
     const sicoobGiftsBridgeSecret = Deno.env.get('SICOOB_GIFTS_BRIDGE_SECRET');
 
@@ -20,9 +39,13 @@ Deno.serve(async (req) => {
     const parsed = parseBody(SicoobBridgeReplySchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
-    const { contact_id, content, message_id, agent_id, created_at } = parsed.data;
+    const { contact_id, content, message_id, created_at } = parsed.data;
+    // For service-role callers the body may carry agent_id; for user callers use JWT identity.
+    if (!agent_id) agent_id = (parsed.data as Record<string, unknown>).agent_id as string ?? null;
 
-    // Get the contact to verify it's a sicoob_gifts contact
+    // Get the contact — contacts.user_id column does not exist; RLS enforces
+    // tenant isolation when the caller is a user JWT. Service-role callers bypass
+    // RLS intentionally (Postgres trigger context).
     const { data: contact } = await supabase
       .from('contacts')
       .select('id, name, contact_type, channel_type')
@@ -44,7 +67,7 @@ Deno.serve(async (req) => {
       return errorResponse('No Sicoob mapping found for this contact', 404, req);
     }
 
-    // Get agent name
+    // Get agent name when agent_id is known
     let agentName = 'Vendedor';
     if (agent_id) {
       const { data: profile } = await supabase
@@ -75,12 +98,13 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(sicoobPayload),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      log.error("Sicoob Gifts bridge error", { status: response.status, error: errorText });
-      return errorResponse(`Sicoob Gifts returned ${response.status}: ${errorText}`, 502, req);
+      const errorText = await response.text().catch(() => "");
+      log.error("Sicoob Gifts bridge error", { status: response.status, error: errorText.substring(0, 300) });
+      return errorResponse("Failed to forward reply to Sicoob Gifts", 502, req);
     }
 
     const result = await response.json();
@@ -88,7 +112,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, sicoob_response: result }, 200, req);
 
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      log.error("Sicoob Gifts bridge timed out");
+      return errorResponse('Gateway timeout forwarding to Sicoob Gifts', 504, req);
+    }
     log.error("Error", { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Unknown error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

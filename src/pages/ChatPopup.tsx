@@ -2,11 +2,11 @@ import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useMessages } from '@/features/inbox';
-import type { Database } from '@/integrations/supabase/types';
+import type { Tables } from '@/integrations/supabase/types';
 import { Conversation, Message } from '@/types/chat';
 import { log } from '@/lib/logger';
 
-type ContactRow = Database['public']['Tables']['contacts']['Row'];
+type ContactRow = Tables<'contacts'>;
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { dbFrom } from '@/integrations/datasource/db';

@@ -3,6 +3,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders, handleCors, Logger } from '../_shared/validation.ts';
+import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy'
@@ -36,6 +37,9 @@ Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
+
   const headers = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
   const log = new Logger('evolution-health');
 
@@ -43,8 +47,8 @@ Deno.serve(async (req) => {
     const EVOLUTION_API_URL = (Deno.env.get('EVOLUTION_API_URL') || '').trim().replace(/\/+$/, '')
     const EVOLUTION_API_KEY = (Deno.env.get('EVOLUTION_API_KEY') || '').trim()
     const INSTANCE_NAME = Deno.env.get('EVOLUTION_INSTANCE_NAME') || 'wpp2'
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!
+    const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
 
     const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
     const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
@@ -67,7 +71,8 @@ Deno.serve(async (req) => {
     try {
       const apiStart = Date.now()
       const apiResponse = await fetch(`${EVOLUTION_API_URL}/manager/version`, {
-        headers: { 'apikey': EVOLUTION_API_KEY }
+        headers: { 'apikey': EVOLUTION_API_KEY },
+        signal: AbortSignal.timeout(7_000),
       })
       apiLatency = Date.now() - apiStart
       if (apiResponse.ok) {
@@ -86,7 +91,7 @@ Deno.serve(async (req) => {
     try {
       const instanceResponse = await fetch(
         `${EVOLUTION_API_URL}/instance/connectionState/${INSTANCE_NAME}`,
-        { headers: { 'apikey': EVOLUTION_API_KEY } }
+        { headers: { 'apikey': EVOLUTION_API_KEY }, signal: AbortSignal.timeout(7_000) }
       )
       if (instanceResponse.ok) {
         const data = await instanceResponse.json()
@@ -109,7 +114,7 @@ Deno.serve(async (req) => {
     try {
       const webhookResponse = await fetch(
         `${EVOLUTION_API_URL}/webhook/find/${INSTANCE_NAME}`,
-        { headers: { 'apikey': EVOLUTION_API_KEY } }
+        { headers: { 'apikey': EVOLUTION_API_KEY }, signal: AbortSignal.timeout(7_000) }
       )
       if (webhookResponse.ok) {
         const data = await webhookResponse.json()
@@ -154,13 +159,13 @@ Deno.serve(async (req) => {
         }
       }
 
-      const { data: pending, error: pendingError } = await supabase
+      const { count: pendingCount, error: pendingError } = await supabase
         .from('message_queue')
-        .select('id', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('status', 'pending')
 
-      if (!pendingError && pending) {
-        pendingMessages = pending.length
+      if (!pendingError && pendingCount !== null) {
+        pendingMessages = pendingCount
         if (pendingMessages > 100) {
           alerts.push(`High message queue: ${pendingMessages} pending`)
         }
@@ -228,7 +233,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : String(error),
+        error: 'Health check failed',
         alerts: ['Health check failed unexpectedly'],
       }),
       { headers, status: 503 }

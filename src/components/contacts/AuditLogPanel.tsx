@@ -9,7 +9,7 @@ import { getLogger } from '@/lib/logger';
 
 import { Button } from '@/components/ui/button';
 import { History, RefreshCw, ChevronDown, ChevronUp, Shield } from 'lucide-react';
-import { contactAuditFrom } from './contactAuditUtils';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { sanitizeText } from '@/lib/sanitize';
 
 const log = getLogger('AuditLogPanel');
@@ -56,14 +56,15 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await contactAuditFrom()
-        .select('id,action,field_name,old_value,new_value,changed_by,changed_at,metadata')
-        .eq('contact_id', contactId)
-        .order('changed_at', { ascending: false })
-        .limit(maxEntries);
+      const { data } = await safeClient.from<AuditEntry>(
+        'contact_audit_log',
+        q => q.select('id,action,field_name,old_value,new_value,changed_by,changed_at,metadata')
+              .eq('contact_id', contactId)
+              .order('changed_at', { ascending: false })
+              .limit(maxEntries),
+      );
 
-      if (error) { log.error('Failed to load audit log', error); throw error; }
-      setEntries((data ?? []) as AuditEntry[]);
+      setEntries(data ?? []);
     } catch (err) { log.error('Failed to load audit log', err); }
     finally { setLoading(false); }
   }, [contactId, maxEntries]);

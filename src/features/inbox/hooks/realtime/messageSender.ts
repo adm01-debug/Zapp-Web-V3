@@ -1,4 +1,4 @@
-import { Database } from '@/integrations/supabase/types';
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
@@ -155,11 +155,11 @@ export async function sendMessageToContact(
   try {
     // Audit: Início da tentativa
     if (opts.conversationId) {
-      await safeClient.from('conversation_audit_logs', (q) => q.insert({
-        conversation_id: opts.conversationId,
-        event_type: 'send_attempt',
-        status: 'starting',
-        metadata: { messageType, hasMedia: !!(mediaUrl || mediaPayload) }
+      await safeClient.from('audit_logs', q => q.insert({
+        entity_type: 'conversation',
+        entity_id: opts.conversationId,
+        action: 'send_attempt',
+        details: { status: 'starting', messageType, hasMedia: !!(mediaUrl || mediaPayload) }
       }));
     }
 
@@ -174,13 +174,13 @@ export async function sendMessageToContact(
       log.warn('WhatsApp connection not active, message marked as failed');
       await dbFrom('messages').update({ status: 'failed', error_reason: 'Nenhuma conexão WhatsApp ativa disponível' }).eq('id', data.id);
       
-        await safeClient.from('conversation_audit_logs', (q) => q.insert({
-          conversation_id: opts.conversationId,
-          event_type: 'failed',
-          status: 'error',
-          error_message: 'Nenhuma conexão WhatsApp ativa disponível'
+        await safeClient.from('audit_logs', q => q.insert({
+          entity_type: 'conversation',
+          entity_id: opts.conversationId,
+          action: 'failed',
+          details: { status: 'error', error_message: 'Nenhuma conexão WhatsApp ativa disponível' }
         }));
-      
+
       throw new Error('Nenhuma conexão WhatsApp ativa disponível');
     }
 
@@ -198,11 +198,11 @@ export async function sendMessageToContact(
     if (!instanceName) {
       log.error('WhatsApp connection has no usable instance name (only UUID available), refusing to send', { connectionId: resolvedConnectionId });
       await dbFrom('messages').update({ status: 'failed', error_reason: 'Conexão WhatsApp sem nome de instância válido' }).eq('id', data.id);
-      await safeClient.from('conversation_audit_logs', (q) => q.insert({
-        conversation_id: opts.conversationId,
-        event_type: 'failed',
-        status: 'error',
-        error_message: 'Conexão WhatsApp sem nome de instância válido (instance_id parece ser um UUID)',
+      await safeClient.from('audit_logs', q => q.insert({
+        entity_type: 'conversation',
+        entity_id: opts.conversationId,
+        action: 'failed',
+        details: { status: 'error', error_message: 'Conexão WhatsApp sem nome de instância válido (instance_id parece ser um UUID)' }
       }));
       throw new Error('Conexão WhatsApp sem nome de instância válido');
     }
@@ -244,13 +244,12 @@ export async function sendMessageToContact(
           const sid = opts.optimisticId || data.id;
           emitSendStatus(sid, { status: 'retrying', attempt, totalRetries: total }, { contactId, source: 'messageSender' });
           
-            void safeClient.from('conversation_audit_logs', (q) => q.insert({
-              conversation_id: opts.conversationId,
-              event_type: 'send_attempt',
-              status: 'retrying',
-              attempt_number: attempt,
-              metadata: { totalRetries: total }
-            }));
+            safeClient.from('audit_logs', q => q.insert({
+              entity_type: 'conversation',
+              entity_id: opts.conversationId,
+              action: 'send_attempt',
+              details: { status: 'retrying', attempt_number: attempt, totalRetries: total }
+            })).then(() => null).catch(() => {});
 
           // Persist counters so the "2/3" indicator survives a page reload.
           // Fire-and-forget — never block the retry loop.
@@ -312,11 +311,11 @@ export async function sendMessageToContact(
     emitSendStatus(finalSid, { status: 'sent' }, { contactId, source: 'messageSender' });
 
     if (opts.conversationId) {
-      await safeClient.from('conversation_audit_logs', (q) => q.insert({
-        conversation_id: opts.conversationId,
-        event_type: 'delivered',
-        status: 'success',
-        metadata: { externalId }
+      await safeClient.from('audit_logs', q => q.insert({
+        entity_type: 'conversation',
+        entity_id: opts.conversationId,
+        action: 'delivered',
+        details: { status: 'success', externalId }
       }));
     }
   } catch (evolutionError) {
@@ -343,12 +342,11 @@ export async function sendMessageToContact(
       emitSendStatus(sid, { status: 'failed_retries', totalRetries: MAX_RETRIES, errorReason: reason }, { contactId, source: 'messageSender' });
     }
 
-      await safeClient.from('conversation_audit_logs', (q) => q.insert({
-        conversation_id: opts.conversationId,
-        event_type: 'failed',
-        status: 'error',
-        error_message: reason,
-        metadata: { authError: auth.isAuth, errorCode: auth.code }
+      await safeClient.from('audit_logs', q => q.insert({
+        entity_type: 'conversation',
+        entity_id: opts.conversationId,
+        action: 'failed',
+        details: { status: 'error', error_message: reason, authError: auth.isAuth, errorCode: auth.code }
       }));
     throw evolutionError;
   }

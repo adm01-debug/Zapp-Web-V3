@@ -76,7 +76,7 @@ export function useNewConversation(
           whatsapp_connection_id: selectedConnection || null,
         }).select('id').single();
         if (newContactErr) {
-          if ((newContactErr as { code?: string }).code === '23505') { toast.error('Já existe um contato com este número de telefone.'); setIsSending(false); return; }
+          if (newContactErr.code === '23505') { toast.error('Já existe um contato com este número de telefone.'); setIsSending(false); return; }
           throw newContactErr;
         }
         contactId = newContact.id;

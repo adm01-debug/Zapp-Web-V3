@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireUser } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,17 +12,30 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
-
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
+    const supabase = createClient(
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+      (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
+    );
+
     const body  = await req.json();
     const { action, accountId } = body;
+
+    // Verify the authenticated user owns this gmail_accounts row before proceeding.
+    const { data: accountCheck, error: accountCheckError } = await supabase
+      .from('gmail_accounts')
+      .select('id')
+      .eq('id', accountId)
+      .eq('user_id', authed.user.id)
+      .maybeSingle();
+    if (accountCheckError) return json({ error: 'Internal server error' }, 500);
+    if (!accountCheck) return json({ error: 'Conta não encontrada ou acesso negado' }, 403);
 
     // Obtém token válido (com auto-refresh)
     const token = await getValidToken(supabase, accountId);
@@ -29,7 +43,8 @@ serve(async (req) => {
 
     // ── listThreads ────────────────────────────────────────────────────
     if (action === 'listThreads' || !action) {
-      const { labelIds = ['INBOX'], q = '', maxResults = 20, pageToken } = body;
+      const { labelIds = ['INBOX'], q = '', pageToken } = body;
+      const maxResults = Math.min(Math.max(1, Number(body.maxResults) || 20), 50);
 
       const params = new URLSearchParams({
         maxResults: String(maxResults),
@@ -40,55 +55,67 @@ serve(async (req) => {
 
       const listRes = await fetch(`${GMAIL_API}/threads?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       const listData = await listRes.json();
-      if (listData.error) return json({ error: listData.error.message }, 400);
-
-      // Para cada thread, busca snippet e persistir no Supabase
-      const threads = [];
-      for (const t of listData.threads ?? []) {
-        const tRes = await fetch(`${GMAIL_API}/threads/${t.id}?format=metadata&metadataHeaders=Subject,From,Date`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const tData = await tRes.json();
-        if (tData.error) continue;
-
-        const firstMsg = tData.messages?.[0];
-        const lastMsg  = tData.messages?.[tData.messages.length - 1];
-        const hdrMap   = headerMap(firstMsg?.payload?.headers ?? []);
-        const subject  = hdrMap['subject'] ?? '(sem assunto)';
-        const fromH    = hdrMap['from'] ?? '';
-        const dateH    = lastMsg?.internalDate ? new Date(Number(lastMsg.internalDate)).toISOString() : null;
-        const labelIds = firstMsg?.labelIds ?? [];
-        const snippet  = lastMsg?.snippet ?? '';
-        const unread   = labelIds.includes('UNREAD') ? 1 : 0;
-
-        // Upsert no Supabase
-        const { data: thread } = await supabase
-          .from('gmail_threads')
-          .upsert({
-            account_id:           accountId,
-            thread_id:            t.id,
-            subject,
-            snippet,
-            label_ids:            labelIds,
-            last_message_at:      dateH,
-            unread_count:         unread,
-            message_count:        tData.messages?.length ?? 0,
-            participant_emails:   extractEmails(fromH),
-          }, { onConflict: 'account_id,thread_id' })
-          .select('id')
-          .single();
-
-        threads.push({ id: t.id, subject, snippet, fromHeader: fromH, lastActivity: dateH, unread: unread > 0, dbId: thread?.id });
+      if (listData.error) {
+        console.error('[gmail-sync] list threads error', listData.error);
+        return json({ error: 'Failed to list Gmail threads' }, 400);
       }
+
+      // Fetch thread details in bounded batches of 5 to avoid Gmail API rate limits
+      const threadResults = await batchSettled(
+        listData.threads ?? [],
+        async (t: { id: string }) => {
+          const tRes = await fetch(`${GMAIL_API}/threads/${t.id}?format=metadata&metadataHeaders=Subject,From,Date`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(10_000),
+          });
+          const tData = await tRes.json();
+          if (tData.error) return null;
+
+          const firstMsg = tData.messages?.[0];
+          const lastMsg  = tData.messages?.[tData.messages.length - 1];
+          const hdrMap   = headerMap(firstMsg?.payload?.headers ?? []);
+          const subject  = hdrMap['subject'] ?? '(sem assunto)';
+          const fromH    = hdrMap['from'] ?? '';
+          const dateH    = lastMsg?.internalDate ? new Date(Number(lastMsg.internalDate)).toISOString() : null;
+          const tLabels  = firstMsg?.labelIds ?? [];
+          const snippet  = lastMsg?.snippet ?? '';
+          const unread   = tLabels.includes('UNREAD') ? 1 : 0;
+
+          const { data: thread } = await supabase
+            .from('gmail_threads')
+            .upsert({
+              account_id:         accountId,
+              thread_id:          t.id,
+              subject,
+              snippet,
+              label_ids:          tLabels,
+              last_message_at:    dateH,
+              unread_count:       unread,
+              message_count:      tData.messages?.length ?? 0,
+              participant_emails: extractEmails(fromH),
+            }, { onConflict: 'account_id,thread_id' })
+            .select('id')
+            .single();
+
+          return { id: t.id, subject, snippet, fromHeader: fromH, lastActivity: dateH, unread: unread > 0, dbId: thread?.id };
+        },
+        5,
+      );
+
+      const threads = threadResults
+        .map(r => (r.status === 'fulfilled' ? r.value : null))
+        .filter(Boolean);
 
       return json({ threads, nextPageToken: listData.nextPageToken ?? null });
     }
 
     // ── syncFull — sincronização completa inicial ──────────────────────
     if (action === 'syncFull') {
-      const { maxResults = 50, labelIds = ['INBOX'] } = body;
+      const { labelIds = ['INBOX'] } = body;
+      const maxResults = Math.min(Math.max(1, Number(body.maxResults) || 50), 100);
       const params = new URLSearchParams({
         maxResults: String(maxResults),
         ...(labelIds.length ? { labelIds: labelIds.join(',') } : {}),
@@ -96,22 +123,40 @@ serve(async (req) => {
 
       const listRes = await fetch(`${GMAIL_API}/messages?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
-      const listData = await listRes.json();
-      let count = 0;
 
-      for (const m of listData.messages ?? []) {
-        await fetchAndPersistMessage(supabase, token, accountId, m.id);
-        count++;
+      if (!listRes.ok) {
+        console.error('[gmail-sync] syncFull list HTTP error', listRes.status);
+        return json({ error: 'Failed to list Gmail messages' }, 502);
       }
 
-      return json({ synced: count, nextPageToken: listData.nextPageToken });
+      const listData = await listRes.json().catch(() => ({}));
+
+      if (listData.error) {
+        console.error('[gmail-sync] syncFull list error', listData.error);
+        return json({ error: 'Failed to list Gmail messages' }, 502);
+      }
+
+      const messages: Array<{ id: string }> = listData.messages ?? [];
+      // Cap concurrency at 5 to avoid Gmail API rate limits on full sync
+      const settled = await batchSettled(
+        messages,
+        (m: { id: string }) => fetchAndPersistMessage(supabase, token, accountId, m.id),
+        5,
+      );
+      const syncedCount = settled.filter(r => r.status === 'fulfilled').length;
+      const failedCount = settled.filter(r => r.status === 'rejected').length;
+      if (failedCount > 0) console.error(`[gmail-sync] syncFull: ${failedCount} messages failed to persist`);
+
+      return json({ synced: syncedCount, failed: failedCount, nextPageToken: listData.nextPageToken });
     }
 
     // ── syncLabels — sincroniza labels do Gmail ────────────────────────
     if (action === 'syncLabels') {
       const lblRes = await fetch(`${GMAIL_API}/labels`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
       });
       const lblData = await lblRes.json();
 
@@ -130,13 +175,27 @@ serve(async (req) => {
     return json({ error: `Ação desconhecida: ${action}` }, 400);
 
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[gmail-sync]', msg);
-    return json({ error: msg }, 500);
+    console.error('[gmail-sync]', err instanceof Error ? err.message : String(err));
+    return json({ error: 'Internal server error' }, 500);
   }
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────
+
+/** Run `fn` over `items` with at most `concurrency` items in flight at once. */
+async function batchSettled<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency: number,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.allSettled(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
 
 function headerMap(headers: Array<{name: string; value: string}>): Record<string, string> {
   const out: Record<string, string> = {};
@@ -171,6 +230,7 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
       client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
       grant_type:    'refresh_token',
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   const tokens = await tokenRes.json();
   if (tokens.error) { await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId); return null; }
@@ -188,6 +248,7 @@ async function fetchAndPersistMessage(
 ): Promise<void> {
   const msgRes = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
   });
   const msg = await msgRes.json();
   if (msg.error) return;

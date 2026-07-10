@@ -1,17 +1,28 @@
 // Shared sync action handlers for evolution-sync/index.ts
 
 import { instanceOrFilter } from "./evolution-helpers.ts";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// deno-lint-ignore no-explicit-any
+type EvolutionRawMsg = {
+  conversation?: string;
+  extendedTextMessage?: { text?: string } | null;
+  imageMessage?: { caption?: string } | null;
+  videoMessage?: { caption?: string } | null;
+  audioMessage?: unknown;
+  documentMessage?: { fileName?: string } | null;
+  stickerMessage?: unknown;
+  reactionMessage?: unknown;
+  [key: string]: unknown;
+};
 export async function syncContacts(
-  supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, corsHeaders: Record<string, string>, page: number, offset: number
 ): Promise<Response> {
   console.log(`[Sync] Fetching contacts from instance ${instanceName}`);
 
   const contactsResponse = await fetch(
     `${evolutionApiUrl}/chat/findContacts/${instanceName}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey }, body: JSON.stringify({ where: {} }) }
+    { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey }, body: JSON.stringify({ where: {} }), signal: AbortSignal.timeout(10_000) }
   );
 
   if (!contactsResponse.ok) {
@@ -66,9 +77,8 @@ export async function syncContacts(
   return jsonRes({ success: true, synced, skipped, page, totalFetched: contacts.length, hasMore: contacts.length >= offset }, corsHeaders);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function syncMessages(
-  supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, contactPhone: string, corsHeaders: Record<string, string>
 ): Promise<Response> {
   if (!contactPhone) throw new Error('contactPhone is required');
@@ -78,7 +88,7 @@ export async function syncMessages(
   const messagesResponse = await fetch(
     `${evolutionApiUrl}/chat/findMessages/${instanceName}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
-      body: JSON.stringify({ where: { key: { remoteJid } }, page: 1, offset: 50 }) }
+      body: JSON.stringify({ where: { key: { remoteJid } }, page: 1, offset: 50 }), signal: AbortSignal.timeout(10_000) }
   );
   if (!messagesResponse.ok) throw new Error(`Evolution API error [${messagesResponse.status}]: ${await messagesResponse.text()}`);
 
@@ -117,9 +127,8 @@ export async function syncMessages(
   return jsonRes({ success: true, synced, totalFetched: messages.length }, corsHeaders);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function syncAllMessages(
-  supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, messagesPerContact: number, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const { data: conn } = await supabase.from('whatsapp_connections').select('id').or(instanceOrFilter(instanceName)).maybeSingle();
@@ -141,6 +150,7 @@ export async function syncAllMessages(
         const msgResponse = await fetch(`${evolutionApiUrl}/chat/findMessages/${instanceName}`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
           body: JSON.stringify({ where: { key: { remoteJid } }, page: 1, offset: messagesPerContact }),
+          signal: AbortSignal.timeout(10_000),
         });
         if (!msgResponse.ok) { totalErrors++; continue; }
 
@@ -187,7 +197,6 @@ export async function syncAllMessages(
   return jsonRes({ success: true, totalSynced, totalSkipped, totalErrors, totalContacts: allContacts.length }, corsHeaders);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function setupWebhook(
   evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, supabaseUrl: string, webhookUrlOverride: string | undefined, corsHeaders: Record<string, string>
@@ -199,6 +208,7 @@ export async function setupWebhook(
     body: JSON.stringify({
       webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS },
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   const webhookData = await webhookResponse.json();
   return new Response(JSON.stringify({ success: webhookResponse.ok, webhook: webhookData }), {
@@ -206,8 +216,7 @@ export async function setupWebhook(
   });
 }
 
-// deno-lint-ignore no-explicit-any
-export async function cleanupMock(supabase: any, corsHeaders: Record<string, string>): Promise<Response> {
+export async function cleanupMock(supabase: SupabaseClient, corsHeaders: Record<string, string>): Promise<Response> {
   const { data: mockContacts } = await supabase.from('contacts').select('id').like('id', 'c1000001-%');
   if (mockContacts?.length) {
     const mockIds = mockContacts.map((c: { id: string }) => c.id);
@@ -220,9 +229,8 @@ export async function cleanupMock(supabase: any, corsHeaders: Record<string, str
   return jsonRes({ success: true, removed: 0, message: 'No mock data found' }, corsHeaders);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function fullSync(
-  supabase: any, evolutionApiUrl: string, evolutionApiKey: string,
+  supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, supabaseUrl: string, corsHeaders: Record<string, string>
 ): Promise<Response> {
   const results: Record<string, unknown> = {};
@@ -255,6 +263,7 @@ export async function fullSync(
     const contactsResponse = await fetch(`${evolutionApiUrl}/chat/findContacts/${instanceName}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
       body: JSON.stringify({ where: {} }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (contactsResponse.ok) {
       const contactsList = await contactsResponse.json();
@@ -286,9 +295,13 @@ export async function fullSync(
     const webhookResponse = await fetch(`${evolutionApiUrl}/webhook/set/${instanceName}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': evolutionApiKey },
       body: JSON.stringify({ webhook: { enabled: true, url: webhookUrl, webhookByEvents: false, webhookBase64: true, events: WEBHOOK_EVENTS } }),
+      signal: AbortSignal.timeout(10_000),
     });
     results.webhook = { success: webhookResponse.ok, url: webhookUrl };
-  } catch (e) { results.webhook = { success: false, error: String(e) }; }
+  } catch (e) {
+    console.error('[fullSync] webhook setup error:', e instanceof Error ? e.message : String(e));
+    results.webhook = { success: false, error: 'webhook setup failed' };
+  }
 
   return jsonRes({ success: true, results }, corsHeaders);
 }
@@ -314,8 +327,7 @@ export const WEBHOOK_EVENTS = [
   'TYPEBOT_START', 'TYPEBOT_CHANGE_STATUS',
 ];
 
-// deno-lint-ignore no-explicit-any
-function parseEvolutionMessage(messageObj: any): { content: string; messageType: string; shouldSkip?: boolean } {
+function parseEvolutionMessage(messageObj: EvolutionRawMsg): { content: string; messageType: string; shouldSkip?: boolean } {
   if (messageObj.conversation) return { content: messageObj.conversation, messageType: 'text' };
   if (messageObj.extendedTextMessage?.text) return { content: messageObj.extendedTextMessage.text, messageType: 'text' };
   if (messageObj.imageMessage) return { content: messageObj.imageMessage.caption || '[Imagem]', messageType: 'image' };

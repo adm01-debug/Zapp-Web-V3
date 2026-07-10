@@ -12,8 +12,8 @@ const corsHeaders = {
 };
 
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+const SERVICE_ROLE = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
   } else {
     const t0 = performance.now();
     try {
-      const r = await fetch(handshakeUrl, { method: "GET" });
+      const r = await fetch(handshakeUrl, { method: "GET", signal: AbortSignal.timeout(10_000) });
       const text = await r.text();
       handshake = {
         status: r.ok && text === challenge ? "pass" : "fail",

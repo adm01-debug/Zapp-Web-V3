@@ -1,5 +1,6 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useEffect, useState } from "react";
-import { safeClient } from "@/integrations/supabase/safeClient";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ type DiagnosticLog = {
   id: string;
   action: string;
   category: string;
-  details: unknown;
+  details: any;
   created_at: string;
 };
 
@@ -33,25 +34,27 @@ export default function AdminDevDiagnosticsPage() {
 
   async function loadLogs() {
     setLoading(true);
-    const { data, error } = await safeClient.from<DiagnosticLog>(
-      'dev_diagnostic_logs',
-      (q) => q.select('*').order('created_at', { ascending: false }).limit(50),
-    );
+    const { data, error } = await supabase
+      .from('dev_diagnostic_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
     if (error) {
       toast({ title: "Erro ao carregar logs", description: error.message, variant: "destructive" });
     } else {
-      setLogs(data);
+      setLogs(data || []);
     }
     setLoading(false);
   }
 
   async function logAccess() {
     if (!isDev) return;
-    await safeClient.from('dev_diagnostic_logs', (q) => q.insert({
+    await supabase.from('dev_diagnostic_logs').insert({
       action: 'Access Dev Diagnostics',
       category: 'Audit',
-      details: { user_agent: navigator.userAgent, screen: `${window.innerWidth}x${window.innerHeight}` },
-    }));
+      details: { user_agent: navigator.userAgent, screen: `${window.innerWidth}x${window.innerHeight}` }
+    });
   }
 
   useEffect(() => {

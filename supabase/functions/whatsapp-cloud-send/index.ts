@@ -10,8 +10,8 @@ const PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_CLOUD_PHONE_NUMBER_ID") ?? "";
 const ACCESS_TOKEN = Deno.env.get("WHATSAPP_CLOUD_ACCESS_TOKEN") ?? "";
 const GRAPH_VERSION = "v21.0";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? "";
+const SUPABASE_ANON_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? "";
 
 const SendSchema = z.object({
   to: z.string().min(5), // E.164 phone w/o '+'
@@ -69,6 +69,7 @@ async function callGraph(path: string, payload: Record<string, unknown>) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15_000),
   });
   const data = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, data };
@@ -136,12 +137,17 @@ Deno.serve(async (req) => {
     }
     const results = [];
     for (const mid of p.messageIds) {
-      const r = await callGraph("messages", {
-        messaging_product: "whatsapp",
-        status: "read",
-        message_id: mid,
-      });
-      results.push({ id: mid, ok: r.ok, status: r.status });
+      try {
+        const r = await callGraph("messages", {
+          messaging_product: "whatsapp",
+          status: "read",
+          message_id: mid,
+        });
+        results.push({ id: mid, ok: r.ok, status: r.status });
+      } catch (e) {
+        console.error("[whatsapp-cloud-send] read mark failed", mid, e instanceof Error ? e.message : String(e));
+        results.push({ id: mid, ok: false, status: 0 });
+      }
     }
     const allOk = results.every((x) => x.ok);
     return jsonResponse({ ok: allOk, results }, allOk ? 200 : 502);
@@ -225,16 +231,13 @@ Deno.serve(async (req) => {
         r.status,
         JSON.stringify(r.data).slice(0, 500)
       );
-      return jsonResponse(
-        { error: "graph_error", status: r.status, details: r.data },
-        502
-      );
+      return jsonResponse({ error: "graph_error" }, 502);
     }
-    // deno-lint-ignore no-explicit-any
-    const waMsgId = (r.data as any)?.messages?.[0]?.id ?? null;
-    return jsonResponse({ ok: true, messageId: waMsgId, raw: r.data });
+    const data = r.data as { messages?: { id: string }[] };
+    const waMsgId = data?.messages?.[0]?.id ?? null;
+    return jsonResponse({ ok: true, messageId: waMsgId });
   } catch (e) {
     console.error("[whatsapp-cloud-send] fetch error", e);
-    return jsonResponse({ error: "fetch_error", message: String(e) }, 502);
+    return jsonResponse({ error: "fetch_error" }, 502);
   }
 });

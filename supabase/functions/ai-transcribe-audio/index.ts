@@ -1,29 +1,10 @@
 import { handleCors, errorResponse, jsonResponse, checkRateLimit, getClientIP, requireEnv, Logger } from "../_shared/validation.ts";
 import { TranscribeAudioSchema, parseBody } from "../_shared/schemas.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireUser, requireServiceRoleOnly } from "../_shared/auth.ts";
+import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
-
-// F7 security fix (v3): SSRF guard — block private/reserved IPv4 and IPv6 ranges.
-// RFC 5735/5156. Note: URL.hostname returns '[::1]' (brackets) for IPv6 literals.
-// v3: added 0.0.0.0/8 (unspecified) and 169.254.0.0/16 (link-local) to IPv4 regex.
-function isSafeAudioUrl(rawUrl: string): boolean {
-  try {
-    const u = new URL(rawUrl);
-    if (u.protocol !== 'https:') return false;
-    const h = u.hostname.toLowerCase();
-    // Private/reserved IPv4 (RFC 5735): 0/8, 10/8, 127/8, 169.254/16, 172.16-31/12, 192.168/16
-    if (/^(0\.|10\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.)/.test(h)) return false;
-    // Named loopback and unspecified
-    if (h === 'localhost' || h === '0.0.0.0') return false;
-    // IPv6 loopback and private ranges (URL.hostname includes brackets: '[::1]', '[fe80:...]')
-    if (h === '[::1]' || h === '::1') return false;
-    if (/^\[?(fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(h)) return false;
-    // Cloud metadata services
-    if (h === '169.254.169.254' || h === 'metadata.google.internal') return false;
-    return true;
-  } catch { return false; }
-}
 
 /**
  * If the URL points to our own Supabase storage, download via the
@@ -33,11 +14,11 @@ async function downloadAudio(
   audioUrl: string,
   log: Logger,
 ): Promise<{ buffer: ArrayBuffer; contentType: string } | { error: string }> {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? "";
   const isOwnStorage = audioUrl.includes(supabaseUrl) && audioUrl.includes("/storage/v1/");
 
   if (isOwnStorage) {
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!serviceKey) {
       log.warn("No service role key – falling back to direct fetch");
     } else {
@@ -54,7 +35,7 @@ async function downloadAudio(
           const { data, error } = await sb.storage.from(bucket).download(path);
           if (error || !data) {
             log.error("Storage download failed", { error: error?.message });
-            return { error: "Download failed" }; // generic — F7 info-disclosure fix
+            return { error: "Storage download failed" };
           }
           const buffer = await data.arrayBuffer();
           return { buffer, contentType: data.type || "audio/ogg" };
@@ -63,13 +44,12 @@ async function downloadAudio(
     }
   }
 
-  // Fallback: direct HTTP fetch — F7 SSRF guard applied
-  if (!isSafeAudioUrl(audioUrl)) {
-    log.warn("Blocked unsafe audio URL", { prefix: audioUrl.substring(0, 30) });
-    return { error: "Download failed" }; // generic — no URL disclosure
-  }
+  // Fallback: direct HTTP fetch
+  // Own Supabase storage URLs are always allowed (service key was absent above).
+  // External URLs must pass the allowlist check (WhatsApp CDN only).
+  if (!isOwnStorage && !isSafeMediaCdnUrl(audioUrl)) return { error: "Audio URL is not allowed" };
 
-  const response = await fetch(audioUrl);
+  const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
     log.error("HTTP download failed", { status: response.status, detail: errText.substring(0, 200) });
@@ -82,8 +62,26 @@ async function downloadAudio(
     return { error: "Audio file too large (max 25MB)" };
   }
 
-  const buffer = await response.arrayBuffer();
-  return { buffer, contentType: response.headers.get("content-type") || "audio/mpeg" };
+  // Stream with running byte counter to guard against chunked responses without Content-Length
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    for await (const chunk of response.body as AsyncIterable<Uint8Array>) {
+      totalBytes += chunk.byteLength;
+      if (totalBytes > MAX_AUDIO_SIZE) {
+        await response.body?.cancel().catch(() => {});
+        return { error: "Audio file too large (max 25MB)" };
+      }
+      chunks.push(chunk);
+    }
+  } catch (e) {
+    log.error("Stream read interrupted", { error: e instanceof Error ? e.message : String(e) });
+    return { error: "Download failed" };
+  }
+  const buffer = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const c of chunks) { buffer.set(c, offset); offset += c.byteLength; }
+  return { buffer: buffer.buffer, contentType: response.headers.get("content-type") || "audio/mpeg" };
 }
 
 Deno.serve(async (req) => {
@@ -93,6 +91,14 @@ Deno.serve(async (req) => {
   const log = new Logger("ai-transcribe-audio");
 
   try {
+    // Called both internally (evolution-webhook → service role) and from frontend (user JWT).
+    // requireServiceRoleOnly: internal callers bypass user auth; cron-secret is NOT accepted here.
+    const internalCheck = requireServiceRoleOnly(req);
+    if (internalCheck !== null) {
+      const authed = await requireUser(req);
+      if (authed instanceof Response) return authed;
+    }
+
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`transcribe:${ip}`, 10, 60_000);
     if (!allowed) return errorResponse("Limite de transcrições excedido. Tente novamente em 1 minuto.", 429, req);
@@ -108,7 +114,11 @@ Deno.serve(async (req) => {
     // Download audio (prefers service-role storage download for own URLs)
     const downloadResult = await downloadAudio(audioUrl, log);
     if ("error" in downloadResult) {
-      return errorResponse(downloadResult.error, 400, req);
+      // Server-side download failures get 500; client-supplied bad URLs get 400
+      const isClientError = downloadResult.error.startsWith("Invalid") ||
+        downloadResult.error.startsWith("Audio URL") ||
+        downloadResult.error.startsWith("Audio file too large");
+      return errorResponse(downloadResult.error, isClientError ? 400 : 500, req);
     }
 
     const { buffer: audioBuffer, contentType } = downloadResult;
@@ -152,6 +162,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { 'xi-api-key': ELEVENLABS_API_KEY },
       body: formData,
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!response.ok) {
@@ -186,8 +197,7 @@ Deno.serve(async (req) => {
       speakers: data.speakers || [],
     }, 200, req);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: msg });
-    return errorResponse("Transcription failed", 500, req); // generic — F7 info-disclosure fix
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

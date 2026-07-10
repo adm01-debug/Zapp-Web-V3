@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
@@ -106,13 +105,10 @@ export function useUserSettings() {
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
-        const { data: rows, error } = await safeClient.from<UserSettings>(
-          'user_settings',
-          (q) => q.select('*').eq('user_id', user.id).limit(1),
-        );
-        const data = rows[0] ?? null;
+        const { data, error } = await safeClient.single<UserSettings>('user_settings', q => q.select('*').eq('user_id', user.id));
 
-        if (error) {
+        if (error && (error as { code?: string }).code !== 'PGRST116') {
+          // PGRST116 = no rows returned
           log.error('Error fetching settings:', error);
           return;
         }
@@ -205,9 +201,7 @@ export function useUserSettings() {
         global_sla_notification_message: settings.global_sla_notification_message,
       };
 
-      const { error } = await safeClient.from('user_settings', (q) =>
-        q.upsert(settingsData, { onConflict: 'user_id' })
-      );
+      const { error } = await safeClient.from('user_settings', q => q.upsert(settingsData, { onConflict: 'user_id' }));
 
       if (error) {
         log.error('Error saving settings:', error);

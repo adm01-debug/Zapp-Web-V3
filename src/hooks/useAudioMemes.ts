@@ -48,7 +48,7 @@ export function useAudioMemes(open: boolean) {
     });
 
     if (!error && data) {
-      setMemes(data as AudioMemeItem[]);
+      setMemes(data);
     } else if (error) {
       log.error('fetchMemes error', error);
       const { data: basicData } = await supabase.from('audio_memes').select('*').order('use_count', { ascending: false });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { safeClient } from "@/integrations/supabase/safeClient";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +67,7 @@ export function OpsMetricsTab() {
   const fetchMetrics = useMemo(
     () => async () => {
       setLoading(true);
-      const { data: res, error } = await safeClient.rpc<Metrics>('rpc_ops_metrics', {
+      const { data: res, error } = await supabase.rpc("rpc_ops_metrics" as any, {
         p_window_hours: Number(windowHours),
       });
       if (error) {
@@ -75,7 +75,7 @@ export function OpsMetricsTab() {
         setLoading(false);
         return;
       }
-      setData(res);
+      setData(res as unknown as Metrics);
       setLoading(false);
     },
     [windowHours],

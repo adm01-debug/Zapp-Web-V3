@@ -4,6 +4,12 @@ import { SLAStatus } from '@/types/gmail';
 
 export type { SLAStatus };
 
+interface EmailThreadRow {
+  thread_id: string;
+  last_message_at: string | null;
+  unread_count: number;
+}
+
 export interface EmailSLARecord {
   thread_id: string;
   account_id: string;
@@ -182,7 +188,7 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
   useEffect(() => {
     if (!accountId || isMockId(accountId)) return;
 
-    safeClient.from('email_threads', (q) =>
+    safeClient.from<EmailThreadRow>('email_threads', (q) =>
       q.select('thread_id, last_message_at, unread_count')
        .eq('account_id', accountId)
        .gt('unread_count', 0)

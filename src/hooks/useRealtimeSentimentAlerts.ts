@@ -5,6 +5,10 @@ import { playNotificationSound } from '@/utils/notificationSound';
 import { showBrowserNotification, requestNotificationPermission } from '@/utils/notificationSound';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { getLogger } from '@/lib/logger';
+import {
+  safeParseEvent,
+  sentimentAlertAuditRowSchema,
+} from '@/shared/webhookEventSchemas';
 
 const log = getLogger('SentimentAlerts');
 
@@ -99,7 +103,12 @@ export function useRealtimeSentimentAlerts() {
         },
         (payload) => {
           log.debug('Realtime payload', { payload });
-          void handleNewAlert(payload.new as SentimentAlertPayload);
+          const parsed = safeParseEvent(sentimentAlertAuditRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn('sentiment_alert payload rejeitado', parsed.error);
+            return;
+          }
+          void handleNewAlert(parsed.data as SentimentAlertPayload);
         }
       )
       .subscribe((status) => {

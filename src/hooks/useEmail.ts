@@ -96,6 +96,13 @@ export function useEmail() {
   const [schemaStatus, setSchemaStatus]       = useState<{ ok: boolean; lastChecked: Date | null }>({ ok: true, lastChecked: null });
   const [nextPageToken, setNextPageToken]     = useState<string | null>(null);
   const [hasMore, setHasMore]                 = useState(false);
+  /**
+   * AUTH GATE: tracks whether the Supabase session has been confirmed.
+   * loadAccounts() and checkTokenStatus() must not fire as anon — that causes
+   * 403 on public.email_accounts (anon has no SELECT), which feeds the
+   * safeClient infinite loop (recordFailure -> rpc -> recordFailure).
+   */
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const oauthInFlightRef                       = useRef(false);
   const mountedRef                             = useRef(true);
   useEffect(() => {
@@ -104,6 +111,17 @@ export function useEmail() {
   }, []);
 
   const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Auth gate: confirma sessao antes de qualquer chamada ao DB ─────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session && mountedRef.current) setIsAuthenticated(true);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mountedRef.current) setIsAuthenticated(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // ── Carregar contas Email ───────────────────────────────────────────
   const loadAccounts = useCallback(async () => {
@@ -119,7 +137,8 @@ export function useEmail() {
     if (!mountedRef.current) return;
 
     if (dbErr) {
-      if (dbErr.message.includes('disponível') || dbErr.message.includes('not found')) {
+      if (dbErr.message.includes('disponível') || dbErr.message.includes('not found') ||
+          dbErr.message.includes('permission denied') || dbErr.message.includes('42501')) {
         log.warn('Email schema unavailable — using mock accounts');
         setAccounts(GMAIL_MOCKS.accounts);
         if (GMAIL_MOCKS.accounts.length > 0 && !activeAccountId) {
@@ -568,6 +587,7 @@ export function useEmail() {
 
   // ── Token check automático (a cada 5 minutos) ──────────────────────────
   useEffect(() => {
+    if (!isAuthenticated) return;
     void checkTokenStatus();
 
     tokenCheckInterval.current = setInterval(() => {
@@ -577,19 +597,20 @@ export function useEmail() {
     return () => {
       if (tokenCheckInterval.current) clearInterval(tokenCheckInterval.current);
     };
-  }, [checkTokenStatus]);
+  }, [checkTokenStatus, isAuthenticated]);
 
   // ── Carregar ao montar ──────────────────────────────────────────
   useEffect(() => {
+    if (!isAuthenticated) return;
     void loadAccounts();
-  }, [loadAccounts]);
+  }, [loadAccounts, isAuthenticated]);
 
   // ── Carregar threads quando muda conta ou label ──────────────────────────
   useEffect(() => {
-    if (activeAccountId) {
+    if (activeAccountId && isAuthenticated) {
       void loadThreads(activeAccountId, activeLabel);
     }
-  }, [activeAccountId, activeLabel, loadThreads]);
+  }, [activeAccountId, activeLabel, loadThreads, isAuthenticated]);
 
   // ── Computed ───────────────────────────────────────────────────
   const unreadCount = threads.reduce((sum, t) => sum + (t.unread_count ?? 0), 0);

@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const { limit } = parsed.data;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: tags } = await adminClient
+    const { data: tags } = await callerClient
       .from("ai_conversation_tags")
       .select("id, contact_id, tag_name, confidence, source")
       .order("created_at", { ascending: false })
@@ -97,6 +97,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ classified: results.length, results, summary }, 200, req);
   } catch (err: unknown) {
     log.error("Error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse(err instanceof Error ? err.message : "Erro interno", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

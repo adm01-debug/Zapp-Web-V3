@@ -1,31 +1,34 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
-import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { useMetaCapi } from '@/hooks/meta-capi/useMetaCapi';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Activity, Send, CheckCircle, XCircle, BarChart3, Zap,
-  MousePointer, ShoppingCart, CreditCard, UserPlus, Eye, Settings
+import {
+  Activity,
+  Send,
+  CheckCircle,
+  XCircle,
+  BarChart3,
+  Zap,
+  MousePointer,
+  ShoppingCart,
+  CreditCard,
+  UserPlus,
+  Eye,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface CAPIEvent {
-  id: string;
-  event_name: string;
-  event_time: string;
-  contact_id: string | null;
-  pixel_id: string | null;
-  action_source: string;
-  custom_data: Json;
-  sent_to_meta: boolean;
-  created_at: string;
-}
 
 const EVENT_TYPES = [
   { name: 'Purchase', label: 'Compra', icon: CreditCard, color: 'text-success' },
@@ -37,131 +40,74 @@ const EVENT_TYPES = [
 ];
 
 export function MetaCAPIView() {
-  const [events, setEvents] = useState<CAPIEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    events,
+    loading,
+    pixelId,
+    setPixelId,
+    autoTrack,
+    setAutoTrack,
+    saveConfig,
+    sendTestEvent,
+  } = useMetaCapi();
   const [showConfig, setShowConfig] = useState(false);
-  const [pixelId, setPixelId] = useState('');
-  const [autoTrack, setAutoTrack] = useState(false);
-  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  const fetchEvents = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('meta_capi_events')
-      .select('*')
-      .order('event_time', { ascending: false })
-      .limit(100);
-    if (!mountedRef.current) return;
-    if (error) { setLoading(false); return; }
-    if (data) setEvents(data);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
-
-  // Load config from global_settings
-  useEffect(() => {
-    let cancelled = false;
-    const loadConfig = async () => {
-      const { data } = await supabase
-        .from('global_settings')
-        .select('key, value')
-        .in('key', ['meta_pixel_id', 'meta_capi_auto_track']);
-      if (cancelled) return;
-      if (data) {
-        const pixel = data.find(d => d.key === 'meta_pixel_id');
-        const auto = data.find(d => d.key === 'meta_capi_auto_track');
-        if (pixel?.value) setPixelId(pixel.value);
-        if (auto?.value) setAutoTrack(auto.value === 'true');
-      }
-    };
-    loadConfig();
-    return () => { cancelled = true; };
-  }, []);
-
-  const saveConfig = async () => {
-    const upsert = async (key: string, value: string) => {
-      const { data: existing , error: existingErr } = await supabase.from('global_settings').select('id').eq('key', key).maybeSingle();
-      if (existing) {
-        await supabase.from('global_settings').update({ value }).eq('key', key);
-      } else {
-        await supabase.from('global_settings').insert({ key, value });
-      }
-    };
-    await upsert('meta_pixel_id', pixelId);
-    await upsert('meta_capi_auto_track', String(autoTrack));
-    toast({ title: 'Configurações salvas!' });
+  const handleSaveConfig = async () => {
+    await saveConfig();
     setShowConfig(false);
   };
 
-  const sendTestEvent = async (eventName: string) => {
-    const { error: insertErr } = await supabase.from('meta_capi_events').insert({
-      event_name: eventName,
-      pixel_id: pixelId || null,
-      action_source: 'chat',
-      custom_data: { test: true, value: 0 },
-    });
-    if (insertErr) { toast({ title: 'Erro', description: insertErr.message, variant: 'destructive' }); return; }
-    toast({ title: `Evento "${eventName}" registrado!` });
-    fetchEvents();
-  };
-
   const totalEvents = events.length;
-  const sentEvents = events.filter(e => e.sent_to_meta).length;
-  const eventCounts = EVENT_TYPES.map(et => ({
+  const sentEvents = events.filter((e) => e.sent_to_meta).length;
+  const eventCounts = EVENT_TYPES.map((et) => ({
     ...et,
-    count: events.filter(e => e.event_name === et.name).length,
+    count: events.filter((e) => e.event_name === et.name).length,
   }));
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <PageHeader
         title="Meta Conversions API"
         subtitle="Rastreie eventos de conversão para otimização de anúncios"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowConfig(true)} className="gap-2">
-              <Settings className="w-4 h-4" /> Configurar
+              <Settings className="h-4 w-4" /> Configurar
             </Button>
           </div>
         }
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-6 pb-4">
-        <Card className="bg-card/50 border-border/30">
+      <div className="grid grid-cols-2 gap-3 px-6 pb-4 md:grid-cols-4">
+        <Card className="border-border/30 bg-card/50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <Activity className="w-3.5 h-3.5" /> Total Eventos
+            <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <Activity className="h-3.5 w-3.5" /> Total Eventos
             </div>
             <p className="text-lg font-bold">{totalEvents}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card/50 border-border/30">
+        <Card className="border-border/30 bg-card/50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <Send className="w-3.5 h-3.5" /> Enviados ao Meta
+            <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <Send className="h-3.5 w-3.5" /> Enviados ao Meta
             </div>
             <p className="text-lg font-bold text-success">{sentEvents}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card/50 border-border/30">
+        <Card className="border-border/30 bg-card/50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <Zap className="w-3.5 h-3.5" /> Pixel ID
+            <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <Zap className="h-3.5 w-3.5" /> Pixel ID
             </div>
-            <p className="text-sm  truncate">{pixelId || 'Não configurado'}</p>
+            <p className="truncate text-sm">{pixelId || 'Não configurado'}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card/50 border-border/30">
+        <Card className="border-border/30 bg-card/50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <BarChart3 className="w-3.5 h-3.5" /> Auto-tracking
+            <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <BarChart3 className="h-3.5 w-3.5" /> Auto-tracking
             </div>
             <p className="text-lg font-bold">{autoTrack ? 'Ativo' : 'Inativo'}</p>
           </CardContent>
@@ -170,15 +116,18 @@ export function MetaCAPIView() {
 
       {/* Event Type Cards */}
       <div className="px-6 pb-4">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Eventos por Tipo</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Eventos por Tipo</h3>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
           {eventCounts.map(({ name, label, icon: Icon, color, count }) => (
-            <Card key={name} className="bg-card/50 border-border/30 hover:border-secondary/30 transition-all cursor-pointer"
-              onClick={() => sendTestEvent(name)}>
+            <Card
+              key={name}
+              className="cursor-pointer border-border/30 bg-card/50 transition-all hover:border-secondary/30"
+              onClick={() => sendTestEvent(name)}
+            >
               <CardContent className="p-3 text-center">
-                <Icon className={cn("w-6 h-6 mx-auto mb-1", color)} />
+                <Icon className={cn('mx-auto mb-1 h-6 w-6', color)} />
                 <p className="text-xs font-medium">{label}</p>
-                <p className="text-lg font-bold mt-1">{count}</p>
+                <p className="mt-1 text-lg font-bold">{count}</p>
               </CardContent>
             </Card>
           ))}
@@ -187,21 +136,28 @@ export function MetaCAPIView() {
 
       {/* Events Timeline */}
       <div className="flex-1 overflow-y-auto px-6 pb-6">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Eventos Recentes</h3>
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Eventos Recentes</h3>
         <div className="space-y-2">
-          {events.map(event => {
-            const eventType = EVENT_TYPES.find(et => et.name === event.event_name);
+          {events.map((event) => {
+            const eventType = EVENT_TYPES.find((et) => et.name === event.event_name);
             const EventIcon = eventType?.icon || Activity;
             return (
-              <Card key={event.id} className="bg-card/50 border-border/30">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10")}>
-                    <EventIcon className="w-4 h-4 text-primary" />
+              <Card key={event.id} className="border-border/30 bg-card/50">
+                <CardContent className="flex items-center gap-3 p-3">
+                  <div
+                    className={cn(
+                      'flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10'
+                    )}
+                  >
+                    <EventIcon className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{event.event_name}</span>
-                      <Badge variant={event.sent_to_meta ? 'default' : 'secondary'} className="text-[10px] h-4">
+                      <Badge
+                        variant={event.sent_to_meta ? 'default' : 'secondary'}
+                        className="h-4 text-[10px]"
+                      >
                         {event.sent_to_meta ? 'Enviado' : 'Pendente'}
                       </Badge>
                     </div>
@@ -209,16 +165,18 @@ export function MetaCAPIView() {
                       {event.action_source} • {new Date(event.event_time).toLocaleString('pt-BR')}
                     </p>
                   </div>
-                  {event.sent_to_meta
-                    ? <CheckCircle className="w-4 h-4 text-success" />
-                    : <XCircle className="w-4 h-4 text-muted-foreground" />}
+                  {event.sent_to_meta ? (
+                    <CheckCircle className="h-4 w-4 text-success" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                  )}
                 </CardContent>
               </Card>
             );
           })}
           {events.length === 0 && !loading && (
-            <div className="text-center py-12 text-muted-foreground">
-              <Activity className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <div className="py-12 text-center text-muted-foreground">
+              <Activity className="mx-auto mb-3 h-10 w-10 opacity-20" />
               <p className="text-sm">Nenhum evento registrado</p>
               <p className="text-xs">Clique em um tipo de evento acima para testar</p>
             </div>
@@ -229,23 +187,33 @@ export function MetaCAPIView() {
       {/* Config Dialog */}
       <Dialog open={showConfig} onOpenChange={setShowConfig}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Configurar Meta CAPI</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Configurar Meta CAPI</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Meta Pixel ID</Label>
-              <Input value={pixelId} onChange={(e) => setPixelId(e.target.value)} placeholder="Ex: 123456789" />
+              <Input
+                value={pixelId}
+                onChange={(e) => setPixelId(e.target.value)}
+                placeholder="Ex: 123456789"
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <Label>Auto-tracking</Label>
-                <p className="text-xs text-muted-foreground">Rastrear automaticamente eventos de conversa</p>
+                <p className="text-xs text-muted-foreground">
+                  Rastrear automaticamente eventos de conversa
+                </p>
               </div>
               <Switch checked={autoTrack} onCheckedChange={setAutoTrack} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfig(false)}>Cancelar</Button>
-            <Button onClick={saveConfig}>Salvar</Button>
+            <Button variant="outline" onClick={() => setShowConfig(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveConfig}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -3,10 +3,13 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+const supabase = createClient((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!, { auth: { persistSession: false } });
 const INSTANCE_NAME = Deno.env.get("EVOLUTION_INSTANCE") || "wpp2";
 
-function renderContent(t: string, c: any, deal?: any): string {
+interface FollowupContact { full_name?: string | null; push_name?: string | null; phone_number?: string | null; }
+interface FollowupDeal { title?: string | null; value?: number | string | null; stage?: string | null; }
+
+function renderContent(t: string, c: FollowupContact, deal?: FollowupDeal): string {
   let r = t;
   const fn = (c.full_name || c.push_name || "").split(" ")[0] || "Cliente";
   r = r.replace(/\{\{\s*nome\s*\}\}/gi, fn).replace(/\{\{\s*telefone\s*\}\}/gi, c.phone_number || "");
@@ -23,7 +26,7 @@ function renderContent(t: string, c: any, deal?: any): string {
 }
 
 async function setStatus(id: string, status: string, error?: string) {
-  const u: any = { status };
+  const u: Record<string, unknown> = { status };
   // queued_at marks when the message was enqueued — distinct from sent_at (Evolution confirms delivery)
   if (status === "queued") u.queued_at = new Date().toISOString();
   if (error) u.error_message = error.slice(0, 500);

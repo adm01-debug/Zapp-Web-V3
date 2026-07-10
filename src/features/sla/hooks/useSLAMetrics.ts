@@ -49,7 +49,7 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   const startDate = getStartDate(period).toISOString();
 
   const [slaResult, profilesResult] = await Promise.all([
-    supabase
+    (supabase as any) /* TS2589: schema 678 */
       .from('conversation_sla')
       .select('*, contacts!inner(assigned_to)')
       .gte('created_at', startDate),

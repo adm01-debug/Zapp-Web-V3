@@ -204,8 +204,8 @@ Deno.serve(async (req) => {
     }
 
     const localClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+      (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
@@ -305,8 +305,7 @@ Deno.serve(async (req) => {
 
     return jsonRes({ error: "Invalid action" }, 400, req);
   } catch (err) {
-    const msg = errMessage(err);
-    log.error("Error", { error: msg });
-    return jsonRes({ error: msg }, 500, req);
+    log.error("Error", { error: errMessage(err) });
+    return jsonRes({ error: 'Internal server error' }, 500, req);
   }
 });

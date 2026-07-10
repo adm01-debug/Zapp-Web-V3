@@ -13,7 +13,11 @@
 //   - WEBHOOK_AUTH_SPIKE_THRESHOLD  (default 10)
 //   - WEBHOOK_AUTH_PAUSE_MINUTES    (default 15)
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+// [FIX 2026-07-10] Tipo estrutural mínimo em vez de SupabaseClient pinado:
+// consumidores importam supabase-js em versões distintas (@2 vs @2.49.1) e os
+// generics da classe não são compatíveis entre si (TS2345 por variância).
+// deno-lint-ignore no-explicit-any
+type SupabaseClient = any;
 
 const PAUSE_CACHE_TTL_MS = 5_000;
 const _pauseCache = new Map<string, { value: boolean; expires: number }>();
@@ -39,8 +43,7 @@ export function getPauseConfig(): PauseConfig {
   return { windowSec: WINDOW_SEC, threshold: THRESHOLD, pauseMinutes: PAUSE_MIN };
 }
 
-// deno-lint-ignore no-explicit-any
-export async function isInstancePaused(supabase: SupabaseClient<any, any, any>, instance: string | null | undefined): Promise<boolean> {
+export async function isInstancePaused(supabase: SupabaseClient, instance: string | null | undefined): Promise<boolean> {
   if (!instance) return false;
   const cached = _pauseCache.get(instance);
   const now = Date.now();
@@ -65,9 +68,8 @@ export function invalidateInstancePauseCache(instance?: string) {
  * Conta uma falha de autenticação para a instância e, se ultrapassar o limiar
  * dentro da janela, chama `auto_pause_instance_on_auth_spike`. Fire-and-forget.
  */
-// deno-lint-ignore no-explicit-any
 export function recordAuthFailureAndMaybePause(
-  supabase: SupabaseClient<any, any, any>,
+  supabase: SupabaseClient,
   instance: string | null | undefined,
   reason: 'invalid_signature' | 'auth_401' | 'auth_403',
   source: 'webhook' | 'evolution-api' = 'webhook',
@@ -83,11 +85,11 @@ export function recordAuthFailureAndMaybePause(
       source,
       http_status: detail?.http_status ?? (reason === 'auth_401' ? 401 : reason === 'auth_403' ? 403 : null),
       detail: detail?.message ?? null,
-    // deno-lint-ignore no-explicit-any
-    }) as unknown as Promise<any>,
+    }) as unknown as Promise<unknown>,
   ).then(
-    (res: any) => {
-      if (res?.error) console.warn('[auth-events] insert failed:', res.error.message);
+    (res: unknown) => {
+      const err = (res as { error?: { message: string } | null })?.error;
+      if (err) console.warn('[auth-events] insert failed:', err.message);
     },
     (e: unknown) => {
       console.warn('[auth-events] insert threw:', e instanceof Error ? e.message : String(e));
@@ -117,11 +119,11 @@ export function recordAuthFailureAndMaybePause(
       p_reason: `auth_spike:${reason}`,
       p_trigger_count: THRESHOLD,
       p_minutes: PAUSE_MIN,
-    // deno-lint-ignore no-explicit-any
-    }) as unknown as Promise<any>,
+    }) as unknown as Promise<unknown>,
   ).then(
-    (res: any) => {
-      if (res?.error) console.warn('[auto-pause] rpc failed:', res.error.message);
+    (res: unknown) => {
+      const err = (res as { error?: { message: string } | null })?.error;
+      if (err) console.warn('[auto-pause] rpc failed:', err.message);
     },
     (e: unknown) => {
       console.warn('[auto-pause] rpc threw:', e instanceof Error ? e.message : String(e));

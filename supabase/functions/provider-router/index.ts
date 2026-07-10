@@ -3,6 +3,7 @@
 // do canal, com failover automático para fallback. Registra sessão + logs.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,14 @@ interface ProviderConfig {
   config: Record<string, unknown>;
   status: string;
   is_active: boolean;
+}
+
+interface ChannelRoute {
+  id: string;
+  current_provider_id: string | null;
+  primary: ProviderConfig | null;
+  fallback: ProviderConfig | null;
+  [key: string]: unknown;
 }
 
 const ENDPOINTS: Record<string, Record<Action, { method: string; path: string }>> = {
@@ -107,8 +116,11 @@ Deno.serve(async (req) => {
     });
   }
 
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const authed = await requireAdminOrSupervisor(req);
+  if (authed instanceof Response) return authed;
+
+  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !serviceKey) {
     return new Response(JSON.stringify({ error: "missing_env" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -156,9 +168,10 @@ Deno.serve(async (req) => {
   }
 
   const candidates: ProviderConfig[] = [];
-  const current = (route as any).current_provider_id as string | null;
-  const primary = (route as any).primary as ProviderConfig | null;
-  const fallback = (route as any).fallback as ProviderConfig | null;
+  const typedRoute = route as unknown as ChannelRoute;
+  const current = typedRoute.current_provider_id;
+  const primary = typedRoute.primary;
+  const fallback = typedRoute.fallback;
 
   // Ordem de tentativa: provedor atual (se ainda válido), primário, fallback
   if (current && primary && current === primary.id) {
@@ -226,7 +239,7 @@ Deno.serve(async (req) => {
         await admin.from("channel_provider_routes").update({
           current_provider_id: provider.id,
           switched_reason: i === 0 ? "primary_recovered" : `fallback_to_${provider.name}: ${lastError ?? "n/a"}`,
-        }).eq("id", (route as any).id);
+        }).eq("id", typedRoute.id);
       }
 
       await admin.from("provider_configs").update({

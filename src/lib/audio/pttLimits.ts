@@ -1,3 +1,4 @@
+import { formatBytesCompact } from '@/lib/formatters';
 /**
  * Limites de PTT (Push-to-Talk) compatíveis com WhatsApp / Evolution API.
  *
@@ -18,12 +19,6 @@ export interface PttValidationResult {
   message?: string;
   /** Duração medida em segundos (quando foi possível detectar). */
   durationSec?: number;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatSeconds(seconds: number): string {
@@ -63,7 +58,10 @@ export function probeAudioDuration(blob: Blob): Promise<number | undefined> {
     audio.src = url;
 
     // Safety net: alguns codecs travam o `loadedmetadata` em Chromium.
-    setTimeout(() => { cleanup(); resolve(undefined); }, 4000);
+    setTimeout(() => {
+      cleanup();
+      resolve(undefined);
+    }, 4000);
   });
 }
 
@@ -77,7 +75,7 @@ export function probeAudioDuration(blob: Blob): Promise<number | undefined> {
 export async function validatePttBlob(
   blob: Blob,
   /** Override opcional para testes ou contas com limites menores. */
-  limits: { maxBytes?: number; maxDurationSec?: number; minDurationSec?: number } = {},
+  limits: { maxBytes?: number; maxDurationSec?: number; minDurationSec?: number } = {}
 ): Promise<PttValidationResult> {
   const maxBytes = limits.maxBytes ?? MAX_PTT_SIZE_BYTES;
   const maxDuration = limits.maxDurationSec ?? MAX_PTT_DURATION_SEC;
@@ -90,7 +88,7 @@ export async function validatePttBlob(
   if (blob.size > maxBytes) {
     return {
       ok: false,
-      message: `Áudio muito grande (${formatBytes(blob.size)}). Limite: ${formatBytes(maxBytes)}.`,
+      message: `Áudio muito grande (${formatBytesCompact(blob.size)}). Limite: ${formatBytesCompact(maxBytes)}.`,
     };
   }
 

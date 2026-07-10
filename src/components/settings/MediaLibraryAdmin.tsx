@@ -17,9 +17,9 @@ import {
   Filter, RefreshCw, AlertTriangle, Wand2, Sparkles
 } from 'lucide-react';
 
-import { useMediaLibrary } from './media-library/useMediaLibrary';
-import { useMediaUpload } from './media-library/useMediaUpload';
-import type { MediaType } from './media-library/useMediaLibrary';
+import { useMediaLibrary } from '@/hooks/media-library/useMediaLibrary';
+import { useMediaUpload } from '@/hooks/media-library/useMediaUpload';
+import type { MediaType } from '@/hooks/media-library/useMediaLibrary';
 import { StatsCards } from './media-library/StatsCards';
 import { AIGenerateDialog } from './media-library/AIGenerateDialog';
 

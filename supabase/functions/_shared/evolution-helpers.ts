@@ -1,6 +1,7 @@
 // Shared helpers for Evolution API webhook and sync functions
 declare const Deno: { env: { get(key: string): string | undefined } };
 
+
 export interface WebhookPayload {
   event: string;
   instance: string;
@@ -84,7 +85,7 @@ export function normalizePhone(rawJid?: string): string | null {
   if (!rawJid) return null;
   const sanitized = rawJid
     .trim()
-    .replace(/:\d+(?=@)/g, '')
+    .replace(/(:\d+)+(?=@)/g, '')
     .replace('@s.whatsapp.net', '')
     .replace('@g.us', '')
     .replace('@broadcast', '')
@@ -187,14 +188,25 @@ export function shouldUpdateStatus(currentStatus: string | null, newStatus: stri
 
 // deno-lint-ignore no-explicit-any
 export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
-  const { data } = await supabase
+  // [PATCH 2026-07-05 conn-resolver] Evolution envia payload.instance = NOME da instancia,
+  // mas fluxos de criacao gravam UUID em whatsapp_connections.instance_id. Resolve por
+  // instance_name (estavel) com fallback para instance_id (compat) e LOGA o miss -
+  // o return silencioso aqui escondeu 2 semanas de mensagens nao espelhadas (21/06-05/07).
+  const { data: byName } = await supabase
     .from('whatsapp_connections')
     .select('id')
-    .or(instanceOrFilter(instance))
+    .eq('instance_name', instance)
     .maybeSingle();
-  return data;
+  if (byName) return byName;
+  const { data: byId } = await supabase
+    .from('whatsapp_connections')
+    .select('id')
+    .eq('instance_id', instance)
+    .maybeSingle();
+  if (byId) return byId;
+  console.error(`[conn-resolver] whatsapp_connections MISS instance='${instance}' - message will NOT be mirrored`);
+  return null;
 }
-
 // deno-lint-ignore no-explicit-any
 export async function getContactByPhone(
   supabase: any,
@@ -291,39 +303,6 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
   } catch (err) { console.error('Avatar persist error:', err); return null; }
 }
 
-export function instanceOrFilter(instance: string): string {
-  // Strip chars that are significant in PostgREST filter syntax to prevent injection.
-  // Allowed: alphanumeric, hyphen, underscore, dot (Evolution instance names use these).
-  const escaped = instance.replace(/[^a-zA-Z0-9._-]/g, '');
-  return `instance_id.eq.${escaped},instance_name.eq.${escaped}`;
-}
-
-export interface DeadLetterInput {
-  event_type?: string | null;
-  instance?: string | null;
-  payload?: unknown;
-  error_message?: string | null;
-  error_stack?: string | null;
-  request_id?: string | null;
-}
-
-// deno-lint-ignore no-explicit-any
-export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
-  try {
-    await supabase.from('webhook_dead_letter').insert({
-      event_type: input.event_type ?? null,
-      instance: input.instance ?? null,
-      payload: input.payload ?? null,
-      error_message: input.error_message ?? null,
-      error_stack: input.error_stack ?? null,
-      request_id: input.request_id ?? null,
-      created_at: new Date().toISOString(),
-    });
-  } catch (e) {
-    console.warn('[dead-letter] insert failed:', (e as Error).message ?? String(e));
-  }
-}
-
 // deno-lint-ignore no-explicit-any
 export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';
@@ -331,9 +310,11 @@ export async function handleReactionEvent(supabase: any, instance: string, react
   if (!reactKey?.id) return;
 
   const targetExternalId = reactKey.id as string;
-  const { data: targetMessage } = await supabase.schema('evo')
-    .from('evolution_messages').select('id, contact_id').eq('message_id', targetExternalId)
-    .eq('instance_name', instance).maybeSingle();
+  const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) { console.log(`Reaction: no connection for instance ${instance}`); return; }
+  const { data: targetMessage } = await supabase
+    .from('messages').select('id, contact_id').eq('external_id', targetExternalId)
+    .eq('whatsapp_connection_id', connection.id).maybeSingle();
   if (!targetMessage) { console.log(`Reaction target not found: ${targetExternalId}`); return; }
 
   if (emoji === '') {
@@ -353,5 +334,54 @@ export async function handleReactionEvent(supabase: any, instance: string, react
       await supabase.from('messages').update({ updated_at: new Date().toISOString() }).eq('id', targetMessage.id);
       console.log(`Reaction synced: ${emoji} on message ${targetExternalId}`);
     }
+  }
+}
+
+// ─── [RESTORE 2026-07-10] Exports perdidos em merge — dependidos por
+// evolution-webhook/index.ts e evolution-webhook-handlers.ts ─────────────────
+
+/**
+ * Filtro PostgREST nome-OU-uuid para whatsapp_connections.
+ * (Mesma implementação validada em connection-health-check/index.ts.)
+ */
+export function instanceOrFilter(instance: string): string {
+  const safe = String(instance).replace(/[",()\\]/g, '');
+  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
+}
+
+export interface DeadLetterInput {
+  event_type: string;
+  instance?: string | null;
+  payload?: unknown;
+  error_message: string;
+  error_stack?: string | null;
+  request_id?: string | null;
+}
+
+/**
+ * Roteia um evento com falha de handler para a DLQ `evolution_webhook_dlq`
+ * (via camada public.*). Colunas mapeadas 1:1 ao schema evo.evolution_webhook_dlq
+ * (event_type/instance_name/error_message NOT NULL — defaults defensivos).
+ * Fail-safe: nunca lança — perda da DLQ não pode derrubar a resposta 200 ao
+ * Evolution (evita retry-storm). request_id vai apenas para o log.
+ */
+// deno-lint-ignore no-explicit-any
+export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
+  try {
+    const { error } = await supabase.from('evolution_webhook_dlq').insert({
+      event_type: input.event_type || 'unknown',
+      instance_name: input.instance || 'unknown',
+      payload: input.payload ?? null,
+      error_message: (input.error_message || 'unknown_error').slice(0, 2000),
+      error_stack: input.error_stack ? String(input.error_stack).slice(0, 8000) : null,
+      status: 'pending',
+      queue_name: 'edge:evolution-webhook',
+      consumer_version: 'edge-webhook:v1',
+    });
+    if (error) {
+      console.error(`[dlq] insert failed (request_id=${input.request_id ?? '-'}): ${error.message}`);
+    }
+  } catch (e) {
+    console.error(`[dlq] insert exception (request_id=${input.request_id ?? '-'}): ${e instanceof Error ? e.message : String(e)}`);
   }
 }

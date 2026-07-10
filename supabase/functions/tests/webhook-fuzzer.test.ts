@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 
 // Simulating a webhook handler validation logic
-const validateWebhookPayload = (payload: any) => {
+const validateWebhookPayload = (payload: unknown): boolean => {
   if (!payload || typeof payload !== 'object') return false;
-  if (!payload.id || typeof payload.id !== 'string') return false;
+  const p = payload as Record<string, unknown>;
+  if (!p.id || typeof p.id !== 'string') return false;
   // Use the most basic UUID format check (hex-hex-hex-hex-hex)
-  const uuidParts = payload.id.split('-');
+  const uuidParts = p.id.split('-');
   if (uuidParts.length !== 5) return false;
   if (uuidParts[0].length !== 8 || uuidParts[1].length !== 4 || uuidParts[2].length !== 4 || uuidParts[3].length !== 4 || uuidParts[4].length !== 12) return false;
   

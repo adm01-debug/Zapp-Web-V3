@@ -1,6 +1,6 @@
+// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { safeClient } from "@/integrations/supabase/safeClient";
 import {
   Tabs,
   TabsContent,
@@ -209,20 +209,18 @@ function PmlPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await safeClient.from<PmlRow>(
-      'provider_message_log',
-      (q) => {
-        let query = q
-          .select('id,provider,instance_name,direction,remote_jid,delivery_status,http_status,error_message,received_at')
-          .order('received_at', { ascending: false })
-          .limit(100);
-        if (status !== 'all') query = query.eq('delivery_status', status);
-        if (search.trim()) query = query.ilike('instance_name', `%${search.trim()}%`);
-        return query;
-      },
-    );
+    let q = supabase
+      .from('provider_message_log')
+      .select(
+        "id,provider,instance_name,direction,remote_jid,delivery_status,http_status,error_message,received_at",
+      )
+      .order("received_at", { ascending: false })
+      .limit(100);
+    if (status !== "all") q = q.eq("delivery_status", status);
+    if (search.trim()) q = q.ilike("instance_name", `%${search.trim()}%`);
+    const { data, error } = await q;
     if (error) toast.error("Erro ao carregar PML: " + error.message);
-    setRows(data);
+    setRows((data as PmlRow[]) ?? []);
     setLoading(false);
   }, [status, search]);
 

@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useSkillBasedRouting } from '@/hooks/settings/useSkillBasedRouting';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/hooks/use-toast';
 import { Plus, X, Brain, Users, Star } from 'lucide-react';
 
 const SKILL_SUGGESTIONS = [
@@ -15,102 +13,14 @@ const SKILL_SUGGESTIONS = [
 ];
 
 export function SkillBasedRoutingSettings() {
-  const queryClient = useQueryClient();
   const [newSkill, setNewSkill] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [selectedQueue, setSelectedQueue] = useState<string>('');
   const [newQueueSkill, setNewQueueSkill] = useState('');
   const [newQueueMinLevel, setNewQueueMinLevel] = useState(1);
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-skills'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, name').eq('is_active', true);
-      return data || [];
-    },
-  });
-
-  const { data: queues = [] } = useQuery({
-    queryKey: ['queues-for-skills'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('queues').select('id, name, color').eq('is_active', true);
-      return data || [];
-    },
-  });
-
-  const { data: agentSkills = [] } = useQuery({
-    queryKey: ['agent-skills', selectedProfile],
-    queryFn: async () => {
-      if (!selectedProfile) return [];
-      const { data, error } = await supabase
-        .from('agent_skills')
-        .select('*')
-        .eq('profile_id', selectedProfile);
-      return data || [];
-    },
-    enabled: !!selectedProfile,
-  });
-
-  const { data: queueSkills = [] } = useQuery({
-    queryKey: ['queue-skills', selectedQueue],
-    queryFn: async () => {
-      if (!selectedQueue) return [];
-      const { data, error } = await supabase
-        .from('queue_skill_requirements')
-        .select('*')
-        .eq('queue_id', selectedQueue);
-      return data || [];
-    },
-    enabled: !!selectedQueue,
-  });
-
-  const addSkill = useMutation({
-    mutationFn: async ({ profileId, skillName, level }: { profileId: string; skillName: string; level: number }) => {
-      const { error } = await supabase.from('agent_skills').insert({
-        profile_id: profileId,
-        skill_name: skillName,
-        skill_level: level,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agent-skills'] });
-      setNewSkill('');
-      toast({ title: 'Skill adicionada com sucesso!' });
-    },
-  });
-
-  const removeSkill = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('agent_skills').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-skills'] }),
-  });
-
-  const addQueueRequirement = useMutation({
-    mutationFn: async ({ queueId, skillName, minLevel }: { queueId: string; skillName: string; minLevel: number }) => {
-      const { error } = await supabase.from('queue_skill_requirements').insert({
-        queue_id: queueId,
-        skill_name: skillName,
-        min_level: minLevel,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-skills'] });
-      setNewQueueSkill('');
-      toast({ title: 'Requisito de skill adicionado!' });
-    },
-  });
-
-  const removeQueueRequirement = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('queue_skill_requirements').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue-skills'] }),
-  });
+  const { profiles, queues, agentSkills, queueSkills, addSkill, removeSkill, addQueueRequirement, removeQueueRequirement } =
+    useSkillBasedRouting(selectedProfile, selectedQueue);
 
   return (
     <div className="space-y-6">
@@ -173,7 +83,7 @@ export function SkillBasedRoutingSettings() {
                 <datalist id="skill-suggestions">
                   {SKILL_SUGGESTIONS.map(s => <option key={s} value={s} />)}
                 </datalist>
-                <Select defaultValue="3" onValueChange={v => {}}>
+                <Select defaultValue="3" onValueChange={() => {}}>
                   <SelectTrigger className="w-24">
                     <SelectValue />
                   </SelectTrigger>
@@ -187,7 +97,7 @@ export function SkillBasedRoutingSettings() {
                   size="sm"
                   onClick={() => {
                     if (newSkill.trim()) {
-                      addSkill.mutate({ profileId: selectedProfile, skillName: newSkill.trim(), level: 3 });
+                      addSkill.mutate({ profileId: selectedProfile, skillName: newSkill.trim(), level: 3 }, { onSuccess: () => setNewSkill('') });
                     }
                   }}
                   disabled={!newSkill.trim()}
@@ -260,7 +170,7 @@ export function SkillBasedRoutingSettings() {
                   size="sm"
                   onClick={() => {
                     if (newQueueSkill.trim()) {
-                      addQueueRequirement.mutate({ queueId: selectedQueue, skillName: newQueueSkill.trim(), minLevel: newQueueMinLevel });
+                      addQueueRequirement.mutate({ queueId: selectedQueue, skillName: newQueueSkill.trim(), minLevel: newQueueMinLevel }, { onSuccess: () => setNewQueueSkill('') });
                     }
                   }}
                   disabled={!newQueueSkill.trim()}

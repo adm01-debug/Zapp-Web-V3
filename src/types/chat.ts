@@ -1,18 +1,11 @@
-export interface Contact {
-  id: string;
-  name: string;
-  nickname?: string;
-  surname?: string;
-  job_title?: string;
-  company?: string;
-  phone: string;
+// W4 (2026-07-06): núcleo derivado do schema gerado; 'avatar' e 'createdAt' são
+import type { Tables } from '@/integrations/supabase/types';
+// aliases camelCase client-side (mapeados de avatar_url/created_at nos adapters).
+export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'phone' | 'tags'> &
+  Partial<Pick<Tables<'contacts'>, 'nickname' | 'surname' | 'job_title' | 'company' | 'email' | 'contact_type' | 'whatsapp_connection_id'>> & {
   avatar?: string;
-  email?: string;
-  tags: string[];
   createdAt: Date;
-  contact_type?: string | null;
-  whatsapp_connection_id?: string | null;
-}
+};
 
 // WhatsApp Interactive Message Types
 export interface InteractiveButton {

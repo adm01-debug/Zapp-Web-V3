@@ -1,0 +1,4 @@
+# dead-code-allowlist.txt — pós-triagem Wave 2 (2026-07-06)
+# Regra ratchet: NÃO adicionar itens sem justificativa na própria linha.
+src/lib/mcp/index.ts  # consumido FORA do grafo TS: plugin @lovable.dev/mcp-js bundla p/ supabase/functions/mcp no vite build
+src/lib/__mocks__/logger.ts  # convenção vitest: vi.mock('@/lib/logger') resolve __mocks__ automaticamente

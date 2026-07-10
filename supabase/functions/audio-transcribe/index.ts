@@ -1,18 +1,24 @@
-// audio-transcribe v2.1 (Self-Hosted, vault-aware) — migrado de Cloud Fator X
+// audio-transcribe v2.2 (Self-Hosted, vault-aware) — migrado de Cloud Fator X
 // v2.1: F6 security fix — SSRF guard in fetchAudioWithCap (isSafeAudioUrl)
+// v2.2: refactor — dependências migradas dos módulos -legacy para os canônicos
+//       (`auth.ts`, `validation.ts`, `vault.ts`). Sem mudança de comportamento:
+//       mantém heavy=5 req/60s por usuário, preflight CORS via cors.ts,
+//       jsonResponse/errorResponse do cors.ts (assinatura req-first).
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
-import {
-  handleCorsPreflight, jsonResponse, errorResponse,
-  authenticateRequest,
-  checkRateLimit, createRateLimitResponse, getRateLimitIdentifier, RATE_LIMITS,
-  parseBody, z,
-  getSecret,
-} from "../_shared/mod.ts";
+import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/cors.ts";
+import { requireUser } from "../_shared/auth.ts";
+import { checkRateLimit, parseBody } from "../_shared/validation.ts";
+import { z } from "../_shared/schemas.ts";
+import { getSecret } from "../_shared/vault.ts";
 
-const VERSION = "v2.1-self-hosted";
+const VERSION = "v2.2-self-hosted";
 const WHISPER_MODEL = 'openai/whisper-large-v3-turbo';
 const WHISPER_TIMEOUT_MS = 30000;
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25 MB
+// Rate limit "heavy" (equivalente a RATE_LIMITS.heavy do rate-limiter-legacy):
+// 5 requisições por janela de 60s por usuário. Preserva a semântica exata pré-refactor.
+const RL_MAX = 5;
+const RL_WINDOW_MS = 60_000;
 
 const TranscribeInput = z.object({
   action: z.enum(['transcribe', 'translate']).default('transcribe'),
@@ -24,24 +30,32 @@ const TranscribeInput = z.object({
   message: 'Either audio_base64 or audio_url is required',
 });
 
-// F6 security fix: SSRF guard — block private/reserved IPv4 and IPv6 ranges.
-// RFC 5735/5156. Note: URL.hostname returns '[::1]' (brackets) for IPv6 literals.
-function isSafeAudioUrl(rawUrl: string): boolean {
-  try {
-    const u = new URL(rawUrl);
-    if (u.protocol !== 'https:') return false;
-    const h = u.hostname.toLowerCase();
-    // Private/reserved IPv4 (RFC 5735): 0/8, 10/8, 127/8, 169.254/16, 172.16-31/12, 192.168/16
-    if (/^(0\.|10\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.)/.test(h)) return false;
-    // Named loopback / unspecified
-    if (h === 'localhost' || h === '0.0.0.0') return false;
-    // IPv6 loopback and private ranges (URL.hostname includes brackets)
-    if (h === '[::1]' || h === '::1') return false;
-    if (/^\[?(fe80:|fc00:|fd[0-9a-f]{2}:)/i.test(h)) return false;
-    // Cloud metadata services
-    if (h === '169.254.169.254' || h === 'metadata.google.internal') return false;
-    return true;
-  } catch { return false; }
+/**
+ * Returns true only for HTTPS URLs pointing outside loopback / link-local /
+ * private / metadata ranges. Prevents SSRF to AWS metadata, internal services,
+ * or non-HTTPS protocols. Note: URL.hostname returns bracketless IPv6 (e.g.
+ * '::1', 'fe80::1') — never '[::1]'.
+ */
+function isSafeAudioUrl(raw: string): boolean {
+  let parsed: URL;
+  try { parsed = new URL(raw); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === '0.0.0.0' ||
+    /^127\./.test(host) ||
+    /^169\.254\./.test(host) ||            // AWS/GCP/Azure metadata + link-local
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    host.startsWith('::') ||               // loopback ::1, unspecified ::, IPv4-compat/mapped (bracketless)
+    /^fe[89ab][0-9a-f]:/i.test(host) ||   // link-local fe80::/10 (fe80–febf)
+    /^fec[0-9a-f]:/i.test(host) ||        // site-local fec0::/10
+    /^f[cd][0-9a-f]{2}:/i.test(host)      // ULA fc00::/7 (fc+fd)
+  ) return false;
+  return true;
 }
 
 /**
@@ -50,13 +64,10 @@ function isSafeAudioUrl(rawUrl: string): boolean {
  * F6: SSRF guard applied before fetch — blocks private ranges.
  */
 async function fetchAudioWithCap(url: string, maxBytes: number): Promise<Uint8Array | null> {
-  // F6 SSRF guard — reject before any network call
-  if (!isSafeAudioUrl(url)) {
-    console.warn('[audio-transcribe] Blocked unsafe audio URL', url.substring(0, 40));
-    return null;
-  }
-
-  const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  // redirect: 'error' prevents SSRF bypass via server-side redirects to private IPs.
+  // isSafeAudioUrl validates the initial URL; without this flag a redirect could
+  // silently forward the request to 169.254.169.254 or internal addresses.
+  const resp = await fetch(url, { signal: AbortSignal.timeout(15000), redirect: 'error' });
   if (!resp.ok || !resp.body) return null;
 
   const chunks: Uint8Array[] = [];
@@ -107,15 +118,16 @@ serve(async (req) => {
   }
 
   try {
-    // Auth obrigatório
-    const auth = await authenticateRequest(req);
-    if (auth.error) return auth.error;
-    const { user } = auth;
+    // Auth obrigatório (novo helper: retorna Response quando 401, senão { user })
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const { user } = authed;
 
-    // Rate limit (heavy: 5/min/user)
-    const identifier = getRateLimitIdentifier(req, user.id);
-    const rateCheck = checkRateLimit(identifier, RATE_LIMITS.heavy);
-    if (!rateCheck.allowed) return createRateLimitResponse(rateCheck);
+    // Rate limit (heavy: 5/min/user) — in-memory por isolate, comportamento equivalente ao legacy.
+    const rateCheck = checkRateLimit(`audio-transcribe:user:${user.id}`, RL_MAX, RL_WINDOW_MS);
+    if (!rateCheck.allowed) {
+      return errorResponse(req, 'Rate limit exceeded', 429, { retryAfterSeconds: 60 });
+    }
 
     // Body validation
     const parsed = await parseBody(req, TranscribeInput);
@@ -138,6 +150,9 @@ serve(async (req) => {
       audioBytes = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) audioBytes[i] = raw.charCodeAt(i);
     } else if (audio_url) {
+      if (!isSafeAudioUrl(audio_url)) {
+        return errorResponse(req, 'Invalid or disallowed audio URL', 400);
+      }
       const fetched = await fetchAudioWithCap(audio_url, MAX_AUDIO_BYTES);
       if (fetched === null) {
         return errorResponse(req, 'Audio fetch failed or file exceeds 25MB limit', 413);
@@ -166,7 +181,10 @@ serve(async (req) => {
 
       // Send parameters alongside the audio blob
       const formData = new FormData();
-      formData.append('inputs', new Blob([audioBytes], { type: 'audio/wav' }), 'audio.wav');
+      // Cast BlobPart: Deno strict tipa Uint8Array como ArrayBufferLike (inclui
+      // SharedArrayBuffer) e o construtor Blob exige ArrayBuffer — runtime é
+      // idêntico, só a assinatura de tipo diverge.
+      formData.append('inputs', new Blob([audioBytes as BlobPart], { type: 'audio/wav' }), 'audio.wav');
       if (Object.keys(hfParams).length > 0) {
         formData.append('parameters', JSON.stringify(hfParams));
       }
@@ -181,7 +199,10 @@ serve(async (req) => {
 
       if (!resp.ok) {
         const errText = await resp.text();
-        return errorResponse(req, `Whisper API error: ${errText.slice(0, 500)}`, resp.status);
+        console.error('[audio-transcribe] HuggingFace Whisper error', { status: resp.status, detail: errText.slice(0, 500) });
+        if (resp.status === 429) return errorResponse(req, 'Transcription rate limit exceeded', 429);
+        if (resp.status === 503) return errorResponse(req, 'Transcription service temporarily unavailable', 503);
+        return errorResponse(req, 'Audio transcription failed', 502);
       }
 
       const result = await resp.json();
@@ -199,6 +220,7 @@ serve(async (req) => {
       clearTimeout(timeout);
     }
   } catch (error) {
-    return errorResponse(req, error instanceof Error ? error.message : 'Internal error', 500);
+    console.error('[audio-transcribe] unhandled error:', error);
+    return errorResponse(req, 'Internal server error', 500);
   }
 });

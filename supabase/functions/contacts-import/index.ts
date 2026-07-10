@@ -11,6 +11,7 @@ const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+const JSON_CORS = { ...CORS, 'Content-Type': 'application/json' };
 
 const VALID_DDDS = new Set([11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99]);
 
@@ -35,36 +36,58 @@ serve(async (req) => {
 
   try {
     const auth = req.headers.get('Authorization');
-    if (!auth) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: CORS });
+    if (!auth) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_CORS });
 
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '',
+      (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '',
       { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    // Caller-scoped client — RLS enforces tenant isolation for connection ownership
+    const callerClient = createClient(
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '',
+      (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '',
+      { global: { headers: { authorization: auth } }, auth: { autoRefreshToken: false, persistSession: false } }
     );
 
     const { data: { user }, error: authErr } = await supabase.auth.getUser(auth.replace('Bearer ', ''));
-    if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: CORS });
+    if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: JSON_CORS });
 
-    const { rows = [], workspace_id: instanceName } = await req.json();
-    const resolvedInstance = instanceName ?? 'wpp2';
+    const body = await req.json();
+    const rows = body.rows;
+    const rawInstanceName = body.workspace_id ?? 'wpp2';
 
-    // F12 security fix: verify the caller owns the WhatsApp connection they are importing into
-    const { data: ownedConn } = await supabase
+    if (!Array.isArray(rows)) return new Response(JSON.stringify({ error: 'rows must be an array' }), { status: 400, headers: JSON_CORS });
+    if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: JSON_CORS });
+    if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: JSON_CORS });
+    if (!rows.every((r: unknown) => r !== null && typeof r === 'object' && !Array.isArray(r))) {
+      return new Response(JSON.stringify({ error: 'Each row must be a plain object' }), { status: 400, headers: JSON_CORS });
+    }
+
+    // Validate instance name to prevent URL path injection
+    const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+    if (!INSTANCE_NAME_RE.test(String(rawInstanceName))) {
+      return new Response(JSON.stringify({ error: 'Invalid workspace_id' }), { status: 400, headers: JSON_CORS });
+    }
+    const instanceName = String(rawInstanceName);
+
+    // F12 security fix: verify the caller owns the WhatsApp connection they are importing into.
+    // Use callerClient (RLS-enforced) so RLS policies enforce tenant isolation via the user's JWT.
+    const { data: ownedConn, error: connErr } = await callerClient
       .from('whatsapp_connections')
       .select('id, instance_name')
       .eq('created_by', user.id)
-      .eq('instance_name', resolvedInstance)
+      .eq('instance_name', instanceName)
       .maybeSingle();
+    if (connErr) {
+      return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_CORS });
+    }
     if (!ownedConn) {
       return new Response(
         JSON.stringify({ error: 'WhatsApp connection not found or not authorized' }),
-        { status: 403, headers: CORS }
+        { status: 403, headers: JSON_CORS }
       );
     }
-
-    if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: CORS });
-    if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: CORS });
 
     let inserted = 0, skipped = 0;
     const errors: { row: number; error: string }[] = [];
@@ -86,7 +109,7 @@ serve(async (req) => {
           email: sanitize(row.email),
           company: sanitize(row.company ?? row.empresa),
           notes: sanitize(row.notes ?? row.notas),
-          tags, instance_name: resolvedInstance,
+          tags, instance_name: instanceName,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -99,22 +122,23 @@ serve(async (req) => {
         .upsert(valid, { onConflict: 'remote_jid', ignoreDuplicates: false })
         .select('id');
 
-      if (error) { errors.push({ row: i + 2, error: error.message }); skipped += valid.length; }
+      if (error) { errors.push({ row: i + 2, error: 'Database error saving row' }); skipped += valid.length; }
       else inserted += (data ?? []).length;
     }
 
     await supabase.from('contact_export_log').insert({
-      exported_by: user.id, instance_name: resolvedInstance, contact_count: inserted,
+      exported_by: user.id, instance_name: instanceName, contact_count: inserted,
       export_format: 'csv_import',
       filters_used: { rows_total: rows.length, inserted, errors: errors.length },
     }).then(() => void 0);
 
     return new Response(
       JSON.stringify({ inserted, updated: 0, skipped, errors: errors.slice(0, 50), total_processed: rows.length, duration_ms: Date.now() - startTime }),
-      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } }
+      { status: 200, headers: JSON_CORS }
     );
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: CORS });
+    console.error('[contacts-import] unexpected error', err instanceof Error ? err.message : String(err));
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_CORS });
   }
 });

@@ -18,7 +18,9 @@ import { useInboxSource } from './useInboxSource';
 const log = getLogger('useRealtimeInbox');
 
 // Feature flag: use external evolution DB (FATOR X) as data source.
-const USE_EXTERNAL_DB = true;
+// FIX: tipo explícito 'boolean' (não literal 'true') para preservar a branch
+// !USE_EXTERNAL_DB no compilador TypeScript quando o modo local for reativado.
+const USE_EXTERNAL_DB: boolean = true;
 
 export function useRealtimeInbox() {
   const { profile } = useAuth();
@@ -75,19 +77,27 @@ export function useRealtimeInbox() {
 
   // Load fallback contact if not found in list
   const selectedConversation = useMemo(
-    () => conversations.find((c) => (c.contact.id === selectedContactId || (c.contact as unknown as { remote_jid?: string }).remote_jid === selectedContactId)) || null,
+    () => conversations.find((c) => (c.contact.id === selectedContactId || (c.contact as ConversationContact & { remote_jid?: string }).remote_jid === selectedContactId)) || null,
     [conversations, selectedContactId]
   );
 
   useEffect(() => {
-    if (!selectedContactId || selectedConversation || USE_EXTERNAL_DB) {
+    if (!selectedContactId || selectedConversation) {
       setSelectedContactFallback(null);
       return;
     }
-    
+
     let cancelled = false;
     const loadSelectedContact = async () => {
-      const { data, error } = await supabase.from('contacts').select('*').eq('id', selectedContactId).maybeSingle();
+      // FIX B1: em external mode o handshake pode chegar como JID; procurar por
+      // id (UUID) OU por phone (dígitos extraídos do JID) para hidratar o card.
+      const isJid = typeof selectedContactId === 'string' && selectedContactId.includes('@');
+      const phone = isJid ? selectedContactId.split('@')[0].replace(/\D/g, '') : null;
+
+      let query = supabase.from('contacts').select('*');
+      query = isJid && phone ? query.eq('phone', phone) : query.eq('id', selectedContactId);
+
+      const { data, error } = await query.maybeSingle();
       if (!cancelled && !error) setSelectedContactFallback(data || null);
     };
     void loadSelectedContact();
@@ -154,7 +164,9 @@ export function useRealtimeInbox() {
     };
     void fetchWhisperCount();
 
-    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => { void fetchWhisperCount(); }).subscribe();
+    // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
+    // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
+    const channel = supabase.channel(`whisper-count-${selectedContactId}`).on('postgres_changes', { event: '*', schema: 'zapp', table: 'whisper_messages', filter: `contact_id=eq.${selectedContactId}` }, () => { void fetchWhisperCount(); }).subscribe();
     return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [selectedContactId, profile?.id]);
 
@@ -182,7 +194,7 @@ export function useRealtimeInbox() {
           const { optimistic } = await sendExternalAudio(contactId, attachments[0], { 
             contactAvatar: currentAvatar,
             isPtt: !attachments[0].name.endsWith('.mp3'),
-            conversationInstance: (resolvedSelectedConversation as unknown as { instance_name?: string })?.instance_name || (resolvedSelectedConversation?.contact as unknown as { instance_name?: string })?.instance_name,
+            conversationInstance: (resolvedSelectedConversation as ConversationWithMessages & { instance_name?: string })?.instance_name || (resolvedSelectedConversation?.contact as ConversationContact & { instance_name?: string })?.instance_name,
             onProgress: (p) => { messageQueue.updateProgress(item.id, p); }
           });
           if (optimistic.external_id) item.externalId = optimistic.external_id;
@@ -195,7 +207,7 @@ export function useRealtimeInbox() {
               caption: i === 0 ? content : undefined,
               onProgress: (p) => {
                 const total = ((i / attachments.length) * 100) + (p / attachments.length);
-                messageQueue.updateProgress(item.id, total);
+                messageQueue.updateProgress(item.id, p / attachments.length + (i / attachments.length) * 100);
               }
             });
             if (optimistic.external_id) item.externalId = optimistic.external_id;
@@ -302,6 +314,9 @@ export function useRealtimeInbox() {
     loadingOlderMessages,
     hasMoreMessages,
     whisperCount,
+    // FIX Bug#2-residual + TypeScript: useExternalDb é boolean (não literal 'true').
+    // Permite que !inbox.useExternalDb funcione corretamente em local mode futuro.
+    useExternalDb: USE_EXTERNAL_DB as boolean,
     batcherStatus: USE_EXTERNAL_DB ? null : localRealtime.batcherStatus,
     deliveryAlert,
     messageQueue,

@@ -87,6 +87,14 @@ jobs:
         # new type errors block the merge instead of being reported as advisory.
         run: bunx tsc --noEmit -p tsconfig.app.json
 
+      - name: ts-nocheck drift gate (blocking)
+        # Falha o build quando novos arquivos com `// @ts-nocheck` são
+        # introduzidos fora do baseline (scripts/ts-nocheck-baseline.txt).
+        # Baseline congelado durante o saneamento; regenerar com
+        # `node scripts/check-ts-nocheck.mjs --update` quando arquivos
+        # forem removidos do baseline (progresso).
+        run: node scripts/check-ts-nocheck.mjs
+
   test:
     name: Unit tests
     runs-on: ubuntu-latest

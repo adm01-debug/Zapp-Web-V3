@@ -1,15 +1,11 @@
 // Edge Function: queue-rebalance
 // Redistribui em batch tickets sem agente OU com SLA estourado, respeitando
 // sla_priority e routing_weight da fila. Reusa fn_resolve_agent_for_routing.
+// Requer service-role bearer OU x-cron-secret.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 interface BulkRequest {
   limit?: number;
@@ -17,24 +13,48 @@ interface BulkRequest {
   source?: string; // 'panel' | 'cron' | 'api'
 }
 
+interface QueueMeta {
+  max_wait_time_minutes: number;
+  sla_priority: string;
+  routing_weight: number;
+  auto_rebalance_enabled: boolean;
+  is_active: boolean;
+}
+
+interface ContactCandidate {
+  id: string;
+  queue_id: string;
+  assigned_to: string | null;
+  created_at: string;
+  queues: QueueMeta;
+}
+
+interface FilteredCandidate extends ContactCandidate {
+  waitingMin: number;
+  breached: boolean;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
+
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "method_not_allowed" }), {
       status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !serviceKey) {
-    return new Response(JSON.stringify({ error: "missing_env" }), {
+    return new Response(JSON.stringify({ error: "Server misconfigured" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -55,30 +75,33 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
-  // Lista candidatos diretamente (service role bypass do guard de admin do RPC).
+  // No DB-level LIMIT — priority sorting happens in memory and the final slice
+  // is applied after sorting. A pre-fetch cap would exclude high-priority contacts
+  // that happen to be created later than lower-priority ones.
   const { data: candidates, error: candErr } = await admin
     .from("contacts")
     .select("id, queue_id, assigned_to, created_at, queues!inner(max_wait_time_minutes, sla_priority, routing_weight, auto_rebalance_enabled, is_active)")
-    .not("queue_id", "is", null);
+    .not("queue_id", "is", null)
+    .order("created_at", { ascending: true });
 
   if (candErr) {
-    console.error("[queue-rebalance] list error", candErr);
+    console.error("[queue-rebalance] list error", candErr.message);
     return new Response(
-      JSON.stringify({ error: "list_failed", detail: candErr.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ error: "Failed to list contacts" }),
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
   const now = Date.now();
-  const filtered = (candidates ?? [])
-    .filter((c: any) => c.queues?.is_active && c.queues?.auto_rebalance_enabled)
-    .map((c: any) => {
+  const filtered = (candidates as ContactCandidate[] ?? [])
+    .filter(c => c.queues?.is_active && c.queues?.auto_rebalance_enabled)
+    .map((c): FilteredCandidate => {
       const waitingMin = (now - new Date(c.created_at).getTime()) / 60000;
       const breached = waitingMin > c.queues.max_wait_time_minutes;
       return { ...c, waitingMin, breached };
     })
-    .filter((c: any) => c.assigned_to === null || c.breached)
-    .sort((a: any, b: any) => {
+    .filter(c => c.assigned_to === null || c.breached)
+    .sort((a, b) => {
       const order = { critical: 0, high: 1, medium: 2, low: 3 } as Record<string, number>;
       const pa = order[a.queues.sla_priority] ?? 2;
       const pb = order[b.queues.sla_priority] ?? 2;
@@ -93,7 +116,7 @@ Deno.serve(async (req) => {
   let processed = 0;
   let assigned = 0;
   let skipped = 0;
-  const errors: Array<{ contact_id: string; error: string }> = [];
+  let errorCount = 0;
 
   for (const c of filtered) {
     processed++;
@@ -109,7 +132,8 @@ Deno.serve(async (req) => {
     );
 
     if (resolveErr) {
-      errors.push({ contact_id: c.id, error: resolveErr.message });
+      console.error("[queue-rebalance] resolve error", c.id, resolveErr.message);
+      errorCount++;
       continue;
     }
 
@@ -125,7 +149,8 @@ Deno.serve(async (req) => {
       .eq("id", c.id);
 
     if (updErr) {
-      errors.push({ contact_id: c.id, error: updErr.message });
+      console.error("[queue-rebalance] update error", c.id, updErr.message);
+      errorCount++;
       continue;
     }
 
@@ -143,14 +168,12 @@ Deno.serve(async (req) => {
     processed,
     assigned,
     skipped,
-    errors: errors.length,
-    error_details: errors.slice(0, 10),
+    errors: errorCount,
     dry_run: dryRun,
     source,
     finished_at: new Date().toISOString(),
   };
 
-  // Audit log via RPC existente
   await admin.from("audit_logs").insert({
     action: "queue_bulk_rebalance",
     entity_type: "queues",
@@ -159,6 +182,6 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify(summary), {
     status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 });
