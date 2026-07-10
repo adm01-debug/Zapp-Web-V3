@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * useDepartmentsAdmin — Wave 3 batch-4 (2026-07-07)
  * Camada de dados extraída de DepartmentsPage (CRUD + member_count).

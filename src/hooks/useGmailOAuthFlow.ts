@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * useEmailOAuthFlow.ts — OAuth2 Email com refresh automático de token
  *

@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * useMessagesCursor — paginacao incremental de mensagens (FATOR X)
  *
@@ -97,12 +96,15 @@ export function useMessagesCursor({
       // NOTE: usa `externalSupabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
       // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `dbRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      const builder = externalSupabase.rpc('rpc_list_messages_lite', {
-        p_remote_jid: remoteJid,
-        p_instance: instanceName,
-        p_limit: pageSize,
-        p_before_date: beforeDate,
-      });
+      const builder = externalSupabase.rpc(
+        'rpc_list_messages_lite' as unknown as Parameters<typeof externalSupabase.rpc>[0],
+        {
+          p_remote_jid: remoteJid,
+          p_instance: instanceName,
+          p_limit: pageSize,
+          p_before_date: beforeDate,
+        } as unknown as Parameters<typeof externalSupabase.rpc>[1],
+      );
 
       // .abortSignal exists on PostgrestBuilder (Supabase v2). Tipagem dinamica
       // porque .rpc retorna FilterBuilder cuja tipagem nao expoe abortSignal

@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * v2.3.7 fallbacks — workaround para endpoints quebrados na Evolution API.
  *
@@ -67,36 +66,30 @@ function ensureExternal() {
 
 export async function fallbackFindChats(instanceName: string, limit = 200): Promise<unknown[]> {
   const client = ensureExternal();
-  const { data, error } = await client.rpc('rpc_list_conversations', {
-    p_instance: instanceName,
-    p_status: null,
-    p_assigned_to: null,
-    p_limit: limit,
-  });
+  const { data, error } = await client.rpc(
+    'rpc_list_conversations' as unknown as Parameters<typeof client.rpc>[0],
+    { p_instance: instanceName, p_status: null, p_assigned_to: null, p_limit: limit } as unknown as Parameters<typeof client.rpc>[1],
+  );
   if (error) throw error;
   return Array.isArray(data) ? data : [];
 }
 
 export async function fallbackFindContacts(instanceName: string, limit = 500): Promise<unknown[]> {
   const client = ensureExternal();
-  const { data, error } = await client.rpc('rpc_list_contacts', {
-    p_instance: instanceName,
-    p_lead_status: null,
-    p_assigned_to: null,
-    p_search: null,
-    p_limit: limit,
-    p_offset: 0,
-  });
+  const { data, error } = await client.rpc(
+    'rpc_list_contacts' as unknown as Parameters<typeof client.rpc>[0],
+    { p_instance: instanceName, p_lead_status: null, p_assigned_to: null, p_search: null, p_limit: limit, p_offset: 0 } as unknown as Parameters<typeof client.rpc>[1],
+  );
   if (error) throw error;
   return Array.isArray(data) ? data : [];
 }
 
 export async function fallbackFetchProfile(remoteJid: string, instanceName: string): Promise<unknown | null> {
   const client = ensureExternal();
-  const { data, error } = await client.rpc('rpc_get_contact', {
-    p_remote_jid: remoteJid,
-    p_instance: instanceName,
-  });
+  const { data, error } = await client.rpc(
+    'rpc_get_contact' as unknown as Parameters<typeof client.rpc>[0],
+    { p_remote_jid: remoteJid, p_instance: instanceName } as unknown as Parameters<typeof client.rpc>[1],
+  );
   if (error) throw error;
   return data ?? null;
 }
