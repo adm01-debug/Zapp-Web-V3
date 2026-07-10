@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * useCampaignABTesting — Wave 3 tier-2 (2026-07-06)
  * Camada de dados extraída de CampaignABTesting. addVariant retorna sucesso

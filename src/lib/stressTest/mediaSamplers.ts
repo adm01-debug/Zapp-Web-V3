@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * Media samplers — fetch random items from existing libraries to feed the stress test.
  *

@@ -1,15 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
-/**
- * useContactStats.ts — Estatísticas de contatos para dashboard CRM
- *
- * Usa rpc_contact_stats para dados consolidados:
- * - Total de contatos
- * - Por status, instância, lead_status
- * - Candidatos a duplicata
- * - Pendências LGPD
- * - Crescimento nos últimos 30 dias
- */
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -49,7 +37,9 @@ export function useContactStats(): UseContactStatsReturn {
     setError(null);
 
     try {
-      const { data, error: rpcErr } = await supabase.rpc('rpc_contact_stats');
+      const { data, error: rpcErr } = await supabase.rpc(
+        'rpc_contact_stats' as unknown as Parameters<typeof supabase.rpc>[0],
+      );
 
       if (!mountedRef.current) return;
       if (rpcErr) throw new Error(rpcErr.message);

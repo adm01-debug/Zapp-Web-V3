@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChatScheduleMessage } from './chat/hooks/useChatScheduleMessage';
 import { useChatQuickReplyControl } from './chat/hooks/useChatQuickReplyControl';

@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock supabase

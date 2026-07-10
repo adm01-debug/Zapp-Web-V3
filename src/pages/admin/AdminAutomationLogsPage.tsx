@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { Link } from "react-router-dom";

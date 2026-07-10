@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * useEvolutionApiIntegration — Wave 3 (2026-07-06)
  * Camada de dados extraída de EvolutionApiIntegrationView (componente ficou 100% UI).

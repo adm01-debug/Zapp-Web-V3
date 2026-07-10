@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useState, useRef, useEffect } from 'react';
 import { Mail, Star, RefreshCw, Filter, Loader2, AlertTriangle, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';

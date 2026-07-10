@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 /**
  * avatarBatchStore — Gerencia o carregamento e cache dos avatares do WhatsApp.
  *
