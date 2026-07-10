@@ -37,12 +37,15 @@ export function TranscriptionsHistoryView() {
         .not('transcription', 'is', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      type RawRow = { id: string; content: string; transcription: string; media_url: string | null; created_at: string; contact_id: string; contacts: { name: string; phone: string; avatar_url: string | null } | null };
-      setTranscriptions((data || []).map((item: RawRow) => ({
-        id: item.id, content: item.content, transcription: item.transcription, media_url: item.media_url,
-        created_at: item.created_at, contact_id: item.contact_id,
-        contact_name: item.contacts?.name || 'Desconhecido', contact_phone: item.contacts?.phone || '', contact_avatar: item.contacts?.avatar_url || null,
-      })));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setTranscriptions((data || []).map((item: any) => {
+        const c = Array.isArray(item.contacts) ? item.contacts[0] : item.contacts;
+        return {
+          id: item.id, content: item.content, transcription: item.transcription, media_url: item.media_url,
+          created_at: item.created_at, contact_id: item.contact_id,
+          contact_name: c?.name || 'Desconhecido', contact_phone: c?.phone || '', contact_avatar: c?.avatar_url || null,
+        };
+      }));
     } catch (error) { log.error('Error fetching transcriptions:', error); }
     finally { setLoading(false); }
   };
