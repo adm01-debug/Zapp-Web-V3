@@ -4,15 +4,22 @@ import { useDensity } from '@/hooks/useDensity';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { motion } from '@/components/ui/motion';
-import { SLAIndicatorForContact } from '@/features/inbox/components/SLAIndicatorForContact';
-import { SentimentEmoji, getSentimentFromScore, type SentimentLevel } from '@/features/inbox/components/SentimentIndicator';
+import { SLAIndicatorForContact } from '../SLAIndicatorForContact';
+import { SentimentEmoji, getSentimentFromScore, type SentimentLevel } from '../SentimentIndicator';
 import { QuickPeek } from '@/components/ui/quick-peek';
-import { TypingIndicatorCompact } from '@/features/inbox/components/TypingIndicator';
+import { TypingIndicatorCompact } from '../TypingIndicator';
 import { useContactTyping } from '@/hooks/useContactTyping';
 import { useInViewport } from '@/hooks/useInViewport';
 import {
-  Clock, CheckCircle2, AlertCircle, Loader2,
-  MessageCircle, Instagram, Mail, Phone, Pin
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  MessageCircle,
+  Instagram,
+  Mail,
+  Phone,
+  Pin,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { RetryFailureBadge } from './RetryFailureBadge';
@@ -22,11 +29,23 @@ export function ChannelBadge({ type }: { type?: string | null }) {
   const iconClass = 'w-2.5 h-2.5 text-primary-foreground';
   let Icon = MessageCircle;
   let bgColor = 'bg-[hsl(142,70%,45%)]';
-  if (type === 'instagram') { Icon = Instagram; bgColor = 'bg-[hsl(330,80%,55%)]'; }
-  else if (type === 'email') { Icon = Mail; bgColor = 'bg-[hsl(220,70%,55%)]'; }
-  else if (type === 'phone' || type === 'call') { Icon = Phone; bgColor = 'bg-[hsl(200,70%,50%)]'; }
+  if (type === 'instagram') {
+    Icon = Instagram;
+    bgColor = 'bg-[hsl(330,80%,55%)]';
+  } else if (type === 'email') {
+    Icon = Mail;
+    bgColor = 'bg-[hsl(220,70%,55%)]';
+  } else if (type === 'phone' || type === 'call') {
+    Icon = Phone;
+    bgColor = 'bg-[hsl(200,70%,50%)]';
+  }
   return (
-    <span className={cn('absolute -top-0.5 -left-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-sidebar z-10', bgColor)}>
+    <span
+      className={cn(
+        'absolute -left-0.5 -top-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-sidebar',
+        bgColor
+      )}
+    >
       <Icon className={iconClass} />
     </span>
   );
@@ -99,10 +118,15 @@ interface ConversationItemProps {
 }
 
 function buildPrimaryLabel(conversation: any): string {
-  const name = (conversation.contact?.name || conversation.contact?.pushName || conversation.contact?.phone || '').trim();
+  const name = (
+    conversation.contact?.name ||
+    conversation.contact?.pushName ||
+    conversation.contact?.phone ||
+    ''
+  ).trim();
   const safeName = (name === 'Você' ? '' : name) || 'Contato';
-  
-  const parts = safeName.split(' ').filter(p => p.length > 0);
+
+  const parts = safeName.split(' ').filter((p) => p.length > 0);
   if (parts.length > 1) {
     return `${parts[0]} ${parts[parts.length - 1]}`;
   }
@@ -114,7 +138,10 @@ function buildFullPrimaryLabel(conversation: any): string {
 }
 
 function buildSecondaryLabel(conversation: any): string | null {
-  const jobTitle = conversation.contact?.job_title?.trim() || conversation.contact?.jobTitle?.trim() || conversation.contact?.role?.trim();
+  const jobTitle =
+    conversation.contact?.job_title?.trim() ||
+    conversation.contact?.jobTitle?.trim() ||
+    conversation.contact?.role?.trim();
   return jobTitle || 'Cargo não informado';
 }
 
@@ -133,16 +160,15 @@ function shortRelativeTime(date: Date): string {
   return `${mo}mês`;
 }
 
-
-export const ConversationItem = memo(function ConversationItem({ 
-  conversation, 
-  isSelected, 
-  onSelect, 
+export const ConversationItem = memo(function ConversationItem({
+  conversation,
+  isSelected,
+  onSelect,
   compact: forceCompact = false,
   selectionMode = false,
   isMultiSelected = false,
   onToggleSelection,
-  isPinned = false
+  isPinned = false,
 }: ConversationItemProps) {
   const { density } = useDensity();
   const isCompactMode = density === 'compact' || density === 'dense' || forceCompact;
@@ -154,9 +180,9 @@ export const ConversationItem = memo(function ConversationItem({
   const lastMessage = conversation.lastMessage;
   const tags = contact?.tags ?? [];
   const avatarUrl = contact?.avatar || contact?.avatar_url;
-  
+
   const companyName = contact?.company_name || contact?.company || contact?.organization;
-  
+
   const displayDate =
     toValidDate(conversation.updatedAt, null as any) ||
     toValidDate(lastMessage?.created_at, null as any) ||
@@ -164,9 +190,13 @@ export const ConversationItem = memo(function ConversationItem({
     new Date();
 
   const StatusIcon = statusIcons[status as keyof typeof statusIcons] || AlertCircle;
-  const sentiment: SentimentLevel | null = conversation.sentiment ||
-    (conversation.sentimentScore !== undefined ? getSentimentFromScore(conversation.sentimentScore) : 
-     (contact?.ai_sentiment ? contact.ai_sentiment : null));
+  const sentiment: SentimentLevel | null =
+    conversation.sentiment ||
+    (conversation.sentimentScore !== undefined
+      ? getSentimentFromScore(conversation.sentimentScore)
+      : contact?.ai_sentiment
+        ? contact.ai_sentiment
+        : null);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const inView = useInViewport(rootRef, { rootMargin: '200px', keepVisibleMs: 1500 });
@@ -193,73 +223,93 @@ export const ConversationItem = memo(function ConversationItem({
           aria-selected={isSelected}
           role="option"
           className={cn(
-            'relative p-3.5 rounded-2xl cursor-pointer transition-all duration-300 mx-2.5 my-2 flex items-center gap-3 group outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 border shadow-sm',
+            'group relative mx-2.5 my-2 flex cursor-pointer items-center gap-3 rounded-2xl border p-3.5 shadow-sm outline-none transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
             isSelected
-              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 border-primary/30'
-              : 'hover:bg-muted/50 hover:border-border/80 hover:shadow-md bg-card border-border/60',
-            isMultiSelected && 'ring-2 ring-primary ring-offset-2 shadow-inner'
+              ? 'border-primary/30 bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+              : 'border-border/60 bg-card hover:border-border/80 hover:bg-muted/50 hover:shadow-md',
+            isMultiSelected && 'shadow-inner ring-2 ring-primary ring-offset-2'
           )}
         >
-          {isSelected && <motion.div layoutId="conversationActiveCompact" className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-white z-20" />}
-          
+          {isSelected && (
+            <motion.div
+              layoutId="conversationActiveCompact"
+              className="absolute left-1 top-1/2 z-20 h-6 w-1 -translate-y-1/2 rounded-full bg-white"
+            />
+          )}
+
           {selectionMode && (
             <div
-              className="flex-shrink-0 flex items-center mr-0.5"
+              className="mr-0.5 flex flex-shrink-0 items-center"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleSelection?.(contactId);
               }}
             >
-              <input 
-                type="checkbox" 
-                checked={isMultiSelected} 
-                onChange={() => {}} 
+              <input
+                type="checkbox"
+                checked={isMultiSelected}
+                onChange={() => {}}
                 className={cn(
-                  "w-4 h-4 rounded border-border focus:ring-primary/20",
-                  isSelected ? "accent-white" : "text-primary"
-                )} 
+                  'h-4 w-4 rounded border-border focus:ring-primary/20',
+                  isSelected ? 'accent-white' : 'text-primary'
+                )}
               />
             </div>
           )}
 
-          <div className="flex items-start gap-2 relative z-10 flex-1 min-w-0">
-            <div className="relative flex-shrink-0 mt-0.5">
+          <div className="relative z-10 flex min-w-0 flex-1 items-start gap-2">
+            <div className="relative mt-0.5 flex-shrink-0">
               <ChannelBadge type={contact?.contact_type} />
-              <Avatar className="w-[38px] h-[38px]">
+              <Avatar className="h-[38px] w-[38px]">
                 <AvatarImage src={avatarUrl} />
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                  {(contact?.name && contact.name !== 'Você' ? contact.name : 'C').split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                <AvatarFallback className="bg-primary/10 text-xs font-medium text-primary">
+                  {(contact?.name && contact.name !== 'Você' ? contact.name : 'C')
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .join('')
+                    .slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
               {conversation.assignedTo ? (
-                <Avatar className="absolute -bottom-0.5 -right-0.5 w-4 h-4 ring-1 ring-sidebar">
+                <Avatar className="absolute -bottom-0.5 -right-0.5 h-4 w-4 ring-1 ring-sidebar">
                   <AvatarImage src={conversation.assignedTo.avatar} />
-                  <AvatarFallback className="bg-secondary text-secondary-foreground text-[7px] font-bold">{conversation.assignedTo.name[0]}</AvatarFallback>
+                  <AvatarFallback className="bg-secondary text-[7px] font-bold text-secondary-foreground">
+                    {conversation.assignedTo.name[0]}
+                  </AvatarFallback>
                 </Avatar>
               ) : (
-                <span className={cn('absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-1 ring-sidebar', statusColors[status as keyof typeof statusColors] || 'bg-muted')} />
+                <span
+                  className={cn(
+                    'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-1 ring-sidebar',
+                    statusColors[status as keyof typeof statusColors] || 'bg-muted'
+                  )}
+                />
               )}
             </div>
-            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  {isPinned && <Pin className="w-3.5 h-3.5 text-primary flex-shrink-0 fill-primary" />}
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  {isPinned && (
+                    <Pin className="h-3.5 w-3.5 flex-shrink-0 fill-primary text-primary" />
+                  )}
                   <TruncatedTooltip fullText={fullPrimaryLabel}>
                     {(ref) => (
                       <span
                         ref={ref}
                         data-testid="conversation-primary"
                         className={cn(
-                          'truncate block min-w-0 tracking-wide transition-colors duration-200 font-sans text-left font-normal border-0 rounded-none text-[15px] mx-0',
+                          'mx-0 block min-w-0 truncate rounded-none border-0 text-left font-sans text-[15px] font-normal tracking-wide transition-colors duration-200',
                           isSelected ? 'text-primary-foreground' : 'text-foreground'
                         )}
                       >
                         {primaryLabel}
                         {companyName && (
-                          <span className={cn(
-                            "ml-1.5 text-[12px] font-normal tracking-normal opacity-70",
-                            isSelected ? "text-primary-foreground" : "text-muted-foreground"
-                          )}>
+                          <span
+                            className={cn(
+                              'ml-1.5 text-[12px] font-normal tracking-normal opacity-70',
+                              isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
+                            )}
+                          >
                             • {companyName}
                           </span>
                         )}
@@ -267,20 +317,24 @@ export const ConversationItem = memo(function ConversationItem({
                     )}
                   </TruncatedTooltip>
                 </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <div className="flex flex-shrink-0 flex-col items-end gap-1">
                   {sentiment && <SentimentEmoji sentiment={sentiment} animated={!isSelected} />}
                   {unreadCount > 0 && (
-                    <span className={cn(
-                      "min-w-[18px] h-4.5 px-1 rounded-full flex items-center justify-center text-[10px] font-black tabular-nums shadow-md animate-bounce-in",
-                      isSelected ? "bg-white text-primary" : "bg-primary text-primary-foreground"
-                    )}>
+                    <span
+                      className={cn(
+                        'h-4.5 flex min-w-[18px] animate-bounce-in items-center justify-center rounded-full px-1 text-[10px] font-black tabular-nums shadow-md',
+                        isSelected ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'
+                      )}
+                    >
                       {unreadCount}
                     </span>
                   )}
-                  <span className={cn(
-                    "text-[10px] font-semibold tabular-nums tracking-tight",
-                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground/80"
-                  )}>
+                  <span
+                    className={cn(
+                      'text-[10px] font-semibold tabular-nums tracking-tight',
+                      isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground/80'
+                    )}
+                  >
                     {shortRelativeTime(displayDate)}
                   </span>
                 </div>
@@ -289,7 +343,7 @@ export const ConversationItem = memo(function ConversationItem({
               {secondaryLabel && (
                 <span
                   className={cn(
-                    'text-[11px] font-medium truncate block min-w-0',
+                    'block min-w-0 truncate text-[11px] font-medium',
                     isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/80'
                   )}
                 >
@@ -297,66 +351,83 @@ export const ConversationItem = memo(function ConversationItem({
                 </span>
               )}
               {isTyping ? (
-                <TypingIndicatorCompact isVisible={true} className={cn("text-[12px] font-bold", isSelected ? "text-primary-foreground" : "text-success")} />
+                <TypingIndicatorCompact
+                  isVisible={true}
+                  className={cn(
+                    'text-[12px] font-bold',
+                    isSelected ? 'text-primary-foreground' : 'text-success'
+                  )}
+                />
               ) : (
                 <p
                   data-testid="conversation-preview"
                   className={cn(
-                    ' text-[12px] truncate leading-normal min-w-0 mt-0.5 transition-colors duration-200',
-                    isSelected 
-                      ? 'text-primary-foreground/90 font-medium'
+                    'mt-0.5 min-w-0 truncate text-[12px] leading-normal transition-colors duration-200',
+                    isSelected
+                      ? 'font-medium text-primary-foreground/90'
                       : unreadCount > 0
-                        ? 'text-foreground font-light'
-                        : 'text-muted-foreground font-light'
+                        ? 'font-light text-foreground'
+                        : 'font-light text-muted-foreground'
                   )}
                 >
                   {previewText}
                 </p>
               )}
-              <div data-testid="conversation-tags" className="flex flex-wrap items-center gap-1.5 mt-2">
-                {hasTags && visibleTags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className={cn(
-                      "text-[9px] h-4.5 px-1.5 font-black uppercase tracking-wider transition-colors",
-                      isSelected 
-                        ? "bg-white/20 text-white border-white/20" 
-                        : "bg-warning/10 text-warning border-warning/30"
-                    )}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
+              <div
+                data-testid="conversation-tags"
+                className="mt-2 flex flex-wrap items-center gap-1.5"
+              >
+                {hasTags &&
+                  visibleTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className={cn(
+                        'h-4.5 px-1.5 text-[9px] font-black uppercase tracking-wider transition-colors',
+                        isSelected
+                          ? 'border-white/20 bg-white/20 text-white'
+                          : 'border-warning/30 bg-warning/10 text-warning'
+                      )}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
               </div>
               {lastMessage && (
                 <div className="mt-1 flex flex-col gap-1">
-                  <SLAIndicatorForContact conversation={conversation} compact={isCompactMode} className="w-full justify-start" />
+                  <SLAIndicatorForContact
+                    conversation={conversation}
+                    compact={isCompactMode}
+                    className="w-full justify-start"
+                  />
                   <RetryFailureBadge message={lastMessage} compact />
                 </div>
-               )}
+              )}
             </div>
-            {conversation.priority === 'high' && <div className="w-0.5 h-5 rounded-full bg-destructive flex-shrink-0" />}
+            {conversation.priority === 'high' && (
+              <div className="h-5 w-0.5 flex-shrink-0 rounded-full bg-destructive" />
+            )}
           </div>
         </motion.div>
       </TooltipProvider>
     );
   }
 
-
-
-
-
-
-
-
   const quickPeekPreview = (
     <div className="space-y-1.5">
       <p className="text-xs font-medium text-foreground">{conversation.contact.name}</p>
-      {conversation.lastMessage?.content && <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">{conversation.lastMessage.content}</p>}
-      <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60 pt-1 border-t border-border/30">
-        <span>{conversation.unreadCount > 0 ? `${conversation.unreadCount} não lidas` : 'Sem novas'}</span>
-        {conversation.status && <span>• {conversation.status === 'resolved' ? 'Resolvido' : 'Aberto'}</span>}
+      {conversation.lastMessage?.content && (
+        <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground">
+          {conversation.lastMessage.content}
+        </p>
+      )}
+      <div className="flex items-center gap-2 border-t border-border/30 pt-1 text-[10px] text-muted-foreground/60">
+        <span>
+          {conversation.unreadCount > 0 ? `${conversation.unreadCount} não lidas` : 'Sem novas'}
+        </span>
+        {conversation.status && (
+          <span>• {conversation.status === 'resolved' ? 'Resolvido' : 'Aberto'}</span>
+        )}
       </div>
     </div>
   );
@@ -372,89 +443,106 @@ export const ConversationItem = memo(function ConversationItem({
           aria-selected={isSelected}
           role="option"
           className={cn(
-            'relative p-4 cursor-pointer transition-all duration-300 min-h-[88px] mx-2 my-1 rounded-2xl border border-transparent group flex items-start gap-4 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-[-2px]',
-            'hover:shadow-lg hover:z-10',
+            'group relative mx-2 my-1 flex min-h-[88px] cursor-pointer items-start gap-4 rounded-2xl border border-transparent p-4 outline-none transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-[-2px]',
+            'hover:z-10 hover:shadow-lg',
             isSelected
-              ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20 scale-[1.02] border-primary/20'
-              : 'hover:bg-muted/40 bg-card border-border/40',
-            isMultiSelected && 'ring-2 ring-primary ring-offset-2 shadow-inner',
-            isPinned && !isSelected && 'bg-muted/30 border-dashed border-primary/20'
+              ? 'scale-[1.02] border-primary/20 bg-primary text-primary-foreground shadow-xl shadow-primary/20'
+              : 'border-border/40 bg-card hover:bg-muted/40',
+            isMultiSelected && 'shadow-inner ring-2 ring-primary ring-offset-2',
+            isPinned && !isSelected && 'border-dashed border-primary/20 bg-muted/30'
           )}
         >
           {isSelected && (
             <motion.div
               layoutId="activeIndicator"
-              className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r-full z-20"
+              className="absolute bottom-3 left-0 top-3 z-20 w-1 rounded-r-full bg-primary"
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             />
           )}
 
           {selectionMode && (
             <div
-              className="flex-shrink-0 flex items-center pt-3"
+              className="flex flex-shrink-0 items-center pt-3"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleSelection?.(contactId);
               }}
             >
-              <input 
-                type="checkbox" 
-                checked={isMultiSelected} 
-                onChange={() => {}} 
-                className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20" 
+              <input
+                type="checkbox"
+                checked={isMultiSelected}
+                onChange={() => {}}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
               />
             </div>
           )}
 
-          <div className="flex items-start gap-3.5 relative z-10 flex-1 min-w-0">
+          <div className="relative z-10 flex min-w-0 flex-1 items-start gap-3.5">
             <div className="relative flex-shrink-0">
               <ChannelBadge type={contact?.contact_type} />
-              <Avatar className={cn(
-                'w-[49px] h-[49px] ring-0 transition-transform duration-300',
-                isSelected ? 'scale-105' : 'group-hover:scale-105'
-              )}>
+              <Avatar
+                className={cn(
+                  'h-[49px] w-[49px] ring-0 transition-transform duration-300',
+                  isSelected ? 'scale-105' : 'group-hover:scale-105'
+                )}
+              >
                 <AvatarImage src={avatarUrl} className="object-cover" />
-                <AvatarFallback className={cn(
-                  'text-sm font-semibold tracking-tighter transition-colors duration-200',
-                  isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
-                )}>
-                  {(contact?.name && contact.name !== 'Você' ? contact.name : 'C').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                <AvatarFallback
+                  className={cn(
+                    'text-sm font-semibold tracking-tighter transition-colors duration-200',
+                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+                  )}
+                >
+                  {(contact?.name && contact.name !== 'Você' ? contact.name : 'C')
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               {conversation.assignedTo ? (
-                <Avatar className="absolute -bottom-1 -right-1 w-5 h-5 ring-2 ring-background shadow-sm">
+                <Avatar className="absolute -bottom-1 -right-1 h-5 w-5 shadow-sm ring-2 ring-background">
                   <AvatarImage src={conversation.assignedTo.avatar} />
-                  <AvatarFallback className="bg-secondary text-secondary-foreground text-[8px] font-bold">{conversation.assignedTo.name[0]}</AvatarFallback>
+                  <AvatarFallback className="bg-secondary text-[8px] font-bold text-secondary-foreground">
+                    {conversation.assignedTo.name[0]}
+                  </AvatarFallback>
                 </Avatar>
               ) : (
-                <span className={cn(
-                  'absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-background shadow-sm',
-                  statusColors[status as keyof typeof statusColors] || 'bg-muted'
-                )}>
-                  <StatusIcon className="w-2 h-2 text-foreground" />
+                <span
+                  className={cn(
+                    'absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full shadow-sm ring-2 ring-background',
+                    statusColors[status as keyof typeof statusColors] || 'bg-muted'
+                  )}
+                >
+                  <StatusIcon className="h-2 w-2 text-foreground" />
                 </span>
               )}
             </div>
-            <div className="flex-1 min-w-0 flex flex-col gap-1">
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  {isPinned && <Pin className="w-3.5 h-3.5 text-primary flex-shrink-0 fill-primary" />}
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  {isPinned && (
+                    <Pin className="h-3.5 w-3.5 flex-shrink-0 fill-primary text-primary" />
+                  )}
                   <TruncatedTooltip fullText={fullPrimaryLabel}>
                     {(ref) => (
                       <span
                         ref={ref}
                         data-testid="conversation-primary"
                         className={cn(
-                          'truncate block min-w-0 tracking-wide transition-colors duration-200 font-sans text-left font-normal border-0 rounded-none text-[15px] mx-0',
+                          'mx-0 block min-w-0 truncate rounded-none border-0 text-left font-sans text-[15px] font-normal tracking-wide transition-colors duration-200',
                           isSelected ? 'text-primary-foreground' : 'text-foreground'
                         )}
                       >
                         {primaryLabel}
                         {companyName && (
-                          <span className={cn(
-                            "ml-1.5 text-[12px] font-normal tracking-normal opacity-70",
-                            isSelected ? "text-primary-foreground" : "text-muted-foreground"
-                          )}>
+                          <span
+                            className={cn(
+                              'ml-1.5 text-[12px] font-normal tracking-normal opacity-70',
+                              isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
+                            )}
+                          >
                             • {companyName}
                           </span>
                         )}
@@ -462,73 +550,87 @@ export const ConversationItem = memo(function ConversationItem({
                     )}
                   </TruncatedTooltip>
                 </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <div className="flex flex-shrink-0 flex-col items-end gap-1">
                   {sentiment && <SentimentEmoji sentiment={sentiment} animated={!isSelected} />}
                   {unreadCount > 0 && (
-                    <span className={cn(
-                      "min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[11px] font-black tabular-nums shadow-lg animate-bounce-in",
-                      isSelected ? "bg-white text-primary" : "bg-primary text-primary-foreground"
-                    )}>
+                    <span
+                      className={cn(
+                        'flex h-5 min-w-[20px] animate-bounce-in items-center justify-center rounded-full px-1.5 text-[11px] font-black tabular-nums shadow-lg',
+                        isSelected ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'
+                      )}
+                    >
                       {unreadCount}
                     </span>
                   )}
-                  <span className={cn(
-                    "text-[11px] font-semibold tabular-nums tracking-tight",
-                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground/80"
-                  )}>
+                  <span
+                    className={cn(
+                      'text-[11px] font-semibold tabular-nums tracking-tight',
+                      isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground/80'
+                    )}
+                  >
                     {shortRelativeTime(displayDate)}
                   </span>
                 </div>
-
               </div>
               {secondaryLabel && (
                 <span
                   className={cn(
-                    'text-[12px] font-medium truncate block min-w-0',
+                    'block min-w-0 truncate text-[12px] font-medium',
                     isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/80'
                   )}
                 >
                   {secondaryLabel}
                 </span>
               )}
-              
+
               {isTyping ? (
-                <TypingIndicatorCompact isVisible={true} className={cn("text-[13px] font-bold", isSelected ? "text-primary-foreground" : "text-success")} />
+                <TypingIndicatorCompact
+                  isVisible={true}
+                  className={cn(
+                    'text-[13px] font-bold',
+                    isSelected ? 'text-primary-foreground' : 'text-success'
+                  )}
+                />
               ) : (
                 <p
                   data-testid="conversation-preview"
                   className={cn(
-                    ' text-[13px] truncate leading-normal min-w-0 mt-0.5',
-                    isSelected 
-                      ? 'text-primary-foreground/90 font-medium'
+                    'mt-0.5 min-w-0 truncate text-[13px] leading-normal',
+                    isSelected
+                      ? 'font-medium text-primary-foreground/90'
                       : unreadCount > 0
-                        ? 'text-foreground font-light'
-                        : 'text-muted-foreground font-light'
+                        ? 'font-light text-foreground'
+                        : 'font-light text-muted-foreground'
                   )}
                 >
                   {previewText}
                 </p>
               )}
-              
-              <div data-testid="conversation-tags" className="flex flex-wrap items-center gap-1.5 mt-2">
-                {hasTags && visibleTags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className={cn(
-                      "text-[10px] h-5 px-2 font-black uppercase tracking-wider transition-colors",
-                      isSelected 
-                        ? "bg-white/20 text-white border-white/20" 
-                        : "bg-warning/10 text-warning border-warning/30"
-                    )}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                
+
+              <div
+                data-testid="conversation-tags"
+                className="mt-2 flex flex-wrap items-center gap-1.5"
+              >
+                {hasTags &&
+                  visibleTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className={cn(
+                        'h-5 px-2 text-[10px] font-black uppercase tracking-wider transition-colors',
+                        isSelected
+                          ? 'border-white/20 bg-white/20 text-white'
+                          : 'border-warning/30 bg-warning/10 text-warning'
+                      )}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
               </div>
             </div>
-            {conversation.priority === 'high' && <div className="w-1 h-8 rounded-full bg-destructive flex-shrink-0" />}
+            {conversation.priority === 'high' && (
+              <div className="h-8 w-1 flex-shrink-0 rounded-full bg-destructive" />
+            )}
           </div>
         </div>
       </QuickPeek>
@@ -537,4 +639,3 @@ export const ConversationItem = memo(function ConversationItem({
 });
 
 ConversationItem.displayName = 'ConversationItem';
-
