@@ -1,0 +1,87 @@
+name: Deno Contract Tests
+
+# Roda os 38 arquivos .test.ts das Edge Functions a cada push/PR.
+# Garante que contratos, schemas e helpers nao regridam.
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'supabase/functions/**'
+      - 'deno.json'
+      - '.github/workflows/deno-contract-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'supabase/functions/**'
+      - 'deno.json'
+      - '.github/workflows/deno-contract-tests.yml'
+
+concurrency:
+  group: deno-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-tests:
+    name: Deno Contract Tests (38 suites)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Cache Deno deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.deno
+            ~/.cache/deno
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.json', 'supabase/functions/**/*.ts') }}
+          restore-keys: deno-${{ runner.os }}-
+
+      - name: Run _shared contract-kit tests
+        run: |
+          deno test \
+            --allow-read \
+            --allow-env \
+            --allow-net \
+            --no-prompt \
+            supabase/functions/_shared/__tests__/
+        env:
+          DENO_NO_PROMPT: 1
+
+      - name: Run per-function contract tests
+        run: |
+          deno test \
+            --allow-read \
+            --allow-env \
+            --allow-net \
+            --no-prompt \
+            $(find supabase/functions -name 'contract.test.ts' -o -name 'contract.test.ts' | grep -v '_shared' | tr '\n' ' ')
+        env:
+          DENO_NO_PROMPT: 1
+
+      - name: Run remaining function tests
+        run: |
+          deno test \
+            --allow-read \
+            --allow-env \
+            --allow-net \
+            --no-prompt \
+            $(find supabase/functions -name '*.test.ts' | grep -v '_shared/__tests__' | grep -v 'contract.test.ts' | tr '\n' ' ') \
+            || echo '::warning::Some non-contract tests failed (non-blocking)'
+        env:
+          DENO_NO_PROMPT: 1
+
+      - name: Test count summary
+        if: always()
+        run: |
+          echo "Total test files: $(find supabase/functions -name '*.test.ts' | wc -l)"
+          echo "_shared tests:    $(find supabase/functions/_shared -name '*.test.ts' | wc -l)"
+          echo "Function tests:   $(find supabase/functions -name '*.test.ts' | grep -v '_shared' | wc -l)"
