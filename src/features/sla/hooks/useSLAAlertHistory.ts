@@ -1,6 +1,7 @@
 // @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 export type SLAAlertSeverity = 'risk' | 'violated';
 
@@ -20,10 +21,8 @@ export interface SLAAlertHistoryEntry {
 const PAGE_SIZE = 100;
 
 async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any) /* TS2589: schema too deep for sla_history */
-    .from('sla_history')
-    .select(`
+  const { data, error } = await safeClient.from('sla_history', q =>
+    q.select(`
       id,
       thread_id,
       status,
@@ -38,7 +37,8 @@ async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
       )
     `)
     .order('created_at', { ascending: false })
-    .limit(PAGE_SIZE);
+    .limit(PAGE_SIZE)
+  );
 
   if (error) throw error;
 

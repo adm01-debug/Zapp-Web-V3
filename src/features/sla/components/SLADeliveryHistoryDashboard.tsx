@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Search, Filter, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,22 +21,14 @@ export const SLADeliveryHistoryDashboard = () => {
   const { data: violations, isLoading } = useQuery({
     queryKey: ['sla-delivery-violations', statusFilter],
     queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let query = (supabase as any) /* TS2589: sla_delivery_violations type too deep */
-        .from('sla_delivery_violations')
-        .select(`
-          *,
-          resolved_by_profile:profiles!resolved_by(display_name)
-        `)
-        .order('detected_at', { ascending: false });
-
-      if (statusFilter === 'pending') {
-        query = query.eq('is_resolved', false);
-      } else if (statusFilter === 'resolved') {
-        query = query.eq('is_resolved', true);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await safeClient.from('sla_delivery_violations', q => {
+        let query = q
+          .select(`*, resolved_by_profile:profiles!resolved_by(display_name)`)
+          .order('detected_at', { ascending: false });
+        if (statusFilter === 'pending') query = query.eq('is_resolved', false);
+        else if (statusFilter === 'resolved') query = query.eq('is_resolved', true);
+        return query;
+      });
       if (error) throw error;
       return data;
     }
@@ -44,16 +37,14 @@ export const SLADeliveryHistoryDashboard = () => {
   const resolveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any) /* TS2589: sla_delivery_violations type too deep */
-        .from('sla_delivery_violations')
-        .update({
+      const { error } = await safeClient.from('sla_delivery_violations', q =>
+        q.update({
           is_resolved: true,
           resolved_at: new Date().toISOString(),
           resolved_by: user?.id,
-          resolution_notes: notes
-        })
-        .eq('id', id);
+          resolution_notes: notes,
+        }).eq('id', id)
+      );
       if (error) throw error;
     },
     onSuccess: () => {

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { startOfDay, subDays, startOfWeek, startOfMonth } from 'date-fns';
 
 export type PeriodFilter = 'today' | 'week' | 'month' | 'all';
@@ -49,10 +50,9 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   const startDate = getStartDate(period).toISOString();
 
   const [slaResult, profilesResult] = await Promise.all([
-    (supabase as any) /* TS2589: schema 678 */
-      .from('conversation_sla')
-      .select('*, contacts!inner(assigned_to)')
-      .gte('created_at', startDate),
+    safeClient.from('conversation_sla', q =>
+      q.select('*, contacts!inner(assigned_to)').gte('created_at', startDate)
+    ),
     supabase.from('profiles').select('id, name, avatar_url'),
   ]);
 

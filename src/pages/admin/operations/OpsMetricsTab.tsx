@@ -67,7 +67,7 @@ export function OpsMetricsTab() {
   const fetchMetrics = useMemo(
     () => async () => {
       setLoading(true);
-      const { data: res, error } = await supabase.rpc("rpc_ops_metrics" as any, {
+      const { data: res, error } = await supabase.rpc("rpc_ops_metrics" as unknown as Parameters<typeof supabase.rpc>[0], {
         p_window_hours: Number(windowHours),
       });
       if (error) {

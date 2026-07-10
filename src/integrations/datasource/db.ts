@@ -60,11 +60,10 @@ export function dbTable(entity: LogicalEntity): string {
   return requireMapping(entity).table;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function dbFrom(entity: LogicalEntity): any {
+export function dbFrom(entity: LogicalEntity): ReturnType<SupabaseClient['from']> {
   const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
-  return dbClient(entity).from(mapping.table as any);
+  return dbClient(entity).from(mapping.table as unknown as Parameters<SupabaseClient['from']>[0]);
 }
 
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {
@@ -115,8 +114,7 @@ export async function dbRpc<P extends object, R>(
   const source = def.client === 'external' ? 'externalSupabase' : 'lovableCloud';
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await client.rpc(def.name as any, merged as Record<string, unknown>);
+    const { data, error } = await client.rpc(def.name as unknown as Parameters<SupabaseClient['rpc']>[0], merged as Record<string, unknown>);
     const durationMs = Math.round(performance.now() - startedAt);
     const errorMessage = error ? error.message ?? 'rpc error' : undefined;
 
