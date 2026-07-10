@@ -37,8 +37,9 @@ export function TranscriptionsHistoryView() {
         .not('transcription', 'is', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setTranscriptions((data || []).map((item: any) => {
+      type ContactRow = { name: string; phone: string; avatar_url: string | null };
+      type RawRow = { id: string; content: string; transcription: string; media_url: string | null; created_at: string; contact_id: string; contacts: ContactRow | ContactRow[] | null };
+      setTranscriptions((data || []).map((item: RawRow) => {
         const c = Array.isArray(item.contacts) ? item.contacts[0] : item.contacts;
         return {
           id: item.id, content: item.content, transcription: item.transcription, media_url: item.media_url,
