@@ -21,7 +21,7 @@ import { parseOrReject, type ContractErrorBody } from "../contract-kit.ts";
 import { CONTRACT_SCHEMAS } from "../contract-schemas.ts";
 import { CONTRACTS, isDeprecatedVersion } from "../contract-versions.ts";
 
-const CANONICAL_KEYS = ["contract", "code", "details", "error", "message"];
+const CANONICAL_KEYS = ["code", "contract", "details", "error", "message"];
 
 function req(headers: Record<string, string> = {}): Request {
   return new Request("https://edge.local/x", { method: "POST", headers });
