@@ -1,1 +1,378 @@
-aW1wb3J0IHsgc2VydmUgfSBmcm9tICJodHRwczovL2Rlbm8ubGFuZC9zdGRAMC4xNjguMC9odHRwL3NlcnZlci50cyI7CmltcG9ydCB7IGNyZWF0ZUNsaWVudCB9IGZyb20gImh0dHBzOi8vZXNtLnNoL0BzdXBhYmFzZS9zdXBhYmFzZS1qc0AyLjQ5LjEiOwppbXBvcnQgeyBnZXRDb3JzSGVhZGVycywgaGFuZGxlQ29ycywgcmVkYWN0U2VjcmV0cywgY29udHJhY3RFcnJvclJlc3BvbnNlIH0gZnJvbSAiLi4vX3NoYXJlZC92YWxpZGF0aW9uLnRzIjsKaW1wb3J0IHsgV2ViaG9va1BheWxvYWRTY2hlbWEgfSBmcm9tICIuLi9fc2hhcmVkL3dlYmhvb2stc2NoZW1hcy50cyI7CmltcG9ydCB7CiAgaXNSZWNvcmQsIG5vcm1hbGl6ZUV2ZW50TmFtZSwgdG9FdmVudFJlY29yZHMsCiAgaGFuZGxlUmVhY3Rpb25FdmVudCwgcmVkYWN0SmlkLCBnZW5lcmF0ZVJlcXVlc3RJZCwKICBzaGEyNTZIZXgsIG1hcmtFdmVudFByb2Nlc3NlZCwgYXVkaXRXZWJob29rRXZlbnQsCiAgcm91dGVUb0RlYWRMZXR0ZXIsIGluc3RhbmNlT3JGaWx0ZXIsCiAgdHlwZSBXZWJob29rUGF5bG9hZCwKfSBmcm9tICIuLi9fc2hhcmVkL2V2b2x1dGlvbi1oZWxwZXJzLnRzIjsKaW1wb3J0IHsgcGFyc2VNZXNzYWdlQ29udGVudCB9IGZyb20gIi4uL19zaGFyZWQvZXZvbHV0aW9uLW1lZGlhLnRzIjsKaW1wb3J0IHsKICBoYW5kbGVDb25uZWN0aW9uVXBkYXRlLCBoYW5kbGVTZW5kTWVzc2FnZSwgaGFuZGxlTWVzc2FnZXNVcGRhdGUsIGhhbmRsZU1lc3NhZ2VzRGVsZXRlLAogIGhhbmRsZUNvbnRhY3RzVXBzZXJ0LCBoYW5kbGVQcmVzZW5jZVVwZGF0ZSwgaGFuZGxlQ2hhdHNVcGRhdGUsCiAgaGFuZGxlTGFiZWxzRWRpdCwgaGFuZGxlTGFiZWxzQXNzb2NpYXRpb24sIGhhbmRsZUNhbGxFdmVudCwKICBoYW5kbGVDaGF0c0RlbGV0ZSwgaGFuZGxlQXBwbGljYXRpb25TdGFydHVwLCBoYW5kbGVNZXNzYWdlc1NldCwKICBoYW5kbGVDb250YWN0c1NldCwgaGFuZGxlQ2hhdHNTZXQsIGhhbmRsZU1lc3NhZ2VzRWRpdGVkLAogIGhhbmRsZUxvZ291dEluc3RhbmNlLCBoYW5kbGVHcm91cHNVcHNlcnQsIGhhbmRsZUdyb3VwUGFydGljaXBhbnRzVXBkYXRlLAp9IGZyb20gIi4uL19zaGFyZWQvZXZvbHV0aW9uLXdlYmhvb2staGFuZGxlcnMudHMiOwppbXBvcnQgewogIGhhbmRsZUluY29taW5nTWVzc2FnZSwgaGFuZGxlT3V0Z29pbmdXaGF0c0FwcE1lc3NhZ2UsCn0gZnJvbSAiLi4vX3NoYXJlZC9ldm9sdXRpb24td2ViaG9vay1tZXNzYWdlcy50cyI7CmltcG9ydCB7IGNyZWF0ZVdlYmhvb2tWYWxpZGF0b3IsIHJlYWRXZWJob29rU2VjcmV0c0Zyb21FbnYgfSBmcm9tICIuLi9fc2hhcmVkL2htYWMtdmFsaWRhdGlvbi50cyI7CmltcG9ydCB7IGlzSW5zdGFuY2VQYXVzZWQsIHJlY29yZEF1dGhGYWlsdXJlQW5kTWF5YmVQYXVzZSB9IGZyb20gIi4uL19zaGFyZWQvaW5zdGFuY2UtcGF1c2UudHMiOwppbXBvcnQgeyBjaGVja1JhdGVMaW1pdCB9IGZyb20gIi4uL19zaGFyZWQvcmF0ZS1saW1pdGVyLnRzIjsKCi8vIE11bHRpLXNlY3JldCBzdXBwb3J0IGVuYWJsZXMgemVyby1kb3dudGltZSByb3RhdGlvbjoKLy8gICAtIEVWT0xVVElPTl9XRUJIT09LX1NFQ1JFVFM9bmV3LG9sZCAg4oaSIHZhbGlkYXRlIGJvdGgsIHNpZ24gd2l0aCBgbmV3YAovLyAgIC0gRVZPTFVUSU9OX1dFQkhPT0tfU0VDUkVUPXNpbmdsZSAgICDihpIgbGVnYWN5IHNpbmdsZS1zZWNyZXQgbW9kZQovLyBGYWxscyBiYWNrIHRvIHRoZSBvbGRlciBXRUJIT09LX1NFQ1JFVCBlbnYgbmFtZSBmb3IgYmFja3dhcmRzIGNvbXBhdGliaWxpdHkuCmNvbnN0IFdFQkhPT0tfU0VDUkVUUyA9ICgoKSA9PiB7CiAgY29uc3QgZXZvID0gcmVhZFdlYmhvb2tTZWNyZXRzRnJvbUVudignRVZPTFVUSU9OX1dFQkhPT0snKTsKICBpZiAoZXZvLmxlbmd0aCA+IDApIHJldHVybiBldm87CiAgY29uc3QgbGVnYWN5ID0gRGVuby5lbnYuZ2V0KCdXRUJIT09LX1NFQ1JFVCcpOwogIHJldHVybiBsZWdhY3kgPyBbbGVnYWN5XSA6IFtdOwp9KSgpOwpjb25zdCBTVFJJQ1RfTU9ERSA9IChEZW5vLmVudi5nZXQoJ0VWT0xVVElPTl9XRUJIT09LX1NUUklDVCcpID8/ICd0cnVlJykudG9Mb3dlckNhc2UoKSAhPT0gJ2ZhbHNlJzsKY29uc3QgdmFsaWRhdGVXZWJob29rID0gV0VCSE9PS19TRUNSRVRTLmxlbmd0aCA+IDAKICA/IGNyZWF0ZVdlYmhvb2tWYWxpZGF0b3IoV0VCSE9PS19TRUNSRVRTLCBTVFJJQ1RfTU9ERSkKICA6IG51bGw7CgovLyBbUEFUQ0ggMjAyNi0wNy0wNCByZWdpc3RyeS1ndWFyZF0gU28gcHJvY2Vzc2EgZXZlbnRvcyBkZSBpbnN0YW5jaWFzIGNhZGFzdHJhZGFzIGVtCi8vIGluc3RhbmNlX3JlZ2lzdHJ5IChleGlzdGVuY2lhLCBuYW8gaXNfYWN0aXZlIC0gZXZpdGEgcGVyZGEgZGUgZGFkb3MgZGUgaW5zdGFuY2lhIG5vdmEKLy8gYWluZGEgbmFvIGF0aXZhZGEpLiBDYWNoZSBlbSBtZW1vcmlhIFRUTCA2MHMuIEZhaWwtb3BlbiAobnVsbCkgZW0gZXJybyBkZSBsb29rdXAgcGFyYQovLyBuYW8gZGVycnViYXIgbyBwaXBlbGluZSBwb3IgZmFsaGEgdHJhbnNpdG9yaWEgZG8gUG9zdGdSRVNULgpjb25zdCBfX3JlZ2lzdHJ5Q2FjaGUgPSBuZXcgTWFwPHN0cmluZywgeyBrbm93bjogYm9vbGVhbjsgYXQ6IG51bWJlciB9PigpOwpjb25zdCBfX1JFR0lTVFJZX1RUTF9NUyA9IDYwXzAwMDsKLy8gZGVuby1saW50LWlnbm9yZSBuby1leHBsaWNpdC1hbnkKYXN5bmMgZnVuY3Rpb24gaXNLbm93bkluc3RhbmNlKHN1cGFiYXNlOiBhbnksIGluc3RhbmNlOiBzdHJpbmcpOiBQcm9taXNlPGJvb2xlYW4gfCBudWxsPiB7CiAgaWYgKCFpbnN0YW5jZSkgcmV0dXJuIGZhbHNlOwogIGNvbnN0IGhpdCA9IF9fcmVnaXN0cnlDYWNoZS5nZXQoaW5zdGFuY2UpOwogIGlmIChoaXQgJiYgRGF0ZS5ub3coKSAtIGhpdC5hdCA8IF9fUkVHSVNUUllfVFRMX01TKSByZXR1cm4gaGl0Lmtub3duOwogIHRyeSB7CiAgICBjb25zdCB7IGRhdGEsIGVycm9yIH0gPSBhd2FpdCBzdXBhYmFzZS5mcm9tKCdpbnN0YW5jZV9yZWdpc3RyeScpCiAgICAgIC5zZWxlY3QoJ2luc3RhbmNlX25hbWUnKS5lcSgnaW5zdGFuY2VfbmFtZScsIGluc3RhbmNlKS5saW1pdCgxKS5tYXliZVNpbmdsZSgpOwogICAgaWYgKGVycm9yKSB7IGNvbnNvbGUuZXJyb3IoYFtyZWdpc3RyeS1ndWFyZF0gbG9va3VwIGVycm9yOiAke2Vycm9yLm1lc3NhZ2V9YCk7IHJldHVybiBudWxsOyB9CiAgICBjb25zdCBrbm93biA9ICEhZGF0YTsKICAgIF9fcmVnaXN0cnlDYWNoZS5zZXQoaW5zdGFuY2UsIHsga25vd24sIGF0OiBEYXRlLm5vdygpIH0pOwogICAgcmV0dXJuIGtub3duOwogIH0gY2F0Y2ggKGUpIHsKICAgIGNvbnNvbGUuZXJyb3IoYFtyZWdpc3RyeS1ndWFyZF0gbG9va3VwIGV4Y2VwdGlvbjogJHtlIGluc3RhbmNlb2YgRXJyb3IgPyBlLm1lc3NhZ2UgOiBTdHJpbmcoZSl9YCk7CiAgICByZXR1cm4gbnVsbDsKICB9Cn0KCnNlcnZlKGFzeW5jIChyZXEpID0+IHsKICBjb25zdCByZXF1ZXN0SWQgPSBnZW5lcmF0ZVJlcXVlc3RJZCgpOwogIGNvbnN0IHN0YXJ0ZWRBdCA9IERhdGUubm93KCk7CiAgY29uc3QgYmFzZUhlYWRlcnMgPSB7ICdDb250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsICd4LXJlcXVlc3QtaWQnOiByZXF1ZXN0SWQgfTsKCiAgY29uc3QgY29yc1Jlc3BvbnNlID0gaGFuZGxlQ29ycyhyZXEpOwogIGlmIChjb3JzUmVzcG9uc2UpIHJldHVybiBjb3JzUmVzcG9uc2U7CiAgY29uc3QgY29yc0hlYWRlcnMgPSB7IC4uLmdldENvcnNIZWFkZXJzKHJlcSksIC4uLmJhc2VIZWFkZXJzIH07CgogIGlmIChyZXEubWV0aG9kICE9PSAnUE9TVCcpIHsKICAgIHJldHVybiBuZXcgUmVzcG9uc2UoJ01ldGhvZCBub3QgYWxsb3dlZCcsIHsgc3RhdHVzOiA0MDUsIGhlYWRlcnM6IGNvcnNIZWFkZXJzIH0pOwogIH0KCiAgY29uc3Qgc3VwYWJhc2VVcmwgPSAoRGVuby5lbnYuZ2V0KCdTRUxGSE9TVEVEX1NVUEFCQVNFX1VSTCcpID8/IERlbm8uZW52LmdldCgnU1VQQUJBU0VfVVJMJykpITsKICBjb25zdCBzdXBhYmFzZVNlcnZpY2VLZXkgPSAoRGVuby5lbnYuZ2V0KCdTRUxGSE9TVEVEX1NVUEFCQVNFX1NFUlZJQ0VfUk9MRV9LRVknKSA/PyBEZW5vLmVudi5nZXQoJ1NVUEFCQVNFX1NFUlZJQ0VfUk9MRV9LRVknKSkhOwogIGNvbnN0IHN1cGFiYXNlID0gY3JlYXRlQ2xpZW50KHN1cGFiYXNlVXJsLCBzdXBhYmFzZVNlcnZpY2VLZXkpOwoKICAvLyBITUFDIHZhbGlkYXRpb24gYmVmb3JlIHJlYWRpbmcgYm9keSBhcyBKU09OIHNvIHdlIGNhbiB2ZXJpZnkgb24gcmF3IHRleHQuCiAgbGV0IHJhd0JvZHk6IHN0cmluZzsKICAvLyBUZW50YSBleHRyYWlyIGluc3TDom5jaWEgZG8gaGVhZGVyIChhbGd1bnMgd2ViaG9va3MgRXZvbHV0aW9uIG1hbmRhbSkgcC8gY29udGFyIGZhbGhhcwogIC8vIGFudGVzIG1lc21vIGRlIHBhcnNlYXIgbyBib2R5LiBDYWkgZW0gJ3Vua25vd24nIHNlIG7Do28gaG91dmVyLgogIGNvbnN0IGhlYWRlckluc3RhbmNlID0gcmVxLmhlYWRlcnMuZ2V0KCd4LWV2b2x1dGlvbi1pbnN0YW5jZScpIHx8IHJlcS5oZWFkZXJzLmdldCgneC1pbnN0YW5jZScpIHx8IG51bGw7CgogIC8vIFtQQVRDSCAyMDI2LTA3LTAzXSBBdXRoIHBvciBzZWNyZXQgZXN0YXRpY286IEV2b2x1dGlvbiBBUEkgZW52aWEgaGVhZGVyIGZpeG8geC13ZWJob29rLXNlY3JldCwKICAvLyBuYW8gYXNzaW5hIEhNQUMgcG9yIHBheWxvYWQuIENvbXBhcmFjYW8gdGltaW5nLXNhZmUgY29udHJhIG9zIHNlY3JldHMgY29uZmlndXJhZG9zLgogIGNvbnN0IF9fdHNFcSA9IChhOiBzdHJpbmcsIGI6IHN0cmluZyk6IGJvb2xlYW4gPT4geyBpZiAoYS5sZW5ndGggIT09IGIubGVuZ3RoKSB7IGxldCBkID0gMDsgZm9yIChsZXQgaSA9IDA7IGkgPCBhLmxlbmd0aDsgaSsrKSBkIHw9IGEuY2hhckNvZGVBdChpKSBeIChiLmNoYXJDb2RlQXQoaSAlIChiLmxlbmd0aCB8fCAxKSkgfHwgMCk7IHJldHVybiBmYWxzZTsgfSBsZXQgciA9IDA7IGZvciAobGV0IGkgPSAwOyBpIDwgYS5sZW5ndGg7IGkrKykgciB8PSBhLmNoYXJDb2RlQXQoaSkgXiBiLmNoYXJDb2RlQXQoaSk7IHJldHVybiByID09PSAwOyB9OwogIGNvbnN0IF9fc3RhdGljU2VjcmV0ID0gcmVxLmhlYWRlcnMuZ2V0KCd4LXdlYmhvb2stc2VjcmV0Jyk7CiAgY29uc3QgX19zdGF0aWNTZWNyZXRPayA9IF9fc3RhdGljU2VjcmV0ICE9PSBudWxsICYmIFdFQkhPT0tfU0VDUkVUUy5zb21lKChzKSA9PiBfX3RzRXEoX19zdGF0aWNTZWNyZXQsIHMpKTsKICBpZiAoX19zdGF0aWNTZWNyZXRPaykgewogICAgcmF3Qm9keSA9IGF3YWl0IHJlcS50ZXh0KCk7CiAgfSBlbHNlIGlmICh2YWxpZGF0ZVdlYmhvb2spIHsKICAgIGNvbnN0IHJlc3VsdCA9IGF3YWl0IHZhbGlkYXRlV2ViaG9vayhyZXEpOwogICAgaWYgKCFyZXN1bHQudmFsaWQpIHsKICAgICAgY29uc29sZS53YXJuKHJlZGFjdFNlY3JldHMoYFt3ZWJob29rXVske3JlcXVlc3RJZH1dIHJlamVjdGVkOiAke3Jlc3VsdC5lcnJvciA/PyAndW5rbm93bid9IHNpZ25hdHVyZUZvdW5kPSR7cmVzdWx0LnNpZ25hdHVyZUZvdW5kfWApKTsKICAgICAgLy8gQXV0by1wYXVzZTogY29udGEgaW52YWxpZF9zaWduYXR1cmUgbmEgamFuZWxhIGUgcGVyc2lzdGUgbyBldmVudG8KICAgICAgcmVjb3JkQXV0aEZhaWx1cmVBbmRNYXliZVBhdXNlKHN1cGFiYXNlLCBoZWFkZXJJbnN0YW5jZSA/PyAndW5rbm93bicsICdpbnZhbGlkX3NpZ25hdHVyZScsICd3ZWJob29rJywgeyBtZXNzYWdlOiByZXN1bHQuZXJyb3IgPz8gJ2ludmFsaWRfc2lnbmF0dXJlJyB9KTsKICAgICAgYXdhaXQgYXVkaXRXZWJob29rRXZlbnQoc3VwYWJhc2UsIHsKICAgICAgICByZXF1ZXN0X2lkOiByZXF1ZXN0SWQsIHN0YXR1czogJ3JlamVjdGVkJywKICAgICAgICBlcnJvcl9tZXNzYWdlOiByZXN1bHQuZXJyb3IgPz8gJ2ludmFsaWRfc2lnbmF0dXJlJywKICAgICAgICBkdXJhdGlvbl9tczogRGF0ZS5ub3coKSAtIHN0YXJ0ZWRBdCwKICAgICAgfSk7CiAgICAgIHJldHVybiBuZXcgUmVzcG9uc2UoCiAgICAgICAgSlNPTi5zdHJpbmdpZnkoeyBlcnJvcjogJ3VuYXV0aG9yaXplZCcsIHJlYXNvbjogcmVzdWx0LmVycm9yID8/ICdpbnZhbGlkX3NpZ25hdHVyZScsIHJlcXVlc3RJZCB9KSwKICAgICAgICB7IHN0YXR1czogNDAxLCBoZWFkZXJzOiBjb3JzSGVhZGVycyB9LAogICAgICApOwogICAgfQogICAgcmF3Qm9keSA9IHJlc3VsdC5wYXlsb2FkID8/ICcnOwogIH0gZWxzZSB7CiAgICBjb25zb2xlLndhcm4ocmVkYWN0U2VjcmV0cyhgW3dlYmhvb2tdWyR7cmVxdWVzdElkfV0gV0VCSE9PS19TRUNSRVQgbm90IGNvbmZpZ3VyZWQg4oCUIHNpZ25hdHVyZSB2YWxpZGF0aW9uIHNraXBwZWRgKSk7CiAgICByYXdCb2R5ID0gYXdhaXQgcmVxLnRleHQoKTsKICB9CgogIGxldCBwYXlsb2FkOiBXZWJob29rUGF5bG9hZDsKICB0cnkgewogICAgY29uc3QganNvbiA9IEpTT04ucGFyc2UocmF3Qm9keSk7CiAgICBjb25zdCBwYXJzZWQgPSBXZWJob29rUGF5bG9hZFNjaGVtYS5zYWZlUGFyc2UoanNvbik7CiAgICBpZiAoIXBhcnNlZC5zdWNjZXNzKSB7CiAgICAgIGNvbnNvbGUud2FybihgW3dlYmhvb2tdWyR7cmVxdWVzdElkfV0gY29udHJhY3RfdmlvbGF0aW9uOmAsIHBhcnNlZC5lcnJvci5pc3N1ZXMpOwogICAgICBhd2FpdCBhdWRpdFdlYmhvb2tFdmVudChzdXBhYmFzZSwgewogICAgICAgIHJlcXVlc3RfaWQ6IHJlcXVlc3RJZCwgc3RhdHVzOiAncmVqZWN0ZWQnLCBlcnJvcl9tZXNzYWdlOiAnY29udHJhY3RfdmlvbGF0aW9uJywKICAgICAgICBkdXJhdGlvbl9tczogRGF0ZS5ub3coKSAtIHN0YXJ0ZWRBdCwKICAgICAgfSk7CiAgICAgIHJldHVybiBjb250cmFjdEVycm9yUmVzcG9uc2UoCiAgICAgICAgJ0lOVkFMSURfV0VCSE9PS19QQVlMT0FEJywKICAgICAgICAnUGF5bG9hZCBkb2VzIG5vdCBtYXRjaCBFdm9sdXRpb24gV2ViaG9vayBjb250cmFjdCcsCiAgICAgICAgcGFyc2VkLmVycm9yLmlzc3VlcywKICAgICAgICByZXF1ZXN0SWQsCiAgICAgICAgcmVxCiAgICAgICk7CiAgICB9CiAgICBwYXlsb2FkID0gcGFyc2VkLmRhdGEgYXMgV2ViaG9va1BheWxvYWQ7CiAgfSBjYXRjaCB7CiAgICBhd2FpdCBhdWRpdFdlYmhvb2tFdmVudChzdXBhYmFzZSwgewogICAgICByZXF1ZXN0X2lkOiByZXF1ZXN0SWQsIHN0YXR1czogJ3JlamVjdGVkJywgZXJyb3JfbWVzc2FnZTogJ2ludmFsaWRfanNvbicsCiAgICAgIGR1cmF0aW9uX21zOiBEYXRlLm5vdygpIC0gc3RhcnRlZEF0LAogICAgfSk7CiAgICByZXR1cm4gbmV3IFJlc3BvbnNlKEpTT04uc3RyaW5naWZ5KHsgZXJyb3I6ICdpbnZhbGlkX2pzb24nLCByZXF1ZXN0SWQgfSksIHsgc3RhdHVzOiA0MDAsIGhlYWRlcnM6IGNvcnNIZWFkZXJzIH0pOwogIH0KCiAgY29uc3QgZXZlbnQgPSBub3JtYWxpemVFdmVudE5hbWUocGF5bG9hZC5ldmVudCk7CiAgY29uc3QgaW5zdGFuY2UgPSBwYXlsb2FkLmluc3RhbmNlOwogIGNvbnN0IGRhdGEgPSBwYXlsb2FkLmRhdGEgPz8ge307CiAgY29uc3QgYmFzZURhdGEgPSBpc1JlY29yZChkYXRhKSA/IGRhdGEgOiB7fTsKCiAgLy8gUGF1c2UgZ3VhcmQ6IHNlIGEgaW5zdMOibmNpYSBmb2kgcGF1c2FkYSAobWFudWFsIG91IGF1dG8pLCBkZXNjYXJ0YSBvIGV2ZW50bwogIC8vIGNvbSA1MDMgZSBhdWRpdCAncmVqZWN0ZWQnLiBBIEV2b2x1dGlvbiBjb3N0dW1hIHJldHJ5LWFyciwgbWFzIGR1cmFudGUgYQogIC8vIGphbmVsYSBkZSBwYXVzYSBwcmVmZXJpbW9zIGlzc28gYSBjb250aW51YXIgcHJvY2Vzc2FuZG8gbGl4by4KICBpZiAoYXdhaXQgaXNJbnN0YW5jZVBhdXNlZChzdXBhYmFzZSwgaW5zdGFuY2UpKSB7CiAgICBhd2FpdCBhdWRpdFdlYmhvb2tFdmVudChzdXBhYmFzZSwgewogICAgICByZXF1ZXN0X2lkOiByZXF1ZXN0SWQsIGluc3RhbmNlLCBldmVudF90eXBlOiBldmVudCwgc3RhdHVzOiAncmVqZWN0ZWQnLAogICAgICBlcnJvcl9tZXNzYWdlOiAnaW5zdGFuY2VfcGF1c2VkJywKICAgICAgZHVyYXRpb25fbXM6IERhdGUubm93KCkgLSBzdGFydGVkQXQsCiAgICB9KTsKICAgIGNvbnNvbGUud2FybihgW3dlYmhvb2tdWyR7cmVxdWVzdElkfV0gaW5zdGFuY2U9JHtpbnN0YW5jZX0gaXMgcGF1c2VkIOKAlCBza2lwcGluZyBldmVudCAke2V2ZW50fWApOwogICAgcmV0dXJuIG5ldyBSZXNwb25zZSgKICAgICAgSlNPTi5zdHJpbmdpZnkoeyBlcnJvcjogJ2luc3RhbmNlX3BhdXNlZCcsIGluc3RhbmNlLCByZXF1ZXN0SWQgfSksCiAgICAgIHsgc3RhdHVzOiA1MDMsIGhlYWRlcnM6IHsgLi4uY29yc0hlYWRlcnMsICdSZXRyeS1BZnRlcic6ICc2MCcgfSB9LAogICAgKTsKICB9CgogIC8vIFtQQVRDSCAyMDI2LTA3LTA0IHJlZ2lzdHJ5LWd1YXJkXSBJbnN0YW5jaWEgZGVzY29uaGVjaWRhID0+IEhUVFAgMjAwICsgc2tpcCB0b3RhbAogIC8vICgyMDAgZXZpdGEgcmV0cnktc3Rvcm0gZG8gY29uc3VtZXI7IG5hZGEgZSBwZXJzaXN0aWRvKSArIGF1ZGl0IHJlamVjdGVkL3Vua25vd25faW5zdGFuY2UKICAvLyArIGxvZyBkZSBzZWd1cmFuY2EuIExvb2t1cCBjb20gZmFsaGEgKG51bGwpID0+IGZhaWwtb3Blbiwgc2VndWUgbyBmbHV4byBub3JtYWwuCiAgY29uc3QgX19rbm93bkluc3RhbmNlID0gYXdhaXQgaXNLbm93bkluc3RhbmNlKHN1cGFiYXNlLCBpbnN0YW5jZSk7CiAgaWYgKF9fa25vd25JbnN0YW5jZSA9PT0gZmFsc2UpIHsKICAgIGF3YWl0IGF1ZGl0V2ViaG9va0V2ZW50KHN1cGFiYXNlLCB7CiAgICAgIHJlcXVlc3RfaWQ6IHJlcXVlc3RJZCwgaW5zdGFuY2UsIGV2ZW50X3R5cGU6IGV2ZW50LCBzdGF0dXM6ICdyZWplY3RlZCcsCiAgICAgIGVycm9yX21lc3NhZ2U6ICd1bmtub3duX2luc3RhbmNlJywKICAgICAgZHVyYXRpb25fbXM6IERhdGUubm93KCkgLSBzdGFydGVkQXQsCiAgICB9KTsKICAgIGNvbnNvbGUud2FybihgW3dlYmhvb2tdWyR7cmVxdWVzdElkfV0gU0VDVVJJVFkgdW5rbm93bl9pbnN0YW5jZT0nJHtpbnN0YW5jZX0nIGV2ZW50PSR7ZXZlbnR9IC0gaWdub3JlZGApOwogICAgcmV0dXJuIG5ldyBSZXNwb25zZSgKICAgICAgSlNPTi5zdHJpbmdpZnkoeyBzdWNjZXNzOiB0cnVlLCBpZ25vcmVkOiB0cnVlLCByZWFzb246ICd1bmtub3duX2luc3RhbmNlJywgcmVxdWVzdElkIH0pLAogICAgICB7IHN0YXR1czogMjAwLCBoZWFkZXJzOiBjb3JzSGVhZGVycyB9LAogICAgKTsKICB9CgogIC8vIFtPUkRFUiAyMDI2LTA3LTA0XSBJZGVtcG90ZW5jeSBBTlRFUyBkbyByYXRlLWxpbWl0OiByZXRyaWVzIGR1cGxpY2Fkb3MgZG8gRXZvbHV0aW9uIG5hbyBjb25zb21lbSBxdW90YS4KICAvLyBEZWR1cCBieSBoYXNoIG9mIChpbnN0YW5jZSArIGV2ZW50ICsgYm9keSk7IHNlIGphIHZpbW9zIGVzdGUgZXZlbnRfaWQsIHNob3J0LWNpcmN1aXQgMjAwLgogIGNvbnN0IGJvZHlIYXNoID0gYXdhaXQgc2hhMjU2SGV4KHJhd0JvZHkpOwogIGNvbnN0IGV2ZW50SWQgPSBgJHtpbnN0YW5jZSB8fCAndW5rbm93bid9OiR7ZXZlbnR9OiR7Ym9keUhhc2h9YDsKICBjb25zdCBpc05ldyA9IGF3YWl0IG1hcmtFdmVudFByb2Nlc3NlZChzdXBhYmFzZSwgZXZlbnRJZCwgaW5zdGFuY2UsIGV2ZW50KTsKICBpZiAoIWlzTmV3KSB7CiAgICBhd2FpdCBhdWRpdFdlYmhvb2tFdmVudChzdXBhYmFzZSwgewogICAgICByZXF1ZXN0X2lkOiByZXF1ZXN0SWQsIGluc3RhbmNlLCBldmVudF90eXBlOiBldmVudCwgc3RhdHVzOiAnZHVwbGljYXRlJywKICAgICAgZHVyYXRpb25fbXM6IERhdGUubm93KCkgLSBzdGFydGVkQXQsCiAgICB9KTsKICAgIGNvbnNvbGUubG9nKGBbd2ViaG9va11bJHtyZXF1ZXN0SWR9XSBkdXBsaWNhdGUgZXZlbnRfaWQ9JHtldmVudElkLnNsaWNlKDAsIDQ4KX3igKYgc2tpcHBlZGApOwogICAgcmV0dXJuIG5ldyBSZXNwb25zZShKU09OLnN0cmluZ2lmeSh7IHN1Y2Nlc3M6IHRydWUsIGR1cGxpY2F0ZTogdHJ1ZSwgcmVxdWVzdElkIH0pLCB7IHN0YXR1czogMjAwLCBoZWFkZXJzOiBjb3JzSGVhZGVycyB9KTsKICB9CgogIC8vIFJhdGUgTGltaXQgZ3VhcmQ6IGNvbnRhIGFwZW5hcyBldmVudG9zIFVOSUNPUyAoaWRlbXBvdGVuY3kgamEgZmlsdHJvdSByZXRyaWVzKQogIC8vIFtGSVggMjAyNi0wNy0wNl0gTGltaXRlcyBwb3IgZXZlbnQtdHlwZTogZXZlbnRvcyBkZSBzeW5jIGRlIGFsdG8gdm9sdW1lIHJlY2ViaWFtIDQyOQogIC8vIGVtIGJ1cnN0cyBub3JtYWlzIChzeW5jIGdydXBvcywgYXR1YWxpemFjYW8gZW0gbWFzc2EgZGUgY29udGF0b3MpLiBEZWZhdWx0IDMwMC9taW4gbWFudGlkby4KICBjb25zdCBFVkVOVF9SQVRFX0xJTUlUUzogUmVjb3JkPHN0cmluZywgbnVtYmVyPiA9IHsKICAgICJjaGF0cy51cGRhdGUiOiAgICAyMDAwLCAvLyBzeW5jIGRlIGNoYXQ6IGdlcmFkbyBwb3IgdG9kYSBtZW5zYWdlbSByZWNlYmlkYQogICAgImNvbnRhY3RzLnVwZGF0ZSI6IDEwMDAsIC8vIGltcG9ydGFjYW8vc3luYyBkZSBjb250YXRvcyBlbSBtYXNzYQogICAgIm1lc3NhZ2VzLnVwc2VydCI6ICA2MDAsIC8vIDJ4IGRlZmF1bHQ6IGJ1cnN0cyBlbSBncnVwb3MgZ3JhbmRlcwogICAgImdyb3Vwcy51cHNlcnQiOiAgICA2MDAsIC8vIHNpbmNyb25pemFjYW8gaW5pY2lhbCBkZSBncnVwb3MKICB9OwogIGNvbnN0IHJhdGVMaW1pdCA9IGF3YWl0IGNoZWNrUmF0ZUxpbWl0KHN1cGFiYXNlLCB7CiAgICBpbnN0YW5jZUlkOiBpbnN0YW5jZSB8fCAndW5rbm93bicsCiAgICBldmVudFR5cGU6IGV2ZW50LAogICAgbGltaXQ6IEVWRU5UX1JBVEVfTElNSVRTW2V2ZW50XSA/PyAzMDAsCiAgfSk7CiAgaWYgKCFyYXRlTGltaXQuYWxsb3dlZCkgewogICAgYXdhaXQgYXVkaXRXZWJob29rRXZlbnQoc3VwYWJhc2UsIHsKICAgICAgcmVxdWVzdF9pZDogcmVxdWVzdElkLCBpbnN0YW5jZSwgZXZlbnRfdHlwZTogZXZlbnQsIHN0YXR1czogJ3JlamVjdGVkJywKICAgICAgZXJyb3JfbWVzc2FnZTogJ3JhdGVfbGltaXRfZXhjZWVkZWQnLAogICAgICBkdXJhdGlvbl9tczogRGF0ZS5ub3coKSAtIHN0YXJ0ZWRBdCwKICAgIH0pOwogICAgY29uc29sZS53YXJuKGBbd2ViaG9va11bJHtyZXF1ZXN0SWR9XSByYXRlIGxpbWl0IGV4Y2VlZGVkIGZvciAke2luc3RhbmNlfToke2V2ZW50fSAoJHtyYXRlTGltaXQuY3VycmVudENvdW50fS8ke3JhdGVMaW1pdC5saW1pdH0pYCk7CiAgICByZXR1cm4gbmV3IFJlc3BvbnNlKAogICAgICBKU09OLnN0cmluZ2lmeSh7IGVycm9yOiAncmF0ZV9saW1pdF9leGNlZWRlZCcsIGluc3RhbmNlLCByZXF1ZXN0SWQgfSksCiAgICAgIHsgc3RhdHVzOiA0MjksIGhlYWRlcnM6IGNvcnNIZWFkZXJzIH0KICAgICk7CiAgfQoKICBjb25zb2xlLmxvZyhgW3dlYmhvb2tdWyR7cmVxdWVzdElkfV0gcmVjZWl2ZWQgcmF3PSR7cGF5bG9hZC5ldmVudH0gbm9ybT0ke2V2ZW50fSBpbnN0YW5jZT0ke2luc3RhbmNlfWApOwoKICB0cnkgewogICAgaWYgKGV2ZW50ID09PSAnY29ubmVjdGlvbi51cGRhdGUnKSBhd2FpdCBoYW5kbGVDb25uZWN0aW9uVXBkYXRlKHN1cGFiYXNlLCBpbnN0YW5jZSwgYmFzZURhdGEpOwoKICAgIGlmIChldmVudCA9PT0gJ2xvZ291dC5pbnN0YW5jZScpIGF3YWl0IGhhbmRsZUxvZ291dEluc3RhbmNlKHN1cGFiYXNlLCBpbnN0YW5jZSwgYmFzZURhdGEpOwoKICAgIGlmIChldmVudCA9PT0gJ3FyY29kZS51cGRhdGVkJykgewogICAgICBjb25zdCBxckNvZGUgPSAoYmFzZURhdGEucXJjb2RlIGFzIFJlY29yZDxzdHJpbmcsIHN0cmluZz4pPy5iYXNlNjQ7CiAgICAgIGlmIChxckNvZGUpIHsKICAgICAgICBhd2FpdCBzdXBhYmFzZS5mcm9tKCd3aGF0c2FwcF9jb25uZWN0aW9ucycpCiAgICAgICAgICAudXBkYXRlKHsgcXJfY29kZTogcXJDb2RlLCBzdGF0dXM6ICdxcl9wZW5kaW5nJywgdXBkYXRlZF9hdDogbmV3IERhdGUoKS50b0lTT1N0cmluZygpIH0pCiAgICAgICAgICAub3IoaW5zdGFuY2VPckZpbHRlcihpbnN0YW5jZSkpOwogICAgICB9CiAgICAgIC8vIFtGSVggMjAyNi0wNy0wNl0gUVIgYWxlcnQ6IG5vdGlmaWNhciBhZG1pbiB2aWEgbjhuIChmaXJlLWFuZC1mb3JnZXQsIG5hbyBibG9xdWVpYSkKICAgICAgY29uc3QgX244blFyVXJsID0gJ2h0dHBzOi8vd2ViaG9vay5hdG9taWNhYnIuY29tLmJyL3dlYmhvb2svcXItYWxlcnQtd3BwMic7CiAgICAgIGZldGNoKF9uOG5RclVybCwgewogICAgICAgIG1ldGhvZDogJ1BPU1QnLAogICAgICAgIGhlYWRlcnM6IHsgJ0NvbnRlbnQtVHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJyB9LAogICAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KHsgZXZlbnQ6ICdxcmNvZGUudXBkYXRlZCcsIGluc3RhbmNlLCBzdGF0dXM6ICdxcl9wZW5kaW5nJywgdHM6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKSB9KSwKICAgICAgICBzaWduYWw6IEFib3J0U2lnbmFsLnRpbWVvdXQoNDAwMCksCiAgICAgIH0pLmNhdGNoKChlOiB1bmtub3duKSA9PiBjb25zb2xlLndhcm4oJ1txci1hbGVydF0gbjhuIGNhbGwgZmFpbGVkOicsIGUgaW5zdGFuY2VvZiBFcnJvciA/IGUubWVzc2FnZSA6IFN0cmluZyhlKSkpOwogICAgfQoKICAgIGlmIChldmVudCA9PT0gJ21lc3NhZ2VzLnVwc2VydCcpIHsKICAgICAgY29uc3QgZW50cmllcyA9IHRvRXZlbnRSZWNvcmRzKGRhdGEsIFsnbWVzc2FnZXMnXSk7CiAgICAgIGNvbnNvbGUubG9nKGBbd2ViaG9va11bJHtyZXF1ZXN0SWR9XVttc2cudXBzZXJ0XSBlbnRyaWVzPSR7ZW50cmllcy5sZW5ndGh9IGluc3RhbmNlPSR7aW5zdGFuY2V9YCk7CiAgICAgIGZvciAoY29uc3QgZW50cnkgb2YgZW50cmllcykgewogICAgICAgIC8vIFBlci1lbnRyeSB0cnkvY2F0Y2g6IGEgYmF0Y2ggY2FuIGNhcnJ5IHNldmVyYWwgbWVzc2FnZXMsIGFuZCBCYWlsZXlzL0V2b2x1dGlvbgogICAgICAgIC8vIHNvbWV0aW1lcyBzaGlwcyBvbmUgbWFsZm9ybWVkIGVudHJ5IGFsb25nc2lkZSBvdGhlcndpc2UtaGVhbHRoeSBvbmVzLiBXaXRob3V0CiAgICAgICAgLy8gdGhpcyBndWFyZCwgb25lIHRocm93aW5nIGVudHJ5IGFib3J0cyB0aGUgbG9vcCBhbmQgc2lsZW50bHkgZHJvcHMgZXZlcnkKICAgICAgICAvLyByZW1haW5pbmcgZW50cnkgaW4gdGhlIGJhdGNoIHRvbyAodGhleSBuZXZlciBnZXQgYSBzZWNvbmQgY2hhbmNlIOKAlCB0aGUgd2hvbGUKICAgICAgICAvLyBldmVudCBpcyBhbHJlYWR5IG1hcmtlZCBwcm9jZXNzZWQgYnkgdGhlIGlkZW1wb3RlbmN5IGd1YXJkIGFib3ZlKS4gSXNvbGF0ZSB0aGUKICAgICAgICAvLyBmYWlsdXJlIHRvIGp1c3QgdGhpcyBlbnRyeSBhbmQgZGVhZC1sZXR0ZXIgaXQgc28gdGhlIHJlc3Qgb2YgdGhlIGJhdGNoIGxhbmRzLgogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBrZXlTb3VyY2UgPSBpc1JlY29yZChlbnRyeS5rZXkpID8gZW50cnkua2V5IDogaXNSZWNvcmQoYmFzZURhdGEua2V5KSA/IGJhc2VEYXRhLmtleSA6IG51bGw7CiAgICAgICAgICBjb25zdCBleHRlcm5hbElkID0KICAgICAgICAgICAgKHR5cGVvZiBlbnRyeS5pZCA9PT0gJ3N0cmluZycgJiYgZW50cnkuaWQpIHx8CiAgICAgICAgICAgICh0eXBlb2YgYmFzZURhdGEuaWQgPT09ICdzdHJpbmcnICYmIGJhc2VEYXRhLmlkKSB8fAogICAgICAgICAgICAodHlwZW9mIGtleVNvdXJjZT8uaWQgPT09ICdzdHJpbmcnICYmIGtleVNvdXJjZS5pZCkgfHwKICAgICAgICAgICAgbnVsbDsKCiAgICAgICAgICBpZiAoIWV4dGVybmFsSWQpIHsKICAgICAgICAgICAgY29uc29sZS5sb2coYFt3ZWJob29rXVske3JlcXVlc3RJZH1dW21zZy51cHNlcnRdIGlnbm9yZWQ6IG1pc3NpbmcgaWRgKTsKICAgICAgICAgICAgY29udGludWU7CiAgICAgICAgICB9CgogICAgICAgICAgY29uc3Qga2V5ID0gewogICAgICAgICAgICBpZDogZXh0ZXJuYWxJZCwKICAgICAgICAgICAgZnJvbU1lOiBCb29sZWFuKAogICAgICAgICAgICAgICh0eXBlb2YgZW50cnkuZnJvbU1lID09PSAnYm9vbGVhbicgPyBlbnRyeS5mcm9tTWUgOiB1bmRlZmluZWQpID8/CiAgICAgICAgICAgICAgKHR5cGVvZiBiYXNlRGF0YS5mcm9tTWUgPT09ICdib29sZWFuJyA/IGJhc2VEYXRhLmZyb21NZSA6IHVuZGVmaW5lZCkgPz8KICAgICAgICAgICAgICAodHlwZW9mIGtleVNvdXJjZT8uZnJvbU1lID09PSAnYm9vbGVhbicgPyBrZXlTb3VyY2UuZnJvbU1lIDogdW5kZWZpbmVkKSA/PwogICAgICAgICAgICAgIGZhbHNlCiAgICAgICAgICAgICksCiAgICAgICAgICAgIHJlbW90ZUppZDoKICAgICAgICAgICAgICAodHlwZW9mIGVudHJ5LnJlbW90ZUppZCA9PT0gJ3N0cmluZycgPyBlbnRyeS5yZW1vdGVKaWQgOiB1bmRlZmluZWQpID8/CiAgICAgICAgICAgICAgKHR5cGVvZiBiYXNlRGF0YS5yZW1vdGVKaWQgPT09ICdzdHJpbmcnID8gYmFzZURhdGEucmVtb3RlSmlkIDogdW5kZWZpbmVkKSA/PwogICAgICAgICAgICAgICh0eXBlb2Yga2V5U291cmNlPy5yZW1vdGVKaWQgPT==ICdzdHJpbmcnID8ga2V5U291cmNlLnJlbW90ZUppZCA6IHVuZGVmaW5lZCksCiAgICAgICAgICAgIHJlbW90ZUppZEFsdDoKICAgICAgICAgICAgICAodHlwZW9mIGVudHJ5LnJlbW90ZUppZEFsdCA9PT0gJ3N0cmluZycgPyBlbnRyeS5yZW1vdGVKaWRBbHQgOiB1bmRlZmluZWQpID8/CiAgICAgICAgICAgICAgKHR5cGVvZiBiYXNlRGF0YS5yZW1vdGVKaWRBbHQgPT09ICdzdHJpbmcnID8gYmFzZURhdGEucmVtb3RlSmlkQWx0IDogdW5kZWZpbmVkKSA/PwogICAgICAgICAgICAgICh0eXBlb2Yga2V5U291cmNlPy5yZW1vdGVKaWRBbHQgPT09ICdzdHJpbmcnID8ga2V5U291cmNlLnJlbW90ZUppZEFsdCA6IHVuZGVmaW5lZCksCiAgICAgICAgICAgIHBhcnRpY2lwYW50OgogICAgICAgICAgICAgICh0eXBlb2YgZW50cnkucGFydGljaXBhbnQgPT09ICdzdHJpbmcnID8gZW50cnkucGFydGljaXBhbnQgOiB1bmRlZmluZWQpID8/CiAgICAgICAgICAgICAgKHR5cGVvZiBiYXNlRGF0YS5wYXJ0aWNpcGFudCA9PT0gJ3N0cmluZycgPyBiYXNlRGF0YS5wYXJ0aWNpcGFudCA6IHVuZGVmaW5lZCkgPz8KICAgICAgICAgICAgICAodHlwZW9mIGtleVNvdXJjZT8ucGFydGljaXBhbnQgPT09ICdzdHJpbmcnID8ga2V5U291cmNlLnBhcnRpY2lwYW50IDogdW5kZWZpbmVkKSwKICAgICAgICAgICAgcGFydGljaXBhbnRBbHQ6CiAgICAgICAgICAgICAgKHR5cGVvZiBlbnRyeS5wYXJ0aWNpcGFudEFsdCA9PT0gJ3N0cmluZycgPyBlbnRyeS5wYXJ0aWNpcGFudEFsdCA6IHVuZGVmaW5lZCkgPz8KICAgICAgICAgICAgICAodHlwZW9mIGJhc2VEYXRhLnBhcnRpY2lwYW50QWx0ID09PSAnc3RyaW5nJyA/IGJhc2VEYXRhLnBhcnRpY2lwYW50QWx0IDogdW5kZWZpbmVkKSA/PwogICAgICAgICAgICAgICh0eXBlb2Yga2V5U291cmNlPy5wYXJ0aWNpcGFudEFsdCA9PT0gJ3N0cmluZycgPyBrZXlTb3VyY2UucGFydGljaXBhbnRBbHQgOiB1bmRlZmluZWQpLAogICAgICAgICAgfTsKCiAgICAgICAgICBjb25zdCBoYXNSZWFjdGlvbiA9ICEhKGVudHJ5Lm1lc3NhZ2UgYXMgUmVjb3JkPHN0cmluZyx1bmtub3duPik/LnJlYWN0aW9uTWVzc2FnZQogICAgICAgICAgICB8fCAhIShiYXNlRGF0YS5tZXNzYWdlIGFzIFJlY29yZDxzdHJpbmcsdW5rbm93bj4pPy5yZWFjdGlvbk1lc3NhZ2U7CiAgICAgICAgICBjb25zb2xlLmxvZyhgW3dlYmhvb2tdWyR7cmVxdWVzdElkfV1bbXNnLnVwc2VydF0gaWQ9JHtleHRlcm5hbElkfSBmcm9tTWU9JHtrZXkuZnJvbU1lfSBqaWQ9JHtyZWRhY3RKaWQoa2V5LnJlbW90ZUppZCl9IHJlYWN0aW9uPSR7aGFzUmVhY3Rpb259YCk7CgogICAgICAgICAgY29uc3QgbXNnID0gKGVudHJ5Lm1lc3NhZ2UgfHwgYmFzZURhdGEubWVzc2FnZSkgYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj4gfCB1bmRlZmluZWQ7CiAgICAgICAgICBpZiAobXNnPy5yZWFjdGlvbk1lc3NhZ2UpIHsKICAgICAgICAgICAgYXdhaXQgaGFuZGxlUmVhY3Rpb25FdmVudChzdXBhYmFzZSwgaW5zdGFuY2UsIG1zZy5yZWFjdGlvbk1lc3NhZ2UgYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj4sICEha2V5LmZyb21NZSk7CiAgICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgICAgfQoKICAgICAgICAgIGlmICgha2V5LmZyb21NZSkgewogICAgICAgICAgICBhd2FpdCBoYW5kbGVJbmNvbWluZ01lc3NhZ2Uoc3VwYWJhc2UsIGluc3RhbmNlLCB7IC4uLmJhc2VEYXRhLCAuLi5lbnRyeSB9LCBrZXksIHN1cGFiYXNlVXJsLCBzdXBhYmFzZVNlcnZpY2VLZXkpOwogICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgYXdhaXQgaGFuZGxlT3V0Z29pbmdXaGF0c0FwcE1lc3NhZ2Uoc3VwYWJhc2UsIGluc3RhbmNlLCB7IC4uLmJhc2VEYXRhLCAuLi5lbnRyeSB9LCBrZXkpOwogICAgICAgICAgfQogICAgICAgIH0gY2F0Y2ggKGVudHJ5RXJyb3I6IHVua25vd24pIHsKICAgICAgICAgIGNvbnN0IGVudHJ5RGV0YWlsID0gZW50cnlFcnJvciBpbnN0YW5jZW9mIEVycm9yID8gZW50cnlFcnJvci5tZXNzYWdlIDogU3RyaW5nKGVudHJ5RXJyb3IpOwogICAgICAgICAgY29uc29sZS5lcnJvcihyZWRhY3RTZWNyZXRzKGBbd2ViaG9va11bJHtyZXF1ZXN0SWR9XVttc2cudXBzZXJ0XSBlbnRyeV9lcnJvciBpbnN0YW5jZT0ke2luc3RhbmNlfTogJHtlbnRyeURldGFpbH1gKSk7CiAgICAgICAgICBhd2FpdCByb3V0ZVRvRGVhZExldHRlcihzdXBhYmFzZSwgewogICAgICAgICAgICBldmVudF90eXBlOiBldmVudCwgaW5zdGFuY2UsIHBheWxvYWQ6IGVudHJ5LAogICAgICAgICAgICBlcnJvcl9tZXNzYWdlOiBlbnRyeURldGFpbCwgZXJyb3Jfc3RhY2s6IGVudHJ5RXJyb3IgaW5zdGFuY2VvZiBFcnJvciA/IGVudHJ5RXJyb3Iuc3RhY2sgPz8gbnVsbCA6IG51bGwsCiAgICAgICAgICAgIHJlcXVlc3RfaWQ6IHJlcXVlc3RJZCwKICAgICAgICAgIH0pOwogICAgICAgIH0KICAgICAgfQogICAgfQoKICAgIGlmIChldmVudCA9PT0gJ3NlbmQubWVzc2FnZScpIGF3YWl0IGhhbmRsZVNlbmRNZXNzYWdlKHN1cGFiYXNlLCBpbnN0YW5jZSwgZGF0YSwgYmFzZURhdGEpOwogICAgaWYgKGV2ZW50ID09PSAnbWVzc2FnZXMudXBkYXRlJykgYXdhaXQgaGFuZGxlTWVzc2FnZXNVcGRhdGUoc3VwYWJhc2UsIGluc3RhbmNlLCBkYXRhLCBiYXNlRGF0YSk7CiAgICBpZiAoZXZlbnQgPT09ICdtZXNzYWdlcy5kZWxldGUnKSBhd2FpdCBoYW5kbGVNZXNzYWdlc0RlbGV0ZShzdXBhYmFzZSwgaW5zdGFuY2UsIGRhdGEsIGJhc2VEYXRhKTsKICAgIGlmIChldmVudCA9PT0gJ2NvbnRhY3RzLnVwc2VydCcgfHwgZXZlbnQgPT09ICdjb250YWN0cy51cGRhdGUnKSBhd2FpdCBoYW5kbGVDb250YWN0c1Vwc2VydChzdXBhYmFzZSwgaW5zdGFuY2UsIGRhdGEpOwogICAgaWYgKGV2ZW50ID09PSAncHJlc2VuY2UudXBkYXRlJykgYXdhaXQgaGFuZGxlUHJlc2VuY2VVcGRhdGUoc3VwYWJhc2UsIGluc3RhbmNlLCBkYXRhKTsKICAgIGlmIChldmVudCA9PT0gJ2NoYXRzLnVwc2VydCcgfHwgZXZlbnQgPT09ICdjaGF0cy51cGRhdGUnKSBhd2FpdCBoYW5kbGVDaGF0c1VwZGF0ZShzdXBhYmFzZSwgaW5zdGFuY2UsIGRhdGEpOwoKICAgIGlmIChldmVudCA9PT0gJ2dyb3Vwcy51cHNlcnQnIHx8IGV2ZW50ID09PSAnZ3JvdXAudXBkYXRlJykgewogICAgICBhd2FpdCBoYW5kbGVHcm91cHNVcHNlcnQoc3VwYWJhc2UsIGluc3RhbmNlLCBkYXRhKTsKICAgIH0KCiAgICBpZiAoZXZlbnQgPT09ICdncm91cC5wYXJ0aWNpcGFudHMudXBkYXRlJyB8fCBldmVudCA9PT0gJ2dyb3VwLXBhcnRpY2lwYW50cy51cGRhdGUnKSB7CiAgICAgIGF3YWl0IGhhbmRsZUdyb3VwUGFydGljaXBhbnRzVXBkYXRlKHN1cGFiYXNlLCBpbnN0YW5jZSwgZGF0YSk7CiAgICB9CgogICAgaWYgKGV2ZW50ID09PSAnbGFiZWxzLmVkaXQnKSBhd2FpdCBoYW5kbGVMYWJlbHNFZGl0KHN1cGFiYXNlLCBpbnN0YW5jZSwgZGF0YSk7CiAgICBpZiAoZXZlbnQgPT09ICdsYWJlbHMuYXNzb2NpYXRpb24nKSBhd2FpdCBoYW5kbGVMYWJlbHNBc3NvY2lhdGlvbihzdXBhYmFzZSwgaW5zdGFuY2UsIGRhdGEpOwogICAgaWYgKGV2ZW50ID09PSAnY2FsbCcpIGF3YWl0IGhhbmRsZUNhbGxFdmVudChzdXBhYmFzZSwgaW5zdGFuY2UsIGRhdGEpOwogICAgaWYgKGV2ZW50ID09PSAnY2hhdHMuZGVsZXRlJykgYXdhaXQgaGFuZGxlQ2hhdHNEZWxldGUoc3VwYWJhc2UsIGluc3RhbmNlLCBkYXRhKTsKICAgIGlmIChldmVudCA9PT0gJ2FwcGxpY2F0aW9uLnN0YXJ0dXAnKSBhd2FpdCBoYW5kbGVBcHBsaWNhdGlvblN0YXJ0dXAoc3VwYWJhc2UsIGluc3RhbmNlKTsKICAgIGlmIChldmVudCA9PT0gJ21lc3NhZ2VzLnNldCcpIGF3YWl0IGhhbmRsZU1lc3NhZ2VzU2V0KHN1cGFiYXNlLCBpbnN0YW5jZSwgZGF0YSk7CiAgICBpZiAoZXZlbnQgPT09ICdjb250YWN0cy5zZXQnKSBhd2FpdCBoYW5kbGVDb250YWN0c1NldChzdXBhYmFzZSwgaW5zdGFuY2UsIGRhdGEpOwogICAgaWYgKGV2ZW50ID09PSAnY2hhdHMuc2V0JykgYXdhaXQgaGFuZGxlQ2hhdHNTZXQoc3VwYWJhc2UsIGluc3RhbmNlLCBkYXRhKTsKICAgIGlmIChldmVudCA9PT0gJ21lc3NhZ2VzLmVkaXRlZCcgfHwgZXZlbnQgPT09ICdtZXNzYWdlcy5lZGl0JykgYXdhaXQgaGFuZGxlTWVzc2FnZXNFZGl0ZWQoc3VwYWJhc2UsIGluc3RhbmNlLCBkYXRhLCBiYXNlRGF0YSk7CgogICAgYXdhaXQgYXVkaXRXZWJob29rRXZlbnQoc3VwYWJhc2UsIHsKICAgICAgcmVxdWVzdF9pZDogcmVxdWVzdElkLCBpbnN0YW5jZSwgZXZlbnRfdHlwZTogZXZlbnQsIHN0YXR1czogJ3Byb2Nlc3NlZCcsCiAgICAgIGR1cmF0aW9uX21zOiBEYXRlLm5vdygpIC0gc3RhcnRlZEF0LAogICAgfSk7CiAgICByZXR1cm4gbmV3IFJlc3BvbnNlKEpTT04uc3RyaW5naWZ5KHsgc3VjY2VzczogdHJ1ZSwgcmVxdWVzdElkIH0pLCB7IHN0YXR1czogMjAwLCBoZWFkZXJzOiBjb3JzSGVhZGVycyB9KTsKICB9IGNhdGNoIChlcnJvcjogdW5rbm93bikgewogICAgLy8gTG9naWNhbC9oYW5kbGVyIGVycm9yczogbG9nIHRoZSBkZXRhaWwgaW50ZXJuYWxseSwgcmV0dXJuIDIwMCB0byBldm8gc28gaXQgZG9lcyBub3QKICAgIC8vIHJldHJ5LXN0b3JtIHRoZSBzYW1lIGV2ZW50LiBUaGUgaWRlbXBvdGVuY3kgZ3VhcmQgYWJvdmUgbWFya3MgdGhlIGV2ZW50IHByb2Nlc3NlZAogICAgLy8gQkVGT1JFIHRoZSBoYW5kbGVyIHJ1bnMsIHNvIHdpdGhvdXQgYSBETFEgYSBoYW5kbGVyIGZhaWx1cmUgaGVyZSBpcyBwZXJtYW5lbnQsCiAgICAvLyBzaWxlbnQgZGF0YSBsb3NzICh0aGUgZXhhY3Qgd3BwMiBnYXAgdGhpcyBjb250cmFjdCB0ZXN0IGd1YXJkcyBhZ2FpbnN0IOKAlCBzZWUKICAgIC8vIGV2b2x1dGlvbi13ZWJob29rL19fdGVzdHNfXy9jb250cmFjdC50ZXN0LnRzKS4gUm91dGUgdG8gdGhlIERMUSBiZWZvcmUgYXVkaXRpbmcgc28KICAgIC8vIHRoZSBsb3NzIGlzIHJlY292ZXJhYmxlIGV2ZW4gaWYgdGhlIGF1ZGl0IGluc2VydCBpdHNlbGYgZmFpbHMuCiAgICBjb25zdCBkZXRhaWwgPSBlcnJvciBpbnN0YW5jZW9mIEVycm9yID8gZXJyb3IubWVzc2FnZSA6IFN0cmluZyhlcnJvcik7CiAgICBjb25zb2xlLmVycm9yKHJlZGFjdFNlY3JldHMoYFt3ZWJob29rXVske3JlcXVlc3RJZH1dIGhhbmRsZXJfZXJyb3IgZXZlbnQ9JHtldmVudH0gaW5zdGFuY2U9JHtpbnN0YW5jZX06ICR7ZGV0YWlsfWApKTsKICAgIGF3YWl0IHJvdXRlVG9EZWFkTGV0dGVyKHN1cGFiYXNlLCB7CiAgICAgIGV2ZW50X3R5cGU6IGV2ZW50LCBpbnN0YW5jZSwgcGF5bG9hZCwKICAgICAgZXJyb3JfbWVzc2FnZTogZGV0YWlsLCBlcnJvcl9zdGFjazogZXJyb3IgaW5zdGFuY2VvZiBFcnJvciA/IGVycm9yLnN0YWNrID8/IG51bGwgOiBudWxsLAogICAgICByZXF1ZXN0X2lkOiByZXF1ZXN0SWQsCiAgICB9KTsKICAgIGF3YWl0IGF1ZGl0V2ViaG9va0V2ZW50KHN1cGFiYXNlLCB7CiAgICAgIHJlcXVlc3RfaWQ6IHJlcXVlc3RJZCwgaW5zdGFuY2UsIGV2ZW50X3R5cGU6IGV2ZW50LCBzdGF0dXM6ICdlcnJvcicsCiAgICAgIGR1cmF0aW9uX21zOiBEYXRlLm5vdygpIC0gc3RhcnRlZEF0LCBlcnJvcl9tZXNzYWdlOiBkZXRhaWwuc2xpY2UoMCwgNTAwKSwKICAgIH0pOwogICAgcmV0dXJuIG5ldyBSZXNwb25zZSgKICAgICAgSlNPTi5zdHJpbmdpZnkoeyBzdWNjZXNzOiBmYWxzZSwgZXJyb3I6ICdpbnRlcm5hbF9lcnJvcicsIHJlcXVlc3RJZCB9KSwKICAgICAgeyBzdGF0dXM6IDIwMCwgaGVhZGVyczogY29yc0hlYWRlcnMgfSwKICAgICk7CiAgfQp9KTsK
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
+import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
+import {
+  isRecord, normalizeEventName, toEventRecords,
+  handleReactionEvent, redactJid, generateRequestId,
+  sha256Hex, markEventProcessed, auditWebhookEvent,
+  routeToDeadLetter, instanceOrFilter,
+  type WebhookPayload,
+} from "../_shared/evolution-helpers.ts";
+import { parseMessageContent } from "../_shared/evolution-media.ts";
+import {
+  handleConnectionUpdate, handleSendMessage, handleMessagesUpdate, handleMessagesDelete,
+  handleContactsUpsert, handlePresenceUpdate, handleChatsUpdate,
+  handleLabelsEdit, handleLabelsAssociation, handleCallEvent,
+  handleChatsDelete, handleApplicationStartup, handleMessagesSet,
+  handleContactsSet, handleChatsSet, handleMessagesEdited,
+  handleLogoutInstance, handleGroupsUpsert, handleGroupParticipantsUpdate,
+} from "../_shared/evolution-webhook-handlers.ts";
+import {
+  handleIncomingMessage, handleOutgoingWhatsAppMessage,
+} from "../_shared/evolution-webhook-messages.ts";
+import { createWebhookValidator, readWebhookSecretsFromEnv } from "../_shared/hmac-validation.ts";
+import { isInstancePaused, recordAuthFailureAndMaybePause } from "../_shared/instance-pause.ts";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
+
+// Multi-secret support enables zero-downtime rotation:
+//   - EVOLUTION_WEBHOOK_SECRETS=new,old  → validate both, sign with `new`
+//   - EVOLUTION_WEBHOOK_SECRET=single    → legacy single-secret mode
+// Falls back to the older WEBHOOK_SECRET env name for backwards compatibility.
+const WEBHOOK_SECRETS = (() => {
+  const evo = readWebhookSecretsFromEnv('EVOLUTION_WEBHOOK');
+  if (evo.length > 0) return evo;
+  const legacy = Deno.env.get('WEBHOOK_SECRET');
+  return legacy ? [legacy] : [];
+})();
+const STRICT_MODE = (Deno.env.get('EVOLUTION_WEBHOOK_STRICT') ?? 'true').toLowerCase() !== 'false';
+const validateWebhook = WEBHOOK_SECRETS.length > 0
+  ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE)
+  : null;
+
+// [PATCH 2026-07-04 registry-guard] So processa eventos de instancias cadastradas em
+// instance_registry (existencia, nao is_active - evita perda de dados de instancia nova
+// ainda nao ativada). Cache em memoria TTL 60s. Fail-open (null) em erro de lookup para
+// nao derrubar o pipeline por falha transitoria do PostgREST.
+const __registryCache = new Map<string, { known: boolean; at: number }>();
+const __REGISTRY_TTL_MS = 60_000;
+// deno-lint-ignore no-explicit-any
+async function isKnownInstance(supabase: any, instance: string): Promise<boolean | null> {
+  if (!instance) return false;
+  const hit = __registryCache.get(instance);
+  if (hit && Date.now() - hit.at < __REGISTRY_TTL_MS) return hit.known;
+  try {
+    const { data, error } = await supabase.from('instance_registry')
+      .select('instance_name').eq('instance_name', instance).limit(1).maybeSingle();
+    if (error) { console.error(`[registry-guard] lookup error: ${error.message}`); return null; }
+    const known = !!data;
+    __registryCache.set(instance, { known, at: Date.now() });
+    return known;
+  } catch (e) {
+    console.error(`[registry-guard] lookup exception: ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+}
+
+serve(async (req) => {
+  const requestId = generateRequestId();
+  const startedAt = Date.now();
+  const baseHeaders = { 'Content-Type': 'application/json', 'x-request-id': requestId };
+
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+  const corsHeaders = { ...getCorsHeaders(req), ...baseHeaders };
+
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+  }
+
+  const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+  const supabaseServiceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // HMAC validation before reading body as JSON so we can verify on raw text.
+  let rawBody: string;
+  // Tenta extrair instância do header (alguns webhooks Evolution mandam) p/ contar falhas
+  // antes mesmo de parsear o body. Cai em 'unknown' se não houver.
+  const headerInstance = req.headers.get('x-evolution-instance') || req.headers.get('x-instance') || null;
+
+  // [PATCH 2026-07-03] Auth por secret estatico: Evolution API envia header fixo x-webhook-secret,
+  // nao assina HMAC por payload. Comparacao timing-safe contra os secrets configurados.
+  const __tsEq = (a: string, b: string): boolean => { if (a.length !== b.length) { let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ (b.charCodeAt(i % (b.length || 1)) || 0); return false; } let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; };
+  const __staticSecret = req.headers.get('x-webhook-secret');
+  const __staticSecretOk = __staticSecret !== null && WEBHOOK_SECRETS.some((s) => __tsEq(__staticSecret, s));
+  if (__staticSecretOk) {
+    rawBody = await req.text();
+  } else if (validateWebhook) {
+    const result = await validateWebhook(req);
+    if (!result.valid) {
+      console.warn(redactSecrets(`[webhook][${requestId}] rejected: ${result.error ?? 'unknown'} signatureFound=${result.signatureFound}`));
+      // Auto-pause: conta invalid_signature na janela e persiste o evento
+      recordAuthFailureAndMaybePause(supabase, headerInstance ?? 'unknown', 'invalid_signature', 'webhook', { message: result.error ?? 'invalid_signature' });
+      await auditWebhookEvent(supabase, {
+        request_id: requestId, status: 'rejected',
+        error_message: result.error ?? 'invalid_signature',
+        duration_ms: Date.now() - startedAt,
+      });
+      return new Response(
+        JSON.stringify({ error: 'unauthorized', reason: result.error ?? 'invalid_signature', requestId }),
+        { status: 401, headers: corsHeaders },
+      );
+    }
+    rawBody = result.payload ?? '';
+  } else {
+    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped`));
+    rawBody = await req.text();
+  }
+
+  let payload: WebhookPayload;
+  try {
+    const json = JSON.parse(rawBody);
+    const parsed = WebhookPayloadSchema.safeParse(json);
+    if (!parsed.success) {
+      console.warn(`[webhook][${requestId}] contract_violation:`, parsed.error.issues);
+      await auditWebhookEvent(supabase, {
+        request_id: requestId, status: 'rejected', error_message: 'contract_violation',
+        duration_ms: Date.now() - startedAt,
+      });
+      return contractErrorResponse(
+        'INVALID_WEBHOOK_PAYLOAD',
+        'Payload does not match Evolution Webhook contract',
+        parsed.error.issues,
+        requestId,
+        req
+      );
+    }
+    payload = parsed.data as WebhookPayload;
+  } catch {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, status: 'rejected', error_message: 'invalid_json',
+      duration_ms: Date.now() - startedAt,
+    });
+    return new Response(JSON.stringify({ error: 'invalid_json', requestId }), { status: 400, headers: corsHeaders });
+  }
+
+  const event = normalizeEventName(payload.event);
+  const instance = payload.instance;
+  const data = payload.data ?? {};
+  const baseData = isRecord(data) ? data : {};
+
+  // Pause guard: se a instância foi pausada (manual ou auto), descarta o evento
+  // com 503 e audit 'rejected'. A Evolution costuma retry-arr, mas durante a
+  // janela de pausa preferimos isso a continuar processando lixo.
+  if (await isInstancePaused(supabase, instance)) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'rejected',
+      error_message: 'instance_paused',
+      duration_ms: Date.now() - startedAt,
+    });
+    console.warn(`[webhook][${requestId}] instance=${instance} is paused — skipping event ${event}`);
+    return new Response(
+      JSON.stringify({ error: 'instance_paused', instance, requestId }),
+      { status: 503, headers: { ...corsHeaders, 'Retry-After': '60' } },
+    );
+  }
+
+  // [PATCH 2026-07-04 registry-guard] Instancia desconhecida => HTTP 200 + skip total
+  // (200 evita retry-storm do consumer; nada e persistido) + audit rejected/unknown_instance
+  // + log de seguranca. Lookup com falha (null) => fail-open, segue o fluxo normal.
+  const __knownInstance = await isKnownInstance(supabase, instance);
+  if (__knownInstance === false) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'rejected',
+      error_message: 'unknown_instance',
+      duration_ms: Date.now() - startedAt,
+    });
+    console.warn(`[webhook][${requestId}] SECURITY unknown_instance='${instance}' event=${event} - ignored`);
+    return new Response(
+      JSON.stringify({ success: true, ignored: true, reason: 'unknown_instance', requestId }),
+      { status: 200, headers: corsHeaders },
+    );
+  }
+
+  // [ORDER 2026-07-04] Idempotency ANTES do rate-limit: retries duplicados do Evolution nao consomem quota.
+  // Dedup by hash of (instance + event + body); se ja vimos este event_id, short-circuit 200.
+  const bodyHash = await sha256Hex(rawBody);
+  const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
+  const isNew = await markEventProcessed(supabase, eventId, instance, event);
+  if (!isNew) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'duplicate',
+      duration_ms: Date.now() - startedAt,
+    });
+    console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
+    return new Response(JSON.stringify({ success: true, duplicate: true, requestId }), { status: 200, headers: corsHeaders });
+  }
+
+  // Rate Limit guard: conta apenas eventos UNICOS (idempotency ja filtrou retries)
+  // [FIX 2026-07-06] Limites por event-type: eventos de sync de alto volume recebiam 429
+  // em bursts normais (sync grupos, atualizacao em massa de contatos). Default 300/min mantido.
+  const EVENT_RATE_LIMITS: Record<string, number> = {
+    "chats.update":    2000, // sync de chat: gerado por toda mensagem recebida
+    "contacts.update": 1000, // importacao/sync de contatos em massa
+    "messages.upsert":  600, // 2x default: bursts em grupos grandes
+    "groups.upsert":    600, // sincronizacao inicial de grupos
+  };
+  const rateLimit = await checkRateLimit(supabase, {
+    instanceId: instance || 'unknown',
+    eventType: event,
+    limit: EVENT_RATE_LIMITS[event] ?? 300,
+  });
+  if (!rateLimit.allowed) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'rejected',
+      error_message: 'rate_limit_exceeded',
+      duration_ms: Date.now() - startedAt,
+    });
+    console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit})`);
+    return new Response(
+      JSON.stringify({ error: 'rate_limit_exceeded', instance, requestId }),
+      { status: 429, headers: corsHeaders }
+    );
+  }
+
+  console.log(`[webhook][${requestId}] received raw=${payload.event} norm=${event} instance=${instance}`);
+
+  try {
+    if (event === 'connection.update') await handleConnectionUpdate(supabase, instance, baseData);
+
+    if (event === 'logout.instance') await handleLogoutInstance(supabase, instance, baseData);
+
+    if (event === 'qrcode.updated') {
+      const qrCode = (baseData.qrcode as Record<string, string>)?.base64;
+      if (qrCode) {
+        await supabase.from('whatsapp_connections')
+          .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
+          .or(instanceOrFilter(instance));
+      }
+      // [FIX 2026-07-06] QR alert: notificar admin via n8n (fire-and-forget, nao bloqueia)
+      const _n8nQrUrl = 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
+      fetch(_n8nQrUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
+        signal: AbortSignal.timeout(4000),
+      }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
+    }
+
+    if (event === 'messages.upsert') {
+      const entries = toEventRecords(data, ['messages']);
+      console.log(`[webhook][${requestId}][msg.upsert] entries=${entries.length} instance=${instance}`);
+      for (const entry of entries) {
+        // Per-entry try/catch: a batch can carry several messages, and Baileys/Evolution
+        // sometimes ships one malformed entry alongside otherwise-healthy ones. Without
+        // this guard, one throwing entry aborts the loop and silently drops every
+        // remaining entry in the batch too (they never get a second chance — the whole
+        // event is already marked processed by the idempotency guard above). Isolate the
+        // failure to just this entry and dead-letter it so the rest of the batch lands.
+        try {
+          const keySource = isRecord(entry.key) ? entry.key : isRecord(baseData.key) ? baseData.key : null;
+          const externalId =
+            (typeof entry.id === 'string' && entry.id) ||
+            (typeof baseData.id === 'string' && baseData.id) ||
+            (typeof keySource?.id === 'string' && keySource.id) ||
+            null;
+
+          if (!externalId) {
+            console.log(`[webhook][${requestId}][msg.upsert] ignored: missing id`);
+            continue;
+          }
+
+          const key = {
+            id: externalId,
+            fromMe: Boolean(
+              (typeof entry.fromMe === 'boolean' ? entry.fromMe : undefined) ??
+              (typeof baseData.fromMe === 'boolean' ? baseData.fromMe : undefined) ??
+              (typeof keySource?.fromMe === 'boolean' ? keySource.fromMe : undefined) ??
+              false
+            ),
+            remoteJid:
+              (typeof entry.remoteJid === 'string' ? entry.remoteJid : undefined) ??
+              (typeof baseData.remoteJid === 'string' ? baseData.remoteJid : undefined) ??
+              (typeof keySource?.remoteJid === 'string' ? keySource.remoteJid : undefined),
+            remoteJidAlt:
+              (typeof entry.remoteJidAlt === 'string' ? entry.remoteJidAlt : undefined) ??
+              (typeof baseData.remoteJidAlt === 'string' ? baseData.remoteJidAlt : undefined) ??
+              (typeof keySource?.remoteJidAlt === 'string' ? keySource.remoteJidAlt : undefined),
+            participant:
+              (typeof entry.participant === 'string' ? entry.participant : undefined) ??
+              (typeof baseData.participant === 'string' ? baseData.participant : undefined) ??
+              (typeof keySource?.participant === 'string' ? keySource.participant : undefined),
+            participantAlt:
+              (typeof entry.participantAlt === 'string' ? entry.participantAlt : undefined) ??
+              (typeof baseData.participantAlt === 'string' ? baseData.participantAlt : undefined) ??
+              (typeof keySource?.participantAlt === 'string' ? keySource.participantAlt : undefined),
+          };
+
+          const hasReaction = !!(entry.message as Record<string,unknown>)?.reactionMessage
+            || !!(baseData.message as Record<string,unknown>)?.reactionMessage;
+          console.log(`[webhook][${requestId}][msg.upsert] id=${externalId} fromMe=${key.fromMe} jid=${redactJid(key.remoteJid)} reaction=${hasReaction}`);
+
+          const msg = (entry.message || baseData.message) as Record<string, unknown> | undefined;
+          if (msg?.reactionMessage) {
+            await handleReactionEvent(supabase, instance, msg.reactionMessage as Record<string, unknown>, !!key.fromMe);
+            continue;
+          }
+
+          if (!key.fromMe) {
+            await handleIncomingMessage(supabase, instance, { ...baseData, ...entry }, key, supabaseUrl, supabaseServiceKey);
+          } else {
+            await handleOutgoingWhatsAppMessage(supabase, instance, { ...baseData, ...entry }, key);
+          }
+        } catch (entryError: unknown) {
+          const entryDetail = entryError instanceof Error ? entryError.message : String(entryError);
+          console.error(redactSecrets(`[webhook][${requestId}][msg.upsert] entry_error instance=${instance}: ${entryDetail}`));
+          await routeToDeadLetter(supabase, {
+            event_type: event, instance, payload: entry,
+            error_message: entryDetail, error_stack: entryError instanceof Error ? entryError.stack ?? null : null,
+            request_id: requestId,
+          });
+        }
+      }
+    }
+
+    if (event === 'send.message') await handleSendMessage(supabase, instance, data, baseData);
+    if (event === 'messages.update') await handleMessagesUpdate(supabase, instance, data, baseData);
+    if (event === 'messages.delete') await handleMessagesDelete(supabase, instance, data, baseData);
+    if (event === 'contacts.upsert' || event === 'contacts.update') await handleContactsUpsert(supabase, instance, data);
+    if (event === 'presence.update') await handlePresenceUpdate(supabase, instance, data);
+    if (event === 'chats.upsert' || event === 'chats.update') await handleChatsUpdate(supabase, instance, data);
+
+    if (event === 'groups.upsert' || event === 'group.update') {
+      await handleGroupsUpsert(supabase, instance, data);
+    }
+
+    if (event === 'group.participants.update' || event === 'group-participants.update') {
+      await handleGroupParticipantsUpdate(supabase, instance, data);
+    }
+
+    if (event === 'labels.edit') await handleLabelsEdit(supabase, instance, data);
+    if (event === 'labels.association') await handleLabelsAssociation(supabase, instance, data);
+    if (event === 'call') await handleCallEvent(supabase, instance, data);
+    if (event === 'chats.delete') await handleChatsDelete(supabase, instance, data);
+    if (event === 'application.startup') await handleApplicationStartup(supabase, instance);
+    if (event === 'messages.set') await handleMessagesSet(supabase, instance, data);
+    if (event === 'contacts.set') await handleContactsSet(supabase, instance, data);
+    if (event === 'chats.set') await handleChatsSet(supabase, instance, data);
+    if (event === 'messages.edited' || event === 'messages.edit') await handleMessagesEdited(supabase, instance, data, baseData);
+
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'processed',
+      duration_ms: Date.now() - startedAt,
+    });
+    return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: corsHeaders });
+  } catch (error: unknown) {
+    // Logical/handler errors: log the detail internally, return 200 to evo so it does not
+    // retry-storm the same event. The idempotency guard above marks the event processed
+    // BEFORE the handler runs, so without a DLQ a handler failure here is permanent,
+    // silent data loss (the exact wpp2 gap this contract test guards against — see
+    // evolution-webhook/__tests__/contract.test.ts). Route to the DLQ before auditing so
+    // the loss is recoverable even if the audit insert itself fails.
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error(redactSecrets(`[webhook][${requestId}] handler_error event=${event} instance=${instance}: ${detail}`));
+    await routeToDeadLetter(supabase, {
+      event_type: event, instance, payload,
+      error_message: detail, error_stack: error instanceof Error ? error.stack ?? null : null,
+      request_id: requestId,
+    });
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'error',
+      duration_ms: Date.now() - startedAt, error_message: detail.slice(0, 500),
+    });
+    return new Response(
+      JSON.stringify({ success: false, error: 'internal_error', requestId }),
+      { status: 200, headers: corsHeaders },
+    );
+  }
+});
