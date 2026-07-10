@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { parseOrReject } from "../_shared/contract-kit.ts";
+import { ElevenLabsWebhookV1Schema } from "../_shared/contract-schemas.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -18,10 +20,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json().catch(() => null);
-    if (!body || typeof body !== 'object') {
-      return errorResponse('Invalid JSON payload', 400, req);
-    }
+    const raw = await req.json().catch(() => null);
+    // Contrato elevenlabs-webhook@v1: envelope 422 único em payload inválido.
+    const parsed = parseOrReject('elevenlabs-webhook', { v1: ElevenLabsWebhookV1Schema }, req, raw, {
+      requestId: log.getRequestId?.() ?? undefined,
+    });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, unknown>;
 
     const eventType = String(body.type || body.event_type || 'unknown').slice(0, 100);
     log.info(`event=${eventType}`);
