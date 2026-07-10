@@ -1,4 +1,4 @@
-import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
+import { whatsappConnectionRepository } from '../data-access/whatsappConnectionRepository';
 import { supabase } from '@/integrations/supabase/client';
 
 import { getLogger } from '@/lib/logger';
