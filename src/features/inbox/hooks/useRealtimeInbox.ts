@@ -89,13 +89,18 @@ export function useRealtimeInbox() {
 
     let cancelled = false;
     const loadSelectedContact = async () => {
-      // FIX B1: em external mode o handshake pode chegar como JID; procurar por
-      // id (UUID) OU por phone (dígitos extraídos do JID) para hidratar o card.
-      const isJid = typeof selectedContactId === 'string' && selectedContactId.includes('@');
-      const phone = isJid ? selectedContactId.split('@')[0].replace(/\D/g, '') : null;
+      // FIX B1: o handshake pode chegar como UUID, JID (`num@s.whatsapp.net`)
+      // ou telefone puro (só dígitos). Detectamos qual é para não enviar telefone
+      // para a coluna `id` (UUID) — isso causa 400 no PostgREST.
+      const raw = String(selectedContactId);
+      const isJid = raw.includes('@');
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
+      const phone = isJid
+        ? raw.split('@')[0].replace(/\D/g, '')
+        : (!isUuid ? raw.replace(/\D/g, '') : null);
 
       let query = supabase.from('contacts').select('*');
-      query = isJid && phone ? query.eq('phone', phone) : query.eq('id', selectedContactId);
+      query = phone && !isUuid ? query.eq('phone', phone) : query.eq('id', raw);
 
       const { data, error } = await query.maybeSingle();
       if (!cancelled && !error) setSelectedContactFallback(data || null);
