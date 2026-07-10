@@ -140,7 +140,7 @@ export function useFileUploadLogic(opts: {
     const [result, dbResult] = await Promise.all([apiPromise, dbPromise]);
     const externalId = extractEvolutionMessageId(result);
     if (dbResult?.data?.id && externalId) {
-      dbFrom('messages').update({ external_id: externalId, status: 'sent' }).eq('id', dbResult.data.id).then(() => {}).catch(() => {});
+      void Promise.resolve(dbFrom('messages').update({ external_id: externalId, status: 'sent' }).eq('id', dbResult.data.id)).then(() => {}, () => {});
     }
     return { result, mediaUrl, category };
   }, [instanceName, recipientNumber, contactId, connectionId, uploadFileToStorage, sendMediaMessage, sendAudioMessage]);
