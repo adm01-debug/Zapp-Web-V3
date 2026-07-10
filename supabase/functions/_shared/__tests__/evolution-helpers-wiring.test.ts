@@ -331,7 +331,8 @@ Deno.test('JID guards | contacts.set style: @g.us || @broadcast || @lid all bloc
 });
 
 Deno.test('JID guards | null JID: optional chaining returns undefined (falsy)', () => {
-  const jid: string | null = null;
+  // Use resolveEventJid() (returns string | null) so TypeScript doesn't narrow to literal null
+  const jid = resolveEventJid(); // null when no sources provided
   // jid?.includes('@g.us') → undefined (falsy) → guard does NOT block
   assert(!jid?.includes('@g.us'), 'null: not blocked by includes-guard');
   // lidgus guard: !null → true → BLOCKED
@@ -534,8 +535,8 @@ Deno.test('chain | @lid alpha JID: GAP-B/C — alpha phone proceeds to DB (no gu
 });
 
 Deno.test('chain | null/undefined inputs are safe throughout chain', () => {
-  assertEquals(normalizePhone(null), null);
   assertEquals(normalizePhone(undefined), null);
+  assertEquals(normalizePhone(), null);
   assertEquals(normalizePhone(''), null);
 });
 
@@ -718,8 +719,8 @@ Deno.test('BUG-4 | empty/special inputs do not produce spurious "+" variant', ()
 });
 
 Deno.test('BUG-4 | normalizePhone null/undefined/empty all return null', () => {
-  assertEquals(normalizePhone(null), null);
   assertEquals(normalizePhone(undefined), null);
+  assertEquals(normalizePhone(), null);
   assertEquals(normalizePhone(''), null);
   assertEquals(normalizePhone('+'), null);
 });
