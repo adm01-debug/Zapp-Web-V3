@@ -2,3 +2,6 @@
 # Regra ratchet: NÃO adicionar itens sem justificativa na própria linha.
 src/lib/mcp/index.ts  # consumido FORA do grafo TS: plugin @lovable.dev/mcp-js bundla p/ supabase/functions/mcp no vite build
 src/lib/__mocks__/logger.ts  # convenção vitest: vi.mock('@/lib/logger') resolve __mocks__ automaticamente
+src/lib/stressTest/runner.ts  # kit de stress test — orquestrador top-level executado diretamente, não importado no grafo TS do app
+src/lib/stressTest/accessibilityChecker.ts  # kit de stress test — utilitário interno do runner, não entra no bundle do app
+src/lib/stressTest/mediaSamplers.ts  # kit de stress test — utilitário interno do runner, não entra no bundle do app
