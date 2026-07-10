@@ -13,7 +13,11 @@
 //   - WEBHOOK_AUTH_SPIKE_THRESHOLD  (default 10)
 //   - WEBHOOK_AUTH_PAUSE_MINUTES    (default 15)
 
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+// [FIX 2026-07-10] Tipo estrutural mínimo em vez de SupabaseClient pinado:
+// consumidores importam supabase-js em versões distintas (@2 vs @2.49.1) e os
+// generics da classe não são compatíveis entre si (TS2345 por variância).
+// deno-lint-ignore no-explicit-any
+type SupabaseClient = any;
 
 const PAUSE_CACHE_TTL_MS = 5_000;
 const _pauseCache = new Map<string, { value: boolean; expires: number }>();
