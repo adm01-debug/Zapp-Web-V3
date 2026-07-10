@@ -23,46 +23,41 @@ interface UploadResult {
  *    caller can decide whether to proceed without media.
  */
 export function useScheduledMediaUpload() {
-  const uploadScheduledMedia = useCallback(
-    async (attachment: File): Promise<UploadResult> => {
-      const fileName = `scheduled_${Date.now()}_${attachment.name}`;
-      let mediaUrl: string | undefined;
-      let messageType = 'text';
+  const uploadScheduledMedia = useCallback(async (attachment: File): Promise<UploadResult> => {
+    const fileName = `scheduled_${Date.now()}_${attachment.name}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('whatsapp-media')
-        .upload(fileName, attachment);
+    const { error: uploadError } = await supabase.storage
+      .from('whatsapp-media')
+      .upload(fileName, attachment);
 
-      if (uploadError) {
-        log.error('Scheduled media upload failed:', uploadError);
-        toast({
-          title: 'Erro no upload do anexo',
-          description: `Não foi possível anexar "${attachment.name}": ${uploadError.message}. A mensagem será agendada sem o anexo.`,
-          variant: 'destructive',
-        });
-        return { mediaUrl: undefined, messageType: 'text' };
-      }
+    if (uploadError) {
+      log.error('Scheduled media upload failed:', uploadError);
+      toast({
+        title: 'Erro no upload do anexo',
+        description: `Não foi possível anexar "${attachment.name}": ${uploadError.message}. A mensagem será agendada sem o anexo.`,
+        variant: 'destructive',
+      });
+      return { mediaUrl: undefined, messageType: 'text' };
+    }
 
-      // Use 7-day TTL (604800s) instead of 1-hour to support messages
-      // scheduled days in advance.
-      const { data: signedData , error } = await supabase.storage
-        .from('whatsapp-media')
-        .createSignedUrl(fileName, 604800);
+    // Use 7-day TTL (604800s) instead of 1-hour to support messages
+    // scheduled days in advance.
+    const { data: signedData, error } = await supabase.storage
+      .from('whatsapp-media')
+      .createSignedUrl(fileName, 604800);
 
-      mediaUrl = signedData?.signedUrl;
+    const mediaUrl = signedData?.signedUrl;
 
-      messageType = attachment.type.startsWith('audio')
-        ? 'audio'
-        : attachment.type.startsWith('image')
-          ? 'image'
-          : attachment.type.startsWith('video')
-            ? 'video'
-            : 'document';
+    const messageType = attachment.type.startsWith('audio')
+      ? 'audio'
+      : attachment.type.startsWith('image')
+        ? 'image'
+        : attachment.type.startsWith('video')
+          ? 'video'
+          : 'document';
 
-      return { mediaUrl, messageType };
-    },
-    [],
-  );
+    return { mediaUrl, messageType };
+  }, []);
 
   return { uploadScheduledMedia };
 }

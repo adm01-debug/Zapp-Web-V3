@@ -19,9 +19,17 @@ const SELF_HOSTED_ANON_KEY =
 // fallback sentinel would all pass as "configured" and then blow up at runtime
 // with ERR_NAME_NOT_RESOLVED / 401. We normalise and reject those here.
 const PLACEHOLDER_TOKENS = new Set([
-  'undefined', 'null', 'missing-anon-key', 'your-anon-key', 'your-project-url',
-  'your-supabase-url', 'your-supabase-anon-key', 'your_supabase_url',
-  'your_supabase_anon_key', 'changeme', 'todo',
+  'undefined',
+  'null',
+  'missing-anon-key',
+  'your-anon-key',
+  'your-project-url',
+  'your-supabase-url',
+  'your-supabase-anon-key',
+  'your_supabase_url',
+  'your_supabase_anon_key',
+  'changeme',
+  'todo',
 ]);
 const SENTINEL_HOST = 'supabase-unconfigured.invalid';
 
@@ -55,18 +63,13 @@ function isValidSupabaseKey(value: unknown): boolean {
 // ---------------------------------------------------------------------------
 const envUrl = import.meta.env.VITE_SUPABASE_URL;
 const envKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Detect Lovable-managed Cloud Supabase auto-injection
-const isLovableCloudUrl =
-  typeof envUrl === 'string' && envUrl.includes('.supabase.co');
+const isLovableCloudUrl = typeof envUrl === 'string' && envUrl.includes('.supabase.co');
 
 // Final URL: use env var only when it's a custom self-hosted URL (not .supabase.co)
-const SUPABASE_URL =
-  !isLovableCloudUrl && isValidSupabaseUrl(envUrl)
-    ? envUrl
-    : SELF_HOSTED_URL;
+const SUPABASE_URL = !isLovableCloudUrl && isValidSupabaseUrl(envUrl) ? envUrl : SELF_HOSTED_URL;
 
 // Final key: always use self-hosted key when connected to self-hosted URL
 // (Lovable's publishable key is bound to its own Cloud project and would fail here)
@@ -74,8 +77,8 @@ const SUPABASE_ANON_KEY =
   SUPABASE_URL === SELF_HOSTED_URL
     ? SELF_HOSTED_ANON_KEY
     : isValidSupabaseKey(envKey)
-    ? envKey
-    : SELF_HOSTED_ANON_KEY;
+      ? envKey
+      : SELF_HOSTED_ANON_KEY;
 
 /**
  * Single source of truth: `true` only when both URL and key look like real values.
@@ -103,7 +106,7 @@ if (!isSupabaseConfigured) {
     '[Supabase] URL ou chave inválida — verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'
   );
 } else if (import.meta.env.DEV) {
-  console.info(
+  console.warn(
     `[Supabase] Conectado: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
   );
 }
@@ -129,22 +132,18 @@ const getSupabaseStorage = () => {
 const realtimeReconnectAfterMs = (tries: number): number =>
   Math.min(1000 * 2 ** Math.max(0, tries - 1), 30000);
 
-export const supabase = createClient<Database>(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      storage: getSupabaseStorage(),
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce'
-    },
-    realtime: {
-      reconnectAfterMs: realtimeReconnectAfterMs
-    }
-  }
-);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: getSupabaseStorage(),
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
+  realtime: {
+    reconnectAfterMs: realtimeReconnectAfterMs,
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Systemic realtime guard (single choke point)
