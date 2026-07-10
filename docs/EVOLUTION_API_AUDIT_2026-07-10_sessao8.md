@@ -1,8 +1,9 @@
-# Auditoria Evolution API — Sessão 5
+# Auditoria Evolution API — Sessão 8 — Validação Pós-S4
 **Data:** 2026-07-10  
 **Branch:** `claude/evolution-api-audit-roedvy`  
 **Auditor:** Claude Code (Fable 5) — Senior Dev / PhD-level DB validation  
-**Escopo:** Validação exaustiva de TODAS as correções e melhorias implementadas nas Sessões 1–4
+**Escopo:** Validação exaustiva de TODAS as correções e melhorias implementadas nas Sessões 1–4  
+**Nota:** Este é o relatório de validação das Sessões 1–4. Sessões anteriores: S3/S4/S5 (2026-07-04), S6/S7 (2026-07-05).
 
 ---
 
@@ -159,10 +160,10 @@ Canal 2: n8n → Bitrix24 (external_webhook_url)
 ```json
 {
   "id": 1,
-  "target_jid": "120363221646752578@g.us",
+  "target_jid": "REDACTED@g.us",
   "instance": "wpp2",
   "enabled": true,
-  "external_webhook_url": "https://webhook.atomicabr.com.br/webhook/zapp-webb-critical-alert",
+  "external_webhook_url": "https://webhook.EXAMPLE.com/webhook/zapp-webb-critical-alert",
   "external_channel_type": "n8n_bitrix24_active",
   "updated_at": "2026-07-10T14:07:35.054Z"
 }
@@ -447,10 +448,9 @@ FROM _prisma_migrations WHERE finished_at IS NOT NULL;
 | `docs/EVOLUTION_API_AUDIT_2026-07-03.md` | Sessão 1 — Análise inicial |
 | `docs/EVOLUTION_API_AUDIT_2026-07-04_sessao3.md` | Sessão 3 — Correções de segurança |
 | `docs/EVOLUTION_API_AUDIT_2026-07-04_sessao4.md` | Sessão 4 — Otimizações e logpatch |
-| `docs/EVOLUTION_API_AUDIT_2026-07-10_sessao5.md` | **Este arquivo** — Validação exaustiva |
-| `docs/EVOLUTION_GAPS_ANALYSIS.md` | Análise de gaps acumulados |
+| `docs/EVOLUTION_API_AUDIT_2026-07-10_sessao8.md` | **Este arquivo** — Validação exaustiva S1–S4 |
 
 ---
 
-*Gerado em 2026-07-10 durante Sessão 5 de Auditoria Evolution API.*  
+*Gerado em 2026-07-10 durante Sessão 8 de Auditoria Evolution API (validação pós-S4).*  
 *Branch: `claude/evolution-api-audit-roedvy` | Repo: `adm01-debug/zapp-web-v3`*
