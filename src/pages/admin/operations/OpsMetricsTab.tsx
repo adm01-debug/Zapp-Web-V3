@@ -67,9 +67,10 @@ export function OpsMetricsTab() {
   const fetchMetrics = useMemo(
     () => async () => {
       setLoading(true);
-      const { data: res, error } = await supabase.rpc("rpc_ops_metrics" as unknown as Parameters<typeof supabase.rpc>[0], {
-        p_window_hours: Number(windowHours),
-      });
+      const { data: res, error } = await supabase.rpc(
+        "rpc_ops_metrics" as unknown as Parameters<typeof supabase.rpc>[0],
+        { p_window_hours: Number(windowHours) } as unknown as Parameters<typeof supabase.rpc>[1],
+      );
       if (error) {
         toast.error("Erro ao carregar métricas: " + error.message);
         setLoading(false);

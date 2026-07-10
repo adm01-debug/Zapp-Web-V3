@@ -128,8 +128,10 @@ export default function AdminWhatsAppModePage() {
     const next: WhatsAppMode = checked ? "official" : "unofficial";
     setSaving(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any).rpc("rpc_set_whatsapp_mode", { p_mode: next });
+      const { error } = await supabase.rpc(
+        "rpc_set_whatsapp_mode" as unknown as Parameters<typeof supabase.rpc>[0],
+        { p_mode: next } as unknown as Parameters<typeof supabase.rpc>[1],
+      );
       if (error) throw error;
       invalidateWhatsAppModeCache();
       setMode(next);

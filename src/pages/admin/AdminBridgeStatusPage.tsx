@@ -114,7 +114,10 @@ export default function BridgeStatusPage() {
     
     try {
       // 1. Check Lovable DB (Internal)
-      const { error: internalError } = await supabase.from('profiles').select('count').limit(1);
+      const { error: internalError } = await safeClient.from<{ id: string }>(
+        'profiles',
+        q => q.select('id').limit(1)
+      );
       if (mountedRef.current) setLovableDb(!internalError);
 
       // 2. Check External DB (FATOR X / Evolution)
@@ -141,7 +144,7 @@ export default function BridgeStatusPage() {
       const [countResult, { data: lastMsgArr }] = await Promise.all([
         supabase
           .from('provider_message_log' as unknown as Parameters<typeof supabase.from>[0])
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .gt('received_at', fiveMinsAgo),
         safeClient.from<{ received_at: string }>(
           'provider_message_log',
@@ -149,8 +152,11 @@ export default function BridgeStatusPage() {
         ),
       ]);
 
+      if (countResult.error) {
+        log.error('Failed to count recent traffic:', countResult.error);
+      }
       if (mountedRef.current) setRecentTraffic({
-        count: countResult.count ?? 0,
+        count: countResult.error ? 0 : (countResult.count ?? 0),
         last_at: lastMsgArr?.[0]?.received_at || null
       });
 
