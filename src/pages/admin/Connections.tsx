@@ -68,6 +68,9 @@ const initialConfig = getInitialConfig();
 const DEFAULT_EXTERNAL_URL = initialConfig.url;
 const DEFAULT_EXTERNAL_KEY = initialConfig.key;
 
+// MCP server endpoint (self-hosted canônico — migrado de cloud em 30/06/2026)
+const MCP_SERVER_URL = 'https://supabase.atomicabr.com.br/functions/v1/mcp-server';
+
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
   const [connections, setConnections] = useState<SystemConnectionRow[]>([]);
@@ -564,7 +567,7 @@ export default function AdminConnectionsPage() {
                       diretamente para modelos de linguagem usando o protocolo MCP da Anthropic.
                     </p>
                     <div className="flex items-center gap-2">
-                      <Input readOnly value="https://allrjhkpuscmgbsnmjlv.supabase.co/functions/v1/mcp-server" className="font-mono text-[10px]" />
+                      <Input readOnly value={MCP_SERVER_URL} className="font-mono text-[10px]" />
                       <Button size="icon" variant="ghost"><ExternalLink className="w-4 h-4" /></Button>
                     </div>
                   </div>
@@ -587,7 +590,7 @@ export default function AdminConnectionsPage() {
 {`"mcpServers": {
   "zapp-web": {
     "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-http", "https://.../mcp-server"],
+    "args": ["-y", "@modelcontextprotocol/server-http", "${MCP_SERVER_URL}"],
     "env": { "ZAPP_API_TOKEN": "SUA_CHAVE_AQUI" }
   }
 }`}
