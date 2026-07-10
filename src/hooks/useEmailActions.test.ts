@@ -8,6 +8,12 @@ const supabase = _supabase as any;
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
+    },
     functions: {
       invoke: vi.fn(),
     },
@@ -15,17 +21,14 @@ vi.mock('@/integrations/supabase/client', () => ({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn(),
     })),
+    removeChannel: vi.fn(),
   },
 }));
 
 vi.mock('@/integrations/supabase/safeClient', () => ({
   safeClient: {
     rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
-    })),
+    from: vi.fn().mockResolvedValue({ data: [], error: null }),
   },
 }));
 
