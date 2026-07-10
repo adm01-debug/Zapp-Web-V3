@@ -271,7 +271,9 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
         }}
         onOpenChat={(phone) => {
           setQuickViewContact(null);
-          openContactChat(phone);
+          // FIX B7: honrar override do consumidor da view quando disponível.
+          if (onOpenChat) onOpenChat(phone, quickViewContact?.name ?? '');
+          else openContactChat(phone);
         }}
       />
     </div>
