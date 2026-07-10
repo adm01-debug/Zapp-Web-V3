@@ -82,14 +82,22 @@ export function useRealtimeInbox() {
   );
 
   useEffect(() => {
-    if (!selectedContactId || selectedConversation || USE_EXTERNAL_DB) {
+    if (!selectedContactId || selectedConversation) {
       setSelectedContactFallback(null);
       return;
     }
-    
+
     let cancelled = false;
     const loadSelectedContact = async () => {
-      const { data, error } = await supabase.from('contacts').select('*').eq('id', selectedContactId).maybeSingle();
+      // FIX B1: em external mode o handshake pode chegar como JID; procurar por
+      // id (UUID) OU por phone (dígitos extraídos do JID) para hidratar o card.
+      const isJid = typeof selectedContactId === 'string' && selectedContactId.includes('@');
+      const phone = isJid ? selectedContactId.split('@')[0].replace(/\D/g, '') : null;
+
+      let query = supabase.from('contacts').select('*');
+      query = isJid && phone ? query.eq('phone', phone) : query.eq('id', selectedContactId);
+
+      const { data, error } = await query.maybeSingle();
       if (!cancelled && !error) setSelectedContactFallback(data || null);
     };
     void loadSelectedContact();
