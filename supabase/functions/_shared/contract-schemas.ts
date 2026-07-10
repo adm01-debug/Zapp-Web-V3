@@ -5,10 +5,9 @@
  * de contrato. Cada schema abaixo foi derivado do CONSUMO REAL de campos no
  * `index.ts` do endpoint (não inventado) — ver comentário em cada bloco.
  *
- * RELAÇÃO com `edge-contract-schemas.ts` (PR #254): aquele arquivo é o MAPA DE
- * COBERTURA (lista completa das 120+ functions + lifecycles); este arquivo traz
- * os schemas FIÉIS por endpoint usados em runtime pelo `parseOrReject`
- * (contract-kit.ts). Consolidação dos dois registries: follow-up planejado.
+ * CONSOLIDAÇÃO (PR #254 follow-up): este arquivo agora re-exporta os helpers
+ * de `edge-contract-schemas.ts`, tornando-se o ÚNICO ponto de import para
+ * chamadores. Não há risco de ciclo — edge-contract-schemas.ts não importa daqui.
  *
  * Convenções:
  *  - Webhooks EXTERNOS (provedor envia): permissivos — `.passthrough()`,
@@ -174,3 +173,19 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   "voice-copilot-action":       { v1: VoiceCopilotActionV1Schema },
   "evolution-sync":             { v1: EvolutionSyncV1Schema },
 };
+
+// ─── Re-exports de edge-contract-schemas (ponto de import unificado) ─────────
+//
+// Callers agora importam tudo de um único módulo:
+//   import { CONTRACT_SCHEMAS, EdgeFunctionContractSchemas, getContractSchema } from '…/contract-schemas.ts';
+//
+// Não há risco de ciclo: edge-contract-schemas.ts NÃO importa deste arquivo.
+export {
+  EdgeFunctionContractSchemas,
+  getContractSchema,
+  getContractLifecycle,
+  validateContractPayload,
+  EDGE_FUNCTION_NAMES,
+  WebhookContractSchemas,
+  ContractLifecycles,
+} from './edge-contract-schemas.ts';

@@ -5,7 +5,7 @@ import {
   getContractSchema,
   getContractLifecycle,
   validateContractPayload,
-} from '../edge-contract-schemas.ts';
+} from '../contract-schemas.ts'; // UNIFIED: importa de contract-schemas que re-exporta edge-contract-schemas
 import { contractErrorResponse } from '../validation.ts';
 
 Deno.test('Contract coverage: registry mirrors every function directory with an index.ts', () => {
