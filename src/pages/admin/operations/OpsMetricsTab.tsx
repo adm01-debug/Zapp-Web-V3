@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { safeClient } from "@/integrations/supabase/safeClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -67,16 +67,16 @@ export function OpsMetricsTab() {
   const fetchMetrics = useMemo(
     () => async () => {
       setLoading(true);
-      const { data: res, error } = await supabase.rpc(
-        "rpc_ops_metrics" as unknown as Parameters<typeof supabase.rpc>[0],
-        { p_window_hours: Number(windowHours) } as unknown as Parameters<typeof supabase.rpc>[1],
+      const { data: res, error } = await safeClient.rpc<Metrics>(
+        "rpc_ops_metrics",
+        { p_window_hours: Number(windowHours) }
       );
       if (error) {
         toast.error("Erro ao carregar métricas: " + error.message);
         setLoading(false);
         return;
       }
-      setData(res as unknown as Metrics);
+      setData(res);
       setLoading(false);
     },
     [windowHours],
