@@ -88,7 +88,7 @@
     --accent-foreground: 221 90% 40%;
 
     /* ===== DESTRUCTIVE ===== */
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 42%; /* Escurecido para WCAG AA contra texto branco (>= 4.5:1) */
     --destructive-foreground: 0 0% 100%;
     --destructive-soft: 0 84% 96%;
     --destructive-border: 0 84% 90%;
