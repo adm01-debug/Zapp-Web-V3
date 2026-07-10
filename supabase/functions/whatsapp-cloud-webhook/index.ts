@@ -71,6 +71,7 @@ async function recordPing(
   meta: Record<string, unknown> = {},
 ): Promise<void> {
   try {
+    if (!localClient) return;
     await localClient.from("whatsapp_cloud_webhook_pings").insert({ kind, meta });
   } catch (e) {
     console.warn(`[whatsapp-cloud-webhook] ping insert failed: ${(e as Error).message}`);
