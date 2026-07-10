@@ -2,6 +2,7 @@ import { BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { type RootCauseAggregate } from '@/features/admin/hooks/monitoring/useFailedMessages';
 
 const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted', string> = {
   warning: 'bg-warning/15 text-warning-foreground border-warning/40',
@@ -10,7 +11,7 @@ const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted'
   muted: 'bg-muted text-muted-foreground border-border',
 };
 
-export function FailedMessagesRootCauseChart({ stats, filter, onFilterChange }: { stats: any[]; filter: string; onFilterChange: (v: string) => void }) {
+export function FailedMessagesRootCauseChart({ stats, filter, onFilterChange }: { stats: RootCauseAggregate[]; filter: string; onFilterChange: (v: string) => void }) {
   if (stats.length === 0) return null;
   const maxRootCauseCount = stats[0]?.count ?? 1;
 

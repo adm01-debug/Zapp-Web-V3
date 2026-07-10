@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
@@ -45,9 +46,10 @@ export default function QueueDetails() {
       if (queueError) throw queueError;
       setQueue(queueData);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: membersData } = await (supabase as any) /* TS2589: queue_members join too deep */.from('queue_members').select('id, profile_id, profile:profiles(name, avatar_url, is_active)').eq('queue_id', id);
-      setMembers(membersData as unknown as QueueMember[]);
+      const { data: membersData } = await safeClient.from<QueueMember>('queue_members', q =>
+        q.select('id, profile_id, profile:profiles(name, avatar_url, is_active)').eq('queue_id', id)
+      );
+      setMembers(membersData ?? []);
 
       const { data: contactsData } = await dbFrom('contacts').select('id, name, phone, avatar_url, assigned_to, created_at').eq('queue_id', id).order('created_at', { ascending: false }).limit(50);
 

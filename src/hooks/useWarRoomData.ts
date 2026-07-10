@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useWarRoomData');
 
 export interface WarRoomAgent {
   id: string;
@@ -45,12 +48,14 @@ export function useWarRoomData() {
         .eq('is_active', true);
       if (error) throw error;
 
-      const { data: stats } = await supabase
+      const { data: stats, error: statsErr } = await supabase
         .from('agent_stats')
         .select('profile_id, messages_sent, conversations_resolved, avg_response_time_seconds, customer_satisfaction_score');
+      if (statsErr) log.warn('agent_stats fetch failed', statsErr.message);
 
-      const { data: contacts } = await dbFrom('contacts')
+      const { data: contacts, error: contactsErr } = await dbFrom('contacts')
         .select('assigned_to');
+      if (contactsErr) log.warn('contacts fetch failed (warroom agents)', contactsErr.message);
 
       const contactCounts = (contacts || []).reduce((acc, c) => {
         if (c.assigned_to) acc[c.assigned_to] = (acc[c.assigned_to] || 0) + 1;
@@ -87,13 +92,16 @@ export function useWarRoomData() {
         .eq('is_active', true);
       if (dbQueuesErr) throw dbQueuesErr;
 
-      const { data: contacts } = await dbFrom('contacts')
-        .select('queue_id, assigned_to');
+      const { data: contacts, error: qContactsErr } = await dbFrom('contacts')
+        .select('id, queue_id, assigned_to');
+      if (qContactsErr) log.warn('contacts fetch failed (warroom queues)', qContactsErr.message);
 
-      const { data: slaData } = await supabase
+      const { data: slaData, error: slaErr } = await supabase
         .from('conversation_sla')
         .select('contact_id, first_response_breached, resolution_breached');
+      if (slaErr) log.warn('conversation_sla fetch failed', slaErr.message);
 
+      // breachedContacts holds contacts.id values (conversation_sla.contact_id → contacts.id FK)
       const breachedContacts = new Set(
         (slaData || []).filter(s => s.first_response_breached || s.resolution_breached).map(s => s.contact_id)
       );
@@ -102,7 +110,7 @@ export function useWarRoomData() {
         const queueContacts = (contacts || []).filter(c => c.queue_id === q.id);
         const waiting = queueContacts.filter(c => !c.assigned_to).length;
         const inProgress = queueContacts.filter(c => c.assigned_to).length;
-        const slaBreaches = queueContacts.filter(c => breachedContacts.has(c.queue_id)).length;
+        const slaBreaches = queueContacts.filter(c => breachedContacts.has(c.id)).length;
 
         return {
           id: q.id, name: q.name, color: q.color,

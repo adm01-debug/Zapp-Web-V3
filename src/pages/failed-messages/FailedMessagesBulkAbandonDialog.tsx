@@ -3,8 +3,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { type useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
 
-export function FailedMessagesBulkAbandonDialog({ ui, onConfirm }: { ui: any; onConfirm: (ids: string[], reason: string) => void }) {
+export function FailedMessagesBulkAbandonDialog({ ui, onConfirm }: { ui: ReturnType<typeof useFailedMessagesUI>; onConfirm: (ids: string[], reason: string) => void }) {
   return (
     <AlertDialog open={ui.confirmBulkAbandon} onOpenChange={(o) => {
       ui.setConfirmBulkAbandon(o);

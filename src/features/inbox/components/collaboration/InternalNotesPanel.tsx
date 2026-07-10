@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,12 +23,12 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const { data: notes, isLoading } = useQuery({
     queryKey: ['internal-notes', contactId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any) /* TS2589: schema 678 */
-        .from('contact_notes')
-        .select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
-        .eq('contact_id', contactId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const { data, error } = await safeClient.from('contact_notes', q =>
+        q.select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
+         .eq('contact_id', contactId)
+         .order('created_at', { ascending: false })
+         .limit(50)
+      );
       if (error) throw error;
       return data || [];
     },

@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import type { TeamConversation, TeamMember, TeamMessage } from './teamChatTypes';
 
@@ -32,10 +33,10 @@ export function useTeamConversations() {
           .select('conversation_id, last_read_at')
           .eq('profile_id', profile.id)
           .in('conversation_id', convIds),
-        (supabase as any) /* TS2589: schema 678 */
-          .from('team_conversation_members')
-          .select('*, profile:profiles(id, name, email, avatar_url, is_active)')
-          .in('conversation_id', convIds),
+        safeClient.from('team_conversation_members', q =>
+          q.select('*, profile:profiles(id, name, email, avatar_url, is_active)')
+           .in('conversation_id', convIds)
+        ),
       ]);
 
       const lastReadMap = new Map(membershipsResult.data?.map(m => [m.conversation_id, m.last_read_at]) || []);

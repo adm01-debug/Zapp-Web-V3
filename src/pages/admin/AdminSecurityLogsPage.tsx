@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -33,24 +34,17 @@ export default function AdminSecurityLogsPage() {
   useEffect(() => {
     let mounted = true;
     const fetchLogs = async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any) /* TS2589: security_audit_logs type too deep */
-        .from('security_audit_logs')
-        .select(`
-          *,
-          profiles:user_id (
-            name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const { data, error } = await safeClient.from<AuditLog>('security_audit_logs', q =>
+        q.select(`*, profiles:user_id (name, email)`)
+         .order('created_at', { ascending: false })
+         .limit(50)
+      );
 
       if (!mounted) return;
       if (error) {
         log.error('Error fetching audit logs', error);
       } else {
-        setLogs(data as AuditLog[]);
+        setLogs(data ?? []);
       }
       setLoading(false);
     };

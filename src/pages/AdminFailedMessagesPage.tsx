@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { openContactInChat } from '@/lib/openContactInChat';
 import { useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
 import { type RootCause } from '@/lib/failureRootCause';
+import { type FailedMessageRow } from '@/features/admin/hooks/monitoring/useFailedMessages';
 
 // Sub-components can be extracted to separate files if needed, but keeping them here for now
 // to maintain the 1:1 migration while reducing the main file size.
@@ -57,7 +58,7 @@ export default function AdminFailedMessagesPage() {
   const { api, sortedRows } = ui;
   const { data: stats } = useFailedMessagesStats();
 
-  const handleViewInChat = async (row: any) => {
+  const handleViewInChat = async (row: FailedMessageRow) => {
     if (!row.remote_jid) {
       toast.error('Mensagem sem destinatário identificado');
       return;

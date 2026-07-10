@@ -241,6 +241,22 @@ interface SyncInteractionParams {
 
 // ── Contacts module param shapes ──────────────────────────────────────────────
 
+interface SearchContactsParams {
+  search_term: string;
+  page_size?: number;
+  page_offset?: number;
+}
+
+interface BulkSoftDeleteContactsParams {
+  p_contact_ids: string[];
+  p_reason?: string;
+}
+
+interface SoftDeleteContactParams {
+  p_contact_id: string;
+  p_reason?: string;
+}
+
 interface GetContactConversationsParams {
   p_contact_id: string;
   p_limit?: number;
@@ -331,6 +347,23 @@ interface ScheduleFollowUpParams {
 
 interface MarkFollowUpDoneParams {
   p_message_id: string;
+}
+
+// ── CSAT / NPS ───────────────────────────────────────────────────────────────
+
+interface GetCSATStatsParams {
+  p_instance_name?: string;
+  p_days?: number;
+}
+
+// ── Provider panel ────────────────────────────────────────────────────────────
+
+type ProviderPanelParams = Record<string, never>;
+
+interface ProviderSessionTimelineParams {
+  p_provider_id: string | null;
+  p_session_id: string | null;
+  p_limit?: number;
 }
 
 // ── Outbound event telemetry ──────────────────────────────────────────────────
@@ -461,6 +494,21 @@ export const RPC = {
     client: 'lovable',
   }),
 
+  searchContacts: def<SearchContactsParams, Record<string, unknown>[]>({
+    name: 'search_contacts',
+    client: 'lovable',
+  }),
+
+  bulkSoftDeleteContacts: def<BulkSoftDeleteContactsParams, unknown>({
+    name: 'bulk_soft_delete_contacts',
+    client: 'lovable',
+  }),
+
+  softDeleteContact: def<SoftDeleteContactParams, unknown>({
+    name: 'soft_delete_contact',
+    client: 'lovable',
+  }),
+
   getContactNotes: def<GetContactNotesParams, Record<string, unknown>[]>({
     name: 'get_contact_notes',
     client: 'lovable',
@@ -559,6 +607,22 @@ export const RPC = {
 
   markFollowUpDone: def<MarkFollowUpDoneParams, Record<string, unknown>>({
     name: 'mark_follow_up_done',
+    client: 'lovable',
+  }),
+
+  // ── CSAT / NPS ────────────────────────────────────────────────────────────
+  getCSATStats: def<GetCSATStatsParams, Record<string, unknown>>({
+    name: 'get_csat_stats',
+    client: 'lovable',
+  }),
+
+  // ── Provider panel ────────────────────────────────────────────────────────
+  providerPanel: def<ProviderPanelParams, Record<string, unknown>>({
+    name: 'rpc_provider_panel',
+    client: 'lovable',
+  }),
+  providerSessionTimeline: def<ProviderSessionTimelineParams, unknown[]>({
+    name: 'rpc_provider_session_timeline',
     client: 'lovable',
   }),
 
