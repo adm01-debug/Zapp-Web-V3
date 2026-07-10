@@ -1,4 +1,3 @@
-// @ts-nocheck — strict-mode retrofit pendente (ver docs/STRICT_MODE_BACKLOG.md)
 import { useState, useCallback, useMemo, memo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from '@/components/ui/motion';
