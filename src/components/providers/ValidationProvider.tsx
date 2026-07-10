@@ -73,8 +73,6 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         toast.error('Falha Crítica no Sistema', {
           description: criticalErr.message,
           duration: 6000,
-          className: 'bg-destructive text-destructive-foreground border-destructive',
-          descriptionClassName: 'text-destructive-foreground/90',
         });
       }
     } else if (evidence.summary.networkFailures > 0) {
