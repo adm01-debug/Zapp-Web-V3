@@ -82,11 +82,15 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
 
   const selfUrl = readSupabaseUrl("SELFHOSTED_SUPABASE_URL") ?? readSupabaseUrl("EXTERNAL_SUPABASE_URL");
   const selfAnon = readSecret("SELFHOSTED_SUPABASE_ANON_KEY") ?? readSecret("EXTERNAL_SUPABASE_ANON_KEY");
+  // Fallback: /auth/v1/user aceita service_role como apikey. Se a anon estiver ausente
+  // ou não bater com o JWT_SECRET do self-hosted, o service_role destrava a validação.
+  const selfServiceRole = readSecret("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ?? readSecret("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
   const cloudUrl = readSupabaseUrl("SUPABASE_URL");
   const cloudAnon = readSecret("SUPABASE_ANON_KEY") ?? readSecret("SUPABASE_PUBLISHABLE_KEY");
 
   const allCandidates: Array<{ url: string; key: string; label: string }> = [];
-  if (selfUrl && selfAnon) allCandidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted" });
+  if (selfUrl && selfAnon) allCandidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted (anon)" });
+  if (selfUrl && selfServiceRole) allCandidates.push({ url: selfUrl, key: selfServiceRole, label: "self-hosted (service_role)" });
   if (cloudUrl && cloudAnon) allCandidates.push({ url: cloudUrl, key: cloudAnon, label: "cloud" });
 
   if (allCandidates.length === 0) {
