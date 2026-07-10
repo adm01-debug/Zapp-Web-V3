@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
+import { parseOrReject } from '../_shared/contract-kit.ts';
+import { SendEmailV1Schema } from '../_shared/contract-schemas.ts';
 
 /**
  * send-email — Endpoint unificado legado (mantido para compatibilidade)
@@ -24,7 +26,11 @@ serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
 
-    const body = await req.json().catch(() => ({}));
+    // Contrato send-email@v1: accountId OU (to+subject+html). 422 unificado.
+    const raw = await req.json().catch(() => null);
+    const parsed = parseOrReject('send-email', { v1: SendEmailV1Schema }, req, raw, { extraHeaders: corsHeaders });
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data as Record<string, unknown> & { accountId?: string; action?: string; to?: string | string[]; subject?: string; html?: string };
 
     // Verifica se há accountId para usar gmail-send
     if (body.accountId) {
@@ -52,11 +58,8 @@ serve(async (req) => {
       return json({ error: 'Nenhum provedor de email configurado. Forneça accountId para usar Gmail ou configure RESEND_API_KEY.' }, 503);
     }
 
-    const { to, subject, html } = body;
+    const { to, subject, html } = body; // presença garantida pelo contrato v1
     const from = 'noreply@zappweb.app';
-    if (!to || !subject || !html) {
-      return json({ error: 'to, subject e html são obrigatórios' }, 400);
-    }
 
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
