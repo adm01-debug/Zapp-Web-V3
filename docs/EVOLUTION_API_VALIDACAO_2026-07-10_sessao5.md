@@ -72,7 +72,7 @@ BEGIN
     SELECT t.table_name
     FROM information_schema.tables t
     WHERE t.table_schema = 'evo'
-      AND t.table_name ~ '^evolution_webhook_events_[^v]'
+      AND t.table_name LIKE 'evolution_webhook_events_%'
       AND t.table_name NOT IN ('evolution_webhook_events_v2','evolution_webhook_events_default')
       AND t.table_name NOT LIKE 'evolution_webhook_events_v2_%'
       AND t.table_type = 'BASE TABLE'
@@ -205,7 +205,7 @@ $function$
 |---|---|---|
 | T53 | wpp2: `state=open`, `isHealthy=true`, perfil "Promo Brindes" | ✅ Instância conectada |
 | T54 | Baileys v4.2.0 — versão retornada pela API | ✅ Compatível com v2.3.7 |
-| T55 | Evolution API v2.3.7 — **não atualizar para v2.4.0-rc** (requer licença paga) | ✅ Versão correta pinada por digest |
+| T55 | Evolution API v2.3.7 — **não atualizar para v2.4.0-rc** (requer ativação de licença gratuita community tier + possui breaking changes) | ✅ Versão correta pinada por digest |
 | T56 | Flapping wpp_pink_test: reclassificado como benigno (sessão 4) | ✅ Sub-segundo connecting↔connected = ruído de cron |
 | T57 | "Reboots" host: apenas 1 real em 03/07 — demais eram SIGKILL de redeploys | ✅ Confirmado (sessão 4) |
 | T58 | Zero OOM kills — 24 GB RAM, load 0,53, 11,4 GB disponíveis | ✅ Host saudável |
@@ -221,7 +221,7 @@ $function$
 | Rotação de senha adiada: vazamento da senha atual | MÉDIO | ALTO | Senha exposta somente internamente (sem rota pública para PG15); stacks em rede Docker fechada |
 | `supabase-db-mcp` (stack 128) com `DATABASE_URL` hardcoded | MÉDIO | ALTO | Conexão interna; sem exposure externa. Mitigar na próxima sessão supervisionada |
 | Drift PG14 backup stacks (112/84/85) — redeploy acidental reverte para MinIO | BAIXO | CRÍTICO | ⚠️ **NÃO REDEPLOYAR** pela UI. Sinalização no README |
-| MinIO root (`AtomicaBR/@Promo2024`) exposta em Portainer | MÉDIO | MÉDIO | MinIO interno; sem porta exposta. Rotar junto com senha PG |
+| MinIO root (`<REDACTED>`) exposta em Portainer | MÉDIO | MÉDIO | MinIO interno; sem porta exposta. Rotar junto com senha PG |
 | Nova instância Evolution criada → tabela nova → DLQ function deixa de cobrir | ZERO | N/A | ✅ **FIXADO**: função agora dinâmica via `information_schema` |
 | WAL lag crescer acima de 5 GB | BAIXO | ALTO | Monitoramento ativo; alerta configurado |
 | Certificado SSL do domínio expirar | MUITO BAIXO | ALTO | Renovação automática via Traefik + Let's Encrypt |
@@ -258,7 +258,7 @@ r2://promo-brindes-backups/backups/
 | P2 | **Migrar `supabase-db-mcp` (stack 128)** `DATABASE_URL` hardcoded → secret | ALTA | Hardcoded = 3ª cópia em texto puro |
 | P3 | **Corrigir drift PG14** (stacks 84/85/112) sem redeploy via UI | ALTA | ⚠️ NÃO REDEPLOYAR PELA UI |
 | P4 | **Aposentar `minio-offsite-mirror` (stack 89)** — 1 clique no Portainer | BAIXA | Obsoleto, credenciais PENDING |
-| P5 | **Rotação MinIO root** (`AtomicaBR/@Promo2024`) nos stacks 84/85/89/93/112 | MÉDIA | Exposição interna |
+| P5 | **Rotação MinIO root** (`<REDACTED>`) nos stacks 84/85/89/93/112 | MÉDIA | Exposição interna — valor real armazenado nos envs do Portainer |
 | P6 | **Causa-raiz reboot host** (03/07 12:21) — `journalctl -b -1 -e -k` no host | BAIXA | Informativa |
 
 ---
