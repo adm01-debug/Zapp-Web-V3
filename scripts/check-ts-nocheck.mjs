@@ -25,7 +25,7 @@ const MAX = MAX_ARG ? parseInt(MAX_ARG.split('=')[1], 10) : null;
 
 function listCurrent() {
   const out = execSync(
-    `rg -l "@ts-nocheck" src supabase --sort path 2>/dev/null || true`,
+    `grep -rl "@ts-nocheck" src supabase 2>/dev/null | sort || true`,
     { cwd: ROOT, encoding: 'utf8' }
   );
   return out
