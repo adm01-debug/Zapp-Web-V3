@@ -134,16 +134,24 @@ export default function BridgeStatusPage() {
       const currentTransportLabel = `${transport.requestedMode}${transport.degraded ? " (DEGRADED)" : ""}`;
       if (mountedRef.current) setWhatsappTransport(currentTransportLabel);
 
-      // 4. Check Recent Message Traffic
+      // 4. Check Recent Message Traffic — use two parallel queries so the count
+      // is exact (count:'exact'+head:true skips row transfer) while the last
+      // timestamp comes from safeClient with its error-handling wrapper.
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data: lastMsg } = await safeClient.from<{ received_at: string }>(
-        'provider_message_log',
-        q => q.select('received_at').gt('received_at', fiveMinsAgo).order('received_at', { ascending: false }).limit(1)
-      );
+      const [countResult, { data: lastMsgArr }] = await Promise.all([
+        supabase
+          .from('provider_message_log' as unknown as Parameters<typeof supabase.from>[0])
+          .select('*', { count: 'exact', head: true })
+          .gt('received_at', fiveMinsAgo),
+        safeClient.from<{ received_at: string }>(
+          'provider_message_log',
+          q => q.select('received_at').gt('received_at', fiveMinsAgo).order('received_at', { ascending: false }).limit(1)
+        ),
+      ]);
 
       if (mountedRef.current) setRecentTraffic({
-        count: lastMsg?.length ?? 0,
-        last_at: lastMsg?.[0]?.received_at || null
+        count: countResult.count ?? 0,
+        last_at: lastMsgArr?.[0]?.received_at || null
       });
 
       // 5. Check Active Alerts
