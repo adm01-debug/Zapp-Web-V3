@@ -1,11 +1,25 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
 // Resolve at call time so module import never crashes.
 const getClient = () => getExternalSupabase();
+
+interface _RawExecRow {
+  id: string;
+  rule_id: string;
+  suggestion_text: string | null;
+  recommended_tag: string | null;
+  kb_sources: string[] | null;
+  status: string;
+  created_at: string;
+  instance_name: string;
+  remote_jid: string;
+  automations: { name?: string } | null;
+}
 
 export interface AutomationSuggestion {
   id: string;
@@ -37,19 +51,20 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       return;
     }
     setLoading(true);
-    const { data } = await (supabase as any)
-      .from('automation_executions')
-      .select(
-        'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
-      )
-      .eq('remote_jid', remoteJid)
-      .eq('status', 'pending')
-      .not('suggestion_text', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(5);
+    const { data } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
+      q
+        .select(
+          'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
+        )
+        .eq('remote_jid', remoteJid)
+        .eq('status', 'pending')
+        .not('suggestion_text', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(5)
+    );
     if (!mountedRef.current) return;
     setSuggestions(
-      ((data ?? []) as any[]).map((r) => ({
+      (data ?? []).map((r) => ({
         id: r.id,
         rule_id: r.rule_id,
         rule_name: r.automations?.name,
@@ -86,10 +101,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
 
   const accept = useCallback(
     async (id: string) => {
-      await (supabase as any)
-        .from('automation_executions')
-        .update({ status: 'accepted', acted_at: new Date().toISOString() })
-        .eq('id', id);
+      await safeClient.from('automation_executions', (q) =>
+        q.update({ status: 'accepted', acted_at: new Date().toISOString() }).eq('id', id)
+      );
       void refresh();
     },
     [refresh]
@@ -97,10 +111,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
 
   const dismiss = useCallback(
     async (id: string) => {
-      await (supabase as any)
-        .from('automation_executions')
-        .update({ status: 'dismissed', acted_at: new Date().toISOString() })
-        .eq('id', id);
+      await safeClient.from('automation_executions', (q) =>
+        q.update({ status: 'dismissed', acted_at: new Date().toISOString() }).eq('id', id)
+      );
       void refresh();
     },
     [refresh]
@@ -121,10 +134,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
           p_instance: sugg.instance_name,
           p_tags: [sugg.recommended_tag],
         });
-        await (supabase as any)
-          .from('automation_executions')
-          .update({ applied_tags: [sugg.recommended_tag] })
-          .eq('id', id);
+        await safeClient.from('automation_executions', (q) =>
+          q.update({ applied_tags: [sugg.recommended_tag] }).eq('id', id)
+        );
         toast({
           title: 'Tag aplicada',
           description: `"${sugg.recommended_tag}" foi adicionada ao contato.`,
