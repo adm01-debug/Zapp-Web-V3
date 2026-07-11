@@ -24,14 +24,22 @@ const log = createLogger('externalSessionBridge');
 let bridgeInstalled = false;
 let socialWarningEmitted = false;
 
-/** Erros do GoTrue que indicam "usuário não existe" e permitem auto-signup. */
+/**
+ * Returns true when an AuthError strongly suggests the user does not exist
+ * in the external GoTrue instance, making auto-signup a reasonable recovery.
+ *
+ * Parentheses on the third condition make operator precedence explicit:
+ * (!msg.includes('email not confirmed') && msg.includes('not found'))
+ * reads unambiguously as: "message contains 'not found' but is NOT a
+ * 'confirmation pending' error".
+ */
 function isUserNotFound(err: AuthError | null): boolean {
   if (!err) return false;
   const msg = err.message?.toLowerCase() ?? '';
   return (
     msg.includes('invalid login credentials') ||
     msg.includes('user not found') ||
-    msg.includes('email not confirmed') === false && msg.includes('not found')
+    (!msg.includes('email not confirmed') && msg.includes('not found'))
   );
 }
 
