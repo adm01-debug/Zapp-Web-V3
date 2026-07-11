@@ -95,13 +95,6 @@ class Logger {
     };
   }
 
-  /**
-   * @deprecated Use withRequestTag() for log output correlation.
-   * For security-grade IDs, import generateCorrelationId from '@/lib/correlationId'.
-   */
-  withCorrelation(correlationId: string) {
-    return this.withRequestTag(correlationId);
-  }
 }
 
 // Factory function to create module-specific loggers
