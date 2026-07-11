@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 export interface SearchInsightsTopQuery {
   query: string;
@@ -29,19 +29,30 @@ export interface SearchInsights {
 }
 
 const EMPTY: SearchInsights = {
-  total_searches: 0, unique_queries: 0, vector_searches: 0, vector_share: 0,
-  total_clicks: 0, click_through_rate: 0, zero_result_count: 0, zero_result_rate: 0,
-  avg_result_count: 0, top_queries: [], zero_result_queries: [], window_days: 7,
+  total_searches: 0,
+  unique_queries: 0,
+  vector_searches: 0,
+  vector_share: 0,
+  total_clicks: 0,
+  click_through_rate: 0,
+  zero_result_count: 0,
+  zero_result_rate: 0,
+  avg_result_count: 0,
+  top_queries: [],
+  zero_result_queries: [],
+  window_days: 7,
 };
 
 export function useSearchInsights(days: number) {
   return useQuery<SearchInsights>({
     queryKey: ['search-insights', days],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc('rpc_search_insights', { p_days: days });
+      const { data, error } = await safeClient.rpc<SearchInsights>('rpc_search_insights', {
+        p_days: days,
+      });
       if (error) throw error;
       if (!data || typeof data !== 'object') return { ...EMPTY, window_days: days };
-      return { ...EMPTY, ...(data as Partial<SearchInsights>), window_days: days };
+      return { ...EMPTY, ...data, window_days: days };
     },
     staleTime: 60_000,
     refetchOnWindowFocus: false,
