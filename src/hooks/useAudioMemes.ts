@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 
@@ -40,17 +41,20 @@ export function useAudioMemes(open: boolean) {
   const fetchMemes = useCallback(async () => {
     setLoading(true);
     // RPC usa auth.uid() server-side; assinatura: (p_category, p_only_favorites, p_search)
-    const { data, error } = await (supabase as any).rpc('fn_list_audio_memes_for_user', {
+    const { data, error } = await safeClient.rpc<AudioMemeItem[]>('fn_list_audio_memes_for_user', {
       p_category: null,
       p_only_favorites: false,
       p_search: null,
     });
 
     if (!error && data) {
-      setMemes(data as AudioMemeItem[]);
+      setMemes(data);
     } else if (error) {
       log.error('fetchMemes error', error);
-      const { data: basicData } = await supabase.from('audio_memes').select('*').order('use_count', { ascending: false });
+      const { data: basicData } = await supabase
+        .from('audio_memes')
+        .select('*')
+        .order('use_count', { ascending: false });
       if (basicData) setMemes(basicData as AudioMemeItem[]);
     }
     setLoading(false);
@@ -65,14 +69,10 @@ export function useAudioMemes(open: boolean) {
       // Realtime subscription for catalog updates and use_count increment
       const catalogChannel = supabase
         .channel('audio-memes-catalog')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'zapp', table: 'audio_memes' },
-          () => {
-            log.info('Catalog update received');
-            fetchMemes();
-          }
-        )
+        .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
+          log.info('Catalog update received');
+          fetchMemes();
+        })
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
             setSyncing(false);
@@ -110,19 +110,22 @@ export function useAudioMemes(open: boolean) {
     }
   }, [open, fetchMemes]);
 
-  const handlePreview = useCallback((meme: AudioMemeItem) => {
-    if (playingId === meme.id) {
-      audioRef.current?.pause();
-      setPlayingId(null);
-      return;
-    }
-    if (audioRef.current) audioRef.current.pause();
-    const audio = new Audio(meme.audio_url);
-    audio.onended = () => setPlayingId(null);
-    audio.play();
-    audioRef.current = audio;
-    setPlayingId(meme.id);
-  }, [playingId]);
+  const handlePreview = useCallback(
+    (meme: AudioMemeItem) => {
+      if (playingId === meme.id) {
+        audioRef.current?.pause();
+        setPlayingId(null);
+        return;
+      }
+      if (audioRef.current) audioRef.current.pause();
+      const audio = new Audio(meme.audio_url);
+      audio.onended = () => setPlayingId(null);
+      audio.play();
+      audioRef.current = audio;
+      setPlayingId(meme.id);
+    },
+    [playingId]
+  );
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -148,7 +151,10 @@ export function useAudioMemes(open: boolean) {
         .from('audio-memes')
         .upload(storagePath, file, { contentType: file.type, cacheControl: '31536000' });
 
-      if (uploadError) { toast.error('Erro ao enviar arquivo'); return; }
+      if (uploadError) {
+        toast.error('Erro ao enviar arquivo');
+        return;
+      }
 
       const { data: urlData } = supabase.storage.from('audio-memes').getPublicUrl(storagePath);
 
@@ -157,26 +163,39 @@ export function useAudioMemes(open: boolean) {
         const tempAudio = new Audio(urlData.publicUrl);
         await new Promise<void>((resolve) => {
           tempAudio.onloadedmetadata = () => {
-            duration = isFinite(tempAudio.duration) ? Math.round(tempAudio.duration * 100) / 100 : null;
+            duration = isFinite(tempAudio.duration)
+              ? Math.round(tempAudio.duration * 100) / 100
+              : null;
             resolve();
           };
           tempAudio.onerror = () => resolve();
           setTimeout(resolve, 3000);
         });
-      } catch (err) { log.error('Unexpected error in useAudioMemes:', err); }
+      } catch (err) {
+        log.error('Unexpected error in useAudioMemes:', err);
+      }
 
       let aiCategory = 'outros';
       try {
         toast.info('🔍 Classificando com IA...');
-        const { data: classifyData, error: classifyErr } = await supabase.functions.invoke('classify-audio-meme', {
-          body: { audio_url: urlData.publicUrl, file_name: file.name },
-        });
+        const { data: classifyData, error: classifyErr } = await supabase.functions.invoke(
+          'classify-audio-meme',
+          {
+            body: { audio_url: urlData.publicUrl, file_name: file.name },
+          }
+        );
         if (!classifyErr && classifyData?.category) aiCategory = classifyData.category;
-      } catch (err) { log.error('Unexpected error in useAudioMemes:', err); }
+      } catch (err) {
+        log.error('Unexpected error in useAudioMemes:', err);
+      }
 
       setPendingUpload({
-        file, audioUrl: urlData.publicUrl, storagePath, duration,
-        aiCategory, selectedCategory: aiCategory,
+        file,
+        audioUrl: urlData.publicUrl,
+        storagePath,
+        duration,
+        aiCategory,
+        selectedCategory: aiCategory,
         name: file.name.replace(/\.[^.]+$/, ''),
       });
     } catch {
@@ -187,26 +206,31 @@ export function useAudioMemes(open: boolean) {
     }
   }, []);
 
-  const handleConfirmUpload = useCallback(async (pending: PendingUpload) => {
-    // Insere direto (RLS já permite a authenticated com uploaded_by = auth.uid())
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error: insertError } = await supabase.from('audio_memes').insert({
-      name: pending.name,
-      audio_url: pending.audioUrl,
-      category: pending.selectedCategory,
-      duration_seconds: pending.duration,
-      uploaded_by: user?.id ?? null,
-    });
+  const handleConfirmUpload = useCallback(
+    async (pending: PendingUpload) => {
+      // Insere direto (RLS já permite a authenticated com uploaded_by = auth.uid())
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const { error: insertError } = await supabase.from('audio_memes').insert({
+        name: pending.name,
+        audio_url: pending.audioUrl,
+        category: pending.selectedCategory,
+        duration_seconds: pending.duration,
+        uploaded_by: user?.id ?? null,
+      });
 
-    if (insertError) {
-      log.error('[AudioMeme] Insert error:', insertError);
-      toast.error('Erro ao salvar áudio meme');
-      return;
-    }
-    toast.success(`Áudio salvo como "${pending.selectedCategory}"!`);
-    setPendingUpload(null);
-    void fetchMemes();
-  }, [fetchMemes]);
+      if (insertError) {
+        log.error('[AudioMeme] Insert error:', insertError);
+        toast.error('Erro ao salvar áudio meme');
+        return;
+      }
+      toast.success(`Áudio salvo como "${pending.selectedCategory}"!`);
+      setPendingUpload(null);
+      void fetchMemes();
+    },
+    [fetchMemes]
+  );
 
   const handleCancelUpload = useCallback(async () => {
     if (pendingUpload) {
@@ -215,48 +239,60 @@ export function useAudioMemes(open: boolean) {
     setPendingUpload(null);
   }, [pendingUpload]);
 
-  const handleSend = useCallback(async (meme: AudioMemeItem, onSend: (meme: AudioMemeItem) => void, onClose: () => void) => {
-    if (audioRef.current) { audioRef.current.pause(); setPlayingId(null); }
-    onSend(meme);
-    onClose();
-    setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m));
-    // Incrementa use_count no banco (RPC)
-    try {
-      await (supabase as any).rpc('fn_increment_meme_use', { p_meme_id: meme.id });
-    } catch (err) {
-      log.error('fn_increment_meme_use error', err);
-    }
-  }, []);
+  const handleSend = useCallback(
+    async (meme: AudioMemeItem, onSend: (meme: AudioMemeItem) => void, onClose: () => void) => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setPlayingId(null);
+      }
+      onSend(meme);
+      onClose();
+      setMemes((prev) =>
+        prev.map((m) => (m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m))
+      );
+      // Incrementa use_count no banco (RPC)
+      const { error: incErr } = await safeClient.rpc('fn_increment_meme_use', {
+        p_meme_id: meme.id,
+      });
+      if (incErr) log.error('fn_increment_meme_use error', incErr);
+    },
+    []
+  );
 
   const toggleFavorite = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
     e.stopPropagation();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error('Efetue login para favoritar'); return; }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Efetue login para favoritar');
+      return;
+    }
 
     const newVal = !meme.is_favorite;
-    setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, is_favorite: newVal } : m));
+    setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, is_favorite: newVal } : m)));
 
     // RPC usa auth.uid() — só recebe o meme_id
-    const { error } = await (supabase as any).rpc('fn_toggle_user_meme_favorite', {
+    const { error } = await safeClient.rpc('fn_toggle_user_meme_favorite', {
       p_meme_id: meme.id,
     });
 
     if (error) {
       log.error('toggleFavorite error', error);
-      setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, is_favorite: !newVal } : m));
+      setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, is_favorite: !newVal } : m)));
       toast.error('Erro ao atualizar favorito');
     }
   }, []);
 
   const handleCategoryChange = useCallback(async (meme: AudioMemeItem, newCategory: string) => {
-    setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, category: newCategory } : m));
+    setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, category: newCategory } : m)));
     await supabase.from('audio_memes').update({ category: newCategory }).eq('id', meme.id);
     toast.success(`Categoria alterada`);
   }, []);
 
   const handleDelete = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
     e.stopPropagation();
-    setMemes(prev => prev.filter(m => m.id !== meme.id));
+    setMemes((prev) => prev.filter((m) => m.id !== meme.id));
     const path = meme.audio_url.split('/audio-memes/')[1];
     if (path) await supabase.storage.from('audio-memes').remove([path]);
     await supabase.from('audio_memes').delete().eq('id', meme.id);
@@ -264,16 +300,32 @@ export function useAudioMemes(open: boolean) {
   }, []);
 
   const cleanup = useCallback(() => {
-    if (audioRef.current) { audioRef.current.pause(); setPlayingId(null); }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlayingId(null);
+    }
     setPendingUpload(null);
   }, []);
 
   return {
-    memes, loading, syncing, syncError, uploading, playingId, pendingUpload,
-    audioRef, fileInputRef,
-    handlePreview, handleFileSelect, handleConfirmUpload,
-    handleCancelUpload, handleSend, toggleFavorite,
-    handleCategoryChange, handleDelete, cleanup,
+    memes,
+    loading,
+    syncing,
+    syncError,
+    uploading,
+    playingId,
+    pendingUpload,
+    audioRef,
+    fileInputRef,
+    handlePreview,
+    handleFileSelect,
+    handleConfirmUpload,
+    handleCancelUpload,
+    handleSend,
+    toggleFavorite,
+    handleCategoryChange,
+    handleDelete,
+    cleanup,
   };
 }
 
