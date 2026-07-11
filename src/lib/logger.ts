@@ -15,9 +15,11 @@ interface LogContext {
 // Session-level correlation ID for tracing across the app lifetime
 const sessionId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-// Per-request correlation ID generator
+// Per-request tag generator — counter-based, for log output only.
+// NOT cryptographically random. For security-grade correlation IDs,
+// use generateCorrelationId from @/lib/correlationId instead.
 let requestCounter = 0;
-export function generateCorrelationId(prefix = 'req'): string {
+export function generateRequestTag(prefix = 'req'): string {
   return `${prefix}_${++requestCounter}_${Date.now().toString(36)}`;
 }
 
@@ -77,15 +79,23 @@ class Logger {
     }
   }
 
-  /** Log with explicit correlation ID for request tracing */
-  withCorrelation(correlationId: string) {
+  /** Log with explicit request tag for output correlation (NOT for security purposes). */
+  withRequestTag(tag: string) {
     const self = this;
     return {
-      debug: (msg: string, ...a: unknown[]) => self.debug(`[cid:${correlationId}] ${msg}`, ...a),
-      info: (msg: string, ...a: unknown[]) => self.info(`[cid:${correlationId}] ${msg}`, ...a),
-      warn: (msg: string, ...a: unknown[]) => self.warn(`[cid:${correlationId}] ${msg}`, ...a),
-      error: (msg: string, ...a: unknown[]) => self.error(`[cid:${correlationId}] ${msg}`, ...a),
+      debug: (msg: string, ...a: unknown[]) => self.debug(`[tag:${tag}] ${msg}`, ...a),
+      info: (msg: string, ...a: unknown[]) => self.info(`[tag:${tag}] ${msg}`, ...a),
+      warn: (msg: string, ...a: unknown[]) => self.warn(`[tag:${tag}] ${msg}`, ...a),
+      error: (msg: string, ...a: unknown[]) => self.error(`[tag:${tag}] ${msg}`, ...a),
     };
+  }
+
+  /**
+   * @deprecated Use withRequestTag() for log output correlation.
+   * For security-grade IDs, import generateCorrelationId from '@/lib/correlationId'.
+   */
+  withCorrelation(correlationId: string) {
+    return this.withRequestTag(correlationId);
   }
 }
 
