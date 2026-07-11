@@ -5,9 +5,19 @@ version: "3.8"
 # Adicionado glitchtip-valkey dedicado (isolado do Redis da Evolution de propósito — blast radius zero
 # no caminho do WhatsApp) + REDIS_URL no web e no worker.
 #
-# NOTA: POSTGRES_PASSWORD e SECRET_KEY estão como placeholders neste snapshot versionado.
-# Os valores reais vivem no stack file dentro do Portainer (não commitados). Ao redeployar,
-# use os valores reais ou migre para Docker secrets (recomendado numa próxima janela).
+# 2026-07-11 (sessão 6, GAP-08): POSTGRES_PASSWORD e SECRET_KEY migrados para Docker secrets.
+# Antes ficavam em texto puro no stack file do Portainer — agora lidos de /run/secrets/*.
+#
+# SECRETS NECESSÁRIOS (criar no host antes do deploy):
+#   printf 'postgres://glitchtip:SENHA_REAL@glitchtip-db:5432/glitchtip' \
+#     | docker secret create glitchtip_database_url_v1 -
+#   printf 'SENHA_REAL' | docker secret create glitchtip_db_password_v1 -
+#   printf 'CHAVE_SECRETA_LONGA_E_ALEATORIA' | docker secret create glitchtip_secret_key_v1 -
+#
+# ROTAÇÃO DE SENHA: criar _v2 dos três secrets acima, atualizar referências e fazer
+# docker stack deploy. O container antigo segue com _v1 até o rolling update completar.
+# Nota: glitchtip_db_password_v1 e glitchtip_database_url_v1 contêm a mesma senha —
+# ambos devem ser recriados juntos ao rotacionar.
 
 services:
   glitchtip-db:
@@ -15,7 +25,11 @@ services:
     environment:
       POSTGRES_DB: glitchtip
       POSTGRES_USER: glitchtip
-      POSTGRES_PASSWORD: "<glitchtip-db-password>"
+      # POSTGRES_PASSWORD_FILE é uma feature nativa do postgres Docker image:
+      # lê a senha de um arquivo em vez de env var em texto puro.
+      POSTGRES_PASSWORD_FILE: /run/secrets/glitchtip_db_password_v1
+    secrets:
+      - glitchtip_db_password_v1
     volumes:
       - glitchtip-pg-data:/var/lib/postgresql/data
     healthcheck:
@@ -51,9 +65,17 @@ services:
 
   glitchtip-web:
     image: glitchtip/glitchtip:latest
+    secrets:
+      - glitchtip_database_url_v1
+      - glitchtip_secret_key_v1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export DATABASE_URL=$(cat /run/secrets/glitchtip_database_url_v1)
+        export SECRET_KEY=$(cat /run/secrets/glitchtip_secret_key_v1)
+        exec "$0" "$@"
     environment:
-      DATABASE_URL: "postgres://glitchtip:<glitchtip-db-password>@glitchtip-db:5432/glitchtip"
-      SECRET_KEY: "<glitchtip-secret-key>"
       REDIS_URL: redis://glitchtip-valkey:6379/0
       PORT: "8000"
       GLITCHTIP_DOMAIN: https://erros.atomicabr.com.br
@@ -83,10 +105,17 @@ services:
 
   glitchtip-worker:
     image: glitchtip/glitchtip:latest
-    command: ./bin/run-celery-with-beat.sh
+    secrets:
+      - glitchtip_database_url_v1
+      - glitchtip_secret_key_v1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export DATABASE_URL=$(cat /run/secrets/glitchtip_database_url_v1)
+        export SECRET_KEY=$(cat /run/secrets/glitchtip_secret_key_v1)
+        exec ./bin/run-celery-with-beat.sh
     environment:
-      DATABASE_URL: "postgres://glitchtip:<glitchtip-db-password>@glitchtip-db:5432/glitchtip"
-      SECRET_KEY: "<glitchtip-secret-key>"
       REDIS_URL: redis://glitchtip-valkey:6379/0
       PORT: "8000"
       GLITCHTIP_DOMAIN: https://erros.atomicabr.com.br
@@ -109,6 +138,14 @@ services:
 volumes:
   glitchtip-pg-data:
   glitchtip-uploads:
+
+secrets:
+  glitchtip_db_password_v1:
+    external: true
+  glitchtip_database_url_v1:
+    external: true
+  glitchtip_secret_key_v1:
+    external: true
 
 networks:
   glitchtip-net:
