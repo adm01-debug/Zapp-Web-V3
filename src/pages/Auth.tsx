@@ -383,6 +383,6 @@ export default function Auth() {
           </motion.div>
         </motion.div>
       </div>
-    </main>
+    </div>
   );
 }
