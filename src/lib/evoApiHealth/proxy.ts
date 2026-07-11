@@ -28,6 +28,31 @@ interface ProxyErrorResponse {
 class ExternalDbProxyClient {
   private cachedSession: { token: string; expires: number } | null = null;
 
+  constructor() {
+    // MED-5 (Auditoria 2026-07-11): invalidar cache imediatamente em qualquer
+    // transição de sessão. Sem isso, após TOKEN_REFRESHED / SIGNED_OUT o proxy
+    // continuava usando por até 30s um access_token velho e gerava 401 espurio.
+    try {
+      supabase.auth.onAuthStateChange((event) => {
+        if (
+          event === 'TOKEN_REFRESHED' ||
+          event === 'SIGNED_OUT' ||
+          event === 'SIGNED_IN' ||
+          event === 'USER_UPDATED'
+        ) {
+          this.cachedSession = null;
+        }
+      });
+    } catch (err) {
+      log.warn('onAuthStateChange subscription failed', { err: String(err) });
+    }
+  }
+
+  /** Testing hook — força invalidação do cache de sessão. */
+  invalidateSession() {
+    this.cachedSession = null;
+  }
+
   private async getAuthHeader(): Promise<string> {
     const now = Date.now();
     
@@ -39,11 +64,14 @@ class ExternalDbProxyClient {
     try {
       const { data, error } = await supabase.auth.getSession();
       const token = data.session?.access_token;
+      const expiresAt = data.session?.expires_at; // seconds since epoch
       
       if (token) {
-        this.cachedSession = { 
-          token, 
-          expires: now + 30000 
+        // Respeitar o expiry real do JWT: cache por min(30s, tempo-restante-menos-5s)
+        const jwtTtlMs = expiresAt ? Math.max(0, expiresAt * 1000 - now - 5000) : 30_000;
+        this.cachedSession = {
+          token,
+          expires: now + Math.min(30_000, jwtTtlMs),
         };
         return `Bearer ${token}`;
       }
