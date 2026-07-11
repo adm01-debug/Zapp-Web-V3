@@ -27,22 +27,20 @@ interface HighContrastContextType {
 const HighContrastContext = createContext<HighContrastContextType | null>(null);
 
 export function HighContrastProvider({ children }: { children: React.ReactNode }) {
-  const [isHighContrast, setIsHighContrast] = useState(() => 
-    localStorage.getItem('highContrast') === 'true'
+  const [isHighContrast, setIsHighContrast] = useState(
+    () => localStorage.getItem('highContrast') === 'true'
   );
   const [contrastLevel, setContrastLevel] = useState(() =>
     parseInt(localStorage.getItem('contrastLevel') || '100')
   );
-  const [reducedMotion, setReducedMotion] = useState(() =>
-    localStorage.getItem('reducedMotion') === 'true'
+  const [reducedMotion, setReducedMotion] = useState(
+    () => localStorage.getItem('reducedMotion') === 'true'
   );
-  const [largeText, setLargeText] = useState(() =>
-    localStorage.getItem('largeText') === 'true'
-  );
+  const [largeText, setLargeText] = useState(() => localStorage.getItem('largeText') === 'true');
 
   useEffect(() => {
     const root = document.documentElement;
-    
+
     if (isHighContrast) {
       root.classList.add('high-contrast');
     } else {
@@ -52,7 +50,10 @@ export function HighContrastProvider({ children }: { children: React.ReactNode }
   }, [isHighContrast]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--contrast-multiplier', String(contrastLevel / 100));
+    document.documentElement.style.setProperty(
+      '--contrast-multiplier',
+      String(contrastLevel / 100)
+    );
     localStorage.setItem('contrastLevel', String(contrastLevel));
   }, [contrastLevel]);
 
@@ -74,9 +75,9 @@ export function HighContrastProvider({ children }: { children: React.ReactNode }
     localStorage.setItem('largeText', String(largeText));
   }, [largeText]);
 
-  const toggleHighContrast = () => setIsHighContrast(prev => !prev);
-  const toggleReducedMotion = () => setReducedMotion(prev => !prev);
-  const toggleLargeText = () => setLargeText(prev => !prev);
+  const toggleHighContrast = () => setIsHighContrast((prev) => !prev);
+  const toggleReducedMotion = () => setReducedMotion((prev) => !prev);
+  const toggleLargeText = () => setLargeText((prev) => !prev);
 
   return (
     <HighContrastContext.Provider
@@ -114,16 +115,12 @@ export function HighContrastToggle() {
       onClick={toggleHighContrast}
       aria-label={isHighContrast ? 'Desativar alto contraste' : 'Ativar alto contraste'}
     >
-      {isHighContrast ? (
-        <Eye className="h-5 w-5" />
-      ) : (
-        <EyeOff className="h-5 w-5" />
-      )}
+      {isHighContrast ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
     </Button>
   );
 }
 
-export const AccessibilitySettings = forwardRef<HTMLDivElement>((_, ref) => {
+export const AccessibilitySettings = forwardRef<HTMLDivElement>((_, _ref) => {
   const {
     isHighContrast,
     toggleHighContrast,
@@ -172,12 +169,10 @@ export const AccessibilitySettings = forwardRef<HTMLDivElement>((_, ref) => {
 
           {/* Contrast Level */}
           <Card>
-            <CardContent className="pt-4 space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="space-y-0.5">
                 <Label>Nível de Contraste: {contrastLevel}%</Label>
-                <p className="text-sm text-muted-foreground">
-                  Ajuste fino do nível de contraste
-                </p>
+                <p className="text-sm text-muted-foreground">Ajuste fino do nível de contraste</p>
               </div>
               <Slider
                 value={[contrastLevel]}
@@ -218,11 +213,7 @@ export const AccessibilitySettings = forwardRef<HTMLDivElement>((_, ref) => {
                     Aumenta o tamanho da fonte em toda a aplicação
                   </p>
                 </div>
-                <Switch
-                  id="large-text"
-                  checked={largeText}
-                  onCheckedChange={toggleLargeText}
-                />
+                <Switch id="large-text" checked={largeText} onCheckedChange={toggleLargeText} />
               </div>
             </CardContent>
           </Card>
@@ -230,13 +221,15 @@ export const AccessibilitySettings = forwardRef<HTMLDivElement>((_, ref) => {
           {/* Preview */}
           <Card className="bg-muted/50">
             <CardContent className="pt-4">
-              <p className="text-sm font-medium mb-2">Preview:</p>
-              <div className="p-3 rounded-lg bg-background border">
+              <p className="mb-2 text-sm font-medium">Preview:</p>
+              <div className="rounded-lg border bg-background p-3">
                 <p className="text-foreground">Texto normal</p>
-                <p className="text-muted-foreground text-sm">Texto secundário</p>
-                <div className="flex gap-2 mt-2">
+                <p className="text-sm text-muted-foreground">Texto secundário</p>
+                <div className="mt-2 flex gap-2">
                   <Button size="sm">Botão</Button>
-                  <Button size="sm" variant="outline">Outline</Button>
+                  <Button size="sm" variant="outline">
+                    Outline
+                  </Button>
                 </div>
               </div>
             </CardContent>
