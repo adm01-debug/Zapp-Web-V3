@@ -36,50 +36,53 @@ export const useCalls = () => {
   // Get current user's profile id
   const getProfileId = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
-    
-    const { data, error } = await supabase
+
+    const { data } = await supabase
       .from('profiles')
       .select('id')
       .eq('user_id', user.id)
       .maybeSingle();
-    
+
     return data?.id || null;
   }, [user]);
 
   // Start a new call
-  const startCall = useCallback(async (params: StartCallParams): Promise<string | null> => {
-    setIsLoading(true);
-    try {
-      const profileId = await getProfileId();
-      
-      const { data, error } = await supabase
-        .from('calls')
-        .insert({
-          contact_id: params.contactId || null,
-          agent_id: profileId,
-          direction: params.direction,
-          status: 'ringing',
-          whatsapp_connection_id: params.whatsappConnectionId || null,
-        })
-        .select()
-        .single();
+  const startCall = useCallback(
+    async (params: StartCallParams): Promise<string | null> => {
+      setIsLoading(true);
+      try {
+        const profileId = await getProfileId();
 
-      if (error) throw error;
+        const { data, error } = await supabase
+          .from('calls')
+          .insert({
+            contact_id: params.contactId || null,
+            agent_id: profileId,
+            direction: params.direction,
+            status: 'ringing',
+            whatsapp_connection_id: params.whatsappConnectionId || null,
+          })
+          .select()
+          .single();
 
-      setCurrentCallId(data.id);
-      return data.id;
-    } catch (error) {
-      log.error('Error starting call:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível registrar a chamada',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getProfileId]);
+        if (error) throw error;
+
+        setCurrentCallId(data.id);
+        return data.id;
+      } catch (error) {
+        log.error('Error starting call:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível registrar a chamada',
+          variant: 'destructive',
+        });
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [getProfileId]
+  );
 
   // Answer the call
   const answerCall = useCallback(async (callId: string): Promise<boolean> => {
@@ -113,7 +116,7 @@ export const useCalls = () => {
         .eq('id', callId);
 
       if (error) throw error;
-      
+
       setCurrentCallId(null);
       return true;
     } catch (error) {
@@ -139,7 +142,7 @@ export const useCalls = () => {
         .eq('id', callId);
 
       if (error) throw error;
-      
+
       setCurrentCallId(null);
       return true;
     } catch (error) {
@@ -151,10 +154,7 @@ export const useCalls = () => {
   // Add notes to a call
   const addCallNotes = useCallback(async (callId: string, notes: string): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('calls')
-        .update({ notes })
-        .eq('id', callId);
+      const { error } = await supabase.from('calls').update({ notes }).eq('id', callId);
 
       if (error) throw error;
       return true;
