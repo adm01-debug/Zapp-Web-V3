@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
@@ -31,6 +31,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const recognitionRef = useRef<any>(null);
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
+  // Mirror of the latest transcription so async handlers (onstop) read the
+  // current value instead of the stale one captured when startRecording was memoized.
+  const transcriptionRef = useRef<string>('');
+  useEffect(() => { transcriptionRef.current = transcription; }, [transcription]);
 
   const startRecording = useCallback(async (isRecovery = false) => {
     try {
@@ -91,7 +95,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
 
         // If local transcription is empty and we had issues, try backend STT
-        if (transcription.trim() === '' && audioBlob.size > 1000) {
+        if (transcriptionRef.current.trim() === '' && audioBlob.size > 1000) {
           try {
             setIsTranscribing(true);
             const { data, error } = await supabase.functions.invoke('speech-to-text', {
@@ -207,19 +211,42 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     }
   }, []);
 
+  // Ref-based so it works from stale closures (e.g. the maxDuration interval) and
+  // from the memoized startRecording — it must not depend on the `isRecording` state,
+  // whose value would be captured at creation time and go stale.
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      streamRef.current?.getTracks().forEach(track => track.stop());
-      
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      
-      setIsRecording(false);
-      setIsPaused(false);
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== 'inactive') {
+      mr.stop();
     }
-  }, [isRecording]);
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    setIsRecording(false);
+    setIsPaused(false);
+  }, []);
+
+  // Release all hardware/timers if the component unmounts mid-recording. Without
+  // this the mic stays live (browser recording indicator on), and interval/rAF and
+  // the AudioContext keep running after the hook is gone.
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+      const ctx = audioContextRef.current;
+      if (ctx && ctx.state !== 'closed') { ctx.close().catch(() => { /* ignore */ }); }
+      const mr = mediaRecorderRef.current;
+      if (mr && mr.state !== 'inactive') { try { mr.stop(); } catch { /* ignore */ } }
+    };
+  }, []);
 
   const cancelRecording = useCallback((saveForUndo = false) => {
     if (mediaRecorderRef.current && (isRecording || isPaused)) {

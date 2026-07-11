@@ -29,6 +29,17 @@ const priorityColors: Record<string, string> = {
   low: 'bg-success/20 text-success border-success/30',
 };
 
+// Date-only values ("YYYY-MM-DD") from <input type="date"> are parsed by JS as
+// midnight UTC, which shifts to the previous day in negative-offset timezones
+// (e.g. UTC-3). Parse the calendar parts as a local date to display the intended day.
+function formatCloseDate(value: string): string {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value);
+  return date.toLocaleDateString('pt-BR');
+}
+
 interface DealCardProps {
   deal: Deal;
   isDragging: boolean;
@@ -70,7 +81,7 @@ export function DealCard({ deal, isDragging, onDragStart, onDragEnd, onEdit, onM
           {deal.priority === 'high' ? 'Alta' : deal.priority === 'medium' ? 'Média' : 'Baixa'}
         </Badge>
         {deal.contact && <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><User className="w-3 h-3" /><span className="truncate max-w-[80px]">{deal.contact.name}</span></div>}
-        {deal.expected_close_date && <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><Calendar className="w-3 h-3" />{new Date(deal.expected_close_date).toLocaleDateString('pt-BR')}</div>}
+        {deal.expected_close_date && <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><Calendar className="w-3 h-3" />{formatCloseDate(deal.expected_close_date)}</div>}
       </div>
     </motion.div>
   );

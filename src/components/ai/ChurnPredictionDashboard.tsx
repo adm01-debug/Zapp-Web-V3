@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { differenceInDays } from 'date-fns';
 import { dbFrom } from '@/integrations/datasource/db';
 import { classifyChurnRisk, type ChurnRisk } from './classifyChurnRisk';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('ChurnPredictionDashboard');
 
 export function ChurnPredictionDashboard() {
   const [risks, setRisks] = useState<ChurnRisk[]>([]);
@@ -113,9 +116,9 @@ export function ChurnPredictionDashboard() {
       if (error) throw error;
       toast.success('Análise de IA concluída!');
       await analyzeChurnRisk();
-    } catch {
-      // Fallback: show results from local analysis
-      toast.success('Análise local concluída com sucesso!');
+    } catch (err) {
+      log.error('Falha na análise de churn por IA', err);
+      toast.error('Não foi possível concluir a análise de IA. Exibindo apenas a estimativa local.');
     } finally {
       setAnalyzing(false);
     }

@@ -16,7 +16,7 @@ export const messageService = {
       id: m.id || '',
       conversationId: m.conversationId || m.contact_id || '',
       timestamp: createdAt ? new Date(createdAt) : new Date(),
-      isEdited: !!m.is_deleted === false, // Heuristic for mapped types
+      isEdited: false, // no reliable edited flag on mapped types; never infer from is_deleted
       type: (m.message_type || m.type || 'text') as Message['type'],
       mediaUrl: m.media_url || m.mediaUrl || '',
       sender: (m.sender || (m.sender_id ? 'agent' : 'contact')) as Message['sender'],
