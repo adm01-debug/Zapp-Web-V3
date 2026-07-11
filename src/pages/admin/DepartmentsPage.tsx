@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,7 +65,9 @@ export default function DepartmentsPage() {
 
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any).from('departments').select('*').order('name');
+    const { data, error } = await safeClient.from<Department>('departments', (q) =>
+      q.select('*').order('name')
+    );
 
     if (error) {
       toast.error('Erro ao carregar departamentos');
@@ -137,9 +140,9 @@ export default function DepartmentsPage() {
       is_active: isActive,
     };
 
-    const { error } = editingId
-      ? await (supabase as any).from('departments').update(payload).eq('id', editingId)
-      : await (supabase as any).from('departments').insert(payload);
+    const { error } = await safeClient.from<Department>('departments', (q) =>
+      editingId ? q.update(payload).eq('id', editingId) : q.insert(payload)
+    );
 
     setSaving(false);
 
