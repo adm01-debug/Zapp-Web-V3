@@ -231,10 +231,10 @@
     --popover: 0 0% 0%; /* Preto OLED puro */
     --popover-foreground: 210 20% 98%;
     --primary: 221 95% 65%; /* WCAG AA ≥4.5:1 contra bg OLED preto — ~6.2:1 */
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 221 50% 8%; /* Dark navy — WCAG AA ≥4.5:1 sobre bg azul vívido (#5187fb) */
     --primary-glow: 225 100% 70%;
     --secondary: 215 90% 60%; /* WCAG AA ≥4.5:1 contra bg OLED preto */
-    --secondary-foreground: 0 0% 100%;
+    --secondary-foreground: 221 50% 8%; /* Dark navy para manter contraste em botões secundários */
     --muted: 0 0% 8%; /* Ajustado para OLED */
     --muted-foreground: 215 20% 70%;
     --accent: 221 80% 15%; /* Mais profundo */
