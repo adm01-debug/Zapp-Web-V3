@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 
 interface Profile {
@@ -43,11 +44,10 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
   const { data: queues = [] } = useQuery<Queue[]>({
     queryKey: ['skill-routing-queues'],
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from('queues')
-        .select('id, name, color')
-        .order('name');
-      return (data ?? []) as Queue[];
+      const { data } = await safeClient.from<Queue>('queues', (q) =>
+        q.select('id, name, color').order('name')
+      );
+      return data ?? [];
     },
   });
 
