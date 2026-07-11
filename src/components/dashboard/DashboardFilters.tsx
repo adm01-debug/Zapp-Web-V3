@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -15,16 +11,25 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
-import { 
-  Filter, 
-  Calendar as CalendarIcon, 
-  Users, 
-  Layers, 
-  X, 
+import {
+  Filter,
+  Calendar as CalendarIcon,
+  Users,
+  Layers,
+  X,
   RefreshCw,
-  ChevronDown 
+  ChevronDown,
 } from 'lucide-react';
-import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import {
+  format,
+  subDays,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useQueues } from '@/hooks/useQueues';
@@ -65,11 +70,11 @@ export const getDefaultFilters = (): DashboardFiltersState => ({
   agentId: null,
 });
 
-export function DashboardFilters({ 
-  filters, 
-  onFiltersChange, 
+export function DashboardFilters({
+  filters,
+  onFiltersChange,
   onRefresh,
-  isRefreshing 
+  isRefreshing,
 }: DashboardFiltersProps) {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { queues } = useQueues();
@@ -158,24 +163,24 @@ export function DashboardFilters({
     filters.agentId !== null,
   ].filter(Boolean).length;
 
-  const selectedQueue = queues?.find(q => q.id === filters.queueId);
-  const selectedAgent = agents?.find(a => a.id === filters.agentId);
+  const _selectedQueue = queues?.find((q) => q.id === filters.queueId);
+  const _selectedAgent = agents?.find((a) => a.id === filters.agentId);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-wrap items-center gap-3 p-4 bg-card/50 backdrop-blur-sm rounded-xl border border-border/50"
+      className="flex flex-wrap items-center gap-3 rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm"
     >
       {/* Period Selector */}
       <div className="flex items-center gap-2">
-        <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
         <Select value={filters.period} onValueChange={handlePeriodChange}>
-          <SelectTrigger className="w-[140px] h-9 bg-background/50">
+          <SelectTrigger className="h-9 w-[140px] bg-background/50">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PERIOD_OPTIONS.map(option => (
+            {PERIOD_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -194,15 +199,12 @@ export function DashboardFilters({
           >
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="h-9 gap-2 bg-background/50"
-                >
+                <Button variant="outline" size="sm" className="h-9 gap-2 bg-background/50">
                   <span className="text-xs">
-                    {format(filters.dateRange.from, 'dd/MM', { locale: ptBR })} - {format(filters.dateRange.to, 'dd/MM', { locale: ptBR })}
+                    {format(filters.dateRange.from, 'dd/MM', { locale: ptBR })} -{' '}
+                    {format(filters.dateRange.to, 'dd/MM', { locale: ptBR })}
                   </span>
-                  <ChevronDown className="w-3 h-3" />
+                  <ChevronDown className="h-3 w-3" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -226,20 +228,17 @@ export function DashboardFilters({
 
       {/* Queue Filter */}
       <div className="flex items-center gap-2">
-        <Layers className="w-4 h-4 text-muted-foreground" />
+        <Layers className="h-4 w-4 text-muted-foreground" />
         <Select value={filters.queueId || 'all'} onValueChange={handleQueueChange}>
-          <SelectTrigger className="w-[160px] h-9 bg-background/50">
+          <SelectTrigger className="h-9 w-[160px] bg-background/50">
             <SelectValue placeholder="Todas as filas" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as filas</SelectItem>
-            {queues?.map(queue => (
+            {queues?.map((queue) => (
               <SelectItem key={queue.id} value={queue.id}>
                 <div className="flex items-center gap-2">
-                  <div 
-                    className="w-2 h-2 rounded-full" 
-                    style={{ backgroundColor: queue.color }}
-                  />
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: queue.color }} />
                   {queue.name}
                 </div>
               </SelectItem>
@@ -250,14 +249,14 @@ export function DashboardFilters({
 
       {/* Agent Filter */}
       <div className="flex items-center gap-2">
-        <Users className="w-4 h-4 text-muted-foreground" />
+        <Users className="h-4 w-4 text-muted-foreground" />
         <Select value={filters.agentId || 'all'} onValueChange={handleAgentChange}>
-          <SelectTrigger className="w-[160px] h-9 bg-background/50">
+          <SelectTrigger className="h-9 w-[160px] bg-background/50">
             <SelectValue placeholder="Todos os agentes" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os agentes</SelectItem>
-            {agents?.map(agent => (
+            {agents?.map((agent) => (
               <SelectItem key={agent.id} value={agent.id}>
                 {agent.name}
               </SelectItem>
@@ -276,14 +275,14 @@ export function DashboardFilters({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
           >
-            <Badge 
-              variant="secondary" 
-              className="gap-1 cursor-pointer hover:bg-secondary/80"
+            <Badge
+              variant="secondary"
+              className="cursor-pointer gap-1 hover:bg-secondary/80"
               onClick={clearFilters}
             >
-              <Filter className="w-3 h-3" />
+              <Filter className="h-3 w-3" />
               {activeFiltersCount} filtro{activeFiltersCount > 1 ? 's' : ''}
-              <X className="w-3 h-3 ml-1" />
+              <X className="ml-1 h-3 w-3" />
             </Badge>
           </motion.div>
         )}
@@ -298,10 +297,7 @@ export function DashboardFilters({
           onClick={onRefresh}
           disabled={isRefreshing}
         >
-          <RefreshCw className={cn(
-            "w-4 h-4",
-            isRefreshing && "animate-spin"
-          )} />
+          <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
         </Button>
       )}
     </motion.div>

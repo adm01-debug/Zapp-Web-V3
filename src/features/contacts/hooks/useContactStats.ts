@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 export interface ContactStatsData {
   total: number;
@@ -29,7 +29,9 @@ export function useContactStats(): UseContactStatsReturn {
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetch = useCallback(async () => {
@@ -37,16 +39,12 @@ export function useContactStats(): UseContactStatsReturn {
     setError(null);
 
     try {
-      const { data, error: rpcErr } = await supabase.rpc(
-        'rpc_contact_stats' as unknown as Parameters<typeof supabase.rpc>[0],
-      );
+      const { data, error: rpcErr } = await safeClient.rpc<ContactStatsData>('rpc_contact_stats');
 
       if (!mountedRef.current) return;
       if (rpcErr) throw new Error(rpcErr.message);
 
-      // Supabase retorna o JSONB como objeto direto
-      const statsData = data as unknown as ContactStatsData;
-      setStats(statsData);
+      setStats(data);
     } catch (err) {
       if (mountedRef.current) setError(err instanceof Error ? err : new Error(String(err)));
     } finally {

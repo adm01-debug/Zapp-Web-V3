@@ -9,7 +9,7 @@ interface EvolutionGroup {
   subject?: string;
   name?: string;
   size?: number;
-  participants?: any[];
+  participants?: unknown[];
   desc?: string;
   description?: string;
   announce?: boolean;
@@ -56,7 +56,9 @@ describe('Group Data Extraction', () => {
 
   describe('Name Resolution', () => {
     it('uses subject first', () => {
-      expect(extractGroupData({ subject: 'SubjectName', name: 'Name' }).groupName).toBe('SubjectName');
+      expect(extractGroupData({ subject: 'SubjectName', name: 'Name' }).groupName).toBe(
+        'SubjectName'
+      );
     });
 
     it('falls back to name', () => {
@@ -88,11 +90,15 @@ describe('Group Data Extraction', () => {
 
   describe('Description', () => {
     it('uses desc field', () => {
-      expect(extractGroupData({ desc: 'Description via desc' }).groupDesc).toBe('Description via desc');
+      expect(extractGroupData({ desc: 'Description via desc' }).groupDesc).toBe(
+        'Description via desc'
+      );
     });
 
     it('falls back to description field', () => {
-      expect(extractGroupData({ description: 'Description via description' }).groupDesc).toBe('Description via description');
+      expect(extractGroupData({ description: 'Description via description' }).groupDesc).toBe(
+        'Description via description'
+      );
     });
 
     it('defaults to null', () => {

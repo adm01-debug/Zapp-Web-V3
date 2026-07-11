@@ -104,8 +104,8 @@ function getClient(): SupabaseClient {
   if (!client) {
     throw new Error(
       '[contactsDB] External Supabase not configured. ' +
-      'Set VITE_EXTERNAL_SUPABASE_URL and VITE_EXTERNAL_SUPABASE_ANON_KEY. ' +
-      'Contacts live on the external CRM database, not Lovable Cloud.'
+        'Set VITE_EXTERNAL_SUPABASE_URL and VITE_EXTERNAL_SUPABASE_ANON_KEY. ' +
+        'Contacts live on the external CRM database, not Lovable Cloud.'
     );
   }
   return client;
@@ -163,8 +163,11 @@ export const contactsDB = {
   },
 
   /** Update contact fields */
-  async update(contactId: string, fields: Partial<ExternalContact>): Promise<ExternalContact | null> {
-    const { updated_at: _updated_at, ...rest } = fields;
+  async update(
+    contactId: string,
+    fields: Partial<ExternalContact>
+  ): Promise<ExternalContact | null> {
+    const { updated_at: _updated_at, ...rest } = fields as any;
     const { data, error } = await getClient()
       .from('contacts')
       .update({ ...rest, updated_at: new Date().toISOString() })
@@ -195,12 +198,12 @@ export const contactsDB = {
       .is('deleted_at', null)
       .or(
         `full_name.ilike.%${cleaned}%,` +
-        `first_name.ilike.%${cleaned}%,` +
-        `last_name.ilike.%${cleaned}%,` +
-        `email.ilike.%${cleaned}%,` +
-        `phone.ilike.%${cleaned}%,` +
-        `whatsapp.ilike.%${cleaned}%,` +
-        `apelido.ilike.%${cleaned}%`
+          `first_name.ilike.%${cleaned}%,` +
+          `last_name.ilike.%${cleaned}%,` +
+          `email.ilike.%${cleaned}%,` +
+          `phone.ilike.%${cleaned}%,` +
+          `whatsapp.ilike.%${cleaned}%,` +
+          `apelido.ilike.%${cleaned}%`
       )
       .order('updated_at', { ascending: false })
       .limit(limit);
@@ -241,7 +244,12 @@ export const contactsDB = {
       return (data ?? []) as ContactNote[];
     },
 
-    async create(note: { contact_id: string; user_id: string; content: string; note_type?: string }): Promise<ContactNote> {
+    async create(note: {
+      contact_id: string;
+      user_id: string;
+      content: string;
+      note_type?: string;
+    }): Promise<ContactNote> {
       const { data, error } = await getClient()
         .from('contact_notes')
         .insert(note)
@@ -260,10 +268,7 @@ export const contactsDB = {
     },
 
     async delete(noteId: string): Promise<void> {
-      const { error } = await getClient()
-        .from('contact_notes')
-        .delete()
-        .eq('id', noteId);
+      const { error } = await getClient().from('contact_notes').delete().eq('id', noteId);
       if (error) throw error;
     },
   },

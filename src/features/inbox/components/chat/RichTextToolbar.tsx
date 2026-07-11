@@ -14,16 +14,37 @@ interface RichTextToolbarProps {
 
 type FormatType = 'bold' | 'italic' | 'strikethrough' | 'code' | 'list' | 'ordered-list';
 
-const FORMAT_MAP: Record<FormatType, { prefix: string; suffix: string; icon: React.ElementType; label: string; shortcut: string }> = {
+const FORMAT_MAP: Record<
+  FormatType,
+  { prefix: string; suffix: string; icon: React.ElementType; label: string; shortcut: string }
+> = {
   bold: { prefix: '*', suffix: '*', icon: Bold, label: 'Negrito', shortcut: 'Ctrl+B' },
   italic: { prefix: '_', suffix: '_', icon: Italic, label: 'Itálico', shortcut: 'Ctrl+I' },
-  strikethrough: { prefix: '~', suffix: '~', icon: Strikethrough, label: 'Tachado', shortcut: 'Ctrl+Shift+X' },
+  strikethrough: {
+    prefix: '~',
+    suffix: '~',
+    icon: Strikethrough,
+    label: 'Tachado',
+    shortcut: 'Ctrl+Shift+X',
+  },
   code: { prefix: '```', suffix: '```', icon: Code, label: 'Código', shortcut: 'Ctrl+E' },
   list: { prefix: '- ', suffix: '', icon: List, label: 'Lista', shortcut: '' },
-  'ordered-list': { prefix: '1. ', suffix: '', icon: ListOrdered, label: 'Lista Numerada', shortcut: '' },
+  'ordered-list': {
+    prefix: '1. ',
+    suffix: '',
+    icon: ListOrdered,
+    label: 'Lista Numerada',
+    shortcut: '',
+  },
 };
 
-export function RichTextToolbar({ inputRef, inputValue, onInputChange, visible, onToggle }: RichTextToolbarProps) {
+export function RichTextToolbar({
+  inputRef,
+  inputValue,
+  onInputChange,
+  visible,
+  onToggle: _onToggle,
+}: RichTextToolbarProps) {
   const applyFormat = (type: FormatType) => {
     const input = inputRef.current;
     if (!input) return;
@@ -41,7 +62,8 @@ export function RichTextToolbar({ inputRef, inputValue, onInputChange, visible, 
       newValue = inputValue.substring(0, lineStart) + prefix + inputValue.substring(lineStart);
       newCursorPos = start + prefix.length;
     } else if (selectedText) {
-      newValue = inputValue.substring(0, start) + prefix + selectedText + suffix + inputValue.substring(end);
+      newValue =
+        inputValue.substring(0, start) + prefix + selectedText + suffix + inputValue.substring(end);
       newCursorPos = end + prefix.length + suffix.length;
     } else {
       newValue = inputValue.substring(0, start) + prefix + suffix + inputValue.substring(end);
@@ -67,26 +89,35 @@ export function RichTextToolbar({ inputRef, inputValue, onInputChange, visible, 
           transition={{ duration: 0.15 }}
           className="overflow-hidden"
         >
-          <div className="flex items-center gap-0.5 px-4 py-1.5 border-t border-border/50 bg-muted/30" role="toolbar" aria-label="Formatação de texto">
-            {(Object.entries(FORMAT_MAP) as [FormatType, typeof FORMAT_MAP[FormatType]][]).map(([type, { icon: Icon, label, shortcut }]) => (
-              <Tooltip key={type}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-7 h-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-                    onClick={() => applyFormat(type)}
-                    aria-label={label}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {label}{shortcut ? ` (${shortcut})` : ''}
-                </TooltipContent>
-              </Tooltip>
-            ))}
-            <span className="ml-auto text-[10px] text-muted-foreground/60">Formatação WhatsApp</span>
+          <div
+            className="flex items-center gap-0.5 border-t border-border/50 bg-muted/30 px-4 py-1.5"
+            role="toolbar"
+            aria-label="Formatação de texto"
+          >
+            {(Object.entries(FORMAT_MAP) as [FormatType, (typeof FORMAT_MAP)[FormatType]][]).map(
+              ([type, { icon: Icon, label, shortcut }]) => (
+                <Tooltip key={type}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onClick={() => applyFormat(type)}
+                      aria-label={label}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {label}
+                    {shortcut ? ` (${shortcut})` : ''}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            )}
+            <span className="ml-auto text-[10px] text-muted-foreground/60">
+              Formatação WhatsApp
+            </span>
           </div>
         </motion.div>
       )}
@@ -103,16 +134,20 @@ export function RichTextToggle({ active, onToggle }: { active: boolean; onToggle
           variant="ghost"
           size="icon"
           className={cn(
-            "w-9 h-9 shrink-0",
-            active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            'h-9 w-9 shrink-0',
+            active
+              ? 'bg-primary/10 text-primary'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
           onClick={onToggle}
           aria-label="Formatação de texto"
         >
-          <Type className="w-[18px] h-[18px]" />
+          <Type className="h-[18px] w-[18px]" />
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">Formatação de texto</TooltipContent>
+      <TooltipContent side="top" className="text-xs">
+        Formatação de texto
+      </TooltipContent>
     </Tooltip>
   );
 }

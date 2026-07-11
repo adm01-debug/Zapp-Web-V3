@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
+import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: mockFrom,
     auth: {
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
     },
   },
@@ -18,7 +21,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
-  AuthProvider: ({ children }: any) => children,
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
@@ -41,8 +44,24 @@ function createWrapper() {
 }
 
 const mockMessages = [
-  { id: 'sm1', contact_id: 'c1', content: 'Follow up', scheduled_at: '2024-12-01T10:00:00Z', status: 'pending', created_at: '2024-01-01', message_type: 'text' },
-  { id: 'sm2', contact_id: 'c2', content: 'Reminder', scheduled_at: '2024-12-02T10:00:00Z', status: 'sent', created_at: '2024-01-01', message_type: 'text' },
+  {
+    id: 'sm1',
+    contact_id: 'c1',
+    content: 'Follow up',
+    scheduled_at: '2024-12-01T10:00:00Z',
+    status: 'pending',
+    created_at: '2024-01-01',
+    message_type: 'text',
+  },
+  {
+    id: 'sm2',
+    contact_id: 'c2',
+    content: 'Reminder',
+    scheduled_at: '2024-12-02T10:00:00Z',
+    status: 'sent',
+    created_at: '2024-01-01',
+    message_type: 'text',
+  },
 ];
 
 describe('useScheduledMessages', () => {

@@ -17,6 +17,17 @@ interface WarRoomAlert {
   created_at: string;
 }
 
+function isWarRoomAlert(value: unknown): value is WarRoomAlert {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v['id'] === 'string' &&
+    typeof v['alert_type'] === 'string' &&
+    typeof v['title'] === 'string' &&
+    typeof v['message'] === 'string'
+  );
+}
+
 export function useWarRoomAlerts(soundEnabled = true) {
   const queryClient = useQueryClient();
   const { showNotification, permission } = usePushNotifications();
@@ -24,7 +35,9 @@ export function useWarRoomAlerts(soundEnabled = true) {
 
   // Initialize alert sound
   useEffect(() => {
-    audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgip6LbUg3WX2OgGtLPE51g3lgSkRHZXVzYFRDSWBwaV5WTFFcaGReW1haYmhkYl9eYGVpZ2VkZGRnamlnZmZnaGlpaGdnaGhpaWloaGhpaWhoaGlpaGlpaGhpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaQ==');
+    audioRef.current = new Audio(
+      'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgip6LbUg3WX2OgGtLPE51g3lgSkRHZXVzYFRDSWBwaV5WTFFcaGReW1haYmhkYl9eYGVpZ2VkZGRnamlnZmZnaGlpaGdnaGhpaWloaGhpaWhoaGlpaGlpaGhpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaQ=='
+    );
     audioRef.current.volume = 0.5;
   }, []);
 
@@ -60,7 +73,9 @@ export function useWarRoomAlerts(soundEnabled = true) {
 
   const alertsRef = useRef(alerts);
   // Keep alertsRef in sync so the SLA interval can read latest alerts without being in its dep array
-  useEffect(() => { alertsRef.current = alerts; }, [alerts]);
+  useEffect(() => {
+    alertsRef.current = alerts;
+  }, [alerts]);
 
   // Real-time subscription for new alerts
   useEffect(() => {
@@ -70,12 +85,11 @@ export function useWarRoomAlerts(soundEnabled = true) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'warroom_alerts' },
         (payload) => {
-          const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
-          if (!parsed.ok) {
-            log.warn('warroom_alerts INSERT payload rejeitado', parsed.error);
+          if (!isWarRoomAlert(payload.new)) {
+            log.warn('[useWarRoomAlerts] received malformed realtime payload', payload.new);
             return;
           }
-          const alert = parsed.data as WarRoomAlert;
+          const alert: WarRoomAlert = payload.new;
           queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
 
           // Play sound
@@ -99,7 +113,9 @@ export function useWarRoomAlerts(soundEnabled = true) {
       )
       .subscribe();
 
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [queryClient, playAlertSound, permission, showNotification]);
 
   // Dismiss alert
@@ -128,7 +144,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
       if (breaches && breaches.length > 0) {
         const newBreachCount = breaches.length;
         // Only alert if breaches exist (idempotent via source field)
-        const existingAlerts = alertsRef.current.filter(a => a.source === 'sla-monitor');
+        const existingAlerts = alertsRef.current.filter((a) => a.source === 'sla-monitor');
         if (existingAlerts.length === 0 || newBreachCount > existingAlerts.length) {
           const { error: insertErr } = await supabase.from('warroom_alerts').insert({
             alert_type: 'critical',
@@ -141,10 +157,12 @@ export function useWarRoomAlerts(soundEnabled = true) {
       }
     };
 
-    const interval = setInterval(() => { void checkSLABreaches(); }, 60000);
+    const interval = setInterval(() => {
+      void checkSLABreaches();
+    }, 60000);
     void checkSLABreaches(); // initial check
     return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentionally runs once; alertsRef keeps current value
+  }, []);
 
   return { alerts, dismissAlert };
 }

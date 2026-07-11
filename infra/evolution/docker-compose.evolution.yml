@@ -22,8 +22,6 @@ services:
       - source: evolution_main_v2_mjs
         target: /evolution/dist/main.mjs
         mode: 0444
-      # T4 RESTAURADO 2026-07-06 como config externo (evita interpolacao do compose-parser).
-      # Prologo de mascaramento api_key nos logs; require()-ado pelo logpatch.cjs.
       - source: evolution_logpatch_t4_cjs
         target: /evolution/t4_prologue.cjs
         mode: 0444
@@ -46,128 +44,65 @@ services:
       - -c
       - |
         # === SECRETS LOADING ===
-        # Superuser URI: usado APENAS para Prisma migrations (precisa CREATE/ALTER TABLE)
-        [ -f /run/secrets/evolution_db_uri_v1 ] && export DATABASE_CONNECTION_URI=$$(cat /run/secrets/evolution_db_uri_v1)
-        # Runtime URI: evolution_app (least-privilege: SELECT/INSERT/UPDATE/DELETE sem superuser)
+        # tr -d remove trailing newline do arquivo de secret
+        # (sem o tr, wc -c retorna 33 em vez de 32 - causa 401 por chave com \n)
+        [ -f /run/secrets/evolution_db_uri_v1 ] && export DATABASE_CONNECTION_URI=$$(cat /run/secrets/evolution_db_uri_v1 | tr -d '\n\r')
         RUNTIME_URI=""
-        [ -f /run/secrets/evolution_db_uri_evolution_app_v1 ] && RUNTIME_URI=$$(cat /run/secrets/evolution_db_uri_evolution_app_v1)
-        [ -f /run/secrets/evolution_api_key_v4_20260704 ] && export AUTHENTICATION_API_KEY=$$(cat /run/secrets/evolution_api_key_v4_20260704)
-        [ -f /run/secrets/r2_s3_access_key_v2 ] && export S3_ACCESS_KEY=$$(cat /run/secrets/r2_s3_access_key_v2)
-        [ -f /run/secrets/r2_s3_secret_key_v2 ] && export S3_SECRET_KEY=$$(cat /run/secrets/r2_s3_secret_key_v2)
-        [ -f /run/secrets/rabbitmq_url_evolution_v1 ] && export RABBITMQ_URI=$$(cat /run/secrets/rabbitmq_url_evolution_v1)
-        [ -f /run/secrets/metrics_password_v2 ] && export METRICS_PASSWORD=$$(cat /run/secrets/metrics_password_v2)
-        # WA-BUSINESS PREP (2026-07-06): v20.0 (mai/2024) em fim de suporte; v24.0 lancada 08/10/2025.
-        # WA_BUSINESS_TOKEN_WEBHOOK migrado de env plana para secret (ver entrypoint).
-        [ -f /run/secrets/wa_business_verify_token_v1 ] && export WA_BUSINESS_TOKEN_WEBHOOK=$$(cat /run/secrets/wa_business_verify_token_v1)
+        [ -f /run/secrets/evolution_db_uri_evolution_app_v1 ] && RUNTIME_URI=$$(cat /run/secrets/evolution_db_uri_evolution_app_v1 | tr -d '\n\r')
+        [ -f /run/secrets/evolution_api_key_v4_20260704 ] && export AUTHENTICATION_API_KEY=$$(cat /run/secrets/evolution_api_key_v4_20260704 | tr -d '\n\r')
+        [ -f /run/secrets/r2_s3_access_key_v2 ] && export S3_ACCESS_KEY=$$(cat /run/secrets/r2_s3_access_key_v2 | tr -d '\n\r')
+        [ -f /run/secrets/r2_s3_secret_key_v2 ] && export S3_SECRET_KEY=$$(cat /run/secrets/r2_s3_secret_key_v2 | tr -d '\n\r')
+        [ -f /run/secrets/rabbitmq_url_evolution_v1 ] && export RABBITMQ_URI=$$(cat /run/secrets/rabbitmq_url_evolution_v1 | tr -d '\n\r')
+        [ -f /run/secrets/metrics_password_v2 ] && export METRICS_PASSWORD=$$(cat /run/secrets/metrics_password_v2 | tr -d '\n\r')
+        [ -f /run/secrets/wa_business_verify_token_v1 ] && export WA_BUSINESS_TOKEN_WEBHOOK=$$(cat /run/secrets/wa_business_verify_token_v1 | tr -d '\n\r')
         echo "[entrypoint] secrets loaded: db(superuser)=$${DATABASE_CONNECTION_URI:+yes} db(runtime)=$${RUNTIME_URI:+yes} api=$${AUTHENTICATION_API_KEY:+yes} s3=$${S3_ACCESS_KEY:+yes} rmq=$${RABBITMQ_URI:+yes} wa_vtok=$${WA_BUSINESS_TOKEN_WEBHOOK:+yes}"
         cd /evolution
         cat > /tmp/logpatch.cjs << 'LP_EOF'
         const fs=require('fs');
         const src=fs.readFileSync('/evolution/dist/main.js','utf8');
-
-        // T1: dump payload mensagem (LGPD)
         const t1='console.log(c),this.sendDataWebhook("messages.upsert",c)';
         const r1='this.sendDataWebhook("messages.upsert",c)';
-        // T2: dump stanza (LGPD)
         const t2='console.log("stanza",JSON.stringify(e)),';
-
         const c1=src.split(t1).length-1;
         const c2=src.split(t2).length-1;
-        if(c1!==1||c2!==1){
-          console.error('[logpatch] T1('+c1+')/T2('+c2+') nao encontrado — abortando');
-          process.exit(1);
-        }
-
+        if(c1!==1||c2!==1){console.error('[logpatch] T1('+c1+')/T2('+c2+') nao encontrado - abortando');process.exit(1);}
         let out=src.replace(t1,r1).replace(t2,'');
         console.log('[logpatch] T1+T2 OK: '+src.length+'->'+out.length+' bytes');
-
-        // T3: Sentry — filtrar 401/DEVICE_REMOVED/makeBucket, traces 5%, profiles off
-        // SYNC 2026-07-11: adicionado ||e.message.includes("makeBucket") para suprimir S3 init errors no Sentry
         const t3o='Lr.DSN&&Br.init({dsn:Lr.DSN,environment:process.env.NODE_ENV||"development",tracesSampleRate:1,profilesSampleRate:1})';
         const t3n='Lr.DSN&&Br.init({dsn:Lr.DSN,environment:"production",tracesSampleRate:0.05,profilesSampleRate:0,beforeSend:(event,hint)=>{try{const e=hint&&hint.originalException;if(e){if(e.response&&[401,403].includes(e.response.status))return null;if(e.message&&(e.message.includes("DEVICE_REMOVED")||e.message.includes("Request failed with status code 401")||e.message.includes("status code 403")||e.message.includes("makeBucket")))return null;}}catch(_){}return event;}})';
         const c3=out.split(t3o).length-1;
-        if(c3===1){
-          out=out.replace(t3o,t3n);
-          console.log('[logpatch] T3 OK: Sentry filtro 401+403+DEVICE_REMOVED+makeBucket + traces5% + profiles0');
-        } else {
-          console.warn('[logpatch] T3 SKIP: count='+c3+' — fail-open');
-        }
-
-        // T4: prologo de mascaramento api_key — lido de config externo (evita interpolacao YAML)
-        // RESTAURADO 2026-07-06: fix4 (least-privilege) reconstruiu o entrypoint e perdeu o T4 inline.
+        if(c3===1){out=out.replace(t3o,t3n);console.log('[logpatch] T3 OK: Sentry+makeBucket+traces5%');} else {console.warn('[logpatch] T3 SKIP: count='+c3);}
         var T4='';
-        try{
-          T4=fs.readFileSync('/evolution/t4_prologue.cjs','utf8');
-          if(T4.length>50 && T4.indexOf('MASKED')>-1){
-            out=T4+'\n'+out;
-            console.log('[logpatch] T4 OK: prologo mask api_key injetado ('+T4.length+' bytes, via config)');
-          } else {
-            console.warn('[logpatch] T4 SKIP: config presente mas conteudo inesperado ('+T4.length+' bytes) — fail-open');
-          }
-        }catch(e){
-          console.warn('[logpatch] T4 SKIP: config /evolution/t4_prologue.cjs ausente ('+e.message+') — fail-open');
-        }
-
-        // T5a: remover log verboso de cache (CACHE: {cached, updateKey, ...}) — adicionado 2026-07-11
-        // Reduz noise de logs sem afetar funcionalidade
+        try{T4=fs.readFileSync('/evolution/t4_prologue.cjs','utf8');if(T4.length>50 && T4.indexOf('MASKED')>-1){out=T4+'\n'+out;console.log('[logpatch] T4 OK');} else {console.warn('[logpatch] T4 SKIP');}}
+        catch(e){console.warn('[logpatch] T4 SKIP: '+e.message);}
         const t5_src='console.log("CACHE:",{cached:a,updateKey:r,messageTimestamp:n.messageTimestamp,secondsSinceEpoch:c}),';
         const t5_cond=t5_src+'n.messageTimestamp&&';
         const t5c=out.split(t5_cond).length-1;
-        if(t5c===1){
-          out=out.replace(t5_cond,'n.messageTimestamp&&');
-          console.log('[logpatch] T5a CACHE OK: log verboso removido ('+t5_src.length+' bytes)');
-        } else {
-          console.warn('[logpatch] T5a SKIP: count='+t5c+' — fail-open');
-        }
-
+        if(t5c===1){out=out.replace(t5_cond,'n.messageTimestamp&&');console.log('[logpatch] T5a CACHE OK removed='+t5_src.length);}
+        else{console.warn('[logpatch] T5a SKIP count='+t5c);}
         fs.writeFileSync('/evolution/dist/main.patched.js',out);
         console.log('[logpatch] patched: '+out.length+' bytes');
-
-        // libsignal: remover dumps de session object dos logs
-        try{
-          const f='/evolution/node_modules/libsignal/src/session_record.js';
-          let s=fs.readFileSync(f,'utf8');
-          const subs=[
-            ['console.warn("Session already closed", session);','console.warn("Session already closed");'],
-            ['console.info("Closing session:", session);','console.info("Closing session");'],
-            ['console.info("Opening session:", session);','console.info("Opening session");'],
-            ['console.info("Removing old closed session:", oldestSession);','console.info("Removing old closed session");']
-          ];
-          let n=0;
-          for(const p of subs){if(s.includes(p[0])){s=s.split(p[0]).join(p[1]);n++;}}
-          fs.writeFileSync(f,s);
-          console.log('[logpatch] libsignal: '+n+'/4');
-        }catch(e){console.error('[logpatch] libsignal SKIP: '+e.message);}
+        try{const f='/evolution/node_modules/libsignal/src/session_record.js';let s=fs.readFileSync(f,'utf8');const subs=[['console.warn("Session already closed", session);','console.warn("Session already closed");'],['console.info("Closing session:", session);','console.info("Closing session");'],['console.info("Opening session:", session);','console.info("Opening session");'],['console.info("Removing old closed session:", oldestSession);','console.info("Removing old closed session");']];let n=0;for(const p of subs){if(s.includes(p[0])){s=s.split(p[0]).join(p[1]);n++;}}fs.writeFileSync(f,s);console.log('[logpatch] libsignal: '+n+'/4');}catch(e){console.error('[logpatch] libsignal SKIP: '+e.message);}
         LP_EOF
-
         if node /tmp/logpatch.cjs; then
           START="dist/main.patched.js"
         else
-          echo "[entrypoint] logpatch FAIL: rodando SEM patch — risco LGPD. Registrando alerta."
-          node -e "
-            const {Client}=require('pg');
-            const uri=process.env.DATABASE_CONNECTION_URI;
-            if(!uri){process.exit(0);}
-            const c=new Client({connectionString:uri});
-            c.connect().then(()=>c.query(\"INSERT INTO public.warroom_alerts(alert_type,title,message,source,entity) VALUES ('critical','Evolution logpatch FAILED','Boot sem patch — risco LGPD.','evolution-entrypoint','evolution')\").catch(()=>{})).finally(()=>c.end()).catch(()=>{});
-          " 2>/dev/null || true
+          echo "[entrypoint] logpatch FAIL: rodando SEM patch - risco LGPD."
+          node -e "const {Client}=require('pg');const uri=process.env.DATABASE_CONNECTION_URI;if(!uri){process.exit(0);}const c=new Client({connectionString:uri});c.connect().then(()=>c.query(\"INSERT INTO public.warroom_alerts(alert_type,title,message,source,entity) VALUES ('critical','Evolution logpatch FAILED','Boot sem patch - risco LGPD.','evolution-entrypoint','evolution')\").catch(()=>{})).finally(()=>c.end()).catch(()=>{});" 2>/dev/null || true
           START="dist/main"
         fi
-
-        # === MIGRATIONS com superuser ===
         echo "[entrypoint] running Prisma migrations (superuser DSN)..."
         . ./Docker/scripts/deploy_database.sh
         MIGRATION_EXIT=$$?
-
-        # === TROCAR PARA RUNTIME URI (least-privilege) ===
         if [ -n "$$RUNTIME_URI" ] && [ "$$MIGRATION_EXIT" = "0" ]; then
           export DATABASE_CONNECTION_URI="$$RUNTIME_URI"
-          echo "[entrypoint] switched to runtime URI (evolution_app role — least-privilege)"
+          echo "[entrypoint] switched to runtime URI (evolution_app role - least-privilege)"
         else
-          echo "[entrypoint] WARN: runtime URI ausente ou migrations falharam (exit=$$MIGRATION_EXIT) — usando superuser URI"
+          echo "[entrypoint] WARN: runtime URI ausente ou migrations falharam (exit=$$MIGRATION_EXIT)"
         fi
-
-        echo "[entrypoint] start: $$START db_user=$$(echo $$DATABASE_CONNECTION_URI | grep -oP '(?<=://)([^:]+)')"
+        # FIX v2: usar sed em vez de grep -oP (BusyBox nao tem Perl regex)
+        DB_USER=$$(echo $$DATABASE_CONNECTION_URI | sed 's|.*://\([^:]*\).*|\1|')
+        echo "[entrypoint] start: $$START db_user=$$DB_USER"
         exec node $$START
 
     environment:
@@ -304,7 +239,7 @@ services:
       - traefik.http.middlewares.evo-sec.headers.permissionsPolicy=camera=(), microphone=(), geolocation=(), payment=()
       - traefik.http.middlewares.evo-sec.headers.customResponseHeaders.Server=
       - traefik.http.middlewares.evo-sec.headers.customResponseHeaders.X-Powered-By=
-      - com.atomicabr.audit=sync-20260711-T3-makeBucket-T5a-CACHE-log-removal
+      - com.atomicabr.audit=canonical-v3-20260711-grep-to-sed-fix
       - com.centurylinklabs.watchtower.enable=false
 
 volumes:

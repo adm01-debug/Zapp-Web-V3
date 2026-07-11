@@ -16,62 +16,28 @@ interface ProxyResponse<T> {
   schema_unavailable?: boolean;
 }
 
-interface ProxyErrorResponse {
-  error: string;
-  cid?: string;
-  rid?: string;
-}
-
 /**
  * Encapsulates communication with the external DB proxy.
  */
 class ExternalDbProxyClient {
   private cachedSession: { token: string; expires: number } | null = null;
 
-  constructor() {
-    // MED-5 (Auditoria 2026-07-11): invalidar cache imediatamente em qualquer
-    // transição de sessão. Sem isso, após TOKEN_REFRESHED / SIGNED_OUT o proxy
-    // continuava usando por até 30s um access_token velho e gerava 401 espurio.
-    try {
-      supabase.auth.onAuthStateChange((event) => {
-        if (
-          event === 'TOKEN_REFRESHED' ||
-          event === 'SIGNED_OUT' ||
-          event === 'SIGNED_IN' ||
-          event === 'USER_UPDATED'
-        ) {
-          this.cachedSession = null;
-        }
-      });
-    } catch (err) {
-      log.warn('onAuthStateChange subscription failed', { err: String(err) });
-    }
-  }
-
-  /** Testing hook — força invalidação do cache de sessão. */
-  invalidateSession() {
-    this.cachedSession = null;
-  }
-
   private async getAuthHeader(): Promise<string> {
     const now = Date.now();
-    
+
     // Cache session token for 30s to avoid redundant getSession() calls in parallel requests
     if (this.cachedSession && this.cachedSession.expires > now) {
       return `Bearer ${this.cachedSession.token}`;
     }
 
     try {
-      const { data, error } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      const expiresAt = data.session?.expires_at; // seconds since epoch
-      
+
       if (token) {
-        // Respeitar o expiry real do JWT: cache por min(30s, tempo-restante-menos-5s)
-        const jwtTtlMs = expiresAt ? Math.max(0, expiresAt * 1000 - now - 5000) : 30_000;
         this.cachedSession = {
           token,
-          expires: now + Math.min(30_000, jwtTtlMs),
+          expires: now + 30000,
         };
         return `Bearer ${token}`;
       }
@@ -81,7 +47,10 @@ class ExternalDbProxyClient {
     }
   }
 
-  async call<T>(body: Record<string, unknown>, retryCount = 0): Promise<{ data: T | null; schema_unavailable: boolean }> {
+  async call<T>(
+    body: Record<string, unknown>,
+    retryCount = 0
+  ): Promise<{ data: T | null; schema_unavailable: boolean }> {
     if (!PROXY_URL) throw new Error('VITE_SUPABASE_URL missing');
 
     const cid = generateCorrelationId();
@@ -113,18 +82,22 @@ class ExternalDbProxyClient {
 
       if (!response.ok) {
         const errorMsg = result?.error ?? `HTTP ${response.status}`;
-        
+
         // PGRST106 (Invalid schema) or PGRST002 (Schema cache error)
-        const isTransientSchemaError = 
-          errorMsg.includes('PGRST106') || 
+        const isTransientSchemaError =
+          errorMsg.includes('PGRST106') ||
           errorMsg.includes('Invalid schema') ||
           errorMsg.includes('PGRST002') ||
           errorMsg.includes('schema cache');
-        
+
         if (isTransientSchemaError && retryCount < 5) {
           const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
-          log.warn('Transient schema error, retrying', { error: errorMsg, attempt: retryCount + 1, delayMs: Math.round(delay) });
-          await new Promise(resolve => setTimeout(resolve, delay));
+          log.warn('Transient schema error, retrying', {
+            error: errorMsg,
+            attempt: retryCount + 1,
+            delayMs: Math.round(delay),
+          });
+          await new Promise((resolve) => setTimeout(resolve, delay));
           return this.call<T>(body, retryCount + 1);
         }
 
@@ -138,15 +111,15 @@ class ExternalDbProxyClient {
       };
     } catch (error: any) {
       const errorMsg = error?.message ?? String(error);
-      const isTransient = 
-        errorMsg.includes('PGRST106') || 
+      const isTransient =
+        errorMsg.includes('PGRST106') ||
         errorMsg.includes('Invalid schema') ||
         errorMsg.includes('PGRST002') ||
         errorMsg.includes('schema cache');
 
       if (isTransient && retryCount < 5) {
         const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return this.call<T>(body, retryCount + 1);
       }
       throw error;

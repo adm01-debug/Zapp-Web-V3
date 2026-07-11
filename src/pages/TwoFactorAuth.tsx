@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 export default function TwoFactorAuth() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getAssuranceLevel, isMFAEnabled, fetchFactors } = useMFA();
+  const { getAssuranceLevel, fetchFactors } = useMFA();
   const [needsVerification, setNeedsVerification] = useState(false);
 
   useEffect(() => {
@@ -36,18 +36,16 @@ export default function TwoFactorAuth() {
     if (user) {
       void checkMFAStatus();
     }
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user, navigate, getAssuranceLevel, fetchFactors]);
 
   if (!needsVerification) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center"
-        >
-          <Shield className="w-12 h-12 mx-auto mb-4 text-muted-foreground animate-pulse" />
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+          <Shield className="mx-auto mb-4 h-12 w-12 animate-pulse text-muted-foreground" />
           <p className="text-muted-foreground">Verificando status de autenticação...</p>
         </motion.div>
       </div>
@@ -55,7 +53,7 @@ export default function TwoFactorAuth() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -70,10 +68,10 @@ export default function TwoFactorAuth() {
             supabase.auth.signOut().then(() => navigate('/auth'));
           }}
         />
-        
+
         <div className="mt-4 text-center">
           <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar para login
           </Button>
         </div>

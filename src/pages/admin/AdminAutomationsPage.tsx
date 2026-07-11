@@ -1,26 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
-import { useAdminAutomations, EMPTY_RULE, TRIGGER_LABEL, type Rule, type TriggerType } from '@/hooks/admin/useAdminAutomations';
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import { useEffect, useMemo, useState } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import {
   Plus,
   Pencil,
@@ -32,16 +34,69 @@ import {
   AlertTriangle,
   Building2,
   Radio,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
+type TriggerType =
+  'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
+
+interface Rule {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  trigger_type: TriggerType;
+  trigger_config: any; // ignore-audit
+  actions: any; // ignore-audit
+  priority: number;
+  cooldown_seconds: number;
+  channel_id: string | null;
+  department_id: string | null;
+}
+
+interface Channel {
+  id: string;
+  name: string;
+}
+interface Department {
+  id: string;
+  name: string;
+}
+
+const TRIGGER_LABEL: Record<TriggerType, string> = {
+  first_response_pending: 'Primeira resposta pendente',
+  inactivity: 'Ausência / inatividade',
+  tag_applied: 'Etiqueta aplicada',
+  tag_removed: 'Etiqueta removida',
+  keyword_match: 'Palavra-chave',
+};
 
 const SLA_LEVELS = [
-  { value: "low", label: "Baixa" },
-  { value: "normal", label: "Normal" },
-  { value: "high", label: "Alta" },
-  { value: "critical", label: "Crítica" },
+  { value: 'low', label: 'Baixa' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'Alta' },
+  { value: 'critical', label: 'Crítica' },
 ];
+
+const EMPTY_RULE: Omit<Rule, 'id'> = {
+  name: '',
+  description: '',
+  is_active: true,
+  trigger_type: 'first_response_pending',
+  trigger_config: { threshold_seconds: 60 },
+  actions: {
+    suggest_reply: true,
+    auto_send: false,
+    apply_tags: [] as string[],
+    ai_prompt: '',
+    template: '',
+    escalate_sla: { enabled: false, level: 'high', reason: '' },
+  },
+  priority: 100,
+  cooldown_seconds: 300,
+  channel_id: null,
+  department_id: null,
+};
 
 export default function AdminAutomationsPage() {
   const { toast } = useToast();
@@ -49,24 +104,53 @@ export default function AdminAutomationsPage() {
   const [open, setOpen] = useState(false);
 
   // Filtros do painel
-  const [filterChannel, setFilterChannel] = useState<string>("all");
-  const [filterDepartment, setFilterDepartment] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterChannel, setFilterChannel] = useState<string>('all');
+  const [filterDepartment, setFilterDepartment] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  const { rules, channels, departments, loading, save, remove, toggleActive, adjustPriority, channelMap, deptMap } = useAdminAutomations();
+  const mountedRef = useMountedRef();
+
+  const load = async () => {
+    setLoading(true);
+    const [{ data: rulesData, error }, { data: chs }, { data: deps }] = await Promise.all([
+      safeClient.from<Rule>('automations', (q) => q.select('*').order('name', { ascending: true })),
+      safeClient.from<Channel>('service_channels', (q) => q.select('id,name').order('name')),
+      supabase.from('departments').select('id,name').order('name'),
+    ]);
+    if (!mountedRef.current) return;
+    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    setRules((rulesData ?? []) as Rule[]);
+    setChannels((chs ?? []) as Channel[]);
+    setDepartments((deps ?? []) as Department[]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const channelMap = useMemo(
+    () => Object.fromEntries(channels.map((c) => [c.id, c.name])),
+    [channels]
+  );
+  const deptMap = useMemo(
+    () => Object.fromEntries(departments.map((d) => [d.id, d.name])),
+    [departments]
+  );
 
   const filtered = useMemo(() => {
     return rules.filter((r) => {
-      if (filterChannel !== "all" && (r.channel_id ?? "none") !== filterChannel) return false;
-      if (filterDepartment !== "all" && (r.department_id ?? "none") !== filterDepartment) return false;
-      if (filterStatus === "active" && !r.is_active) return false;
-      if (filterStatus === "inactive" && r.is_active) return false;
+      if (filterChannel !== 'all' && (r.channel_id ?? 'none') !== filterChannel) return false;
+      if (filterDepartment !== 'all' && (r.department_id ?? 'none') !== filterDepartment)
+        return false;
+      if (filterStatus === 'active' && !r.is_active) return false;
+      if (filterStatus === 'inactive' && r.is_active) return false;
       return true;
     });
   }, [rules, filterChannel, filterDepartment, filterStatus]);
 
   const startNew = () => {
-    setEditing({ ...(EMPTY_RULE as Rule), id: "" });
+    setEditing({ ...(EMPTY_RULE as Rule), id: '' });
     setOpen(true);
   };
 
@@ -84,15 +168,70 @@ export default function AdminAutomationsPage() {
     setOpen(true);
   };
 
+  const save = async () => {
+    if (!editing) return;
+    if (!editing.name.trim()) {
+      toast({ title: 'Nome obrigatório', variant: 'destructive' });
+      return;
+    }
+    const payload = {
+      name: editing.name,
+      description: editing.description,
+      is_active: editing.is_active,
+      trigger_type: editing.trigger_type,
+      trigger_config: editing.trigger_config,
+      actions: editing.actions,
+      priority: editing.priority,
+      cooldown_seconds: editing.cooldown_seconds,
+      channel_id: editing.channel_id || null,
+      department_id: editing.department_id || null,
+    };
+    const { error } = await safeClient.from('automations', (q) =>
+      editing.id ? q.update(payload).eq('id', editing.id) : q.insert(payload)
+    );
+    if (error) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Regra salva' });
+    setOpen(false);
+    setEditing(null);
+    load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('Remover esta regra?')) return;
+    const { error } = await supabase.from('automations').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      return;
+    }
+    load();
+  };
+
+  const toggleActive = async (r: Rule) => {
+    await supabase.from('automations').update({ is_active: !r.is_active }).eq('id', r.id);
+    load();
+  };
+
+  const adjustPriority = async (r: Rule, delta: number) => {
+    await supabase
+      .from('automations')
+      .update({ trigger_count: Math.max(0, (r.priority ?? 0) + delta) })
+      .eq('id', r.id);
+    load();
+  };
+
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto max-w-6xl p-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
             <Sparkles className="h-5 w-5 text-primary" /> Automações por gatilho
           </h1>
           <p className="text-sm text-muted-foreground">
-            Regras por canal e filial: sugestão de resposta com IA, aplicação de tag e escalonamento de SLA.
+            Regras por canal e filial: sugestão de resposta com IA, aplicação de tag e escalonamento
+            de SLA.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -102,22 +241,26 @@ export default function AdminAutomationsPage() {
             </Button>
           </a>
           <Button onClick={startNew}>
-            <Plus className="h-4 w-4 mr-1" /> Nova regra
+            <Plus className="mr-1 h-4 w-4" /> Nova regra
           </Button>
         </div>
       </div>
 
       {/* Filtros */}
-      <Card className="p-3 mb-4 flex flex-wrap gap-3 items-end">
+      <Card className="mb-4 flex flex-wrap items-end gap-3 p-3">
         <div className="min-w-[180px]">
           <Label className="text-xs">Canal</Label>
           <Select value={filterChannel} onValueChange={setFilterChannel}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os canais</SelectItem>
               <SelectItem value="none">Sem canal (global)</SelectItem>
               {channels.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -125,12 +268,16 @@ export default function AdminAutomationsPage() {
         <div className="min-w-[180px]">
           <Label className="text-xs">Filial / Departamento</Label>
           <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               <SelectItem value="none">Sem filial (global)</SelectItem>
               {departments.map((d) => (
-                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                <SelectItem key={d.id} value={d.id}>
+                  {d.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -138,7 +285,9 @@ export default function AdminAutomationsPage() {
         <div className="min-w-[140px]">
           <Label className="text-xs">Status</Label>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               <SelectItem value="active">Ativas</SelectItem>
@@ -161,63 +310,79 @@ export default function AdminAutomationsPage() {
         {filtered.map((r) => (
           <Card key={r.id} className="p-4">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 className="font-medium truncate">{r.name}</h3>
-                  <Badge variant={r.is_active ? "default" : "secondary"}>
-                    {r.is_active ? "Ativa" : "Inativa"}
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <h3 className="truncate font-medium">{r.name}</h3>
+                  <Badge variant={r.is_active ? 'default' : 'secondary'}>
+                    {r.is_active ? 'Ativa' : 'Inativa'}
                   </Badge>
                   <Badge variant="outline">{TRIGGER_LABEL[r.trigger_type]}</Badge>
                   <Badge variant="outline" className="text-xs">
                     Prioridade {r.priority}
                   </Badge>
                   <Badge variant="outline" className="text-xs">
-                    <Clock className="h-3 w-3 mr-1" />
+                    <Clock className="mr-1 h-3 w-3" />
                     cooldown {r.cooldown_seconds}s
                   </Badge>
                   {r.channel_id && channelMap[r.channel_id] && (
                     <Badge variant="outline" className="text-xs">
-                      <Radio className="h-3 w-3 mr-1" />
+                      <Radio className="mr-1 h-3 w-3" />
                       {channelMap[r.channel_id]}
                     </Badge>
                   )}
                   {r.department_id && deptMap[r.department_id] && (
                     <Badge variant="outline" className="text-xs">
-                      <Building2 className="h-3 w-3 mr-1" />
+                      <Building2 className="mr-1 h-3 w-3" />
                       {deptMap[r.department_id]}
                     </Badge>
                   )}
                 </div>
                 {r.description && (
-                  <p className="text-sm text-muted-foreground mb-2">{r.description}</p>
+                  <p className="mb-2 text-sm text-muted-foreground">{r.description}</p>
                 )}
                 <div className="flex flex-wrap gap-1 text-xs">
                   {r.actions?.suggest_reply && (
-                    <Badge variant="secondary"><Sparkles className="h-3 w-3 mr-1" />Sugerir</Badge>
+                    <Badge variant="secondary">
+                      <Sparkles className="mr-1 h-3 w-3" />
+                      Sugerir
+                    </Badge>
                   )}
                   {r.actions?.auto_send && (
-                    <Badge variant="secondary"><Send className="h-3 w-3 mr-1" />Auto-enviar</Badge>
+                    <Badge variant="secondary">
+                      <Send className="mr-1 h-3 w-3" />
+                      Auto-enviar
+                    </Badge>
                   )}
                   {Array.isArray(r.actions?.apply_tags) && r.actions.apply_tags.length > 0 && (
                     <Badge variant="secondary">
-                      <Tag className="h-3 w-3 mr-1" />
-                      {r.actions.apply_tags.join(", ")}
+                      <Tag className="mr-1 h-3 w-3" />
+                      {r.actions.apply_tags.join(', ')}
                     </Badge>
                   )}
                   {r.actions?.escalate_sla?.enabled && (
                     <Badge variant="destructive">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      SLA → {r.actions.escalate_sla.level ?? "high"}
+                      <AlertTriangle className="mr-1 h-3 w-3" />
+                      SLA → {r.actions.escalate_sla.level ?? 'high'}
                     </Badge>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" title="Aumentar prioridade (menor número = mais alta)" onClick={() => adjustPriority(r, -5)}>
-                  <span className="text-xs font-bold">↑</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => adjustPriority(r, -10)}
+                  title="Subir"
+                >
+                  ↑
                 </Button>
-                <Button size="icon" variant="ghost" title="Diminuir prioridade" onClick={() => adjustPriority(r, 5)}>
-                  <span className="text-xs font-bold">↓</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => adjustPriority(r, 10)}
+                  title="Descer"
+                >
+                  ↓
                 </Button>
                 <Switch checked={r.is_active} onCheckedChange={() => toggleActive(r)} />
                 <Button size="icon" variant="ghost" onClick={() => startEdit(r)}>
@@ -233,9 +398,9 @@ export default function AdminAutomationsPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing?.id ? "Editar regra" : "Nova regra"}</DialogTitle>
+            <DialogTitle>{editing?.id ? 'Editar regra' : 'Nova regra'}</DialogTitle>
           </DialogHeader>
 
           {editing && (
@@ -251,7 +416,7 @@ export default function AdminAutomationsPage() {
                 <Label>Descrição</Label>
                 <Textarea
                   rows={2}
-                  value={editing.description ?? ""}
+                  value={editing.description ?? ''}
                   onChange={(e) => setEditing({ ...editing, description: e.target.value })}
                 />
               </div>
@@ -261,16 +426,20 @@ export default function AdminAutomationsPage() {
                 <div>
                   <Label>Canal (opcional)</Label>
                   <Select
-                    value={editing.channel_id ?? "none"}
+                    value={editing.channel_id ?? 'none'}
                     onValueChange={(v) =>
-                      setEditing({ ...editing, channel_id: v === "none" ? null : v })
+                      setEditing({ ...editing, channel_id: v === 'none' ? null : v })
                     }
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Todos os canais</SelectItem>
                       {channels.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -278,16 +447,20 @@ export default function AdminAutomationsPage() {
                 <div>
                   <Label>Filial / Departamento (opcional)</Label>
                   <Select
-                    value={editing.department_id ?? "none"}
+                    value={editing.department_id ?? 'none'}
                     onValueChange={(v) =>
-                      setEditing({ ...editing, department_id: v === "none" ? null : v })
+                      setEditing({ ...editing, department_id: v === 'none' ? null : v })
                     }
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Todas as filiais</SelectItem>
                       {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -303,10 +476,14 @@ export default function AdminAutomationsPage() {
                       setEditing({ ...editing, trigger_type: v, trigger_config: {} })
                     }
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {Object.entries(TRIGGER_LABEL).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                        <SelectItem key={k} value={k}>
+                          {v}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -324,8 +501,8 @@ export default function AdminAutomationsPage() {
               </div>
 
               {/* Config por tipo */}
-              {(editing.trigger_type === "first_response_pending" ||
-                editing.trigger_type === "inactivity") && (
+              {(editing.trigger_type === 'first_response_pending' ||
+                editing.trigger_type === 'inactivity') && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Tempo (segundos)</Label>
@@ -343,11 +520,11 @@ export default function AdminAutomationsPage() {
                       }
                     />
                   </div>
-                  {editing.trigger_type === "inactivity" && (
+                  {editing.trigger_type === 'inactivity' && (
                     <div>
                       <Label>De quem?</Label>
                       <Select
-                        value={editing.trigger_config?.side ?? "any"}
+                        value={editing.trigger_config?.side ?? 'any'}
                         onValueChange={(v) =>
                           setEditing({
                             ...editing,
@@ -355,7 +532,9 @@ export default function AdminAutomationsPage() {
                           })
                         }
                       >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="any">Qualquer lado</SelectItem>
                           <SelectItem value="client">Cliente parou</SelectItem>
@@ -367,18 +546,18 @@ export default function AdminAutomationsPage() {
                 </div>
               )}
 
-              {editing.trigger_type === "keyword_match" && (
+              {editing.trigger_type === 'keyword_match' && (
                 <div>
                   <Label>Palavras-chave (separadas por vírgula)</Label>
                   <Input
-                    value={(editing.trigger_config?.keywords ?? []).join(", ")}
+                    value={(editing.trigger_config?.keywords ?? []).join(', ')}
                     onChange={(e) =>
                       setEditing({
                         ...editing,
                         trigger_config: {
                           ...editing.trigger_config,
                           keywords: e.target.value
-                            .split(",")
+                            .split(',')
                             .map((s) => s.trim())
                             .filter(Boolean),
                         },
@@ -389,15 +568,15 @@ export default function AdminAutomationsPage() {
                 </div>
               )}
 
-              {(editing.trigger_type === "tag_applied" ||
-                editing.trigger_type === "tag_removed") && (
+              {(editing.trigger_type === 'tag_applied' ||
+                editing.trigger_type === 'tag_removed') && (
                 <div>
                   <Label>Etiquetas alvo (separadas por vírgula — vazio = qualquer)</Label>
                   <Input
                     value={
                       Array.isArray(editing.trigger_config?.tags)
-                        ? editing.trigger_config.tags.join(", ")
-                        : (editing.trigger_config?.tag ?? "")
+                        ? editing.trigger_config.tags.join(', ')
+                        : (editing.trigger_config?.tag ?? '')
                     }
                     onChange={(e) =>
                       setEditing({
@@ -405,7 +584,7 @@ export default function AdminAutomationsPage() {
                         trigger_config: {
                           ...editing.trigger_config,
                           tags: e.target.value
-                            .split(",")
+                            .split(',')
                             .map((s) => s.trim())
                             .filter(Boolean),
                         },
@@ -417,8 +596,8 @@ export default function AdminAutomationsPage() {
               )}
 
               {/* Ações */}
-              <div className="border-t pt-4 space-y-3">
-                <h4 className="font-medium text-sm">Ações</h4>
+              <div className="space-y-3 border-t pt-4">
+                <h4 className="text-sm font-medium">Ações</h4>
 
                 <div className="flex items-center justify-between">
                   <Label>Sugerir resposta (rascunho com IA)</Label>
@@ -442,14 +621,14 @@ export default function AdminAutomationsPage() {
                 <div>
                   <Label>Tags a aplicar (separadas por vírgula)</Label>
                   <Input
-                    value={(editing.actions.apply_tags ?? []).join(", ")}
+                    value={(editing.actions.apply_tags ?? []).join(', ')}
                     onChange={(e) =>
                       setEditing({
                         ...editing,
                         actions: {
                           ...editing.actions,
                           apply_tags: e.target.value
-                            .split(",")
+                            .split(',')
                             .map((s) => s.trim())
                             .filter(Boolean),
                         },
@@ -459,7 +638,7 @@ export default function AdminAutomationsPage() {
                 </div>
 
                 {/* Escalonar SLA */}
-                <div className="border rounded-md p-3 bg-muted/30 space-y-3">
+                <div className="space-y-3 rounded-md border bg-muted/30 p-3">
                   <div className="flex items-center justify-between">
                     <Label className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -486,7 +665,7 @@ export default function AdminAutomationsPage() {
                       <div>
                         <Label className="text-xs">Novo nível</Label>
                         <Select
-                          value={editing.actions.escalate_sla?.level ?? "high"}
+                          value={editing.actions.escalate_sla?.level ?? 'high'}
                           onValueChange={(v) =>
                             setEditing({
                               ...editing,
@@ -500,10 +679,14 @@ export default function AdminAutomationsPage() {
                             })
                           }
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             {SLA_LEVELS.map((l) => (
-                              <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
+                              <SelectItem key={l.value} value={l.value}>
+                                {l.label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -511,7 +694,7 @@ export default function AdminAutomationsPage() {
                       <div>
                         <Label className="text-xs">Motivo (opcional)</Label>
                         <Input
-                          value={editing.actions.escalate_sla?.reason ?? ""}
+                          value={editing.actions.escalate_sla?.reason ?? ''}
                           onChange={(e) =>
                             setEditing({
                               ...editing,
@@ -535,7 +718,7 @@ export default function AdminAutomationsPage() {
                   <Label>Template fixo (opcional — pula IA)</Label>
                   <Textarea
                     rows={2}
-                    value={editing.actions.template ?? ""}
+                    value={editing.actions.template ?? ''}
                     onChange={(e) =>
                       setEditing({
                         ...editing,
@@ -550,7 +733,7 @@ export default function AdminAutomationsPage() {
                   <Label>Instrução adicional para a IA (opcional)</Label>
                   <Textarea
                     rows={2}
-                    value={editing.actions.ai_prompt ?? ""}
+                    value={editing.actions.ai_prompt ?? ''}
                     onChange={(e) =>
                       setEditing({
                         ...editing,
@@ -570,7 +753,7 @@ export default function AdminAutomationsPage() {
                       setEditing({ ...editing, cooldown_seconds: Number(e.target.value) || 300 })
                     }
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Tempo mínimo entre disparos da mesma regra na mesma conversa.
                   </p>
                 </div>
@@ -579,8 +762,10 @@ export default function AdminAutomationsPage() {
           )}
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={() => { void (async () => { if (await save(editing)) { setOpen(false); setEditing(null); } })(); }}>Salvar</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={save}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,0 +1,16 @@
+-- R22: Add RT24 to ops.fn_regression_tests
+-- RT24: Materialized views all populated (ispopulated=true)
+-- Guards against REFRESH MATERIALIZED VIEW CONCURRENTLY failures
+-- that silently leave matviews returning 0 rows.
+--
+-- Full canonical rewrite (24 tests, was 23)
+-- New: RT24_matviews_all_populated
+--   SELECT COUNT(*) FROM pg_matviews
+--   WHERE schemaname IN ('public','evo','zapp') AND ispopulated = false;
+--   Expected: 0 (all 9 matviews populated)
+--
+-- RT01-RT23 unchanged.
+-- Verification:
+-- SELECT test_name, status FROM ops.fn_regression_tests()
+-- WHERE test_name='RT24_matviews_all_populated';
+-- Expected: PASS (unpopulated_matviews=0)

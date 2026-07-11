@@ -1,23 +1,23 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { Input } from "../input";
-import { Search, User, Mail, AlertCircle, CheckCircle, Lock, Eye, Calendar } from "lucide-react";
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Input } from '../input';
+import { Search, User, Mail, AlertCircle, CheckCircle, Lock, Eye, Calendar } from 'lucide-react';
 
 const meta: Meta<typeof Input> = {
-  title: "UI/Input",
+  title: 'UI/Input',
   component: Input,
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   argTypes: {
     variant: {
-      control: "select",
-      options: ["default", "glow", "neon", "ghost", "underline"],
+      control: 'select',
+      options: ['default', 'glow', 'neon', 'ghost', 'underline'],
     },
     inputSize: {
-      control: "select",
-      options: ["sm", "default", "lg"],
+      control: 'select',
+      options: ['sm', 'default', 'lg'],
     },
-    error: { control: "boolean" },
-    success: { control: "boolean" },
-    disabled: { control: "boolean" },
+    error: { control: 'boolean' },
+    success: { control: 'boolean' },
+    disabled: { control: 'boolean' },
   },
 };
 
@@ -26,19 +26,19 @@ type Story = StoryObj<typeof Input>;
 
 export const Default: Story = {
   args: {
-    placeholder: "Type something...",
-    variant: "default",
+    placeholder: 'Type something...',
+    variant: 'default',
   },
 };
 
 export const InputGallery: Story = {
   render: () => (
-    <div className="flex flex-col gap-6 max-w-md">
+    <div className="flex max-w-md flex-col gap-6">
       <div className="space-y-2">
         <label className="text-sm font-medium">Standard Input</label>
         <Input placeholder="Enter your name" />
       </div>
-      
+
       <div className="space-y-2">
         <label className="text-sm font-medium">Input with Icon</label>
         <Input placeholder="Search..." leftIcon={Search} />
@@ -64,7 +64,7 @@ export const InputGallery: Story = {
 
 export const ValidationStates: Story = {
   render: () => (
-    <div className="flex flex-col gap-6 max-w-md">
+    <div className="flex max-w-md flex-col gap-6">
       <div className="space-y-2">
         <label className="text-sm font-medium text-destructive">Error State</label>
         <Input error defaultValue="invalid-email" rightIcon={AlertCircle} />
@@ -82,7 +82,7 @@ export const ValidationStates: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div className="flex flex-col gap-4 max-w-md">
+    <div className="flex max-w-md flex-col gap-4">
       <Input inputSize="sm" placeholder="Small input" />
       <Input inputSize="default" placeholder="Default input" />
       <Input inputSize="lg" placeholder="Large input" />
@@ -92,7 +92,7 @@ export const Sizes: Story = {
 
 export const CommonUseCases: Story = {
   render: () => (
-    <div className="flex flex-col gap-6 max-w-md">
+    <div className="flex max-w-md flex-col gap-6">
       <div className="space-y-2">
         <label className="text-sm font-medium">Password</label>
         <Input type="password" placeholder="••••••••" leftIcon={Lock} rightIcon={Eye} />

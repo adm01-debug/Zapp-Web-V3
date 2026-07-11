@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ComponentType } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -103,7 +102,7 @@ export function PaymentLinksView() {
     fetchData();
   };
 
-  const statusConfig: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; className: string }> = {
+  const statusConfig: Record<string, { label: string; icon: ComponentType<{ className?: string }>; className: string }> = {
     active: { label: 'Ativo', icon: Clock, className: 'text-info bg-info/20 border-info/30' },
     paid: { label: 'Pago', icon: CheckCircle, className: 'text-success bg-success/20 border-success/30' },
     expired: { label: 'Expirado', icon: XCircle, className: 'text-destructive bg-destructive/20 border-destructive/30' },

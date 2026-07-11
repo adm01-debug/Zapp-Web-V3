@@ -12,9 +12,9 @@ interface Particle {
   color: 'primary' | 'secondary' | 'accent';
 }
 
-export const FloatingParticles = forwardRef<HTMLDivElement>((_, ref) => {
+export const FloatingParticles = forwardRef<HTMLDivElement>((_, _ref) => {
   const prefersReducedMotion = useReducedMotion();
-  
+
   const particles = useMemo<Particle[]>(() => {
     if (prefersReducedMotion) return [];
     return Array.from({ length: 30 }, (_, i) => ({
@@ -29,16 +29,16 @@ export const FloatingParticles = forwardRef<HTMLDivElement>((_, ref) => {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
           className={`absolute rounded-full ${
-            particle.color === 'primary' 
-              ? 'bg-primary/30' 
+            particle.color === 'primary'
+              ? 'bg-primary/30'
               : particle.color === 'secondary'
-              ? 'bg-secondary/40'
-              : 'bg-accent/30'
+                ? 'bg-secondary/40'
+                : 'bg-accent/30'
           }`}
           style={{
             width: particle.size,
@@ -61,10 +61,10 @@ export const FloatingParticles = forwardRef<HTMLDivElement>((_, ref) => {
           }}
         />
       ))}
-      
+
       {/* Larger glowing orbs */}
       <motion.div
-        className="absolute w-32 h-32 rounded-full bg-secondary/10 blur-3xl"
+        className="absolute h-32 w-32 rounded-full bg-secondary/10 blur-3xl"
         style={{ left: '10%', top: '20%' }}
         animate={{
           x: [0, 50, 0, -30, 0],
@@ -74,7 +74,7 @@ export const FloatingParticles = forwardRef<HTMLDivElement>((_, ref) => {
         transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
-        className="absolute w-40 h-40 rounded-full bg-primary/10 blur-3xl"
+        className="absolute h-40 w-40 rounded-full bg-primary/10 blur-3xl"
         style={{ right: '15%', top: '40%' }}
         animate={{
           x: [0, -40, 30, -20, 0],
@@ -84,7 +84,7 @@ export const FloatingParticles = forwardRef<HTMLDivElement>((_, ref) => {
         transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
       />
       <motion.div
-        className="absolute w-24 h-24 rounded-full bg-accent/15 blur-2xl"
+        className="absolute h-24 w-24 rounded-full bg-accent/15 blur-2xl"
         style={{ left: '60%', bottom: '20%' }}
         animate={{
           x: [0, 30, -20, 40, 0],
@@ -94,7 +94,7 @@ export const FloatingParticles = forwardRef<HTMLDivElement>((_, ref) => {
         transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
       />
       <motion.div
-        className="absolute w-20 h-20 rounded-full bg-secondary/20 blur-2xl"
+        className="absolute h-20 w-20 rounded-full bg-secondary/20 blur-2xl"
         style={{ right: '30%', bottom: '30%' }}
         animate={{
           x: [0, -25, 35, -15, 0],

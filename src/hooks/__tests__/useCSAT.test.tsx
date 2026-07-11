@@ -7,7 +7,7 @@ const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: mockFrom,
   },
 }));
 
@@ -27,9 +27,30 @@ function createWrapper() {
 }
 
 const mockSurveys = [
-  { id: 's1', contact_id: 'c1', agent_id: 'a1', rating: 5, feedback: 'Great!', created_at: '2024-01-01' },
-  { id: 's2', contact_id: 'c2', agent_id: 'a1', rating: 3, feedback: null, created_at: '2024-01-02' },
-  { id: 's3', contact_id: 'c3', agent_id: 'a2', rating: 1, feedback: 'Bad', created_at: '2024-01-03' },
+  {
+    id: 's1',
+    contact_id: 'c1',
+    agent_id: 'a1',
+    rating: 5,
+    feedback: 'Great!',
+    created_at: '2024-01-01',
+  },
+  {
+    id: 's2',
+    contact_id: 'c2',
+    agent_id: 'a1',
+    rating: 3,
+    feedback: null,
+    created_at: '2024-01-02',
+  },
+  {
+    id: 's3',
+    contact_id: 'c3',
+    agent_id: 'a2',
+    rating: 1,
+    feedback: 'Bad',
+    created_at: '2024-01-03',
+  },
 ];
 
 describe('useCSAT', () => {

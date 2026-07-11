@@ -17,11 +17,11 @@ interface MobileShellProps {
 }
 
 const mobileNavItems = [
-  { id: 'inbox', icon: <MessageSquare className="w-5 h-5" />, label: 'Chat' },
-  { id: 'team-chat', icon: <MessagesSquare className="w-5 h-5" />, label: 'Equipe' },
-  { id: 'email-chat', icon: <Mail className="w-5 h-5" />, label: 'Email' },
-  { id: 'contacts', icon: <Users className="w-5 h-5" />, label: 'Contatos' },
-  { id: 'more', icon: <Menu className="w-5 h-5" />, label: 'Mais' },
+  { id: 'inbox', icon: <MessageSquare className="h-5 w-5" />, label: 'Chat' },
+  { id: 'team-chat', icon: <MessagesSquare className="h-5 w-5" />, label: 'Equipe' },
+  { id: 'email-chat', icon: <Mail className="h-5 w-5" />, label: 'Email' },
+  { id: 'contacts', icon: <Users className="h-5 w-5" />, label: 'Contatos' },
+  { id: 'more', icon: <Menu className="h-5 w-5" />, label: 'Mais' },
 ];
 
 export function MobileShell({
@@ -33,7 +33,7 @@ export function MobileShell({
   unreadNotifications,
 }: MobileShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [_mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { isKeyboardOpen } = useKeyboardHeight();
@@ -42,11 +42,15 @@ export function MobileShell({
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
-  const navItemsWithBadge = useMemo(() => mobileNavItems.map((item) =>
-    item.id === 'inbox' && unreadNotifications > 0
-      ? { ...item, badge: unreadNotifications }
-      : item
-  ), [unreadNotifications]);
+  const navItemsWithBadge = useMemo(
+    () =>
+      mobileNavItems.map((item) =>
+        item.id === 'inbox' && unreadNotifications > 0
+          ? { ...item, badge: unreadNotifications }
+          : item
+      ),
+    [unreadNotifications]
+  );
 
   return (
     <>

@@ -83,7 +83,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .select('*')
           .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
           .order('created_at', { ascending: false })
-          .limit(10)
+          .limit(10),
       ]);
 
       const auditEntries = (auditRes.data ?? []).map((e) => ({
@@ -103,7 +103,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           latency: e.latency_ms,
           instance: e.instance_name,
           error_message: e.error_message,
-          ...(typeof e.metadata === 'object' && e.metadata !== null ? e.metadata : {})
+          ...(typeof e.metadata === 'object' && e.metadata !== null ? e.metadata : {}),
         },
       }));
 

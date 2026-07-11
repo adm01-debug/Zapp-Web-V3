@@ -12,14 +12,11 @@ export function useKeyboardHeight() {
     const vv = window.visualViewport;
     if (!vv) return;
 
-    let prevHeight = vv.height;
-
     const handleResize = () => {
       const diff = window.innerHeight - vv.height;
       const kbHeight = Math.max(0, diff);
       setKeyboardHeight(kbHeight);
       setIsKeyboardOpen(kbHeight > 50);
-      prevHeight = vv.height;
     };
 
     vv.addEventListener('resize', handleResize);

@@ -1,10 +1,19 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { playNotificationSound, showBrowserNotification, requestNotificationPermission } from '@/utils/notificationSound';
+import {
+  playNotificationSound,
+  showBrowserNotification,
+  requestNotificationPermission,
+} from '@/utils/notificationSound';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
-import type { ConversationContact, RealtimeMessage, NewMessageNotification } from '@/features/inbox/hooks/useRealtimeMessages';
+import type {
+  ConversationContact,
+  RealtimeMessage,
+  NewMessageNotification,
+} from '../useRealtimeMessages';
 
 export function useRealtimeNotifications() {
-  const [newMessageNotification, setNewMessageNotification] = useState<NewMessageNotification | null>(null);
+  const [newMessageNotification, setNewMessageNotification] =
+    useState<NewMessageNotification | null>(null);
   const selectedContactIdRef = useRef<string | null>(null);
   const soundEnabledRef = useRef(true);
   const { settings: notifSettings, isQuietHours } = useNotificationSettings();
@@ -21,7 +30,11 @@ export function useRealtimeNotifications() {
 
   const notifyAboutIncomingMessage = useCallback(
     (contact: ConversationContact, message: RealtimeMessage) => {
-      if (message.sender !== 'contact' || message.is_read || selectedContactIdRef.current === message.contact_id) {
+      if (
+        message.sender !== 'contact' ||
+        message.is_read ||
+        selectedContactIdRef.current === message.contact_id
+      ) {
         return;
       }
 

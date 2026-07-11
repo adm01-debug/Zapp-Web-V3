@@ -2,9 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useEmail } from './useEmail';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { supabase as _supabase } from '@/integrations/supabase/client';
-
-const supabase = _supabase as any;
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -41,22 +38,25 @@ describe('useEmail - Labels and RPC Actions', () => {
   describe('markAsRead', () => {
     it('should call rpc_email_mark_thread_read', async () => {
       const { result } = renderHook(() => useEmail());
-      
+
       await act(async () => {
         await result.current.markAsRead('t1', true);
       });
 
-      expect(safeClient.rpc).toHaveBeenCalledWith('rpc_email_mark_thread_read', expect.objectContaining({
-        p_thread_id: 't1',
-        p_read: true,
-      }));
+      expect(safeClient.rpc).toHaveBeenCalledWith(
+        'rpc_email_mark_thread_read',
+        expect.objectContaining({
+          p_thread_id: 't1',
+          p_read: true,
+        })
+      );
     });
   });
 
   describe('starThread', () => {
     it('should call rpc_email_star_thread', async () => {
       const { result } = renderHook(() => useEmail());
-      
+
       await act(async () => {
         await result.current.starThread('t1', true);
       });
@@ -71,7 +71,7 @@ describe('useEmail - Labels and RPC Actions', () => {
   describe('archiveThread', () => {
     it('should call rpc_email_archive_thread', async () => {
       const { result } = renderHook(() => useEmail());
-      
+
       await act(async () => {
         await result.current.archiveThread('t1');
       });
@@ -86,7 +86,7 @@ describe('useEmail - Labels and RPC Actions', () => {
   describe('assignThread', () => {
     it('should call rpc_email_assign_thread', async () => {
       const { result } = renderHook(() => useEmail());
-      
+
       await act(async () => {
         await result.current.assignThread('t1', 'agent_456');
       });
@@ -106,15 +106,18 @@ describe('useEmail - Labels and RPC Actions', () => {
       // o mock antes do assignThread sob teste.
       vi.mocked(safeClient.rpc).mockResolvedValue({
         data: null,
-        error: { message: 'RPC Error' } as any,
-        requestId: 'req_123'
-      });
+        error: { message: 'RPC Error' },
+        requestId: 'req_123',
+      } as unknown as Awaited<ReturnType<typeof safeClient.rpc>>);
 
       await act(async () => {
         await result.current.assignThread('t1', 'agent_456');
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Email thread assign error'), 'RPC Error');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Email thread assign error'),
+        'RPC Error'
+      );
       consoleSpy.mockRestore();
     });
   });

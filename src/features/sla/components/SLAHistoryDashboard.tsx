@@ -3,8 +3,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, Target, Clock, XCircle, Calendar } from 'lucide-react';
-import { useSLAHistory, HistoryPeriod } from '@/features/sla/hooks';
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  AlertTriangle,
+  Target,
+  Clock,
+  XCircle,
+  Calendar,
+} from 'lucide-react';
+import { useSLAHistory, HistoryPeriod } from '../hooks';
 
 import { ExportButton } from '@/components/reports/ExportButton';
 import { ReportData } from '@/utils/exportReport';
@@ -18,16 +27,37 @@ const periodLabels: Record<HistoryPeriod, string> = {
   '90d': '90 dias',
 };
 
-const TrendIndicator = ({ trend, inverse = false, label }: { trend: { direction: string; percentage: number }; inverse?: boolean; label: string }) => {
+const TrendIndicator = ({
+  trend,
+  inverse = false,
+  label,
+}: {
+  trend: { direction: string; percentage: number };
+  inverse?: boolean;
+  label: string;
+}) => {
   const isPositive = inverse ? trend.direction === 'down' : trend.direction === 'up';
   const isNegative = inverse ? trend.direction === 'up' : trend.direction === 'down';
 
   return (
     <div className="flex items-center gap-1">
-      {trend.direction === 'up' && <TrendingUp className={cn("h-4 w-4", isPositive ? "text-success" : "text-destructive")} />}
-      {trend.direction === 'down' && <TrendingDown className={cn("h-4 w-4", isPositive ? "text-success" : "text-destructive")} />}
+      {trend.direction === 'up' && (
+        <TrendingUp className={cn('h-4 w-4', isPositive ? 'text-success' : 'text-destructive')} />
+      )}
+      {trend.direction === 'down' && (
+        <TrendingDown className={cn('h-4 w-4', isPositive ? 'text-success' : 'text-destructive')} />
+      )}
       {trend.direction === 'stable' && <Minus className="h-4 w-4 text-muted-foreground" />}
-      <span className={cn("text-sm font-medium", isPositive && "text-success", isNegative && "text-destructive", trend.direction === 'stable' && "text-muted-foreground")}>{trend.percentage.toFixed(1)}%</span>
+      <span
+        className={cn(
+          'text-sm font-medium',
+          isPositive && 'text-success',
+          isNegative && 'text-destructive',
+          trend.direction === 'stable' && 'text-muted-foreground'
+        )}
+      >
+        {trend.percentage.toFixed(1)}%
+      </span>
       <span className="text-xs text-muted-foreground">{label}</span>
     </div>
   );
@@ -40,8 +70,15 @@ export const SLAHistoryDashboard = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between"><Skeleton className="h-8 w-64" /><Skeleton className="h-10 w-48" /></div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32" />)}</div>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
         <Skeleton className="h-80" />
       </div>
     );
@@ -50,7 +87,7 @@ export const SLAHistoryDashboard = () => {
   if (!data) {
     return (
       <Card className="p-8 text-center">
-        <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
         <p className="text-muted-foreground">Nenhum dado de histórico disponível</p>
       </Card>
     );
@@ -68,7 +105,7 @@ export const SLAHistoryDashboard = () => {
       { header: 'Total Violações', key: 'totalBreaches', width: 15 },
       { header: 'Taxa SLA (%)', key: 'slaRate', width: 12 },
     ],
-    rows: data.dailyData.map(d => ({ ...d, slaRate: d.slaRate.toFixed(1) })),
+    rows: data.dailyData.map((d) => ({ ...d, slaRate: d.slaRate.toFixed(1) })),
     summary: [
       { label: 'Taxa SLA Geral', value: `${data.totals.overallSLARate.toFixed(1)}%` },
       { label: 'Total de Conversas', value: data.totals.totalConversations },
@@ -79,10 +116,40 @@ export const SLAHistoryDashboard = () => {
   });
 
   const summaryCards = [
-    { icon: Target, color: 'primary', label: 'Taxa SLA Geral', value: `${data.totals.overallSLARate.toFixed(1)}%`, extra: <TrendIndicator trend={data.trends.overall} label="vs período anterior" /> },
-    { icon: Clock, color: 'warning', label: 'Violações 1ª Resposta', value: data.totals.firstResponseBreaches, extra: <TrendIndicator trend={data.trends.firstResponse} inverse label="vs período anterior" /> },
-    { icon: XCircle, color: 'destructive', label: 'Violações Resolução', value: data.totals.resolutionBreaches, extra: <TrendIndicator trend={data.trends.resolution} inverse label="vs período anterior" /> },
-    { icon: Calendar, color: 'info', label: 'Total Conversas', value: data.totals.totalConversations, extra: <p className="text-sm text-muted-foreground mt-1">{data.totals.totalBreaches} violações totais</p> },
+    {
+      icon: Target,
+      color: 'primary',
+      label: 'Taxa SLA Geral',
+      value: `${data.totals.overallSLARate.toFixed(1)}%`,
+      extra: <TrendIndicator trend={data.trends.overall} label="vs período anterior" />,
+    },
+    {
+      icon: Clock,
+      color: 'warning',
+      label: 'Violações 1ª Resposta',
+      value: data.totals.firstResponseBreaches,
+      extra: (
+        <TrendIndicator trend={data.trends.firstResponse} inverse label="vs período anterior" />
+      ),
+    },
+    {
+      icon: XCircle,
+      color: 'destructive',
+      label: 'Violações Resolução',
+      value: data.totals.resolutionBreaches,
+      extra: <TrendIndicator trend={data.trends.resolution} inverse label="vs período anterior" />,
+    },
+    {
+      icon: Calendar,
+      color: 'info',
+      label: 'Total Conversas',
+      value: data.totals.totalConversations,
+      extra: (
+        <p className="mt-1 text-sm text-muted-foreground">
+          {data.totals.totalBreaches} violações totais
+        </p>
+      ),
+    },
   ];
 
   return (
@@ -94,23 +161,46 @@ export const SLAHistoryDashboard = () => {
         </div>
         <div className="flex items-center gap-3">
           <ExportButton getData={getExportData} />
-          <ToggleGroup type="single" value={period} onValueChange={(v) => v && setPeriod(v as HistoryPeriod)} className="bg-muted/50 rounded-lg p-1">
+          <ToggleGroup
+            type="single"
+            value={period}
+            onValueChange={(v) => v && setPeriod(v as HistoryPeriod)}
+            className="rounded-lg bg-muted/50 p-1"
+          >
             {Object.entries(periodLabels).map(([key, label]) => (
-              <ToggleGroupItem key={key} value={key} className="data-[state=on]:bg-background data-[state=on]:shadow-sm px-4">{label}</ToggleGroupItem>
+              <ToggleGroupItem
+                key={key}
+                value={key}
+                className="px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+              >
+                {label}
+              </ToggleGroupItem>
             ))}
           </ToggleGroup>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {summaryCards.map((card, i) => (
-          <motion.div key={card.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: (i + 1) * 0.1 }}>
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: (i + 1) * 0.1 }}
+          >
             <Card className={`border-l-4 border-l-${card.color}`}>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">{card.label}</p>
-                    <p className={cn("text-3xl font-bold", card.color !== 'primary' && card.color !== 'info' && `text-${card.color}`)}>{card.value}</p>
+                    <p
+                      className={cn(
+                        'text-3xl font-bold',
+                        card.color !== 'primary' && card.color !== 'info' && `text-${card.color}`
+                      )}
+                    >
+                      {card.value}
+                    </p>
                   </div>
                   <card.icon className={`h-8 w-8 text-${card.color} opacity-50`} />
                 </div>

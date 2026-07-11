@@ -43,75 +43,82 @@ export function useUrlFilters() {
   }, [searchParams]);
 
   // Update URL with new filters
-  const setFilters = useCallback((newFilters: Partial<UrlFiltersState>) => {
-    setSearchParams(prev => {
-      const params = new URLSearchParams(prev);
+  const setFilters = useCallback(
+    (newFilters: Partial<UrlFiltersState>) => {
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
 
-      // Handle status array
-      if (newFilters.status !== undefined) {
-        if (newFilters.status.length > 0) {
-          params.set(PARAM_KEYS.status, newFilters.status.join(','));
-        } else {
-          params.delete(PARAM_KEYS.status);
-        }
-      }
+          // Handle status array
+          if (newFilters.status !== undefined) {
+            if (newFilters.status.length > 0) {
+              params.set(PARAM_KEYS.status, newFilters.status.join(','));
+            } else {
+              params.delete(PARAM_KEYS.status);
+            }
+          }
 
-      // Handle tags array
-      if (newFilters.tags !== undefined) {
-        if (newFilters.tags.length > 0) {
-          params.set(PARAM_KEYS.tags, newFilters.tags.join(','));
-        } else {
-          params.delete(PARAM_KEYS.tags);
-        }
-      }
+          // Handle tags array
+          if (newFilters.tags !== undefined) {
+            if (newFilters.tags.length > 0) {
+              params.set(PARAM_KEYS.tags, newFilters.tags.join(','));
+            } else {
+              params.delete(PARAM_KEYS.tags);
+            }
+          }
 
-      // Handle agentId
-      if (newFilters.agentId !== undefined) {
-        if (newFilters.agentId) {
-          params.set(PARAM_KEYS.agentId, newFilters.agentId);
-        } else {
-          params.delete(PARAM_KEYS.agentId);
-        }
-      }
+          // Handle agentId
+          if (newFilters.agentId !== undefined) {
+            if (newFilters.agentId) {
+              params.set(PARAM_KEYS.agentId, newFilters.agentId);
+            } else {
+              params.delete(PARAM_KEYS.agentId);
+            }
+          }
 
-      // Handle dateFrom
-      if (newFilters.dateFrom !== undefined) {
-        if (newFilters.dateFrom) {
-          params.set(PARAM_KEYS.dateFrom, newFilters.dateFrom);
-        } else {
-          params.delete(PARAM_KEYS.dateFrom);
-        }
-      }
+          // Handle dateFrom
+          if (newFilters.dateFrom !== undefined) {
+            if (newFilters.dateFrom) {
+              params.set(PARAM_KEYS.dateFrom, newFilters.dateFrom);
+            } else {
+              params.delete(PARAM_KEYS.dateFrom);
+            }
+          }
 
-      // Handle dateTo
-      if (newFilters.dateTo !== undefined) {
-        if (newFilters.dateTo) {
-          params.set(PARAM_KEYS.dateTo, newFilters.dateTo);
-        } else {
-          params.delete(PARAM_KEYS.dateTo);
-        }
-      }
+          // Handle dateTo
+          if (newFilters.dateTo !== undefined) {
+            if (newFilters.dateTo) {
+              params.set(PARAM_KEYS.dateTo, newFilters.dateTo);
+            } else {
+              params.delete(PARAM_KEYS.dateTo);
+            }
+          }
 
-      // Handle search
-      if (newFilters.search !== undefined) {
-        if (newFilters.search) {
-          params.set(PARAM_KEYS.search, newFilters.search);
-        } else {
-          params.delete(PARAM_KEYS.search);
-        }
-      }
+          // Handle search
+          if (newFilters.search !== undefined) {
+            if (newFilters.search) {
+              params.set(PARAM_KEYS.search, newFilters.search);
+            } else {
+              params.delete(PARAM_KEYS.search);
+            }
+          }
 
-      return params;
-    }, { replace: true });
-  }, [setSearchParams]);
+          return params;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   // Clear all filters
   const clearFilters = useCallback(() => {
-    setSearchParams(prev => {
-      const params = new URLSearchParams();
-      // Preserve non-filter params if any
-      return params;
-    }, { replace: true });
+    setSearchParams(
+      () => {
+        return new URLSearchParams();
+      },
+      { replace: true }
+    );
   }, [setSearchParams]);
 
   // Check if any filters are active

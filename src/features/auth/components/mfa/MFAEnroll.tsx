@@ -21,13 +21,18 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
   const [verifying, setVerifying] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => () => { if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    []
+  );
 
   const handleStartEnrollment = async () => {
     try {
       await enrollTOTP();
       setStep('qr');
-    } catch (err) {
+    } catch {
       // Error handled in hook
     }
   };
@@ -43,12 +48,12 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
 
   const handleVerify = async () => {
     if (!enrollmentData || code.length !== 6) return;
-    
+
     setVerifying(true);
     try {
       await verifyTOTP(enrollmentData.id, code);
       onSuccess?.();
-    } catch (err) {
+    } catch {
       setCode('');
     } finally {
       setVerifying(false);
@@ -62,28 +67,22 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
   }, [code]);
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-          <Shield className="w-6 h-6 text-primary" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <Shield className="h-6 w-6 text-primary" />
         </div>
         <CardTitle>Configurar Autenticação 2FA</CardTitle>
-        <CardDescription>
-          Adicione uma camada extra de segurança à sua conta
-        </CardDescription>
+        <CardDescription>Adicione uma camada extra de segurança à sua conta</CardDescription>
       </CardHeader>
 
       <CardContent>
         {step === 'intro' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-4"
-          >
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <Smartphone className="w-5 h-5 text-primary mt-0.5" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-3">
+              <Smartphone className="mt-0.5 h-5 w-5 text-primary" />
               <div>
-                <p className="font-medium text-sm">Você precisará de um app autenticador</p>
+                <p className="text-sm font-medium">Você precisará de um app autenticador</p>
                 <p className="text-xs text-muted-foreground">
                   Como Google Authenticator, Authy ou 1Password
                 </p>
@@ -94,7 +93,7 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
               <Button className="w-full" onClick={handleStartEnrollment} disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Gerando...
                   </>
                 ) : (
@@ -111,35 +110,29 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
         )}
 
         {step === 'qr' && enrollmentData && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-4"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="mb-4 text-sm text-muted-foreground">
                 Escaneie este QR code com seu app autenticador
               </p>
-              
-              <div className="inline-block p-4 bg-background rounded-lg shadow-sm">
-                <img 
-                  src={enrollmentData.totp.qr_code} 
+
+              <div className="inline-block rounded-lg bg-background p-4 shadow-sm">
+                <img
+                  src={enrollmentData.totp.qr_code}
                   alt="QR Code para MFA"
-                  className="w-48 h-48"
+                  className="h-48 w-48"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                Ou insira manualmente:
-              </Label>
+              <Label className="text-xs text-muted-foreground">Ou insira manualmente:</Label>
               <div className="flex gap-2">
-                <code className="flex-1 p-2 bg-muted rounded text-xs  break-all">
+                <code className="flex-1 break-all rounded bg-muted p-2 text-xs">
                   {enrollmentData.totp.secret}
                 </code>
                 <Button size="sm" variant="outline" onClick={handleCopySecret}>
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -151,13 +144,9 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
         )}
 
         {step === 'verify' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-4"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="mb-4 text-sm text-muted-foreground">
                 Digite o código de 6 dígitos do seu app autenticador
               </p>
             </div>
@@ -172,7 +161,7 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
                 placeholder="000000"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                className="text-center text-2xl tracking-widest "
+                className="text-center text-2xl tracking-widest"
                 disabled={verifying}
                 autoFocus
               />
@@ -182,14 +171,14 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
               <Button variant="outline" className="flex-1" onClick={() => setStep('qr')}>
                 Voltar
               </Button>
-              <Button 
-                className="flex-1" 
+              <Button
+                className="flex-1"
                 onClick={handleVerify}
                 disabled={code.length !== 6 || verifying}
               >
                 {verifying ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Verificando...
                   </>
                 ) : (

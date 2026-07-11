@@ -35,117 +35,133 @@ export function useEmailSearch(accountId: string | null) {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<{ aborted: boolean }>({ aborted: false });
 
-  const searchLocal = useCallback(async (q: string): Promise<EmailSearchResult[]> => {
-    if (!accountId) return [];
+  const searchLocal = useCallback(
+    async (q: string): Promise<EmailSearchResult[]> => {
+      if (!accountId) return [];
 
-    // Normaliza para FTS websearch
-    const ftsQuery = q.trim();
+      // Normaliza para FTS websearch
+      const ftsQuery = q.trim();
 
-    type EmailThreadRow = { id: string; thread_id: string; subject: string | null; snippet: string | null; last_message_at: string | null; unread_count: number; email_messages: { from_email: string; from_name: string | null }[] };
-    const { data, error: dbErr } = await safeClient.from<EmailThreadRow>('email_threads', q =>
-      q.select(`id, thread_id, subject, snippet, last_message_at, unread_count, email_messages!inner ( from_email, from_name )`)
-        .eq('account_id', accountId)
-        .textSearch('subject', ftsQuery, { config: 'portuguese', type: 'websearch' })
-        .order('last_message_at', { ascending: false })
-        .limit(20),
-    );
+      const { data, error: dbErr } = await safeClient.from<Record<string, unknown>>(
+        'email_threads',
+        (q) =>
+          q
+            .select(
+              'id, thread_id, subject, snippet, last_message_at, unread_count, email_messages!inner ( from_email, from_name )'
+            )
+            .eq('account_id', accountId)
+            .textSearch('subject', ftsQuery, { config: 'portuguese', type: 'websearch' })
+            .order('last_message_at', { ascending: false })
+            .limit(20)
+      );
 
-    if (dbErr) return [];
+      if (dbErr) return [];
 
-    return (data ?? []).map((row) => {
-      const first = row.email_messages[0];
-      return {
-        id: row.id,
-        thread_id: row.thread_id,
-        subject: row.subject ?? '(sem assunto)',
-        snippet: row.snippet ?? '',
-        from_email: first?.from_email ?? '',
-        from_name: first?.from_name ?? null,
-        last_message_at: row.last_message_at,
-        unread_count: row.unread_count ?? 0,
-        source: 'local' as const,
-      };
-    });
-  }, [accountId]);
+      return (data ?? []).map((row: Record<string, unknown>) => {
+        const msgs = Array.isArray(row.email_messages) ? row.email_messages : [];
+        const first = (msgs[0] ?? {}) as Record<string, unknown>;
+        return {
+          id: row.id as string,
+          thread_id: row.thread_id as string,
+          subject: (row.subject as string) ?? '(sem assunto)',
+          snippet: (row.snippet as string) ?? '',
+          from_email: (first.from_email as string) ?? '',
+          from_name: (first.from_name as string | null) ?? null,
+          last_message_at: row.last_message_at as string | null,
+          unread_count: (row.unread_count as number) ?? 0,
+          source: 'local' as const,
+        };
+      });
+    },
+    [accountId]
+  );
 
-  const searchRemote = useCallback(async (q: string): Promise<EmailSearchResult[]> => {
-    if (!accountId) return [];
+  const searchRemote = useCallback(
+    async (q: string): Promise<EmailSearchResult[]> => {
+      if (!accountId) return [];
 
-    try {
-      const res = await emailListThreads({ accountId, q, maxResults: 10 });
-      const threads = ((res as { threads?: Record<string, unknown>[] }).threads) ?? [];
-      return threads.map((t) => ({
-        id: String(t['id'] ?? ''),
-        thread_id: String(t['id'] ?? ''),
-        subject: String(t['snippet'] ?? '').substring(0, 80),
-        snippet: String(t['snippet'] ?? ''),
-        from_email: '',
-        from_name: null,
-        last_message_at: null,
-        unread_count: 0,
-        source: 'remote' as const,
-      }));
-    } catch {
-      return [];
-    }
-  }, [accountId]);
+      try {
+        const res = await emailListThreads({ accountId, q, maxResults: 10 });
+        return (((res as any).threads as Record<string, unknown>[]) ?? []).map((t) => ({
+          id: String(t.id ?? ''),
+          thread_id: String(t.id ?? ''),
+          subject: String(t.snippet ?? '').substring(0, 80),
+          snippet: String(t.snippet ?? ''),
+          from_email: '',
+          from_name: null,
+          last_message_at: null,
+          unread_count: 0,
+          source: 'remote' as const,
+        }));
+      } catch {
+        return [];
+      }
+    },
+    [accountId]
+  );
 
-  const doSearch = useCallback(async (q: string) => {
-    if (!q || q.length < MIN_QUERY_LEN) {
-      setResults([]);
-      setIsSearching(false);
-      return;
-    }
+  const doSearch = useCallback(
+    async (q: string) => {
+      if (!q || q.length < MIN_QUERY_LEN) {
+        setResults([]);
+        setIsSearching(false);
+        return;
+      }
 
-    // Marca esta instância de busca como "atual"
-    const signal = { aborted: false };
-    abortControllerRef.current = signal;
+      // Marca esta instância de busca como "atual"
+      const signal = { aborted: false };
+      abortControllerRef.current = signal;
 
-    setIsSearching(true);
-    setError(null);
+      setIsSearching(true);
+      setError(null);
 
-    try {
-      // Fase 1: local imediato
-      const local = await searchLocal(q);
-      if (signal.aborted) return;
-      setResults(local);
+      try {
+        // Fase 1: local imediato
+        const local = await searchLocal(q);
+        if (signal.aborted) return;
+        setResults(local);
 
-      // Fase 2: remoto async
-      const remote = await searchRemote(q);
-      if (signal.aborted) return;
+        // Fase 2: remoto async
+        const remote = await searchRemote(q);
+        if (signal.aborted) return;
 
-      // Deduplica resultados remotos vs locais
-      const localThreadIds = new Set(local.map(r => r.thread_id));
-      const newRemote = remote.filter(r => !localThreadIds.has(r.thread_id));
+        // Deduplica resultados remotos vs locais
+        const localThreadIds = new Set(local.map((r) => r.thread_id));
+        const newRemote = remote.filter((r) => !localThreadIds.has(r.thread_id));
 
-      setResults([...local, ...newRemote]);
-    } catch {
-      if (!signal.aborted) setError('Erro ao buscar emails');
-    } finally {
-      if (!signal.aborted) setIsSearching(false);
-    }
-  }, [searchLocal, searchRemote]);
+        setResults([...local, ...newRemote]);
+      } catch {
+        if (!signal.aborted) setError('Erro ao buscar emails');
+      } finally {
+        if (!signal.aborted) setIsSearching(false);
+      }
+    },
+    [searchLocal, searchRemote]
+  );
 
-  const handleQueryChange = useCallback((q: string) => {
-    setQuery(q);
+  const handleQueryChange = useCallback(
+    (q: string) => {
+      setQuery(q);
 
-    // Cancela busca anterior
-    abortControllerRef.current.aborted = true;
+      // Cancela busca anterior
+      abortControllerRef.current.aborted = true;
 
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
 
-    if (!q || q.length < MIN_QUERY_LEN) {
-      setResults([]);
-      setIsSearching(false);
-      return;
-    }
+      if (!q || q.length < MIN_QUERY_LEN) {
+        setResults([]);
+        setIsSearching(false);
+        return;
+      }
 
-    debounceTimerRef.current = setTimeout(() => {
-      doSearch(q);
-    }, DEBOUNCE_MS);
-  }, [doSearch]);
+      debounceTimerRef.current = setTimeout(() => {
+        doSearch(q);
+      }, DEBOUNCE_MS);
+    },
+    [doSearch]
+  );
 
   const clearSearch = useCallback(() => {
     abortControllerRef.current.aborted = true;
@@ -157,10 +173,13 @@ export function useEmailSearch(accountId: string | null) {
   }, []);
 
   // Cleanup ao desmontar
-  useEffect(() => () => {
-    abortControllerRef.current.aborted = true;
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      abortControllerRef.current.aborted = true;
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    },
+    []
+  );
 
   return {
     query,

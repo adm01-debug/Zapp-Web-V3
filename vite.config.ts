@@ -4,7 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { compression } from 'vite-plugin-compression2';
 import { VitePWA } from 'vite-plugin-pwa';
-import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 // Self-hosted Supabase (cutover 2026-06-30). These are FALLBACKS only, used
 // when the matching VITE_* env var is absent (e.g. local dev without .env).
@@ -35,7 +34,6 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mcpPlugin(),
     mode === "development" && componentTagger(),
     compression({
       algorithm: 'brotliCompress',
@@ -69,12 +67,6 @@ export default defineConfig(({ mode }) => ({
             src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: '/icons/icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
             purpose: 'maskable'
           }
         ]
@@ -83,15 +75,17 @@ export default defineConfig(({ mode }) => ({
         // FIX F4: Increased from 4MB to 8MB so that vendor-mapbox (~6.5MB)
         // is included in the precache.
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // clientsClaim: true is kept — claims uncontrolled clients on first install.
+        // FIX W1 (2026-07-11): Removed 'woff2' — no local web fonts are bundled.
+        // Google Fonts load from CDN via the runtimeCaching CacheFirst rule below.
+        // Including 'woff2' caused workbox-build to emit on every build:
+        // "One of the glob patterns doesn't match any files"
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // clientsClaim: true — claims uncontrolled clients on first install.
         // skipWaiting removed: ServiceWorkerUpdateBanner controls the update lifecycle.
-        // With skipWaiting active, the new SW took over all tabs immediately without
-        // user consent, potentially disrupting active sessions mid-task.
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         runtimeCaching: [
-          // FIX F3: Navigation requests always go to the NETWORK first so the browser
+          // FIX F3: Navigation requests go to the NETWORK first so the browser
           // fetches the freshest index.html after a deploy.
           {
             urlPattern: ({ request }: { request: Request }) =>
@@ -138,8 +132,8 @@ export default defineConfig(({ mode }) => ({
     reportCompressedSize: false,
     cssCodeSplit: true,
     // 'hidden' generates .map files in dist without referencing them in JS output.
-    // Browsers cannot accidentally load them; Sentry can consume them via CLI or
-    // the @sentry/vite-plugin. Dev builds keep true (full inline sourcemaps).
+    // Browsers cannot accidentally load them; Sentry can consume them via CLI/plugin.
+    // Dev builds keep true (full inline sourcemaps).
     sourcemap: mode === 'development' ? true : 'hidden',
     chunkSizeWarningLimit: 600,
     rollupOptions: {

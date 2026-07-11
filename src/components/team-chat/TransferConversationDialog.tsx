@@ -1,7 +1,20 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTransferTeamConversation } from '@/hooks/useTeamChat';
@@ -18,30 +31,36 @@ export function TransferConversationDialog({ open, onOpenChange, conversation }:
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   const transferMutation = useTransferTeamConversation();
 
-  const { data: departments = [], isLoading: loadingDepts } = useQuery({
+  const { data: departments = [] } = useQuery({
     queryKey: ['departments-list'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('departments').select('id, name').eq('is_active', true);
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name')
+        .eq('is_active', true);
       if (error) throw error;
       return data;
-    }
+    },
   });
 
   const handleTransfer = () => {
     if (!selectedDeptId) return;
-    
-    transferMutation.mutate({
-      conversationId: conversation.id,
-      departmentId: selectedDeptId,
-      metadata: {
-        ...(conversation.metadata || {}),
-        transferred_at: new Date().toISOString(),
-        transferred_by: 'Support Agent',
-        original_department_id: conversation.department_id
+
+    transferMutation.mutate(
+      {
+        conversationId: conversation.id,
+        departmentId: selectedDeptId,
+        metadata: {
+          ...(conversation.metadata || {}),
+          transferred_at: new Date().toISOString(),
+          transferred_by: 'Support Agent',
+          original_department_id: conversation.department_id,
+        },
+      },
+      {
+        onSuccess: () => onOpenChange(false),
       }
-    }, {
-      onSuccess: () => onOpenChange(false)
-    });
+    );
   };
 
   return (
@@ -61,9 +80,9 @@ export function TransferConversationDialog({ open, onOpenChange, conversation }:
             </SelectTrigger>
             <SelectContent>
               {departments.map((dept) => (
-                <SelectItem 
-                  key={dept.id} 
-                  value={dept.id} 
+                <SelectItem
+                  key={dept.id}
+                  value={dept.id}
                   disabled={dept.id === conversation.department_id}
                   data-testid={`dept-option-${dept.name}`}
                 >
@@ -78,13 +97,17 @@ export function TransferConversationDialog({ open, onOpenChange, conversation }:
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleTransfer} 
+          <Button
+            onClick={handleTransfer}
             disabled={!selectedDeptId || transferMutation.isPending}
             className="gap-2"
             data-testid="confirm-transfer-btn"
           >
-            {transferMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+            {transferMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Building2 className="h-4 w-4" />
+            )}
             Transferir
           </Button>
         </DialogFooter>
