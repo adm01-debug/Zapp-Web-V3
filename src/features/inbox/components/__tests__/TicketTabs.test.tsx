@@ -44,13 +44,42 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => false
 }));
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn().mockResolvedValue({ error: null })
-    }))
-  }
-}));
+// Chainable Supabase stub — proxy forwards every chained call back to itself
+// and terminates as an empty result, silencing downstream repo fetches.
+vi.mock('@/integrations/supabase/client', () => {
+  const makeStub = () => {
+    const terminal = { data: [] as unknown[], error: null };
+    const proxy: any = new Proxy({}, {
+      get(_t, prop) {
+        if (prop === 'then') return (r: (v: typeof terminal) => void) => r(terminal);
+        if (prop === 'single' || prop === 'maybeSingle') {
+          return () => Promise.resolve({ data: null, error: null });
+        }
+        return () => proxy;
+      },
+    });
+    return {
+      from: () => proxy,
+      rpc: () => Promise.resolve({ data: null, error: null }),
+      auth: { getUser: () => Promise.resolve({ data: { user: null }, error: null }) },
+    };
+  };
+  return { supabase: makeStub() };
+});
+
+vi.mock('@/integrations/datasource/db', () => {
+  const proxy: any = new Proxy({}, {
+    get(_t, prop) {
+      if (prop === 'then') return (r: (v: { data: unknown[]; error: null }) => void) =>
+        r({ data: [], error: null });
+      if (prop === 'single' || prop === 'maybeSingle') {
+        return () => Promise.resolve({ data: null, error: null });
+      }
+      return () => proxy;
+    },
+  });
+  return { dbFrom: () => proxy };
+});
 
 describe('TicketTabs - Visibilidade de Escopo', () => {
   beforeEach(() => {
