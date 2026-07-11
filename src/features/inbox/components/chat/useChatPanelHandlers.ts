@@ -4,13 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { undoToast } from '@/lib/undoToast';
 import { useAuth } from '@/features/auth';
 import { Message, InteractiveMessage, InteractiveButton, LocationMessage } from '@/types/chat';
-import { SlashCommand } from '@/features/inbox/components/SlashCommands';
+import { SlashCommand } from '../SlashCommands';
 import { ExternalProduct } from '@/hooks/useExternalCatalog';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
-import { type DialogKey } from '@/features/inbox/components/chat/hooks/useChatDialogs';
-import { type ActiveTool } from '@/features/inbox/components/chat/ChatHeaderToolbar';
+import { type DialogKey } from './hooks/useChatDialogs';
+import { type ActiveTool } from './ChatHeaderToolbar';
 
 interface UseChatPanelHandlersOptions {
   conversationId: string;
