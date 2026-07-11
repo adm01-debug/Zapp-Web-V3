@@ -11,11 +11,20 @@ export interface SafeResponse<T> {
   requestId?: string;
 }
 
+/** Record of a single operation failure captured in the telemetry buffer. */
+export interface FailureRecord {
+  requestId: string;
+  operation: string;
+  resource: string;
+  error: string;
+  timestamp: string;
+}
+
 const CACHE_TTL = 300000; // 5 minutos
 const resourceCache = new Map<string, { exists: boolean; expires: number }>();
 
 let lastValidation: Date | null = null;
-const recentFailures: any[] = [];
+const recentFailures: FailureRecord[] = [];
 const MAX_FAILURES = 50;
 const stats = { totalCalls: 0, failedCalls: 0, cacheHits: 0 };
 
@@ -36,9 +45,9 @@ const stats = { totalCalls: 0, failedCalls: 0, cacheHits: 0 };
 let _healthLogInProgress = false;
 
 export const safeClient = {
-  async from<T = any>(
+  async from<T = unknown>(
     table: string,
-    queryBuilder: (query: any) => any
+    queryBuilder: (query: ReturnType<typeof supabase.from>) => ReturnType<typeof supabase.from>
   ): Promise<SafeResponse<T[]>> {
     const requestId = Math.random().toString(36).substring(7);
     stats.totalCalls++;
@@ -68,9 +77,9 @@ export const safeClient = {
     }
   },
 
-  async single<T = any>(
+  async single<T = unknown>(
     table: string,
-    queryBuilder: (query: any) => any
+    queryBuilder: (query: ReturnType<typeof supabase.from>) => ReturnType<typeof supabase.from>
   ): Promise<SafeResponse<T>> {
     const requestId = Math.random().toString(36).substring(7);
     stats.totalCalls++;
@@ -84,7 +93,7 @@ export const safeClient = {
         }
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await queryBuilder(supabase.from(table as any)).single();
+      const { data, error } = await (queryBuilder(supabase.from(table as any)) as any).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
@@ -100,9 +109,9 @@ export const safeClient = {
     }
   },
 
-  async rpc<T = any>(
+  async rpc<T = unknown>(
     name: string,
-    params?: Record<string, any>
+    params?: Record<string, unknown>
   ): Promise<SafeResponse<T>> {
     const requestId = Math.random().toString(36).substring(7);
     stats.totalCalls++;
@@ -210,7 +219,7 @@ export const safeClient = {
       else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
       // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
-      await (supabase.rpc as any)('rpc_update_email_health_state', {
+      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: telemetry.recentFailures.length,
         p_metadata: {
@@ -228,7 +237,7 @@ export const safeClient = {
     }
   },
 
-  log(requestId: string, level: 'info' | 'warn' | 'error', message: string, detail?: any) {
+  log(requestId: string, level: 'info' | 'warn' | 'error', message: string, detail?: unknown) {
     const maskedDetail = this.maskSensitiveData(detail);
     const meta: Record<string, unknown> = { requestId };
     if (maskedDetail != null) meta['detail'] = maskedDetail;
@@ -237,7 +246,7 @@ export const safeClient = {
     else _log.info(`${message}`, meta);
   },
 
-  maskSensitiveData(data: any): any {
+  maskSensitiveData(data: unknown): unknown {
     if (!data) return data;
     if (typeof data !== 'object') {
       if (typeof data === 'string' && (data.length > 50 || data.includes('@'))) {
@@ -245,7 +254,9 @@ export const safeClient = {
       }
       return data;
     }
-    const masked = Array.isArray(data) ? [...data] : { ...data };
+    const masked: Record<string, unknown> = Array.isArray(data)
+      ? [...(data as unknown[])]
+      : { ...(data as Record<string, unknown>) };
     for (const key in masked) {
       const val = masked[key];
       const lowerKey = key.toLowerCase();
@@ -290,13 +301,20 @@ export const safeClient = {
    * recordFailure) + _healthLogInProgress re-entrancy guard.
    */
   async recordFailure(requestId: string, operation: string, resource: string, error: string) {
-    recentFailures.unshift({ requestId, operation, resource, error, timestamp: new Date().toISOString() });
+    const record: FailureRecord = {
+      requestId,
+      operation,
+      resource,
+      error,
+      timestamp: new Date().toISOString(),
+    };
+    recentFailures.unshift(record);
     if (recentFailures.length > MAX_FAILURES) recentFailures.pop();
 
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
-      await (supabase.rpc as any)('rpc_log_email_health', {
+      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,
@@ -330,12 +348,13 @@ export const safeClient = {
     }
   },
 
-  formatError(error: PostgrestError | any): Error {
-    if (error.message) {
-      if (error.message.toLowerCase().includes('does not exist')) {
-        return new Error(`Recurso indisponível: ${error.message}`);
+  formatError(error: PostgrestError | unknown): Error {
+    if (error && typeof error === 'object' && 'message' in error) {
+      const msg = (error as { message: string }).message;
+      if (msg.toLowerCase().includes('does not exist')) {
+        return new Error(`Recurso indisponível: ${msg}`);
       }
-      return new Error(error.message);
+      return new Error(msg);
     }
     return new Error(String(error));
   }
