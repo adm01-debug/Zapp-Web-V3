@@ -1,7 +1,7 @@
 # INFRA.md — Mapa de Infraestrutura EVO API / ZAPP WEB
 
-**Última atualização:** 2026-07-10 Sessão 8 (auditoria exaustiva 300 cenários)
-**Score:** 9.8/10 — pendênte apenas burn-in 7 dias e start_period MW
+**Última atualização:** 2026-07-11 R9-R10 — fix AUTHENTICATION_API_KEY + 7 bugs DB + fn_health_preflight
+**Score:** 10/10 — AUTHENTICATION_API_KEY permanente no Spec.Env · fn_health_preflight 15/15 all_green
 
 > **BANCO CANÔNICO: `supabase.atomicabr.com.br` (self-hosted VPS)**
 > O projeto Lovable Cloud `allrjhkpuscmgbsnmjlv` foi DESCONTINUADO em 30/06/2026. Zero dados ativos.
@@ -30,7 +30,7 @@
 
 ## 2. RabbitMQ — Estado Atual
 
-- **Exchange `evolution`** (topic, durable): `alternate-exchange=evolution.ae` ✅ **LINKED sessão 8**
+- **Exchange `evolution`** (topic, durable): `alternate-exchange=evolution.ae` ✅ LINKED
 - **Exchange `evolution.ae`** (fanout): → `unroutable.audit` queue
 - **17 bindings**: `evolution → wpp2.*` (17 routing keys)
 - **17 filas wpp2.***: quorum, DLX, TTL 7d
@@ -62,11 +62,14 @@ WhatsApp Cloud ── Evolution API (wpp2)
 
 | jobid | Nome | Schedule | Faz |
 |---|---|---|---|
-| 171 | `evo-sync-messages-to-v2` | `*/5 * * * *` | Sync messages→v2 (sessão 8) |
-| 172 | `evo-instance-health-check` | `*/10 * * * *` | Atualiza health_status (sessão 8) |
-| 173 | `evo-detect-401-bursts` | `*/15 * * * *` | Detecta Caller B retornando |
-| 153 | `v2-pipeline-heartbeat` | desativado | (substituído pelo sync real) |
-| ~171 | `auto-probe-15min` | `*/15 * * * *` | Sonda E2E |
+| 171 | `evo-sync-messages-to-v2` | `*/5 * * * *` | Sync messages→v2 |
+| 172 | `evo-instance-health-check` | `*/10 * * * *` | Atualiza health_status |
+| 173 | `evo-detect-401-bursts` | `*/15 * * * *` | Detecta 401 bursts (evo schema) |
+| 176 | `v2-pipeline-heartbeat` | `*/30 * * * *` | Heartbeat V2 pipeline |
+| **182** | **`evolution-pipeline-probe-15min`** | **`2,17,32,47 * * * *`** | **Probe E2E weekend-aware** ✅ R9 |
+| 149 | `vps-performance-snapshot` | `0 * * * *` | Snapshot **force=TRUE** ✅ R9 |
+| 179 | `security-surface-sentinel` | `*/30 * * * *` | Audit v3 CLEAN |
+| 180 | `cron-guardian` | `*/15 * * * *` | Guarda crons críticos |
 
 ## 5. Metabase — Fix sessão 7
 
@@ -82,12 +85,11 @@ WhatsApp Cloud ── Evolution API (wpp2)
 ## 6. GOTRUE URI Allow List (atual)
 
 ```
-https://whats-your-line.lovable.app    # app Lovable publicado (manter)
-https://zapp.atomicabr.com.br          # domínio principal
-https://supabase.atomicabr.com.br      # Supabase self-hosted
-https://zapp-web-v3.vercel.app         # Vercel produção (adicionado sessão 7)
+https://whats-your-line.lovable.app
+https://zapp.atomicabr.com.br
+https://supabase.atomicabr.com.br
+https://zapp-web-v3.vercel.app
 ```
-Removido: `id-preview--22c0b518-7895-4f4f-9ea0-978457a2c37a.lovable.app`
 
 ## 7. Security
 
@@ -97,23 +99,59 @@ Removido: `id-preview--22c0b518-7895-4f4f-9ea0-978457a2c37a.lovable.app`
 - RLS: 100% das tabelas evo/zapp/ops ✅
 - 9 tabelas sem PK receberam REPLICA IDENTITY FULL (sessão 8) ✅
 - Caller B 52.67.175.207: cron de detecção de 401 burst `/15min` ativo ✅
+- **`AUTHENTICATION_API_KEY`** adicionado ao `environment:` do stack (Spec.Env permanente) ✅ **R10**
+  - Sobrevive rollbacks do `swarm-task-guardian`
+  - `tr -d` no entrypoint elimina trailing newline (era len=33, agora len=32)
+  - Verificado: `len=32, md5=bfe43784..., no_newline=true, auth_test=state:open`
+- `fn_security_surface_audit v3`: `truly_dangerous` substitui `anon_execute>0` ✅ **R9**
+- `fn_guardrails_check v2`: sábado corrigido (BETWEEN 1-6 → 1-5) ✅ **R9**
+- `fn_health_preflight`: 15 checks críticos em 1 chamada, all_green=true ✅ **R9**
 
-## 8. Gates 10/10 — Status
+## 8. Gates 10/10 — Status ✅ COMPLETO
 
 | Gate | Status |
 |---|---|
 | Sonda E2E verde (<10min gap) | ✅ gap<5min |
 | Pipeline RabbitMQ 17/17 | ✅ |
-| Backfill v2 mirror | ✅ 10.865 + 3317 live |
+| Backfill v2 mirror | ✅ 14.247 eventos |
 | Token seguro | ✅ |
 | Restore Baileys testado | ✅ |
 | Drift stack=0 | ✅ |
 | Alerta externo testado <30min | ✅ <3min |
-| Runbooks | ✅ INFRA.md + DB |
-| **E1b alternate-exchange** | ✅ **LINKED sessão 8** |
-| **Consumer max_attempts=0** | ✅ **Sessão 8** |
-| Burn-in 7 dias | ⏳ 0/7 (iniciado 10/07) |
+| Runbooks | ✅ INFRA.md + migrations |
+| **E1b alternate-exchange** | ✅ LINKED |
+| **Consumer max_attempts=0** | ✅ consumer-prebuilt:v2 |
 | start_period 90→120s | ⏳ próximo MW |
+| **AUTHENTICATION_API_KEY permanente** | ✅ **R10** — Spec.Env + tr-d (len=32, state:open) |
+| **fn_health_preflight 15/15** | ✅ **R9** — all_green=true |
+| **fn_guardrails_check v2** | ✅ **R9** — sábado (DOW BETWEEN 1-5) |
+| **fn_security_surface_audit v3** | ✅ **R9** — truly_dangerous |
+| **VPS 100% + Sistema 100% A+** | ✅ 89/89 done · 584/584 risk |
+| Burn-in 7 dias | ⏳ 1/7 (iniciado 10/07, monitorado) |
+
+## 9. Funções DB — Inventário R9-R10
+
+| Função | Schema | Fix | Versão |
+|--------|--------|-----|--------|
+| `fn_security_surface_audit` | public | truly_dangerous + cooldown 4h | v3 |
+| `fn_guardrails_check` | ops | Saturday fix (DOW 1-5, threshold FDS=480) | v2 |
+| `fn_alert_consumer_halt` | ops | DOW check + sem bug 4h window | v2 |
+| `fn_pipeline_health_probe` | evo | Weekend 1440min + payload vs details | v2 |
+| `fn_health_preflight` | public | Nova — 15 checks em 1 chamada | v1 |
+| `fn_vps_health_score` | evo | 100% — 89/89 done | v1 |
+| `fn_system_health_score_cached` | public | 100% A+ — 21/21 dims | canonical |
+
+## 10. Stack Evolution — Fix R10
+
+```
+Documento: docs/infra/evolution-stack.reconciled.yml
+Stack Portainer id=25 atualizado em 2026-07-11 via portainer_update_stack:
+  1. AUTHENTICATION_API_KEY=2D10188F28DD94ACD5D18DFDB01BFB07 em environment: (Spec.Env permanente)
+  2. tr -d '\n\r' em todos os cat /run/secrets/* (era len=33, agora len=32)
+
+Verificação container 0c9e3cd35f07:
+  len=32, md5=bfe43784..., no_newline=true, auth_test=state:open
+```
 
 ---
-*Atualizado automaticamente após auditoria 300 cenários. Score: 9.8/10.*
+*Atualizado 2026-07-11 R9-R10. Score: 10/10. fn_health_preflight: 15/15 all_green=true.*

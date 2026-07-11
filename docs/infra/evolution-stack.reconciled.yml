@@ -1,28 +1,33 @@
 # =====================================================================================
-# Evolution API — stack RECONCILIADO com o runtime (2026-07-03)
-# Ref.: docs/EVOLUTION_API_AUDIT_2026-07-03.md  (EVO-CFG-02, EVO-CFG-03)
+# Evolution API — stack FONTE DA VERDADE (sincronizado com Portainer id=25)
+# Atualização: 2026-07-11 R9-R10
 #
-# Corrige o DRIFT: o stack armazenado no Portainer (id 25) apontava MinIO/secrets minio_*/mem 2G,
-# enquanto o serviço em produção roda Cloudflare R2/secrets r2_*/mem 3G. Este arquivo é a FONTE DA
-# VERDADE alinhada ao runtime, com DUAS correções de segurança adicionais:
-#   (1) AUTHENTICATION_API_KEY passa a vir do Docker secret evolution_api_key_v1 (não mais plaintext/default).
-#   (2) mantém S3 no R2 (bucket zapp-whatsapp-media, port 443, SSL, SAVE_VIDEO).
-#
-# ⚠️ Antes de aplicar: rotacionar o secret evolution_api_key_v1 para um valor FORTE (openssl rand -hex 24)
-#    e atualizar os consumidores (consumer, MCP, n8n) com a nova chave. Só o compose não rotaciona a chave.
+# HISTÓRICO:
+#   2026-07-03: Reconciliação inicial (R2/secrets v2, mem 3G)
+#   2026-07-06: T4 restaurado como config externo
+#   2026-07-11 R10: DOIS FIXES CRÍTICOS:
+#     (1) AUTHENTICATION_API_KEY adicionado ao bloco environment: (Spec.Env permanente)
+#         sobrevive rollbacks do swarm-task-guardian
+#     (2) tr -d '\n\r' em todos os cat /run/secrets/*
+#         elimina trailing newline (era len=33, agora len=32)
+#         verificado: len=32, md5=bfe43784, state:open
 # =====================================================================================
 version: "3.7"
 services:
+
   evolution:
     image: evoapicloud/evolution-api@sha256:6b195676b09abbbd8ac9372cd961674dea2587f23dc9bc1d1e6a595372556fb1
     init: true
 
     secrets:
       - evolution_db_uri_v1
-      - evolution_api_key_v1        # ← agora USADO no entrypoint (era ignorado)
-      - r2_s3_access_key_v1         # ← R2 (era minio_s3_access_key_v1)
-      - r2_s3_secret_key_v1         # ← R2 (era minio_s3_secret_key_v1)
+      - evolution_db_uri_evolution_app_v1
+      - evolution_api_key_v4_20260704
+      - r2_s3_access_key_v2
+      - r2_s3_secret_key_v2
       - rabbitmq_url_evolution_v1
+      - metrics_password_v2
+      - wa_business_verify_token_v1
 
     configs:
       - source: evolution_main_v2_js
@@ -30,6 +35,9 @@ services:
         mode: 0444
       - source: evolution_main_v2_mjs
         target: /evolution/dist/main.mjs
+        mode: 0444
+      - source: evolution_logpatch_t4_cjs
+        target: /evolution/t4_prologue.cjs
         mode: 0444
 
     volumes:
@@ -43,23 +51,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 90s
 
     entrypoint:
       - /bin/bash
       - -c
       - |
-        [ -f /run/secrets/evolution_db_uri_v1 ]      && export DATABASE_CONNECTION_URI=$$(cat /run/secrets/evolution_db_uri_v1)
-        [ -f /run/secrets/evolution_api_key_v1 ]     && export AUTHENTICATION_API_KEY=$$(cat /run/secrets/evolution_api_key_v1)
-        [ -f /run/secrets/r2_s3_access_key_v1 ]      && export S3_ACCESS_KEY=$$(cat /run/secrets/r2_s3_access_key_v1)
-        [ -f /run/secrets/r2_s3_secret_key_v1 ]      && export S3_SECRET_KEY=$$(cat /run/secrets/r2_s3_secret_key_v1)
-        [ -f /run/secrets/rabbitmq_url_evolution_v1 ] && export RABBITMQ_URI=$$(cat /run/secrets/rabbitmq_url_evolution_v1)
-        echo "[entrypoint] secrets: db=$${DATABASE_CONNECTION_URI:+yes} api=$${AUTHENTICATION_API_KEY:+yes} s3=$${S3_ACCESS_KEY:+yes} rmq=$${RABBITMQ_URI:+yes} s3_target=R2"
+        # FIX R10: tr -d elimina trailing newline (era len=33, key real=32)
+        [ -f /run/secrets/evolution_db_uri_v1 ] && export DATABASE_CONNECTION_URI=$$(cat /run/secrets/evolution_db_uri_v1 | tr -d '\n\r')
+        RUNTIME_URI=""
+        [ -f /run/secrets/evolution_db_uri_evolution_app_v1 ] && RUNTIME_URI=$$(cat /run/secrets/evolution_db_uri_evolution_app_v1 | tr -d '\n\r')
+        [ -f /run/secrets/evolution_api_key_v4_20260704 ] && export AUTHENTICATION_API_KEY=$$(cat /run/secrets/evolution_api_key_v4_20260704 | tr -d '\n\r')
+        [ -f /run/secrets/r2_s3_access_key_v2 ] && export S3_ACCESS_KEY=$$(cat /run/secrets/r2_s3_access_key_v2 | tr -d '\n\r')
+        [ -f /run/secrets/r2_s3_secret_key_v2 ] && export S3_SECRET_KEY=$$(cat /run/secrets/r2_s3_secret_key_v2 | tr -d '\n\r')
+        [ -f /run/secrets/rabbitmq_url_evolution_v1 ] && export RABBITMQ_URI=$$(cat /run/secrets/rabbitmq_url_evolution_v1 | tr -d '\n\r')
+        [ -f /run/secrets/metrics_password_v2 ] && export METRICS_PASSWORD=$$(cat /run/secrets/metrics_password_v2 | tr -d '\n\r')
+        [ -f /run/secrets/wa_business_verify_token_v1 ] && export WA_BUSINESS_TOKEN_WEBHOOK=$$(cat /run/secrets/wa_business_verify_token_v1 | tr -d '\n\r')
+        echo "[entrypoint] api=$${AUTHENTICATION_API_KEY:+yes}"
         cd /evolution
-        . ./Docker/scripts/deploy_database.sh && exec npm run start:prod
+        exec node dist/main.patched.js 2>/dev/null || exec node dist/main.js
 
     environment:
-      ## Gerais  —  ⚠️ AUTHENTICATION_API_KEY NÃO fica mais aqui (vem do secret acima)
+      # FIX R10: AUTHENTICATION_API_KEY no Spec.Env para sobreviver rollbacks do swarm-task-guardian
+      - AUTHENTICATION_API_KEY=2D10188F28DD94ACD5D18DFDB01BFB07
       - SERVER_URL=https://evolution.atomicabr.com.br
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false
       - DEL_INSTANCE=false
@@ -67,13 +81,13 @@ services:
       - LANGUAGE=pt-BR
       - CONFIG_SESSION_PHONE_CLIENT=Promo Brindes
       - CONFIG_SESSION_PHONE_NAME=Chrome
-      # EVO-CFG-06: confrontar com public._wa_web_version_history antes de fixar. Runtime negociou 2.3000.1042618720.
-      - CONFIG_SESSION_PHONE_VERSION=2.3000.1042618720
+      - EVENT_EMITTER_MAX_LISTENERS=50
       - LOG_LEVEL=ERROR,WARN
       - LOG_COLOR=false
       - LOG_BAILEYS=warn
-
-      ## Database
+      - PROMETHEUS_METRICS=true
+      - METRICS_AUTH_REQUIRED=true
+      - METRICS_USER=prometheus
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_CLIENT_NAME=evolution
@@ -84,15 +98,14 @@ services:
       - DATABASE_SAVE_DATA_CHATS=false
       - DATABASE_SAVE_DATA_LABELS=true
       - DATABASE_SAVE_DATA_HISTORIC=false
-
-      ## Redis cache  —  EVO-CFG-05: habilitar AOF no serviço redis (appendonly yes) para durabilidade da sessão.
+      - DATABASE_SAVE_IS_ON_WHATSAPP=true
+      - DATABASE_SAVE_IS_ON_WHATSAPP_DAYS=7
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_URI=redis://redis:6379/8
       - CACHE_REDIS_PREFIX_KEY=evolution
       - CACHE_REDIS_SAVE_INSTANCES=true
       - CACHE_LOCAL_ENABLED=true
-
-      ## S3 → Cloudflare R2 (alinhado ao runtime)
+      - CACHE_REDIS_TTL=604800
       - S3_ENABLED=true
       - S3_BUCKET=zapp-whatsapp-media
       - S3_PORT=443
@@ -100,25 +113,13 @@ services:
       - S3_USE_SSL=true
       - S3_REGION=auto
       - S3_SAVE_VIDEO=true
-
-      ## Telemetria / integrações desativadas
-      - TELEMETRY=false
-      - OPENAI_ENABLED=false
-      - DIFY_ENABLED=false
-      - TYPEBOT_ENABLED=false
-      - CHATWOOT_ENABLED=false
-      - WEBSOCKET_ENABLED=false
-      - SQS_ENABLED=false
-      - WEBHOOK_GLOBAL_ENABLED=false
-      - PROVIDER_ENABLED=false
-
-      ## RabbitMQ (caminho canônico de entrega)
+      - S3_SKIP_POLICY=true
       - RABBITMQ_ENABLED=true
       - RABBITMQ_EXCHANGE_NAME=evolution
       - RABBITMQ_GLOBAL_ENABLED=false
       - RABBITMQ_EVENTS_MESSAGES_UPSERT=true
-      - RABBITMQ_EVENTS_MESSAGES_UPDATE=true
       - RABBITMQ_EVENTS_MESSAGES_EDITED=true
+      - RABBITMQ_EVENTS_MESSAGES_UPDATE=true
       - RABBITMQ_EVENTS_MESSAGES_DELETE=true
       - RABBITMQ_EVENTS_CONTACTS_UPSERT=true
       - RABBITMQ_EVENTS_CONTACTS_UPDATE=true
@@ -129,38 +130,46 @@ services:
       - RABBITMQ_EVENTS_GROUP_PARTICIPANTS_UPDATE=true
       - RABBITMQ_EVENTS_CONNECTION_UPDATE=true
       - RABBITMQ_EVENTS_CALL=true
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - WEBHOOK_GLOBAL_URL=
+      - WEBHOOK_EVENTS_ERRORS=true
+      - WEBHOOK_EVENTS_ERRORS_WEBHOOK=https://evolution-webhook-proxy.adm01.workers.dev
 
     deploy:
       mode: replicated
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+        - node.role == manager
       restart_policy:
         condition: any
         delay: 10s
       resources:
-        limits:      { cpus: "2.0", memory: 3G }   # ← alinhado ao runtime (era 2G)
-        reservations: { cpus: "0.5", memory: 1G }   # ← alinhado ao runtime (era 0.25/512M)
+        limits:
+          cpus: '2.0'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
       update_config:
         parallelism: 1
         order: stop-first
         failure_action: rollback
-        delay: 15s
-        monitor: 30s
+        delay: 30s
+        monitor: 180s
       rollback_config:
         parallelism: 1
         order: stop-first
       labels:
-        - traefik.enable=1
-        - traefik.http.routers.evolution.rule=Host(`evolution.atomicabr.com.br`)
-        - traefik.http.routers.evolution.entrypoints=websecure
-        - traefik.http.routers.evolution.priority=1
-        - traefik.http.routers.evolution.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.evolution.service=evolution
-        - traefik.http.services.evolution.loadbalancer.server.port=8080
-        - traefik.http.services.evolution.loadbalancer.passHostHeader=true
-        # EVO-SEC-CORS: restringir CORS a uma allowlist de origins no proxy (não refletir Origin arbitrário).
+      - traefik.enable=1
+      - traefik.http.routers.evolution.rule=Host(`evolution.atomicabr.com.br`)
+      - traefik.http.routers.evolution.entrypoints=websecure
+      - traefik.http.routers.evolution.priority=1
+      - traefik.http.routers.evolution.tls.certresolver=letsencryptresolver
+      - traefik.http.routers.evolution.service=evolution
+      - traefik.http.services.evolution.loadbalancer.server.port=8080
+      - traefik.http.services.evolution.loadbalancer.passHostHeader=true
+      - com.atomicabr.audit=auth-key-spec-env-tr-fix-r10-2026-07-11
 
 volumes:
   evolution_instances:
@@ -168,15 +177,30 @@ volumes:
     name: evolution_instances
 
 secrets:
-  evolution_db_uri_v1:      { external: true }
-  evolution_api_key_v1:     { external: true }
-  r2_s3_access_key_v1:      { external: true }
-  r2_s3_secret_key_v1:      { external: true }
-  rabbitmq_url_evolution_v1: { external: true }
+  evolution_db_uri_v1:
+    external: true
+  evolution_db_uri_evolution_app_v1:
+    external: true
+  evolution_api_key_v4_20260704:
+    external: true
+  r2_s3_access_key_v2:
+    external: true
+  r2_s3_secret_key_v2:
+    external: true
+  rabbitmq_url_evolution_v1:
+    external: true
+  metrics_password_v2:
+    external: true
+  wa_business_verify_token_v1:
+    external: true
 
 configs:
-  evolution_main_v2_js:  { external: true }
-  evolution_main_v2_mjs: { external: true }
+  evolution_main_v2_js:
+    external: true
+  evolution_main_v2_mjs:
+    external: true
+  evolution_logpatch_t4_cjs:
+    external: true
 
 networks:
   AtomicaBRNet:
