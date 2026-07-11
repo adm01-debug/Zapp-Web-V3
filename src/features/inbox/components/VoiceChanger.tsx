@@ -184,7 +184,7 @@ export const VoiceChanger = memo(function VoiceChanger({
       setShowCloneWarning(false);
 
       // Update telemetry for successful local delivery
-      void supabase.rpc('record_voice_telemetry' as any, {
+      void safeClient.rpc('record_voice_telemetry', {
         p_queue_id: taskId,
         p_duration_ms: Date.now() - conversionStartTime,
         p_status: 'completed',
@@ -194,7 +194,7 @@ export const VoiceChanger = memo(function VoiceChanger({
       const conversionDuration = Date.now() - conversionStartTime;
 
       // Update telemetry for local failure
-      void supabase.rpc('record_voice_telemetry' as any, {
+      void safeClient.rpc('record_voice_telemetry', {
         p_queue_id: activeTaskId || '00000000-0000-0000-0000-000000000000',
         p_duration_ms: conversionDuration,
         p_status: 'failed',
