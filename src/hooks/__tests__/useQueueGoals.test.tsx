@@ -10,9 +10,9 @@ const mockRemoveChannel = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
-    channel: (...args: any[]) => mockChannel(...args),
-    removeChannel: (...args: any[]) => mockRemoveChannel(...args),
+    from: mockFrom,
+    channel: mockChannel,
+    removeChannel: mockRemoveChannel,
   },
 }));
 
@@ -25,8 +25,24 @@ vi.mock('@/lib/logger');
 import { useQueueGoals } from '@/hooks/useQueueGoals';
 
 const mockGoals = [
-  { id: 'g1', queue_id: 'q1', max_waiting_contacts: 10, max_avg_wait_minutes: 5, min_assignment_rate: 80, max_messages_pending: 50, alerts_enabled: true },
-  { id: 'g2', queue_id: 'q2', max_waiting_contacts: 20, max_avg_wait_minutes: 10, min_assignment_rate: 70, max_messages_pending: 100, alerts_enabled: false },
+  {
+    id: 'g1',
+    queue_id: 'q1',
+    max_waiting_contacts: 10,
+    max_avg_wait_minutes: 5,
+    min_assignment_rate: 80,
+    max_messages_pending: 50,
+    alerts_enabled: true,
+  },
+  {
+    id: 'g2',
+    queue_id: 'q2',
+    max_waiting_contacts: 20,
+    max_avg_wait_minutes: 10,
+    min_assignment_rate: 70,
+    max_messages_pending: 100,
+    alerts_enabled: false,
+  },
 ];
 
 describe('useQueueGoals', () => {
