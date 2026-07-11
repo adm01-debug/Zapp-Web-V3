@@ -15,3 +15,4 @@ src/components/mobile/InAppNotificationProvider.tsx  # registrado como provider 
 src/components/notifications/RealtimeSentimentAlertProvider.tsx  # registrado como provider via AppProviders; não rastreável por análise estática
 src/components/providers/AppProviders.tsx  # top-level provider wrapper importado em main.tsx indiretamente; side-effect mount
 src/components/system/ServiceWorkerUpdateBanner.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática
+src/pages/Login.tsx  # re-export alias para pages/Auth — AppRoutes importa Auth diretamente; compatibilidade de deep-links externos preservada
