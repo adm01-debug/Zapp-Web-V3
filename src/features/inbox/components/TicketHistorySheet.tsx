@@ -25,7 +25,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Clock, Circle, UserCheck, UserMinus, UserPlus, Wand2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { useTicketStatus } from '@/features/inbox';
 import type { TicketEvent } from '@/lib/inbox/ticketStore';
 import { conversationEventRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
@@ -180,14 +179,13 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     queryKey: ['conversation-audit-logs', contactId],
     enabled: open && !!contactId,
     queryFn: async () => {
-      const { data, error } = await safeClient.from('audit_logs', (q) =>
-        q
-          .select('*')
-          .eq('entity_type', 'conversation')
-          .eq('entity_id', contactId!)
-          .order('created_at', { ascending: false })
-          .limit(50)
-      );
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('entity_type', 'conversation')
+        .eq('entity_id', contactId!)
+        .order('created_at', { ascending: false })
+        .limit(50);
       if (error) return [];
       return data ?? [];
     },
