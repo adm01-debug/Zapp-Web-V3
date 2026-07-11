@@ -149,10 +149,10 @@ export function MonitoringConnectionsList({ connections, webhookTest, onCheckWeb
                         </Button>
                       </>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => { const n = evolutionInstanceName(conn); n && onCheckWebhook(n); }} className="text-xs h-8">
+                    <Button size="sm" variant="outline" onClick={() => { const n = evolutionInstanceName(conn); if (!n) { toast.error('Conexão sem nome de instância roteável. Reconecte via QR.'); return; } onCheckWebhook(n); }} className="text-xs h-8">
                       <Settings2 className="w-3.5 h-3.5 mr-1" />Webhook
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => { const n = evolutionInstanceName(conn); n && onTestWebhook(n); }} disabled={webhookTest.status === 'testing'} className="text-xs h-8">
+                    <Button size="sm" variant="outline" onClick={() => { const n = evolutionInstanceName(conn); if (!n) { toast.error('Conexão sem nome de instância roteável. Reconecte via QR.'); return; } onTestWebhook(n); }} disabled={webhookTest.status === 'testing'} className="text-xs h-8">
                       {webhookTest.status === 'testing'
                         ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Testando</>
                         : <><PlayCircle className="w-3.5 h-3.5 mr-1" />Testar</>

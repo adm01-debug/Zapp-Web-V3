@@ -30,10 +30,13 @@ export async function resolveSendFunction(
   if (cached && cached.expiresAt > Date.now()) return cached.fn;
 
   try {
+    // Escape backslashes and double-quotes so PostgREST parses the .or()
+    // filter correctly when instanceName contains reserved characters.
+    const esc = instanceName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     const { data, error } = await supabase
       .from('whatsapp_connections')
       .select('api_type, status')
-      .or(`instance_name.eq.${instanceName},instance_id.eq.${instanceName}`)
+      .or(`instance_name.eq."${esc}",instance_id.eq."${esc}"`)
       .maybeSingle();
 
     if (error) {

@@ -90,7 +90,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
       const { data: fallbackConn } = await supabase
         .from('whatsapp_connections')
-        .select('instance_id, instance_name')
+        .select('id, instance_id, instance_name')
         .eq('status', 'connected')
         .limit(1)
         .maybeSingle();
@@ -98,6 +98,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
       const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn as any) : null;
       if (fallbackResolved) {
         setInstanceName(fallbackResolved);
+        if (fallbackConn?.id) setWhatsappConnectionId(fallbackConn.id);
         return fallbackResolved;
       }
     } catch (err) {
