@@ -7,7 +7,7 @@ describe('cn utility', () => {
   });
 
   it('handles conditional classes', () => {
-    expect(cn('base', true && 'is-true', false && 'is-false')).toBe('base is-true');
+    expect(cn('base', 'is-true', false)).toBe('base is-true');
   });
 
   it('merges tailwind classes correctly (using twMerge)', () => {
