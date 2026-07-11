@@ -195,6 +195,7 @@ export function ScheduledReportsManager() {
                       onCheckedChange={() => toggleActive.mutate({ id: config.id, isActive: config.is_active })}
                     />
                     <Button
+                      aria-label="Excluir relatório agendado"
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-destructive hover:text-destructive"

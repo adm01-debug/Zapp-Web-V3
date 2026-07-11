@@ -239,12 +239,12 @@ export function ContactsTable({
                 </td>
                 <td className="p-3 text-right">
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id)} title="Conversar">
+                    <Button aria-label="Conversar" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id)} title="Conversar">
                       <MessageSquare className="w-3.5 h-3.5" />
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="w-7 h-7">
+                        <Button aria-label="Opções do contato" variant="ghost" size="icon" className="w-7 h-7">
                           <MoreVertical className="w-3.5 h-3.5" />
                         </Button>
                       </DropdownMenuTrigger>

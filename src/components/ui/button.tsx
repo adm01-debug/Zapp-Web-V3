@@ -10,7 +10,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/95 hover:shadow-glow-primary active:scale-[0.98]",
+        default: "bg-primary dark:bg-primary/75 text-primary-foreground shadow-sm hover:bg-primary/95 dark:hover:bg-primary/65 hover:shadow-glow-primary active:scale-[0.98]",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/95 shadow-sm hover:shadow-glow-destructive active:scale-[0.98]",
         outline: "border border-border/80 bg-background hover:bg-accent hover:text-accent-foreground hover:border-primary/40 active:scale-[0.98]",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/95 shadow-sm hover:shadow-glow-secondary active:scale-[0.98]",
@@ -18,7 +18,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline font-semibold",
         whatsapp: "bg-whatsapp text-primary-foreground hover:bg-whatsapp-dark shadow-sm hover:shadow-glow-success active:scale-[0.98]",
         glowPurple: "bg-secondary/15 text-secondary hover:bg-secondary/25 border border-secondary/20 shadow-none hover:shadow-glow-secondary active:scale-[0.98]",
-        glowGradient: "bg-primary text-primary-foreground border border-primary/20 shadow-sm hover:shadow-glow-primary active:scale-[0.98]",
+        glowGradient: "bg-primary dark:bg-primary/75 text-primary-foreground border border-primary/20 shadow-sm hover:shadow-glow-primary active:scale-[0.98]",
         neon: "bg-transparent border border-secondary text-secondary hover:bg-secondary/10 shadow-none hover:shadow-glow-secondary active:scale-[0.98]",
         neonOutline: "bg-transparent border border-secondary/40 text-secondary hover:border-secondary shadow-none hover:bg-secondary/10 hover:shadow-glow-secondary active:scale-[0.98]",
         success: "bg-success text-success-foreground hover:bg-success/95 shadow-sm hover:shadow-glow-success active:scale-[0.98]",

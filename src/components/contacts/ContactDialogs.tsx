@@ -111,6 +111,7 @@ export function ContactDialogs({
                 <div className="flex items-center justify-center gap-2">
                   <code className="text-sm font-semibold text-foreground">{showSuccess?.protocol}</code>
                   <Button
+                    aria-label="Copiar protocolo"
                     variant="ghost" size="icon" className="w-6 h-6"
                     onClick={() => {
                       navigator.clipboard.writeText(showSuccess?.protocol || '');

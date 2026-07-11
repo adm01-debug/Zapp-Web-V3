@@ -68,7 +68,7 @@ export function ContactCard({
       >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="w-7 h-7 bg-background/60 backdrop-blur-sm hover:bg-background/90">
+            <Button aria-label="Opções do contato" variant="ghost" size="icon" className="w-7 h-7 bg-background/60 backdrop-blur-sm hover:bg-background/90">
               <MoreVertical className="w-3.5 h-3.5" />
             </Button>
           </DropdownMenuTrigger>
@@ -223,6 +223,7 @@ export function ContactCard({
           </span>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
             <Button
+              aria-label="Conversar"
               variant="ghost"
               size="icon"
               className="w-7 h-7 hover:bg-primary/10 hover:text-primary"
@@ -232,6 +233,7 @@ export function ContactCard({
               <MessageSquare className="w-3.5 h-3.5" />
             </Button>
             <Button
+              aria-label="Editar contato"
               variant="ghost"
               size="icon"
               className="w-7 h-7 hover:bg-muted"

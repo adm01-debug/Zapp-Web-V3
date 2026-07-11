@@ -55,10 +55,10 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
               </Avatar>
             </motion.div>
             <div className="flex gap-2">
-              <Button size="icon" variant="outline" className="rounded-full" onClick={() => onEdit(contact)}>
+              <Button aria-label="Editar contato" size="icon" variant="outline" className="rounded-full" onClick={() => onEdit(contact)}>
                 <Edit3 className="w-4 h-4" />
               </Button>
-              <Button size="icon" variant="outline" className="rounded-full text-destructive hover:bg-destructive/5" onClick={() => onDelete(contact)}>
+              <Button aria-label="Excluir contato" size="icon" variant="outline" className="rounded-full text-destructive hover:bg-destructive/5" onClick={() => onDelete(contact)}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>

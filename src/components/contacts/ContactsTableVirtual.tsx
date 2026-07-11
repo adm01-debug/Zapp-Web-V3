@@ -198,6 +198,7 @@ const ContactRow = memo(
           onClick={(e) => e.stopPropagation()}
         >
           <Button
+            aria-label="Conversar"
             variant="ghost"
             size="icon"
             className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
@@ -207,7 +208,7 @@ const ContactRow = memo(
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button aria-label="Opções do contato" variant="ghost" size="icon" className="h-8 w-8">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
