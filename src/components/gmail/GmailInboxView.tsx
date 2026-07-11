@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useEmail, type EmailThread } from '@/hooks/useEmail';
 import { EmailLabelSidebar } from './GmailLabelSidebar';
 import { EmailAccountSelector } from './GmailAccountSelector';
+import { type TokenStatus } from '@/hooks/useGmailOAuthFlow';
 
 interface EmailInboxViewProps {
   onSelectThread?: (thread: EmailThread) => void;
@@ -31,19 +32,9 @@ function SLABadge({ status }: { status: string | null }) {
   return (
     <Badge
       variant={status === 'breached' ? 'destructive' : 'secondary'}
-      className="h-4 px-1 text-xs"
+      className="text-xs h-4 px-1"
     >
-      {status === 'breached' ? (
-        <>
-          <AlertTriangle className="mr-0.5 h-2.5 w-2.5" />
-          SLA
-        </>
-      ) : (
-        <>
-          <Clock className="mr-0.5 h-2.5 w-2.5" />
-          Prazo
-        </>
-      )}
+      {status === 'breached' ? <><AlertTriangle className="h-2.5 w-2.5 mr-0.5" />SLA</> : <><Clock className="h-2.5 w-2.5 mr-0.5" />Prazo</>}
     </Badge>
   );
 }
@@ -54,6 +45,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
     tokenStatus,
     threads,
     activeAccountId,
+    activeAccount,
     activeLabel,
     isSyncing,
     isLoading,
@@ -76,12 +68,11 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
   const [search, setSearch] = useState('');
 
   const filtered = search.trim()
-    ? threads.filter(
-        (t) =>
-          (t.subject ?? '').toLowerCase().includes(search.toLowerCase()) ||
-          (t.from_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-          (t.from_email ?? '').toLowerCase().includes(search.toLowerCase()) ||
-          (t.snippet ?? '').toLowerCase().includes(search.toLowerCase())
+    ? threads.filter(t =>
+        (t.subject ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (t.from_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (t.from_email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (t.snippet ?? '').toLowerCase().includes(search.toLowerCase())
       )
     : threads;
 
@@ -94,11 +85,11 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
   // Estado: sem contas
   if (!isLoading && accounts.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 p-6">
+      <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
         <Mail className="h-12 w-12 text-muted-foreground/30" />
         <div className="text-center">
-          <p className="text-base font-semibold">Nenhuma conta de Email conectada</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="font-semibold text-base">Nenhuma conta de Email conectada</p>
+          <p className="text-sm text-muted-foreground mt-1">
             Conecte sua conta de Email para usar o Chat de Email
           </p>
         </div>
@@ -113,29 +104,27 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full overflow-hidden">
+
         {/* Sidebar de Labels */}
-        <div className="w-52 shrink-0 overflow-hidden border-r bg-background/50">
+        <div className="w-52 shrink-0 border-r bg-background/50 overflow-hidden">
           {/* Seletor de conta */}
           {accounts.length > 0 && (
-            <div className="border-b p-2">
+            <div className="p-2 border-b">
               <EmailAccountSelector
                 accounts={accounts}
                 activeAccountId={activeAccountId}
-                tokenStatus={
-                  Object.fromEntries(tokenStatus.map((s) => [s.account_id, s.token_status])) as any
-                }
+                tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as Record<string, TokenStatus>}
                 isSyncing={isSyncing}
                 onSelectAccount={setActiveAccountId}
                 onAddAccount={startOAuth}
                 onDisconnect={disconnect}
                 onSync={syncNow}
-                {...({ compact: true } as any)}
               />
             </div>
           )}
           {/* Avisos de token/watch */}
           {(hasTokenWarning || hasWatchWarning) && (
-            <div className="flex items-center gap-1.5 border-b bg-warning px-2 py-1.5 text-xs text-warning-foreground dark:bg-warning/30 dark:text-warning-foreground">
+            <div className="px-2 py-1.5 bg-warning dark:bg-warning/30 border-b text-xs text-warning-foreground dark:text-warning-foreground flex items-center gap-1.5">
               <AlertTriangle className="h-3 w-3 shrink-0" />
               {hasTokenWarning ? 'Token expirado' : 'Watch expirando'}
             </div>
@@ -149,20 +138,19 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
         </div>
 
         {/* Lista de threads */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b bg-background/95 px-4 py-2.5">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b bg-background/95 shrink-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold capitalize">{activeLabel.toLowerCase()}</h2>
+              <h2 className="font-semibold text-sm capitalize">
+                {activeLabel.toLowerCase()}
+              </h2>
               {unreadCount > 0 && (
-                <Badge variant="default" className="h-5 px-1.5 text-xs">
-                  {unreadCount}
-                </Badge>
+                <Badge variant="default" className="text-xs h-5 px-1.5">{unreadCount}</Badge>
               )}
               {slaBreachedCount > 0 && (
-                <Badge variant="destructive" className="h-5 gap-1 px-1.5 text-xs">
-                  <AlertTriangle className="h-2.5 w-2.5" />
-                  {slaBreachedCount} SLA
+                <Badge variant="destructive" className="text-xs h-5 px-1.5 gap-1">
+                  <AlertTriangle className="h-2.5 w-2.5" />{slaBreachedCount} SLA
                 </Badge>
               )}
             </div>
@@ -171,7 +159,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
               size="sm"
               onClick={() => syncNow()}
               disabled={isSyncing}
-              className="h-7 gap-1.5 text-xs"
+              className="gap-1.5 h-7 text-xs"
             >
               <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'Sync...' : 'Atualizar'}
@@ -179,21 +167,21 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
           </div>
 
           {/* Busca */}
-          <div className="shrink-0 border-b px-3 py-2">
+          <div className="px-3 py-2 border-b shrink-0">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
                 placeholder="Buscar emails..."
-                className="h-7 pl-8 text-sm"
+                className="pl-8 h-7 text-sm"
               />
             </div>
           </div>
 
           {/* Erro */}
           {error && (
-            <div className="shrink-0 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <div className="px-3 py-2 text-xs text-destructive bg-destructive/10 shrink-0">
               {error}
             </div>
           )}
@@ -201,11 +189,11 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
           {/* Threads */}
           <ScrollArea className="flex-1">
             {isLoading ? (
-              <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+              <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
                 Carregando...
               </div>
             ) : filtered.length === 0 ? (
-              <div className="flex h-32 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+              <div className="flex flex-col items-center justify-center h-32 text-sm text-muted-foreground gap-2">
                 <Mail className="h-8 w-8 opacity-20" />
                 {search ? 'Nenhum resultado' : 'Nenhum email'}
               </div>
@@ -214,62 +202,53 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
                 {filtered.map((thread, idx) => (
                   <div key={thread.id}>
                     <div
-                      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors ${selectedId === thread.id ? 'bg-primary/5' : 'hover:bg-muted/50'} ${thread.unread_count > 0 ? 'bg-primary/30 dark:bg-primary/10' : ''} `}
+                      className={`group relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors
+                        ${selectedId === thread.id ? 'bg-primary/5' : 'hover:bg-muted/50'}
+                        ${thread.unread_count > 0 ? 'bg-primary/30 dark:bg-primary/10' : ''}
+                      `}
                       onClick={() => handleSelectThread(thread)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSelectThread(thread)}
+                      onKeyDown={e => e.key === 'Enter' && handleSelectThread(thread)}
                     >
                       {/* Avatar letra */}
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-foreground ${thread.unread_count > 0 ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                      <div className={`h-8 w-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-foreground
+                        ${thread.unread_count > 0 ? 'bg-primary' : 'bg-muted-foreground/30'}`}
                       >
                         {(thread.from_name ?? thread.from_email ?? '?')[0].toUpperCase()}
                       </div>
 
                       {/* Conteúdo */}
-                      <div className="min-w-0 flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <span
-                            className={`truncate text-sm ${thread.unread_count > 0 ? 'font-semibold' : 'text-muted-foreground'}`}
-                          >
+                          <span className={`text-sm truncate ${thread.unread_count > 0 ? 'font-semibold' : 'text-muted-foreground'}`}>
                             {thread.from_name ?? thread.from_email ?? 'Desconhecido'}
                           </span>
-                          <div className="flex shrink-0 items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             <SLABadge status={thread.sla_status} />
                             <span className="text-xs text-muted-foreground">
                               {formatDate(thread.last_message_at)}
                             </span>
                           </div>
                         </div>
-                        <p
-                          className={`mt-0.5 truncate text-sm ${thread.unread_count > 0 ? 'font-medium text-foreground' : 'text-muted-foreground'}`}
-                        >
+                        <p className={`text-sm mt-0.5 truncate ${thread.unread_count > 0 ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
                           {thread.subject ?? '(sem assunto)'}
                         </p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
                           {thread.snippet}
                         </p>
                       </div>
 
                       {/* Ações rápidas (aparecem no hover) */}
-                      <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded bg-background/90 px-1 py-0.5 shadow-sm group-hover:flex">
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-background/90 rounded shadow-sm px-1 py-0.5">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                starThread(thread.id, !thread.is_starred);
-                              }}
-                              className={`rounded p-1 hover:bg-muted ${thread.is_starred ? 'text-warning' : 'text-muted-foreground'}`}
-                              aria-label={
-                                thread.is_starred ? 'Remover favorito' : 'Adicionar favorito'
-                              }
+                              onClick={e => { e.stopPropagation(); starThread(thread.id, !thread.is_starred); }}
+                              className={`p-1 rounded hover:bg-muted ${thread.is_starred ? 'text-warning' : 'text-muted-foreground'}`}
+                              aria-label={thread.is_starred ? 'Remover favorito' : 'Adicionar favorito'}
                             >
-                              <Star
-                                className="h-3.5 w-3.5"
-                                fill={thread.is_starred ? 'currentColor' : 'none'}
-                              />
+                              <Star className="h-3.5 w-3.5" fill={thread.is_starred ? 'currentColor' : 'none'} />
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs">
@@ -279,19 +258,14 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                archiveThread(thread.id);
-                              }}
-                              className="rounded p-1 text-muted-foreground hover:bg-muted"
+                              onClick={e => { e.stopPropagation(); archiveThread(thread.id); }}
+                              className="p-1 rounded hover:bg-muted text-muted-foreground"
                               aria-label="Arquivar thread"
                             >
                               <Archive className="h-3.5 w-3.5" />
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent side="bottom" className="text-xs">
-                            Arquivar
-                          </TooltipContent>
+                          <TooltipContent side="bottom" className="text-xs">Arquivar</TooltipContent>
                         </Tooltip>
                       </div>
                     </div>
