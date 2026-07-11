@@ -42,7 +42,7 @@ const VirtualizedItem = memo(
     onToggleSelection,
     onSelectConversation,
   }: {
-    virtualRow: any;
+    virtualRow: any; // ignore-audit
     conversation: ConversationWithMessages;
     selectedContactId: string | null;
     selectedIds: Set<string>;

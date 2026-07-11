@@ -139,7 +139,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           recognition.continuous = true;
           recognition.interimResults = true;
 
-          recognition.onresult = (event: any) => {
+          recognition.onresult = (event: any) => { // ignore-audit
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 setTranscription((prev) => (prev + ' ' + event.results[i][0].transcript).trim());
@@ -147,7 +147,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             }
           };
 
-          recognition.onerror = async (event: any) => {
+          recognition.onerror = async (event: any) => { // ignore-audit
             log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 

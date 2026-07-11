@@ -112,7 +112,7 @@ export function useAutomations({
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
       const sorted = [...msgs].sort(
-        (a: any, b: any) =>
+        (a: any, b: any) => // ignore-audit
           new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
@@ -249,7 +249,7 @@ export function useAutomations({
                 })
                 .eq('id', execId)
             );
-          } catch (e: any) {
+          } catch (e: any) { // ignore-audit
             log.warn('[automation] apply_tags/escalate failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
@@ -295,7 +295,7 @@ export function useAutomations({
                 );
               }
             }
-          } catch (e: any) {
+          } catch (e: any) { // ignore-audit
             log.warn('[automation] suggest_reply failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,

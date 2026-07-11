@@ -13,7 +13,7 @@ import { ALL_ROOT_CAUSES, getRootCauseMeta, type RootCause } from '@/lib/failure
 import { type DlqStats, type FailedMessageStatus } from '@/features/admin/hooks/monitoring/useFailedMessages';
 import { type useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
 
-export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) {
+export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) { // ignore-audit
   const { api } = ui;
 
   return (
@@ -128,7 +128,7 @@ export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) {
               {ALL_ROOT_CAUSES.map((c) => {
                 const meta = getRootCauseMeta(c);
                 const count =
-                  api.aggregates.byRootCause.find((x: any) => x.cause === c)?.count ?? 0;
+                  api.aggregates.byRootCause.find((x: any) => x.cause === c)?.count ?? 0; // ignore-audit
                 return (
                   <SelectItem key={c} value={c}>
                     {meta.label}

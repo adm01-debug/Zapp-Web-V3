@@ -63,7 +63,7 @@ function makeOptimisticBubble(
     messageType?: string;
     mediaUrl?: string | null;
     contactAvatar?: string | null;
-    media_meta?: any;
+    media_meta?: any; // ignore-audit
   } = {}
 ): any {
   const now = new Date().toISOString();

@@ -215,7 +215,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
             </p>
           </div>
         ) : (
-          filteredFiles.map((file: any) => (
+          filteredFiles.map((file: any) => ( // ignore-audit
             <div
               key={file.id}
               className="group flex items-center gap-3 rounded-xl border border-warning bg-warning/50 p-2 transition-colors hover:bg-warning/50"

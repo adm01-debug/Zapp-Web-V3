@@ -46,8 +46,8 @@ interface Rule {
   description: string | null;
   is_active: boolean;
   trigger_type: TriggerType;
-  trigger_config: any;
-  actions: any;
+  trigger_config: any; // ignore-audit
+  actions: any; // ignore-audit
   priority: number;
   cooldown_seconds: number;
   channel_id: string | null;

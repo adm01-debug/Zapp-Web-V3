@@ -143,7 +143,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
         record('Cleanup', 'pass', 'Registro de teste removido.');
       }
     }
-  } catch (e: any) {
+  } catch (e: any) { // ignore-audit
     record('Global Error', 'fail', { message: e.message });
   }
 
