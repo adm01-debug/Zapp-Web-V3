@@ -91,8 +91,15 @@ export function useNewConversation(
         request_id: trace.requestId,
       });
       if (msgError) throw msgError;
+      const _conn = connections.find(c => c.id === selectedConnection);
+      const _evoName = _conn ? evolutionInstanceName(_conn) : null;
+      if (!_evoName) {
+        toast.error('Conexão WhatsApp sem nome de instância válido. Reconecte a instância e tente novamente.');
+        setIsSending(false);
+        return;
+      }
       const rawSendPayload = {
-        instanceName: (() => { const c = connections.find(c => c.id === selectedConnection); return (c ? evolutionInstanceName(c) : null) || 'wpp2'; })(),
+        instanceName: _evoName,
         number: selectedContact?.phone || newPhone,
         text: messageText.trim(),
       };

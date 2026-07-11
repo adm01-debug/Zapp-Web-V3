@@ -32,7 +32,7 @@ export function useGroupActions({ connections, groups, selectedGroups, setGroups
     for (const conn of connections) {
       if (!conn.instance_id) continue;
       const evoName = evolutionInstanceName(conn);
-      if (!evoName) { log.warn(`[handleAutoSync] skipping conn ${conn.id} — no routable instance name`); continue; }
+      if (!evoName) { log.warn(`[handleAutoSync] skipping conn ${conn.id} — no routable instance name`); totalErrors++; continue; }
       try {
         const { data, error } = await supabase.functions.invoke('evolution-api', {
           body: { action: 'list-groups', instanceName: evoName, getParticipants: 'false' },

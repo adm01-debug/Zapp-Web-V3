@@ -86,6 +86,8 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
           setInstanceName(resolved);
           return resolved;
         }
+        // specific connection exists but has no routable name (UUID-only) — do not fall back
+        return '';
       }
 
       const { data: fallbackConn } = await supabase

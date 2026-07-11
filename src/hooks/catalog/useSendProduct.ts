@@ -82,6 +82,11 @@ export function useSendToContact(onSuccess: () => void) {
           .limit(1);
 
         const connection = connections?.[0];
+        const evoName = connection ? evolutionInstanceName(connection) : null;
+        if (!evoName) {
+          toast.error('Nenhuma conexão WhatsApp ativa com nome de instância válido.');
+          return;
+        }
 
         for (const imgUrl of imageUrls) {
           const { data: dbResult } = await supabase
@@ -100,7 +105,7 @@ export function useSendToContact(onSuccess: () => void) {
           const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
             body: {
               action: 'send-media',
-              instanceName: (connection ? evolutionInstanceName(connection as any) : null) || 'wpp2',
+              instanceName: evoName,
               number: contact.phone,
               mediatype: 'image',
               media: imgUrl,
@@ -132,7 +137,7 @@ export function useSendToContact(onSuccess: () => void) {
         const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
           body: {
             action: 'send-text',
-            instanceName: (connection ? evolutionInstanceName(connection as any) : null) || 'wpp2',
+            instanceName: evoName,
             number: contact.phone,
             text: message,
           },
