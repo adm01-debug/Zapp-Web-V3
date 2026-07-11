@@ -21,7 +21,7 @@ import { getLogger } from '@/lib/logger';
 
 const proxyLog = getLogger('externalProxy');
 
-// ─── Direct-fetch invoker ─────────────────────────────────────────────
+// ─── Direct-fetch invoker ───────────────────────────────────────────
 // The Lovable preview injects a `lovable.js` fetch proxy that occasionally
 // drops POST bodies sent through `supabase.functions.invoke()`, surfacing as
 // `FunctionsFetchError: Failed to send a request to the Edge Function` with
@@ -194,7 +194,7 @@ function deriveTelemetryMeta(body: Record<string, unknown>): {
   return { operation, target, limit, offset, filters };
 }
 
-// ─── Request coalescing ──────────────────────────────────────────────
+// ─── Request coalescing ──────────────────────────────────────────
 // Many components mount in parallel and hit the same proxy endpoint within
 // a few ms (sidebar + crossTab + queryFn etc). Without coalescing this
 // causes a stampede that the edge runtime cannot absorb (we observed 40+
@@ -224,7 +224,7 @@ function coalesceKey(body: Record<string, unknown>): string | null {
   }
 }
 
-// ─── Per-target circuit breaker ──────────────────────────────────────
+// ─── Per-target circuit breaker ──────────────────────────────────────────
 // After N consecutive ghost-POST failures (FunctionsFetchError without a
 // status code — the request never made it to the server), the breaker
 // trips for COOLDOWN_MS so we stop bombarding an already-overloaded edge.
@@ -286,7 +286,7 @@ function recordBreakerSuccess(target: string): void {
   authLockUntil = 0;
 }
 
-// Test-only reset hook — exported via __testing namespace below.
+// Internal reset — only used via the __testing namespace in non-production builds.
 function __resetBreakerAndCoalesce(): void {
   breaker.clear();
   inflight.clear();
@@ -388,11 +388,6 @@ async function executeProxyCall<T>(
 
   const startedAt = performance.now();
 
-  // Transient 503 retry: the Supabase Edge runtime occasionally fails to spin
-  // up an isolate (cold start) and returns SUPABASE_EDGE_RUNTIME_ERROR /
-  // "non-2xx status code". These are not real failures — a quick retry usually
-  // succeeds. We retry up to 2 times with small exponential backoff, but never
-  // for AbortError (caller-initiated cancellation).
   const normalizeInvokeError = (
     err: unknown
   ): { name?: string; message?: string; code?: string; status?: number } => {
@@ -414,8 +409,6 @@ async function executeProxyCall<T>(
     };
   };
 
-  // 502 with a config-auth hint from the proxy is NOT transient — retrying
-  // won't fix a mismatched service_role key. Detect and short-circuit.
   const isPersistentConfigAuthError = (err: unknown): boolean => {
     const normalized = normalizeInvokeError(err);
     const message = normalized.message ?? '';
@@ -426,7 +419,6 @@ async function executeProxyCall<T>(
   };
 
   const isTransientRuntimeError = (err: unknown): boolean => {
-    // Persistent config-auth 502s are never transient — bail out early.
     if (isPersistentConfigAuthError(err)) return false;
     const normalized = normalizeInvokeError(err);
     const message = normalized.message ?? '';
@@ -456,11 +448,6 @@ async function executeProxyCall<T>(
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       attemptsMade = attempt;
       const attemptStartedAt = performance.now();
-      // NOTE: do NOT add custom headers here. The edge function's CORS allowlist
-      // only includes `authorization, x-client-info, apikey, content-type,
-      // x-correlation-id`. Any other header (e.g. an old `x-attempt`) makes the
-      // browser preflight fail with `TypeError: Failed to fetch`. We pass the
-      // attempt number through the body instead.
       const perAttemptOptions = {
         ...invokeOptions,
         body: { ...(invokeOptions.body as Record<string, unknown>), __attempt: attempt },
@@ -474,11 +461,6 @@ async function executeProxyCall<T>(
           : await invokeViaFetch<ProxyResponse<T>>('external-db-proxy', perAttemptOptions);
         data = result.data as ProxyResponse<T> | null;
         error = result.error ? normalizeInvokeError(result.error) : null;
-        // Edge runtime guard: when the function crashes at boot/runtime the
-        // outer wrapper returns HTTP 200 with `{ fallback: true, code: ... }`.
-        // The SDK can't surface that as `result.error`, so we promote it
-        // here so the retry + breaker logic kicks in instead of letting
-        // callers consume a malformed payload.
         if (
           !error &&
           data &&
@@ -501,10 +483,6 @@ async function executeProxyCall<T>(
       const attemptDurationMs = Math.round(performance.now() - attemptStartedAt);
 
       const ok = !error;
-      // "Ghost POST": OPTIONS preflight succeeded but the POST never reached
-      // the edge runtime. Surface as `errorName: FunctionsFetchError` with
-      // status === undefined. We treat these as transient (worth retrying)
-      // AND count them toward the circuit breaker.
       const isGhostPost =
         !ok &&
         (error?.name === 'FunctionsFetchError' ||
@@ -521,11 +499,6 @@ async function executeProxyCall<T>(
 
       const isAbort = error?.name === 'AbortError';
       const willRetry = !ok && !isAbort && transient && attempt < MAX_ATTEMPTS;
-      // Exponential backoff with jitter — fixed short delays were piling
-      // retries on top of the original stampede. Range per attempt:
-      //   attempt 1 → 200..300ms
-      //   attempt 2 → 400..600ms
-      //   attempt 3 → 800..1200ms
       const backoffBase = 200 * Math.pow(2, attempt - 1);
       const backoffMs = willRetry
         ? backoffBase + Math.floor(Math.random() * (backoffBase * 0.5))
@@ -656,7 +629,6 @@ async function executeProxyCall<T>(
     const message = (err as Error)?.message ?? '';
     if (name === 'AbortError') throw err;
 
-    // Only record if this looks like an unexpected throw (not already recorded).
     if (!/External DB proxy error|Aborted/i.test(message)) {
       const durationMs = Math.round(performance.now() - startedAt);
       const isTimeout = name === 'TimeoutError' || /timeout/i.test(message);
@@ -675,16 +647,27 @@ async function executeProxyCall<T>(
   }
 }
 
-// Test-only namespace. Not part of the public API. Used by unit tests to
-// reset the per-target circuit breaker and the in-flight coalesce map
-// between cases without exporting the internals individually.
-export const __testing = {
-  resetBreakerAndCoalesce: __resetBreakerAndCoalesce,
-  isBreakerOpen: (target: string) => isBreakerOpen(target),
-  setInvokeOverride: (fn: typeof __invokeOverride) => {
-    __invokeOverride = fn;
-  },
-  clearInvokeOverride: () => {
-    __invokeOverride = null;
-  },
-};
+/**
+ * Test-only namespace.
+ *
+ * Guarded behind !import.meta.env.PROD: in production builds this evaluates
+ * to `undefined` and tree-shaking removes the entire object. In development
+ * and test builds (where PROD is false/undefined) it is fully populated,
+ * keeping all existing unit tests working without any changes.
+ *
+ * Usage in tests: __testing?.setInvokeOverride(fn)  (null-safe access)
+ *
+ * NEVER import __testing in production application code.
+ */
+export const __testing = !import.meta.env.PROD
+  ? {
+      resetBreakerAndCoalesce: __resetBreakerAndCoalesce,
+      isBreakerOpen: (target: string) => isBreakerOpen(target),
+      setInvokeOverride: (fn: typeof __invokeOverride) => {
+        __invokeOverride = fn;
+      },
+      clearInvokeOverride: () => {
+        __invokeOverride = null;
+      },
+    }
+  : undefined;
