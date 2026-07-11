@@ -80,13 +80,13 @@ export const Sizes: Story = {
         <Button size="xl">Extra Large</Button>
       </div>
       <div className="flex items-center gap-4">
-        <Button size="icon-sm">
+        <Button size="icon-sm" aria-label="Adicionar (icon-sm)">
           <Plus className="h-4 w-4" />
         </Button>
-        <Button size="icon">
+        <Button size="icon" aria-label="Adicionar (icon)">
           <Plus className="h-4 w-4" />
         </Button>
-        <Button size="icon-lg">
+        <Button size="icon-lg" aria-label="Adicionar (icon-lg)">
           <Plus className="h-6 w-6" />
         </Button>
       </div>
