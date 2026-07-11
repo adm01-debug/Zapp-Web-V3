@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 
@@ -35,7 +35,9 @@ export const DEFAULT_SLA_ALERT_PREFERENCES: SLAAlertPreferences = {
  */
 export function useSLAAlertPreferences() {
   const { user } = useAuth();
-  const [preferences, setPreferences] = useState<SLAAlertPreferences>(DEFAULT_SLA_ALERT_PREFERENCES);
+  const [preferences, setPreferences] = useState<SLAAlertPreferences>(
+    DEFAULT_SLA_ALERT_PREFERENCES
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -47,11 +49,15 @@ export function useSLAAlertPreferences() {
     }
     setIsLoading(true);
 
-    void (supabase as any)
-      .from('sla_alert_preferences')
-      .select('enabled, alert_first_response, alert_resolution, severity_warning, severity_breached')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    void safeClient
+      .from('sla_alert_preferences', (q) =>
+        q
+          .select(
+            'enabled, alert_first_response, alert_resolution, severity_warning, severity_breached'
+          )
+          .eq('user_id', user.id)
+          .limit(1)
+      )
       .then(({ data, error }) => {
         if (cancelled) return;
 
@@ -59,11 +65,11 @@ export function useSLAAlertPreferences() {
           // Codigos que indicam tabela inexistente (ambiente sem migration)
           // ou linha não encontrada: tratar como defaults silenciosamente.
           const code = (error as any)?.code ?? '';
-          const msg  = (error as any)?.message ?? '';
+          const msg = (error as any)?.message ?? '';
           const isTableMissing =
             code === 'PGRST116' ||
             code === 'PGRST204' ||
-            code === '42P01'    ||
+            code === '42P01' ||
             msg.includes('relation') ||
             msg.includes('does not exist') ||
             msg.includes('404');
@@ -76,13 +82,14 @@ export function useSLAAlertPreferences() {
           return;
         }
 
-        if (data) {
+        const row = data?.[0] ?? null;
+        if (row) {
           setPreferences({
-            enabled:               data.enabled,
-            alert_first_response:  data.alert_first_response,
-            alert_resolution:      data.alert_resolution,
-            severity_warning:      data.severity_warning,
-            severity_breached:     data.severity_breached,
+            enabled: row.enabled,
+            alert_first_response: row.alert_first_response,
+            alert_resolution: row.alert_resolution,
+            severity_warning: row.severity_warning,
+            severity_breached: row.severity_breached,
           });
         }
         setIsLoading(false);
@@ -97,14 +104,14 @@ export function useSLAAlertPreferences() {
     async (next: SLAAlertPreferences) => {
       if (!user?.id) return { error: new Error('Not authenticated') };
       setIsSaving(true);
-      const { error } = await (supabase as any)
-        .from('sla_alert_preferences')
-        .upsert({ user_id: user.id, ...next }, { onConflict: 'user_id' });
+      const { error } = await safeClient.from('sla_alert_preferences', (q) =>
+        q.upsert({ user_id: user.id, ...next }, { onConflict: 'user_id' })
+      );
       setIsSaving(false);
       if (!error) setPreferences(next);
       return { error };
     },
-    [user?.id],
+    [user?.id]
   );
 
   return { preferences, setPreferences, save, isLoading, isSaving };
