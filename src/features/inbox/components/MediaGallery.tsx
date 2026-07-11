@@ -154,6 +154,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
             </div>
             <div className="flex items-center gap-1 rounded-md border p-1">
               <Button
+                aria-label="Visualização em grade"
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8"
@@ -162,6 +163,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
                 <Grid3X3 className="h-4 w-4" />
               </Button>
               <Button
+                aria-label="Visualização em lista"
                 variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8"
@@ -372,6 +374,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
                       </p>
                     </div>
                     <Button
+                      aria-label={`Baixar ${item.filename}`}
                       variant="ghost"
                       size="icon"
                       asChild
