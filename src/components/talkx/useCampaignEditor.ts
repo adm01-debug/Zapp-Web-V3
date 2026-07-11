@@ -254,10 +254,6 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
   // "earliest allowed" instant matches what the user sees.
   const minScheduledAt = toLocalDateTimeInput(new Date().toISOString());
 
-  // Lower bound for the datetime-local input, in LOCAL time (not UTC), so the
-  // "earliest allowed" instant matches what the user sees.
-  const minScheduledAt = toLocalDateTimeInput(new Date().toISOString());
-
   return {
     minScheduledAt,
     name,
