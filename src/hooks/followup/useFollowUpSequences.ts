@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 
 export interface Step {
@@ -50,9 +51,9 @@ export function useFollowUpSequences() {
       if (seqErr || !seq) throw seqErr ?? new Error('Failed to create sequence');
 
       if (steps.length > 0) {
-        const { error: stepsErr } = await (supabase as any)
-          .from('followup_steps')
-          .insert(steps.map((s) => ({ ...s, sequence_id: seq.id })));
+        const { error: stepsErr } = await safeClient.from('followup_steps', (q) =>
+          q.insert(steps.map((s) => ({ ...s, sequence_id: seq.id })))
+        );
         if (stepsErr) throw stepsErr;
       }
     },
