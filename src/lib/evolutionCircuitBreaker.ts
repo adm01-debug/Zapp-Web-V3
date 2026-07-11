@@ -55,10 +55,16 @@ const breakers = new Map<string, BreakerEntry>();
 let now: () => number = () => Date.now();
 
 /** @internal — for tests only. */
-export function __setBreakerNow(fn: () => number) { now = fn; }
+export function __setBreakerNow(fn: () => number) {
+  now = fn;
+}
 
 /** @internal — for tests only. Wipes all breaker state. */
-export function __resetBreakerState() { breakers.clear(); now = () => Date.now(); subscribers.clear(); }
+export function __resetBreakerState() {
+  breakers.clear();
+  now = () => Date.now();
+  subscribers.clear();
+}
 
 /**
  * Structured event emitted on every breaker state transition. Logged with
@@ -86,19 +92,39 @@ const subscribers = new Set<Subscriber>();
  */
 export function subscribeBreakerEvents(fn: Subscriber): () => void {
   subscribers.add(fn);
-  return () => { subscribers.delete(fn); };
+  return () => {
+    subscribers.delete(fn);
+  };
 }
 
-function emitTransition(instance: string, from: CircuitState, to: CircuitState, consecutiveFailures: number, cooldownMs: number | null): void {
+function emitTransition(
+  instance: string,
+  from: CircuitState,
+  to: CircuitState,
+  consecutiveFailures: number,
+  cooldownMs: number | null
+): void {
   const event: BreakerEvent = {
     tag: 'evolution-breaker',
     ts: new Date(now()).toISOString(),
-    instance, from, to, consecutiveFailures, cooldownMs,
+    instance,
+    from,
+    to,
+    consecutiveFailures,
+    cooldownMs,
   };
   // Single structured line — easy to grep / index in log aggregators.
-  try { log.info(`[breaker-event] ${JSON.stringify(event)}`); } catch { /* ignore */ }
+  try {
+    log.info(`[breaker-event] ${JSON.stringify(event)}`);
+  } catch {
+    /* ignore */
+  }
   for (const sub of subscribers) {
-    try { sub(event); } catch { /* subscriber errors must not break the breaker */ }
+    try {
+      sub(event);
+    } catch {
+      /* subscriber errors must not break the breaker */
+    }
   }
 }
 
@@ -131,7 +157,7 @@ export type CanCallResult = {
 
 export function canCall(
   instance: string,
-  cfg: CircuitBreakerConfig = DEFAULT_BREAKER_CONFIG,
+  _cfg: CircuitBreakerConfig = DEFAULT_BREAKER_CONFIG
 ): CanCallResult {
   const e = getEntry(instance);
   if (e.state === 'OPEN') {
@@ -160,7 +186,9 @@ export function recordSuccess(instance: string): void {
   const wasState = e.state;
   const wasFailures = e.consecutiveFailures;
   if (wasState !== 'CLOSED' || wasFailures > 0) {
-    log.info(`[breaker] instance=${instance} ${wasState} → CLOSED (success after ${wasFailures} failures)`);
+    log.info(
+      `[breaker] instance=${instance} ${wasState} → CLOSED (success after ${wasFailures} failures)`
+    );
   }
   e.state = 'CLOSED';
   e.consecutiveFailures = 0;
@@ -177,7 +205,7 @@ export function recordSuccess(instance: string): void {
  */
 export function recordFailure(
   instance: string,
-  cfg: CircuitBreakerConfig = DEFAULT_BREAKER_CONFIG,
+  cfg: CircuitBreakerConfig = DEFAULT_BREAKER_CONFIG
 ): { state: CircuitState; failures: number } {
   const e = getEntry(instance);
   e.consecutiveFailures += 1;
@@ -186,12 +214,16 @@ export function recordFailure(
     // Probe failed → re-open with fresh cooldown.
     e.state = 'OPEN';
     e.openUntil = now() + cfg.cooldownMs;
-    log.warn(`[breaker] instance=${instance} HALF_OPEN → OPEN (probe failed, cooldown ${cfg.cooldownMs}ms)`);
+    log.warn(
+      `[breaker] instance=${instance} HALF_OPEN → OPEN (probe failed, cooldown ${cfg.cooldownMs}ms)`
+    );
     emitTransition(instance, 'HALF_OPEN', 'OPEN', e.consecutiveFailures, cfg.cooldownMs);
   } else if (e.state === 'CLOSED' && e.consecutiveFailures >= cfg.failureThreshold) {
     e.state = 'OPEN';
     e.openUntil = now() + cfg.cooldownMs;
-    log.warn(`[breaker] instance=${instance} CLOSED → OPEN (${e.consecutiveFailures} consecutive failures, cooldown ${cfg.cooldownMs}ms)`);
+    log.warn(
+      `[breaker] instance=${instance} CLOSED → OPEN (${e.consecutiveFailures} consecutive failures, cooldown ${cfg.cooldownMs}ms)`
+    );
     emitTransition(instance, 'CLOSED', 'OPEN', e.consecutiveFailures, cfg.cooldownMs);
   }
   return { state: e.state, failures: e.consecutiveFailures };
@@ -213,7 +245,9 @@ export class CircuitOpenError extends Error {
   readonly code = 'circuit_open';
   readonly retryAfterMs: number;
   constructor(instance: string, retryAfterMs: number) {
-    super(`Circuit breaker is open for instance "${instance}" — retry after ${Math.ceil(retryAfterMs / 1000)}s`);
+    super(
+      `Circuit breaker is open for instance "${instance}" — retry after ${Math.ceil(retryAfterMs / 1000)}s`
+    );
     this.name = 'CircuitOpenError';
     this.retryAfterMs = retryAfterMs;
   }
