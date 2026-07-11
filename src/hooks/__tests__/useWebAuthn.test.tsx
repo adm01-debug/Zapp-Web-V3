@@ -7,8 +7,8 @@ const mockInvoke = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: mockFrom,
-    functions: { invoke: mockInvoke },
+    from: (...args: unknown[]) => mockFrom(...args),
+    functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
     auth: {
       onAuthStateChange: vi
         .fn()
