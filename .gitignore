@@ -58,6 +58,18 @@ node_modules/
 .yarn/install-state.gz
 
 # ====================
+# LOCKFILES
+# ====================
+# Este projeto usa BUN como gerenciador de pacotes.
+# O arquivo canônico é bun.lock (commitado e rastreado).
+# package-lock.json é gerado pelo npm e NÃO deve ser commitado
+# (diverge do bun.lock e causa installs não-determinísticos em CI).
+# Para instalar: bun install
+package-lock.json
+# bun.lockb é o formato binário do bun v1 (este projeto usa bun v1.3+ texto)
+bun.lockb
+
+# ====================
 # BUILD E PRODUÇÃO
 # ====================
 dist/
