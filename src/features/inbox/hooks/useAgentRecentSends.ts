@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbFrom } from '@/integrations/datasource/db';
 
 export interface RecentSend {
@@ -32,11 +32,14 @@ export function useAgentRecentSends() {
   const query = useQuery({
     queryKey: ['agent-recent-sends'],
     queryFn: async () => {
-      const { data: sends, error: sendsErr } = await (supabase as any)
-        .from('evolution_send_idempotency')
-        .select('idem_key, instance_name, http_status, external_message_id, created_at, path')
-        .order('created_at', { ascending: false })
-        .limit(SENDS_LIMIT);
+      const { data: sends, error: sendsErr } = await safeClient.from(
+        'evolution_send_idempotency',
+        (q) =>
+          q
+            .select('idem_key, instance_name, http_status, external_message_id, created_at, path')
+            .order('created_at', { ascending: false })
+            .limit(SENDS_LIMIT)
+      );
       if (sendsErr) throw sendsErr;
 
       const parsed = (sends ?? [])
