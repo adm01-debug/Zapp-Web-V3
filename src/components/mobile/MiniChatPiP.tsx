@@ -73,7 +73,6 @@ export function MiniChatPiP({
         >
           {/* Header — always visible */}
           <div
-            role="button"
             tabIndex={0}
             aria-expanded={isExpanded}
             aria-label={isExpanded ? 'Minimizar chat' : 'Expandir chat'}
