@@ -85,6 +85,7 @@ coverage/
 .nyc_output/
 test-results/
 playwright-report/
+playwright-report-a11y/
 playwright/.cache/
 
 # ====================
@@ -155,3 +156,23 @@ supabase/.temp/
 e2e/.auth/
 playwright-report-e2e/
 .dist-backups/
+
+# ====================
+# ARTEFATOS TEMPORÁRIOS DE DEV
+# (Não são código de aplicação)
+# ====================
+# Diretório de trabalho temporário
+tmp/
+
+# Saídas de scripts de auditoria ad-hoc
+audit.js
+audit.mjs
+audit.json
+full_audit_report.txt
+
+# Rastreamento de deps desatualizadas (muda toda semana, não é fonte da verdade)
+outdated.txt
+
+# Scripts de dados mock e saídas SQL grandes
+generate_mock_data.py
+mock_data.sql
