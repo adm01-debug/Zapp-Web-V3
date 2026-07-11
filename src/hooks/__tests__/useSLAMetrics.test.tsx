@@ -7,7 +7,7 @@ const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: mockFrom,
   },
 }));
 
@@ -23,8 +23,24 @@ function createWrapper() {
 }
 
 const mockSLAData = [
-  { id: 's1', contact_id: 'c1', first_response_breached: false, resolution_breached: false, first_response_at: '2024-01-01T10:05:00Z', first_message_at: '2024-01-01T10:00:00Z', resolved_at: '2024-01-01T11:00:00Z' },
-  { id: 's2', contact_id: 'c2', first_response_breached: true, resolution_breached: true, first_response_at: null, first_message_at: '2024-01-01T10:00:00Z', resolved_at: null },
+  {
+    id: 's1',
+    contact_id: 'c1',
+    first_response_breached: false,
+    resolution_breached: false,
+    first_response_at: '2024-01-01T10:05:00Z',
+    first_message_at: '2024-01-01T10:00:00Z',
+    resolved_at: '2024-01-01T11:00:00Z',
+  },
+  {
+    id: 's2',
+    contact_id: 'c2',
+    first_response_breached: true,
+    resolution_breached: true,
+    first_response_at: null,
+    first_message_at: '2024-01-01T10:00:00Z',
+    resolved_at: null,
+  },
 ];
 
 describe('useSLAMetrics', () => {
