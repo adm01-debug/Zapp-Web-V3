@@ -75,11 +75,15 @@ export function useSendToContact(onSuccess: () => void) {
     async (contact: ContactResult, message: string, imageUrls: string[]) => {
       setIsSending(true);
       try {
-        const { data: connections } = await supabase
+        const { data: connections, error: connError } = await supabase
           .from('whatsapp_connections')
           .select('id, name, instance_id, instance_name')
           .eq('status', 'connected')
           .limit(1);
+        if (connError) {
+          log.error('Failed to fetch WhatsApp connections:', connError);
+          throw connError;
+        }
 
         const connection = connections?.[0];
         const evoName = connection ? evolutionInstanceName(connection) : null;

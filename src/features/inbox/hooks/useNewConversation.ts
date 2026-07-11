@@ -84,13 +84,6 @@ export function useNewConversation(
         await supabase.functions.invoke('batch-fetch-avatars');
       }
       if (!contactId) { toast.error('Selecione um contato'); setIsSending(false); return; }
-      const trace = newRequestId('new-conv');
-      const { error: msgError } = await dbFrom('messages').insert({
-        contact_id: contactId, content: messageText.trim(), sender: 'agent',
-        message_type: 'text', status: 'sending', whatsapp_connection_id: selectedConnection || null,
-        request_id: trace.requestId,
-      });
-      if (msgError) throw msgError;
       const _conn = connections.find(c => c.id === selectedConnection);
       const _evoName = _conn ? evolutionInstanceName(_conn) : null;
       if (!_evoName) {
@@ -98,6 +91,13 @@ export function useNewConversation(
         setIsSending(false);
         return;
       }
+      const trace = newRequestId('new-conv');
+      const { error: msgError } = await dbFrom('messages').insert({
+        contact_id: contactId, content: messageText.trim(), sender: 'agent',
+        message_type: 'text', status: 'sending', whatsapp_connection_id: selectedConnection || null,
+        request_id: trace.requestId,
+      });
+      if (msgError) throw msgError;
       const rawSendPayload = {
         instanceName: _evoName,
         number: selectedContact?.phone || newPhone,
