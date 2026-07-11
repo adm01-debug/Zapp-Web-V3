@@ -115,6 +115,8 @@ export function MessageImage({ src, alt = 'Image', refreshKey }: MessageImagePro
   if (!effectiveSrc && !refresh.isRefreshing && !refresh.failed) {
     return (
       <div
+        role="status"
+        aria-live="polite"
         className="max-w-[280px] rounded-lg border border-border bg-muted/20 p-4 flex flex-col items-center gap-2 text-center"
       >
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" aria-hidden="true" />
