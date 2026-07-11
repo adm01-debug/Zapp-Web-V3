@@ -1,0 +1,9 @@
+# CI-compatible registry override.
+# The bun.lock was generated inside Lovable's environment where all packages
+# are proxied through a private Google Artifact Registry cache.  Outside that
+# environment (GitHub Actions CI, local developer machines) the private
+# registry is not reachable, so we redirect every install to the public npm
+# registry.  Packages that are exclusively on the private registry (e.g.
+# @lovable.dev/mcp-js) are still looked up under their normal npm scope.
+[install]
+registry = "https://registry.npmjs.org/"
