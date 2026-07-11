@@ -44,13 +44,37 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => false
 }));
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn().mockResolvedValue({ error: null })
-    }))
-  }
-}));
+vi.mock('@/integrations/supabase/client', () => {
+  // Chainable query builder stub — resolves to empty result to silence
+  // downstream React Query fetchers (agentRepository etc.) that would
+  // otherwise crash on `.select is not a function`.
+  const builder: any = {
+    select: vi.fn(() => builder),
+    insert: vi.fn(() => builder),
+    update: vi.fn(() => builder),
+    delete: vi.fn(() => builder),
+    upsert: vi.fn(() => builder),
+    eq: vi.fn(() => builder),
+    neq: vi.fn(() => builder),
+    in: vi.fn(() => builder),
+    is: vi.fn(() => builder),
+    or: vi.fn(() => builder),
+    order: vi.fn(() => builder),
+    limit: vi.fn(() => builder),
+    range: vi.fn(() => builder),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    then: (resolve: (v: { data: unknown[]; error: null }) => void) =>
+      resolve({ data: [], error: null }),
+  };
+  return {
+    supabase: {
+      from: vi.fn(() => builder),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    },
+  };
+});
 
 describe('TicketTabs - Visibilidade de Escopo', () => {
   beforeEach(() => {
