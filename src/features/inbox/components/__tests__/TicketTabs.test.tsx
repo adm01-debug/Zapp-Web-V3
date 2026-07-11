@@ -69,7 +69,7 @@ const makeSupabaseStub = () => {
 };
 
 vi.mock('@/integrations/supabase/client', () => ({ supabase: makeSupabaseStub() }));
-vi.mock('@/lib/db', () => ({ dbFrom: makeSupabaseStub().from }));
+vi.mock('@/integrations/datasource/db', () => ({ dbFrom: makeSupabaseStub().from }));
 
 describe('TicketTabs - Visibilidade de Escopo', () => {
   beforeEach(() => {
