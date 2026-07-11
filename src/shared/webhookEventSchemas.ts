@@ -104,12 +104,12 @@ export const conversationEventRowSchema = z.object({
   id: z.string().uuid(),
   contact_id: z.string().uuid(),
   event_type: z.string().min(1),
-  from_agent_id: z.string().nullable(),
-  to_agent_id: z.string().nullable(),
-  from_queue_id: z.string().nullable(),
-  to_queue_id: z.string().nullable(),
+  from_agent_id: z.string().uuid().nullable(),
+  to_agent_id: z.string().uuid().nullable(),
+  from_queue_id: z.string().uuid().nullable(),
+  to_queue_id: z.string().uuid().nullable(),
   metadata: z.unknown().nullable(),
-  performed_by: z.string().nullable(),
+  performed_by: z.string().uuid().nullable(),
   created_at: z.string(),
 });
 
