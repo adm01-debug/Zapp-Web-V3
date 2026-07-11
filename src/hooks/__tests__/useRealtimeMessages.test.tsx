@@ -21,8 +21,8 @@ const mockChannel = vi.fn(() => mockChannelInstance);
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
-    channel: mockChannel,
-    removeChannel: mockRemoveChannel,
+    channel: (...args: unknown[]) => mockChannel(...args),
+    removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
     },

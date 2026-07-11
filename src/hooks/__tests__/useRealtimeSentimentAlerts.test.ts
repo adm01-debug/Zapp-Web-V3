@@ -6,7 +6,7 @@ const mockRemoveChannel = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     channel: (...args: unknown[]) => mockChannel(...args),
-    removeChannel: mockRemoveChannel,
+    removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
   },
   // The hook short-circuits when Supabase isn't configured; the mock must
   // expose these exports (added with the graceful-degradation work) or the

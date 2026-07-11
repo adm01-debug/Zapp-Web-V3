@@ -15,7 +15,7 @@ const mockMaybeSingle = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    rpc: mockRpc,
+    rpc: (...args: unknown[]) => mockRpc(...args),
     from: (...args: unknown[]) => mockFrom(...args),
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
