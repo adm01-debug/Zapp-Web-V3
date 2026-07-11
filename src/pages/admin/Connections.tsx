@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
 import { getLogger } from '@/lib/logger';
@@ -136,10 +137,9 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
-    const { data, error } = await (supabase as any)
-      .from('system_connections')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+      q.select('*').order('created_at', { ascending: false })
+    );
 
     if (!error && data) {
       setConnections(data as any[]);
@@ -235,24 +235,22 @@ export default function AdminConnectionsPage() {
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
-      const { data, error, status, statusText } = existing
-        ? await (supabase as any)
-            .from('system_connections')
-            .update(payload)
-            .eq('id', existing.id)
-            .select()
-        : await (supabase as any).from('system_connections').insert(insertPayload).select();
+      const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+        existing
+          ? q.update(payload).eq('id', existing.id).select()
+          : q.insert(insertPayload).select()
+      );
 
       if (error) {
-        const msg = `Falha na escrita [Provider: ${payload.provider}]: Status ${status} (${statusText || 'Erro'}). Mensagem: ${error.message}${error.code ? ` (Code: ${error.code})` : ''}`;
+        const msg = `Falha na escrita [Provider: ${payload.provider}]: ${error.message}${error.code ? ` (Code: ${error.code})` : ''}`;
         setSaveError(msg);
         toast({ title: 'Erro ao salvar no Supabase', description: msg, variant: 'destructive' });
         return;
       }
 
-      // Se status for 200/201 mas o data vier vazio (pode acontecer em RLS falha silenciosa em alguns drivers)
+      // Se data vier vazio (pode acontecer em RLS falha silenciosa em alguns drivers)
       if (!data || (Array.isArray(data) && data.length === 0)) {
-        const msg = `A requisição retornou status ${status}, mas nenhum dado foi retornado. Verifique se as permissões de RLS permitem a inserção/atualização.`;
+        const msg = `A requisição foi processada, mas nenhum dado foi retornado. Verifique se as permissões de RLS permitem a inserção/atualização.`;
         setSaveError(msg);
         toast({ title: 'Escrita não confirmada', description: msg, variant: 'destructive' });
         return;
@@ -267,12 +265,15 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      const { data: verify, error: verifyError } = await (supabase as any)
-        .from('system_connections')
-        .select('id, updated_at')
-        .eq('provider', 'supabase_external')
-        .eq('name', 'FATOR X')
-        .maybeSingle();
+      const { data: verify, error: verifyError } = await safeClient.from<any>(
+        'system_connections',
+        (q) =>
+          q
+            .select('id, updated_at')
+            .eq('provider', 'supabase_external')
+            .eq('name', 'FATOR X')
+            .maybeSingle()
+      );
 
       if (verifyError || !verify) {
         const msg = `A requisição retornou status ${status}, mas o SELECT de validação falhou: ${verifyError?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
