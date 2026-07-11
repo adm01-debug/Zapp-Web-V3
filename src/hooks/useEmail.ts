@@ -93,7 +93,6 @@ export function useEmail() {
   });
   const [nextPageToken, _setNextPageToken] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const oauthInFlightRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => {
