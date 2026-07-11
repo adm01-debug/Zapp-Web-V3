@@ -19,12 +19,13 @@
  *  - Templates só existem no modo oficial; chamada no modo Evolution lança
  *    erro explícito para o caller orientar o usuário.
  */
-import { supabase } from "@/integrations/supabase/client";
-import { getLogger } from "@/lib/logger";
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { getLogger } from '@/lib/logger';
 
 const log = getLogger('whatsappAdapter');
 
-export type WhatsAppMode = "official" | "unofficial";
+export type WhatsAppMode = 'official' | 'unofficial';
 
 let cachedMode: WhatsAppMode | null = null;
 let cacheExpiresAt = 0;
@@ -33,15 +34,15 @@ export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
   const now = Date.now();
   if (!force && cachedMode && now < cacheExpiresAt) return cachedMode;
   try {
-    const { data, error } = await supabase.rpc("rpc_get_whatsapp_mode" as any);
+    const { data, error } = await safeClient.rpc<string>('rpc_get_whatsapp_mode');
     if (error) throw error;
-    const mode = (data as string) === "official" ? "official" : "unofficial";
+    const mode = (data as string) === 'official' ? 'official' : 'unofficial';
     cachedMode = mode;
     cacheExpiresAt = now + 30_000;
     return mode;
   } catch (e) {
     log.warn('getWhatsAppMode fallback', { error: e instanceof Error ? e.message : String(e) });
-    return "unofficial";
+    return 'unofficial';
   }
 }
 
@@ -53,9 +54,9 @@ export function invalidateWhatsAppModeCache() {
   cloudCredsCache = null;
 }
 
-const DEFAULT_INSTANCE = "wpp2";
+const DEFAULT_INSTANCE = 'wpp2';
 
-export type WhatsAppTransport = "cloud" | "evolution";
+export type WhatsAppTransport = 'cloud' | 'evolution';
 
 export interface ResolvedTransport {
   transport: WhatsAppTransport;
@@ -70,10 +71,7 @@ interface CloudSecretsStatus {
   secrets: { name: string; configured: boolean; length: number }[];
 }
 
-const REQUIRED_CLOUD_SECRETS = [
-  "WHATSAPP_CLOUD_PHONE_NUMBER_ID",
-  "WHATSAPP_CLOUD_ACCESS_TOKEN",
-];
+const REQUIRED_CLOUD_SECRETS = ['WHATSAPP_CLOUD_PHONE_NUMBER_ID', 'WHATSAPP_CLOUD_ACCESS_TOKEN'];
 
 let cachedTransport: ResolvedTransport | null = null;
 let transportExpiresAt = 0;
@@ -85,7 +83,7 @@ async function checkCloudCredentials(): Promise<{ ok: boolean; missing: string[]
     return { ok: cloudCredsCache.ok, missing: cloudCredsCache.missing };
   }
   try {
-    const { data, error } = await supabase.functions.invoke("whatsapp-cloud-secrets-status");
+    const { data, error } = await supabase.functions.invoke('whatsapp-cloud-secrets-status');
     if (error) throw error;
     const list = (data as CloudSecretsStatus)?.secrets ?? [];
     const byName = new Map(list.map((s) => [s.name, s.configured]));
@@ -94,7 +92,9 @@ async function checkCloudCredentials(): Promise<{ ok: boolean; missing: string[]
     cloudCredsCache = { ...result, expiresAt: now + 30_000 };
     return result;
   } catch (e) {
-    log.warn('checkCloudCredentials fallback', { error: e instanceof Error ? e.message : String(e) });
+    log.warn('checkCloudCredentials fallback', {
+      error: e instanceof Error ? e.message : String(e),
+    });
     return { ok: false, missing: REQUIRED_CLOUD_SECRETS };
   }
 }
@@ -109,8 +109,8 @@ export async function resolveTransport(force = false): Promise<ResolvedTransport
 
   const requestedMode = await getWhatsAppMode(force);
 
-  if (requestedMode === "unofficial") {
-    const resolved: ResolvedTransport = { transport: "evolution", requestedMode, degraded: false };
+  if (requestedMode === 'unofficial') {
+    const resolved: ResolvedTransport = { transport: 'evolution', requestedMode, degraded: false };
     cachedTransport = resolved;
     transportExpiresAt = now + 30_000;
     return resolved;
@@ -118,16 +118,19 @@ export async function resolveTransport(force = false): Promise<ResolvedTransport
 
   const creds = await checkCloudCredentials();
   const resolved: ResolvedTransport = creds.ok
-    ? { transport: "cloud", requestedMode, degraded: false }
+    ? { transport: 'cloud', requestedMode, degraded: false }
     : {
-        transport: "evolution",
+        transport: 'evolution',
         requestedMode,
         degraded: true,
-        reason: `Modo oficial selecionado mas faltam secrets: ${creds.missing.join(", ")}. Usando Evolution como fallback.`,
+        reason: `Modo oficial selecionado mas faltam secrets: ${creds.missing.join(', ')}. Usando Evolution como fallback.`,
         missingSecrets: creds.missing,
       };
   if (resolved.degraded) {
-    log.warn('transport degraded', { reason: resolved.reason, missingSecrets: resolved.missingSecrets });
+    log.warn('transport degraded', {
+      reason: resolved.reason,
+      missingSecrets: resolved.missingSecrets,
+    });
   }
 
   cachedTransport = resolved;
@@ -154,7 +157,7 @@ export interface SendTextParams {
 export interface SendMediaParams {
   remoteJid: string;
   mediaUrl: string;
-  type: "image" | "video" | "audio" | "document";
+  type: 'image' | 'video' | 'audio' | 'document';
   caption?: string;
   filename?: string;
   mimetype?: string;
@@ -207,7 +210,7 @@ export interface SendTemplateParams {
 
 export interface PresenceParams {
   remoteJid: string;
-  presence: "composing" | "paused" | "recording" | "available" | "unavailable";
+  presence: 'composing' | 'paused' | 'recording' | 'available' | 'unavailable';
   instance?: string;
 }
 
@@ -220,23 +223,20 @@ export interface MarkAsReadParams {
 // ----- Helpers --------------------------------------------------------------
 
 function jidToPhone(remoteJid: string): string {
-  return String(remoteJid).split("@")[0].replace(/\D/g, "");
+  return String(remoteJid).split('@')[0].replace(/\D/g, '');
 }
 
 async function invokeCloud(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke(
-    "whatsapp-cloud-send",
-    { body },
-  );
+  const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
   if (error) throw error;
-  if (data && typeof data === "object" && "error" in data) {
-    throw new Error((data as any).error ?? "cloud_send_failed");
+  if (data && typeof data === 'object' && 'error' in data) {
+    throw new Error((data as any).error ?? 'cloud_send_failed');
   }
   return data;
 }
 
 async function invokeEvolution(action: string, body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke("evolution-api", {
+  const { data, error } = await supabase.functions.invoke('evolution-api', {
     body: { action, ...body },
   });
   if (error) throw error;
@@ -247,14 +247,14 @@ async function invokeEvolution(action: string, body: Record<string, unknown>) {
 
 export async function sendText(params: SendTextParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
+  if (transport === 'cloud') {
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
-      type: "text",
+      type: 'text',
       text: params.text,
     });
   }
-  return invokeEvolution("send-text", {
+  return invokeEvolution('send-text', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     number: jidToPhone(params.remoteJid),
     text: params.text,
@@ -265,7 +265,7 @@ export async function sendText(params: SendTextParams) {
 
 export async function sendMedia(params: SendMediaParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
+  if (transport === 'cloud') {
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
       type: params.type,
@@ -274,7 +274,7 @@ export async function sendMedia(params: SendMediaParams) {
       filename: params.filename,
     });
   }
-  return invokeEvolution("send-media", {
+  return invokeEvolution('send-media', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     number: jidToPhone(params.remoteJid),
     mediaUrl: params.mediaUrl,
@@ -287,14 +287,14 @@ export async function sendMedia(params: SendMediaParams) {
 
 export async function sendAudio(params: SendAudioParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
+  if (transport === 'cloud') {
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
-      type: "audio",
+      type: 'audio',
       mediaUrl: params.audioUrl,
     });
   }
-  return invokeEvolution("send-audio", {
+  return invokeEvolution('send-audio', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     number: jidToPhone(params.remoteJid),
     audio: params.audioUrl,
@@ -304,14 +304,14 @@ export async function sendAudio(params: SendAudioParams) {
 
 export async function sendSticker(params: SendStickerParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
+  if (transport === 'cloud') {
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
-      type: "sticker",
+      type: 'sticker',
       mediaUrl: params.stickerUrl,
     });
   }
-  return invokeEvolution("send-sticker", {
+  return invokeEvolution('send-sticker', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     number: jidToPhone(params.remoteJid),
     sticker: params.stickerUrl,
@@ -320,15 +320,15 @@ export async function sendSticker(params: SendStickerParams) {
 
 export async function sendReaction(params: SendReactionParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
+  if (transport === 'cloud') {
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
-      type: "reaction",
+      type: 'reaction',
       messageId: params.messageId,
       emoji: params.reaction,
     });
   }
-  return invokeEvolution("send-reaction", {
+  return invokeEvolution('send-reaction', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     key: {
       remoteJid: params.remoteJid,
@@ -341,17 +341,17 @@ export async function sendReaction(params: SendReactionParams) {
 
 export async function sendLocation(params: SendLocationParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
+  if (transport === 'cloud') {
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
-      type: "location",
+      type: 'location',
       latitude: params.latitude,
       longitude: params.longitude,
       name: params.name,
       address: params.address,
     });
   }
-  return invokeEvolution("send-location", {
+  return invokeEvolution('send-location', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     number: jidToPhone(params.remoteJid),
     latitude: params.latitude,
@@ -363,14 +363,14 @@ export async function sendLocation(params: SendLocationParams) {
 
 export async function sendContact(params: SendContactParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
+  if (transport === 'cloud') {
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
-      type: "contacts",
+      type: 'contacts',
       contacts: [{ name: { formatted_name: params.fullName }, phones: [{ phone: params.phone }] }],
     });
   }
-  return invokeEvolution("send-contact", {
+  return invokeEvolution('send-contact', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     number: jidToPhone(params.remoteJid),
     contact: [{ fullName: params.fullName, phoneNumber: params.phone }],
@@ -379,19 +379,19 @@ export async function sendContact(params: SendContactParams) {
 
 export async function sendTemplate(params: SendTemplateParams) {
   const { transport, degraded, reason } = await resolveTransport();
-  if (transport !== "cloud") {
+  if (transport !== 'cloud') {
     throw new Error(
       degraded && reason
         ? `Templates exigem Cloud API. ${reason}`
-        : "Templates exigem modo oficial (Cloud API). Ative o modo oficial e configure os secrets.",
+        : 'Templates exigem modo oficial (Cloud API). Ative o modo oficial e configure os secrets.'
     );
   }
   return invokeCloud({
     to: jidToPhone(params.remoteJid),
-    type: "template",
+    type: 'template',
     template: {
       name: params.name,
-      language: params.language ?? "pt_BR",
+      language: params.language ?? 'pt_BR',
       components: params.components,
     },
   });
@@ -401,10 +401,10 @@ export async function sendTemplate(params: SendTemplateParams) {
 
 export async function sendPresence(params: PresenceParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
-    return { skipped: true, reason: "presence_unsupported_on_cloud_api" };
+  if (transport === 'cloud') {
+    return { skipped: true, reason: 'presence_unsupported_on_cloud_api' };
   }
-  return invokeEvolution("send-presence", {
+  return invokeEvolution('send-presence', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     number: jidToPhone(params.remoteJid),
     presence: params.presence,
@@ -413,14 +413,14 @@ export async function sendPresence(params: PresenceParams) {
 
 export async function markAsRead(params: MarkAsReadParams) {
   const { transport } = await resolveTransport();
-  if (transport === "cloud") {
+  if (transport === 'cloud') {
     return invokeCloud({
       to: jidToPhone(params.remoteJid),
-      type: "read",
+      type: 'read',
       messageIds: params.messageIds,
     });
   }
-  return invokeEvolution("mark-as-read", {
+  return invokeEvolution('mark-as-read', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
     readMessages: params.messageIds.map((id) => ({
       remoteJid: params.remoteJid,
@@ -435,7 +435,7 @@ export async function markAsRead(params: MarkAsReadParams) {
 function projectFunctionsBase(): string {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
   if (supabaseUrl && !supabaseUrl.includes('.supabase.co')) {
-    return supabaseUrl.replace(/\/$/, "") + '/functions/v1';
+    return supabaseUrl.replace(/\/$/, '') + '/functions/v1';
   }
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? '';
   return `https://${projectId}.supabase.co/functions/v1`;
@@ -454,7 +454,7 @@ export function getEvolutionWebhookUrl(): string {
 /** URL que o provedor ativo deve chamar — escolhida pelo modo do workspace. */
 export async function getActiveWebhookUrl(): Promise<string> {
   const { transport } = await resolveTransport();
-  return transport === "cloud" ? getCloudWebhookUrl() : getEvolutionWebhookUrl();
+  return transport === 'cloud' ? getCloudWebhookUrl() : getEvolutionWebhookUrl();
 }
 
 /**
