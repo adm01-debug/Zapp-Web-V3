@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Package, TrendingUp, Star, Filter } from 'lucide-react';
-import type { MediaItem, MediaType } from './useMediaLibrary';
+import type { MediaItem, MediaType } from '@/hooks/media-library/useMediaLibrary';
 
 export function StatsCards({ items, type: _type }: { items: MediaItem[]; type: MediaType }) {
   const total = items.length;

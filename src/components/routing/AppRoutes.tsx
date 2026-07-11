@@ -39,7 +39,7 @@ const AdminFailedAuthMessagesPage = lazyWithRetry(
   () => import('@/pages/admin/AdminFailedAuthMessagesPage')
 );
 const RoutePermissionsPage = lazyWithRetry(() => import('@/pages/admin/RoutePermissionsPage'));
-const AdminStressTestPage = lazyWithRetry(() => import('@/pages/admin/AdminStressTestPage'));
+
 const AdminInboxSyncStatusPage = lazyWithRetry(
   () => import('@/pages/admin/AdminInboxSyncStatusPage')
 );
@@ -288,14 +288,6 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredRoles={['admin']}>
                 <RoutePermissionsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/stress-test"
-            element={
-              <ProtectedRoute requiredRoles={['admin']}>
-                <AdminStressTestPage />
               </ProtectedRoute>
             }
           />
