@@ -85,7 +85,7 @@ export function useContactsSearch() {
   const dateFrom = useMemo(() => {
     const now = new Date();
     switch (filterDateRange) {
-      case 'today': return new Date(now.getTime() - 86400000).toISOString();
+      case 'today': return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       case 'week': return new Date(now.getTime() - 7 * 86400000).toISOString();
       case 'month': return new Date(now.setMonth(now.getMonth() - 1)).toISOString();
       case 'quarter': return new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString();

@@ -173,9 +173,10 @@ export function formatCompactNumber(value: number): string {
  * Format a duration in seconds to human-readable (e.g., 125 → "2min 5s")
  */
 export function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.round(seconds % 60);
+  const total = Math.round(seconds);
+  if (total < 60) return `${total}s`;
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
   if (mins < 60) return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
   const hours = Math.floor(mins / 60);
   const remainMins = mins % 60;

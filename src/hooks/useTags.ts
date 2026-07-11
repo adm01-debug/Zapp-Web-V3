@@ -105,7 +105,7 @@ export function useTags() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (tagErr) throw tagErr;
       return tag;
     },
     onSuccess: () => {

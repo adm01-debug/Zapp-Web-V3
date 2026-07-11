@@ -108,7 +108,7 @@ export function AutomationsManager() {
           </div>
         </ScrollArea>
       </CardContent>
-      <AutomationEditorDialog open={editorOpen} onOpenChange={setEditorOpen} automation={editingAutomation} onSave={handleSave} />
+      <AutomationEditorDialog key={editingAutomation?.id ?? 'new'} open={editorOpen} onOpenChange={setEditorOpen} automation={editingAutomation} onSave={handleSave} />
     </Card>
   );
 }

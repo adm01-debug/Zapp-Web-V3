@@ -172,7 +172,7 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
             {ed.isScheduled && (
               <CardContent>
                 <Label htmlFor="scheduled-at">Data e hora</Label>
-                <Input id="scheduled-at" type="datetime-local" value={ed.scheduledAt} onChange={(e) => ed.setScheduledAt(e.target.value)} min={new Date().toISOString().slice(0, 16)} className="mt-1.5" />
+                <Input id="scheduled-at" type="datetime-local" value={ed.scheduledAt} onChange={(e) => ed.setScheduledAt(e.target.value)} min={ed.minScheduledAt} className="mt-1.5" />
                 <p className="text-xs text-muted-foreground mt-1">A campanha será iniciada automaticamente na data e hora programada</p>
               </CardContent>
             )}

@@ -116,7 +116,7 @@ export function useContactsCRUD() {
             surname: editingContact.surname,
             job_title: editingContact.job_title,
             company: editingContact.company,
-            phone: editingContact.phone,
+            phone: editingContact.phone.replace(/\D/g, ''),
             email: editingContact.email,
             contact_type: editingContact.contact_type,
           })

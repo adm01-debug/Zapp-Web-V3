@@ -380,6 +380,23 @@ interface ContactEnrichmentData {
 const contactEnrichmentCache = new Map<string, { data: ContactEnrichmentData; timestamp: number }>();
 const CACHE_TTL = 300_000; // 5 minutes
 
+// Enrichment `tags` may arrive as a JSON array string, a plain comma-separated
+// string, or malformed data. Never let a single bad value throw and take down
+// the whole conversation-list query (it re-runs every 5s poll).
+function safeParseTags(raw: string): string[] {
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return trimmed.split(',').map(t => t.trim()).filter(Boolean);
+}
+
 // ─── Hook: External Conversations (list for sidebar) ──────────
 export function useExternalConversations(enabled = true) {
   const queryClient = useQueryClient();
@@ -451,7 +468,7 @@ export function useExternalConversations(enabled = true) {
         const cached = contactEnrichmentCache.get(conv.contact.id);
         if (cached?.data) {
           const extra = cached.data;
-          if (extra.tags) conv.contact.tags = Array.isArray(extra.tags) ? extra.tags : (typeof extra.tags === 'string' ? JSON.parse(extra.tags) : []);
+          if (extra.tags) conv.contact.tags = Array.isArray(extra.tags) ? extra.tags : (typeof extra.tags === 'string' ? safeParseTags(extra.tags) : []);
           if (extra.company) conv.contact.company = extra.company;
           if (extra.ai_sentiment) conv.contact.ai_sentiment = extra.ai_sentiment;
           

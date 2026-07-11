@@ -10,6 +10,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('AutoTicketClassifier');
 
 interface ClassifiedTicket {
   contactId: string;
@@ -123,9 +126,9 @@ export function AutoTicketClassifier() {
       if (error) throw error;
       toast.success('Classificação em lote concluída!');
       await loadClassifiedTickets();
-    } catch {
-      toast.success('Classificação local aplicada com sucesso!');
-      await loadClassifiedTickets();
+    } catch (err) {
+      log.error('Falha na classificação de tickets', err);
+      toast.error('Não foi possível classificar os tickets. Tente novamente.');
     } finally {
       setClassifying(false);
     }

@@ -66,9 +66,9 @@ export function useSalesPipeline() {
     setShowDealDialog(false); fetchData();
   };
 
-  const moveDeal = async (dealId: string, newStageId: string) => { await supabase.from('sales_deals').update({ stage_id: newStageId }).eq('id', dealId); await supabase.from('deal_activities').insert({ deal_id: dealId, activity_type: 'stage_change', description: `Movido para ${stages.find(s => s.id === newStageId)?.name}` }); fetchData(); };
+  const moveDeal = async (dealId: string, newStageId: string) => { const current = deals.find(d => d.id === dealId); if (current?.stage_id === newStageId) return; const { error } = await supabase.from('sales_deals').update({ stage_id: newStageId }).eq('id', dealId); if (error) { toast({ title: 'Erro ao mover deal', description: error.message, variant: 'destructive' }); return; } await supabase.from('deal_activities').insert({ deal_id: dealId, activity_type: 'stage_change', description: `Movido para ${stages.find(s => s.id === newStageId)?.name}` }); fetchData(); };
   const deleteDeal = async (id: string) => { await supabase.from('sales_deals').delete().eq('id', id); toast({ title: 'Deal removido' }); fetchData(); };
-  const markAsWon = async (deal: Deal) => { await supabase.from('sales_deals').update({ status: 'won', won_at: new Date().toISOString() }).eq('id', deal.id); toast({ title: '🎉 Deal ganho!', description: `${deal.title} - R$ ${deal.value.toLocaleString('pt-BR')}` }); fetchData(); };
+  const markAsWon = async (deal: Deal) => { await supabase.from('sales_deals').update({ status: 'won', won_at: new Date().toISOString() }).eq('id', deal.id); toast({ title: '🎉 Deal ganho!', description: `${deal.title} - R$ ${(deal.value ?? 0).toLocaleString('pt-BR')}` }); fetchData(); };
   const markAsLost = async (deal: Deal) => { await supabase.from('sales_deals').update({ status: 'lost', lost_at: new Date().toISOString() }).eq('id', deal.id); toast({ title: 'Deal perdido', description: deal.title }); fetchData(); };
 
   return {

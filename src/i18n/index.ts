@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
 // Translations
 const resources = {
@@ -298,7 +299,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: localStorage.getItem('language') || 'pt',
+    lng: safeGetItem('language') || 'pt',
     fallbackLng: 'pt',
     interpolation: {
       escapeValue: false,
@@ -311,7 +312,7 @@ export default i18n;
 export const useLanguage = () => {
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);
-    localStorage.setItem('language', lang);
+    safeSetItem('language', lang);
   };
 
   return {

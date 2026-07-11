@@ -50,10 +50,10 @@ export function ClientWalletView() {
                 </div>
                 <div className="space-y-2">
                   <Label>Conexão WhatsApp (opcional)</Label>
-                  <Select value={w.newRule.whatsapp_connection_id} onValueChange={(v) => w.setNewRule({ ...w.newRule, whatsapp_connection_id: v })}>
+                  <Select value={w.newRule.whatsapp_connection_id || '__all__'} onValueChange={(v) => w.setNewRule({ ...w.newRule, whatsapp_connection_id: v === '__all__' ? '' : v })}>
                     <SelectTrigger><SelectValue placeholder="Todas as conexões" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todas as conexões</SelectItem>
+                      <SelectItem value="__all__">Todas as conexões</SelectItem>
                       {w.connections.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} ({c.phone_number})</SelectItem>)}
                     </SelectContent>
                   </Select>

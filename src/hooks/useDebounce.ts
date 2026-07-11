@@ -27,6 +27,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
   const leadingCalledRef = useRef(false);
+  const hasTrailingRef = useRef(false);
 
   // Always use the latest callback
   useEffect(() => {
@@ -42,21 +43,27 @@ export function useDebounce<T extends (...args: any[]) => any>(
 
   const debouncedFn = useCallback(
     (...args: Parameters<T>) => {
-      // Leading edge: call immediately on first invocation
+      // Leading edge: call immediately on first invocation. Subsequent calls
+      // within the window (or every call when not leading) mark a trailing call.
       if (leading && !leadingCalledRef.current) {
         leadingCalledRef.current = true;
         callbackRef.current(...args);
+      } else {
+        hasTrailingRef.current = true;
       }
 
       // Clear existing timer
       if (timerRef.current) clearTimeout(timerRef.current);
 
-      // Set new timer
+      // Set new timer. With `leading`, only fire the trailing edge if there was
+      // at least one additional call after the leading one — otherwise a single
+      // invocation would fire twice.
       timerRef.current = setTimeout(() => {
-        if (!leading || leadingCalledRef.current) {
+        if (!leading || hasTrailingRef.current) {
           callbackRef.current(...args);
         }
         leadingCalledRef.current = false;
+        hasTrailingRef.current = false;
       }, delay);
     },
     [delay, leading],

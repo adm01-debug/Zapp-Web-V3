@@ -101,13 +101,13 @@ export function OmnichannelInbox() {
     if (activeChannel !== 'all' && m.channelType !== activeChannel) return false;
     if (search) {
       const s = search.toLowerCase();
-      return m.contactName.toLowerCase().includes(s) || m.contactPhone.includes(s);
+      return (m.contactName ?? '').toLowerCase().includes(s) || (m.contactPhone ?? '').includes(s);
     }
     return true;
   });
 
   const getChannelIcon = (type: ChannelType) => {
-    const config = CHANNEL_CONFIG[type];
+    const config = CHANNEL_CONFIG[type] ?? CHANNEL_CONFIG.webchat;
     const Icon = config.icon;
     return (
       <div className={`p-1.5 rounded-lg ${config.color}`}>
