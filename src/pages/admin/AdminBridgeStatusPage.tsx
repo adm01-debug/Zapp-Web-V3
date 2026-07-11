@@ -124,8 +124,8 @@ export default function BridgeStatusPage() {
 
       // 4. Check Recent Message Traffic
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count: msgCount, data: lastMsg } = await (supabase as any)
-        .from('provider_message_log')
+      const { count: msgCount, data: lastMsg } = await supabase
+        .from('provider_message_log' as any)
         .select('received_at', { count: 'exact' })
         .gt('received_at', fiveMinsAgo)
         .order('received_at', { ascending: false })
@@ -139,10 +139,9 @@ export default function BridgeStatusPage() {
 
       // 5. Check Active Alerts
       try {
-        const { data: alerts } = await (supabase as any)
-          .from('v_alerts_active')
-          .select('*')
-          .limit(5);
+        const { data: alerts } = await safeClient.from('v_alerts_active', (q) =>
+          q.select('*').limit(5)
+        );
         if (mountedRef.current) setActiveAlerts(alerts || []);
       } catch {
         if (mountedRef.current) setActiveAlerts([]);
@@ -177,11 +176,9 @@ export default function BridgeStatusPage() {
   }, [toast, mountedRef]);
 
   const fetchIncidents = useCallback(async () => {
-    const { data } = await (supabase as any)
-      .from('system_health_incidents')
-      .select('*')
-      .order('started_at', { ascending: false })
-      .limit(10);
+    const { data } = await safeClient.from('system_health_incidents', (q) =>
+      q.select('*').order('started_at', { ascending: false }).limit(10)
+    );
     if (mountedRef.current) setIncidents(data || []);
   }, [mountedRef]);
 
