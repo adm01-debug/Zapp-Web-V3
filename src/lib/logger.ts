@@ -23,6 +23,16 @@ export function generateRequestTag(prefix = 'req'): string {
   return `${prefix}_${++requestCounter}_${Date.now().toString(36)}`;
 }
 
+/**
+ * @deprecated Renamed to generateRequestTag() to clarify this uses a predictable
+ * counter, NOT crypto.randomUUID. For security-grade IDs, import
+ * generateCorrelationId from '@/lib/correlationId' instead.
+ *
+ * This alias is kept for backward compatibility with callers that were already
+ * importing from '@/lib/logger'. It will be removed in a future cleanup.
+ */
+export const generateCorrelationId = generateRequestTag;
+
 export function getSessionId(): string {
   return sessionId;
 }
