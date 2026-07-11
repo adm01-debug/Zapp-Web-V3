@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 
 const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: mockFrom,
     auth: {
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
     },
   },
@@ -17,7 +20,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
-  AuthProvider: ({ children }: any) => children,
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
@@ -32,7 +35,13 @@ describe('useUserRole', () => {
 
   it('returns empty roles when no user is logged in', async () => {
     // roles agora vêm de useAuth().roles (refatoração de auth).
-    mockUseAuth.mockReturnValue({ user: null, session: null, profile: null, roles: [], loading: false });
+    mockUseAuth.mockReturnValue({
+      user: null,
+      session: null,
+      profile: null,
+      roles: [],
+      loading: false,
+    });
 
     const { result } = renderHook(() => useUserRole());
 
