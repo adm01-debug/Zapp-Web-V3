@@ -102,7 +102,6 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     setLoading(false);
   }, [activeTab]);
 
-<<<<<<<< HEAD:src/features/admin/hooks/useAdminData.ts
   const handleRoleChange = useCallback(async (userId: string, newRole: AppRole) => {
     await supabase.from('user_roles').delete().eq('user_id', userId);
     // role_key e workspace_id são NOT NULL sem default (schema real); app é single-workspace
@@ -119,23 +118,6 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       fetchData();
     }
   }, [fetchData]);
-========
-  const handleRoleChange = useCallback(
-    async (userId: string, newRole: AppRole) => {
-      await supabase.from('user_roles').delete().eq('user_id', userId);
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role: newRole as any });
-      if (error) {
-        toast.error('Erro ao atualizar role');
-      } else {
-        toast.success(`Usuário agora é ${roleConfig[newRole].label}.`);
-        fetchData();
-      }
-    },
-    [fetchData]
-  );
->>>>>>>> e9773dc9cdd9fd32394e7de70bec7ca067dd2f5a:src/features/admin/components/useAdminData.ts
 
   const handleToggleActive = useCallback(
     async (user: UserWithRole) => {

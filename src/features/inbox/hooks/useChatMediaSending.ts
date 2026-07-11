@@ -63,34 +63,14 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
     try {
       let connectionId: string | null = null;
 
-<<<<<<<< HEAD:src/features/inbox/hooks/useChatMediaSending.ts
       const { data: contact } = await supabase
         .from('contacts')
-========
-      const { data: evoContact } = await (supabase as any)
-        .from('evolution_contacts')
->>>>>>>> e9773dc9cdd9fd32394e7de70bec7ca067dd2f5a:src/features/inbox/components/useChatMediaSending.ts
         .select('whatsapp_connection_id')
         .eq('id', contactId)
         .maybeSingle();
 
-<<<<<<<< HEAD:src/features/inbox/hooks/useChatMediaSending.ts
       if (contact?.whatsapp_connection_id) {
         connectionId = contact.whatsapp_connection_id;
-========
-      if (evoContact?.whatsapp_connection_id) {
-        connectionId = evoContact.whatsapp_connection_id;
-      } else {
-        // Fallback to contacts table
-        const { data: contact } = await supabase
-          .from('contacts')
-          .select('whatsapp_connection_id')
-          .eq('id', contactId)
-          .maybeSingle();
-        if (contact?.whatsapp_connection_id) {
-          connectionId = contact.whatsapp_connection_id;
-        }
->>>>>>>> e9773dc9cdd9fd32394e7de70bec7ca067dd2f5a:src/features/inbox/components/useChatMediaSending.ts
       }
 
       if (connectionId) {
