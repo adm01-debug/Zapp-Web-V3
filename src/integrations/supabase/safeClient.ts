@@ -179,7 +179,6 @@ export const safeClient = {
     try {
       let exists = false;
       if (type === 'table') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await supabase
           .from(name as any)
           .select('count', { count: 'exact', head: true })
@@ -216,10 +215,11 @@ export const safeClient = {
             msg.includes('unauthorized') ||
             msg.includes('invalid api key');
           const isNotFound =
-            msg.includes('does not exist') ||
-            msg.includes('not found') ||
-            msg.includes('42883') ||
-            msg.includes('function');
+            msg.includes('does not exist') || msg.includes('not found') || msg.includes('42883');
+          // NOTE: msg.includes('function') intentionally removed — PostgREST returns
+          // "could not find the function...() in the schema cache" for both missing
+          // functions AND parameterized functions probed without args (PGRST202).
+          // Only PG error 42883 is definitive evidence of a truly absent function.
           exists = isPermissionError || !isNotFound;
         }
       }

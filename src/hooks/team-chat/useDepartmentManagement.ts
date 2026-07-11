@@ -186,10 +186,14 @@ export function useDepartmentManagement(
         .eq('id', profileId);
       if (error) throw error;
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       void supabase.from('audit_logs').insert({
         action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
         entity_id: initialDepartment.id,
         entity_type: 'department',
+        user_id: user?.id,
         details: { profile_id: profileId },
       });
     },
