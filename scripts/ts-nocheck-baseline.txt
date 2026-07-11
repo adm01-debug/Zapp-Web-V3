@@ -3,8 +3,6 @@ src/components/ai/__tests__/AutoTicketClassifier.test.tsx
 src/components/dashboard/DashboardView.tsx
 src/components/email/EmailThreadList.tsx
 src/components/gamification/AchievementsPanel.tsx
-src/components/queues/AddMemberDialog.tsx
-src/components/queues/PeriodSelector.tsx
 src/components/reports/AbandonmentRate.tsx
 src/components/reports/ReportCharts.tsx
 src/components/security/BlockedIPsPanel.tsx
@@ -46,8 +44,6 @@ src/features/inbox/hooks/useMediaUrl.ts
 src/features/inbox/hooks/useMessageReactions.ts
 src/features/inbox/hooks/useMessageSendHistory.ts
 src/features/inbox/hooks/useMessageTemplates.ts
-src/features/sla/hooks/useSLAAlertHistory.ts
-src/features/sla/hooks/useSLAAlertPreferences.ts
 src/hooks/__tests__/useExternalCatalog.test.ts
 src/hooks/admin/useDepartmentsAdmin.ts
 src/hooks/campaigns/useCampaignABTesting.ts
@@ -56,7 +52,6 @@ src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/monitoring/useMonitoringData.ts
 src/hooks/sticker-picker/useStickerPicker.ts
 src/hooks/useAutomations.ts
-src/hooks/useCSAT.ts
 src/hooks/useClientWallet.ts
 src/hooks/useConversationAnalyses.ts
 src/hooks/useDashboardData.ts
@@ -69,13 +64,8 @@ src/hooks/useGmailOAuthFlow.ts
 src/hooks/useGoalsDashboard.ts
 src/hooks/useGroupsManager.ts
 src/hooks/useKnowledgeBase.ts
-src/hooks/useQueueGoals.ts
 src/hooks/useQueues.ts
-src/hooks/useScheduledMessages.ts
-src/hooks/useTags.ts
-src/hooks/useThemeAudit.ts
 src/integrations/zappweb/evolutionClient.ts
-src/lib/audit.ts
 src/lib/stressTest/mediaSamplers.ts
 src/pages/AdminAlertHistoryPage.tsx
 src/pages/QueueDetails.tsx

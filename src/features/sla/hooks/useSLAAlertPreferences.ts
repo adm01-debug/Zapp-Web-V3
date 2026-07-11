@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useEffect, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
@@ -65,14 +64,13 @@ export function useSLAAlertPreferences() {
         if (error) {
           // Codigos que indicam tabela inexistente (ambiente sem migration)
           // ou linha não encontrada: tratar como defaults silenciosamente.
-          const code = (error as any)?.code ?? '';
-          const msg = (error as any)?.message ?? '';
+          // safeClient wraps errors to standard Error — check message only.
+          const msg = error?.message ?? '';
           const isTableMissing =
-            code === 'PGRST116' ||
-            code === 'PGRST204' ||
-            code === '42P01' ||
             msg.includes('relation') ||
             msg.includes('does not exist') ||
+            msg.includes('Recurso indisponível') ||
+            msg.includes('não disponível') ||
             msg.includes('404');
 
           if (!isTableMissing) {

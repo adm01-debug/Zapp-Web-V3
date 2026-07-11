@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
@@ -17,10 +16,25 @@ export interface SLAAlertHistoryEntry {
   metadata: any;
 }
 
+type SLAHistoryRow = {
+  id: string;
+  thread_id: string;
+  status: string;
+  is_resolved: boolean;
+  resolved_at: string | null;
+  alert_time: string;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+  conversation_threads: {
+    remote_jid: string | null;
+    contacts: { name: string | null; phone: string | null } | null;
+  } | null;
+};
+
 const PAGE_SIZE = 100;
 
 async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
-  const { data, error } = await safeClient.from('sla_history', (q) =>
+  const { data, error } = await safeClient.from<SLAHistoryRow>('sla_history', (q) =>
     q
       .select(
         `
