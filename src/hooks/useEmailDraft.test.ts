@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useEmailDraft } from './useEmailDraft';
-import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailSaveDraft, emailDeleteDraft } from './gmail/gmailApi';
-
-const supabase = _supabase as any;
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -62,7 +59,7 @@ describe('useEmailDraft', () => {
 
   it('should update draft state and set isDirty to true', () => {
     const { result } = renderHook(() => useEmailDraft(accountId, threadId));
-    
+
     act(() => {
       result.current.update({ subject: 'Test Subject' });
     });
@@ -73,7 +70,7 @@ describe('useEmailDraft', () => {
 
   it('should save manually with save()', async () => {
     const { result } = renderHook(() => useEmailDraft(accountId, threadId));
-    
+
     act(() => {
       result.current.update({ bodyHtml: '<p>Content</p>' });
     });
@@ -88,7 +85,7 @@ describe('useEmailDraft', () => {
 
   it('should discard and delete draft', async () => {
     const { result } = renderHook(() => useEmailDraft(accountId, threadId));
-    
+
     act(() => {
       result.current.update({ subject: 'To be discarded' });
     });
@@ -109,9 +106,9 @@ describe('useEmailDraft', () => {
   it('should handle save errors gracefully', async () => {
     vi.mocked(emailSaveDraft).mockRejectedValueOnce(new Error('API Error'));
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     const { result } = renderHook(() => useEmailDraft(accountId, threadId));
-    
+
     act(() => {
       result.current.update({ subject: 'Error test' });
     });
@@ -120,7 +117,10 @@ describe('useEmailDraft', () => {
       await result.current.save();
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Email draft save error'), expect.any(Error));
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Email draft save error'),
+      expect.any(Error)
+    );
     expect(result.current.isSaving).toBe(false);
     consoleSpy.mockRestore();
   });

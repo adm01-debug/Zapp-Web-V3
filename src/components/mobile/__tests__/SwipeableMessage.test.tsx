@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { HTMLAttributes } from 'react';
 import { SwipeableMessage } from '@/components/mobile/SwipeableMessage';
@@ -22,6 +22,10 @@ vi.mock('@/hooks/use-mobile', () => ({
 }));
 
 describe('SwipeableMessage', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders children on desktop without swipe wrapper', () => {
     render(
       <SwipeableMessage>
