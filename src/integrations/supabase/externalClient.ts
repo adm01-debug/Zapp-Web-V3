@@ -27,33 +27,25 @@
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import type { ExtendedDatabase } from './types-manual';
 import { supabase } from './client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('externalClient');
 
-const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
-  'development' | 'staging' | 'production';
+const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
 
 const getEnvConfig = () => {
   switch (APP_ENV) {
     case 'development':
       return {
-        url:
-          import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_URL ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key:
-          import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_ANON_KEY ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
+        url: import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
+        key: import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
       };
     case 'staging':
       return {
-        url:
-          import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_URL ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key:
-          import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_ANON_KEY ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
+        url: import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
+        key: import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
       };
     default:
       return {
@@ -67,33 +59,14 @@ const config = getEnvConfig();
 let EXTERNAL_URL = config.url;
 let EXTERNAL_ANON_KEY = config.key;
 
-/**
- * Whether dedicated external env vars are configured.
- *
- * This is a mutable live-binding export — it updates when
- * `updateRuntimeExternalConfig` is called. Import it directly or use
- * `getIsExternalConfigured()` (preferred for new code).
- */
 export let isExternalConfigured = Boolean(EXTERNAL_URL && EXTERNAL_ANON_KEY);
 
-/**
- * Returns whether the external client is using dedicated credentials.
- * Preferred over the `isExternalConfigured` direct import in new code.
- */
 export function getIsExternalConfigured(): boolean {
   return isExternalConfigured;
 }
 
-/**
- * The external Supabase client instance.
- *
- * Never null: falls back to the main authenticated client when dedicated
- * env vars are absent (single-database FATOR X mode).
- *
- * Mutable live-binding export: use `getExternalSupabase()` in new code.
- */
-export let externalSupabase: SupabaseClient<Database> = isExternalConfigured
-  ? createClient<Database>(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
+export let externalSupabase: SupabaseClient<ExtendedDatabase> = isExternalConfigured
+  ? createClient<ExtendedDatabase>(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -109,22 +82,11 @@ export let externalSupabase: SupabaseClient<Database> = isExternalConfigured
   : supabase;
 
 if (!isExternalConfigured) {
-  // Expected in production (single-database FATOR X): VITE_EXTERNAL_* are not
-  // set; the main authenticated client is reused. Not an error — use debug level
-  // to avoid polluting the console on every production session.
   log.debug(
-    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).'
+    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).',
   );
 }
 
-/**
- * Updates the external client at runtime.
- * Useful when credentials are changed in the Admin Connections UI
- * without needing a full redeploy.
- *
- * Both `externalSupabase` and `isExternalConfigured` are live-binding exports
- * — all existing importers automatically see the new values after this call.
- */
 export function updateRuntimeExternalConfig(url: string, key: string) {
   if (!url || !key) return;
 
@@ -132,8 +94,7 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   EXTERNAL_ANON_KEY = key;
   isExternalConfigured = true;
 
-  // Re-create the client instance
-  externalSupabase = createClient<Database>(url, key, {
+  externalSupabase = createClient<ExtendedDatabase>(url, key, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -150,10 +111,6 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   log.info('Runtime config updated successfully');
 }
 
-/**
- * Returns the current external Supabase client instance.
- * Preferred over the `externalSupabase` direct import in new code.
- */
-export function getExternalSupabase(): SupabaseClient<Database> {
+export function getExternalSupabase(): SupabaseClient<ExtendedDatabase> {
   return externalSupabase;
 }
