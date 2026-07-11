@@ -15,6 +15,15 @@
  *
  * Isso elimina a classe de erros "[datasource] cliente external indisponível"
  * causada por env vars ausentes no build.
+ *
+ * ES MODULE LIVE BINDINGS
+ * -----------------------
+ * `isExternalConfigured` and `externalSupabase` are exported as `let` so
+ * `updateRuntimeExternalConfig` can mutate them. ES module import bindings
+ * are LIVE — importers automatically see the updated value without re-importing.
+ * This is correct by design; it is NOT the same as a mutable global object in CJS.
+ * Prefer the getter functions (getExternalSupabase, getIsExternalConfigured) in
+ * new code for cleaner dependency inversion and easier testing.
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
@@ -49,11 +58,30 @@ const config = getEnvConfig();
 let EXTERNAL_URL = config.url;
 let EXTERNAL_ANON_KEY = config.key;
 
+/**
+ * Whether dedicated external env vars are configured.
+ *
+ * This is a mutable live-binding export — it updates when
+ * `updateRuntimeExternalConfig` is called. Import it directly or use
+ * `getIsExternalConfigured()` (preferred for new code).
+ */
 export let isExternalConfigured = Boolean(EXTERNAL_URL && EXTERNAL_ANON_KEY);
 
 /**
- * Nunca é `null`: cai para o client principal autenticado quando as envs
- * dedicadas não existem (mesmo banco após a consolidação single-database).
+ * Returns whether the external client is using dedicated credentials.
+ * Preferred over the `isExternalConfigured` direct import in new code.
+ */
+export function getIsExternalConfigured(): boolean {
+  return isExternalConfigured;
+}
+
+/**
+ * The external Supabase client instance.
+ *
+ * Never null: falls back to the main authenticated client when dedicated
+ * env vars are absent (single-database FATOR X mode).
+ *
+ * Mutable live-binding export: use `getExternalSupabase()` in new code.
  */
 export let externalSupabase: SupabaseClient<Database> = isExternalConfigured
   ? createClient<Database>(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
@@ -84,6 +112,9 @@ if (!isExternalConfigured) {
  * Updates the external client at runtime.
  * Useful when credentials are changed in the Admin Connections UI
  * without needing a full redeploy.
+ *
+ * Both `externalSupabase` and `isExternalConfigured` are live-binding exports
+ * — all existing importers automatically see the new values after this call.
  */
 export function updateRuntimeExternalConfig(url: string, key: string) {
   if (!url || !key) return;
@@ -110,6 +141,10 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   log.info('Runtime config updated successfully');
 }
 
+/**
+ * Returns the current external Supabase client instance.
+ * Preferred over the `externalSupabase` direct import in new code.
+ */
 export function getExternalSupabase(): SupabaseClient<Database> {
   return externalSupabase;
 }
