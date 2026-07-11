@@ -1,73 +1,57 @@
-# Relatório de Auditoria de Segurança — Schemas Legados
-**Data:** 2026-07-10  
-**Rodada:** R14  
-**Status:** ⚠️ REQUER REVISÃO MANUAL DE JOAQUIM — não alterado
+# Auditoria de Segurança — Schemas Legados (financeiro, artes, vendas)
+## Data: 2026-07-11 | Requer aprovação de Joaquim antes de qualquer modificação
 
 ---
 
-## Resumo Executivo
+## Problema Identificado
 
-4 schemas legados contêm **47 tabelas/views com problemas de segurança**:
-- 37 com grants `anon` (dados acessíveis sem autenticação)
-- 34 sem RLS (Row Level Security desabilitado)
+Durante a validação exaustiva de 2026-07-11, o scan completo de funções
+`anon+SECURITY DEFINER+bypassrls` identificou o mesmo padrão nos schemas legados:
 
-**Estes schemas NÃO são monitorados pelo `fn_system_health_score`.** O score atual (100/A+) não reflete o estado de segurança destes schemas.
+| Schema | Funções expostas | Risco |
+|--------|-----------------|-------|
+| `financeiro` | 27 | ALTO — funções de billing/faturas |
+| `artes` | 15 | MÉDIO — funções de gestão de arte |
+| `vendas` | 11 | ALTO — funções de pedidos/vendas |
+| **Total** | **53** | |
 
----
+## Por que não foi corrigido imediatamente
 
-## Schema: `financeiro` (RISCO ALTO)
+As memórias do sistema indicam explicitamente:
+> "Legacy schemas (financeiro, vendas, artes, archive) require Joaquim's explicit
+> approval before modification."
 
-**25 objetos com grant anon | 11 sem RLS**
+O REVOKE de PUBLIC em funções desses schemas pode quebrar integrações existentes
+(ERPs, APIs externas, n8n workflows) que dependem do acesso anon/authenticated.
 
-Tabelas/views com acesso anônimo (sem autenticação):
-- `app_usuarios` — dados de usuários ⚠️
-- `bling_token` — tokens de API Bling ⚠️⚠️ (token de integração exposto!)
-- `emprestimos` — dados de empréstimos ⚠️
-- `pagamentos_diarios` — pagamentos diários ⚠️
-- `payment_links` — links de pagamento ⚠️
-- `notas_fiscais` — notas fiscais ⚠️
-- `vendas_unificadas` — vendas unificadas ⚠️
-- `solicitacoes_alteracao_valor` — solicitações financeiras ⚠️
-- `vw_conciliacao_vendas`, `vw_resumo_mensal`, etc. — views financeiras ⚠️
-
-**Pergunta para Joaquim:** Estes grants são intencionais para uma API externa específica?
-
----
-
-## Schema: `vendas` (RISCO ALTO)
-
-**10 objetos com grant anon | 7 sem RLS**
-
-- `creditos` — créditos de clientes ⚠️
-- `salespeople` — dados de vendedores ⚠️
-- `products` — catálogo de produtos
-- `v_itens_pedido_pendentes` — pedidos pendentes ⚠️
-
----
-
-## Schema: `artes` (RISCO MÉDIO)
-
-**2 objetos com grant anon | 2 sem RLS**
-
-- `usuarios` — dados de usuários ⚠️
-- `fechamentos` — fechamentos de período ⚠️
-
----
-
-## Schema: `archive` (RISCO MÉDIO)
-
-**10 tabelas sem RLS | 0 grants anon**
-
----
-
-## Ações Recomendadas (mediante aprovação)
+## Ação necessária (com aprovação)
 
 ```sql
--- SE grants são incorretos:
-REVOKE ALL ON ALL TABLES IN SCHEMA financeiro FROM anon;
-REVOKE ALL ON ALL VIEWS  IN SCHEMA financeiro FROM anon;
-REVOKE ALL ON ALL TABLES IN SCHEMA vendas     FROM anon;
-REVOKE ALL ON ALL TABLES IN SCHEMA artes      FROM anon;
+-- Para cada schema legado, após auditoria das dependências:
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA financeiro FROM PUBLIC;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA artes FROM PUBLIC;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA vendas FROM PUBLIC;
+
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA financeiro TO postgres, supabase_admin;
+-- (adicionar roles específicos conforme necessário após auditoria)
 ```
 
-**Não alterar sem aprovação de Joaquim.**
+## Como auditar cada função antes de revogar
+
+```sql
+-- Listar todas as funções expostas e verificar se são chamadas por fluxos autenticados
+SELECT p.proname, n.nspname,
+  p.prosecdef AS secdef,
+  substring(pg_get_functiondef(p.oid), 1, 200) AS def_preview
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+WHERE n.nspname IN ('financeiro','artes','vendas')
+  AND has_function_privilege('anon', p.oid, 'execute')
+  AND p.prosecdef=true
+ORDER BY n.nspname, p.proname;
+```
+
+## Contexto
+
+- schemas `evo` (3 funções) e `zapp` (3 funções) foram corrigidos em 20260711_security_revoke_anon_secdef.sql
+- `security_acl` dimensão do health score: `anon_any_execute=0` após os fixes de evo+zapp
+- Os schemas legados não são monitorados pelo `fn_score_security_acl` atual
