@@ -57,20 +57,17 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     setLoading(true);
 
     if (activeTab === 'users') {
-      const { data: profiles , error } = await supabase
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
         .order('name')
         .limit(1000);
 
-      const { data: roles , error: rolesErr } = await supabase
-        .from('user_roles')
-        .select('*')
-        .limit(1000);
+      const { data: roles } = await supabase.from('user_roles').select('*').limit(1000);
 
       if (profiles && roles) {
-        const usersWithRoles = profiles.map(profile => {
-          const userRole = roles.find(r => r.user_id === profile.user_id);
+        const usersWithRoles = profiles.map((profile) => {
+          const userRole = roles.find((r) => r.user_id === profile.user_id);
           return {
             ...profile,
             role: (userRole?.role || 'agent') as AppRole,
@@ -79,24 +76,24 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         setUsers(usersWithRoles);
       }
     } else if (activeTab === 'audit') {
-      const { data: logs , error: logsErr } = await supabase
+      const { data: logs } = await supabase
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (logs) {
-        const userIds = [...new Set(logs.map(l => l.user_id).filter((id): id is string => id !== null))];
-        const { data: profiles } = userIds.length > 0
-          ? await supabase
-            .from('profiles')
-            .select('user_id, name, email')
-            .in('user_id', userIds)
-          : { data: [] };
+        const userIds = [
+          ...new Set(logs.map((l) => l.user_id).filter((id): id is string => id !== null)),
+        ];
+        const { data: profiles } =
+          userIds.length > 0
+            ? await supabase.from('profiles').select('user_id, name, email').in('user_id', userIds)
+            : { data: [] };
 
-        const logsWithUsers: AuditLog[] = logs.map(log => ({
+        const logsWithUsers: AuditLog[] = logs.map((log) => ({
           ...log,
-          user: profiles?.find(p => p.user_id === log.user_id) || null,
+          user: profiles?.find((p) => p.user_id === log.user_id) || null,
         }));
         setAuditLogs(logsWithUsers);
       }
@@ -105,6 +102,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     setLoading(false);
   }, [activeTab]);
 
+<<<<<<<< HEAD:src/features/admin/hooks/useAdminData.ts
   const handleRoleChange = useCallback(async (userId: string, newRole: AppRole) => {
     await supabase.from('user_roles').delete().eq('user_id', userId);
     // role_key e workspace_id são NOT NULL sem default (schema real); app é single-workspace
@@ -121,63 +119,83 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       fetchData();
     }
   }, [fetchData]);
+========
+  const handleRoleChange = useCallback(
+    async (userId: string, newRole: AppRole) => {
+      await supabase.from('user_roles').delete().eq('user_id', userId);
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({ user_id: userId, role: newRole as any });
+      if (error) {
+        toast.error('Erro ao atualizar role');
+      } else {
+        toast.success(`Usuário agora é ${roleConfig[newRole].label}.`);
+        fetchData();
+      }
+    },
+    [fetchData]
+  );
+>>>>>>>> e9773dc9cdd9fd32394e7de70bec7ca067dd2f5a:src/features/admin/components/useAdminData.ts
 
-  const handleToggleActive = useCallback(async (user: UserWithRole) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ is_active: !user.is_active })
-      .eq('id', user.id);
-    if (error) {
-      toast.error('Erro ao atualizar status');
-    } else {
-      toast.success(user.is_active ? 'Usuário desativado' : 'Usuário ativado');
-      fetchData();
-    }
-  }, [fetchData]);
+  const handleToggleActive = useCallback(
+    async (user: UserWithRole) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: !user.is_active })
+        .eq('id', user.id);
+      if (error) {
+        toast.error('Erro ao atualizar status');
+      } else {
+        toast.success(user.is_active ? 'Usuário desativado' : 'Usuário ativado');
+        fetchData();
+      }
+    },
+    [fetchData]
+  );
 
-  const handleSaveUser = useCallback(async (
-    editingUser: UserWithRole,
-    avatarFile: File | null,
-  ): Promise<boolean> => {
-    let avatarUrl = editingUser.avatar_url;
-    if (avatarFile) {
-      const fileExt = avatarFile.name.split('.').pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile);
-      if (uploadError) {
-        toast.error('Erro ao enviar foto');
+  const handleSaveUser = useCallback(
+    async (editingUser: UserWithRole, avatarFile: File | null): Promise<boolean> => {
+      let avatarUrl = editingUser.avatar_url;
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const filePath = `${crypto.randomUUID()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, avatarFile);
+        if (uploadError) {
+          toast.error('Erro ao enviar foto');
+          return false;
+        }
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        avatarUrl = urlData.publicUrl;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: editingUser.name,
+          nickname: editingUser.nickname,
+          signature: editingUser.signature,
+          job_title: editingUser.job_title,
+          department: editingUser.department,
+          phone: editingUser.phone,
+          avatar_url: avatarUrl,
+          access_level: editingUser.access_level,
+          max_chats: editingUser.max_chats,
+          can_download: editingUser.can_download,
+        })
+        .eq('id', editingUser.id);
+
+      if (error) {
+        toast.error('Erro ao salvar usuário');
         return false;
       }
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      avatarUrl = urlData.publicUrl;
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        name: editingUser.name,
-        nickname: editingUser.nickname,
-        signature: editingUser.signature,
-        job_title: editingUser.job_title,
-        department: editingUser.department,
-        phone: editingUser.phone,
-        avatar_url: avatarUrl,
-        access_level: editingUser.access_level,
-        max_chats: editingUser.max_chats,
-        can_download: editingUser.can_download,
-      })
-      .eq('id', editingUser.id);
-
-    if (error) {
-      toast.error('Erro ao salvar usuário');
-      return false;
-    }
-    toast.success('Usuário atualizado com sucesso');
-    fetchData();
-    return true;
-  }, [fetchData]);
+      toast.success('Usuário atualizado com sucesso');
+      fetchData();
+      return true;
+    },
+    [fetchData]
+  );
 
   interface CreateUserPayload {
     name: string;
@@ -193,70 +211,75 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     dropbox_email?: string;
   }
 
-  const handleCreateUser = useCallback(async (payload: CreateUserPayload): Promise<boolean> => {
-    if (!payload.name || !payload.email || !payload.password) {
-      toast.error('Preencha todos os campos obrigatórios');
-      return false;
-    }
-    if (payload.password.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres');
-      return false;
-    }
-
-    let avatarUrl: string | undefined;
-    if (payload.avatarFile) {
-      const fileExt = payload.avatarFile.name.split('.').pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, payload.avatarFile);
-      if (uploadError) {
-        toast.error('Erro ao fazer upload da foto');
+  const handleCreateUser = useCallback(
+    async (payload: CreateUserPayload): Promise<boolean> => {
+      if (!payload.name || !payload.email || !payload.password) {
+        toast.error('Preencha todos os campos obrigatórios');
         return false;
       }
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      avatarUrl = urlData.publicUrl;
-    }
+      if (payload.password.length < 6) {
+        toast.error('A senha deve ter pelo menos 6 caracteres');
+        return false;
+      }
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            name: payload.name,
-            nickname: payload.nickname || undefined,
-            signature: payload.signature || undefined,
-            job_title: payload.job_title || undefined,
-            avatar_url: avatarUrl,
-            email: payload.email,
-            password: payload.password,
-            role: payload.role,
-            email_email: payload.email_email || undefined,
-            google_services: payload.google_services,
-            dropbox_email: payload.dropbox_email || undefined,
-          }),
+      let avatarUrl: string | undefined;
+      if (payload.avatarFile) {
+        const fileExt = payload.avatarFile.name.split('.').pop();
+        const filePath = `${crypto.randomUUID()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, payload.avatarFile);
+        if (uploadError) {
+          toast.error('Erro ao fazer upload da foto');
+          return false;
         }
-      );
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        avatarUrl = urlData.publicUrl;
+      }
 
-      const result = await response.json();
-      if (!response.ok) {
-        toast.error(result.error || 'Erro ao criar usuário');
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+            body: JSON.stringify({
+              name: payload.name,
+              nickname: payload.nickname || undefined,
+              signature: payload.signature || undefined,
+              job_title: payload.job_title || undefined,
+              avatar_url: avatarUrl,
+              email: payload.email,
+              password: payload.password,
+              role: payload.role,
+              email_email: payload.email_email || undefined,
+              google_services: payload.google_services,
+              dropbox_email: payload.dropbox_email || undefined,
+            }),
+          }
+        );
+
+        const result = await response.json();
+        if (!response.ok) {
+          toast.error(result.error || 'Erro ao criar usuário');
+          return false;
+        }
+        toast.success('Usuário criado com sucesso!');
+        fetchData();
+        return true;
+      } catch {
+        toast.error('Erro ao criar usuário');
         return false;
       }
-      toast.success('Usuário criado com sucesso!');
-      fetchData();
-      return true;
-    } catch {
-      toast.error('Erro ao criar usuário');
-      return false;
-    }
-  }, [fetchData]);
+    },
+    [fetchData]
+  );
 
   return {
     users,
