@@ -141,7 +141,7 @@ export function MonitoringWebhookPanel({ connections, webhookTest, webhookConfig
       {!webhookConfig && connections.length > 0 && (
         <div className="flex gap-2">
           {connections.map(conn => (
-            <Button key={conn.id} variant="outline" size="sm" onClick={() => { const n = evolutionInstanceName(conn); n && onCheckConfig(n); }}>
+            <Button key={conn.id} variant="outline" size="sm" onClick={() => { const n = evolutionInstanceName(conn); if (!n) { toast.error('Conexão sem nome de instância roteável. Reconecte via QR.'); return; } onCheckConfig(n); }}>
               <Shield className="w-3.5 h-3.5 mr-1.5" />Carregar config ({conn.instance_name || conn.instance_id})
             </Button>
           ))}
@@ -164,7 +164,7 @@ export function MonitoringWebhookPanel({ connections, webhookTest, webhookConfig
                   <span className="font-medium text-sm">{conn.instance_name || conn.instance_id}</span>
                   <p className="text-[10px] text-muted-foreground">Testa pipeline completo</p>
                 </div>
-                <Button size="sm" onClick={() => { const n = evolutionInstanceName(conn); n && onTest(n); }} disabled={webhookTest.status === 'testing'}>
+                <Button size="sm" onClick={() => { const n = evolutionInstanceName(conn); if (!n) { toast.error('Conexão sem nome de instância roteável. Reconecte via QR.'); return; } onTest(n); }} disabled={webhookTest.status === 'testing'}>
                   {webhookTest.status === 'testing'
                     ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Testando...</>
                     : <><PlayCircle className="w-3.5 h-3.5 mr-1" />Testar E2E</>
@@ -255,7 +255,7 @@ export function MonitoringWebhookPanel({ connections, webhookTest, webhookConfig
             )}
 
             {connections.map(conn => (
-              <Button key={conn.id} className="w-full" onClick={() => { const n = evolutionInstanceName(conn); n && onReconfigure(n); }} disabled={reconfiguring} variant="default">
+              <Button key={conn.id} className="w-full" onClick={() => { const n = evolutionInstanceName(conn); if (!n) { toast.error('Conexão sem nome de instância roteável. Reconecte via QR.'); return; } onReconfigure(n); }} disabled={reconfiguring} variant="default">
                 {reconfiguring
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Reconfigurando...</>
                   : <><Radio className="w-4 h-4 mr-2" />Reconfigurar ({conn.instance_name || conn.instance_id})</>

@@ -61,7 +61,7 @@ export const safeClient = {
         }
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await queryBuilder(supabase.from(table as any));
+      const { data, error } = await (queryBuilder(supabase.from(table as any)) as any);
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
@@ -219,7 +219,8 @@ export const safeClient = {
       else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
       // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
-      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)('rpc_update_email_health_state', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.rpc as any)('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: telemetry.recentFailures.length,
         p_metadata: {
@@ -254,9 +255,10 @@ export const safeClient = {
       }
       return data;
     }
-    const masked: Record<string, unknown> = Array.isArray(data)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const masked = (Array.isArray(data)
       ? [...(data as unknown[])]
-      : { ...(data as Record<string, unknown>) };
+      : { ...(data as Record<string, unknown>) }) as Record<string, unknown>;
     for (const key in masked) {
       const val = masked[key];
       const lowerKey = key.toLowerCase();
@@ -314,7 +316,8 @@ export const safeClient = {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
-      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)('rpc_log_email_health', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.rpc as any)('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,

@@ -17,10 +17,10 @@
 -- Idempotent: re-running skips rows already with instance_name set.
 
 UPDATE public.whatsapp_connections
-   SET instance_name = instance_id
+   SET instance_name = TRIM(instance_id)
  WHERE instance_name IS NULL
    AND instance_id IS NOT NULL
-   AND instance_id !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+   AND TRIM(instance_id) !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
    AND length(trim(instance_id)) > 0;
 
 -- Verification query (run after migration):

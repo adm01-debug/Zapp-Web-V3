@@ -30,11 +30,16 @@ export async function resolveSendFunction(
   if (cached && cached.expiresAt > Date.now()) return cached.fn;
 
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('whatsapp_connections')
       .select('api_type, status')
       .or(`instance_name.eq.${instanceName},instance_id.eq.${instanceName}`)
       .maybeSingle();
+
+    if (error) {
+      // Do not cache on DB error — let next call retry.
+      return 'evolution-api';
+    }
 
     // Roteamento inteligente com fallback:
     // Se a conexão oficial estiver instável (status != 'connected') e houver uma instância Evolution
