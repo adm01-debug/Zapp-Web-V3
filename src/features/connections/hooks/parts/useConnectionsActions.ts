@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
-import { whatsappConnectionService } from '@/features/connections/services/whatsappConnectionService';
+import { whatsappConnectionService } from '../../services/whatsappConnectionService';
 import { getLogger } from '@/lib/logger';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
