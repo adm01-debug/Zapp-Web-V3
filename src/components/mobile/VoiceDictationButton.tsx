@@ -11,8 +11,17 @@ interface VoiceDictationButtonProps {
   disabled?: boolean;
 }
 
-export function VoiceDictationButton({ onTranscript, className, disabled }: VoiceDictationButtonProps) {
-  const { isListening, isSupported, transcript, toggleListening } = useSpeechToText({
+export function VoiceDictationButton({
+  onTranscript,
+  className,
+  disabled,
+}: VoiceDictationButtonProps) {
+  const {
+    isListening,
+    isSupported,
+    transcript: _transcript,
+    toggleListening,
+  } = useSpeechToText({
     language: 'pt-BR',
     continuous: false,
     onResult: (text) => {
@@ -31,7 +40,7 @@ export function VoiceDictationButton({ onTranscript, className, disabled }: Voic
           onClick={toggleListening}
           disabled={disabled}
           className={cn(
-            'relative w-8 h-8 rounded-full transition-all',
+            'relative h-8 w-8 rounded-full transition-all',
             isListening && 'bg-destructive/15 text-destructive hover:bg-destructive/25',
             className
           )}
@@ -46,7 +55,7 @@ export function VoiceDictationButton({ onTranscript, className, disabled }: Voic
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ duration: 0.15 }}
               >
-                <MicOff className="w-4 h-4" />
+                <MicOff className="h-4 w-4" />
               </motion.div>
             ) : (
               <motion.div
@@ -56,7 +65,7 @@ export function VoiceDictationButton({ onTranscript, className, disabled }: Voic
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ duration: 0.15 }}
               >
-                <Mic className="w-4 h-4" />
+                <Mic className="h-4 w-4" />
               </motion.div>
             )}
           </AnimatePresence>
