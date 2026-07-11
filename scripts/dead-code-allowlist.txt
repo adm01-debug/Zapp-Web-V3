@@ -8,3 +8,12 @@ src/lib/stressTest/mediaSamplers.ts  # kit de stress test — utilitário intern
 src/features/contacts/index.ts  # barrel público do domínio contacts — consumido por feature consumers externos; sem importadores hoje mas exigido pela convenção de API pública do módulo
 src/hooks/admin/useAdminAutomations.ts  # Wave 3 hook extraído de AdminAutomationsPage — página ainda não migrada para usar o hook
 src/hooks/admin/useAdminQueues.ts  # Wave 3 hook extraído de AdminQueuesPage — página ainda não migrada para usar o hook
+src/components/ThemeInitializer.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática
+src/components/calls/IncomingCallAlert.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática
+src/components/debug/BuildValidationOverlay.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática
+src/components/debug/HardResetButton.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática
+src/components/debug/ThemeDebugger.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática
+src/components/mobile/InAppNotificationProvider.tsx  # registrado como provider via AppProviders; não rastreável por análise estática
+src/components/notifications/RealtimeSentimentAlertProvider.tsx  # registrado como provider via AppProviders; não rastreável por análise estática
+src/components/providers/AppProviders.tsx  # top-level provider wrapper importado em main.tsx indiretamente; side-effect mount
+src/components/system/ServiceWorkerUpdateBanner.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática

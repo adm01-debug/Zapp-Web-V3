@@ -180,10 +180,11 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     queryKey: ['conversation-audit-logs', contactId],
     enabled: open && !!contactId,
     queryFn: async () => {
-      const { data, error } = await safeClient.from('conversation_audit_logs', (q) =>
+      const { data, error } = await safeClient.from('audit_logs', (q) =>
         q
           .select('*')
-          .eq('conversation_id', contactId!)
+          .eq('entity_type', 'conversation')
+          .eq('entity_id', contactId!)
           .order('created_at', { ascending: false })
           .limit(50)
       );
