@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { whatsappConnectionService } from '../../services/whatsappConnectionService';
 import { getLogger } from '@/lib/logger';
@@ -25,31 +25,27 @@ export function useConnectionsActions(
       toast({ title: 'Nome é obrigatório', variant: 'destructive' });
       return;
     }
-
+    
     setIsCreating(true);
     const isOfficial = newConnection.api_type === 'official';
-    const instanceName = isOfficial
-      ? `official_${Date.now().toString(36)}`
-      : whatsappConnectionService.generateInstanceName(newConnection.name);
-
+    const instanceName = isOfficial ? `official_${Date.now().toString(36)}` : whatsappConnectionService.generateInstanceName(newConnection.name);
+    
     try {
-      const { data, error } = await (supabase as any)
-        .from('whatsapp_connections')
-        .insert({
+      const { data, error } = await safeClient.single<Record<string, unknown>>('whatsapp_connections', q =>
+        q.insert({
           name: newConnection.name,
           phone_number: newConnection.phone_number,
           instance_id: instanceName,
           status: 'disconnected',
           is_default: connections.length === 0,
           api_type: newConnection.api_type,
-        })
-        .select()
-        .single();
-
+        }).select()
+      );
+      
       if (error) throw error;
-
-      setConnections((prev) => [...prev, data]);
-
+      
+      setConnections(prev => [...prev, data]);
+      
       toast({
         title: 'Conexão criada!',
         description: isOfficial
@@ -65,65 +61,35 @@ export function useConnectionsActions(
     } finally {
       setIsCreating(false);
     }
-  }, [
-    newConnection,
-    connections,
-    setIsAddDialogOpen,
-    setNewConnection,
-    handleShowQrCode,
-    toast,
-    setIsCreating,
-    setConnections,
-  ]);
+  }, [newConnection, connections, setIsAddDialogOpen, setNewConnection, handleShowQrCode, toast, setIsCreating, setConnections]);
 
-  const handleSetDefault = useCallback(
-    async (id: string) => {
-      try {
-        await (supabase as any)
-          .from('whatsapp_connections')
-          .update({ is_default: false })
-          .neq('id', id);
-        const { error } = await (supabase as any)
-          .from('whatsapp_connections')
-          .update({ is_default: true })
-          .eq('id', id);
-        if (error) throw error;
-        setConnections((prev) => prev.map((c) => ({ ...c, is_default: c.id === id })));
-        toast({ title: 'Conexão padrão atualizada' });
-      } catch (error: any) {
-        toast({
-          title: 'Erro ao definir padrão',
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
-    },
-    [setConnections, toast]
-  );
+  const handleSetDefault = useCallback(async (id: string) => {
+    try {
+      await safeClient.from('whatsapp_connections', q => q.update({ is_default: false }).neq('id', id));
+      const { error } = await safeClient.from('whatsapp_connections', q => q.update({ is_default: true }).eq('id', id));
+      if (error) throw error;
+      setConnections(prev => prev.map(c => ({ ...c, is_default: c.id === id })));
+      toast({ title: 'Conexão padrão atualizada' });
+    } catch (error: any) {
+      toast({ title: 'Erro ao definir padrão', description: error.message, variant: 'destructive' });
+    }
+  }, [setConnections, toast]);
 
-  const handleDelete = useCallback(
-    async (connection: any) => {
-      try {
-        // Evolution roteia por nome de instância — o UUID (instance_id) gera 404.
-        const evoName = evolutionInstanceName(connection);
-        if (evoName) {
-          await deleteInstance(evoName).catch((e) =>
-            log.warn('Failed to delete evolution instance:', e)
-          );
-        }
-        const { error } = await (supabase as any)
-          .from('whatsapp_connections')
-          .delete()
-          .eq('id', connection.id);
-        if (error) throw error;
-        setConnections((prev) => prev.filter((c) => c.id !== connection.id));
-        toast({ title: 'Conexão removida' });
-      } catch (error: any) {
-        toast({ title: 'Erro ao deletar', description: error.message, variant: 'destructive' });
+  const handleDelete = useCallback(async (connection: any) => {
+    try {
+      // Evolution roteia por nome de instância — o UUID (instance_id) gera 404.
+      const evoName = evolutionInstanceName(connection);
+      if (evoName) {
+        await deleteInstance(evoName).catch(e => log.warn('Failed to delete evolution instance:', e));
       }
-    },
-    [setConnections, toast, deleteInstance]
-  );
+      const { error } = await safeClient.from('whatsapp_connections', q => q.delete().eq('id', connection.id));
+      if (error) throw error;
+      setConnections(prev => prev.filter(c => c.id !== connection.id));
+      toast({ title: 'Conexão removida' });
+    } catch (error: any) {
+      toast({ title: 'Erro ao deletar', description: error.message, variant: 'destructive' });
+    }
+  }, [setConnections, toast, deleteInstance]);
 
   return {
     handleCreateConnection: handleAddConnection,
