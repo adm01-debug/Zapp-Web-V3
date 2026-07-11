@@ -1,6 +1,6 @@
 /**
  * Feature flags system for ZAPP WEB.
- * 
+ *
  * Supports:
  * 1. Simple boolean toggles.
  * 2. Percentage-based rollout (value: 0-100).
@@ -58,12 +58,13 @@ const DEFAULTS: Record<FeatureFlag, FeatureConfig> = {
 };
 
 let flagCache: Record<string, FeatureConfig> | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 1 * 60 * 1000; // Reduce TTL to 1 minute for better control
 
-export function isFeatureEnabled(flag: FeatureFlag, context?: { userId?: string, tenantId?: string }): boolean {
+export function isFeatureEnabled(
+  flag: FeatureFlag,
+  context?: { userId?: string; tenantId?: string }
+): boolean {
   const config = flagCache?.[flag] || DEFAULTS[flag];
-  
+
   if (config.killSwitch) return false;
   if (!config.enabled) return false;
 
@@ -78,9 +79,9 @@ export function isFeatureEnabled(flag: FeatureFlag, context?: { userId?: string,
   // Percentage-based check
   if (typeof config.percentage === 'number') {
     if (!context?.userId) return false;
-    const hash = context.userId.split('').reduce((a, b) => { 
-      a = ((a << 5) - a) + b.charCodeAt(0); 
-      return a & a; 
+    const hash = context.userId.split('').reduce((a, b) => {
+      a = (a << 5) - a + b.charCodeAt(0);
+      return a & a;
     }, 0);
     return Math.abs(hash % 100) < config.percentage;
   }
@@ -104,21 +105,23 @@ export async function loadFeatureFlags(): Promise<void> {
         try {
           // Parse value if it's JSON string, or use as boolean if it's simple
           const parsed = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-          
+
           if (typeof parsed === 'boolean') {
             flags[flagName] = { ...flags[flagName], enabled: parsed };
           } else if (typeof parsed === 'object' && parsed !== null) {
             flags[flagName] = { ...flags[flagName], ...parsed };
           }
-        } catch (e) {
+        } catch {
           // Fallback to boolean if JSON parse fails
-          flags[flagName] = { ...flags[flagName], enabled: row.value === 'true' || row.value === true };
+          flags[flagName] = {
+            ...flags[flagName],
+            enabled: row.value === 'true' || row.value === true,
+          };
         }
       }
     }
 
     flagCache = flags;
-    cacheTimestamp = Date.now();
     log.info('[FeatureFlags] Sync complete', Object.keys(flags).length, 'flags active');
   } catch (err) {
     log.warn('[FeatureFlags] Load failed, using safety defaults', err);

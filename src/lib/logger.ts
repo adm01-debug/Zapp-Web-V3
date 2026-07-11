@@ -7,12 +7,6 @@ const isDev = import.meta.env.DEV;
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface LogContext {
-  module?: string;
-  correlationId?: string;
-  [key: string]: unknown;
-}
-
 // Session-level correlation ID for tracing across the app lifetime
 const sessionId =
   crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

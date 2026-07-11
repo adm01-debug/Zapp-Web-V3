@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { getExternalSupabase } from "@/integrations/supabase/externalClient";
-import { toast } from "@/hooks/use-toast";
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { getExternalSupabase } from '@/integrations/supabase/externalClient';
+import { toast } from '@/hooks/use-toast';
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
 // Resolve at call time so module import never crashes.
@@ -26,7 +26,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const refresh = useCallback(async () => {
@@ -35,15 +37,15 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       return;
     }
     setLoading(true);
-    const { data, error } = await (supabase as any)
+    const { data } = await (supabase as any)
       .from('automation_executions')
       .select(
-        "id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)",
+        'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
       )
-      .eq("remote_jid", remoteJid)
-      .eq("status", "pending")
-      .not("suggestion_text", "is", null)
-      .order("created_at", { ascending: false })
+      .eq('remote_jid', remoteJid)
+      .eq('status', 'pending')
+      .not('suggestion_text', 'is', null)
+      .order('created_at', { ascending: false })
       .limit(5);
     if (!mountedRef.current) return;
     setSuggestions(
@@ -58,7 +60,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         created_at: r.created_at,
         instance_name: r.instance_name,
         remote_jid: r.remote_jid,
-      })),
+      }))
     );
     setLoading(false);
   }, [remoteJid]);
@@ -69,12 +71,12 @@ export function useAutomationSuggestions(remoteJid: string | null) {
     const ch = supabase
       .channel(`automation-exec-${remoteJid}`)
       .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "automation_executions" },
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as any;
           if (row?.remote_jid === remoteJid) void refresh();
-        },
+        }
       )
       .subscribe();
     return () => {
@@ -82,21 +84,27 @@ export function useAutomationSuggestions(remoteJid: string | null) {
     };
   }, [remoteJid, refresh]);
 
-  const accept = useCallback(async (id: string) => {
-    await (supabase as any)
-      .from('automation_executions')
-      .update({ status: "accepted", acted_at: new Date().toISOString() })
-      .eq("id", id);
-    void refresh();
-  }, [refresh]);
+  const accept = useCallback(
+    async (id: string) => {
+      await (supabase as any)
+        .from('automation_executions')
+        .update({ status: 'accepted', acted_at: new Date().toISOString() })
+        .eq('id', id);
+      void refresh();
+    },
+    [refresh]
+  );
 
-  const dismiss = useCallback(async (id: string) => {
-    await (supabase as any)
-      .from('automation_executions')
-      .update({ status: "dismissed", acted_at: new Date().toISOString() })
-      .eq("id", id);
-    void refresh();
-  }, [refresh]);
+  const dismiss = useCallback(
+    async (id: string) => {
+      await (supabase as any)
+        .from('automation_executions')
+        .update({ status: 'dismissed', acted_at: new Date().toISOString() })
+        .eq('id', id);
+      void refresh();
+    },
+    [refresh]
+  );
 
   /**
    * Aplica a tag recomendada via FATOR X (rpc_upsert_contact). Mantém auditoria
@@ -108,7 +116,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       const sugg = suggestions.find((s) => s.id === id);
       if (!sugg?.recommended_tag) return false;
       try {
-        await (getClient()?.rpc as any)("rpc_upsert_contact", {
+        await (getClient()?.rpc as any)('rpc_upsert_contact', {
           p_remote_jid: sugg.remote_jid,
           p_instance: sugg.instance_name,
           p_tags: [sugg.recommended_tag],
@@ -116,23 +124,23 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         await (supabase as any)
           .from('automation_executions')
           .update({ applied_tags: [sugg.recommended_tag] })
-          .eq("id", id);
+          .eq('id', id);
         toast({
-          title: "Tag aplicada",
+          title: 'Tag aplicada',
           description: `"${sugg.recommended_tag}" foi adicionada ao contato.`,
         });
         refresh();
         return true;
       } catch (e) {
         toast({
-          title: "Falha ao aplicar tag",
-          description: e instanceof Error ? e.message : "Erro desconhecido",
-          variant: "destructive",
+          title: 'Falha ao aplicar tag',
+          description: e instanceof Error ? e.message : 'Erro desconhecido',
+          variant: 'destructive',
         });
         return false;
       }
     },
-    [suggestions, refresh],
+    [suggestions, refresh]
   );
 
   return { suggestions, loading, refresh, accept, dismiss, applyRecommendedTag };

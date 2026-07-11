@@ -26,7 +26,7 @@ export function useConversationAnalyses(contactId: string | null) {
 
   const fetchAnalyses = useCallback(async () => {
     if (!contactId) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -37,7 +37,7 @@ export function useConversationAnalyses(contactId: string | null) {
         .limit(20);
 
       if (error) throw error;
-      
+
       setAnalyses((data || []) as ConversationAnalysis[]);
     } catch (err) {
       log.error('Error fetching analyses:', err);
@@ -51,19 +51,23 @@ export function useConversationAnalyses(contactId: string | null) {
     void fetchAnalyses();
   }, [fetchAnalyses]);
 
-  const saveAnalysis = async (analysis: Omit<ConversationAnalysis, 'id' | 'created_at' | 'analyzed_by'>) => {
+  const saveAnalysis = async (
+    analysis: Omit<ConversationAnalysis, 'id' | 'created_at' | 'analyzed_by'>
+  ) => {
     try {
       // Get current user's profile id
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       let profileId = null;
-      
+
       if (user) {
-        const { data: profile , error: profileErr } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
-        
+
         profileId = profile?.id || null;
       }
 
@@ -71,7 +75,7 @@ export function useConversationAnalyses(contactId: string | null) {
         .from('conversation_analyses')
         .insert({
           ...analysis,
-          analyzed_by: profileId
+          analyzed_by: profileId,
         })
         .select()
         .single();
@@ -79,8 +83,8 @@ export function useConversationAnalyses(contactId: string | null) {
       if (error) throw error;
 
       // Add to local state
-      setAnalyses(prev => [data as ConversationAnalysis, ...prev]);
-      
+      setAnalyses((prev) => [data as ConversationAnalysis, ...prev]);
+
       return data as ConversationAnalysis;
     } catch (err) {
       log.error('Error saving analysis:', err);
@@ -94,17 +98,17 @@ export function useConversationAnalyses(contactId: string | null) {
 
   const getSentimentTrend = () => {
     if (analyses.length < 2) return null;
-    
+
     const recent = analyses.slice(0, 5);
     const avgRecent = recent.reduce((sum, a) => sum + a.sentiment_score, 0) / recent.length;
-    
+
     const older = analyses.slice(5, 10);
     if (older.length === 0) return null;
-    
+
     const avgOlder = older.reduce((sum, a) => sum + a.sentiment_score, 0) / older.length;
-    
+
     const diff = avgRecent - avgOlder;
-    
+
     if (diff > 5) return 'improving';
     if (diff < -5) return 'declining';
     return 'stable';
@@ -117,6 +121,6 @@ export function useConversationAnalyses(contactId: string | null) {
     saveAnalysis,
     getLatestAnalysis,
     getSentimentTrend,
-    refetch: fetchAnalyses
+    refetch: fetchAnalyses,
   };
 }

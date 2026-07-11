@@ -94,7 +94,7 @@ export function MessageContextActions({
     }
   }, [instanceName, externalId, contactJid, isSent, markMessageAsUnread]);
 
-  const handleArchive = useCallback(async () => {
+  const _handleArchive = useCallback(async () => {
     try {
       await archiveChat(instanceName, {}, contactJid, true);
       toast.success('Chat arquivado');
@@ -103,7 +103,7 @@ export function MessageContextActions({
     }
   }, [instanceName, contactJid, archiveChat]);
 
-  const handleBlock = useCallback(async () => {
+  const _handleBlock = useCallback(async () => {
     try {
       await updateBlockStatus(instanceName, contactJid, 'block');
     } catch {
@@ -111,7 +111,7 @@ export function MessageContextActions({
     }
   }, [instanceName, contactJid, updateBlockStatus]);
 
-  const handleUnblock = useCallback(async () => {
+  const _handleUnblock = useCallback(async () => {
     try {
       await updateBlockStatus(instanceName, contactJid, 'unblock');
     } catch {

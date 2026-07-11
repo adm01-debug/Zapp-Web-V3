@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -22,71 +21,84 @@ export interface DraftState {
 
 export function useEmailDraft(accountId: string | null, threadId?: string) {
   const [draft, setDraft] = useState<DraftState>({
-    to: [], cc: [], subject: '', bodyHtml: '', isDirty: false,
+    to: [],
+    cc: [],
+    subject: '',
+    bodyHtml: '',
+    isDirty: false,
   });
   const [isSaving, setIsSaving] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const save = useCallback(async (state: DraftState) => {
-    if (!accountId || !state.isDirty) return;
-    setIsSaving(true);
+  const save = useCallback(
+    async (state: DraftState) => {
+      if (!accountId || !state.isDirty) return;
+      setIsSaving(true);
 
-    try {
-      const payload = {
-        account_id: accountId,
-        thread_id_ref: threadId ?? null,
-        to_emails: state.to,
-        cc_emails: state.cc,
-        subject: state.subject,
-        body_html: state.bodyHtml,
-        last_saved_at: new Date().toISOString(),
-      };
+      try {
+        const payload = {
+          account_id: accountId,
+          thread_id_ref: threadId ?? null,
+          to_emails: state.to,
+          cc_emails: state.cc,
+          subject: state.subject,
+          body_html: state.bodyHtml,
+          last_saved_at: new Date().toISOString(),
+        };
 
-      let localId = state.id;
+        let localId = state.id;
 
-      if (localId) {
-        await safeClient.from('email_drafts', (q) => q.update(payload).eq('id', localId));
-      } else {
-        const { data, error } = await supabase
-          .from('email_drafts')
-          .insert(payload)
-          .select('id')
-          .single();
-        localId = data?.id;
+        if (localId) {
+          await safeClient.from('email_drafts', (q) => q.update(payload).eq('id', localId));
+        } else {
+          const { data } = await supabase
+            .from('email_drafts')
+            .insert(payload)
+            .select('id')
+            .single();
+          localId = data?.id;
+        }
+
+        const emailResult = await emailSaveDraft({
+          accountId,
+          draftId: state.email_draft_id,
+          to: state.to,
+          cc: state.cc,
+          subject: state.subject,
+          bodyHtml: state.bodyHtml,
+          threadId,
+        });
+
+        setDraft((prev) => ({
+          ...prev,
+          id: localId,
+          email_draft_id: (emailResult as any)?.draftId,
+          isDirty: false,
+          lastSaved: new Date(),
+        }));
+      } catch (err) {
+        log.error('Email draft save error', err);
+      } finally {
+        setIsSaving(false);
       }
+    },
+    [accountId, threadId]
+  );
 
-      const emailResult = await emailSaveDraft({
-        accountId,
-        draftId: state.email_draft_id,
-        to: state.to,
-        cc: state.cc,
-        subject: state.subject,
-        bodyHtml: state.bodyHtml,
-        threadId,
-      });
+  const update = useCallback(
+    (patch: Partial<Omit<DraftState, 'isDirty'>>) => {
+      setDraft((prev) => ({ ...prev, ...patch, isDirty: true }));
 
-      setDraft(prev => ({
-        ...prev,
-        id: localId,
-        email_draft_id: (emailResult as any)?.draftId,
-        isDirty: false,
-        lastSaved: new Date(),
-      }));
-    } catch (err) {
-      log.error('Email draft save error', err);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [accountId, threadId]);
-
-  const update = useCallback((patch: Partial<Omit<DraftState, 'isDirty'>>) => {
-    setDraft(prev => ({ ...prev, ...patch, isDirty: true }));
-
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      setDraft(current => { save(current); return current; });
-    }, AUTO_SAVE_DELAY_MS);
-  }, [save]);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        setDraft((current) => {
+          save(current);
+          return current;
+        });
+      }, AUTO_SAVE_DELAY_MS);
+    },
+    [save]
+  );
 
   const discard = useCallback(async () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -106,9 +118,12 @@ export function useEmailDraft(accountId: string | null, threadId?: string) {
     save(draft);
   }, [draft, save]);
 
-  useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
 
   return { draft, update, save: saveNow, discard, isSaving };
 }

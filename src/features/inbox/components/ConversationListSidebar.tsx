@@ -43,12 +43,12 @@ export function ConversationListSidebar({
   inboxFilters,
   bulkActions,
   pullToRefresh,
-  width = 340,
+  width: _width = 340,
 }: ConversationListSidebarProps) {
   const isMobile = useIsMobile();
   const { density, setDensity: _setDensity } = useDensity();
   const contactSearchRef = useRef<HTMLInputElement>(null);
-  const [contactSearch, setContactSearch] = useState('');
+  const [_contactSearch, setContactSearch] = useState('');
 
   const _conversationsWithUnreadCount = useMemo(
     () => inbox.conversations.filter((c: any) => c.unreadCount > 0).length,
@@ -61,7 +61,7 @@ export function ConversationListSidebar({
   }, 250);
 
   // Sync local search to inbox filters
-  const handleContactSearch = useCallback(
+  const _handleContactSearch = useCallback(
     (value: string) => {
       setContactSearch(value);
       debouncedSetSearch(value);
@@ -69,7 +69,7 @@ export function ConversationListSidebar({
     [debouncedSetSearch]
   );
 
-  const clearContactSearch = useCallback(() => {
+  const _clearContactSearch = useCallback(() => {
     setContactSearch('');
     inbox.setSearch('');
     contactSearchRef.current?.focus();

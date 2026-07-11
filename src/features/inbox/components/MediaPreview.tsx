@@ -20,7 +20,7 @@ import { formatFileSize, getFileExtension } from '@/utils/whatsappFileTypes';
 import { VideoFullscreen } from './VideoFullscreen';
 import { useMediaRefresh } from '@/features/inbox';
 
-function getFileIcon(fileName: string, mimeType?: string) {
+function getFileIcon(fileName: string, _mimeType?: string) {
   const extension = getFileExtension(fileName).toLowerCase();
   if (['pdf'].includes(extension)) return <FileText className="h-8 w-8 text-[#f1592a]" />;
   if (['doc', 'docx'].includes(extension)) return <FileText className="h-8 w-8 text-[#2b72c4]" />;
@@ -42,7 +42,7 @@ interface DocumentPreviewProps {
   isSent: boolean;
 }
 
-export function DocumentPreview({ url, fileName, fileSize, isSent }: DocumentPreviewProps) {
+export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: DocumentPreviewProps) {
   const [isDownloading, _setIsDownloading] = useState(false);
   const extension = getFileExtension(fileName).toUpperCase();
 
@@ -122,7 +122,7 @@ export const VideoPreview = forwardRef<HTMLDivElement, VideoPreviewProps>(functi
   ref
 ) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(!isPtv); // Auto-play ptv with audio often, but standard video muted
+  const [isMuted, _setIsMuted] = useState(!isPtv); // Auto-play ptv with audio often, but standard video muted
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const refresh = useMediaRefresh(url, refreshKey);
@@ -274,7 +274,7 @@ interface StickerPreviewProps {
   isSent: boolean;
 }
 
-export function StickerPreview({ url, isSent }: StickerPreviewProps) {
+export function StickerPreview({ url, isSent: _isSent }: StickerPreviewProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   return (
     <motion.div

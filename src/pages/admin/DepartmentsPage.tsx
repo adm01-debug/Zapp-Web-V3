@@ -5,13 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -70,10 +64,7 @@ export default function DepartmentsPage() {
 
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any)
-      .from('departments')
-      .select('*')
-      .order('name');
+    const { data, error } = await (supabase as any).from('departments').select('*').order('name');
 
     if (error) {
       toast.error('Erro ao carregar departamentos');
@@ -85,7 +76,7 @@ export default function DepartmentsPage() {
     const ids = (data ?? []).map((d) => d.id);
     let counts: Record<string, number> = {};
     if (ids.length) {
-      const { data: profilesByDept , error: profilesByDeptErr } = await supabase
+      const { data: profilesByDept } = await supabase
         .from('profiles')
         .select('department_id')
         .in('department_id', ids);
@@ -95,9 +86,7 @@ export default function DepartmentsPage() {
       }, {});
     }
 
-    setDepartments(
-      (data ?? []).map((d) => ({ ...d, member_count: counts[d.id] ?? 0 })),
-    );
+    setDepartments((data ?? []).map((d) => ({ ...d, member_count: counts[d.id] ?? 0 })));
     setLoading(false);
   }, []);
 
@@ -158,7 +147,7 @@ export default function DepartmentsPage() {
       toast.error(
         error.message.includes('duplicate')
           ? 'Já existe um departamento com esse nome ou identificador'
-          : 'Erro ao salvar departamento',
+          : 'Erro ao salvar departamento'
       );
       return;
     }
@@ -186,27 +175,27 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-5xl">
-      <header className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+    <div className="container mx-auto max-w-5xl p-6">
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-primary" aria-hidden="true" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
+            <Building2 className="h-6 w-6 text-primary" aria-hidden="true" />
             Departamentos
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Organize sua equipe em departamentos. Supervisores enxergam apenas conversas
-            e contatos do próprio departamento.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Organize sua equipe em departamentos. Supervisores enxergam apenas conversas e contatos
+            do próprio departamento.
           </p>
         </div>
         <Button onClick={openCreate} className="gap-2">
-          <Plus className="w-4 h-4" aria-hidden="true" />
+          <Plus className="h-4 w-4" aria-hidden="true" />
           Novo departamento
         </Button>
       </header>
 
       {loading ? (
         <div className="flex items-center justify-center py-16" role="status">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" aria-hidden="true" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
           <span className="sr-only">Carregando departamentos…</span>
         </div>
       ) : departments.length === 0 ? (
@@ -220,7 +209,7 @@ export default function DepartmentsPage() {
           {departments.map((dept) => (
             <Card key={dept.id} className={dept.is_active ? '' : 'opacity-60'}>
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 text-lg">
                       {dept.name}
@@ -231,12 +220,9 @@ export default function DepartmentsPage() {
                       )}
                     </CardTitle>
                     <CardDescription className="flex items-center gap-2">
-                      <code className="text-xs px-1.5 py-0.5 rounded bg-muted">
-                        {dept.slug}
-                      </code>
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{dept.slug}</code>
                       <span className="text-xs">
-                        {dept.member_count ?? 0}{' '}
-                        {dept.member_count === 1 ? 'membro' : 'membros'}
+                        {dept.member_count ?? 0} {dept.member_count === 1 ? 'membro' : 'membros'}
                       </span>
                     </CardDescription>
                   </div>
@@ -247,7 +233,7 @@ export default function DepartmentsPage() {
                       onClick={() => openEdit(dept)}
                       aria-label={`Editar ${dept.name}`}
                     >
-                      <Pencil className="w-4 h-4" aria-hidden="true" />
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -256,7 +242,7 @@ export default function DepartmentsPage() {
                       aria-label={`Remover ${dept.name}`}
                       className="text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
@@ -275,9 +261,7 @@ export default function DepartmentsPage() {
       <Dialog open={showDialog} onOpenChange={(o) => !o && resetForm()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingId ? 'Editar departamento' : 'Novo departamento'}
-            </DialogTitle>
+            <DialogTitle>{editingId ? 'Editar departamento' : 'Novo departamento'}</DialogTitle>
             <DialogDescription>
               Departamentos limitam o que cada supervisor enxerga no inbox e no CRM.
             </DialogDescription>
@@ -347,7 +331,7 @@ export default function DepartmentsPage() {
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" aria-hidden="true" />}
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
               Salvar
             </Button>
           </DialogFooter>
@@ -360,9 +344,9 @@ export default function DepartmentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover departamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover o departamento{' '}
-              <strong>{toDelete?.name}</strong>? Os usuários atualmente vinculados ficarão
-              sem departamento e essa ação não pode ser desfeita.
+              Tem certeza que deseja remover o departamento <strong>{toDelete?.name}</strong>? Os
+              usuários atualmente vinculados ficarão sem departamento e essa ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -372,7 +356,7 @@ export default function DepartmentsPage() {
               disabled={saving}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" aria-hidden="true" />}
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
               Remover
             </AlertDialogAction>
           </AlertDialogFooter>

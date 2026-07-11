@@ -43,27 +43,6 @@ type StickerRecord = {
   uploaded_by?: string;
   image_url?: string;
 };
-type AudioMemeRecord = {
-  id?: string;
-  name?: string;
-  category?: string;
-  is_favorite?: boolean;
-  use_count?: number;
-  created_at?: string;
-  uploaded_by?: string;
-  audio_url?: string;
-  duration_seconds?: number;
-};
-type EmojiRecord = {
-  id?: string;
-  name?: string;
-  category?: string;
-  is_favorite?: boolean;
-  use_count?: number;
-  created_at?: string;
-  uploaded_by?: string;
-  image_url?: string;
-};
 
 let counter = 0;
 function makeSticker(overrides: Partial<StickerRecord> = {}) {
@@ -77,37 +56,6 @@ function makeSticker(overrides: Partial<StickerRecord> = {}) {
     created_at: '2025-01-01T00:00:00Z',
     uploaded_by: 'user-1',
     image_url: 'https://storage.example.com/stickers/test.webp',
-    ...overrides,
-  };
-}
-
-function makeAudioMeme(overrides: Partial<AudioMemeRecord> = {}) {
-  counter++;
-  return {
-    id: overrides.id || `audio-${counter}`,
-    name: 'Test Audio',
-    category: 'risada',
-    is_favorite: false,
-    use_count: 5,
-    created_at: '2025-01-01T00:00:00Z',
-    uploaded_by: 'user-1',
-    audio_url: 'https://storage.example.com/audio-memes/test.mp3',
-    duration_seconds: 3,
-    ...overrides,
-  };
-}
-
-function makeEmoji(overrides: Partial<EmojiRecord> = {}) {
-  counter++;
-  return {
-    id: overrides.id || `emoji-${counter}`,
-    name: 'Test Emoji',
-    category: 'riso',
-    is_favorite: false,
-    use_count: 2,
-    created_at: '2025-01-01T00:00:00Z',
-    uploaded_by: 'user-1',
-    image_url: 'https://storage.example.com/custom-emojis/test.png',
     ...overrides,
   };
 }
@@ -208,7 +156,7 @@ describe('MediaLibraryAdmin', () => {
 
   describe('Data Loading', () => {
     it('fetches stickers table on mount', async () => {
-      const chain = setupSupabaseQuery([]);
+      setupSupabaseQuery([]);
       render(<MediaLibraryAdmin />);
       await waitFor(() => {
         expect(mockFrom).toHaveBeenCalledWith('stickers');
@@ -1795,7 +1743,6 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
 
   describe('Selection Clearing', () => {
     it('new Set() clears all selections', () => {
-      const selected = new Set(['a', 'b', 'c']);
       const cleared = new Set<string>();
       expect(cleared.size).toBe(0);
     });
@@ -1803,7 +1750,6 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     it('filter change should reset selection', () => {
       // Simulates the useEffect behavior
       let selected = new Set(['a', 'b']);
-      const filterCategory = 'riso';
       // When filter changes, selection is cleared
       selected = new Set();
       expect(selected.size).toBe(0);

@@ -38,7 +38,7 @@ export default function ForgotPassword() {
     try {
       // First, find the user by email
       // We need to create a reset request instead of directly sending
-      const { data: existingUser, error: userError } = await supabase
+      const { data: existingUser } = await supabase
         .from('profiles')
         .select('user_id')
         .eq('email', email)
@@ -52,15 +52,13 @@ export default function ForgotPassword() {
       }
 
       // Create password reset request
-      const { error: insertError } = await supabase
-        .from('password_reset_requests')
-        .insert({
-          user_id: existingUser.user_id,
-          email,
-          reason: reason || null,
-          ip_address: null, // Could get from an API if needed
-          user_agent: navigator.userAgent,
-        });
+      const { error: insertError } = await supabase.from('password_reset_requests').insert({
+        user_id: existingUser.user_id,
+        email,
+        reason: reason || null,
+        ip_address: null, // Could get from an API if needed
+        user_agent: navigator.userAgent,
+      });
 
       if (insertError) throw insertError;
 
@@ -77,7 +75,7 @@ export default function ForgotPassword() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -89,9 +87,9 @@ export default function ForgotPassword() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring' }}
-                className="mx-auto mb-4 w-16 h-16 bg-warning/10 dark:bg-warning/20 rounded-full flex items-center justify-center"
+                className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-warning/10 dark:bg-warning/20"
               >
-                <Clock className="w-8 h-8 text-warning dark:text-warning" />
+                <Clock className="h-8 w-8 text-warning dark:text-warning" />
               </motion.div>
               <CardTitle>Solicitação Enviada!</CardTitle>
               <CardDescription>
@@ -99,20 +97,20 @@ export default function ForgotPassword() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-muted text-sm space-y-2">
+              <div className="space-y-2 rounded-lg bg-muted p-4 text-sm">
                 <p className="font-medium">Próximos passos:</p>
-                <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                <ol className="list-inside list-decimal space-y-1 text-muted-foreground">
                   <li>Um administrador irá analisar sua solicitação</li>
                   <li>Você receberá um email quando for aprovada</li>
                   <li>Use o link do email para redefinir sua senha</li>
                 </ol>
               </div>
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="text-center text-xs text-muted-foreground">
                 Este processo pode levar alguns minutos. Verifique seu email regularmente.
               </p>
               <Button variant="outline" className="w-full" asChild>
                 <Link to="/auth">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="mr-2 h-4 w-4" />
                   Voltar para login
                 </Link>
               </Button>
@@ -124,7 +122,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -133,8 +131,8 @@ export default function ForgotPassword() {
       >
         <Card>
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Mail className="w-6 h-6 text-primary" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Mail className="h-6 w-6 text-primary" />
             </div>
             <CardTitle>Esqueceu sua senha?</CardTitle>
             <CardDescription>
@@ -184,7 +182,7 @@ export default function ForgotPassword() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Enviando...
                   </>
                 ) : (
@@ -194,7 +192,7 @@ export default function ForgotPassword() {
 
               <Button variant="ghost" className="w-full" asChild>
                 <Link to="/auth">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="mr-2 h-4 w-4" />
                   Voltar para login
                 </Link>
               </Button>
