@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-const mockToast = vi.hoisted(() => vi.fn()).mockReturnValue({ id: 'toast-1', dismiss: vi.fn(), update: vi.fn() });
+const mockToast = vi.hoisted(() => vi.fn());
 
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
@@ -12,6 +12,7 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 describe('useActionFeedback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockToast.mockReturnValue({ id: 'toast-1', dismiss: vi.fn(), update: vi.fn() });
   });
 
   it('initializes without error', () => {

@@ -16,7 +16,7 @@ const mockChannelInstance = {
   }),
 };
 
-const mockChannel = vi.fn(() => mockChannelInstance);
+const mockChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -176,6 +176,7 @@ function makeMessagesQuery() {
 describe('useRealtimeMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockChannel.mockImplementation(() => mockChannelInstance);
     seededContacts = [];
     recentMessages = [];
     contactsById = {};

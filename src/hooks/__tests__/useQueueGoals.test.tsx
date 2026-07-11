@@ -2,10 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
 const mockFrom = vi.hoisted(() => vi.fn());
-const mockChannel = vi.hoisted(() => vi.fn()).mockReturnValue({
-  on: vi.fn().mockReturnThis(),
-  subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-});
+const mockChannel = vi.hoisted(() => vi.fn());
 const mockRemoveChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -51,6 +48,10 @@ describe('useQueueGoals', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockResolvedValue({ data: mockGoals, error: null }),
       upsert: vi.fn().mockResolvedValue({ error: null }),
+    });
+    mockChannel.mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
     });
   });
 

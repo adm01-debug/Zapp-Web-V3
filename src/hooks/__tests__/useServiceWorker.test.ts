@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 
 vi.mock('@/lib/logger');
 
-const mockUnregister = vi.hoisted(() => vi.fn()).mockResolvedValue(true);
+const mockUnregister = vi.hoisted(() => vi.fn());
 const mockCaches = {
   keys: vi.fn().mockResolvedValue([]),
   delete: vi.fn().mockResolvedValue(true),
@@ -19,6 +19,7 @@ const mockRegistration = {
 describe('useServiceWorker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUnregister.mockResolvedValue(true);
     vi.useFakeTimers();
     sessionStorage.clear();
 
