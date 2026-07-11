@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { normalizeMediaUrl } from '@/utils/normalizeMediaUrl';
 import { toast } from 'sonner';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
@@ -64,11 +65,10 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
       // FALHA 9 FIX: Try evolution_contacts first, fallback to contacts
       let connectionId: string | null = null;
 
-      const { data: evoContact } = await (supabase as any)
-        .from('evolution_contacts')
-        .select('whatsapp_connection_id')
-        .eq('id', contactId)
-        .maybeSingle();
+      const { data: evoRows } = await safeClient.from('evolution_contacts', (q) =>
+        q.select('whatsapp_connection_id').eq('id', contactId).limit(1)
+      );
+      const evoContact = evoRows?.[0] ?? null;
 
       if (evoContact?.whatsapp_connection_id) {
         connectionId = evoContact.whatsapp_connection_id;
