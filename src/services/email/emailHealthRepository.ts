@@ -7,7 +7,7 @@ const log = getLogger('EmailHealthRepository');
 export class EmailHealthRepository {
   async getRemoteSummary() {
     try {
-      const { data, error } = await safeClient.rpc('rpc_get_email_health_summary');
+      const { data, error } = await safeClient.rpc<{ status: string; last_validation: string | null }>('rpc_get_email_health_summary');
       if (error) throw error;
       return data;
     } catch (err) {

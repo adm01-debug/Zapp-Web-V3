@@ -32,7 +32,8 @@ describe('safeClient Masking', () => {
       normalField: 'visible'
     };
 
-    const masked = safeClient.maskSensitiveData(sensitiveData);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const masked = safeClient.maskSensitiveData(sensitiveData) as Record<string, any>;
 
     expect(masked.token).toBe('***MASKED***');
     expect(masked.apiKey).toBe('***MASKED***');

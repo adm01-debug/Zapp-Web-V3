@@ -47,7 +47,8 @@ let _healthLogInProgress = false;
 export const safeClient = {
   async from<T = unknown>(
     table: string,
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => ReturnType<typeof supabase.from>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryBuilder: (query: ReturnType<typeof supabase.from>) => any
   ): Promise<SafeResponse<T[]>> {
     const requestId = Math.random().toString(36).substring(7);
     stats.totalCalls++;
@@ -79,7 +80,8 @@ export const safeClient = {
 
   async single<T = unknown>(
     table: string,
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => ReturnType<typeof supabase.from>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryBuilder: (query: ReturnType<typeof supabase.from>) => any
   ): Promise<SafeResponse<T>> {
     const requestId = Math.random().toString(36).substring(7);
     stats.totalCalls++;
@@ -219,7 +221,8 @@ export const safeClient = {
       else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
       // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
-      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)('rpc_update_email_health_state', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.rpc as unknown as (name: string, params?: unknown) => Promise<unknown>)('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: telemetry.recentFailures.length,
         p_metadata: {
@@ -254,7 +257,8 @@ export const safeClient = {
       }
       return data;
     }
-    const masked: Record<string, unknown> = Array.isArray(data)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const masked: any = Array.isArray(data)
       ? [...(data as unknown[])]
       : { ...(data as Record<string, unknown>) };
     for (const key in masked) {
@@ -314,7 +318,8 @@ export const safeClient = {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
-      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)('rpc_log_email_health', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.rpc as unknown as (name: string, params?: unknown) => Promise<unknown>)('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,
