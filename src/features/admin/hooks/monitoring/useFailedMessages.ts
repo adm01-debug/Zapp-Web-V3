@@ -14,6 +14,17 @@ import {
 
 const log = getLogger('useFailedMessages');
 
+// Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
+const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
+  (
+    supabase as unknown as {
+      rpc: (
+        fn: string,
+        args?: Record<string, unknown>
+      ) => Promise<{ data: T; error: Error | null }>;
+    }
+  ).rpc(fn, args);
+
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
 
 export type FailedMessageStatus = 'pending' | 'retrying' | 'succeeded' | 'abandoned';
@@ -126,7 +137,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         }
         throw error;
       }
-      const list = (data ?? []) as any[];
+      const list = (data ?? []) as _RpcRow[];
       const filtered = list.filter((r) => {
         if (errorCode) {
           const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');
@@ -308,7 +319,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_reason: reason,
       });
       if (error) throw error;
-      const affected = (data as any) ?? 0;
+      const affected = (data as number | null) ?? 0;
       if (affected > 0) await logItemAction('bulk_abandon', ids, reason);
       return affected;
     },
@@ -324,7 +335,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const triggerReprocess = useMutation({
     mutationFn: async () => {
       try {
-        await supabase.rpc('rpc_dlq_log_reprocess_trigger' as any, { p_source: 'panel' });
+        await _rpc('rpc_dlq_log_reprocess_trigger', { p_source: 'panel' });
       } catch (logErr) {
         log.warn('Failed to log reprocess trigger', {
           error: logErr instanceof Error ? logErr.message : String(logErr),
@@ -345,7 +356,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     onSuccess: async (data) => {
       const processed = data?.processed ?? 0;
       try {
-        await supabase.rpc('rpc_dlq_log_reprocess_result' as any, {
+        await _rpc('rpc_dlq_log_reprocess_result', {
           p_processed: processed,
           p_succeeded: data?.succeeded ?? 0,
           p_failed: data?.failed ?? 0,
@@ -400,7 +411,7 @@ export function useFailedMessagesStats() {
   return useQuery<DlqStats>({
     queryKey: ['failed-messages-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_dlq_stats' as any);
+      const { data, error } = await _rpc<DlqStats>('rpc_dlq_stats');
       if (error) throw error;
       return (data ?? {
         total: 0,

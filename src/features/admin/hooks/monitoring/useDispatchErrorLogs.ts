@@ -67,7 +67,7 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
         p_offset: page * pageSize,
       });
       if (error) throw error;
-      const list = (data ?? []) as any[];
+      const list = (data ?? []) as _RpcRow[];
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: DispatchErrorLogRow[] = list.map(
         ({ total_count: _t, ...rest }) => rest as DispatchErrorLogRow

@@ -16,6 +16,17 @@ interface WarRoomAlert {
   created_at: string;
 }
 
+function isWarRoomAlert(value: unknown): value is WarRoomAlert {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v['id'] === 'string' &&
+    typeof v['alert_type'] === 'string' &&
+    typeof v['title'] === 'string' &&
+    typeof v['message'] === 'string'
+  );
+}
+
 export function useWarRoomAlerts(soundEnabled = true) {
   const queryClient = useQueryClient();
   const { showNotification, permission } = usePushNotifications();
@@ -73,7 +84,11 @@ export function useWarRoomAlerts(soundEnabled = true) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'warroom_alerts' },
         (payload) => {
-          const alert = payload.new as WarRoomAlert;
+          if (!isWarRoomAlert(payload.new)) {
+            log.warn('[useWarRoomAlerts] received malformed realtime payload', payload.new);
+            return;
+          }
+          const alert: WarRoomAlert = payload.new;
           queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
 
           // Play sound
