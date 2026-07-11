@@ -72,8 +72,8 @@ services:
         exec node dist/main.patched.js 2>/dev/null || exec node dist/main.js
 
     environment:
-      # FIX R10: AUTHENTICATION_API_KEY no Spec.Env para sobreviver rollbacks do swarm-task-guardian
-      - AUTHENTICATION_API_KEY=2D10188F28DD94ACD5D18DFDB01BFB07
+      # R11: AUTHENTICATION_API_KEY removida do Spec.Env — carregada via Docker secret no entrypoint
+      # (secret: evolution_api_key_v4_20260704 — rotacionar conforme git-secrets-rotation.md)
       - SERVER_URL=https://evolution.atomicabr.com.br
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false
       - DEL_INSTANCE=false

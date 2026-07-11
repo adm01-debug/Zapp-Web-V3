@@ -95,14 +95,15 @@ https://zapp-web-v3.vercel.app
 
 - `AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false` ✅
 - T4 logpatch: api_key mascarada nos logs ✅
-- Vault: `evolution_api_key = 2D10188F...` ✅
+- Vault: `evolution_api_key` (rotacionar após exposure em histórico git) ✅
 - RLS: 100% das tabelas evo/zapp/ops ✅
 - 9 tabelas sem PK receberam REPLICA IDENTITY FULL (sessão 8) ✅
 - Caller B 52.67.175.207: cron de detecção de 401 burst `/15min` ativo ✅
-- **`AUTHENTICATION_API_KEY`** adicionado ao `environment:` do stack (Spec.Env permanente) ✅ **R10**
-  - Sobrevive rollbacks do `swarm-task-guardian`
-  - `tr -d` no entrypoint elimina trailing newline (era len=33, agora len=32)
+- **`AUTHENTICATION_API_KEY`** carregada exclusivamente via Docker secret `evolution_api_key_v4_20260704` ✅ **R10+R11**
+  - Removida do Spec.Env (não exposta em `docker service inspect`)
+  - Entrypoint: `cat /run/secrets/evolution_api_key_v4_20260704 | tr -d '\n\r'`
   - Verificado: `len=32, md5=bfe43784..., no_newline=true, auth_test=state:open`
+  - ⚠️ Rotação pendente (valor exposto em histórico git — ver `git-secrets-rotation.md`)
 - `fn_security_surface_audit v3`: `truly_dangerous` substitui `anon_execute>0` ✅ **R9**
 - `fn_guardrails_check v2`: sábado corrigido (BETWEEN 1-6 → 1-5) ✅ **R9**
 - `fn_health_preflight`: 15 checks críticos em 1 chamada, all_green=true ✅ **R9**
@@ -122,7 +123,7 @@ https://zapp-web-v3.vercel.app
 | **E1b alternate-exchange** | ✅ LINKED |
 | **Consumer max_attempts=0** | ✅ consumer-prebuilt:v2 |
 | start_period 90→120s | ⏳ próximo MW |
-| **AUTHENTICATION_API_KEY permanente** | ✅ **R10** — Spec.Env + tr-d (len=32, state:open) |
+| **AUTHENTICATION_API_KEY via secret** | ✅ **R11** — secret-only (Spec.Env limpo), tr-d (len=32, state:open) |
 | **fn_health_preflight 15/15** | ✅ **R9** — all_green=true |
 | **fn_guardrails_check v2** | ✅ **R9** — sábado (DOW BETWEEN 1-5) |
 | **fn_security_surface_audit v3** | ✅ **R9** — truly_dangerous |
@@ -146,7 +147,8 @@ https://zapp-web-v3.vercel.app
 ```
 Documento: docs/infra/evolution-stack.reconciled.yml
 Stack Portainer id=25 atualizado em 2026-07-11 via portainer_update_stack:
-  1. AUTHENTICATION_API_KEY=2D10188F28DD94ACD5D18DFDB01BFB07 em environment: (Spec.Env permanente)
+  1. AUTHENTICATION_API_KEY=[REDACTED — rotacionar chave] carregada via Docker secret
+     (removida do Spec.Env em R11 para eliminar exposição via docker service inspect)
   2. tr -d '\n\r' em todos os cat /run/secrets/* (era len=33, agora len=32)
 
 Verificação container 0c9e3cd35f07:
