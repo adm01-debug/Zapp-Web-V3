@@ -34,7 +34,7 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
     <div className="h-full flex flex-col gap-4 md:gap-6 p-4 md:p-6 overflow-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0"><ArrowLeft className="w-5 h-5" /></Button>
+        <Button aria-label="Voltar" variant="ghost" size="icon" onClick={onClose} className="shrink-0"><ArrowLeft className="w-5 h-5" /></Button>
         <div className="flex-1 min-w-0">
           <h2 className="text-lg md:text-xl font-bold font-display text-foreground truncate">{campaign ? 'Editar Campanha' : 'Nova Campanha Talk X'}</h2>
           <p className="text-xs md:text-sm text-muted-foreground">Configure mensagem, contatos e simulação</p>

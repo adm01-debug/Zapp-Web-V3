@@ -120,7 +120,7 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
                         <GripVertical className="w-4 h-4 text-muted-foreground" />
                         <Badge variant="secondary" className="gap-1">{getButtonTypeIcon(button.type)}{getButtonTypeLabel(button.type)}</Badge>
                       </div>
-                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeButton(index)}>
+                      <Button aria-label="Remover botão" type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeButton(index)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -173,7 +173,7 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
                             {section.title && <span className="text-sm text-muted-foreground truncate max-w-[150px]">{section.title}</span>}
                             <Badge variant="secondary" className="text-[10px]">{section.rows.length} {section.rows.length === 1 ? 'item' : 'itens'}</Badge>
                           </div>
-                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeSection(sectionIndex); }}>
+                          <Button aria-label="Remover seção" type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeSection(sectionIndex); }}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </CollapsibleTrigger>

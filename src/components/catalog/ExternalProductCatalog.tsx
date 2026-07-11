@@ -160,7 +160,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
                 className="pl-9"
               />
               {search && (
-                <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch('')}>
+                <Button aria-label="Limpar busca" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch('')}>
                   <X className="w-4 h-4" />
                 </Button>
               )}
@@ -206,10 +206,10 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
             </div>
 
             <div className="flex border rounded-md">
-              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setViewMode('grid')}>
+              <Button aria-label="Visualização em grade" variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setViewMode('grid')}>
                 <Grid3X3 className="w-4 h-4" />
               </Button>
-              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="rounded-l-none" onClick={() => setViewMode('list')}>
+              <Button aria-label="Visualização em lista" variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="rounded-l-none" onClick={() => setViewMode('list')}>
                 <List className="w-4 h-4" />
               </Button>
             </div>
