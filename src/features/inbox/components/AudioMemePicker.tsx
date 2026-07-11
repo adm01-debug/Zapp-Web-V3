@@ -22,10 +22,15 @@ import {
   Check,
   ChevronDown,
 } from 'lucide-react';
-import { useAudioMemes, formatDuration, type PendingUpload } from '@/hooks/useAudioMemes';
+import {
+  useAudioMemes,
+  formatDuration,
+  type PendingUpload,
+  type AudioMemeItem,
+} from '@/hooks/useAudioMemes';
 
 interface AudioMemePickerProps {
-  onSendAudioMeme: (meme: any) => void;
+  onSendAudioMeme: (meme: AudioMemeItem) => void;
   disabled?: boolean;
 }
 
@@ -401,7 +406,6 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
                         )
                       }
                     >
-                      ,search:
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
