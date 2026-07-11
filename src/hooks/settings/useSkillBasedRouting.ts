@@ -32,11 +32,12 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
   const { data: profiles = [] } = useQuery<Profile[]>({
     queryKey: ['skill-routing-profiles'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('id, name')
         .eq('is_active', true)
         .order('name');
+      if (error) throw error;
       return (data ?? []) as Profile[];
     },
   });
@@ -44,9 +45,10 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
   const { data: queues = [] } = useQuery<Queue[]>({
     queryKey: ['skill-routing-queues'],
     queryFn: async () => {
-      const { data } = await safeClient.from<Queue>('queues', (q) =>
+      const { data, error } = await safeClient.from<Queue>('queues', (q) =>
         q.select('id, name, color').order('name')
       );
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -98,8 +100,8 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['agent-skills', selectedProfile] });
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['agent-skills', variables.profileId] });
     },
     onError: () => {
       toast({ title: 'Erro ao adicionar skill', variant: 'destructive' });
@@ -112,7 +114,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['agent-skills', selectedProfile] });
+      void queryClient.invalidateQueries({ queryKey: ['agent-skills'] });
     },
     onError: () => {
       toast({ title: 'Erro ao remover skill', variant: 'destructive' });
@@ -136,8 +138,10 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['queue-skill-requirements', selectedQueue] });
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: ['queue-skill-requirements', variables.queueId],
+      });
     },
     onError: () => {
       toast({ title: 'Erro ao adicionar requisito', variant: 'destructive' });
@@ -150,7 +154,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['queue-skill-requirements', selectedQueue] });
+      void queryClient.invalidateQueries({ queryKey: ['queue-skill-requirements'] });
     },
     onError: () => {
       toast({ title: 'Erro ao remover requisito', variant: 'destructive' });
