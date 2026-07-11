@@ -355,7 +355,7 @@ export function ConnectionsView() {
 
       <BusinessHoursDialog open={businessHoursDialog.open} onOpenChange={(open) => setBusinessHoursDialog(prev => ({ ...prev, open }))} connectionId={businessHoursDialog.connectionId} connectionName={businessHoursDialog.connectionName} />
       <ConnectionQueuesDialog open={queuesDialog.open} onOpenChange={(open) => setQueuesDialog(prev => ({ ...prev, open }))} connectionId={queuesDialog.connectionId} connectionName={queuesDialog.connectionName} />
-      <InstanceSettingsDialog open={settingsDialog.open} onOpenChange={(open) => setSettingsDialog(prev => ({ ...prev, open }))} instanceName={settingsDialog.instanceName} connectionName={settingsDialog.connectionName} connectionId={connections.find(c => c.instance_id === settingsDialog.instanceName)?.id} />
+      <InstanceSettingsDialog open={settingsDialog.open} onOpenChange={(open) => setSettingsDialog(prev => ({ ...prev, open }))} instanceName={settingsDialog.instanceName} connectionName={settingsDialog.connectionName} connectionId={connections.find(c => c.instance_name === settingsDialog.instanceName || c.instance_id === settingsDialog.instanceName)?.id} />
       <IntegrationsPanel open={integrationsDialog.open} onOpenChange={(open) => setIntegrationsDialog(prev => ({ ...prev, open }))} instanceName={integrationsDialog.instanceName} connectionName={integrationsDialog.connectionName} />
       <NumberReputationMonitor />
     </div>
