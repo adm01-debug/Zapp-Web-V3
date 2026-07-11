@@ -232,7 +232,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                       value={f.value}
                       onChange={(e) => updateFilter(i, { value: e.target.value })}
                     />
-                    <Button variant="ghost" size="icon" onClick={() => removeFilter(i)}>
+                    <Button aria-label="Remover filtro" variant="ghost" size="icon" onClick={() => removeFilter(i)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

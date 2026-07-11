@@ -175,7 +175,7 @@ export function TourOverlay() {
                   Passo {currentStep + 1} de {steps.length}
                 </span>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1" onClick={endTour}>
+              <Button aria-label="Encerrar tour" variant="ghost" size="icon" className="h-7 w-7 -mr-1" onClick={endTour}>
                 <X className="w-4 h-4" />
               </Button>
             </div>

@@ -116,7 +116,7 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
             {activeTab === 'custom' && (
               <div className="flex items-center gap-1">
                 <input ref={fileInputRef} type="file" accept="image/png,image/webp,image/gif,image/jpeg,image/svg+xml" className="hidden" onChange={handleFileSelect} />
-                <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary" onClick={() => fileInputRef.current?.click()} disabled={uploading || !!pendingUpload} title="Adicionar emoji">
+                <Button aria-label="Adicionar emoji" variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary" onClick={() => fileInputRef.current?.click()} disabled={uploading || !!pendingUpload}>
                   {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 </Button>
               </div>

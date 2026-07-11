@@ -90,10 +90,10 @@ export function ThemeDebugger() {
           </span>
         </h3>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={refreshTokens}>
+          <Button aria-label="Atualizar tokens" variant="ghost" size="icon" className="h-6 w-6" onClick={refreshTokens}>
             <RefreshCw className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsOpen(false)}>
+          <Button aria-label="Fechar depurador de tema" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsOpen(false)}>
             <X className="h-3 w-3" />
           </Button>
         </div>

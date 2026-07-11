@@ -60,10 +60,10 @@ function EditableField({ value, icon, onSave, placeholder, label }: EditableFiel
           disabled={saving}
           placeholder={placeholder}
         />
-        <Button variant="ghost" size="icon" className="w-6 h-6 text-primary hover:bg-primary/10" onClick={handleSave} disabled={saving}>
+        <Button aria-label="Salvar" variant="ghost" size="icon" className="w-6 h-6 text-primary hover:bg-primary/10" onClick={handleSave} disabled={saving}>
           <Check className="w-3 h-3" />
         </Button>
-        <Button variant="ghost" size="icon" className="w-6 h-6 text-destructive hover:bg-destructive/10" onClick={() => { setDraft(value); setEditing(false); }}>
+        <Button aria-label="Cancelar edição" variant="ghost" size="icon" className="w-6 h-6 text-destructive hover:bg-destructive/10" onClick={() => { setDraft(value); setEditing(false); }}>
           <X className="w-3 h-3" />
         </Button>
       </div>
@@ -90,7 +90,7 @@ function EditableField({ value, icon, onSave, placeholder, label }: EditableFiel
         <span className="text-primary shrink-0">{icon}</span>
         <span className="text-foreground truncate">{value}</span>
       </div>
-      <Button variant="ghost" size="icon" className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditing(true)}>
+      <Button aria-label={`Editar ${label}`} variant="ghost" size="icon" className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditing(true)}>
         <Pencil className="w-3 h-3 text-muted-foreground" />
       </Button>
     </div>

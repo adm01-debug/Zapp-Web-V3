@@ -301,10 +301,10 @@ export default function AdminQueuesPage() {
                     <Button size="sm" variant="outline" onClick={() => setMemberDialog(q)}>
                       <Users className="mr-1 h-4 w-4" /> Membros & Canais
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditing(q)}>
+                    <Button aria-label="Editar fila" size="icon" variant="ghost" onClick={() => setEditing(q)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => void remove(q.id)}>
+                    <Button aria-label="Excluir fila" size="icon" variant="ghost" onClick={() => void remove(q.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -383,7 +383,7 @@ export default function AdminQueuesPage() {
                         className="flex items-center justify-between rounded bg-muted/30 px-3 py-2"
                       >
                         <span>{m.profile?.name ?? m.profile_id}</span>
-                        <Button size="icon" variant="ghost" onClick={() => void removeMember(m.id)}>
+                        <Button aria-label="Remover membro da fila" size="icon" variant="ghost" onClick={() => void removeMember(m.id)}>
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -503,7 +503,7 @@ export default function AdminQueuesPage() {
                             nível ≥ {s.min_level}
                           </Badge>
                         </span>
-                        <Button size="icon" variant="ghost" onClick={() => void removeSkill(s.id)}>
+                        <Button aria-label="Remover habilidade da fila" size="icon" variant="ghost" onClick={() => void removeSkill(s.id)}>
                           <X className="h-4 w-4" />
                         </Button>
                       </div>

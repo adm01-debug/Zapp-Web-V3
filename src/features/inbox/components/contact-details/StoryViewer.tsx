@@ -144,7 +144,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
           </div>
           <div className="flex items-center gap-1">
             <span className="text-[10px] text-foreground/40 mr-2">{index + 1}/{messages.length}</span>
-            <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 text-foreground/70 hover:text-foreground hover:bg-background/10"><X className="w-4 h-4" /></Button>
+            <Button aria-label="Fechar visualizador de status" variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 text-foreground/70 hover:text-foreground hover:bg-background/10"><X className="w-4 h-4" /></Button>
           </div>
         </div>
 

@@ -269,7 +269,7 @@ export default function AdminWhatsAppModePage() {
               <Label>Callback URL do Webhook</Label>
               <div className="flex gap-2">
                 <Input readOnly value={webhookUrl} className="text-xs" />
-                <Button variant="outline" size="icon" onClick={() => copy(webhookUrl)}>
+                <Button aria-label="Copiar URL do webhook" variant="outline" size="icon" onClick={() => copy(webhookUrl)}>
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>

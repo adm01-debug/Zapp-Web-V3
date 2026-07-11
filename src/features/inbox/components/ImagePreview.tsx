@@ -78,7 +78,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(functi
           </Button>
         </motion.div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="secondary" size="icon" onClick={onClose}>
+          <Button aria-label="Fechar pré-visualização" variant="secondary" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </motion.div>

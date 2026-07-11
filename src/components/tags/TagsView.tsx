@@ -268,7 +268,7 @@ export function TagsView() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                            <Button variant="ghost" size="icon" className="w-8 h-8">
+                            <Button aria-label="Opções da tag" variant="ghost" size="icon" className="w-8 h-8">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </motion.div>

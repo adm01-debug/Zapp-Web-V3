@@ -215,6 +215,7 @@ export function IntegrationKeysSection() {
                     className="h-8 bg-muted/30 text-sm"
                   />
                   <Button
+                    aria-label={isVisible ? 'Ocultar chave' : 'Mostrar chave'}
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0"

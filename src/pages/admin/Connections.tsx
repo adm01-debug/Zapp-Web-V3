@@ -652,10 +652,11 @@ export default function AdminConnectionsPage() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button aria-label="Configurações da conexão" variant="ghost" size="icon" className="h-8 w-8">
                                 <Settings className="h-4 w-4" />
                               </Button>
                               <Button
+                                aria-label="Excluir conexão"
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive"
@@ -713,7 +714,7 @@ export default function AdminConnectionsPage() {
                         value="https://allrjhkpuscmgbsnmjlv.supabase.co/functions/v1/mcp-server"
                         className="font-mono text-[10px]"
                       />
-                      <Button size="icon" variant="ghost">
+                      <Button aria-label="Abrir URL do servidor MCP" size="icon" variant="ghost">
                         <ExternalLink className="h-4 w-4" />
                       </Button>
                     </div>

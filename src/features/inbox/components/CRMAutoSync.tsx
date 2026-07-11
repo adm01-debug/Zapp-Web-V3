@@ -172,7 +172,7 @@ export function CRMSyncButton({ conversation, messageCount }: { conversation: Co
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="outline" size="icon" disabled className="w-9 h-9 opacity-50 border-border/30">
+          <Button aria-label="Sincronizar CRM" variant="outline" size="icon" disabled className="w-9 h-9 opacity-50 border-border/30">
             <RefreshCw className="w-4 h-4 text-muted-foreground" />
           </Button>
         </TooltipTrigger>

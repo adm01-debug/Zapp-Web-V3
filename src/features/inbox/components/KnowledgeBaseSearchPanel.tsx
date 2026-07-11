@@ -42,7 +42,7 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
             className="pl-8 pr-8 h-8 text-xs"
           />
           {query && (
-            <Button variant="ghost" size="icon" className="absolute right-0.5 top-0.5 w-7 h-7" onClick={clear}>
+            <Button aria-label="Limpar busca" variant="ghost" size="icon" className="absolute right-0.5 top-0.5 w-7 h-7" onClick={clear}>
               <X className="w-3 h-3" />
             </Button>
           )}

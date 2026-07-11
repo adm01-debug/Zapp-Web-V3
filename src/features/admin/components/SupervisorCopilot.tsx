@@ -122,7 +122,7 @@ Agentes: ${agentData.data?.map((a) => `${a.name} (${a.role})`).join(', ') || 'ne
             className="text-sm"
             onKeyDown={(e) => e.key === 'Enter' && askQuestion()}
           />
-          <Button size="icon" onClick={() => askQuestion()} disabled={loading || !question.trim()}>
+          <Button aria-label="Enviar pergunta" size="icon" onClick={() => askQuestion()} disabled={loading || !question.trim()}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>

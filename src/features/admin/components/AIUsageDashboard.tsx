@@ -70,7 +70,7 @@ export function AIUsageDashboard() {
               <SelectItem value="30d">Últimos 30 dias</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
+          <Button aria-label="Atualizar dados de uso" variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportCSV}>

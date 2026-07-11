@@ -149,7 +149,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10" title="Mais opções de mensagem">
+          <Button aria-label="Mais opções de mensagem" variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10">
             <MoreHorizontal className="w-5 h-5" />
           </Button>
         </PopoverTrigger>
@@ -242,7 +242,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
                     placeholder={`Opção ${i + 1}`}
                   />
                   {pollOptions.length > 2 && (
-                    <Button variant="ghost" size="icon" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}>
+                    <Button aria-label="Remover opção de enquete" variant="ghost" size="icon" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   )}

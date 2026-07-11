@@ -269,10 +269,10 @@ export default function AdminAutomationsPage() {
                   ↓
                 </Button>
                 <Switch checked={r.is_active} onCheckedChange={() => toggleActive(r)} />
-                <Button size="icon" variant="ghost" onClick={() => startEdit(r)}>
+                <Button aria-label="Editar regra" size="icon" variant="ghost" onClick={() => startEdit(r)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => (confirm("Remover esta regra?") && remove(r.id))}>
+                <Button aria-label="Remover regra" size="icon" variant="ghost" onClick={() => (confirm("Remover esta regra?") && remove(r.id))}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>

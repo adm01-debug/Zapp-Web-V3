@@ -331,6 +331,7 @@ function MediaAdminPanel({ type }: { type: MediaType }) {
                             }}
                           />
                           <Button
+                            aria-label="Confirmar renomeação"
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6"
@@ -339,6 +340,7 @@ function MediaAdminPanel({ type }: { type: MediaType }) {
                             <Check className="h-3 w-3" />
                           </Button>
                           <Button
+                            aria-label="Cancelar renomeação"
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6"
@@ -382,6 +384,7 @@ function MediaAdminPanel({ type }: { type: MediaType }) {
                     </div>
                     <div className="flex w-24 items-center justify-end gap-1">
                       <Button
+                        aria-label="Renomear item"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
@@ -394,7 +397,7 @@ function MediaAdminPanel({ type }: { type: MediaType }) {
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Button aria-label="Excluir item" variant="ghost" size="icon" className="h-7 w-7">
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </AlertDialogTrigger>

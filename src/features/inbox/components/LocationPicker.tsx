@@ -86,7 +86,7 @@ export function LocationPicker({ open, onOpenChange, onSend }: LocationPickerPro
             <div className="relative">
               <div ref={mapContainer} className="w-full h-64 bg-muted" />
               {!isMapLoaded && <div className="absolute inset-0 flex items-center justify-center bg-muted"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}
-              <Button size="icon" variant="secondary" className="absolute bottom-3 right-3 shadow-lg" onClick={getCurrentLocation} disabled={isLoadingLocation}>
+              <Button aria-label="Usar localização atual" size="icon" variant="secondary" className="absolute bottom-3 right-3 shadow-lg" onClick={getCurrentLocation} disabled={isLoadingLocation}>
                 {isLoadingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />}
               </Button>
             </div>

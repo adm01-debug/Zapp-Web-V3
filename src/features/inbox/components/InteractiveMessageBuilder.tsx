@@ -199,7 +199,7 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
                                         <Input placeholder="Título do item (máx. 24)" value={row.title} onChange={(e) => updateRow(sectionIndex, rowIndex, { title: e.target.value })} maxLength={24} className="h-8 text-sm" />
                                         <Input placeholder="Descrição (opcional, máx. 72)" value={row.description || ''} onChange={(e) => updateRow(sectionIndex, rowIndex, { description: e.target.value })} maxLength={72} className="h-8 text-sm" />
                                       </div>
-                                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive shrink-0" onClick={() => removeRow(sectionIndex, rowIndex)}>
+                                      <Button aria-label="Remover item" type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive shrink-0" onClick={() => removeRow(sectionIndex, rowIndex)}>
                                         <X className="w-3 h-3" />
                                       </Button>
                                     </div>
