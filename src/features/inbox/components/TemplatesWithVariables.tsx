@@ -161,6 +161,7 @@ export function TemplatesWithVariables({ onUseTemplate, contactData }: TemplateW
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
+                        aria-label="Editar template"
                         onClick={() => {
                           setEditingTemplate(template);
                           setEditorOpen(true);
@@ -172,6 +173,7 @@ export function TemplatesWithVariables({ onUseTemplate, contactData }: TemplateW
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
+                        aria-label="Usar template"
                         onClick={() => handleUseTemplate(template)}
                       >
                         <Copy className="h-3 w-3" />

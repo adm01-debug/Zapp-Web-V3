@@ -589,7 +589,8 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should have proper alt text on media', () => {
-      expect(panelSrc).toContain('alt="media"');
+      // Descriptive Portuguese alt text replaces the generic 'media' value
+      expect(panelSrc).toContain("'Imagem da mensagem'");
     });
 
     it('should use semantic HTML roles', () => {

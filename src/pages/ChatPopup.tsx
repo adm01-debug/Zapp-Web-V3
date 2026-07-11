@@ -166,6 +166,7 @@ export default function ChatPopup() {
                   size="icon"
                   className="h-6 w-6 rounded text-muted-foreground hover:text-foreground"
                   onClick={() => window.resizeTo(440, 48)}
+                  aria-label="Minimizar janela"
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
@@ -182,6 +183,7 @@ export default function ChatPopup() {
                   size="icon"
                   className="h-6 w-6 rounded text-muted-foreground hover:text-foreground"
                   onClick={handleToggleMaximize}
+                  aria-label={isMaximized ? 'Restaurar janela' : 'Maximizar janela'}
                 >
                   {isMaximized ? (
                     <Minimize2 className="h-3 w-3" />
@@ -202,6 +204,7 @@ export default function ChatPopup() {
                   size="icon"
                   className="h-6 w-6 rounded text-muted-foreground hover:text-destructive"
                   onClick={handleClose}
+                  aria-label="Fechar janela"
                 >
                   <X className="h-3 w-3" />
                 </Button>

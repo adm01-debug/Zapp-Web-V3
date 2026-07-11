@@ -439,7 +439,7 @@ export default function AdminEmailStatusPage() {
                               className="h-8 w-8"
                               onClick={() => handleAction('rpc_test', failure.requestId)}
                               disabled={isRetrying[failure.requestId]}
-                              title="Tentar RPC novamente"
+                              aria-label="Tentar RPC novamente"
                             >
                               <RefreshCcw
                                 className={`h-3 w-3 ${isRetrying[failure.requestId] ? 'animate-spin' : ''}`}
@@ -457,7 +457,7 @@ export default function AdminEmailStatusPage() {
                                   )
                                 }
                                 disabled={isRetrying[failure.requestId]}
-                                title="Marcar como lido"
+                                aria-label="Marcar como lido"
                               >
                                 <CheckCircle2 className="h-3 w-3" />
                               </Button>

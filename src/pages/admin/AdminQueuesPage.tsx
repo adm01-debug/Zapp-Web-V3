@@ -459,6 +459,7 @@ export default function AdminQueuesPage() {
                           <Button
                             size="icon"
                             variant="ghost"
+                            aria-label="Remover canal da fila"
                             onClick={() => void unlinkChannel(cq.channel_id)}
                           >
                             <X className="h-4 w-4" />

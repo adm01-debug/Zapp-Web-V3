@@ -256,7 +256,7 @@ export default function AdminAutomationsPage() {
                   size="icon"
                   variant="ghost"
                   onClick={() => adjustPriority(r, -10)}
-                  title="Subir"
+                  aria-label="Subir prioridade"
                 >
                   ↑
                 </Button>
@@ -264,7 +264,7 @@ export default function AdminAutomationsPage() {
                   size="icon"
                   variant="ghost"
                   onClick={() => adjustPriority(r, 10)}
-                  title="Descer"
+                  aria-label="Descer prioridade"
                 >
                   ↓
                 </Button>

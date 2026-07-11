@@ -105,6 +105,7 @@ export function CampaignABTesting({ campaignId }: CampaignABTestingProps) {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
+                        aria-label="Excluir variante"
                         onClick={() => deleteVariant(v.id)}
                       >
                         <Trash2 className="h-3 w-3 text-destructive" />

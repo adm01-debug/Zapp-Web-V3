@@ -78,7 +78,7 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
         size="icon"
         onClick={() => setIsOpen(true)}
         className="text-muted-foreground hover:bg-primary/10 hover:text-primary"
-        title="Templates de mensagem"
+        aria-label="Templates de mensagem"
       >
         <FileText className="h-5 w-5" />
       </Button>
@@ -123,6 +123,7 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Fechar formulário de template"
                     onClick={() => {
                       setShowAddForm(false);
                       setEditingTemplate(null);
@@ -214,6 +215,7 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
+                        aria-label="Editar template"
                         onClick={() => setEditingTemplate(template)}
                       >
                         <Edit2 className="h-3 w-3" />
@@ -222,6 +224,7 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive hover:text-destructive"
+                        aria-label="Excluir template"
                         onClick={() => deleteTemplate(template.id)}
                       >
                         <Trash2 className="h-3 w-3" />

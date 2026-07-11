@@ -238,6 +238,7 @@ export function WhisperMode({
               <Button
                 size="icon"
                 className="h-8 w-8 shrink-0 bg-amber-500 text-white hover:bg-amber-600"
+                aria-label="Enviar sussurro"
                 onClick={handleSend}
                 disabled={!message.trim() || sendWhisper.isPending}
               >
