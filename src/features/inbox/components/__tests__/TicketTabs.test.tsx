@@ -44,32 +44,42 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => false
 }));
 
-// Chainable query builder stub — resolves to empty result and forwards any
-// unknown chain method call back to itself via a Proxy, so downstream repos
-// (agentRepository, etc.) don't crash on `.not/.filter/.gte` etc.
-const makeSupabaseStub = () => {
-  const terminal = { data: [] as unknown[], error: null };
-  const handler: ProxyHandler<Record<string, unknown>> = {
-    get(_target, prop) {
-      if (prop === 'then') {
-        return (resolve: (v: typeof terminal) => void) => resolve(terminal);
-      }
+// Chainable Supabase stub — proxy forwards every chained call back to itself
+// and terminates as an empty result, silencing downstream repo fetches.
+vi.mock('@/integrations/supabase/client', () => {
+  const makeStub = () => {
+    const terminal = { data: [] as unknown[], error: null };
+    const proxy: any = new Proxy({}, {
+      get(_t, prop) {
+        if (prop === 'then') return (r: (v: typeof terminal) => void) => r(terminal);
+        if (prop === 'single' || prop === 'maybeSingle') {
+          return () => Promise.resolve({ data: null, error: null });
+        }
+        return () => proxy;
+      },
+    });
+    return {
+      from: () => proxy,
+      rpc: () => Promise.resolve({ data: null, error: null }),
+      auth: { getUser: () => Promise.resolve({ data: { user: null }, error: null }) },
+    };
+  };
+  return { supabase: makeStub() };
+});
+
+vi.mock('@/integrations/datasource/db', () => {
+  const proxy: any = new Proxy({}, {
+    get(_t, prop) {
+      if (prop === 'then') return (r: (v: { data: unknown[]; error: null }) => void) =>
+        r({ data: [], error: null });
       if (prop === 'single' || prop === 'maybeSingle') {
         return () => Promise.resolve({ data: null, error: null });
       }
       return () => proxy;
     },
-  };
-  const proxy: any = new Proxy({}, handler);
-  return {
-    from: vi.fn(() => proxy),
-    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
-  };
-};
-
-vi.mock('@/integrations/supabase/client', () => ({ supabase: makeSupabaseStub() }));
-vi.mock('@/integrations/datasource/db', () => ({ dbFrom: makeSupabaseStub().from }));
+  });
+  return { dbFrom: () => proxy };
+});
 
 describe('TicketTabs - Visibilidade de Escopo', () => {
   beforeEach(() => {
