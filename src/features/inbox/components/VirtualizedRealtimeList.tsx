@@ -1,5 +1,6 @@
 import { useRef, useMemo, memo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import type { VirtualItem } from '@tanstack/react-virtual';
 import { ConversationWithMessages } from '@/features/inbox';
 import { useDensity } from '@/hooks/useDensity';
 import { MOCK_CONVERSATIONS } from './conversation-list/__mocks__/mockConversations';
@@ -41,7 +42,7 @@ const VirtualizedItem = memo(
     onToggleSelection,
     onSelectConversation,
   }: {
-    virtualRow: any;
+    virtualRow: VirtualItem;
     conversation: ConversationWithMessages;
     selectedContactId: string | null;
     selectedIds: Set<string>;

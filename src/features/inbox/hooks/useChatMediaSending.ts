@@ -33,7 +33,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   /** Update message status with error logging and 1 retry */
   const updateMessageStatus = useCallback(
     async (messageId: string, status: string, externalId?: string | null) => {
-      const payload: any = { status };
+      const payload: Record<string, string | null> = { status };
       if (externalId) payload.external_id = externalId;
 
       try {
@@ -295,7 +295,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   );
 
   const handleSendAudioMeme = useCallback(
-    async (meme: any) => {
+    async (meme: { audio_url?: string; id?: string | null } | string) => {
       const inst = await ensureInstance();
       if (!inst) return;
 
