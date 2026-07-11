@@ -210,12 +210,12 @@ export async function sendExternalAudio(
   });
 
   if (convId) {
-    void safeClient.from('conversation_audit_logs', (q) =>
+    void safeClient.from('audit_logs', (q) =>
       q.insert({
-        conversation_id: convId,
-        event_type: 'send_attempt',
-        status: 'starting',
-        metadata: { messageType: 'audio', isPtt: opts.isPtt ?? true },
+        entity_type: 'conversation',
+        entity_id: convId,
+        action: 'send_attempt',
+        details: { status: 'starting', messageType: 'audio', isPtt: opts.isPtt ?? true },
       })
     );
   }
@@ -298,12 +298,12 @@ export async function sendExternalAudio(
   optimistic.status = 'sent';
 
   if (convId) {
-    void safeClient.from('conversation_audit_logs', (q) =>
+    void safeClient.from('audit_logs', (q) =>
       q.insert({
-        conversation_id: convId,
-        event_type: 'delivered',
-        status: 'success',
-        metadata: { external_id: externalId },
+        entity_type: 'conversation',
+        entity_id: convId,
+        action: 'delivered',
+        details: { status: 'success', external_id: externalId },
       })
     );
   }
