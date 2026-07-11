@@ -301,10 +301,8 @@ export function EmailChatReplyBar({
             {/* Template picker */}
             <MessageTemplates
               onSelectTemplate={(content) => {
-                const tmp = document.createElement('div');
-                tmp.innerHTML = bodyHtml;
-                const plainText = tmp.textContent ?? tmp.innerText ?? '';
-                const newContent = plainText ? plainText + '\n\n' + content : content;
+                const el = bodyHtml.replace(/<[^>]*>/g, '');
+                const newContent = el ? el + '\n\n' + content : content;
                 setBody(newContent);
               }}
             />

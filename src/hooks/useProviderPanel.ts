@@ -45,12 +45,14 @@ export function useProviderPanel() {
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchPanel = useCallback(async () => {
     setLoading(true);
-    const [panelResult, logsResult] = await Promise.all([
+    const [{ data: panelData }, { data: logsData }] = await Promise.all([
       safeClient.rpc<ProviderRow[]>('rpc_provider_panel'),
       safeClient.rpc<ProviderLog[]>('rpc_provider_session_timeline', {
         p_provider_id: selectedProviderId,
@@ -59,8 +61,8 @@ export function useProviderPanel() {
       }),
     ]);
     if (!mountedRef.current) return;
-    setRows(panelResult.data ?? []);
-    setLogs(logsResult.data ?? []);
+    setRows(panelData ?? []);
+    setLogs(logsData ?? []);
     setLoading(false);
   }, [selectedProviderId]);
 
@@ -70,8 +72,10 @@ export function useProviderPanel() {
     return () => clearInterval(id);
   }, [fetchPanel]);
 
-  const upsertProvider = async (payload: Partial<ProviderRow> & { id?: string; auth_token?: string }) => {
-    const { id, auth_token, name, provider_type, base_url, priority, is_active } = payload;
+  const upsertProvider = async (
+    payload: Partial<ProviderRow> & { id?: string; auth_token?: string }
+  ) => {
+    const { id, ...rest } = payload as any;
     const data = {
       name,
       provider_type,
@@ -80,10 +84,9 @@ export function useProviderPanel() {
       priority: priority ?? 10,
       is_active: is_active ?? true,
     };
-    const op = id
-      ? safeClient.from('provider_configs', q => q.update(data).eq('id', id))
-      : safeClient.from('provider_configs', q => q.insert(data));
-    const { error } = await op;
+    const { error } = id
+      ? await safeClient.from('provider_configs', (q) => q.update(data).eq('id', id))
+      : await safeClient.from('provider_configs', (q) => q.insert(data));
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
       return false;
@@ -94,7 +97,7 @@ export function useProviderPanel() {
   };
 
   const deleteProvider = async (id: string) => {
-    const { error } = await safeClient.from('provider_configs', q => q.delete().eq('id', id));
+    const { error } = await safeClient.from('provider_configs', (q) => q.delete().eq('id', id));
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
       return;
@@ -109,12 +112,22 @@ export function useProviderPanel() {
       toast({ title: 'Falha no healthcheck', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Healthcheck executado', description: `${(data as { checked?: number })?.checked ?? 0} provedor(es) verificado(s).` });
+    toast({
+      title: 'Healthcheck executado',
+      description: `${data?.checked ?? 0} provedor(es) verificado(s).`,
+    });
     fetchPanel();
   };
 
   return {
-    rows, logs, loading, selectedProviderId, setSelectedProviderId,
-    refetch: fetchPanel, upsertProvider, deleteProvider, runHealthcheck,
+    rows,
+    logs,
+    loading,
+    selectedProviderId,
+    setSelectedProviderId,
+    refetch: fetchPanel,
+    upsertProvider,
+    deleteProvider,
+    runHealthcheck,
   };
 }

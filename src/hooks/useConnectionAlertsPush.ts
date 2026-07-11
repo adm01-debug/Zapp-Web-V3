@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Escuta novas notificações de conexão (type='connection_alert') via realtime
@@ -7,23 +7,23 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export function useConnectionAlertsPush() {
   useEffect(() => {
-    if (typeof Notification === "undefined") return;
+    if (typeof Notification === 'undefined') return;
 
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     void (async () => {
-      const { data: auth , error } = await supabase.auth.getUser();
+      const { data: auth } = await supabase.auth.getUser();
       if (cancelled || !auth.user) return;
 
       channel = supabase
         .channel(`connection-alerts-${auth.user.id}`)
         .on(
-          "postgres_changes",
+          'postgres_changes',
           {
-            event: "INSERT",
-            schema: "zapp",
-            table: "notifications",
+            event: 'INSERT',
+            schema: 'zapp',
+            table: 'notifications',
             filter: `user_id=eq.${auth.user.id}`,
           },
           (payload) => {
@@ -33,19 +33,19 @@ export function useConnectionAlertsPush() {
               message?: string;
               metadata?: { connection_id?: string; reason?: string; [key: string]: unknown };
             };
-            if (n?.type !== "connection_alert") return;
-            if (Notification.permission !== "granted") return;
+            if (n?.type !== 'connection_alert') return;
+            if (Notification.permission !== 'granted') return;
             try {
-              new Notification(n.title ?? "Alerta de conexão", {
-                body: n.message ?? "",
-                icon: "/favicon.ico",
-                tag: `conn-${n.metadata?.connection_id ?? "unknown"}`,
-                requireInteraction: n.metadata?.reason === "disconnected",
+              new Notification(n.title ?? 'Alerta de conexão', {
+                body: n.message ?? '',
+                icon: '/favicon.ico',
+                tag: `conn-${(n.metadata as any)?.connection_id ?? 'unknown'}`,
+                requireInteraction: (n.metadata as any)?.reason === 'disconnected',
               });
             } catch {
               /* ignore */
             }
-          },
+          }
         )
         .subscribe();
     })();

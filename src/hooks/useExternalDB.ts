@@ -67,7 +67,7 @@ async function queryExternal<T = unknown>(params: {
 }
 
 // ─── Select query hook ────────────────────────────────────────
-interface UseExternalSelectOptions<T> {
+interface UseExternalSelectOptions {
   table: ExternalTableName | string;
   select?: string;
   filters?: ExternalDBFilter[];
@@ -79,20 +79,31 @@ interface UseExternalSelectOptions<T> {
   staleTime?: number;
 }
 
-export function useExternalSelect<T = Record<string, unknown>>(options: UseExternalSelectOptions<T>) {
-  const { table, select, filters, order, limit = 50, offset = 0, countMode, enabled = true, staleTime = 5 * 60 * 1000 } = options;
+export function useExternalSelect<T = Record<string, unknown>>(options: UseExternalSelectOptions) {
+  const {
+    table,
+    select,
+    filters,
+    order,
+    limit = 50,
+    offset = 0,
+    countMode,
+    enabled = true,
+    staleTime = 5 * 60 * 1000,
+  } = options;
 
   return useQuery({
     queryKey: ['external-db', table, { select, filters, order, limit, offset, countMode }],
-    queryFn: () => queryExternal<T>({
-      table,
-      select,
-      filters,
-      order,
-      limit,
-      offset,
-      countMode,
-    }),
+    queryFn: () =>
+      queryExternal<T>({
+        table,
+        select,
+        filters,
+        order,
+        limit,
+        offset,
+        countMode,
+      }),
     enabled: enabled && isExternalConfigured,
     staleTime,
     gcTime: staleTime * 2,
@@ -117,8 +128,12 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
       const duration = Math.round(performance.now() - start);
       if (error) throw new Error(error.message);
       return {
-        data: Array.isArray(data) ? data as T[] : [data as T],
-        meta: { record_count: Array.isArray(data) ? data.length : 1, duration_ms: duration, severity: 'ok' as string },
+        data: Array.isArray(data) ? (data as T[]) : [data as T],
+        meta: {
+          record_count: Array.isArray(data) ? data.length : 1,
+          duration_ms: duration,
+          severity: 'ok' as string,
+        },
       };
     },
     enabled: (options.enabled ?? true) && isExternalConfigured,
@@ -127,7 +142,9 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
 }
 
 // ─── Paginated table browser ──────────────────────────────────
-export function useExternalTableBrowser<T = Record<string, unknown>>(tableName: ExternalTableName | string) {
+export function useExternalTableBrowser<T = Record<string, unknown>>(
+  tableName: ExternalTableName | string
+) {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [filters, setFilters] = useState<ExternalDBFilter[]>([]);
@@ -144,17 +161,17 @@ export function useExternalTableBrowser<T = Record<string, unknown>>(tableName: 
     staleTime: 2 * 60 * 1000,
   });
 
-  const nextPage = useCallback(() => setPage(p => p + 1), []);
-  const prevPage = useCallback(() => setPage(p => Math.max(0, p - 1)), []);
+  const nextPage = useCallback(() => setPage((p) => p + 1), []);
+  const prevPage = useCallback(() => setPage((p) => Math.max(0, p - 1)), []);
   const goToPage = useCallback((p: number) => setPage(p), []);
 
   const addFilter = useCallback((filter: ExternalDBFilter) => {
-    setFilters(prev => [...prev, filter]);
+    setFilters((prev) => [...prev, filter]);
     setPage(0);
   }, []);
 
   const removeFilter = useCallback((index: number) => {
-    setFilters(prev => prev.filter((_, i) => i !== index));
+    setFilters((prev) => prev.filter((_, i) => i !== index));
     setPage(0);
   }, []);
 
@@ -181,7 +198,10 @@ export function useExternalTableBrowser<T = Record<string, unknown>>(tableName: 
     order,
     searchTerm,
     setSearchTerm,
-    setPageSize: (size: number) => { setPageSize(size); setPage(0); },
+    setPageSize: (size: number) => {
+      setPageSize(size);
+      setPage(0);
+    },
     nextPage,
     prevPage,
     goToPage,
@@ -207,12 +227,17 @@ export function useExternalMutation() {
       validateEntityAccess(params.table, 'external');
       const dc = getDynamicClient();
       if (params.action === 'insert') {
-        const { data, error } = await dc.from(params.table).insert(params.data).select();
+        const { data, error } = await getExternalSupabase()
+          .from(params.table)
+          .insert(params.data as any)
+          .select();
         if (error) throw new Error(error.message);
         return data;
       }
       if (params.action === 'update') {
-        let q = dc.from(params.table).update(params.data);
+        let q = getExternalSupabase()
+          .from(params.table)
+          .update(params.data as any);
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }

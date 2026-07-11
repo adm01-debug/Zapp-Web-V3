@@ -4,12 +4,6 @@ import { SLAStatus } from '@/types/gmail';
 
 export type { SLAStatus };
 
-interface EmailThreadRow {
-  thread_id: string;
-  last_message_at: string | null;
-  unread_count: number;
-}
-
 export interface EmailSLARecord {
   thread_id: string;
   account_id: string;
@@ -30,24 +24,20 @@ interface SLAConfig {
 }
 
 const DEFAULT_SLA: SLAConfig = {
-  threshold_minutes:    480,
+  threshold_minutes: 480,
   warning_threshold_pct: 80,
-  business_hours_only:  true,
-  business_start_hour:  8,
-  business_end_hour:    18,
+  business_hours_only: true,
+  business_start_hour: 8,
+  business_end_hour: 18,
 };
 
-function elapsedBusinessMinutes(
-  from: Date,
-  to: Date = new Date(),
-  config?: SLAConfig
-): number {
+function elapsedBusinessMinutes(from: Date, to: Date = new Date(), config?: SLAConfig): number {
   if (!config?.business_hours_only) {
     return Math.floor((to.getTime() - from.getTime()) / 60_000);
   }
 
-  const start  = config.business_start_hour ?? 8;
-  const end    = config.business_end_hour ?? 18;
+  const start = config.business_start_hour ?? 8;
+  const end = config.business_end_hour ?? 18;
   const minsPerDay = (end - start) * 60;
 
   let current = new Date(from);
@@ -66,13 +56,15 @@ function elapsedBusinessMinutes(
 
     const nextCheck = new Date(current);
     if (!isWorkday || hour < start) {
-      const targetDay = isWorkday ? current : (() => {
-        const d = new Date(current);
-        while (d.getDay() === 0 || d.getDay() === 6) {
-          d.setDate(d.getDate() + 1);
-        }
-        return d;
-      })();
+      const targetDay = isWorkday
+        ? current
+        : (() => {
+            const d = new Date(current);
+            while (d.getDay() === 0 || d.getDay() === 6) {
+              d.setDate(d.getDate() + 1);
+            }
+            return d;
+          })();
       nextCheck.setFullYear(targetDay.getFullYear(), targetDay.getMonth(), targetDay.getDate());
       nextCheck.setHours(start, 0, 0, 0);
       if (nextCheck <= current) nextCheck.setDate(nextCheck.getDate() + 1);
@@ -113,69 +105,77 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
   const slaConfig: SLAConfig = { ...DEFAULT_SLA, ...config };
   const [records, setRecords] = useState<Record<string, EmailSLARecord>>({});
 
-  const registerThread = useCallback((threadId: string, receivedAt: string) => {
-    const elapsed = elapsedBusinessMinutes(new Date(receivedAt), new Date(), slaConfig);
+  const registerThread = useCallback(
+    (threadId: string, receivedAt: string) => {
+      const elapsed = elapsedBusinessMinutes(new Date(receivedAt), new Date(), slaConfig);
 
-    setRecords(prev => {
-      if (prev[threadId]) return prev;
-      return {
-        ...prev,
-        [threadId]: {
-          thread_id:              threadId,
-          account_id:             accountId ?? '',
-          received_at:            receivedAt,
-          first_reply_at:         null,
-          frt_minutes:            null,
-          sla_status:             computeStatus(elapsed, slaConfig),
-          sla_threshold_minutes:  slaConfig.threshold_minutes,
-          warning_threshold_pct:  slaConfig.warning_threshold_pct,
-        },
-      };
-    });
-  }, [accountId, slaConfig]);
+      setRecords((prev) => {
+        if (prev[threadId]) return prev;
+        return {
+          ...prev,
+          [threadId]: {
+            thread_id: threadId,
+            account_id: accountId ?? '',
+            received_at: receivedAt,
+            first_reply_at: null,
+            frt_minutes: null,
+            sla_status: computeStatus(elapsed, slaConfig),
+            sla_threshold_minutes: slaConfig.threshold_minutes,
+            warning_threshold_pct: slaConfig.warning_threshold_pct,
+          },
+        };
+      });
+    },
+    [accountId, slaConfig]
+  );
 
-  const markReplied = useCallback((threadId: string) => {
-    setRecords(prev => {
-      const record = prev[threadId];
-      if (!record || record.first_reply_at) return prev;
+  const markReplied = useCallback(
+    (threadId: string) => {
+      setRecords((prev) => {
+        const record = prev[threadId];
+        if (!record || record.first_reply_at) return prev;
 
-      const replyAt = new Date().toISOString();
-      const frt = elapsedBusinessMinutes(
-        new Date(record.received_at),
-        new Date(),
-        slaConfig
-      );
+        const replyAt = new Date().toISOString();
+        const frt = elapsedBusinessMinutes(new Date(record.received_at), new Date(), slaConfig);
 
-      // Persistência só faz sentido para threads reais (UUIDs do banco).
-      if (!isMockId(threadId)) {
-        safeClient.from('email_threads', (q) =>
-          q.update({
+        // Persistência só faz sentido para threads reais (UUIDs do banco).
+        if (!isMockId(threadId)) {
+          safeClient.from('email_threads', (q) =>
+            q
+              .update({
+                first_reply_at: replyAt,
+                frt_minutes: frt,
+                sla_status: 'ok',
+              })
+              .eq('thread_id', threadId)
+          );
+        }
+
+        return {
+          ...prev,
+          [threadId]: {
+            ...record,
             first_reply_at: replyAt,
-            frt_minutes:    frt,
-            sla_status:     'ok',
-          }).eq('thread_id', threadId)
-        );
-      }
-
-      return {
-        ...prev,
-        [threadId]: {
-          ...record,
-          first_reply_at: replyAt,
-          frt_minutes:    frt,
-          sla_status:     'ok',
-        },
-      };
-    });
-  }, [slaConfig]);
+            frt_minutes: frt,
+            sla_status: 'ok',
+          },
+        };
+      });
+    },
+    [slaConfig]
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setRecords(prev => {
+      setRecords((prev) => {
         const updated = { ...prev };
         for (const [id, record] of Object.entries(updated)) {
           if (record.first_reply_at) continue;
-          const elapsed = elapsedBusinessMinutes(new Date(record.received_at), new Date(), slaConfig);
+          const elapsed = elapsedBusinessMinutes(
+            new Date(record.received_at),
+            new Date(),
+            slaConfig
+          );
           updated[id] = { ...record, sla_status: computeStatus(elapsed, slaConfig) };
         }
         return updated;
@@ -188,29 +188,44 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
   useEffect(() => {
     if (!accountId || isMockId(accountId)) return;
 
-    safeClient.from<EmailThreadRow>('email_threads', (q) =>
-      q.select('thread_id, last_message_at, unread_count')
-       .eq('account_id', accountId)
-       .gt('unread_count', 0)
-       .order('last_message_at', { ascending: true })
-       .limit(100)
-    ).then(({ data }) => {
-      for (const row of data ?? []) {
-        if (row.last_message_at) {
-          registerThread(row.thread_id, row.last_message_at);
+    safeClient
+      .from<any>('email_threads', (q) =>
+        q
+          .select('thread_id, last_message_at, unread_count')
+          .eq('account_id', accountId)
+          .gt('unread_count', 0)
+          .order('last_message_at', { ascending: true })
+          .limit(100)
+      )
+      .then(({ data }) => {
+        for (const row of data ?? []) {
+          if (row.last_message_at) {
+            registerThread(row.thread_id, row.last_message_at);
+          }
         }
-      }
-    });
+      });
   }, [accountId, registerThread]);
 
-  const getStatus = useCallback((threadId: string): SLAStatus | null =>
-    records[threadId]?.sla_status ?? null, [records]);
+  const getStatus = useCallback(
+    (threadId: string): SLAStatus | null => records[threadId]?.sla_status ?? null,
+    [records]
+  );
 
-  const getRecord = useCallback((threadId: string): EmailSLARecord | null =>
-    records[threadId] ?? null, [records]);
+  const getRecord = useCallback(
+    (threadId: string): EmailSLARecord | null => records[threadId] ?? null,
+    [records]
+  );
 
-  const breachedCount = Object.values(records).filter(r => r.sla_status === 'breached').length;
-  const warningCount  = Object.values(records).filter(r => r.sla_status === 'warning').length;
+  const breachedCount = Object.values(records).filter((r) => r.sla_status === 'breached').length;
+  const warningCount = Object.values(records).filter((r) => r.sla_status === 'warning').length;
 
-  return { records, breachedCount, warningCount, registerThread, markReplied, getStatus, getRecord };
+  return {
+    records,
+    breachedCount,
+    warningCount,
+    registerThread,
+    markReplied,
+    getStatus,
+    getRecord,
+  };
 }

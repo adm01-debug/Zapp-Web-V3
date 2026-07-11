@@ -1,6 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('StickerManager');
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -73,10 +76,13 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
   const handleSend = useCallback(
     (sticker: StickerItem) => {
       onSend?.(sticker.image_url);
-      supabase
+      void supabase
         .from('stickers')
         .update({ use_count: sticker.use_count + 1 })
-        .eq('id', sticker.id);
+        .eq('id', sticker.id)
+        .then(({ error }) => {
+          if (error) log.warn('[StickerManager] use_count update failed', error);
+        });
     },
     [onSend]
   );

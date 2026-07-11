@@ -79,7 +79,7 @@ export function ProtectedRoute({
   // Removed redundant and potentially looping re-fetch logic for roles.
   // useUserRole already handles initial fetch and real-time updates.
 
-  if (loading || (requiredPermission && hasPermission === null)) {
+  if (loading || (requiredPermission && user && hasPermission === null)) {
     return (
       <div
         className="flex min-h-screen items-center justify-center bg-background"

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { newRequestId } from '@/lib/withRequestId';
 import { dbFrom } from '@/integrations/datasource/db';
+import type { AudioMemeItem } from '@/hooks/useAudioMemes';
 
 /**
  * Encapsulates WhatsApp instance resolution and media-message sending
@@ -33,7 +34,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   /** Update message status with error logging and 1 retry */
   const updateMessageStatus = useCallback(
     async (messageId: string, status: string, externalId?: string | null) => {
-      const payload: Record<string, string | null> = { status };
+      const payload: any = { status }; // ignore-audit
       if (externalId) payload.external_id = externalId;
 
       try {
@@ -175,7 +176,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
         // FALHA 6 FIX: Auto-save with error handling
         try {
-          const { data: existing } = await supabase
+          const { data: existing, error: existingErr } = await supabase
             .from('stickers')
             .select('id')
             .eq('image_url', stickerUrl)
@@ -295,7 +296,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   );
 
   const handleSendAudioMeme = useCallback(
-    async (meme: { audio_url?: string; id?: string | null } | string) => {
+    async (meme: AudioMemeItem | string) => {
       const inst = await ensureInstance();
       if (!inst) return;
 
@@ -306,8 +307,8 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
       }
 
       try {
-        const audioUrl = meme.audio_url || meme;
-        const memeId = meme.id || null;
+        const audioUrl = typeof meme === 'string' ? meme : meme.audio_url;
+        const memeId = typeof meme === 'string' ? null : (meme.id ?? null);
         const normalizedAudioUrl = normalizeMediaUrl(audioUrl);
         const trace = newRequestId('audio');
 

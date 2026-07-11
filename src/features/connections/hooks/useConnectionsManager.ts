@@ -265,20 +265,26 @@ export function useConnectionsManager() {
       return;
     }
     try {
-      // 1. Log audit event before action
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user && externalSupabase) {
-        await (
-          externalSupabase as unknown as { rpc: (name: string, args: unknown) => Promise<unknown> }
-        ).rpc('fn_safe_audit_log', {
-          p_entity_type: 'whatsapp_connection',
-          p_entity_id: connection.id,
-          p_action: 'disconnect',
-          p_performed_by: user.email,
-          p_details: { instance: evoName, source: 'manual_ui' },
-        });
+      // 1. Log audit event before action — failure must NOT block the disconnect
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user && externalSupabase) {
+          await (
+            externalSupabase as unknown as {
+              rpc: (name: string, args: unknown) => Promise<unknown>;
+            }
+          ).rpc('fn_safe_audit_log', {
+            p_entity_type: 'whatsapp_connection',
+            p_entity_id: connection.id,
+            p_action: 'disconnect',
+            p_performed_by: user.email,
+            p_details: { instance: evoName, source: 'manual_ui' },
+          });
+        }
+      } catch (auditErr) {
+        log.warn('Audit log failed — proceeding with disconnect', auditErr);
       }
 
       // 2. Update local state immediately for UX (Optimistic)

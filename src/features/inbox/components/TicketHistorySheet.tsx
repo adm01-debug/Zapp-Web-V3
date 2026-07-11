@@ -14,11 +14,18 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Clock, Circle, UserCheck, UserMinus, UserPlus, Wand2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useTicketStatus } from '@/features/inbox';
 import type { TicketEvent } from '@/lib/inbox/ticketStore';
 import { conversationEventRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
@@ -97,9 +104,13 @@ function describeRemote(e: RemoteEvent, nameMap: Record<string, string>): Unifie
   let detail: string | undefined = `por ${performer}`;
   if (e.event_type === 'assign') label = `Atribuído a ${toName ?? '—'}`;
   else if (e.event_type === 'unassign') label = `Devolvido à fila`;
-  else if (e.event_type === 'transfer') label = `Transferido: ${fromName ?? '—'} → ${toName ?? '—'}`;
+  else if (e.event_type === 'transfer')
+    label = `Transferido: ${fromName ?? '—'} → ${toName ?? '—'}`;
   else if (e.event_type === 'queue_transfer') label = `Mudança de fila`;
-  else if (e.event_type === 'sla_acknowledged') { label = `SLA reconhecido`; detail = `por ${performer}`; }
+  else if (e.event_type === 'sla_acknowledged') {
+    label = `SLA reconhecido`;
+    detail = `por ${performer}`;
+  }
   return { id: e.id, source: 'remote', type: e.event_type, at: e.created_at, label, detail };
 }
 
@@ -114,9 +125,9 @@ function describeAudit(e: any): UnifiedEvent {
   const attemptNumber: number | undefined = details.attempt_number ?? e.attempt_number;
 
   let label = 'Evento de Outbound';
-  let detail: string | undefined = status;
+  let detail = e.status;
 
-  if (action === 'send_attempt') {
+  if (e.event_type === 'send_attempt') {
     label = 'Tentativa de Envio';
     detail = `Tentativa #${attemptNumber || 1}`;
   } else if (action === 'delivered') {
@@ -130,7 +141,7 @@ function describeAudit(e: any): UnifiedEvent {
   return {
     id: e.id,
     source: 'audit',
-    type: action,
+    type: e.event_type,
     at: e.created_at,
     label,
     detail,
@@ -169,13 +180,13 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     queryKey: ['conversation-audit-logs', contactId],
     enabled: open && !!contactId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('id, action, entity_type, entity_id, details, created_at')
-        .eq('entity_type', 'conversation')
-        .eq('entity_id', contactId!)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const { data, error } = await safeClient.from('conversation_audit_logs', (q) =>
+        q
+          .select('*')
+          .eq('conversation_id', contactId!)
+          .order('created_at', { ascending: false })
+          .limit(50)
+      );
       if (error) return [];
       return data ?? [];
     },
@@ -215,9 +226,9 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
             Mudanças de status, transferências e atribuições deste contato.
           </SheetDescription>
         </SheetHeader>
-        <ScrollArea className="h-[calc(100vh-8rem)] mt-4 -mx-6 px-6">
+        <ScrollArea className="-mx-6 mt-4 h-[calc(100vh-8rem)] px-6">
           {unified.length === 0 && (
-            <div className="text-sm text-muted-foreground py-12 text-center">
+            <div className="py-12 text-center text-sm text-muted-foreground">
               Nenhum evento registrado ainda.
             </div>
           )}
@@ -227,19 +238,23 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
               return (
                 <li key={`${e.source}-${e.id}`} className="flex gap-3">
                   <div className="mt-0.5">
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                      <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted">
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-medium">{e.label}</span>
                       <Badge variant="outline" className="text-[9px] uppercase">
-                        {e.source === 'local' ? 'sessão' : e.source === 'remote' ? 'persistido' : 'auditoria'}
+                        {e.source === 'local'
+                          ? 'sessão'
+                          : e.source === 'remote'
+                            ? 'persistido'
+                            : 'auditoria'}
                       </Badge>
                     </div>
                     {e.detail && <p className="text-xs text-muted-foreground">{e.detail}</p>}
-                    <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                    <p className="mt-0.5 text-[11px] text-muted-foreground/70">
                       {format(new Date(e.at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
                     </p>
                   </div>

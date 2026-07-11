@@ -32,24 +32,44 @@ export const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 // ═══════════════════════════════════════════════════════════
 
 export const STICKER_CATEGORIES: Record<string, string> = {
-  memes: '😂', reações: '👍', amor: '❤️', festas: '🎉',
-  animais: '🐱', comida: '🍕', esportes: '⚽', trabalho: '💼', outros: '📦',
+  memes: '😂',
+  reações: '👍',
+  amor: '❤️',
+  festas: '🎉',
+  animais: '🐱',
+  comida: '🍕',
+  esportes: '⚽',
+  trabalho: '💼',
+  outros: '📦',
 };
 
 export const AUDIO_CATEGORIES: Record<string, string> = {
-  risadas: '😂', bordões: '🎤', efeitos: '💥', músicas: '🎵',
-  memes: '🤣', narração: '📢', animais: '🐶', outros: '📦',
+  risadas: '😂',
+  bordões: '🎤',
+  efeitos: '💥',
+  músicas: '🎵',
+  memes: '🤣',
+  narração: '📢',
+  animais: '🐶',
+  outros: '📦',
 };
 
 export const EMOJI_CATEGORIES: Record<string, string> = {
-  custom: '⭐', team: '👥', brand: '🏢', fun: '🎮', outros: '📦',
+  custom: '⭐',
+  team: '👥',
+  brand: '🏢',
+  fun: '🎮',
+  outros: '📦',
 };
 
 export function getCategoriesForType(type: MediaType): Record<string, string> {
   switch (type) {
-    case 'stickers': return STICKER_CATEGORIES;
-    case 'audio_memes': return AUDIO_CATEGORIES;
-    case 'custom_emojis': return EMOJI_CATEGORIES;
+    case 'stickers':
+      return STICKER_CATEGORIES;
+    case 'audio_memes':
+      return AUDIO_CATEGORIES;
+    case 'custom_emojis':
+      return EMOJI_CATEGORIES;
   }
 }
 
@@ -59,13 +79,19 @@ export function getUrlField(type: MediaType): 'image_url' | 'audio_url' {
 
 export function getBucket(type: MediaType): string {
   switch (type) {
-    case 'stickers': return 'stickers';
-    case 'audio_memes': return 'audio-memes';
-    case 'custom_emojis': return 'custom-emojis';
+    case 'stickers':
+      return 'stickers';
+    case 'audio_memes':
+      return 'audio-memes';
+    case 'custom_emojis':
+      return 'custom-emojis';
   }
 }
 
-export function extractStoragePath(url: string, bucket: string): { bucket: string; path: string } | null {
+export function extractStoragePath(
+  url: string,
+  bucket: string
+): { bucket: string; path: string } | null {
   try {
     const u = new URL(url);
     const patterns = [
@@ -109,30 +135,82 @@ export function useMediaLibrary(type: MediaType) {
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.select('*').order('created_at', { ascending: false }).limit(1000);
-      if (error) { log.error(`Error fetching ${type}:`, error); toast.error(`Erro ao carregar ${type === 'stickers' ? 'figurinhas' : type === 'audio_memes' ? 'áudios' : 'emojis'}`); }
+      const { data, error } = await supabase
+        .from(
+          type as 'stickers'
+        ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      if (error) {
+        log.error(`Error fetching ${type}:`, error);
+        toast.error(
+          `Erro ao carregar ${type === 'stickers' ? 'figurinhas' : type === 'audio_memes' ? 'áudios' : 'emojis'}`
+        );
+      }
       setItems((data as MediaItem[]) || []);
-    } catch (err) { log.error(`Unexpected error fetching ${type}:`, err); setItems([]); }
-    finally { setLoading(false); }
+    } catch (err) {
+      log.error(`Unexpected error fetching ${type}:`, err);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }, [type]);
 
-  useEffect(() => { fetchItems(); return () => { audioRef.current?.pause(); audioRef.current = null; }; }, [fetchItems]);
-  useEffect(() => { setSelected(new Set()); }, [filterCategory, search]);
+  useEffect(() => {
+    fetchItems();
+    return () => {
+      audioRef.current?.pause();
+      audioRef.current = null;
+    };
+  }, [fetchItems]);
+  useEffect(() => {
+    setSelected(new Set());
+  }, [filterCategory, search]);
 
-  const filtered = items.filter(item => {
-    const matchSearch = !search || item.name?.toLowerCase().includes(search.toLowerCase()) || item.category?.toLowerCase().includes(search.toLowerCase());
+  const filtered = items.filter((item) => {
+    const matchSearch =
+      !search ||
+      item.name?.toLowerCase().includes(search.toLowerCase()) ||
+      item.category?.toLowerCase().includes(search.toLowerCase());
     const matchCategory = filterCategory === 'all' || item.category === filterCategory;
     return matchSearch && matchCategory;
   });
 
-  const toggleSelect = (id: string) => { setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); };
-  const toggleSelectAll = () => { selected.size === filtered.length ? setSelected(new Set()) : setSelected(new Set(filtered.map(i => i.id))); };
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map((i) => i.id)));
+    }
+  };
 
   const handleToggleFavorite = async (item: MediaItem) => {
     const newValue = !item.is_favorite;
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_favorite: newValue } : i));
-    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ is_favorite: newValue }).eq('id', item.id);
-    if (error) { setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_favorite: !newValue } : i)); toast.error('Erro ao atualizar favorito'); }
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_favorite: newValue } : i)));
+    const { error } = await supabase
+      .from(
+        type as 'stickers'
+      ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
+      .update({ is_favorite: newValue })
+      .eq('id', item.id);
+    if (error) {
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, is_favorite: !newValue } : i))
+      );
+      toast.error('Erro ao atualizar favorito');
+    }
   };
 
   const deleteStorageFile = async (url: string | undefined) => {
@@ -142,13 +220,23 @@ export function useMediaLibrary(type: MediaType) {
   };
 
   const handleBulkDelete = async () => {
-    const toDelete = items.filter(i => selected.has(i.id));
+    const toDelete = items.filter((i) => selected.has(i.id));
     if (toDelete.length === 0) return;
-    for (const item of toDelete) { await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url); }
     const ids = [...selected];
-    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.delete().in('id', ids);
-    if (error) { toast.error('Erro ao excluir itens'); return; }
-    setItems(prev => prev.filter(i => !selected.has(i.id)));
+    const { error } = await supabase
+      .from(
+        type as 'stickers'
+      ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
+      .delete()
+      .in('id', ids);
+    if (error) {
+      toast.error('Erro ao excluir itens');
+      return;
+    }
+    for (const item of toDelete) {
+      await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
+    }
+    setItems((prev) => prev.filter((i) => !selected.has(i.id)));
     setSelected(new Set());
     toast.success(`${ids.length} itens excluídos`);
   };
@@ -156,90 +244,188 @@ export function useMediaLibrary(type: MediaType) {
   const handleBulkCategoryChange = async (newCategory: string) => {
     const ids = [...selected];
     if (ids.length === 0) return;
-    const oldItems = items.filter(i => selected.has(i.id)).map(i => ({ id: i.id, category: i.category }));
-    setItems(prev => prev.map(i => selected.has(i.id) ? { ...i, category: newCategory } : i));
-    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ category: newCategory }).in('id', ids);
-    if (error) { setItems(prev => prev.map(i => { const old = oldItems.find(o => o.id === i.id); return old ? { ...i, category: old.category } : i; })); toast.error('Erro ao alterar categorias'); return; }
+    const oldItems = items
+      .filter((i) => selected.has(i.id))
+      .map((i) => ({ id: i.id, category: i.category }));
+    setItems((prev) => prev.map((i) => (selected.has(i.id) ? { ...i, category: newCategory } : i)));
+    const { error } = await supabase
+      .from(
+        type as 'stickers'
+      ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
+      .update({ category: newCategory })
+      .in('id', ids);
+    if (error) {
+      setItems((prev) =>
+        prev.map((i) => {
+          const old = oldItems.find((o) => o.id === i.id);
+          return old ? { ...i, category: old.category } : i;
+        })
+      );
+      toast.error('Erro ao alterar categorias');
+      return;
+    }
     toast.success(`${ids.length} itens movidos para "${newCategory}"`);
   };
 
   const handleBulkReclassify = async () => {
-    const toReclassify = items.filter(i => selected.has(i.id));
+    const toReclassify = items.filter((i) => selected.has(i.id));
     if (toReclassify.length === 0) return;
     setReclassifying(true);
-    let updated = 0, errors = 0;
-    const fnName = type === 'audio_memes' ? 'classify-audio-meme' : type === 'stickers' ? 'classify-sticker' : 'classify-emoji';
+    let updated = 0,
+      errors = 0;
+    const fnName =
+      type === 'audio_memes'
+        ? 'classify-audio-meme'
+        : type === 'stickers'
+          ? 'classify-sticker'
+          : 'classify-emoji';
     for (const item of toReclassify) {
       try {
-        const body = type === 'audio_memes' ? { audio_url: item.audio_url || '', file_name: item.name || '' } : { image_url: item.image_url || '' };
-        const { data, error } = await supabase.functions.invoke(fnName, { body });
+        const body =
+          type === 'audio_memes'
+            ? { audio_url: item.audio_url || '', file_name: item.name || '' }
+            : { image_url: item.image_url || '' };
+        const { data } = await supabase.functions.invoke(fnName, { body });
         if (data?.category && data.category !== item.category) {
-          const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ category: data.category }).eq('id', item.id);
-          if (!error) { setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: data.category } : i)); updated++; }
-          else errors++;
+          const { error } = await supabase
+            .from(
+              type as 'stickers'
+            ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
+            .update({ category: data.category })
+            .eq('id', item.id);
+          if (!error) {
+            setItems((prev) =>
+              prev.map((i) => (i.id === item.id ? { ...i, category: data.category } : i))
+            );
+            updated++;
+          } else errors++;
         }
-      } catch { errors++; }
+      } catch {
+        errors++;
+      }
     }
     setReclassifying(false);
     setSelected(new Set());
     const msg = `${updated}/${toReclassify.length} itens reclassificados com IA`;
-    errors > 0 ? toast.info(`${msg} (${errors} erros)`) : toast.success(msg);
+    if (errors > 0) {
+      toast.info(`${msg} (${errors} erros)`);
+    } else {
+      toast.success(msg);
+    }
   };
 
   const handleSingleCategoryChange = async (item: MediaItem, newCategory: string) => {
     const oldCategory = item.category;
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: newCategory } : i));
-    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ category: newCategory }).eq('id', item.id);
-    if (error) { setItems(prev => prev.map(i => i.id === item.id ? { ...i, category: oldCategory } : i)); toast.error('Erro ao alterar categoria'); }
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, category: newCategory } : i)));
+    const { error } = await supabase
+      .from(
+        type as 'stickers'
+      ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
+      .update({ category: newCategory })
+      .eq('id', item.id);
+    if (error) {
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, category: oldCategory } : i)));
+      toast.error('Erro ao alterar categoria');
+    }
   };
 
   const handleRename = async (item: MediaItem) => {
     const trimmed = editName.trim();
-    if (!trimmed) { toast.error('O nome não pode ser vazio'); return; }
+    if (!trimmed) {
+      toast.error('O nome não pode ser vazio');
+      return;
+    }
     const oldName = item.name;
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, name: trimmed } : i));
-    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.update({ name: trimmed }).eq('id', item.id);
-    if (error) { setItems(prev => prev.map(i => i.id === item.id ? { ...i, name: oldName } : i)); toast.error('Erro ao renomear'); return; }
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, name: trimmed } : i)));
+    const { error } = await supabase
+      .from(
+        type as 'stickers'
+      ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
+      .update({ name: trimmed })
+      .eq('id', item.id);
+    if (error) {
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, name: oldName } : i)));
+      toast.error('Erro ao renomear');
+      return;
+    }
     setEditingId(null);
     toast.success('Nome atualizado');
   };
 
   const handleDelete = async (item: MediaItem) => {
+    const { error } = await supabase
+      .from(
+        type as 'stickers'
+      ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
+      .delete()
+      .eq('id', item.id);
+    if (error) {
+      toast.error('Erro ao excluir item');
+      return;
+    }
     await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
-    const { error } = await supabase.from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */.delete().eq('id', item.id);
-    if (error) { toast.error('Erro ao excluir item'); return; }
-    setItems(prev => prev.filter(i => i.id !== item.id));
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
     toast.success('Item excluído');
   };
 
   const handlePreview = (item: MediaItem) => {
     if (type !== 'audio_memes') return;
-    if (playingId === item.id) { audioRef.current?.pause(); setPlayingId(null); return; }
+    if (playingId === item.id) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+      return;
+    }
     audioRef.current?.pause();
     audioRef.current = null;
-    if (!item.audio_url) { toast.error('URL do áudio não encontrada'); return; }
+    if (!item.audio_url) {
+      toast.error('URL do áudio não encontrada');
+      return;
+    }
     const audio = new Audio(item.audio_url);
     audio.onended = () => setPlayingId(null);
-    audio.onerror = () => { setPlayingId(null); toast.error('Erro ao reproduzir áudio'); };
-    audio.play().catch(() => { setPlayingId(null); toast.error('Erro ao reproduzir áudio'); });
+    audio.onerror = () => {
+      setPlayingId(null);
+      toast.error('Erro ao reproduzir áudio');
+    };
+    audio.play().catch(() => {
+      setPlayingId(null);
+      toast.error('Erro ao reproduzir áudio');
+    });
     audioRef.current = audio;
     setPlayingId(item.id);
   };
 
-  const existingCategories = [...new Set(items.map(i => i.category))].sort();
+  const existingCategories = [...new Set(items.map((i) => i.category))].sort();
 
   return {
-    items, loading, search, setSearch,
-    filterCategory, setFilterCategory,
-    selected, setSelected,
-    editingId, setEditingId,
-    editName, setEditName,
-    playingId, reclassifying,
+    items,
+    loading,
+    search,
+    setSearch,
+    filterCategory,
+    setFilterCategory,
+    selected,
+    setSelected,
+    editingId,
+    setEditingId,
+    editName,
+    setEditName,
+    playingId,
+    reclassifying,
     audioRef,
-    categories, filtered, existingCategories,
-    fetchItems, toggleSelect, toggleSelectAll,
-    handleToggleFavorite, handleBulkDelete, handleBulkCategoryChange,
-    handleBulkReclassify, handleSingleCategoryChange,
-    handleRename, handleDelete, handlePreview,
+    categories,
+    filtered,
+    existingCategories,
+    fetchItems,
+    toggleSelect,
+    toggleSelectAll,
+    handleToggleFavorite,
+    handleBulkDelete,
+    handleBulkCategoryChange,
+    handleBulkReclassify,
+    handleSingleCategoryChange,
+    handleRename,
+    handleDelete,
+    handlePreview,
   };
 }

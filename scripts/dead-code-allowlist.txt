@@ -6,3 +6,5 @@ src/lib/stressTest/runner.ts  # kit de stress test — orquestrador top-level ex
 src/lib/stressTest/accessibilityChecker.ts  # kit de stress test — utilitário interno do runner, não entra no bundle do app
 src/lib/stressTest/mediaSamplers.ts  # kit de stress test — utilitário interno do runner, não entra no bundle do app
 src/features/contacts/index.ts  # barrel público do domínio contacts — consumido por feature consumers externos; sem importadores hoje mas exigido pela convenção de API pública do módulo
+src/hooks/admin/useAdminAutomations.ts  # Wave 3 hook extraído de AdminAutomationsPage — página ainda não migrada para usar o hook
+src/hooks/admin/useAdminQueues.ts  # Wave 3 hook extraído de AdminQueuesPage — página ainda não migrada para usar o hook

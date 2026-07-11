@@ -36,7 +36,9 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchRows = useCallback(async () => {
@@ -52,7 +54,7 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
       setError(error.message);
       setRows([]);
     } else {
-      setRows((data ?? []) as QueueSlaRow[]);
+      setRows(data ?? []);
     }
     setLoading(false);
   }, [filters.skill_name, filters.channel_type, filters.sla_status]);
@@ -65,9 +67,9 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
 
   const updateQueueConfig = async (
     queueId: string,
-    patch: Partial<Pick<QueueSlaRow, 'sla_priority' | 'routing_weight' | 'auto_rebalance_enabled'>>,
+    patch: Partial<Pick<QueueSlaRow, 'sla_priority' | 'routing_weight' | 'auto_rebalance_enabled'>>
   ) => {
-    const { error } = await safeClient.from('queues', q => q.update(patch).eq('id', queueId));
+    const { error } = await safeClient.from('queues', (q) => q.update(patch).eq('id', queueId));
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
       return false;
@@ -82,7 +84,11 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
       body: { limit, source: 'panel' },
     });
     if (error) {
-      toast({ title: 'Falha no redistribuidor', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Falha no redistribuidor',
+        description: error.message,
+        variant: 'destructive',
+      });
       return null;
     }
     toast({
