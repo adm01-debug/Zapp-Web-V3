@@ -32,7 +32,6 @@ src/features/inbox/components/collaboration/InternalNotesPanel.tsx
 src/features/inbox/components/contact-details/ContactAccordionSections.tsx
 src/features/inbox/components/contact-details/ContactHeaderSection.tsx
 src/features/inbox/components/contact-details/SLADeliveryConfigSection.tsx
-src/features/inbox/components/linkPreviewUtils.ts
 src/features/inbox/components/useGlobalSearchData.ts
 src/features/inbox/hooks/realtime/avatarBatchStore.ts
 src/features/inbox/hooks/realtime/messageSender.ts
@@ -50,17 +49,14 @@ src/hooks/integrations/useEvolutionApiIntegration.ts
 src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/monitoring/useMonitoringData.ts
 src/hooks/sticker-picker/useStickerPicker.ts
-src/hooks/useClientWallet.ts
 src/hooks/useConversationAnalyses.ts
 src/hooks/useDashboardData.ts
 src/hooks/useEvolutionAutoReconnect.ts
-src/hooks/useExternalCargos.ts
 src/hooks/useExternalDB.ts
 src/hooks/useExternalEvolution.ts
 src/hooks/useForwardMessage.ts
 src/hooks/useGmailOAuthFlow.ts
 src/hooks/useGoalsDashboard.ts
-src/hooks/useGroupsManager.ts
 src/hooks/useKnowledgeBase.ts
 src/hooks/useQueues.ts
 src/integrations/zappweb/evolutionClient.ts

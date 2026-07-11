@@ -69,6 +69,7 @@ describe('useUserSettings', () => {
         eq: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({ data: mockSettings, error: null }),
           maybeSingle: vi.fn().mockResolvedValue({ data: mockSettings, error: null }),
+          limit: vi.fn().mockResolvedValue({ data: [mockSettings], error: null }),
         }),
       }),
       upsert: vi.fn().mockResolvedValue({ error: null }),
