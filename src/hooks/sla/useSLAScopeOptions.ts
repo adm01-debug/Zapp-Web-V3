@@ -89,15 +89,30 @@ export function useSLAScopeOptions(
       setContacts([]);
       return;
     }
-    const q = contactSearch.trim();
-    void supabase
-      .from('contacts')
-      .select('id, name, phone')
-      .or(`name.ilike.%${q}%,phone.ilike.%${q}%`)
-      .limit(20)
-      .then(({ data }) => {
-        setContacts((data ?? []) as ContactOption[]);
+    const term = `%${contactSearch.trim()}%`;
+    void Promise.all([
+      supabase
+        .from('contacts')
+        .select('id, name, phone')
+        .ilike('name', term)
+        .order('name')
+        .limit(20),
+      supabase
+        .from('contacts')
+        .select('id, name, phone')
+        .ilike('phone', term)
+        .order('name')
+        .limit(20),
+    ]).then(([nameRes, phoneRes]) => {
+      const seen = new Set<string>();
+      const merged = [...(nameRes.data ?? []), ...(phoneRes.data ?? [])].filter(({ id }) => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
       });
+      merged.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+      setContacts(merged.slice(0, 20) as ContactOption[]);
+    });
   }, [open, scope, contactSearch]);
 
   return { companies, jobTitles, queues, agents, contacts };
