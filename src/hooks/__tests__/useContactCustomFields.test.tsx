@@ -7,7 +7,7 @@ const _mockDelete = vi.fn();
 const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: (...args: any[]) => mockFrom(...args) },
+  supabase: { from: mockFrom },
 }));
 vi.mock('@/lib/logger');
 
@@ -19,20 +19,18 @@ describe('useContactCustomFields', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          order: vi
-            .fn()
-            .mockResolvedValue({
-              data: [
-                {
-                  id: 'cf1',
-                  contact_id: 'c1',
-                  field_name: 'CPF',
-                  field_value: '123',
-                  field_type: 'text',
-                },
-              ],
-              error: null,
-            }),
+          order: vi.fn().mockResolvedValue({
+            data: [
+              {
+                id: 'cf1',
+                contact_id: 'c1',
+                field_name: 'CPF',
+                field_value: '123',
+                field_type: 'text',
+              },
+            ],
+            error: null,
+          }),
         }),
       }),
       upsert: vi.fn().mockResolvedValue({ error: null }),
