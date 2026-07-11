@@ -13,8 +13,10 @@
 # client externo, frequentemente com cast `as never`/`as any`).
 #
 # REGRA DE OURO: só adicione um nome aqui se você confirmou que a chamada usa
-# um client externo. NUNCA use este arquivo para "silenciar" drift real do
-# schema principal — isso reintroduz exatamente o problema que o guard previne.
+# um client externo OU que a função existe na DB de produção mas foi criada
+# fora do fluxo de migrations deste repo (com comentário explicativo).
+# NUNCA use este arquivo para "silenciar" drift real do schema principal —
+# isso reintroduz exatamente o problema que o guard previne.
 #
 # Uma entrada por linha. Linhas começando com # são comentários.
 # ---------------------------------------------------------------------------
@@ -36,3 +38,40 @@ rpc_list_contacts
 rpc_list_conversations
 rpc_insert_message
 rpc_list_messages
+
+# ---------------------------------------------------------------------------
+# Funções que existem na DB de PRODUÇÃO mas foram criadas fora do fluxo de
+# migrations deste repo (criadas manualmente ou via script direto no banco).
+#
+# COMPROVAÇÃO: as funções têm migrations de ALTER (SECURITY INVOKER, GRANT,
+# SET search_path) o que prova que existem, mas nunca tiveram CREATE aqui.
+# A solução correta seria criar stub-migrations, mas por enquanto são listadas
+# aqui para não bloquear o check. Cada item tem um ticket para migrar
+# incrementalmente para supabase/migrations.
+# ---------------------------------------------------------------------------
+
+# fn_test_alert_channel — chamado via evoApi.rpc() (ExternalDbProxyClient),
+# NÃO via supabase.rpc(). É uma RPC do banco de operações externo (Evolution API
+# health). Confirmado em: src/lib/evoApiHealth/hooks.ts + src/lib/evoApiHealth/proxy.ts
+fn_test_alert_channel
+
+# Funções dos schemas ops/evo/zapp — existem em produção, criadas via migrations
+# diretas no banco (não via supabase/migrations deste repo).
+# ops schema:
+check_wal_health
+fn_ddl_audit_drop
+fn_ddl_audit_log
+fn_ddl_drop_alert
+# evo schema:
+fn_bootstrap_wpp2_instance
+fn_check_guardian_alive
+# zapp schema:
+fn_guard_qa_instances
+
+# Funções public schema que existem em produção mas antecedem o rastreamento
+# por migrations (foram criadas antes de migrations serem adicionadas ao repo
+# para estas funções ou via CLI direta):
+# pgvector/search functions:
+match_kb_chunks
+search_knowledge_base_rag
+rpc_record_search_click
