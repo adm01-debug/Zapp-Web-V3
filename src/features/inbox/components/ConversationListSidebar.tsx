@@ -51,7 +51,7 @@ export function ConversationListSidebar({
   const [_contactSearch, setContactSearch] = useState('');
 
   const _conversationsWithUnreadCount = useMemo(
-    () => inbox.conversations.filter((c: { unreadCount?: number }) => c.unreadCount > 0).length,
+    () => inbox.conversations.filter((c: any) => c.unreadCount > 0).length,
     [inbox.conversations]
   );
 
@@ -76,7 +76,7 @@ export function ConversationListSidebar({
   }, [inbox]);
 
   const sortedFilteredIds = useMemo(
-    () => inboxFilters.filteredConversations.map((c: { contact: { id: string } }) => c.contact.id),
+    () => inboxFilters.filteredConversations.map((c: any) => c.contact.id),
     [inboxFilters.filteredConversations]
   );
 

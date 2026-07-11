@@ -33,10 +33,7 @@ export interface MessageAttemptRow {
   updated_at: string;
 }
 
-export function useMessageAttempts(
-  messageRowId: string | null,
-  opts: { enabled?: boolean } = {},
-) {
+export function useMessageAttempts(messageRowId: string | null, opts: { enabled?: boolean } = {}) {
   const enabled = !!messageRowId && opts.enabled !== false;
 
   return useQuery<MessageAttemptRow | null, Error>({
@@ -52,31 +49,43 @@ export function useMessageAttempts(
     queryFn: async () => {
       if (!messageRowId) return null;
 
+      const SELECT_COLS =
+        'id,status,retry_count,max_retries,error_code,error_message,http_status,last_retry_reason,last_attempt_at,next_attempt_at,succeeded_at,created_at,updated_at';
+
       // Tentativa primária: idempotency_key padrão `msg:<id>`.
       const primaryKey = `msg:${messageRowId}`;
-      const { data: byKey, error: keyErr } = await safeClient.single<MessageAttemptRow>('failed_messages', q =>
-        q.select('id,status,retry_count,max_retries,error_code,error_message,http_status,last_retry_reason,last_attempt_at,next_attempt_at,succeeded_at,created_at,updated_at')
-          .eq('idempotency_key', primaryKey)
-          .order('created_at', { ascending: false }),
+      const { data: byKeyArr, error: keyErr } = await safeClient.from<MessageAttemptRow>(
+        'failed_messages',
+        (q) =>
+          q
+            .select(SELECT_COLS)
+            .eq('idempotency_key', primaryKey)
+            .order('created_at', { ascending: false })
+            .limit(1)
       );
 
       // 42501/permission/RLS → trata como "sem permissão", não erro.
       if (keyErr && !/permission|denied|row-level/i.test(keyErr.message)) {
-        throw new Error(keyErr.message);
+        throw keyErr;
       }
+      const byKey = byKeyArr?.[0] ?? null;
       if (byKey) return byKey;
 
       // Fallback: payload->>'message_id' (reprocessos legados).
-      const { data: byPayload, error: pErr } = await safeClient.single<MessageAttemptRow>('failed_messages', q =>
-        q.select('id,status,retry_count,max_retries,error_code,error_message,http_status,last_retry_reason,last_attempt_at,next_attempt_at,succeeded_at,created_at,updated_at')
-          .eq('payload->>message_id', messageRowId)
-          .order('created_at', { ascending: false }),
+      const { data: byPayloadArr, error: pErr } = await safeClient.from<MessageAttemptRow>(
+        'failed_messages',
+        (q) =>
+          q
+            .select(SELECT_COLS)
+            .eq('payload->>message_id', messageRowId)
+            .order('created_at', { ascending: false })
+            .limit(1)
       );
 
       if (pErr && !/permission|denied|row-level/i.test(pErr.message)) {
-        throw new Error(pErr.message);
+        throw pErr;
       }
-      return byPayload ?? null;
+      return byPayloadArr?.[0] ?? null;
     },
   });
 }

@@ -15,25 +15,25 @@ const log = getLogger('useContactDuplicateDetector');
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface PotentialDuplicate {
-  id:          string;
-  name:        string;
-  phone:       string | null;
-  email:       string | null;
-  avatar_url:  string | null;
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  avatar_url: string | null;
   match_field: 'phone' | 'email' | 'name';
   similarity?: number; // 0-1
 }
 
 interface UseDuplicateDetectorOptions {
   workspaceId: string;
-  excludeId?:  string; // exclude the current contact when editing
+  excludeId?: string; // exclude the current contact when editing
   debounceMs?: number;
 }
 
 interface DuplicateState {
-  checking:   boolean;
+  checking: boolean;
   duplicates: PotentialDuplicate[];
-  checked:    boolean;
+  checked: boolean;
 }
 
 // ── Normalize ──────────────────────────────────────────────────────────────
@@ -54,7 +54,9 @@ export function useContactDuplicateDetector({
   debounceMs = 600,
 }: UseDuplicateDetectorOptions) {
   const [state, setState] = useState<DuplicateState>({
-    checking: false, duplicates: [], checked: false,
+    checking: false,
+    duplicates: [],
+    checked: false,
   });
 
   const abortRef = useRef<AbortController | null>(null);
@@ -83,11 +85,15 @@ export function useContactDuplicateDetector({
         if (normalizedPhone && normalizedPhone.length >= 8) {
           const { data: phoneMatches } = await safeClient.from<PotentialDuplicate>(
             'contacts',
-            q => q.select('id, name, phone, email, avatar_url')
-                  .is('deleted_at', null)
-                  .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
-                  .or(`phone.eq.${normalizedPhone},phone.eq.+55${normalizedPhone},phone.eq.55${normalizedPhone}`)
-                  .limit(5),
+            (q) =>
+              q
+                .select('id, name, phone, email, avatar_url')
+                .is('deleted_at', null)
+                .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
+                .or(
+                  `phone.eq.${normalizedPhone},phone.eq.+55${normalizedPhone},phone.eq.55${normalizedPhone}`
+                )
+                .limit(5)
           );
 
           if (phoneMatches) {
@@ -103,11 +109,13 @@ export function useContactDuplicateDetector({
         if (normalizedEmail && normalizedEmail.includes('@')) {
           const { data: emailMatches } = await safeClient.from<PotentialDuplicate>(
             'contacts',
-            q => q.select('id, name, phone, email, avatar_url')
-                  .eq('email', normalizedEmail)
-                  .is('deleted_at', null)
-                  .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
-                  .limit(5),
+            (q) =>
+              q
+                .select('id, name, phone, email, avatar_url')
+                .eq('email', normalizedEmail)
+                .is('deleted_at', null)
+                .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
+                .limit(5)
           );
 
           if (emailMatches) {

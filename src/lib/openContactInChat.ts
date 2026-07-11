@@ -64,11 +64,7 @@ async function resolveContactId(opts: OpenContactInChatOptions): Promise<string 
   if (opts.contactId) return opts.contactId;
   const phone = opts.phone ?? jidToPhone(opts.remoteJid);
   if (!phone) return null;
-  const { data, error } = await supabase
-    .from('contacts')
-    .select('id')
-    .eq('phone', phone)
-    .maybeSingle();
+  const { data } = await supabase.from('contacts').select('id').eq('phone', phone).maybeSingle();
   return data?.id ?? null;
 }
 
@@ -137,23 +133,8 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
     attempts++;
     window.dispatchEvent(
       new CustomEvent('open-contact-chat', {
-        detail: {
-          /**
-           * CRITICAL FIX: always the real DB UUID, never the JID.
-           *
-           * Previously `handshakeId` (which could be a JID like
-           * "5564984450900@s.whatsapp.net") was used here as `contactId`.
-           * RealtimeMessages.markAsRead() received the JID, the UUID guard
-           * correctly blocked it but logged a WARN on all 15 retry attempts,
-           * flooding the console.
-           */
-          contactId,
-          /** JID for external-mode (FATOR X) receivers that need remoteJid. */
-          remoteJid: remoteJid ?? undefined,
-          phone: phone ?? undefined,
-          messageId: target.messageId,
-        },
-      }),
+        detail: { contactId: handshakeId, messageId: target.messageId },
+      })
     );
     if (attempts < 15) setTimeout(tryDispatch, 200);
   };

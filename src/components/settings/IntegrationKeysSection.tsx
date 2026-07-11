@@ -65,6 +65,20 @@ export function IntegrationKeysSection() {
 
   const { syncAll } = useEvolutionAutoSync();
 
+  // Sync with localStorage for direct mode
+  useEffect(() => {
+    const url = getSetting('evolution_api_url');
+    const token = getSetting('evolution_api_token');
+    if (url && token) {
+      localStorage.setItem(
+        'zapp_evolution_config',
+        JSON.stringify({
+          evolution_api_url: url,
+          evolution_api_key: token,
+        })
+      );
+    }
+  }, [getSetting]);
 
   const toggleVisibility = (key: string) => {
     setVisibleKeys((prev) => ({ ...prev, [key]: !prev[key] }));

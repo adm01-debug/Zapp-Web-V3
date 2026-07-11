@@ -42,7 +42,7 @@ const VirtualizedItem = memo(
     onToggleSelection,
     onSelectConversation,
   }: {
-    virtualRow: VirtualItem;
+    virtualRow: any;
     conversation: ConversationWithMessages;
     selectedContactId: string | null;
     selectedIds: Set<string>;

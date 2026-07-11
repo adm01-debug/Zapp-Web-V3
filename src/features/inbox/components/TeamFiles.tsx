@@ -2,13 +2,28 @@ import { memo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { File, Download, Trash2, Loader2, UploadCloud, EyeOff, Search as SearchIcon, Eye } from 'lucide-react';
+import {
+  File,
+  Download,
+  Trash2,
+  Loader2,
+  UploadCloud,
+  EyeOff,
+  Search as SearchIcon,
+  Eye,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface TeamFilesProps {
   contactId: string;
@@ -34,11 +49,12 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['team-files', contactId],
     queryFn: async () => {
-      const { data } = await safeClient.from<WhisperFile>(
-        'whisper_files',
-        q => q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
+      const { data, error } = await safeClient.from('whisper_files', (q) =>
+        q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
       );
-      return data ?? [];
+
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -54,25 +70,33 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('whatsapp-media')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('whatsapp-media').getPublicUrl(filePath);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error: dbError } = await safeClient.from('whisper_files', q => q.insert({
-        contact_id: contactId,
-        file_name: file.name,
-        file_url: publicUrl,
-        file_size: file.size,
-        file_type: file.type,
-        sender_id: user?.id,
-      }));
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const { error: dbError } = await safeClient.from('whisper_files', (q) =>
+        q.insert({
+          contact_id: contactId,
+          file_name: file.name,
+          file_url: publicUrl,
+          file_size: file.size,
+          file_type: file.type,
+          sender_id: user?.id,
+        })
+      );
 
       if (dbError) throw dbError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
-      toast({ title: 'Arquivo enviado', description: 'O documento interno foi salvo com sucesso.' });
+      toast({
+        title: 'Arquivo enviado',
+        description: 'O documento interno foi salvo com sucesso.',
+      });
     },
     onError: (error: Error) => {
       toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
@@ -82,7 +106,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await safeClient.from('whisper_files', q => q.delete().eq('id', id));
+      const { error } = await safeClient.from('whisper_files', (q) => q.delete().eq('id', id));
       if (error) throw error;
     },
     onSuccess: () => {
@@ -104,15 +128,19 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const filteredFiles = files.filter(file => {
-    const fileName = file.file_name || '';
-    const fileType = file.file_type || '';
+  const filteredFiles = files.filter((file) => {
+    const fileName = (file as any).file_name || '';
+    const fileType = (file as any).file_type || '';
     const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' ||
+    const matchesType =
+      typeFilter === 'all' ||
       (typeFilter === 'image' && fileType.startsWith('image/')) ||
       (typeFilter === 'pdf' && fileType === 'application/pdf') ||
       (typeFilter === 'doc' && (fileType.includes('word') || fileType.includes('document'))) ||
-      (typeFilter === 'other' && !fileType.startsWith('image/') && fileType !== 'application/pdf' && !fileType.includes('word'));
+      (typeFilter === 'other' &&
+        !fileType.startsWith('image/') &&
+        fileType !== 'application/pdf' &&
+        !fileType.includes('word'));
     return matchesSearch && matchesType;
   });
 
@@ -120,14 +148,28 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold text-warning-foreground uppercase tracking-widest flex items-center gap-2">
-            <EyeOff className="w-3 h-3" />
+          <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-warning-foreground">
+            <EyeOff className="h-3 w-3" />
             Documentos da Equipe
           </h4>
           <label className="cursor-pointer">
-            <Input type="file" className="hidden" onChange={handleFileChange} disabled={isUploading} />
-            <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1.5 border-warning text-warning-foreground hover:bg-warning" disabled={isUploading}>
-              {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <UploadCloud className="w-3 h-3" />}
+            <Input
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={isUploading}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 border-warning text-[10px] text-warning-foreground hover:bg-warning"
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <UploadCloud className="h-3 w-3" />
+              )}
               Novo Arquivo
             </Button>
           </label>
@@ -136,18 +178,18 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         {/* Search and Filters */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-warning-foreground" />
+            <SearchIcon className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-warning-foreground" />
             <Input
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar arquivos..."
-              className="pl-7 h-8 text-[11px] bg-warning/30 border-warning focus-visible:ring-amber-200"
+              className="h-8 border-warning bg-warning/30 pl-7 text-[11px] focus-visible:ring-amber-200"
             />
           </div>
           <select
             value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-            className="h-8 text-[10px] bg-warning/30 border-warning rounded-md px-2 text-warning-foreground outline-none focus:ring-1 focus:ring-amber-200"
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="h-8 rounded-md border-warning bg-warning/30 px-2 text-[10px] text-warning-foreground outline-none focus:ring-1 focus:ring-amber-200"
           >
             <option value="all">Todos</option>
             <option value="image">Imagens</option>
@@ -158,51 +200,80 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         </div>
       </div>
 
-      <div className="space-y-2 min-h-[100px]">
+      <div className="min-h-[100px] space-y-2">
         {isLoading ? (
-          <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-warning-foreground" /></div>
-        ) : filteredFiles.length === 0 ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-warning-foreground" />
+          </div>
+        ) : (filteredFiles as any[]).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 grayscale">
-            <File className="w-8 h-8 mb-2" />
+            <File className="mb-2 h-8 w-8" />
             <p className="text-[10px]">
-              {searchTerm || typeFilter !== 'all' ? 'Nenhum arquivo corresponde aos filtros.' : 'Nenhum arquivo interno compartilhado.'}
+              {searchTerm || typeFilter !== 'all'
+                ? 'Nenhum arquivo corresponde aos filtros.'
+                : 'Nenhum arquivo interno compartilhado.'}
             </p>
           </div>
         ) : (
-          filteredFiles.map((file) => (
-            <div key={file.id} className="flex items-center gap-3 p-2 rounded-xl bg-warning/50 border border-warning hover:bg-warning/50 transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-warning flex items-center justify-center shrink-0">
-                <File className="w-4 h-4 text-warning-foreground" />
+          filteredFiles.map((file: any) => (
+            <div
+              key={file.id}
+              className="group flex items-center gap-3 rounded-xl border border-warning bg-warning/50 p-2 transition-colors hover:bg-warning/50"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-warning">
+                <File className="h-4 w-4 text-warning-foreground" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-warning-foreground truncate" title={file.file_name}>{file.file_name}</p>
-                <p className="text-[9px] text-warning-foreground/60  uppercase">
-                  {formatSize(file.file_size || 0)} • {format(new Date(file.created_at), 'dd MMM HH:mm', { locale: ptBR })}
+              <div className="min-w-0 flex-1">
+                <p
+                  className="truncate text-[11px] font-medium text-warning-foreground"
+                  title={file.file_name}
+                >
+                  {file.file_name}
+                </p>
+                <p className="text-[9px] uppercase text-warning-foreground/60">
+                  {formatSize(file.file_size || 0)} •{' '}
+                  {format(new Date(file.created_at), 'dd MMM HH:mm', { locale: ptBR })}
                 </p>
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                 {file.file_type?.startsWith('image/') && (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-warning-foreground hover:bg-warning">
-                        <Eye className="w-3.5 h-3.5" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-warning-foreground hover:bg-warning"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl border-warning">
                       <DialogHeader>
-                        <DialogTitle className="text-sm font-bold text-warning-foreground">{file.file_name}</DialogTitle>
+                        <DialogTitle className="text-sm font-bold text-warning-foreground">
+                          {file.file_name}
+                        </DialogTitle>
                       </DialogHeader>
-                      <div className="flex items-center justify-center p-2 bg-warning/20 rounded-xl overflow-hidden min-h-[300px]">
+                      <div className="flex min-h-[300px] items-center justify-center overflow-hidden rounded-xl bg-warning/20 p-2">
                         <img
                           src={file.file_url}
                           alt={file.file_name}
-                          className="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg"
+                          className="max-h-[70vh] max-w-full rounded-lg object-contain shadow-lg"
                         />
                       </div>
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" className="h-8 text-[11px] gap-2 border-warning text-warning-foreground" asChild>
-                          <a href={file.file_url} download={file.file_name} target="_blank" rel="noreferrer">
-                            <Download className="w-3.5 h-3.5" />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-2 border-warning text-[11px] text-warning-foreground"
+                          asChild
+                        >
+                          <a
+                            href={file.file_url}
+                            download={file.file_name}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <Download className="h-3.5 w-3.5" />
                             Baixar Original
                           </a>
                         </Button>
@@ -210,13 +281,28 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                     </DialogContent>
                   </Dialog>
                 )}
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-warning-foreground hover:bg-warning" asChild>
-                  <a href={file.file_url} download={file.file_name} target="_blank" rel="noreferrer">
-                    <Download className="w-3.5 h-3.5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-warning-foreground hover:bg-warning"
+                  asChild
+                >
+                  <a
+                    href={file.file_url}
+                    download={file.file_name}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Download className="h-3.5 w-3.5" />
                   </a>
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => deleteMutation.mutate(file.id)}>
-                  <Trash2 className="w-3.5 h-3.5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                  onClick={() => deleteMutation.mutate(file.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>

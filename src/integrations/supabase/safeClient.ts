@@ -71,9 +71,18 @@ export const safeClient = {
       return { data: (Array.isArray(data) ? data : []) as T[], error: null, requestId };
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico ao consultar tabela ${table}`, err);
-      await this.recordFailure(requestId, 'from', table, err instanceof Error ? err.message : String(err));
+      await this.recordFailure(
+        requestId,
+        'from',
+        table,
+        err instanceof Error ? err.message : String(err)
+      );
       stats.failedCalls++;
-      return { data: [] as T[], error: err instanceof Error ? err : new Error(String(err)), requestId };
+      return {
+        data: [] as T[],
+        error: err instanceof Error ? err : new Error(String(err)),
+        requestId,
+      };
     }
   },
 
@@ -103,16 +112,18 @@ export const safeClient = {
       return { data: data as T, error: null, requestId };
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico single ${table}`, err);
-      await this.recordFailure(requestId, 'single', table, err instanceof Error ? err.message : String(err));
+      await this.recordFailure(
+        requestId,
+        'single',
+        table,
+        err instanceof Error ? err.message : String(err)
+      );
       stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
 
-  async rpc<T = unknown>(
-    name: string,
-    params?: Record<string, unknown>
-  ): Promise<SafeResponse<T>> {
+  async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
     const requestId = Math.random().toString(36).substring(7);
     stats.totalCalls++;
     try {
@@ -136,7 +147,12 @@ export const safeClient = {
       return { data: data as T, error: null, requestId };
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico RPC ${name}`, err);
-      await this.recordFailure(requestId, 'rpc', name, err instanceof Error ? err.message : String(err));
+      await this.recordFailure(
+        requestId,
+        'rpc',
+        name,
+        err instanceof Error ? err.message : String(err)
+      );
       stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
@@ -163,19 +179,26 @@ export const safeClient = {
     try {
       let exists = false;
       if (type === 'table') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await supabase.from(name as any).select('count', { count: 'exact', head: true }).limit(0);
+        const { error } = await supabase
+          .from(name as any)
+          .select('count', { count: 'exact', head: true })
+          .limit(0);
         if (!error) {
           exists = true;
         } else {
           const msg = (error.message ?? '').toLowerCase();
           const isPermissionError =
-            msg.includes('permission denied') || msg.includes('42501') ||
-            msg.includes('jwt') || msg.includes('unauthorized') ||
-            msg.includes('invalid api key') || msg.includes('row-level security');
+            msg.includes('permission denied') ||
+            msg.includes('42501') ||
+            msg.includes('jwt') ||
+            msg.includes('unauthorized') ||
+            msg.includes('invalid api key') ||
+            msg.includes('row-level security');
           const isNotFound =
-            msg.includes('does not exist') || msg.includes('not found') ||
-            msg.includes('42p01') || msg.includes('relation');
+            msg.includes('does not exist') ||
+            msg.includes('not found') ||
+            msg.includes('42p01') ||
+            msg.includes('relation');
           exists = isPermissionError || !isNotFound;
         }
       } else {
@@ -186,12 +209,17 @@ export const safeClient = {
         } else {
           const msg = (error.message ?? '').toLowerCase();
           const isPermissionError =
-            msg.includes('permission denied') || msg.includes('42501') ||
-            msg.includes('jwt') || msg.includes('unauthorized') ||
+            msg.includes('permission denied') ||
+            msg.includes('42501') ||
+            msg.includes('jwt') ||
+            msg.includes('unauthorized') ||
             msg.includes('invalid api key');
           const isNotFound =
-            msg.includes('does not exist') || msg.includes('not found') ||
-            msg.includes('42883') || msg.includes('function');
+            msg.includes('does not exist') || msg.includes('not found') || msg.includes('42883');
+          // NOTE: msg.includes('function') intentionally removed — PostgREST returns
+          // "could not find the function...() in the schema cache" for both missing
+          // functions AND parameterized functions probed without args (PGRST202).
+          // Only PG error 42883 is definitive evidence of a truly absent function.
           exists = isPermissionError || !isNotFound;
         }
       }
@@ -219,18 +247,21 @@ export const safeClient = {
       else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
       // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
-      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)('rpc_update_email_health_state', {
-        p_status: status,
-        p_failure_count: telemetry.recentFailures.length,
-        p_metadata: {
-          total_calls: telemetry.stats.totalCalls,
-          cache_hits: telemetry.stats.cacheHits,
-          last_validation: lastValidation?.toISOString()
+      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)(
+        'rpc_update_email_health_state',
+        {
+          p_status: status,
+          p_failure_count: telemetry.recentFailures.length,
+          p_metadata: {
+            total_calls: telemetry.stats.totalCalls,
+            cache_hits: telemetry.stats.cacheHits,
+            last_validation: lastValidation?.toISOString(),
+          },
         }
-      });
+      );
     } catch (err) {
       _log.warn('Erro ao sincronizar estado de saúde', {
-        error: err instanceof Error ? err.message : String(err)
+        error: err instanceof Error ? err.message : String(err),
       });
     } finally {
       _healthLogInProgress = false;
@@ -261,10 +292,14 @@ export const safeClient = {
       const val = masked[key];
       const lowerKey = key.toLowerCase();
       if (
-        lowerKey.includes('token') || lowerKey.includes('secret') ||
-        lowerKey.includes('password') || lowerKey.includes('key') ||
-        lowerKey.includes('auth') || lowerKey.includes('credential') ||
-        lowerKey.includes('session') || lowerKey.includes('cookie')
+        lowerKey.includes('token') ||
+        lowerKey.includes('secret') ||
+        lowerKey.includes('password') ||
+        lowerKey.includes('key') ||
+        lowerKey.includes('auth') ||
+        lowerKey.includes('credential') ||
+        lowerKey.includes('session') ||
+        lowerKey.includes('cookie')
       ) {
         masked[key] = '***MASKED***';
       } else if (lowerKey.includes('email') && typeof val === 'string') {
@@ -314,17 +349,20 @@ export const safeClient = {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
-      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)('rpc_log_email_health', {
-        p_status: 'error',
-        p_operation: operation,
-        p_resource: resource,
-        p_request_id: requestId,
-        p_error_message: error,
-        p_is_failure: true
-      });
+      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)(
+        'rpc_log_email_health',
+        {
+          p_status: 'error',
+          p_operation: operation,
+          p_resource: resource,
+          p_request_id: requestId,
+          p_error_message: error,
+          p_is_failure: true,
+        }
+      );
     } catch (dbErr) {
       _log.warn('Falha ao persistir log de saúde', {
-        error: dbErr instanceof Error ? dbErr.message : String(dbErr)
+        error: dbErr instanceof Error ? dbErr.message : String(dbErr),
       });
     } finally {
       _healthLogInProgress = false;
@@ -337,7 +375,7 @@ export const safeClient = {
 
   getCacheInfo() {
     const values = Array.from(resourceCache.values());
-    const expiration = values.length > 0 ? Math.max(...values.map(v => v.expires)) : null;
+    const expiration = values.length > 0 ? Math.max(...values.map((v) => v.expires)) : null;
     return { expiration, size: resourceCache.size };
   },
 
@@ -357,5 +395,5 @@ export const safeClient = {
       return new Error(msg);
     }
     return new Error(String(error));
-  }
+  },
 };
