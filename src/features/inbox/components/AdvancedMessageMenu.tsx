@@ -145,6 +145,16 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
     { icon: Radio, label: 'Status/Story', onClick: () => { setPopoverOpen(false); setStatusDialog(true); } },
   ];
 
+  const stickerPreviewSrc = (() => {
+    if (!stickerUrl) return '';
+    try {
+      const parsed = new URL(stickerUrl);
+      return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+    } catch {
+      return '';
+    }
+  })();
+
   return (
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
@@ -187,9 +197,9 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
                 placeholder="https://exemplo.com/sticker.webp"
               />
             </div>
-            {stickerUrl && /^https?:\/\//i.test(stickerUrl) && (
+            {stickerPreviewSrc && (
               <div className="flex justify-center p-4 bg-muted/20 rounded-lg">
-                <img src={stickerUrl} alt="Pré-visualização da figurinha" className="max-w-32 max-h-32 object-contain" />
+                <img src={stickerPreviewSrc} alt="Pré-visualização da figurinha" className="max-w-32 max-h-32 object-contain" />
               </div>
             )}
             <Button onClick={handleSendSticker} disabled={isLoading || !stickerUrl.trim()} className="w-full">

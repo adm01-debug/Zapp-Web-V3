@@ -62,6 +62,9 @@ export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: Docum
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label="Abrir pré-visualização do arquivo"
       className={cn(
         'flex min-w-[240px] max-w-[320px] cursor-pointer items-center gap-3 rounded-md p-2.5 transition-colors',
         isSent
@@ -69,6 +72,7 @@ export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: Docum
           : 'border border-border bg-chat-received'
       )}
       onClick={handleOpen}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleOpen()}
     >
       <div
         className={cn(

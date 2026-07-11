@@ -73,12 +73,21 @@ export function MiniChatPiP({
         >
           {/* Header — always visible */}
           <div
+            role="button"
+            tabIndex={0}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? 'Minimizar chat' : 'Expandir chat'}
             className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer bg-card hover:bg-muted/50 transition-colors"
             onClick={() => {
               if (!isExpanded) {
                 onExpand();
               } else {
                 setIsExpanded(false);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                if (!isExpanded) onExpand(); else setIsExpanded(false);
               }
             }}
           >

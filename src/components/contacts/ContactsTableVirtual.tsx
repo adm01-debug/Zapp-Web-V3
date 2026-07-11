@@ -80,8 +80,10 @@ const ContactRow = memo(
         )}
         style={{ height: ROW_HEIGHT }}
         role="row"
+        tabIndex={0}
         aria-selected={isSelected}
         onClick={() => onOpenChat(contact.id)}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpenChat(contact.id)}
       >
         {/* Checkbox */}
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>

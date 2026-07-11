@@ -333,6 +333,8 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
                 {filteredItems.map((item) => (
                   <div
                     key={item.id}
+                    role="button"
+                    tabIndex={0}
                     className={cn(
                       'flex cursor-pointer items-center gap-3 rounded-lg border p-2 transition-colors',
                       selectedItems.has(item.id)
@@ -340,6 +342,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
                         : 'hover:bg-muted/50'
                     )}
                     onClick={() => setPreviewItem(item)}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPreviewItem(item)}
                   >
                     <div
                       className={cn(

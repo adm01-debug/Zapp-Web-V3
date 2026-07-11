@@ -151,11 +151,15 @@ export function EmailChatBubble({
     >
       {/* Header */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
         className={cn(
           'group/header mx-2 my-1 flex cursor-pointer items-start gap-3 rounded-xl px-4 py-3 transition-all duration-300 hover:bg-muted/30',
           expanded && 'border border-border/5 bg-muted/15 shadow-sm'
         )}
         onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setExpanded((v) => !v)}
       >
         {/* Avatar com Animação */}
         <motion.div whileHover={{ scale: 1.1 }} className="relative shrink-0">

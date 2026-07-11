@@ -65,11 +65,15 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
               {articles.map((article) => (
                 <div
                   key={article.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={expandedId === article.id}
                   className={cn(
                     'p-2 rounded-lg border border-border/20 hover:border-primary/30 cursor-pointer transition-colors',
                     expandedId === article.id && 'border-primary/40 bg-primary/5'
                   )}
                   onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setExpandedId(expandedId === article.id ? null : article.id)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">

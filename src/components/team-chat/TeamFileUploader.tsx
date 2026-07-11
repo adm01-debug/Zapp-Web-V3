@@ -103,6 +103,16 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [preview, uploading, handleCancel]);
 
+  const safePreviewUrl = (() => {
+    if (!preview?.url) return '';
+    try {
+      const parsed = new URL(preview.url);
+      return parsed.protocol === 'blob:' ? parsed.href : '';
+    } catch {
+      return '';
+    }
+  })();
+
   return (
     <>
       <input
@@ -138,8 +148,8 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
             </div>
 
             <div className="rounded-lg overflow-hidden bg-muted/30 border border-border/30">
-              {preview.file.type.startsWith('image/') && preview.url.startsWith('blob:') ? (
-                <img src={preview.url} alt="Pré-visualização do arquivo" className="max-h-48 w-full object-contain" />
+              {preview.file.type.startsWith('image/') && safePreviewUrl ? (
+                <img src={safePreviewUrl} alt="Pré-visualização do arquivo" className="max-h-48 w-full object-contain" />
               ) : (
                 <div className="flex items-center gap-3 p-4">
                   {preview.file.type.startsWith('video/') ? (
