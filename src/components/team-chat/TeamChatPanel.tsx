@@ -39,7 +39,7 @@ const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
   if (!msg.media_url) return null;
   switch (msg.media_type) {
     case 'image': case 'sticker': case 'emoji':
-      return <img src={msg.media_url} alt="media" className={cn("rounded-lg max-h-48 object-contain cursor-pointer", msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'w-24 h-24' : 'max-w-full')} onClick={() => window.open(msg.media_url!, '_blank')} />;
+      return <img src={msg.media_url} alt={msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'Figurinha' : 'Imagem da mensagem'} className={cn("rounded-lg max-h-48 object-contain cursor-pointer", msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'w-24 h-24' : 'max-w-full')} onClick={() => window.open(msg.media_url!, '_blank')} />;
     case 'video': return <video src={msg.media_url} controls className="rounded-lg max-h-48 max-w-full" />;
     case 'audio': case 'audio_meme': return <audio src={msg.media_url} controls className="max-w-full" />;
     case 'document': return <a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"><FileText className="w-5 h-5 text-muted-foreground shrink-0" /><span className="text-sm text-foreground underline truncate">{msg.content || 'Documento'}</span></a>;
