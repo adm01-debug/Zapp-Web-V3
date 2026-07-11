@@ -4,19 +4,44 @@ import { TourProvider, useTour, DEFAULT_ONBOARDING_STEPS, TourStep } from '../On
 import { WelcomeModal } from '../WelcomeModal';
 
 // Helper component to access tour context
-function TourConsumer({ steps, autoStart }: { steps?: TourStep[]; autoStart?: boolean }) {
-  const { isActive, currentStep, startTour, endTour, nextStep, prevStep, goToStep, steps: tourSteps } = useTour();
+function TourConsumer({
+  steps,
+  autoStart: _autoStart,
+}: {
+  steps?: TourStep[];
+  autoStart?: boolean;
+}) {
+  const {
+    isActive,
+    currentStep,
+    startTour,
+    endTour,
+    nextStep,
+    prevStep,
+    goToStep,
+    steps: tourSteps,
+  } = useTour();
 
   return (
     <div>
       <span data-testid="is-active">{String(isActive)}</span>
       <span data-testid="current-step">{currentStep}</span>
       <span data-testid="total-steps">{tourSteps.length}</span>
-      <button data-testid="start-tour" onClick={() => startTour(steps || DEFAULT_ONBOARDING_STEPS)}>Start</button>
-      <button data-testid="end-tour" onClick={endTour}>End</button>
-      <button data-testid="next-step" onClick={nextStep}>Next</button>
-      <button data-testid="prev-step" onClick={prevStep}>Prev</button>
-      <button data-testid="go-to-2" onClick={() => goToStep(2)}>Go to 2</button>
+      <button data-testid="start-tour" onClick={() => startTour(steps || DEFAULT_ONBOARDING_STEPS)}>
+        Start
+      </button>
+      <button data-testid="end-tour" onClick={endTour}>
+        End
+      </button>
+      <button data-testid="next-step" onClick={nextStep}>
+        Next
+      </button>
+      <button data-testid="prev-step" onClick={prevStep}>
+        Prev
+      </button>
+      <button data-testid="go-to-2" onClick={() => goToStep(2)}>
+        Go to 2
+      </button>
     </div>
   );
 }
@@ -41,7 +66,9 @@ describe('TourProvider', () => {
     );
     fireEvent.click(screen.getByTestId('start-tour'));
     expect(screen.getByTestId('is-active').textContent).toBe('true');
-    expect(screen.getByTestId('total-steps').textContent).toBe(String(DEFAULT_ONBOARDING_STEPS.length));
+    expect(screen.getByTestId('total-steps').textContent).toBe(
+      String(DEFAULT_ONBOARDING_STEPS.length)
+    );
     expect(screen.getByTestId('current-step').textContent).toBe('0');
   });
 
@@ -100,9 +127,7 @@ describe('TourProvider', () => {
 
   it('calls onComplete when tour ends', () => {
     const onComplete = vi.fn();
-    const twoSteps: TourStep[] = [
-      { id: 'a', target: '#a', title: 'A', description: 'Desc A' },
-    ];
+    const twoSteps: TourStep[] = [{ id: 'a', target: '#a', title: 'A', description: 'Desc A' }];
     render(
       <TourProvider onComplete={onComplete}>
         <TourConsumer steps={twoSteps} />
@@ -185,7 +210,7 @@ describe('DEFAULT_ONBOARDING_STEPS', () => {
   });
 
   it('step IDs are unique', () => {
-    const ids = DEFAULT_ONBOARDING_STEPS.map(s => s.id);
+    const ids = DEFAULT_ONBOARDING_STEPS.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
@@ -199,17 +224,13 @@ describe('WelcomeModal', () => {
   });
 
   it('renders content when open', () => {
-    render(
-      <WelcomeModal isOpen={true} onClose={vi.fn()} onStartTour={vi.fn()} userName="João" />
-    );
+    render(<WelcomeModal isOpen={true} onClose={vi.fn()} onStartTour={vi.fn()} userName="João" />);
     expect(screen.getByText(/João/)).toBeInTheDocument();
   });
 
   it('calls onStartTour when tour button is clicked', () => {
     const onStartTour = vi.fn();
-    render(
-      <WelcomeModal isOpen={true} onClose={vi.fn()} onStartTour={onStartTour} />
-    );
+    render(<WelcomeModal isOpen={true} onClose={vi.fn()} onStartTour={onStartTour} />);
     const tourButton = screen.getByText(/Iniciar Tour Guiado/i);
     fireEvent.click(tourButton);
     expect(onStartTour).toHaveBeenCalledTimes(1);
@@ -217,9 +238,7 @@ describe('WelcomeModal', () => {
 
   it('calls onClose when close button/skip is clicked', () => {
     const onClose = vi.fn();
-    render(
-      <WelcomeModal isOpen={true} onClose={onClose} onStartTour={vi.fn()} />
-    );
+    render(<WelcomeModal isOpen={true} onClose={onClose} onStartTour={vi.fn()} />);
     // Find skip/close button
     const skipButton = screen.getByText(/pular|explorar|fechar/i);
     fireEvent.click(skipButton);
