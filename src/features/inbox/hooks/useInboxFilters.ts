@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -281,8 +280,9 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
           // Bug fix: TicketTabs contabiliza como "aberto" tudo que não é `resolved`
           // (inclui `pending`, `waiting`, `snoozed` etc). O filtro precisa seguir
           // o mesmo critério, senão o contador diverge da lista renderizada
-          // ("Aguardando 33" com "Nenhuma conversa encontrada").
-          const isOpenOrProgress = s !== 'resolved' && s !== 'archived' && s !== 'closed';
+          // ("Aguardando 33" com "Nenhuma conversa encontrada"). TicketStatus só
+          // modela open|in_progress|resolved, então "não resolvido" cobre o resto.
+          const isOpenOrProgress = s !== 'resolved';
 
           if (!isOpenOrProgress) return false;
 
