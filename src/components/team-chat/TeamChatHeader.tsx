@@ -121,6 +121,7 @@ export function TeamChatHeader({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
+              aria-label="Buscar mensagens"
               variant="ghost"
               size="icon"
               className={cn(
@@ -139,6 +140,7 @@ export function TeamChatHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Adicionar membros"
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -155,6 +157,7 @@ export function TeamChatHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Estatísticas do grupo"
                 variant="ghost"
                 size="icon"
                 className={cn(
@@ -174,6 +177,7 @@ export function TeamChatHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label="Performance do Chat"
                 variant="ghost"
                 size="icon"
                 className={cn('h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground')}
@@ -190,6 +194,7 @@ export function TeamChatHeader({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label={showDetails ? 'Fechar detalhes' : 'Ver detalhes'}
                 variant="ghost"
                 size="icon"
                 className={cn(

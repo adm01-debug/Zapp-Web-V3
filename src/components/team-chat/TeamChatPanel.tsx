@@ -185,7 +185,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                 onKeyDown={e => { if (e.key === 'Escape') { s.setShowSearch(false); s.setSearchQuery(''); } }}
                 placeholder="Buscar nas mensagens..." className="h-8 text-sm" />
               {s.searchQuery && <span className="text-xs text-muted-foreground whitespace-nowrap">{s.filteredMessages.length} resultado{s.filteredMessages.length !== 1 ? 's' : ''}</span>}
-              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => { s.setShowSearch(false); s.setSearchQuery(''); }}><X className="w-3.5 h-3.5" /></Button>
+              <Button aria-label="Fechar busca" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => { s.setShowSearch(false); s.setSearchQuery(''); }}><X className="w-3.5 h-3.5" /></Button>
             </div>
           </motion.div>
         )}
@@ -324,7 +324,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                 {isEditing ? (
                                   <div className="space-y-1.5">
                                     <Input value={s.editText} onChange={e => s.setEditText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') s.handleSaveEdit(); if (e.key === 'Escape') s.handleCancelEdit(); }} className="h-7 text-sm bg-background text-foreground" autoFocus />
-                                    <div className="flex gap-1 justify-end"><Button size="icon" variant="ghost" className="h-5 w-5" onClick={s.handleCancelEdit}><X className="w-3 h-3" /></Button><Button size="icon" variant="ghost" className="h-5 w-5" onClick={s.handleSaveEdit}><Check className="w-3 h-3" /></Button></div>
+                                    <div className="flex gap-1 justify-end"><Button aria-label="Cancelar edição" size="icon" variant="ghost" className="h-5 w-5" onClick={s.handleCancelEdit}><X className="w-3 h-3" /></Button><Button aria-label="Salvar edição" size="icon" variant="ghost" className="h-5 w-5" onClick={s.handleSaveEdit}><Check className="w-3 h-3" /></Button></div>
                                   </div>
                                 ) : (
                                   <>
@@ -402,7 +402,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                 Novas mensagens
               </div>
             )}
-            <Button size="icon" variant="secondary" className="rounded-full shadow-lg h-9 w-9 border border-primary/20" onClick={s.scrollToBottom}>
+            <Button aria-label="Rolar para o final" size="icon" variant="secondary" className="rounded-full shadow-lg h-9 w-9 border border-primary/20" onClick={s.scrollToBottom}>
               <ArrowDown className="w-4 h-4" />
             </Button>
           </motion.div>

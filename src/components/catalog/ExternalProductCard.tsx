@@ -58,8 +58,8 @@ export const ExternalProductCard: React.FC<ExternalProductCardProps> = ({ produc
           </div>
         </div>
         <div className="flex gap-1 flex-shrink-0">
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowDetails(true)}><Eye className="w-4 h-4" /></Button>
-          {onSend && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onSend(product)} disabled={product.is_stockout}><Send className="w-4 h-4" /></Button>}
+          <Button aria-label="Ver detalhes do produto" size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowDetails(true)}><Eye className="w-4 h-4" /></Button>
+          {onSend && <Button aria-label="Enviar produto" size="icon" variant="ghost" className="h-8 w-8" onClick={() => onSend(product)} disabled={product.is_stockout}><Send className="w-4 h-4" /></Button>}
         </div>
         <ProductDetailDialog product={product} open={showDetails} onOpenChange={setShowDetails} onSend={onSend} />
       </motion.div>
