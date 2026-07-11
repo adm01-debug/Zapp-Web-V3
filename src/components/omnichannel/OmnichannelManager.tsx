@@ -1,7 +1,4 @@
 import { useState, lazy, Suspense } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,14 +19,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
 import { MessageSquare, Plus, Trash2, Globe, Send, Instagram, MessagesSquare } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useOmnichannelChannels,
+  type ChannelType,
+} from '@/hooks/omnichannel/useOmnichannelChannels';
 const ChannelRoutingRules = lazy(() =>
   import('./ChannelRoutingRules').then((m) => ({ default: m.ChannelRoutingRules }))
 );
 
-const channelConfig = {
+const channelConfig: Record<
+  ChannelType,
+  { label: string; icon: typeof MessageSquare; color: string; bg: string }
+> = {
   whatsapp: { label: 'WhatsApp', icon: MessageSquare, color: 'text-success', bg: 'bg-success/10' },
   instagram: { label: 'Instagram', icon: Instagram, color: 'text-accent', bg: 'bg-accent/10' },
   telegram: { label: 'Telegram', icon: Send, color: 'text-info', bg: 'bg-info/10' },
@@ -48,80 +51,13 @@ const channelConfig = {
   },
 };
 
-type ChannelType = keyof typeof channelConfig;
-
-interface ChannelConnection {
-  id: string;
-  channel_type: ChannelType;
-  name: string;
-  status: string;
-  is_active: boolean;
-  external_account_id: string | null;
-  created_at: string;
-}
-
 export function OmnichannelManager() {
-  const queryClient = useQueryClient();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newChannel, setNewChannel] = useState({
     name: '',
     channel_type: 'instagram' as ChannelType,
   });
-
-  const { data: channels = [], isLoading } = useQuery({
-    queryKey: ['channel-connections'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('channel_connections_safe')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as ChannelConnection[];
-    },
-  });
-
-  const addChannel = useMutation({
-    mutationFn: async (channel: { name: string; channel_type: string }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const { error: insertErr } = await supabase.from('channel_connections').insert([
-        {
-          name: channel.name,
-          channel_type: channel.channel_type as Database['public']['Enums']['channel_type'],
-          created_by: profile?.id,
-          status: 'pending_setup',
-        },
-      ]);
-      if (insertErr) throw insertErr;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-connections'] });
-      toast.success('Canal adicionado! Configure as credenciais para ativá-lo.');
-      setShowAddDialog(false);
-      setNewChannel({ name: '', channel_type: 'instagram' });
-    },
-    onError: () => toast.error('Erro ao adicionar canal'),
-  });
-
-  const deleteChannel = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('channel_connections').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-connections'] });
-      toast.success('Canal removido');
-    },
-  });
+  const { channels, isLoading, addChannel, deleteChannel } = useOmnichannelChannels();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -197,7 +133,14 @@ export function OmnichannelManager() {
                   </div>
                   <Button
                     className="w-full"
-                    onClick={() => addChannel.mutate(newChannel)}
+                    onClick={() =>
+                      addChannel.mutate(newChannel, {
+                        onSuccess: () => {
+                          setShowAddDialog(false);
+                          setNewChannel({ name: '', channel_type: 'instagram' });
+                        },
+                      })
+                    }
                     disabled={!newChannel.name || addChannel.isPending}
                   >
                     {addChannel.isPending ? 'Adicionando...' : 'Adicionar Canal'}

@@ -3,6 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTalkX, TalkXCampaign } from '@/hooks/useTalkX';
 
+// Format an ISO/UTC timestamp into the "YYYY-MM-DDTHH:mm" a <input type="datetime-local">
+// expects, in the browser's LOCAL time. Using toISOString() here would show UTC and
+// shift the displayed time (e.g. +3h in UTC-3), corrupting the value on re-save.
+function toLocalDateTimeInput(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export const VARIABLES = [
   { key: '{{nome}}', label: 'Primeiro Nome', desc: 'Insere o primeiro nome do contato' },
   { key: '{{nome_completo}}', label: 'Nome Completo', desc: 'Insere o nome completo do contato' },
@@ -72,13 +82,13 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
   const [hasMedia, setHasMedia] = useState(!!campaign?.media_url);
   const [isScheduled, setIsScheduled] = useState(!!campaign?.scheduled_at);
   const [scheduledAt, setScheduledAt] = useState(
-    campaign?.scheduled_at ? new Date(campaign.scheduled_at).toISOString().slice(0, 16) : ''
+    campaign?.scheduled_at ? toLocalDateTimeInput(campaign.scheduled_at) : ''
   );
 
   const { data: connections } = useQuery({
     queryKey: ['wa-connections-talkx'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('whatsapp_connections')
         .select('id, name, phone_number, status')
         .eq('status', 'connected');
@@ -89,7 +99,7 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
   const { data: contacts } = useQuery({
     queryKey: ['contacts-talkx'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('contacts')
         .select('id, name, nickname, phone, company, avatar_url, tags')
         .not('phone', 'is', null)
@@ -181,7 +191,14 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
         media_url: hasMedia ? mediaUrl || null : null,
         media_type: hasMedia ? mediaType || null : null,
         scheduled_at: isScheduled && scheduledAt ? new Date(scheduledAt).toISOString() : null,
-        status: isScheduled && scheduledAt ? 'scheduled' : undefined,
+        // When turning scheduling off, a campaign previously marked 'scheduled' must be
+        // moved back to 'draft' — otherwise it stays 'scheduled' with no date and never fires.
+        status:
+          isScheduled && scheduledAt
+            ? 'scheduled'
+            : campaign?.status === 'scheduled'
+              ? 'draft'
+              : undefined,
       };
       if (campaign) {
         await updateCampaign.mutateAsync({ id: campaign.id, ...payload });
@@ -233,7 +250,12 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
     if (!v) setScheduledAt('');
   }, []);
 
+  // Lower bound for the datetime-local input, in LOCAL time (not UTC), so the
+  // "earliest allowed" instant matches what the user sees.
+  const minScheduledAt = toLocalDateTimeInput(new Date().toISOString());
+
   return {
+    minScheduledAt,
     name,
     setName,
     messageTemplate,

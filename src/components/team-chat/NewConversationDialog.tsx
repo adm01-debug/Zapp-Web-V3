@@ -30,7 +30,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
   const [groupName, setGroupName] = useState('');
   const createMutation = useCreateTeamConversation();
 
-  const _isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin';
 
   const { data: teammates = [], isLoading: loadingTeammates } = useQuery({
     queryKey: ['team-profiles-for-chat'],
@@ -125,7 +125,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
         <Tabs
           value={tab}
           onValueChange={(v) => {
-            setTab(v as any);
+            setTab(v as 'direct' | 'group' | 'department');
             setSelectedIds([]);
             setSelectedDeptId(null);
           }}

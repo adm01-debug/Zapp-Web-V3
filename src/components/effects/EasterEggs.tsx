@@ -37,7 +37,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     const [partyMode, setPartyMode] = useState(false);
     const [matrixMode, setMatrixMode] = useState(false);
     const [shakeCount, setShakeCount] = useState(0);
-    const { celebrate } = useCelebration();
+    const { celebrate, celebrating } = useCelebration();
 
     // Konami Code Detection
     useEffect(() => {
@@ -70,11 +70,15 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     }, [konamiProgress, typedText]);
 
     // Shake Detection (for mobile)
+    // FIX: guard against Permissions Policy violations when running inside
+    // sandboxed iframes (e.g. Lovable editor preview) where the browser
+    // blocks accelerometer / devicemotion access.
     useEffect(() => {
       let lastX = 0,
         lastY = 0,
         lastZ = 0;
       const shakeThreshold = 15;
+      let listenerAdded = false;
 
       const handleMotion = (e: DeviceMotionEvent) => {
         const { x, y, z } = e.accelerationIncludingGravity || {};
@@ -100,12 +104,46 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
         lastZ = z || 0;
       };
 
-      if ('DeviceMotionEvent' in window) {
-        window.addEventListener('devicemotion', handleMotion);
+      // Guard 1: API must exist
+      if (!('DeviceMotionEvent' in window)) return;
+
+      // Guard 2: skip when running inside an iframe — the parent page's
+      // Permissions-Policy will block the accelerometer, generating
+      // '[Violation] Permissions policy violation' console errors.
+      try {
+        if (window !== window.top) return;
+      } catch {
+        // Cross-origin iframe access to window.top throws — treat as iframe
+        return;
       }
 
+      // Guard 3: use Permissions API when available to check accelerometer access
+      const setupListener = async () => {
+        try {
+          if ('permissions' in navigator) {
+            const status = await navigator.permissions.query({
+              name: 'accelerometer' as PermissionName,
+            });
+            if (status.state === 'denied') return;
+          }
+          window.addEventListener('devicemotion', handleMotion);
+          listenerAdded = true;
+        } catch {
+          // Permissions API doesn't support 'accelerometer' in this browser,
+          // or another error occurred — skip the listener to avoid console spam
+        }
+      };
+
+      setupListener();
+
       return () => {
-        window.removeEventListener('devicemotion', handleMotion);
+        if (listenerAdded) {
+          try {
+            window.removeEventListener('devicemotion', handleMotion);
+          } catch {
+            // ignore cleanup errors
+          }
+        }
       };
     }, []);
 

@@ -48,7 +48,7 @@ export function EmailChatReplyBar({
   const [cc, setCc] = useState('');
   const [bcc, setBcc] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [_showSignaturePicker, _setShowSignaturePicker] = useState(false);
+  const [showSignaturePicker, setShowSignaturePicker] = useState(false);
   const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -128,7 +128,7 @@ export function EmailChatReplyBar({
         .map((s) => s.trim())
         .filter(Boolean);
 
-      await (emailSendMessage as any)({
+      await emailSendMessage({
         accountId,
         to: toList,
         cc: ccList,
@@ -137,7 +137,7 @@ export function EmailChatReplyBar({
         bodyHtml,
         bodyPlain: plainText,
         threadId: threadEmailId,
-        attachments: processedAttachments as any,
+        attachments: processedAttachments,
         signature: true,
       });
 

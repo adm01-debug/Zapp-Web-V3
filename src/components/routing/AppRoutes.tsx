@@ -39,7 +39,7 @@ const AdminFailedAuthMessagesPage = lazyWithRetry(
   () => import('@/pages/admin/AdminFailedAuthMessagesPage')
 );
 const RoutePermissionsPage = lazyWithRetry(() => import('@/pages/admin/RoutePermissionsPage'));
-
+// AdminStressTestPage removido (P3 orphan cleanup — tabelas stress_test_* não existem no schema)
 const AdminInboxSyncStatusPage = lazyWithRetry(
   () => import('@/pages/admin/AdminInboxSyncStatusPage')
 );
@@ -291,6 +291,7 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          {/* /admin/stress-test removido — dependia de stress_test_runs/stress_test_metrics (tabelas inexistentes). */}
           <Route
             path="/admin/inbox-sync-status"
             element={

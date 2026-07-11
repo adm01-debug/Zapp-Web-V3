@@ -8,7 +8,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
 
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 const log = getLogger('useContactDuplicateDetector');
 
@@ -51,7 +51,7 @@ function normalizePhone(phone: string): string {
 export function useContactDuplicateDetector({
   workspaceId,
   excludeId,
-  debounceMs: _debounceMs = 600,
+  debounceMs = 600,
 }: UseDuplicateDetectorOptions) {
   const [state, setState] = useState<DuplicateState>({
     checking: false,
@@ -83,18 +83,17 @@ export function useContactDuplicateDetector({
       try {
         // Check by normalized phone
         if (normalizedPhone && normalizedPhone.length >= 8) {
-          const _workspace_id = workspaceId;
-          const query = (supabase as any)
-            .from('contacts')
-            .select('id, name, phone, email, avatar_url')
-            .is('deleted_at', null)
-            .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
-            .limit(5);
-
-          const { data: phoneMatches } = await query.or(
-            `phone.eq.${normalizedPhone}` +
-              `,phone.eq.+55${normalizedPhone}` +
-              `,phone.eq.55${normalizedPhone}`
+          const { data: phoneMatches } = await safeClient.from<PotentialDuplicate>(
+            'contacts',
+            (q) =>
+              q
+                .select('id, name, phone, email, avatar_url')
+                .is('deleted_at', null)
+                .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
+                .or(
+                  `phone.eq.${normalizedPhone},phone.eq.+55${normalizedPhone},phone.eq.55${normalizedPhone}`
+                )
+                .limit(5)
           );
 
           if (phoneMatches) {
@@ -108,13 +107,16 @@ export function useContactDuplicateDetector({
 
         // Check by email
         if (normalizedEmail && normalizedEmail.includes('@')) {
-          const { data: emailMatches } = await (supabase as any)
-            .from('contacts')
-            .select('id, name, phone, email, avatar_url')
-            .eq('email', normalizedEmail)
-            .is('deleted_at', null)
-            .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
-            .limit(5);
+          const { data: emailMatches } = await safeClient.from<PotentialDuplicate>(
+            'contacts',
+            (q) =>
+              q
+                .select('id, name, phone, email, avatar_url')
+                .eq('email', normalizedEmail)
+                .is('deleted_at', null)
+                .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
+                .limit(5)
+          );
 
           if (emailMatches) {
             for (const c of emailMatches) {

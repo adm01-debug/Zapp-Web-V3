@@ -329,7 +329,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     [handleSend, openDialog, closeDialog, handleSetActiveTool]
   );
   const handleSlashCommand = useCallback(
-    (command: SlashCommand, subCommand?: string) => {
+    (command: Pick<SlashCommand, 'id'> & Partial<SlashCommand>, subCommand?: string) => {
       closeDialog('slashCommands');
       setInputValue('');
       switch (command.id) {

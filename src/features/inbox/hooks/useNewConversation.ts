@@ -58,7 +58,7 @@ export function useNewConversation(
     }
     const timeout = setTimeout(async () => {
       setIsLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
         .or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`)
@@ -111,7 +111,7 @@ export function useNewConversation(
           .select('id')
           .single();
         if (newContactErr) {
-          if ((newContactErr as any).code === '23505') {
+          if (newContactErr.code === '23505') {
             toast.error('Já existe um contato com este número de telefone.');
             setIsSending(false);
             return;

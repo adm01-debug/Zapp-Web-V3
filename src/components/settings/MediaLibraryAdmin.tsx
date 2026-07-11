@@ -50,7 +50,7 @@ import {
 } from 'lucide-react';
 
 import { useMediaLibrary } from '@/hooks/media-library/useMediaLibrary';
-import { useMediaUpload } from './media-library/useMediaUpload';
+import { useMediaUpload } from '@/hooks/media-library/useMediaUpload';
 import type { MediaType } from '@/hooks/media-library/useMediaLibrary';
 import { StatsCards } from './media-library/StatsCards';
 import { AIGenerateDialog } from './media-library/AIGenerateDialog';
