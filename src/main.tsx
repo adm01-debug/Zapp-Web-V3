@@ -24,8 +24,29 @@ const log = getLogger('App');
 if (sentryEnabled) log.info('Sentry SDK ativo');
 log.info('Initialized at', new Date().toISOString());
 
-// Global unhandled error handlers for resilience
-window.addEventListener('unhandledrejection', (event) => {
+/**
+ * Consolidated unhandledrejection handler.
+ *
+ * Handles both logging and suppression in a single listener to avoid the
+ * double-handler problem (previously main.tsx logged everything, then
+ * App.tsx registered a second handler to suppress some errors — but
+ * main.tsx fired first, logging errors that the second handler would
+ * have silenced).
+ *
+ * Suppresses:
+ * - TimeoutError: expected browser timeout from storage/IDB operations
+ * - InvalidStateError: expected from service worker / IDB lifecycle events
+ */
+window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  const reason = event.reason;
+  if (reason && typeof reason === 'object' && 'name' in reason) {
+    const name = (reason as { name: string }).name;
+    if (name === 'TimeoutError' || name === 'InvalidStateError') {
+      // Known browser noise — suppress silently.
+      event.preventDefault();
+      return;
+    }
+  }
   log.error('Unhandled promise rejection:', event.reason);
 });
 
