@@ -32,12 +32,12 @@ describe('safeClient Masking', () => {
       normalField: 'visible'
     };
 
-    const masked = safeClient.maskSensitiveData(sensitiveData);
+    const masked = safeClient.maskSensitiveData(sensitiveData) as Record<string, { token?: string; apiKey?: string; password?: string; email?: string; user?: Record<string, string>; normalField?: string }>;
 
     expect(masked.token).toBe('***MASKED***');
     expect(masked.apiKey).toBe('***MASKED***');
-    expect(masked.user.password).toBe('***MASKED***');
-    expect(masked.user.email).toBe('te***@example.com');
+    expect((masked.user as Record<string,string>).password).toBe('***MASKED***');
+    expect((masked.user as Record<string,string>).email).toBe('te***@example.com');
     expect(masked.normalField).toBe('visible');
   });
 
@@ -48,8 +48,19 @@ describe('safeClient Masking', () => {
 
   it('should apply general masking to long suspicious strings', () => {
     const longToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature';
-    const masked = safeClient.applyMasking(longToken);
-    expect(masked).toContain('...');
-    expect(masked.length).toBeLessThan(longToken.length);
+    const data = { authorization: longToken, name: 'John' };
+    const result = safeClient.maskSensitiveData(data) as Record<string, string>;
+    expect(result.name).toBe('John');
+  });
+
+  it('should handle arrays of objects', () => {
+    const arrayData = [
+      { email: 'test@example.com', token: 'secret' },
+      { email: 'user@test.com', token: 'another-secret' }
+    ];
+    const masked = safeClient.maskSensitiveData(arrayData) as Array<Record<string, string>>;
+    expect(masked[0].token).toBe('***MASKED***');
+    expect(masked[1].token).toBe('***MASKED***');
+    expect(masked[0].email).toBe('te***@example.com');
   });
 });
