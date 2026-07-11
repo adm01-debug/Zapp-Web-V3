@@ -1,13 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Activity, Inbox, Send, AlertTriangle, Users, Hash, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { useEffect, useMemo, useState } from 'react';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Activity, Inbox, Send, AlertTriangle, Users, Hash, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 type Totals = {
   total_in: number;
@@ -47,38 +60,38 @@ type Metrics = {
 };
 
 const WINDOWS = [
-  { value: "24", label: "Últimas 24h" },
-  { value: "168", label: "Últimos 7 dias" },
-  { value: "720", label: "Últimos 30 dias" },
+  { value: '24', label: 'Últimas 24h' },
+  { value: '168', label: 'Últimos 7 dias' },
+  { value: '720', label: 'Últimos 30 dias' },
 ];
 
 function fmtSeconds(sec: number | null | undefined) {
-  if (!sec || sec <= 0) return "—";
+  if (!sec || sec <= 0) return '—';
   if (sec < 60) return `${Math.round(sec)}s`;
   if (sec < 3600) return `${Math.round(sec / 60)}min`;
   return `${(sec / 3600).toFixed(1)}h`;
 }
 
 export function OpsMetricsTab() {
-  const [windowHours, setWindowHours] = useState("24");
+  const [windowHours, setWindowHours] = useState('24');
   const [data, setData] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchMetrics = useMemo(
     () => async () => {
       setLoading(true);
-      const { data: res, error } = await (supabase as any).rpc("rpc_ops_metrics", {
+      const { data: res, error } = await safeClient.rpc<Metrics>('rpc_ops_metrics', {
         p_window_hours: Number(windowHours),
       });
       if (error) {
-        toast.error("Erro ao carregar métricas: " + error.message);
+        toast.error('Erro ao carregar métricas: ' + error.message);
         setLoading(false);
         return;
       }
       setData(res as unknown as Metrics);
       setLoading(false);
     },
-    [windowHours],
+    [windowHours]
   );
 
   useEffect(() => {
@@ -87,7 +100,7 @@ export function OpsMetricsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Select value={windowHours} onValueChange={setWindowHours}>
             <SelectTrigger className="w-[200px]">
@@ -108,31 +121,51 @@ export function OpsMetricsTab() {
           )}
         </div>
         <Button variant="outline" size="sm" onClick={fetchMetrics} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
       </div>
 
       {loading && !data ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
       ) : data ? (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <KpiCard icon={<Inbox className="h-4 w-4" />} label="Recebidas" value={data.totals.total_in} />
-            <KpiCard icon={<Send className="h-4 w-4" />} label="Enviadas" value={data.totals.total_out} />
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            <KpiCard
+              icon={<Inbox className="h-4 w-4" />}
+              label="Recebidas"
+              value={data.totals.total_in}
+            />
+            <KpiCard
+              icon={<Send className="h-4 w-4" />}
+              label="Enviadas"
+              value={data.totals.total_out}
+            />
             <KpiCard
               icon={<AlertTriangle className="h-4 w-4" />}
               label="Falhas"
               value={data.totals.total_failed}
-              variant={data.totals.total_failed > 0 ? "destructive" : "default"}
+              variant={data.totals.total_failed > 0 ? 'destructive' : 'default'}
             />
-            <KpiCard icon={<Hash className="h-4 w-4" />} label="Canais ativos" value={data.totals.active_channels} />
-            <KpiCard icon={<Activity className="h-4 w-4" />} label="Filas ativas" value={data.totals.active_queues} />
-            <KpiCard icon={<Users className="h-4 w-4" />} label="Agentes online" value={data.totals.online_agents} />
+            <KpiCard
+              icon={<Hash className="h-4 w-4" />}
+              label="Canais ativos"
+              value={data.totals.active_channels}
+            />
+            <KpiCard
+              icon={<Activity className="h-4 w-4" />}
+              label="Filas ativas"
+              value={data.totals.active_queues}
+            />
+            <KpiCard
+              icon={<Users className="h-4 w-4" />}
+              label="Agentes online"
+              value={data.totals.online_agents}
+            />
           </div>
 
           <Card>
@@ -166,7 +199,9 @@ export function OpsMetricsTab() {
                           <Badge variant="secondary">{c.channel_type}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={c.status === "active" ? "default" : "outline"}>{c.status}</Badge>
+                          <Badge variant={c.status === 'active' ? 'default' : 'outline'}>
+                            {c.status}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{c.msgs_in}</TableCell>
                         <TableCell className="text-right tabular-nums">{c.msgs_out}</TableCell>
@@ -213,14 +248,18 @@ export function OpsMetricsTab() {
                       <TableRow key={q.queue_id}>
                         <TableCell className="font-medium">{q.queue_name}</TableCell>
                         <TableCell>
-                          <Badge variant={q.queue_status === "active" ? "default" : "outline"}>
+                          <Badge variant={q.queue_status === 'active' ? 'default' : 'outline'}>
                             {q.queue_status}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{q.waiting}</TableCell>
                         <TableCell className="text-right tabular-nums">{q.in_service}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtSeconds(q.avg_wait_seconds)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtSeconds(q.p99_wait_seconds)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtSeconds(q.avg_wait_seconds)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtSeconds(q.p99_wait_seconds)}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -238,12 +277,12 @@ function KpiCard({
   icon,
   label,
   value,
-  variant = "default",
+  variant = 'default',
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
-  variant?: "default" | "destructive";
+  variant?: 'default' | 'destructive';
 }) {
   return (
     <Card>
@@ -253,8 +292,8 @@ function KpiCard({
           <span>{label}</span>
         </div>
         <div
-          className={`text-2xl font-semibold tabular-nums mt-1 ${
-            variant === "destructive" && value > 0 ? "text-destructive" : ""
+          className={`mt-1 text-2xl font-semibold tabular-nums ${
+            variant === 'destructive' && value > 0 ? 'text-destructive' : ''
           }`}
         >
           {value}
