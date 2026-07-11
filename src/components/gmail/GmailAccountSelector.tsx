@@ -173,6 +173,7 @@ export function EmailAccountSelector({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
+            aria-label={isSyncing ? 'Sincronizando...' : 'Sincronizar conta Gmail'}
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0"

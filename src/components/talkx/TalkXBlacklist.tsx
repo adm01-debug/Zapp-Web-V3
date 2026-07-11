@@ -308,6 +308,7 @@ export function TalkXBlacklist() {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
+                    aria-label="Remover da lista negra"
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"

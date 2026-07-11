@@ -77,6 +77,7 @@ export function QueueAlertsDisplay({ alerts, onDismiss, onNavigate }: QueueAlert
 
               {onDismiss && (
                 <Button
+                  aria-label="Dispensar alerta"
                   variant="ghost"
                   size="icon"
                   className="w-6 h-6 opacity-60 hover:opacity-100"

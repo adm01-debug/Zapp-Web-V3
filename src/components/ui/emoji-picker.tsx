@@ -78,7 +78,7 @@ export function EmojiPicker({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         {trigger || (
-          <Button variant="ghost" size="icon" className={cn('h-9 w-9', className)}>
+          <Button aria-label="Abrir seletor de emoji" variant="ghost" size="icon" className={cn('h-9 w-9', className)}>
             <Smile className="h-5 w-5" />
           </Button>
         )}

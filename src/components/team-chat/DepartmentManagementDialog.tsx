@@ -263,6 +263,7 @@ export function DepartmentManagementDialog({
                         </code>
                         <div className="flex gap-2">
                           <Button
+                            aria-label="Copiar código de convite"
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8"
@@ -274,6 +275,7 @@ export function DepartmentManagementDialog({
                             <Copy className="h-4 w-4" />
                           </Button>
                           <Button
+                            aria-label="Excluir convite"
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-destructive"

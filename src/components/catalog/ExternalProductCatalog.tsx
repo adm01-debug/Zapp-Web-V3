@@ -134,7 +134,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="ghost" size="icon" title="Catálogo de produtos">
+          <Button aria-label="Catálogo de produtos" variant="ghost" size="icon" title="Catálogo de produtos">
             <Package className="w-5 h-5" />
           </Button>
         )}

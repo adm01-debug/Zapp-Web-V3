@@ -283,7 +283,7 @@ export function VoIPPanel() {
                       </div>
                       <div className="flex items-center gap-2">
                         {call.recording_url && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Gravação">
+                          <Button aria-label="Ouvir gravação" variant="ghost" size="icon" className="h-7 w-7" title="Gravação">
                             <FileAudio className="h-3.5 w-3.5 text-primary" />
                           </Button>
                         )}
