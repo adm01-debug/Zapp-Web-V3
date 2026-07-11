@@ -1,114 +1,121 @@
-/**
- * External Supabase Client — FATOR X (Self-hosted VPS)
- *
- * HISTÓRICO: este client apontava para um Supabase "externo" separado.
- * Após a consolidação single-database (v6.x), o domínio `evolution_*`
- * vive no MESMO Supabase self-hosted do client principal
- * (`@/integrations/supabase/client` → https://supabase.atomicabr.com.br).
- *
- * COMPORTAMENTO (FATOR X v6.1):
- *  - Se `VITE_EXTERNAL_SUPABASE_URL/ANON_KEY` estiverem definidas, cria um
- *    client dedicado (compat com ambientes que ainda separam os bancos).
- *  - Se NÃO estiverem (caso do deploy Vercel), reutiliza o client principal
- *    AUTENTICADO — as RPCs do domínio são SECURITY DEFINER com EXECUTE
- *    exclusivo para `authenticated`/`service_role` (anon foi revogado).
- *
- * Isso elimina a classe de erros "[datasource] cliente external indisponível"
- * causada por env vars ausentes no build.
- */
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { supabase } from './client';
-import { createLogger } from '@/lib/logger';
-
-const log = createLogger('externalClient');
-
-const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
-
-const getEnvConfig = () => {
-  switch (APP_ENV) {
-    case 'development':
-      return {
-        url: import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key: import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
-      };
-    case 'staging':
-      return {
-        url: import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key: import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
-      };
-    default:
-      return {
-        url: import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key: import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
-      };
-  }
-};
-
-const config = getEnvConfig();
-let EXTERNAL_URL = config.url;
-let EXTERNAL_ANON_KEY = config.key;
-
-export let isExternalConfigured = Boolean(EXTERNAL_URL && EXTERNAL_ANON_KEY);
-
-/**
- * Nunca é `null`: cai para o client principal autenticado quando as envs
- * dedicadas não existem (mesmo banco após a consolidação single-database).
- */
-export let externalSupabase: SupabaseClient = isExternalConfigured
-  ? createClient(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: false,
-        storageKey: 'sb-external-auth-token',
-      },
-      global: {
-        headers: {
-          'x-client-info': 'zapp-web-external-client',
-        },
-      },
-    })
-  : (supabase as unknown as SupabaseClient);
-
-if (!isExternalConfigured) {
-  // Expected in production (single-database FATOR X): VITE_EXTERNAL_* are not
-  // set; the main authenticated client is reused. Not an error — use debug level
-  // to avoid polluting the console on every production session.
-  log.debug(
-    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).',
-  );
-}
-
-/**
- * Updates the external client at runtime.
- * Useful when credentials are changed in the Admin Connections UI
- * without needing a full redeploy.
- */
-export function updateRuntimeExternalConfig(url: string, key: string) {
-  if (!url || !key) return;
-
-  EXTERNAL_URL = url;
-  EXTERNAL_ANON_KEY = key;
-  isExternalConfigured = true;
-
-  // Re-create the client instance
-  (externalSupabase as any) = createClient(url, key, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storageKey: 'sb-external-auth-token',
-    },
-    global: {
-      headers: {
-        'x-client-info': 'zapp-web-external-client-runtime',
-      },
-    },
-  });
-
-  log.info('Runtime config updated successfully');
-}
-
-export function getExternalSupabase(): SupabaseClient {
-  return externalSupabase;
-}
+LyoqCiAqIEV4dGVybmFsIFN1cGFiYXNlIENsaWVudCDigJQgRkFUT1IgWCAo
+U2VsZi1ob3N0ZWQgVlBTKQogKgogKiBISVNUw5NSSUNPOiBlc3RlIGNsaWVu
+dCBhcG9udGF2YSBwYXJhIHVtIFN1cGFiYXNlICJleHRlcm5vIiBzZXBhcmFk
+by4KICogQXDDs3MgYSBjb25zb2xpZGHDp8OjbyBzaW5nbGUtZGF0YWJhc2Ug
+KHY2LngpLCBvIGRvbcOtbmlvIGBldm9sdXRpb25fKmAKICogdml2ZSBubyBN
+RVNNTYB0dXBhYmFzZSBzZWxmLWhvc3RlZCBkbyBjbGllbnQgcHJpbmNpcGFs
+CiAqIChgQC9pbnRlZ3JhdGlvbnMvc3VwYWJhc2UvY2xpZW50YCDihpIgaHR0
+cHM6Ly9zdXBhYmFzZS5hdG9taWNhYnIuY29tLmJyKS4KICoKICogQ09NUE9S
+VEFNRU5UTyAoRkFUT1IgWCB2Ni4xKToKICogIC0gU2UgYFZJVEVfRVhURVJO
+QVFSU1VQQUJBU0VfVVJML0FOT05fS0VZYCBlc3RpdmVyZW0gZGVmaW5pZGFz
+LCBjcmlhIHVtCiAqICAgIGNsaWVudCBkZWRpY2FkbyAoY29tcGF0IGNvbSBh
+bWJpZW50ZXMgcXVlIGFpbmRhIHNlcGFyYW0gb3MgYmFuY29zKS4KICogIC0g
+U2UgTsODTyBlc3RpdmVyZW0gKGNhc28gZG8gZGVwbG95IFZlcmNlbCksIHJl
+dXRpbGl6YSBvIGNsaWVudCBwcmluY2lwYWwKICogICAgQVVURU5USUNBRE8g
+4oCUIGFzIFJQQ3MgZG8gZG9tw61uaW8gc8OjbyBTRUNVUklUWSBERUZJTkVS
+IEV4cG9ydCBjb20gRVhFQ1VURQogKiAgICBleGNsdXNpdm8gcGFyYSBgYXV0
+aGVudGljYXRlZGAvYHNlcnZpY2Vfcm9sZWAgKGFub24gZm9pIHJldm9nYWRv
+KS4KICoKICogSXNzbyBlbGltaW5hIGEgY2xhc3NlIGRlIGVycm9zICJbZGF0
+YXNvdXJjZV0gY2xpZW50ZSBleHRlcm5hbCBpbmRpc3BvbsOtdmVsIgogKiBj
+YXVzYWRhIHBvciBlbnYgdmFycyBhdXNlbnRlcyBubyBidWlsZC4KICoKICog
+RVMgTU9EVUxFIExJVkUgQklORElOR1MKICogLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0KICogYGlzRXh0ZXJuYWxDb25maWd1cmVkYCBhbmQgYGV4dGVybmFs
+U3VwYWJhc2VgIGFyZSBleHBvcnRlZCBhcyBgbGV0YCBzbwogKiBgdXBkYXRl
+UnVudGltZUV4dGVybmFsQ29uZmlnYCBjYW4gbXV0YXRlIHRoZW0uIEVTIG1v
+ZHVsZSBpbXBvcnQgYmluZGluZ3MKICogYXJlIExJVkUg4oCUIGltcG9ydGVy
+cyBhdXRvbWF0aWNhbGx5IHNlZSB0aGUgdXBkYXRlZCB2YWx1ZSB3aXRob3V0
+IHJlLWltcG9ydGluZy4KICogVGhpcyBpcyBjb3JyZWN0IGJ5IGRlc2lnbjsg
+aXQgaXMgTk9UIHRoZSBzYW1lIGFzIGEgbXV0YWJsZSBnbG9iYWwgb2JqZWN0
+IGluIENKUy4KICogUHJlZmVyIHRoZSBnZXR0ZXIgZnVuY3Rpb25zIChnZXRF
+eHRlcm5hbFN1cGFiYXNlLCBnZXRJc0V4dGVybmFsQ29uZmlndXJlZCkgaW4K
+ICogbmV3IGNvZGUgZm9yIGNsZWFuZXIgZGVwZW5kZW5jeSBpbnZlcnNpb24g
+YW5kIGVhc2llciB0ZXN0aW5nLgogKi8KaW1wb3J0IHsgY3JlYXRlQ2xpZW50
+LCBTdXBhYmFzZUNsaWVudCB9IGZyb20gJ0BzdXBhYmFzZS9zdXBhYmFzZS1q
+cyc7CmltcG9ydCB0eXBlIHsgRGF0YWJhc2UgfSBmcm9tICcuL3R5cGVzJzsK
+aW1wb3J0IHsgc3VwYWJhc2UgfSBmcm9tICcuL2NsaWVudCc7CmltcG9ydCB7
+IGNyZWF0ZUxvZ2dlciB9IGZyb20gJ0AvbGliL2xvZ2dlcic7Cgpjb25zdCBs
+b2cgPSBjcmVhdGVMb2dnZXIoJ2V4dGVybmFsQ2xpZW50Jyk7Cgpjb25zdCBB
+UFBfRU5WID0gKGltcG9ydC5tZXRhLmVudi5WSVRFX0FQUF9FTlYgfHwgJ3By
+b2R1Y3Rpb24nKSBhcyAnZGV2ZWxvcG1lbnQnIHwgJ3N0YWdpbmcnIHwgJ3By
+b2R1Y3Rpb24nOwoKY29uc3QgZ2V0RW52Q29uZmlnID0gKCkgPT4gewogIHN3
+aXRjaCAoQVBQX0VOVikgewogICAgY2FzZSAnZGV2ZWxvcG1lbnQnOgogICAg
+ICByZXR1cm4gewogICAgICAgIHVybDogaW1wb3J0Lm1ldGEuZW52LlZJVEVf
+REVWX0VYVEVSTkFMX1NVUEFCQVNFX1VSTCB8fCBpbXBvcnQubWV0YS5lbnYu
+VklURV9FWFRFUk5BTF9TVVBBQkFTRV9VUkwsCiAgICAgICAga2V5OiBpbXBv
+cnQubWV0YS5lbnYuVklURV9ERVZfRVhURVJOQUxfU1VQQUJBU0VfQU5PTl9L
+RVkgfHwgaW1wb3J0Lm1ldGEuZW52LlZJVEVfRVhURVJOQUxfU1VQQUJBU0Vf
+QU5PTl9LRVksCiAgICAgIH07CiAgICBjYXNlICdzdGFnaW5nJzoKICAgICAg
+cmV0dXJuIHsKICAgICAgICB1cmw6IGltcG9ydC5tZXRhLmVudi5WSVRFX1NU
+QUNFSU5HX0VYVEVSTkFMX1NVUEFCQVNFX1VSTCB8fCBpbXBvcnQubWV0YS5l
+bnYuVklURV9FWFRFUk5BTF9TVVBBQkFTRV9VUkwsCiAgICAgICAga2V5OiBp
+bXBvcnQubWV0YS5lbnYuVklURV9TVEFHSU5HX0VYVEVSTkFMX1NVUEFCQVNF
+X0FOT05fS0VZIHx8IGltcG9ydC5tZXRhLmVudi5WSVRFX0VYVEVSTkFMX1NV
+UEFCQVNFX0FOT05fS0VZLAogICAgICB9OwogICAgZGVmYXVsdDoKICAgICAg
+cmV0dXJuIHsKICAgICAgICB1cmw6IGltcG9ydC5tZXRhLmVudi5WSVRFX0VY
+VEVSTkFMX1NVUEFCQVNFX1VSTCwKICAgICAgICBrZXk6IGltcG9ydC5tZXRh
+LmVudi5WSVRFX0VYVEVSTkFMX1NVUEFCQVNFX0FOT05fS0VZLAogICAgICB9
+OwogIH0KfTsKCmNvbnN0IGNvbmZpZyA9IGdldEVudkNvbmZpZygpOwpsZXQg
+RVYURVJOQUXFVVJMID0gY29uZmlnLnVybDsKbGV0IEVYVEVSTkFMX0FOT05f
+S0VZID0gY29uZmlnLmtleTsKCi8qKgogKiBXaGV0aGVyIGRlZGljYXRlZCBl
+eHRlcm5hbCBlbnYgdmFycyBhcmUgY29uZmlndXJlZC4KICoKICogVGhpcyBp
+cyBhIG11dGFibGUgbGl2ZS1iaW5kaW5nIGV4cG9ydCDigJQgaXQgdXBkYXRl
+cyB3aGVuCiAqIGB1cGRhdGVSdW50aW1lRXh0ZXJuYWxDb25maWdgIGlzIGNh
+bGxlZC4gSW1wb3J0IGl0IGRpcmVjdGx5IG9yIHVzZQogKiBgZ2V0SXNFeHRl
+cm5hbENvbmZpZ3VyZWQoKWAgKHByZWZlcnJlZCBmb3IgbmV3IGNvZGUpLgog
+Ki8KZXhwb3J0IGxldCBpc0V4dGVybmFsQ29uZmlndXJlZCA9IEJvb2xlYW4o
+RVhURVJOQUxfVVJMICYmIEVYVEVSTkFMX0FOT05fS0VZKTsKCi8qKgogKiBS
+ZXR1cm5zIHdoZXRoZXIgdGhlIGV4dGVybmFsIGNsaWVudCBpcyB1c2luZyBk
+ZWRpY2F0ZWQgY3JlZGVudGlhbHMuCiAqIFByZWZlcnJlZCBvdmVyIHRoZSBg
+aXNFeHRlcm5hbENvbmZpZ3VyZWRgIGRpcmVjdCBpbXBvcnQgaW4gbmV3IGNv
+ZGUuCiAqLwpleHBvcnQgZnVuY3Rpb24gZ2V0SXNFeHRlcm5hbENvbmZpZ3Vy
+ZWQoKTogYm9vbGVhbiB7CiAgcmV0dXJuIGlzRXh0ZXJuYWxDb25maWd1cmVk
+Owp9CgovKioKICogVGhlIGV4dGVybmFsIFN1cGFiYXNlIGNsaWVudCBpbnN0
+YW5jZS4KICoKICogTmV2ZXIgbnVsbDogZmFsbHMgYmFjayB0byB0aGUgbWFp
+biBhdXRoZW50aWNhdGVkIGNsaWVudCB3aGVuIGRlZGljYXRlZAogKiBlbnYg
+dmFycyBhcmUgYWJzZW50IChzaW5nbGUtZGF0YWJhc2UgRkFUT1IgWCBtb2Rl
+KS4KICoKICogTXV0YWJsZSBsaXZlLWJpbmRpbmcgZXhwb3J0OiB1c2UgYGdl
+dEV4dGVybmFsU3VwYWJhc2UoKWAgaW4gbmV3IGNvZGUuCiAqLwpleHBvcnQg
+bGV0IGV4dGVybmFsU3VwYWJhc2U6IFN1cGFiYXNlQ2xpZW50PERhdGFiYXNl
+PiA9IGlzRXh0ZXJuYWxDb25maWd1cmVkCiAgPyBjcmVhdGVDbGllbnQ8RGF0
+YWJhc2U+KEVYVEVSTUFMX1VSTCEsIEVYVEVSTkFMX0FOT05fS0VZISwgewog
+ICAgICBhdXRoOiB7CiAgICAgICAgcGVyc2lzdFNlc3Npb246IHRydWUsCiAg
+ICAgICAgYXV0b1JlZnJlc2hUb2tlbjogdHJ1ZSwKICAgICAgICBkZXRlY3RT
+ZXNzaW9uSW5Vcmw6IGZhbHNlLAogICAgICAgIHN0b3JhZ2VLZXk6ICdzYi1l
+eHRlcm5hbC1hdXRoLXRva2VuJywKICAgICAgfSwKICAgICAgZ2xvYmFsOiB7
+CiAgICAgICAgaGVhZGVyczogewogICAgICAgICAgJ3gtY2xpZW50LWluZm8n
+OiAnemFwcC13ZWItZXh0ZXJuYWwtY2xpZW50JywKICAgICAgICB9LAogICAg
+ICB9LAogICAgfSkKICA6IHN1cGFiYXNlOwoKaWYgKCFpc0V4dGVybmFsQ29u
+ZmlndXJlZCkgewogIC8vIEV4cGVjdGVkIGluIHByb2R1Y3Rpb24gKHNpbmds
+ZS1kYXRhYmFzZSBGQVRPUiBYKTogVklURV9FWFRFUk5BTF8qIGFyZSBub3QK
+ICAvLyBzZXQ7IHRoZSBtYWluIGF1dGhlbnRpY2F0ZWQgY2xpZW50IGlzIHJl
+dXNlZC4gTm90IGFuIGVycm9yIOKAlCB1c2UgZGVidWcgbGV2ZWwKICAvLyB0
+byBhdm9pZCBwb2xsdXRpbmcgdGhlIGNvbnNvbGUgb24gZXZlcnkgcHJvZHVj
+dGlvbiBzZXNzaW9uLgogIGxvZy5kZWJ1ZygKICAgICdWSVRFX0VYVEVSTkFM
+XyogYXVzZW50ZXMg4oCUIHVzYW5kbyBvIGNsaWVudCBwcmluY2lwYWwgYXV0
+ZW50aWNhZG8gKHNpbmdsZS1kYXRhYmFzZSBGQVRPUiBYKS4nLAogICk7Cn0K
+CgovKioKICogVXBkYXRlcyB0aGUgZXh0ZXJuYWwgY2xpZW50IGF0IHJ1bnRp
+bWUuCiAqIFVzZWZ1bCB3aGVuIGNyZWRlbnRpYWxzIGFyZSBjaGFuZ2VkIGlu
+IHRoZSBBZG1pbiBDb25uZWN0aW9ucyBVSQogKiB3aXRob3V0IG5lZWRpbmcg
+YSBmdWxsIHJlZGVwbG95LgogKgogKiBCb3RoIGBleHRlcm5hbFN1cGFiYXNl
+YCBhbmQgYGlzRXh0ZXJuYWxDb25maWd1cmVkYCBhcmUgbGl2ZS1iaW5kaW5n
+IGV4cG9ydHMKICog4oCUIGFsbCBleGlzdGluZyBpbXBvcnRlcnMgYXV0b21h
+dGljYWxseSBzZWUgdGhlIG5ldyB2YWx1ZXMgYWZ0ZXIgdGhpcyBjYWxsLgog
+Ki8KZXhwb3J0IGZ1bmN0aW9uIHVwZGF0ZVJ1bnRpbWVFeHRlcm5hbENvbmZp
+Zyh1cmw6IHN0cmluZywga2V5OiBzdHJpbmcpIHsKICBpZiAoIXVybCB8fCAh
+a2V5KSByZXR1cm47CgogIEVYVEVSTkFMX1VSTCA9IHVybDsKICBFWFRFUk5B
+TF9BTk9OX0tFWSA9IGtleTsKICBpc0V4dGVybmFsQ29uZmlndXJlZCA9IHRy
+dWU7CgogIC8vIFJlLWNyZWF0ZSB0aGUgY2xpZW50IGluc3RhbmNlCiAgZXh0
+ZXJuYWxTdXBhYmFzZSA9IGNyZWF0ZUNsaWVudDxEYXRhYmFzZT4odXJsLCBr
+ZXksIHsKICAgIGF1dGg6IHsKICAgICAgcGVyc2lzdFNlc3Npb246IHRydWUs
+CiAgICAgIGF1dG9SZWZyZXNoVG9rZW46IHRydWUsCiAgICAgIGRldGVjdFNl
+c3Npb25JblVybDogZmFsc2UsCiAgICAgIHN0b3JhZ2VLZXk6ICdzYi1leHRl
+cm5hbC1hdXRoLXRva2VuJywKICAgIH0sCiAgICBnbG9iYWw6IHsKICAgICAg
+aGVhZGVyczogewogICAgICAgICd4LWNsaWVudC1pbmZvJzogJ3phcHAtd2Vi
+LWV4dGVybmFsLWNsaWVudC1ydW50aW1lJywKICAgICAgfSwKICAgIH0sCiAg
+fSk7CgogIGxvZy5pbmZvKCdSdW50aW1lIGNvbmZpZyB1cGRhdGVkIHN1Y2Nl
+c3NmdWxseScp7Owp9CgovKioKICogUmV0dXJucyB0aGUgY3VycmVudCBleHRl
+cm5hbCBTdXBhYmFzZSBjbGllbnQgaW5zdGFuY2UuCiAqIFByZWZlcnJlZCBv
+dmVyIHRoZSBgZXh0ZXJuYWxTdXBhYmFzZWAgZGlyZWN0IGltcG9ydCBpbiBu
+ZXcgY29kZS4KICovCmV4cG9ydCBmdW5jdGlvbiBnZXRFeHRlcm5hbFN1cGFi
+YXNlKCk6IFN1cGFiYXNlQ2xpZW50PERhdGFiYXNlPiB7CiAgcmV0dXJuIGV4
+dGVybmFsU3VwYWJhc2U7Cn0K
