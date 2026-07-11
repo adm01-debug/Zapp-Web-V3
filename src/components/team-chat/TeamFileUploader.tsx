@@ -139,7 +139,7 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
 
             <div className="rounded-lg overflow-hidden bg-muted/30 border border-border/30">
               {preview.file.type.startsWith('image/') ? (
-                <img src={preview.url} alt="Preview" className="max-h-48 w-full object-contain" />
+                <img src={preview.url} alt="Pré-visualização do arquivo" className="max-h-48 w-full object-contain" />
               ) : (
                 <div className="flex items-center gap-3 p-4">
                   {preview.file.type.startsWith('video/') ? (
