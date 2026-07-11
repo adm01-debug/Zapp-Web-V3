@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { getLogger } from '@/lib/logger';
+import { conversationSlaRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
 
 const log = getLogger('SLANotifications');
 
@@ -33,18 +34,17 @@ export const useSLANotifications = () => {
       contactId: string
     ) => {
       // Fetch contact info
-      const { data: contact } = await supabase
+      const { data: contact , error } = await supabase
         .from('contacts')
         .select('name, phone')
         .eq('id', contactId)
         .maybeSingle();
 
-      const title =
-        type === 'first_response'
-          ? '⚠️ SLA de Primeira Resposta Violado'
-          : '🚨 SLA de Resolução Violado';
-
-      const description = contact
+      const title = type === 'first_response' 
+        ? '⚠️ SLA de Primeira Resposta Violado'
+        : '🚨 SLA de Resolução Violado';
+        
+      const description = contact 
         ? type === 'first_response'
           ? `O contato ${contact.name || contact.phone} não recebeu resposta no prazo.`
           : `O atendimento do contato ${contact.name || contact.phone} excedeu o tempo de resolução.`
@@ -82,13 +82,18 @@ export const useSLANotifications = () => {
           table: 'conversation_sla',
         },
         async (payload) => {
-          const newRecord = payload.new as SLABreachPayload;
-          const oldRecord = payload.old as Partial<SLABreachPayload>;
+          const parsedNew = safeParseEvent(conversationSlaRowSchema, payload.new);
+          if (!parsedNew.ok) {
+            log.warn('conversation_sla UPDATE payload rejeitado', parsedNew.error);
+            return;
+          }
+          const newRecord = parsedNew.data as SLABreachPayload;
+          const oldRecord = (payload.old ?? {}) as Partial<SLABreachPayload>;
 
           log.debug('Received update', { newRecord, oldRecord });
 
           // Check for new first response breach
-          if (newRecord.first_response_breached && !oldRecord.first_response_breached) {
+          if (newRecord.first_response_breached && !oldRecord.first_response_breached && newRecord.contact_id) {
             const breachKey = `fr-${newRecord.id}`;
             if (!notifiedBreaches.current.has(breachKey)) {
               notifiedBreaches.current.add(breachKey);
@@ -97,7 +102,7 @@ export const useSLANotifications = () => {
           }
 
           // Check for new resolution breach
-          if (newRecord.resolution_breached && !oldRecord.resolution_breached) {
+          if (newRecord.resolution_breached && !oldRecord.resolution_breached && newRecord.contact_id) {
             const breachKey = `res-${newRecord.id}`;
             if (!notifiedBreaches.current.has(breachKey)) {
               notifiedBreaches.current.add(breachKey);
@@ -114,12 +119,17 @@ export const useSLANotifications = () => {
           table: 'conversation_sla',
         },
         async (payload) => {
-          const newRecord = payload.new as SLABreachPayload;
+          const parsedNew = safeParseEvent(conversationSlaRowSchema, payload.new);
+          if (!parsedNew.ok) {
+            log.warn('conversation_sla INSERT payload rejeitado', parsedNew.error);
+            return;
+          }
+          const newRecord = parsedNew.data as SLABreachPayload;
 
           log.debug('New SLA record', { newRecord });
 
           // Check if already breached on insert
-          if (newRecord.first_response_breached) {
+          if (newRecord.first_response_breached && newRecord.contact_id) {
             const breachKey = `fr-${newRecord.id}`;
             if (!notifiedBreaches.current.has(breachKey)) {
               notifiedBreaches.current.add(breachKey);
@@ -127,7 +137,7 @@ export const useSLANotifications = () => {
             }
           }
 
-          if (newRecord.resolution_breached) {
+          if (newRecord.resolution_breached && newRecord.contact_id) {
             const breachKey = `res-${newRecord.id}`;
             if (!notifiedBreaches.current.has(breachKey)) {
               notifiedBreaches.current.add(breachKey);
