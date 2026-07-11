@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { useMemo, useState } from 'react';
+import {
+  useAdminAutomations,
+  TRIGGER_LABEL,
+  EMPTY_RULE,
+  type Rule,
+  type TriggerType,
+} from '@/hooks/admin/useAdminAutomations';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,41 +39,6 @@ import {
   Building2,
   Radio,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-type TriggerType =
-  'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
-
-interface Rule {
-  id: string;
-  name: string;
-  description: string | null;
-  is_active: boolean;
-  trigger_type: TriggerType;
-  trigger_config: any; // ignore-audit
-  actions: any; // ignore-audit
-  priority: number;
-  cooldown_seconds: number;
-  channel_id: string | null;
-  department_id: string | null;
-}
-
-interface Channel {
-  id: string;
-  name: string;
-}
-interface Department {
-  id: string;
-  name: string;
-}
-
-const TRIGGER_LABEL: Record<TriggerType, string> = {
-  first_response_pending: 'Primeira resposta pendente',
-  inactivity: 'Ausência / inatividade',
-  tag_applied: 'Etiqueta aplicada',
-  tag_removed: 'Etiqueta removida',
-  keyword_match: 'Palavra-chave',
-};
 
 const SLA_LEVELS = [
   { value: 'low', label: 'Baixa' },
@@ -78,65 +47,26 @@ const SLA_LEVELS = [
   { value: 'critical', label: 'Crítica' },
 ];
 
-const EMPTY_RULE: Omit<Rule, 'id'> = {
-  name: '',
-  description: '',
-  is_active: true,
-  trigger_type: 'first_response_pending',
-  trigger_config: { threshold_seconds: 60 },
-  actions: {
-    suggest_reply: true,
-    auto_send: false,
-    apply_tags: [] as string[],
-    ai_prompt: '',
-    template: '',
-    escalate_sla: { enabled: false, level: 'high', reason: '' },
-  },
-  priority: 100,
-  cooldown_seconds: 300,
-  channel_id: null,
-  department_id: null,
-};
-
 export default function AdminAutomationsPage() {
-  const { toast } = useToast();
+  const {
+    rules,
+    channels,
+    departments,
+    loading,
+    save: hookSave,
+    remove,
+    toggleActive,
+    adjustPriority,
+    channelMap,
+    deptMap,
+  } = useAdminAutomations();
+
   const [editing, setEditing] = useState<Rule | null>(null);
   const [open, setOpen] = useState(false);
 
-  // Filtros do painel
   const [filterChannel, setFilterChannel] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-
-  const mountedRef = useMountedRef();
-
-  const load = async () => {
-    setLoading(true);
-    const [{ data: rulesData, error }, { data: chs }, { data: deps }] = await Promise.all([
-      safeClient.from<Rule>('automations', (q) => q.select('*').order('name', { ascending: true })),
-      safeClient.from<Channel>('service_channels', (q) => q.select('id,name').order('name')),
-      supabase.from('departments').select('id,name').order('name'),
-    ]);
-    if (!mountedRef.current) return;
-    if (error) toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    setRules((rulesData ?? []) as Rule[]);
-    setChannels((chs ?? []) as Channel[]);
-    setDepartments((deps ?? []) as Department[]);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    void load();
-  }, []);
-
-  const channelMap = useMemo(
-    () => Object.fromEntries(channels.map((c) => [c.id, c.name])),
-    [channels]
-  );
-  const deptMap = useMemo(
-    () => Object.fromEntries(departments.map((d) => [d.id, d.name])),
-    [departments]
-  );
 
   const filtered = useMemo(() => {
     return rules.filter((r) => {
@@ -169,57 +99,11 @@ export default function AdminAutomationsPage() {
   };
 
   const save = async () => {
-    if (!editing) return;
-    if (!editing.name.trim()) {
-      toast({ title: 'Nome obrigatório', variant: 'destructive' });
-      return;
+    const ok = await hookSave(editing);
+    if (ok) {
+      setOpen(false);
+      setEditing(null);
     }
-    const payload = {
-      name: editing.name,
-      description: editing.description,
-      is_active: editing.is_active,
-      trigger_type: editing.trigger_type,
-      trigger_config: editing.trigger_config,
-      actions: editing.actions,
-      priority: editing.priority,
-      cooldown_seconds: editing.cooldown_seconds,
-      channel_id: editing.channel_id || null,
-      department_id: editing.department_id || null,
-    };
-    const { error } = await safeClient.from('automations', (q) =>
-      editing.id ? q.update(payload).eq('id', editing.id) : q.insert(payload)
-    );
-    if (error) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
-      return;
-    }
-    toast({ title: 'Regra salva' });
-    setOpen(false);
-    setEditing(null);
-    load();
-  };
-
-  const remove = async (id: string) => {
-    if (!confirm('Remover esta regra?')) return;
-    const { error } = await supabase.from('automations').delete().eq('id', id);
-    if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-      return;
-    }
-    load();
-  };
-
-  const toggleActive = async (r: Rule) => {
-    await supabase.from('automations').update({ is_active: !r.is_active }).eq('id', r.id);
-    load();
-  };
-
-  const adjustPriority = async (r: Rule, delta: number) => {
-    await supabase
-      .from('automations')
-      .update({ trigger_count: Math.max(0, (r.priority ?? 0) + delta) })
-      .eq('id', r.id);
-    load();
   };
 
   return (
