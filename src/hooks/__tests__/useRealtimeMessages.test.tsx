@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const mockFrom = vi.fn();
-const mockRemoveChannel = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockRemoveChannel = vi.hoisted(() => vi.fn());
 const realtimeHandlers: Record<string, (payload: unknown) => void> = {};
 
 const mockChannelInstance = {

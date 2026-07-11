@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-const mockGetUser = vi.fn();
-const mockSignInWithPassword = vi.fn();
+const mockGetUser = vi.hoisted(() => vi.fn());
+const mockSignInWithPassword = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {

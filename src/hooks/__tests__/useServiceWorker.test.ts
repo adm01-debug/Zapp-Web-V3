@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 
 vi.mock('@/lib/logger');
 
-const mockUnregister = vi.fn().mockResolvedValue(true);
+const mockUnregister = vi.hoisted(() => vi.fn()).mockResolvedValue(true);
 const mockCaches = {
   keys: vi.fn().mockResolvedValue([]),
   delete: vi.fn().mockResolvedValue(true),

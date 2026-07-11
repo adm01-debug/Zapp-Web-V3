@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
-const mockFrom = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -17,7 +17,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock useAuth to return controlled user
-const mockUseAuth = vi.fn();
+const mockUseAuth = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
   AuthProvider: ({ children }: { children: ReactNode }) => children,

@@ -7,8 +7,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // useExternalEmpresas / useExternalCargos call:
 //   - getExternalSupabase().from('salespeople')  → externalClient mock
 //   - dbRpc(RPC.searchContactsAdvanced, ...)     → datasource/db mock (routes to 'lovable' client)
-const mockDbRpc = vi.fn(); // intercepts dbRpc calls (search_contacts_advanced etc.)
-const mockFrom = vi.fn(); // tracks getExternalSupabase().from() calls
+const mockDbRpc = vi.hoisted(() => vi.fn()); // intercepts dbRpc calls (search_contacts_advanced etc.)
+const mockFrom = vi.hoisted(() => vi.fn()); // tracks getExternalSupabase().from() calls
 
 vi.mock('@/integrations/datasource/db', () => ({
   dbRpc: (...a: unknown[]) =>
