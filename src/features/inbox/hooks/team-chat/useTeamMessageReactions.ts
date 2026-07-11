@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 
@@ -34,10 +35,9 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         .eq('conversation_id', conversationId);
       const ids = (msgs || []).map((m: any) => m.id);
       if (!ids.length) return [];
-      const { data, error } = await (supabase as any)
-        .from('team_message_reactions')
-        .select('*')
-        .in('message_id', ids);
+      const { data, error } = await safeClient.from<TeamReaction>('team_message_reactions', (q) =>
+        q.select('*').in('message_id', ids)
+      );
       if (error) throw error;
       return (data || []) as TeamReaction[];
     },
@@ -49,12 +49,13 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     if (!conversationId) return;
     const channel = supabase
       .channel(`team-reactions-${conversationId}`)
-      .on('postgres_changes',
-        { event: '*', schema: 'zapp', table: 'team_message_reactions' },
-        () => queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] })
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_message_reactions' }, () =>
+        queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] })
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [conversationId, queryClient]);
 
   const toggle = useMutation({
@@ -64,21 +65,23 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         (r) => r.message_id === messageId && r.profile_id === profile.id && r.emoji === emoji
       );
       if (existing) {
-        const { error } = await (supabase as any)
-          .from('team_message_reactions')
-          .delete()
-          .eq('id', existing.id);
+        const { error } = await safeClient.from('team_message_reactions', (q) =>
+          q.delete().eq('id', existing.id)
+        );
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any)
-          .from('team_message_reactions')
-          .insert({ message_id: messageId, profile_id: profile.id, emoji });
+        const { error } = await safeClient.from('team_message_reactions', (q) =>
+          q.insert({ message_id: messageId, profile_id: profile.id, emoji })
+        );
         if (error) throw error;
       }
     },
     onMutate: async ({ messageId, emoji }) => {
       await queryClient.cancelQueries({ queryKey: ['team-reactions', conversationId] });
-      const previousReactions = queryClient.getQueryData<TeamReaction[]>(['team-reactions', conversationId]);
+      const previousReactions = queryClient.getQueryData<TeamReaction[]>([
+        'team-reactions',
+        conversationId,
+      ]);
 
       if (profile && previousReactions) {
         const existingIdx = previousReactions.findIndex(
@@ -111,10 +114,10 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       }
       const status = err?.status || err?.code;
       const message = status === 401 ? 'Não autorizado' : 'Erro interno no servidor';
-      toast({ 
-        title: 'Erro ao reagir', 
+      toast({
+        title: 'Erro ao reagir',
         description: message,
-        variant: 'destructive' 
+        variant: 'destructive',
       });
     },
   });
@@ -123,7 +126,12 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     const filtered = reactions.filter((r) => r.message_id === messageId);
     const map = new Map<string, AggregatedReaction>();
     for (const r of filtered) {
-      const cur = map.get(r.emoji) || { emoji: r.emoji, count: 0, reactedByMe: false, profileIds: [] };
+      const cur = map.get(r.emoji) || {
+        emoji: r.emoji,
+        count: 0,
+        reactedByMe: false,
+        profileIds: [],
+      };
       cur.count += 1;
       cur.profileIds.push(r.profile_id);
       if (profile && r.profile_id === profile.id) cur.reactedByMe = true;
