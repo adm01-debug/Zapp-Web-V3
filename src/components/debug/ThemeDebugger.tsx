@@ -11,9 +11,10 @@ export function ThemeDebugger() {
   const isDevExact = roles.includes('dev');
 
   const [isOpen, setIsOpen] = useState(false);
-  const [tokens, setTokens] = useState<Record<string, { value: string; source: 'inline' | 'css' | 'not set' }>>({});
+  const [tokens, setTokens] = useState<
+    Record<string, { value: string; source: 'inline' | 'css' | 'not set' }>
+  >({});
   const [activePreset, setActivePreset] = useState<string>('unknown');
-
 
   const refreshTokens = () => {
     const root = document.documentElement;
@@ -23,7 +24,7 @@ export function ThemeDebugger() {
       try {
         const parsed = JSON.parse(saved);
         setActivePreset(parsed.preset || 'default');
-      } catch (e) {
+      } catch {
         setActivePreset('error');
       }
     }
@@ -35,14 +36,14 @@ export function ThemeDebugger() {
       '--font-display',
       '--radius',
       '--card',
-      '--border'
+      '--border',
     ];
-    
+
     const values: Record<string, { value: string; source: 'inline' | 'css' | 'not set' }> = {};
-    relevant.forEach(token => {
+    relevant.forEach((token) => {
       const inlineValue = root.style.getPropertyValue(token).trim();
       const computedValue = computedStyle.getPropertyValue(token).trim();
-      
+
       if (inlineValue) {
         values[token] = { value: inlineValue, source: 'inline' };
       } else if (computedValue) {
@@ -67,10 +68,10 @@ export function ThemeDebugger() {
 
   if (!isOpen) {
     return (
-      <Button 
-        variant="outline" 
-        size="icon" 
-        className="fixed bottom-4 right-4 z-[9999] rounded-full shadow-lg bg-background/80 backdrop-blur"
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed bottom-4 right-4 z-[9999] rounded-full bg-background/80 shadow-lg backdrop-blur"
         onClick={() => setIsOpen(true)}
       >
         <Bug className="h-4 w-4" />
@@ -79,12 +80,12 @@ export function ThemeDebugger() {
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 z-[9999] w-80 p-4 shadow-2xl border-2 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-sm flex items-center gap-2">
+    <Card className="fixed bottom-4 right-4 z-[9999] w-80 border-2 p-4 shadow-2xl animate-in fade-in slide-in-from-bottom-4">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-bold">
           <Bug className="h-4 w-4 text-primary" />
           Theme Debugger
-          <span className="ml-2 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[9px] uppercase">
+          <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[9px] uppercase text-primary">
             {activePreset}
           </span>
         </h3>
@@ -97,25 +98,32 @@ export function ThemeDebugger() {
           </Button>
         </div>
       </div>
-      
-      <div className="space-y-2  text-[10px]">
+
+      <div className="space-y-2 text-[10px]">
         {Object.entries(tokens).map(([key, data]) => (
           <div key={key} className="flex flex-col border-b border-border/50 pb-1">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <span className="text-muted-foreground">{key}</span>
-              <span className={`text-[8px] px-1 rounded ${
-                data.source === 'inline' ? 'bg-warning/20 text-warning-foreground' : 
-                data.source === 'css' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-              }`}>
+              <span
+                className={`rounded px-1 text-[8px] ${
+                  data.source === 'inline'
+                    ? 'bg-warning/20 text-warning-foreground'
+                    : data.source === 'css'
+                      ? 'bg-primary/20 text-primary'
+                      : 'bg-muted text-muted-foreground'
+                }`}
+              >
                 {data.source}
               </span>
             </div>
-            <span className="text-foreground truncate" title={data.value}>{data.value}</span>
+            <span className="truncate text-foreground" title={data.value}>
+              {data.value}
+            </span>
           </div>
         ))}
       </div>
-      
-      <div className="mt-4 text-[9px] text-muted-foreground italic">
+
+      <div className="mt-4 text-[9px] italic text-muted-foreground">
         * Inline styles (root.style) override tokens.css
       </div>
     </Card>
