@@ -36,7 +36,7 @@ export default function Auth() {
   } = useAuthForm();
 
   return (
-    <div className="relative flex min-h-screen overflow-y-auto overflow-x-hidden bg-background">
+    <main className="relative flex min-h-screen overflow-y-auto overflow-x-hidden bg-background">
       {/* Background decorations */}
       <div className="pointer-events-none absolute inset-0">
         <motion.div
