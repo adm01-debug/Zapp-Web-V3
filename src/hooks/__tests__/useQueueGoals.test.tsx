@@ -10,7 +10,7 @@ const mockRemoveChannel = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: mockFrom,
+    from: (...args: unknown[]) => mockFrom(...args),
     channel: mockChannel,
     removeChannel: mockRemoveChannel,
   },
