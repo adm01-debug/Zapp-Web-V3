@@ -1,15 +1,25 @@
 // @ts-nocheck
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useConversationRealtime } from '../hooks/realtime/useConversationRealtime';
-import { useInboxState } from '../hooks/useInboxState';
-import { useInboxFilters } from '../hooks/useInboxFilters';
-import { useContactsCache } from '../hooks/useContactsCache';
-import { useConnectionHealth } from '@/hooks/monitoring/useConnectionHealth';
-import { useRealtimeInbox } from '../hooks/useRealtimeInbox';
-import { InboxView } from './InboxView';
-import { getLogger } from '@/lib/logger';
-import { useConversationSummarySync } from '../hooks/useConversationSummarySync';
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
+import { useAuth } from '@/features/auth';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { MiniChatPiP } from '@/components/mobile/MiniChatPiP';
+import { NewMessageIndicator } from './NewMessageIndicator';
+import { MessageBatcherIndicator } from './MessageBatcherIndicator';
+import { InboxEmptyChat } from './InboxEmptyChat';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
+import { ConversationListSidebar } from './ConversationListSidebar';
+import { useGlobalSearchShortcut } from '@/hooks/useGlobalSearchShortcut';
+import { useInboxBulkActions } from '@/features/inbox';
+import { useInboxFilters } from '@/features/inbox';
+import { useRealtimeInbox } from '@/features/inbox';
+import { useRealtimeContacts } from '@/features/inbox';
+import { useRealtimeFallbackRefetch } from '@/features/inbox';
 import { useSLAAlerts } from '@/features/sla';
-import type { Conversation } from '../types';
-
-const log = getLogger('RealtimeInboxView');
+import { useDepartmentAgents } from '@/features/auth';
+import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
+import { useAriaAnnouncer } from '@/hooks/useAriaAnnouncer';
+import { isValidUUID } from '@/utils/uuid';
+import { WifiOff, RefreshCw, Loader2, MessageSquarePlus } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
