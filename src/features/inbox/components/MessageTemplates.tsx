@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useMessageTemplates, type Template } from '@/features/inbox/hooks/useMessageTemplates';
+import { useMessageTemplates, type Template } from '../hooks/useMessageTemplates';
 import { useAuth } from '@/features/auth';
 
 interface MessageTemplatesProps {
@@ -20,11 +20,26 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
   const [search, setSearch] = useState('');
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newTemplate, setNewTemplate] = useState({ title: '', content: '', shortcut: '', category: 'general' });
+  const [newTemplate, setNewTemplate] = useState({
+    title: '',
+    content: '',
+    shortcut: '',
+    category: 'general',
+  });
   const { user } = useAuth();
-  const { templates, isLoading, fetchTemplates, addTemplate, updateTemplate, deleteTemplate, incrementUseCount } = useMessageTemplates();
+  const {
+    templates,
+    isLoading,
+    fetchTemplates,
+    addTemplate,
+    updateTemplate,
+    deleteTemplate,
+    incrementUseCount,
+  } = useMessageTemplates();
 
-  useEffect(() => { if (isOpen && user) fetchTemplates(); }, [isOpen, user, fetchTemplates]);
+  useEffect(() => {
+    if (isOpen && user) fetchTemplates();
+  }, [isOpen, user, fetchTemplates]);
 
   const handleSelectTemplate = async (template: Template) => {
     onSelectTemplate(template.content);
@@ -40,92 +55,184 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
   };
 
   const handleUpdate = async () => {
-    if (editingTemplate && await updateTemplate(editingTemplate)) setEditingTemplate(null);
+    if (editingTemplate && (await updateTemplate(editingTemplate))) setEditingTemplate(null);
   };
 
-  const filteredTemplates = templates.filter(t =>
-    t.title.toLowerCase().includes(search.toLowerCase()) ||
-    t.content.toLowerCase().includes(search.toLowerCase()) ||
-    t.shortcut?.toLowerCase().includes(search.toLowerCase())
+  const filteredTemplates = templates.filter(
+    (t) =>
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      t.content.toLowerCase().includes(search.toLowerCase()) ||
+      t.shortcut?.toLowerCase().includes(search.toLowerCase())
   );
 
   const formData = editingTemplate || newTemplate;
   const setFormData = (data: Partial<Template & typeof newTemplate>) =>
-    editingTemplate ? setEditingTemplate({ ...editingTemplate, ...data }) : setNewTemplate({ ...newTemplate, ...data });
+    editingTemplate
+      ? setEditingTemplate({ ...editingTemplate, ...data })
+      : setNewTemplate({ ...newTemplate, ...data });
 
   return (
     <>
-      <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} className="text-muted-foreground hover:text-primary hover:bg-primary/10" title="Templates de mensagem">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setIsOpen(true)}
+        className="text-muted-foreground hover:bg-primary/10 hover:text-primary"
+        title="Templates de mensagem"
+      >
         <FileText className="h-5 w-5" />
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="flex max-h-[80vh] max-w-2xl flex-col overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Templates de Mensagem</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Templates de Mensagem
+            </DialogTitle>
           </DialogHeader>
 
-          <div className="flex items-center gap-2 mb-4">
+          <div className="mb-4 flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar templates..." className="pl-9" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar templates..."
+                className="pl-9"
+              />
             </div>
-            <Button onClick={() => setShowAddForm(true)} className="gap-2"><Plus className="h-4 w-4" />Novo</Button>
+            <Button onClick={() => setShowAddForm(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo
+            </Button>
           </div>
 
           <AnimatePresence>
             {(showAddForm || editingTemplate) && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 p-4 border border-border rounded-lg bg-muted/30">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium">{editingTemplate ? 'Editar Template' : 'Novo Template'}</h4>
-                  <Button variant="ghost" size="icon" onClick={() => { setShowAddForm(false); setEditingTemplate(null); }}><X className="h-4 w-4" /></Button>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-4 rounded-lg border border-border bg-muted/30 p-4"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="font-medium">
+                    {editingTemplate ? 'Editar Template' : 'Novo Template'}
+                  </h4>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setShowAddForm(false);
+                      setEditingTemplate(null);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="Título do template" value={formData.title} onChange={(e) => setFormData({ title: e.target.value })} />
-                    <Input placeholder="Atalho (ex: /ola)" value={formData.shortcut || ''} onChange={(e) => setFormData({ shortcut: e.target.value })} />
+                    <Input
+                      placeholder="Título do template"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ title: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Atalho (ex: /ola)"
+                      value={formData.shortcut || ''}
+                      onChange={(e) => setFormData({ shortcut: e.target.value })}
+                    />
                   </div>
-                  <Textarea placeholder="Conteúdo da mensagem..." rows={3} value={formData.content} onChange={(e) => setFormData({ content: e.target.value })} />
+                  <Textarea
+                    placeholder="Conteúdo da mensagem..."
+                    rows={3}
+                    value={formData.content}
+                    onChange={(e) => setFormData({ content: e.target.value })}
+                  />
                   <div className="flex items-center justify-between">
                     <div className="flex gap-1">
-                      {categories.map(cat => (
-                        <Badge key={cat} variant={formData.category === cat ? 'default' : 'outline'} className="cursor-pointer capitalize"
-                          onClick={() => setFormData({ category: cat })}>{cat}</Badge>
+                      {categories.map((cat) => (
+                        <Badge
+                          key={cat}
+                          variant={formData.category === cat ? 'default' : 'outline'}
+                          className="cursor-pointer capitalize"
+                          onClick={() => setFormData({ category: cat })}
+                        >
+                          {cat}
+                        </Badge>
                       ))}
                     </div>
-                    <Button onClick={editingTemplate ? handleUpdate : handleAdd} className="gap-2"><Save className="h-4 w-4" />Salvar</Button>
+                    <Button onClick={editingTemplate ? handleUpdate : handleAdd} className="gap-2">
+                      <Save className="h-4 w-4" />
+                      Salvar
+                    </Button>
                   </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <div className="flex-1 overflow-y-auto space-y-2">
+          <div className="flex-1 space-y-2 overflow-y-auto">
             {isLoading ? (
-              <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
             ) : filteredTemplates.length > 0 ? (
               filteredTemplates.map((template) => (
-                <motion.div key={template.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-3 border border-border rounded-lg hover:bg-muted/30 transition-colors group">
+                <motion.div
+                  key={template.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="group rounded-lg border border-border p-3 transition-colors hover:bg-muted/30"
+                >
                   <div className="flex items-start justify-between">
-                    <button onClick={() => handleSelectTemplate(template)} className="flex-1 text-left">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{template.title}</span>
-                        {template.shortcut && <Badge variant="outline" className="text-[10px]">{template.shortcut}</Badge>}
-                        <Badge variant="secondary" className="text-[10px] capitalize">{template.category}</Badge>
+                    <button
+                      onClick={() => handleSelectTemplate(template)}
+                      className="flex-1 text-left"
+                    >
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="text-sm font-medium">{template.title}</span>
+                        {template.shortcut && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {template.shortcut}
+                          </Badge>
+                        )}
+                        <Badge variant="secondary" className="text-[10px] capitalize">
+                          {template.category}
+                        </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{template.content}</p>
-                      <span className="text-[10px] text-muted-foreground mt-1 block">Usado {template.use_count}x</span>
+                      <p className="line-clamp-2 text-sm text-muted-foreground">
+                        {template.content}
+                      </p>
+                      <span className="mt-1 block text-[10px] text-muted-foreground">
+                        Usado {template.use_count}x
+                      </span>
                     </button>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingTemplate(template)}><Edit2 className="h-3 w-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => deleteTemplate(template.id)}><Trash2 className="h-3 w-3" /></Button>
+                    <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setEditingTemplate(template)}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => deleteTemplate(template.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 </motion.div>
               ))
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <div className="py-8 text-center text-muted-foreground">
+                <FileText className="mx-auto mb-2 h-12 w-12 opacity-50" />
                 <p>Nenhum template encontrado</p>
                 <p className="text-sm">Crie seu primeiro template clicando em "Novo"</p>
               </div>
