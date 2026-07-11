@@ -1,10 +1,13 @@
 import { vi } from 'vitest';
 
+type QueryResult = { data: unknown; error: unknown };
+type QueryBuilder = Record<string, ReturnType<typeof vi.fn>>;
+
 // Chainable query builder mock
-function createQueryBuilder(resolvedData: any = [], resolvedError: any = null) {
-  const result = { data: resolvedData, error: resolvedError };
-  
-  const builder: any = {
+function createQueryBuilder(resolvedData: unknown = [], resolvedError: unknown = null) {
+  const result: QueryResult = { data: resolvedData, error: resolvedError };
+
+  const builder: QueryBuilder = {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
@@ -21,17 +24,26 @@ function createQueryBuilder(resolvedData: any = [], resolvedError: any = null) {
     range: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
     maybeSingle: vi.fn().mockResolvedValue(result),
-    then: (resolve: any) => Promise.resolve(result).then(resolve),
+    then: vi
+      .fn()
+      .mockImplementation((resolve: (r: QueryResult) => unknown) =>
+        Promise.resolve(result).then(resolve)
+      ),
   };
-  
+
   return builder;
 }
 
-export function createMockSupabase(overrides: Record<string, any> = {}) {
+type TableOverride = { data?: unknown; error?: unknown };
+type Overrides = { auth?: Record<string, unknown>; tables?: Record<string, TableOverride> };
+
+export function createMockSupabase(overrides: Overrides = {}) {
   const mockAuth = {
     getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
     getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-    onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+    onAuthStateChange: vi
+      .fn()
+      .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
     signInWithPassword: vi.fn().mockResolvedValue({ data: {}, error: null }),
     signUp: vi.fn().mockResolvedValue({ data: {}, error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),

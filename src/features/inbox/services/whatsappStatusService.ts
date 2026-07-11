@@ -105,7 +105,7 @@ export const whatsappStatusService = {
       throw new Error('Sem conexão WhatsApp disponível');
     }
 
-    const [statusResult, presenceResult] = await Promise.allSettled([
+    const [statusResult, _presenceResult] = await Promise.allSettled([
       whatsappStatusRepository.findStatusMessages(instanceName),
       whatsappStatusRepository.sendChatPresence(instanceName, phone),
     ]);

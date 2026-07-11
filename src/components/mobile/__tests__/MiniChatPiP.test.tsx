@@ -5,7 +5,7 @@ import { MiniChatPiP } from '@/components/mobile/MiniChatPiP';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, onClick, ...rest }: any) => (
+    div: ({ children, className, style, onClick, ..._rest }: any) => (
       <div className={className} style={style} onClick={onClick} data-testid="pip-container">
         {children}
       </div>
@@ -49,7 +49,7 @@ describe('MiniChatPiP', () => {
     render(<MiniChatPiP {...defaultProps} />);
     // Find the X button (dismiss)
     const buttons = screen.getAllByRole('button');
-    const dismissBtn = buttons.find(b => b.querySelector('.lucide-x'));
+    const dismissBtn = buttons.find((b) => b.querySelector('.lucide-x'));
     if (dismissBtn) {
       fireEvent.click(dismissBtn);
       expect(defaultProps.onDismiss).toHaveBeenCalled();

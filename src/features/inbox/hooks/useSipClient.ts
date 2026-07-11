@@ -52,7 +52,7 @@ export function useSipClient() {
   const findContactByPhone = useCallback(async (phone: string): Promise<string | null> => {
     try {
       const n = phone.replace(/[-\s()]/g, '');
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('contacts')
         .select('id')
         .or(`phone.eq.${n},phone.eq.+${n},phone.ilike.%${n.slice(-8)}%`)
@@ -71,7 +71,7 @@ export function useSipClient() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
@@ -93,18 +93,16 @@ export function useSipClient() {
         const duration = Math.round(
           (new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000
         );
-        await supabase
-          .from('calls')
-          .insert({
-            direction: 'outbound',
-            status,
-            started_at: startedAt,
-            ended_at: endedAt,
-            duration_seconds: duration,
-            agent_id: agentId,
-            contact_id: contactId,
-            notes: `Chamada para ${number}`,
-          });
+        await supabase.from('calls').insert({
+          direction: 'outbound',
+          status,
+          started_at: startedAt,
+          ended_at: endedAt,
+          duration_seconds: duration,
+          agent_id: agentId,
+          contact_id: contactId,
+          notes: `Chamada para ${number}`,
+        });
         callStartTimeRef.current = null;
       } catch (err) {
         log.error('Error logging call:', err);

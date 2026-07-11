@@ -36,8 +36,13 @@ export function SupervisorCopilot() {
       // Build context from real data
       const [queueData, agentData, messageData] = await Promise.all([
         supabase.from('queues').select('id, name').limit(20),
-        supabase.from('profiles').select('id, name, role, is_active').eq('is_active', true).limit(50),
-        dbFrom('messages').select('id', { count: 'exact', head: true })
+        supabase
+          .from('profiles')
+          .select('id, name, role, is_active')
+          .eq('is_active', true)
+          .limit(50),
+        dbFrom('messages')
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
@@ -46,31 +51,38 @@ Dados atuais do sistema:
 - ${queueData.data?.length || 0} filas configuradas
 - ${agentData.data?.length || 0} agentes ativos
 - ${messageData.count || 0} mensagens nas últimas 24h
-Filas: ${queueData.data?.map(q => q.name).join(', ') || 'nenhuma'}
-Agentes: ${agentData.data?.map(a => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
+Filas: ${queueData.data?.map((q) => q.name).join(', ') || 'nenhuma'}
+Agentes: ${agentData.data?.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
       `.trim();
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: { session } } = await supabase.auth.getSession(); // Still need session for access_token in some cases, but getUser is safer for identity
       const response = await supabase.functions.invoke('ai-proxy', {
         body: {
           messages: [
-            { role: 'system', content: `Você é um copiloto de supervisor de atendimento. Responda com base nos dados reais fornecidos. Seja conciso e direto. Use bullet points. Dados:\n${context}` },
+            {
+              role: 'system',
+              content: `Você é um copiloto de supervisor de atendimento. Responda com base nos dados reais fornecidos. Seja conciso e direto. Use bullet points. Dados:\n${context}`,
+            },
             { role: 'user', content: query },
           ],
           model: 'google/gemini-3-flash-preview',
         },
       });
 
-      const answer = response.data?.content || response.data?.choices?.[0]?.message?.content || 'Não foi possível processar sua pergunta.';
+      const answer =
+        response.data?.content ||
+        response.data?.choices?.[0]?.message?.content ||
+        'Não foi possível processar sua pergunta.';
 
-      setInsights(prev => [{ question: query, answer, timestamp: new Date() }, ...prev]);
+      setInsights((prev) => [{ question: query, answer, timestamp: new Date() }, ...prev]);
     } catch {
-      setInsights(prev => [{
-        question: query,
-        answer: 'Erro ao processar. Tente novamente.',
-        timestamp: new Date(),
-      }, ...prev]);
+      setInsights((prev) => [
+        {
+          question: query,
+          answer: 'Erro ao processar. Tente novamente.',
+          timestamp: new Date(),
+        },
+        ...prev,
+      ]);
     }
     setLoading(false);
   };
@@ -78,8 +90,8 @@ Agentes: ${agentData.data?.map(a => `${a.name} (${a.role})`).join(', ') || 'nenh
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Brain className="w-4 h-4 text-primary" />
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Brain className="h-4 w-4 text-primary" />
           Copiloto do Supervisor
         </CardTitle>
       </CardHeader>
@@ -95,7 +107,7 @@ Agentes: ${agentData.data?.map(a => `${a.name} (${a.role})`).join(', ') || 'nenh
               onClick={() => askQuestion(q)}
               disabled={loading}
             >
-              <Sparkles className="w-3 h-3 mr-1" />
+              <Sparkles className="mr-1 h-3 w-3" />
               {q.length > 40 ? q.slice(0, 40) + '...' : q}
             </Button>
           ))}
@@ -111,7 +123,7 @@ Agentes: ${agentData.data?.map(a => `${a.name} (${a.role})`).join(', ') || 'nenh
             onKeyDown={(e) => e.key === 'Enter' && askQuestion()}
           />
           <Button size="icon" onClick={() => askQuestion()} disabled={loading || !question.trim()}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
 
@@ -122,14 +134,16 @@ Agentes: ${agentData.data?.map(a => `${a.name} (${a.role})`).join(', ') || 'nenh
               key={idx}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-2 p-3 rounded-xl bg-muted/20 border border-border/30"
+              className="space-y-2 rounded-xl border border-border/30 bg-muted/20 p-3"
             >
               <div className="flex items-start gap-2">
-                <MessageSquare className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p className="text-xs font-medium">{insight.question}</p>
               </div>
               <div className="pl-6">
-                <p className="text-xs text-muted-foreground whitespace-pre-wrap">{insight.answer}</p>
+                <p className="whitespace-pre-wrap text-xs text-muted-foreground">
+                  {insight.answer}
+                </p>
               </div>
             </motion.div>
           ))}

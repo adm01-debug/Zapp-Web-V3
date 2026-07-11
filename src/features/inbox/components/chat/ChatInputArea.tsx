@@ -112,7 +112,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
     messages,
     quickReplies,
     isSending = false,
-    sendProgress = 0,
+    sendProgress: _sendProgress = 0,
     onInputChange,
     onKeyDown,
     onBlur,
@@ -144,9 +144,9 @@ export function ChatInputArea(props: ChatInputAreaProps) {
     fileUploaderRef,
     inputRef,
     onOpenTeamFiles,
-    queue,
-    onRetry,
-    onRemoveFromQueue,
+    queue: _queue,
+    onRetry: _onRetry,
+    onRemoveFromQueue: _onRemoveFromQueue,
   } = props;
 
   const prevRecordingRef = useRef(isRecordingAudio);

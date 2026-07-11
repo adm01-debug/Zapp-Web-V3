@@ -19,13 +19,16 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
   const handleHandoff = async (agentId: string, comment: string) => {
     await dbFrom('contacts').update({ assigned_to: agentId }).eq('id', contactId);
     if (comment) {
-      const { data: profile , error } = await supabase
-        .from('profiles').select('id')
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
         .single();
       if (profile) {
         await supabase.from('contact_notes').insert({
-          contact_id: contactId, author_id: profile.id, content: `Transferido: ${comment}`,
+          contact_id: contactId,
+          author_id: profile.id,
+          content: `Transferido: ${comment}`,
         });
       }
     }
@@ -36,11 +39,17 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
       <div className="flex items-center justify-between">
         <ViewersIndicator contactId={contactId} />
         <Button variant="outline" size="sm" onClick={() => setHandoffOpen(true)}>
-          <Users className="w-4 h-4 mr-2" />Transferir
+          <Users className="mr-2 h-4 w-4" />
+          Transferir
         </Button>
       </div>
       <InternalNotesPanel contactId={contactId} />
-      <HandoffDialog open={handoffOpen} onOpenChange={setHandoffOpen} contactId={contactId} onHandoff={handleHandoff} />
+      <HandoffDialog
+        open={handoffOpen}
+        onOpenChange={setHandoffOpen}
+        contactId={contactId}
+        onHandoff={handleHandoff}
+      />
     </div>
   );
 }

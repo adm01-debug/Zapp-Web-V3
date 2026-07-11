@@ -19,7 +19,7 @@ interface StickerManagerProps {
   mode?: 'picker' | 'manager';
 }
 
-export function StickerManager({ onSend, mode = 'manager' }: StickerManagerProps) {
+export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManagerProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -70,26 +70,36 @@ export function StickerManager({ onSend, mode = 'manager' }: StickerManagerProps
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stickers-manager'] }),
   });
 
-  const handleSend = useCallback((sticker: StickerItem) => {
-    onSend?.(sticker.image_url);
-    supabase.from('stickers').update({ use_count: sticker.use_count + 1 }).eq('id', sticker.id);
-  }, [onSend]);
+  const handleSend = useCallback(
+    (sticker: StickerItem) => {
+      onSend?.(sticker.image_url);
+      supabase
+        .from('stickers')
+        .update({ use_count: sticker.use_count + 1 })
+        .eq('id', sticker.id);
+    },
+    [onSend]
+  );
 
   const filteredStickers = useMemo(() => {
     let filtered = stickers;
-    if (showFavorites) filtered = filtered.filter(s => s.is_favorite);
-    if (category) filtered = filtered.filter(s => s.category === category);
-    if (search) filtered = filtered.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()));
+    if (showFavorites) filtered = filtered.filter((s) => s.is_favorite);
+    if (category) filtered = filtered.filter((s) => s.category === category);
+    if (search)
+      filtered = filtered.filter((s) => s.name?.toLowerCase().includes(search.toLowerCase()));
     return filtered;
   }, [stickers, search, category, showFavorites]);
 
-  const favoriteCount = useMemo(() => stickers.filter(s => s.is_favorite).length, [stickers]);
+  const favoriteCount = useMemo(() => stickers.filter((s) => s.is_favorite).length, [stickers]);
 
-  const stats = useMemo(() => ({
-    total: stickers.length,
-    favorites: favoriteCount,
-    categories: new Set(stickers.map(s => s.category)).size,
-  }), [stickers, favoriteCount]);
+  const stats = useMemo(
+    () => ({
+      total: stickers.length,
+      favorites: favoriteCount,
+      categories: new Set(stickers.map((s) => s.category)).size,
+    }),
+    [stickers, favoriteCount]
+  );
 
   return (
     <div className="space-y-4">
@@ -102,16 +112,18 @@ export function StickerManager({ onSend, mode = 'manager' }: StickerManagerProps
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Sticker className="w-5 h-5 text-primary" />
+                <Sticker className="h-5 w-5 text-primary" />
                 Figurinhas Compartilhadas
               </CardTitle>
-              <CardDescription>
-                Figurinhas disponíveis para toda a equipe
-              </CardDescription>
+              <CardDescription>Figurinhas disponíveis para toda a equipe</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">{stats.total} figurinhas</Badge>
-              <Badge variant="outline" className="text-xs">⭐ {stats.favorites}</Badge>
+              <Badge variant="secondary" className="text-xs">
+                {stats.total} figurinhas
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                ⭐ {stats.favorites}
+              </Badge>
             </div>
           </div>
         </CardHeader>
@@ -119,26 +131,36 @@ export function StickerManager({ onSend, mode = 'manager' }: StickerManagerProps
           {/* Search + Grid Size Controls */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar figurinhas..."
-                className="pl-9 h-9"
+                className="h-9 pl-9"
               />
             </div>
-            <div className="flex items-center border border-border/50 rounded-lg p-0.5">
+            <div className="flex items-center rounded-lg border border-border/50 p-0.5">
               <button
                 onClick={() => setGridSize('sm')}
-                className={cn('p-1.5 rounded-md transition-colors', gridSize === 'sm' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
+                className={cn(
+                  'rounded-md p-1.5 transition-colors',
+                  gridSize === 'sm'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
               >
-                <Grid3X3 className="w-4 h-4" />
+                <Grid3X3 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setGridSize('md')}
-                className={cn('p-1.5 rounded-md transition-colors', gridSize === 'md' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
+                className={cn(
+                  'rounded-md p-1.5 transition-colors',
+                  gridSize === 'md'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
               >
-                <LayoutGrid className="w-4 h-4" />
+                <LayoutGrid className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -176,8 +198,14 @@ export function StickerManager({ onSend, mode = 'manager' }: StickerManagerProps
             search={search}
             gridSize={gridSize}
             onSend={handleSend}
-            onToggleFavorite={(e, s) => { e.stopPropagation(); toggleFavorite.mutate(s); }}
-            onDelete={(e, s) => { e.stopPropagation(); deleteSticker.mutate(s); }}
+            onToggleFavorite={(e, s) => {
+              e.stopPropagation();
+              toggleFavorite.mutate(s);
+            }}
+            onDelete={(e, s) => {
+              e.stopPropagation();
+              deleteSticker.mutate(s);
+            }}
             onCategoryChange={(s, cat) => updateCategory.mutate({ id: s.id, category: cat })}
             onAddClick={() => toast.info('Use o botão de upload na barra de ferramentas')}
           />

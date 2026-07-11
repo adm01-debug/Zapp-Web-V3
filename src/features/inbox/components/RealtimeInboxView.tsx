@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const ChatPanel = lazy(() => import('./ChatPanel').then((m) => ({ default: m.ChatPanel })));
-const ContactDetails = lazy(() =>
+const _ContactDetails = lazy(() =>
   import('./ContactDetails').then((m) => ({ default: m.ContactDetails }))
 );
 const ContactDetailsResponsive = lazy(() =>

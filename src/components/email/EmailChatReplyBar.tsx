@@ -1,6 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import DOMPurify from 'dompurify';
-import { Send, Paperclip, ChevronDown, ChevronUp, Signature, X, Loader2, Clock } from 'lucide-react';
+import {
+  Send,
+  Paperclip,
+  ChevronDown,
+  ChevronUp,
+  Signature,
+  X,
+  Loader2,
+  Clock,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -39,7 +48,7 @@ export function EmailChatReplyBar({
   const [cc, setCc] = useState('');
   const [bcc, setBcc] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [showSignaturePicker, setShowSignaturePicker] = useState(false);
+  const [_showSignaturePicker, _setShowSignaturePicker] = useState(false);
   const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,26 +63,29 @@ export function EmailChatReplyBar({
     }
   }, [defaultSignature, selectedSignatureId]);
 
-  const selectedSignature = signatures.find(s => s.id === selectedSignatureId);
+  const selectedSignature = signatures.find((s) => s.id === selectedSignatureId);
 
   // Sincroniza textarea com draft
   const bodyHtml = draft.bodyHtml;
-  const setBody = useCallback((html: string) => {
-    update({ bodyHtml: html });
-  }, [update]);
+  const setBody = useCallback(
+    (html: string) => {
+      update({ bodyHtml: html });
+    },
+    [update]
+  );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    const oversized = files.filter(f => f.size > 25 * 1024 * 1024);
+    const oversized = files.filter((f) => f.size > 25 * 1024 * 1024);
     if (oversized.length) {
       toast.error(`${oversized.length} arquivo(s) acima de 25MB ignorados`);
     }
-    setAttachments(prev => [...prev, ...files.filter(f => f.size <= 25 * 1024 * 1024)]);
+    setAttachments((prev) => [...prev, ...files.filter((f) => f.size <= 25 * 1024 * 1024)]);
     e.target.value = '';
   };
 
   const removeAttachment = (idx: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== idx));
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // Converte File para base64
@@ -99,7 +111,7 @@ export function EmailChatReplyBar({
     try {
       // Converte anexos
       const processedAttachments = await Promise.all(
-        attachments.map(async f => ({
+        attachments.map(async (f) => ({
           name: f.name,
           mimeType: f.type || 'application/octet-stream',
           data: await fileToBase64(f),
@@ -107,8 +119,14 @@ export function EmailChatReplyBar({
       );
 
       const toList = toEmails.filter(Boolean);
-      const ccList = cc.split(',').map(s => s.trim()).filter(Boolean);
-      const bccList = bcc.split(',').map(s => s.trim()).filter(Boolean);
+      const ccList = cc
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const bccList = bcc
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
 
       await (emailSendMessage as any)({
         accountId,
@@ -120,7 +138,7 @@ export function EmailChatReplyBar({
         bodyPlain: plainText,
         threadId: threadEmailId,
         attachments: processedAttachments as any,
-        signature: true
+        signature: true,
       });
 
       // Registra resposta no SLA
@@ -145,19 +163,29 @@ export function EmailChatReplyBar({
   };
 
   return (
-    <div className={cn('border-t bg-background/80 backdrop-blur-md sticky bottom-0 z-20', className)}>
-      <div className="px-5 py-4 space-y-4">
+    <div
+      className={cn('sticky bottom-0 z-20 border-t bg-background/80 backdrop-blur-md', className)}
+    >
+      <div className="space-y-4 px-5 py-4">
         {/* Header: Para + CC/BCC toggle */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="shrink-0  text-[10px] font-bold text-primary/60 uppercase tracking-widest">Para:</span>
-            <span className=" text-[12px] font-semibold text-muted-foreground truncate">{toEmails.join(', ')}</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-primary/60">
+              Para:
+            </span>
+            <span className="truncate text-[12px] font-semibold text-muted-foreground">
+              {toEmails.join(', ')}
+            </span>
           </div>
           <button
-            className="shrink-0 flex items-center gap-1 hover:text-foreground transition-colors"
-            onClick={() => setShowCcBcc(v => !v)}
+            className="flex shrink-0 items-center gap-1 transition-colors hover:text-foreground"
+            onClick={() => setShowCcBcc((v) => !v)}
           >
-            {showCcBcc ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {showCcBcc ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
             {showCcBcc ? 'Ocultar' : 'Cc/Bcc'}
           </button>
         </div>
@@ -166,43 +194,47 @@ export function EmailChatReplyBar({
         {showCcBcc && (
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="w-8 text-xs text-muted-foreground font-medium shrink-0">Cc:</span>
+              <span className="w-8 shrink-0 text-xs font-medium text-muted-foreground">Cc:</span>
               <Input
                 value={cc}
-                onChange={e => setCc(e.target.value)}
+                onChange={(e) => setCc(e.target.value)}
                 placeholder="email1@ex.com, email2@ex.com"
-                className="h-7 text-xs border-0 bg-muted/30 focus-visible:ring-0"
+                className="h-7 border-0 bg-muted/30 text-xs focus-visible:ring-0"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-8 text-xs text-muted-foreground font-medium shrink-0">Bcc:</span>
+              <span className="w-8 shrink-0 text-xs font-medium text-muted-foreground">Bcc:</span>
               <Input
                 value={bcc}
-                onChange={e => setBcc(e.target.value)}
+                onChange={(e) => setBcc(e.target.value)}
                 placeholder="email@exemplo.com"
-                className="h-7 text-xs border-0 bg-muted/30 focus-visible:ring-0"
+                className="h-7 border-0 bg-muted/30 text-xs focus-visible:ring-0"
               />
             </div>
           </div>
         )}
 
         {/* Textarea */}
-        <div className="relative group/input bg-background/50 rounded-2xl border border-border/5 p-4 transition-all duration-300 focus-within:bg-background focus-within:border-primary/20 focus-within:shadow-2xl focus-within:shadow-primary/5">
+        <div className="group/input relative rounded-2xl border border-border/5 bg-background/50 p-4 transition-all duration-300 focus-within:border-primary/20 focus-within:bg-background focus-within:shadow-2xl focus-within:shadow-primary/5">
           <Textarea
             value={bodyHtml.replace(/<[^>]*>/g, '')}
-            onChange={e => setBody(e.target.value)}
+            onChange={(e) => setBody(e.target.value)}
             placeholder="Escreva sua resposta comercial..."
-            className="min-h-[160px] resize-none border-0 bg-transparent px-0 focus-visible:ring-0 text-[16px] font-medium leading-relaxed  placeholder:text-muted-foreground/30 selection:bg-primary/20 scrollbar-thin scrollbar-thumb-primary/10"
+            className="scrollbar-thin scrollbar-thumb-primary/10 min-h-[160px] resize-none border-0 bg-transparent px-0 text-[16px] font-medium leading-relaxed selection:bg-primary/20 placeholder:text-muted-foreground/30 focus-visible:ring-0"
           />
         </div>
 
         {/* Assinatura preview */}
         {selectedSignature && (
           <div className="border-t pt-2">
-            <p className="text-[10px] text-muted-foreground mb-1">— Assinatura: {selectedSignature.name}</p>
+            <p className="mb-1 text-[10px] text-muted-foreground">
+              — Assinatura: {selectedSignature.name}
+            </p>
             <div
-              className="text-xs text-muted-foreground opacity-70 max-h-16 overflow-hidden"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedSignature.html_content) }}
+              className="max-h-16 overflow-hidden text-xs text-muted-foreground opacity-70"
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(selectedSignature.html_content),
+              }}
             />
           </div>
         )}
@@ -211,9 +243,12 @@ export function EmailChatReplyBar({
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {attachments.map((file, idx) => (
-              <Badge key={idx} variant="secondary" className="gap-1 text-[11px] pr-1">
+              <Badge key={idx} variant="secondary" className="gap-1 pr-1 text-[11px]">
                 <span className="max-w-32 truncate">{file.name}</span>
-                <button onClick={() => removeAttachment(idx)} className="ml-1 hover:text-destructive">
+                <button
+                  onClick={() => removeAttachment(idx)}
+                  className="ml-1 hover:text-destructive"
+                >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -226,11 +261,13 @@ export function EmailChatReplyBar({
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>Rascunho não salvo</span>
-            <button onClick={saveDraft} className="underline hover:text-foreground ml-1">Salvar agora</button>
+            <button onClick={saveDraft} className="ml-1 underline hover:text-foreground">
+              Salvar agora
+            </button>
           </div>
         )}
         {draft.lastSaved && !draft.isDirty && (
-          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Clock className="h-3 w-3" />
             Rascunho salvo {draft.lastSaved.toLocaleTimeString()}
           </p>
@@ -242,34 +279,52 @@ export function EmailChatReplyBar({
             {/* Attachment */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors" onClick={() => fileInputRef.current?.click()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground transition-colors hover:text-primary"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Paperclip className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Anexar arquivo</TooltipContent>
             </Tooltip>
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+            />
 
             {/* Template picker */}
-            <MessageTemplates onSelectTemplate={(content) => {
-              const el = bodyHtml.replace(/<[^>]*>/g, '');
-              const newContent = el ? (el + "\n\n" + content) : content;
-              setBody(newContent);
-            }} />
+            <MessageTemplates
+              onSelectTemplate={(content) => {
+                const el = bodyHtml.replace(/<[^>]*>/g, '');
+                const newContent = el ? el + '\n\n' + content : content;
+                setBody(newContent);
+              }}
+            />
 
             {/* Signature picker */}
             {signatures.length > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <Select value={selectedSignatureId ?? 'none'} onValueChange={v => setSelectedSignatureId(v === 'none' ? null : v)}>
+                    <Select
+                      value={selectedSignatureId ?? 'none'}
+                      onValueChange={(v) => setSelectedSignatureId(v === 'none' ? null : v)}
+                    >
                       <SelectTrigger className="h-8 w-8 border-0 bg-transparent p-0 focus:ring-0 [&>svg]:hidden">
-                        <Signature className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+                        <Signature className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Sem assinatura</SelectItem>
-                        {signatures.map(s => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        {signatures.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -282,11 +337,15 @@ export function EmailChatReplyBar({
 
           <Button
             size="sm"
-            className="gap-2.5 h-[42px] px-6 rounded-xl font-black uppercase tracking-widest bg-primary text-primary-foreground shadow-xl shadow-primary/20 transition-all hover:scale-[1.03] active:scale-[0.97] hover:shadow-primary/30"
+            className="h-[42px] gap-2.5 rounded-xl bg-primary px-6 font-black uppercase tracking-widest text-primary-foreground shadow-xl shadow-primary/20 transition-all hover:scale-[1.03] hover:shadow-primary/30 active:scale-[0.97]"
             onClick={handleSend}
             disabled={isSending}
           >
-            {isSending ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Send className="h-4.5 w-4.5 fill-current" />}
+            {isSending ? (
+              <Loader2 className="h-4.5 w-4.5 animate-spin" />
+            ) : (
+              <Send className="h-4.5 w-4.5 fill-current" />
+            )}
             Enviar
           </Button>
         </div>

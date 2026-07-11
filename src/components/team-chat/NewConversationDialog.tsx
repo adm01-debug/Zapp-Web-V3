@@ -30,7 +30,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
   const [groupName, setGroupName] = useState('');
   const createMutation = useCreateTeamConversation();
 
-  const isAdmin = profile?.role === 'admin';
+  const _isAdmin = profile?.role === 'admin';
 
   const { data: teammates = [], isLoading: loadingTeammates } = useQuery({
     queryKey: ['team-profiles-for-chat'],
@@ -64,16 +64,16 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
   const filteredTeammates = useMemo(() => {
     if (!search.trim()) return teammates;
     const q = search.toLowerCase();
-    return teammates.filter(t =>
-      t.name?.toLowerCase().includes(q) || t.email?.toLowerCase().includes(q)
+    return teammates.filter(
+      (t) => t.name?.toLowerCase().includes(q) || t.email?.toLowerCase().includes(q)
     );
   }, [teammates, search]);
 
   const filteredDepts = useMemo(() => {
     if (!search.trim()) return departments;
     const q = search.toLowerCase();
-    return departments.filter(d =>
-      d.name?.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
+    return departments.filter(
+      (d) => d.name?.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
     );
   }, [departments, search]);
 
@@ -81,9 +81,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
     if (tab === 'direct') {
       setSelectedIds([id]);
     } else {
-      setSelectedIds(prev =>
-        prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-      );
+      setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     }
   };
 
@@ -96,9 +94,9 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
 
     try {
       const payload: any = { type: tab }; // ignore-audit (any pré-existente; payload montado dinamicamente por aba)
-      
+
       if (tab === 'department') {
-        const dept = departments.find(d => d.id === selectedDeptId);
+        const dept = departments.find((d) => d.id === selectedDeptId);
         payload.departmentId = selectedDeptId;
         payload.name = dept?.name;
       } else {
@@ -112,8 +110,8 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
       setGroupName('');
       setSearch('');
       onCreated(result.id);
-    } catch (err) { 
-      log.error('Unexpected error in NewConversationDialog:', err); 
+    } catch (err) {
+      log.error('Unexpected error in NewConversationDialog:', err);
     }
   };
 
@@ -124,16 +122,23 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
           <DialogTitle>Nova Conversa</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={v => { setTab(v as any); setSelectedIds([]); setSelectedDeptId(null); }}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v as any);
+            setSelectedIds([]);
+            setSelectedDeptId(null);
+          }}
+        >
           <TabsList className="w-full">
             <TabsTrigger value="direct" className="flex-1 gap-1.5">
-              <User className="w-3.5 h-3.5" /> Direto
+              <User className="h-3.5 w-3.5" /> Direto
             </TabsTrigger>
             <TabsTrigger value="group" className="flex-1 gap-1.5">
-              <Users className="w-3.5 h-3.5" /> Grupo
+              <Users className="h-3.5 w-3.5" /> Grupo
             </TabsTrigger>
             <TabsTrigger value="department" className="flex-1 gap-1.5">
-              <Building2 className="w-3.5 h-3.5" /> Depto
+              <Building2 className="h-3.5 w-3.5" /> Depto
             </TabsTrigger>
           </TabsList>
 
@@ -142,7 +147,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
               <Input
                 placeholder="Nome do grupo (ex: Marketing, Suporte...)"
                 value={groupName}
-                onChange={e => setGroupName(e.target.value)}
+                onChange={(e) => setGroupName(e.target.value)}
                 maxLength={60}
                 aria-label="Nome do grupo"
                 autoFocus
@@ -150,87 +155,101 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
             )}
 
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder={tab === 'department' ? "Buscar departamentos..." : "Buscar colegas..."}
+                placeholder={tab === 'department' ? 'Buscar departamentos...' : 'Buscar colegas...'}
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-8"
               />
             </div>
 
-            <div className="max-h-60 overflow-auto space-y-0.5 border rounded-lg p-1">
+            <div className="max-h-60 space-y-0.5 overflow-auto rounded-lg border p-1">
               {tab === 'department' ? (
                 loadingDepts ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">Carregando departamentos...</div>
+                  <div className="py-4 text-center text-sm text-muted-foreground">
+                    Carregando departamentos...
+                  </div>
                 ) : filteredDepts.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">Nenhum departamento encontrado</div>
+                  <div className="py-4 text-center text-sm text-muted-foreground">
+                    Nenhum departamento encontrado
+                  </div>
                 ) : (
-                  filteredDepts.map(d => {
+                  filteredDepts.map((d) => {
                     const isSelected = selectedDeptId === d.id;
                     return (
                       <button
                         key={d.id}
                         onClick={() => setSelectedDeptId(d.id)}
                         className={cn(
-                          "w-full flex items-center gap-3 p-2.5 rounded-md transition-colors",
-                          "hover:bg-accent/50",
-                          isSelected && "bg-primary/10"
+                          'flex w-full items-center gap-3 rounded-md p-2.5 transition-colors',
+                          'hover:bg-accent/50',
+                          isSelected && 'bg-primary/10'
                         )}
                       >
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Building2 className="w-4 h-4 text-primary" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                          <Building2 className="h-4 w-4 text-primary" />
                         </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{d.name}</p>
-                          {d.description && <p className="text-xs text-muted-foreground truncate">{d.description}</p>}
+                        <div className="min-w-0 flex-1 text-left">
+                          <p className="truncate text-sm font-medium text-foreground">{d.name}</p>
+                          {d.description && (
+                            <p className="truncate text-xs text-muted-foreground">
+                              {d.description}
+                            </p>
+                          )}
                         </div>
-                        <div className={cn(
-                          "w-4 h-4 rounded-full border-2 shrink-0",
-                          isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
-                        )} />
+                        <div
+                          className={cn(
+                            'h-4 w-4 shrink-0 rounded-full border-2',
+                            isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'
+                          )}
+                        />
                       </button>
                     );
                   })
                 )
+              ) : loadingTeammates ? (
+                <div className="py-4 text-center text-sm text-muted-foreground">Carregando...</div>
+              ) : filteredTeammates.length === 0 ? (
+                <div className="py-4 text-center text-sm text-muted-foreground">
+                  Nenhum colega encontrado
+                </div>
               ) : (
-                loadingTeammates ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">Carregando...</div>
-                ) : filteredTeammates.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">Nenhum colega encontrado</div>
-                ) : (
-                  filteredTeammates.map(t => {
-                    const isSelected = selectedIds.includes(t.id);
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => toggleMember(t.id)}
-                        className={cn(
-                          "w-full flex items-center gap-3 p-2.5 rounded-md transition-colors",
-                          "hover:bg-accent/50",
-                          isSelected && "bg-primary/10"
-                        )}
-                      >
-                        <Avatar className="w-8 h-8 shrink-0">
-                          <AvatarImage src={t.avatar_url || undefined} />
-                          <AvatarFallback className="text-xs bg-muted">{t.name?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{t.email}</p>
-                        </div>
-                        {tab === 'group' ? (
-                          <Checkbox checked={isSelected} className="shrink-0" />
-                        ) : (
-                          <div className={cn(
-                            "w-4 h-4 rounded-full border-2 shrink-0",
-                            isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
-                          )} />
-                        )}
-                      </button>
-                    );
-                  })
-                )
+                filteredTeammates.map((t) => {
+                  const isSelected = selectedIds.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => toggleMember(t.id)}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-md p-2.5 transition-colors',
+                        'hover:bg-accent/50',
+                        isSelected && 'bg-primary/10'
+                      )}
+                    >
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={t.avatar_url || undefined} />
+                        <AvatarFallback className="bg-muted text-xs">
+                          {t.name?.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className="truncate text-sm font-medium text-foreground">{t.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{t.email}</p>
+                      </div>
+                      {tab === 'group' ? (
+                        <Checkbox checked={isSelected} className="shrink-0" />
+                      ) : (
+                        <div
+                          className={cn(
+                            'h-4 w-4 shrink-0 rounded-full border-2',
+                            isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'
+                          )}
+                        />
+                      )}
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
@@ -238,15 +257,25 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
 
         <Button
           onClick={handleCreate}
-          disabled={createMutation.isPending || (tab === 'department' ? !selectedDeptId : selectedIds.length === 0 || (tab === 'group' && selectedIds.length < 2))}
-          className="w-full mt-2 rounded-xl"
+          disabled={
+            createMutation.isPending ||
+            (tab === 'department'
+              ? !selectedDeptId
+              : selectedIds.length === 0 || (tab === 'group' && selectedIds.length < 2))
+          }
+          className="mt-2 w-full rounded-xl"
         >
-          {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-          {tab === 'department' ? 'Criar Grupo do Departamento' : 
-           tab === 'direct' ? 'Iniciar Conversa' : `Criar Grupo (${selectedIds.length} membros)`}
+          {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {tab === 'department'
+            ? 'Criar Grupo do Departamento'
+            : tab === 'direct'
+              ? 'Iniciar Conversa'
+              : `Criar Grupo (${selectedIds.length} membros)`}
         </Button>
         {tab === 'group' && selectedIds.length > 0 && selectedIds.length < 2 && (
-          <p className="text-xs text-muted-foreground text-center mt-1">Selecione pelo menos 2 membros para criar um grupo</p>
+          <p className="mt-1 text-center text-xs text-muted-foreground">
+            Selecione pelo menos 2 membros para criar um grupo
+          </p>
         )}
       </DialogContent>
     </Dialog>

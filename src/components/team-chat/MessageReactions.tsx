@@ -9,8 +9,24 @@ import type { AggregatedReaction } from '@/features/inbox/hooks/team-chat/useTea
 export const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 export const EXTENDED_EMOJIS = [
   ...QUICK_EMOJIS,
-  '🔥', '🎉', '👏', '💯', '✅', '❌', '👀', '🤔', '😍', '😎',
-  '🚀', '💪', '🙌', '👌', '✨', '⭐', '💡', '☕',
+  '🔥',
+  '🎉',
+  '👏',
+  '💯',
+  '✅',
+  '❌',
+  '👀',
+  '🤔',
+  '😍',
+  '😎',
+  '🚀',
+  '💪',
+  '🙌',
+  '👌',
+  '✨',
+  '⭐',
+  '💡',
+  '☕',
 ];
 
 interface Props {
@@ -21,18 +37,27 @@ interface Props {
   onToggle: (emoji: string) => void;
 }
 
-export const MessageReactions = memo(function MessageReactions({ messageId, reactions, isMine, isToggling, onToggle }: Props) {
+export const MessageReactions = memo(function MessageReactions({
+  messageId,
+  reactions,
+  isMine,
+  isToggling,
+  onToggle,
+}: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const handlePick = useCallback((emoji: string) => {
-    onToggle(emoji);
-    setPickerOpen(false);
-  }, [onToggle]);
+  const handlePick = useCallback(
+    (emoji: string) => {
+      onToggle(emoji);
+      setPickerOpen(false);
+    },
+    [onToggle]
+  );
 
   return (
-    <div 
+    <div
       className={cn(
-        'absolute -bottom-3 flex items-center gap-0.5 z-10',
+        'absolute -bottom-3 z-10 flex items-center gap-0.5',
         isMine ? 'right-2' : 'left-2'
       )}
       role="group"
@@ -45,18 +70,22 @@ export const MessageReactions = memo(function MessageReactions({ messageId, reac
           key={r.emoji}
           onClick={() => onToggle(r.emoji)}
           className={cn(
-            'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] border transition-all outline-none focus-visible:ring-1 focus-visible:ring-primary',
-            'hover:scale-110 active:scale-95 shadow-sm',
+            'flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] outline-none transition-all focus-visible:ring-1 focus-visible:ring-primary',
+            'shadow-sm hover:scale-110 active:scale-95',
             r.reactedByMe
-              ? 'bg-primary border-primary/20 text-primary-foreground font-bold'
-              : 'bg-background border-border/50 text-foreground hover:bg-muted/80'
+              ? 'border-primary/20 bg-primary font-bold text-primary-foreground'
+              : 'border-border/50 bg-background text-foreground hover:bg-muted/80'
           )}
           aria-pressed={r.reactedByMe}
           aria-label={`${r.emoji}, ${r.count} reações. ${r.reactedByMe ? 'Você reagiu.' : 'Clique para reagir.'}`}
           data-testid={`reaction-${messageId}-${r.emoji}`}
         >
-          <span className="text-[11px] leading-none" aria-hidden="true">{r.emoji}</span>
-          {r.count > 1 && <span className="text-[9px] tabular-nums font-semibold ml-0.5">{r.count}</span>}
+          <span className="text-[11px] leading-none" aria-hidden="true">
+            {r.emoji}
+          </span>
+          {r.count > 1 && (
+            <span className="ml-0.5 text-[9px] font-semibold tabular-nums">{r.count}</span>
+          )}
         </button>
       ))}
 
@@ -65,32 +94,32 @@ export const MessageReactions = memo(function MessageReactions({ messageId, reac
           <button
             className={cn(
               'transition-all focus-visible:opacity-100',
-              'p-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary',
-              'hover:bg-muted/80 text-muted-foreground hover:text-foreground',
+              'rounded-full p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary',
+              'text-muted-foreground hover:bg-muted/80 hover:text-foreground',
               reactions.length === 0
-                ? 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
+                ? 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100'
                 : 'opacity-60 hover:opacity-100'
             )}
             aria-label="Adicionar reação"
             data-testid={`reaction-trigger-${messageId}`}
           >
-            <SmilePlus className="w-3.5 h-3.5" />
+            <SmilePlus className="h-3.5 w-3.5" />
           </button>
         </PopoverTrigger>
         <PopoverContent
           side="top"
           align={isMine ? 'end' : 'start'}
-          className="w-auto p-2 bg-popover border-border shadow-xl animate-in fade-in zoom-in duration-150"
+          className="w-auto border-border bg-popover p-2 shadow-xl duration-150 animate-in fade-in zoom-in"
           role="dialog"
           aria-label="Escolher um emoji"
         >
-          <div className="grid grid-cols-6 sm:grid-cols-8 gap-1" role="grid">
+          <div className="grid grid-cols-6 gap-1 sm:grid-cols-8" role="grid">
             {EXTENDED_EMOJIS.map((emoji) => (
               <Button
                 key={emoji}
                 size="icon"
                 variant="ghost"
-                className="h-9 w-9 text-xl hover:scale-125 hover:bg-muted transition-all focus-visible:ring-2 focus-visible:ring-primary"
+                className="h-9 w-9 text-xl transition-all hover:scale-125 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={() => handlePick(emoji)}
                 aria-label={`Reagir com ${emoji}`}
                 role="gridcell"
@@ -106,10 +135,10 @@ export const MessageReactions = memo(function MessageReactions({ messageId, reac
 });
 
 export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
-  messageId,
+  messageId: _messageId,
   isMine,
   onToggle,
-  reactions = []
+  reactions = [],
 }: {
   messageId: string;
   isMine: boolean;
@@ -118,20 +147,26 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
 }) {
   const [showPicker, setShowPicker] = useState(false);
 
-  const handleReact = useCallback((emoji: string) => {
-    onToggle(emoji);
-    setShowPicker(false);
-  }, [onToggle]);
+  const handleReact = useCallback(
+    (emoji: string) => {
+      onToggle(emoji);
+      setShowPicker(false);
+    },
+    [onToggle]
+  );
 
-  const hasReacted = useCallback((emoji: string) => {
-    return reactions.some(r => r.emoji === emoji && r.reactedByMe);
-  }, [reactions]);
+  const hasReacted = useCallback(
+    (emoji: string) => {
+      return reactions.some((r) => r.emoji === emoji && r.reactedByMe);
+    },
+    [reactions]
+  );
 
   return (
-    <div 
+    <div
       className={cn(
-        'absolute -top-9 flex items-center transition-all duration-200 z-20',
-        'opacity-0 group-hover/msg:opacity-100 group-focus-within/msg:opacity-100',
+        'absolute -top-9 z-20 flex items-center transition-all duration-200',
+        'opacity-0 group-focus-within/msg:opacity-100 group-hover/msg:opacity-100',
         showPicker && 'opacity-100',
         isMine ? 'right-0' : 'left-0'
       )}
@@ -141,7 +176,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
         initial={{ opacity: 0, y: 4, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.12 }}
-        className="flex items-center gap-0.5 px-1 py-1 rounded-full bg-card/95 dark:bg-[hsl(var(--card)/0.95)] border border-border/40 shadow-xl backdrop-blur-md"
+        className="flex items-center gap-0.5 rounded-full border border-border/40 bg-card/95 px-1 py-1 shadow-xl backdrop-blur-md dark:bg-[hsl(var(--card)/0.95)]"
       >
         {QUICK_EMOJIS.map((emoji) => (
           <button
@@ -149,7 +184,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
             onClick={() => handleReact(emoji)}
             aria-label={`Reagir com ${emoji}`}
             className={cn(
-              'w-6 h-6 flex items-center justify-center rounded-full hover:bg-muted/80 hover:scale-125 transition-all text-sm focus-visible:ring-1 focus-visible:ring-primary outline-none',
+              'flex h-6 w-6 items-center justify-center rounded-full text-sm outline-none transition-all hover:scale-125 hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-primary',
               hasReacted(emoji) && 'bg-primary/10 ring-1 ring-primary/30'
             )}
           >
@@ -159,15 +194,15 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
 
         <Popover open={showPicker} onOpenChange={setShowPicker}>
           <PopoverTrigger asChild>
-            <button 
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted/80 transition-all text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary outline-none"
+            <button
+              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground outline-none transition-all hover:bg-muted/80 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Mais reações"
             >
-              <SmilePlus className="w-4 h-4" />
+              <SmilePlus className="h-4 w-4" />
             </button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-auto p-2 bg-popover border-border shadow-xl animate-in fade-in zoom-in duration-150"
+            className="w-auto border-border bg-popover p-2 shadow-xl duration-150 animate-in fade-in zoom-in"
             align={isMine ? 'end' : 'start'}
             sideOffset={4}
             role="dialog"
@@ -181,7 +216,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
                   aria-label={`Reagir com ${emoji}`}
                   onClick={() => handleReact(emoji)}
                   className={cn(
-                    'w-9 h-9 flex items-center justify-center rounded-md text-lg hover:bg-muted transition-all hover:scale-125 focus-visible:ring-2 focus-visible:ring-primary outline-none',
+                    'flex h-9 w-9 items-center justify-center rounded-md text-lg outline-none transition-all hover:scale-125 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary',
                     hasReacted(emoji) && 'bg-primary/10 ring-1 ring-primary/30'
                   )}
                 >

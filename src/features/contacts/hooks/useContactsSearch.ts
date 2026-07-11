@@ -20,7 +20,7 @@ interface Contact {
   updated_at: string;
 }
 
-interface SearchFilters {
+interface _SearchFilters {
   searchTerm: string;
   contactType: string | null;
   company: string | null;
@@ -35,17 +35,22 @@ const PAGE_SIZE = 50;
 
 function parseSortOption(sortBy: string): { field: string; direction: string } {
   switch (sortBy) {
-    case 'name_desc': return { field: 'name', direction: 'desc' };
-    case 'created_desc': return { field: 'created_at', direction: 'desc' };
-    case 'created_asc': return { field: 'created_at', direction: 'asc' };
-    case 'updated_desc': return { field: 'updated_at', direction: 'desc' };
-    default: return { field: 'name', direction: 'asc' };
+    case 'name_desc':
+      return { field: 'name', direction: 'desc' };
+    case 'created_desc':
+      return { field: 'created_at', direction: 'desc' };
+    case 'created_asc':
+      return { field: 'created_at', direction: 'asc' };
+    case 'updated_desc':
+      return { field: 'updated_at', direction: 'desc' };
+    default:
+      return { field: 'name', direction: 'asc' };
   }
 }
 
 export function useContactsSearch() {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   // Initialize state from URL
   const [searchInput, setSearchInput] = useState(searchParams.get('q') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('q') || '');
@@ -56,7 +61,7 @@ export function useContactsSearch() {
   const [filterDateRange, setFilterDateRange] = useState(searchParams.get('date') || 'all');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'name_asc');
   const [page, setPage] = useState(Number(searchParams.get('p')) || 0);
-  
+
   const debounceRef = useRef<NodeJS.Timeout>();
 
   // Sync state to URL
@@ -70,9 +75,19 @@ export function useContactsSearch() {
     if (filterDateRange !== 'all') params.set('date', filterDateRange);
     if (sortBy !== 'name_asc') params.set('sort', sortBy);
     if (page > 0) params.set('p', page.toString());
-    
+
     setSearchParams(params, { replace: true });
-  }, [debouncedSearch, activeTab, filterCompany, filterJobTitle, filterTag, filterDateRange, sortBy, page, setSearchParams]);
+  }, [
+    debouncedSearch,
+    activeTab,
+    filterCompany,
+    filterJobTitle,
+    filterTag,
+    filterDateRange,
+    sortBy,
+    page,
+    setSearchParams,
+  ]);
 
   // Debounce search input
   const handleSearchChange = useCallback((value: string) => {
@@ -85,25 +100,51 @@ export function useContactsSearch() {
   }, []);
 
   useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, []);
 
-  const handleTabChange = useCallback((v: string) => { setActiveTab(v); setPage(0); }, []);
-  const handleCompanyChange = useCallback((v: string) => { setFilterCompany(v); setPage(0); }, []);
-  const handleJobTitleChange = useCallback((v: string) => { setFilterJobTitle(v); setPage(0); }, []);
-  const handleTagChange = useCallback((v: string) => { setFilterTag(v); setPage(0); }, []);
-  const handleDateRangeChange = useCallback((v: string) => { setFilterDateRange(v); setPage(0); }, []);
-  const handleSortChange = useCallback((v: string) => { setSortBy(v); setPage(0); }, []);
+  const handleTabChange = useCallback((v: string) => {
+    setActiveTab(v);
+    setPage(0);
+  }, []);
+  const handleCompanyChange = useCallback((v: string) => {
+    setFilterCompany(v);
+    setPage(0);
+  }, []);
+  const handleJobTitleChange = useCallback((v: string) => {
+    setFilterJobTitle(v);
+    setPage(0);
+  }, []);
+  const handleTagChange = useCallback((v: string) => {
+    setFilterTag(v);
+    setPage(0);
+  }, []);
+  const handleDateRangeChange = useCallback((v: string) => {
+    setFilterDateRange(v);
+    setPage(0);
+  }, []);
+  const handleSortChange = useCallback((v: string) => {
+    setSortBy(v);
+    setPage(0);
+  }, []);
 
   const dateFrom = useMemo(() => {
     const now = new Date();
     switch (filterDateRange) {
-      case 'today': return new Date(now.getTime() - 86400000).toISOString();
-      case 'week': return new Date(now.getTime() - 7 * 86400000).toISOString();
-      case 'month': return new Date(now.setMonth(now.getMonth() - 1)).toISOString();
-      case 'quarter': return new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString();
-      case 'year': return new Date(new Date().setMonth(new Date().getMonth() - 12)).toISOString();
-      default: return null;
+      case 'today':
+        return new Date(now.getTime() - 86400000).toISOString();
+      case 'week':
+        return new Date(now.getTime() - 7 * 86400000).toISOString();
+      case 'month':
+        return new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+      case 'quarter':
+        return new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString();
+      case 'year':
+        return new Date(new Date().setMonth(new Date().getMonth() - 12)).toISOString();
+      default:
+        return null;
     }
   }, [filterDateRange]);
 
@@ -169,11 +210,25 @@ export function useContactsSearch() {
   }, [typeCounts]);
 
   // Unique values for filter dropdowns (from current results — lightweight)
-  const uniqueCompanies = useMemo(() => [...new Set(contacts.map(c => c.company).filter(Boolean))] as string[], [contacts]);
-  const uniqueJobTitles = useMemo(() => [...new Set(contacts.map(c => c.job_title).filter(Boolean))] as string[], [contacts]);
-  const uniqueTags = useMemo(() => [...new Set(contacts.flatMap(c => c.tags || []))] as string[], [contacts]);
+  const uniqueCompanies = useMemo(
+    () => [...new Set(contacts.map((c) => c.company).filter(Boolean))] as string[],
+    [contacts]
+  );
+  const uniqueJobTitles = useMemo(
+    () => [...new Set(contacts.map((c) => c.job_title).filter(Boolean))] as string[],
+    [contacts]
+  );
+  const uniqueTags = useMemo(
+    () => [...new Set(contacts.flatMap((c) => c.tags || []))] as string[],
+    [contacts]
+  );
 
-  const activeFiltersCount = [filterCompany, filterJobTitle, filterTag, filterDateRange !== 'all' ? filterDateRange : ''].filter(Boolean).length;
+  const activeFiltersCount = [
+    filterCompany,
+    filterJobTitle,
+    filterTag,
+    filterDateRange !== 'all' ? filterDateRange : '',
+  ].filter(Boolean).length;
 
   const clearFilters = useCallback(() => {
     setFilterCompany('');
@@ -228,8 +283,8 @@ export function useContactsSearch() {
     page,
     setPage,
     pageSize: PAGE_SIZE,
-    loadMore: () => setPage(p => p + 1),
-    loadPrevious: () => setPage(p => Math.max(0, p - 1)),
+    loadMore: () => setPage((p) => p + 1),
+    loadPrevious: () => setPage((p) => Math.max(0, p - 1)),
 
     // Actions
     refetch,

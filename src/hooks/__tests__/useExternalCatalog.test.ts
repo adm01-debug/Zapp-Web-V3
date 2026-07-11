@@ -7,13 +7,20 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const mockInvoke = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    functions: { invoke: (...args: any[]) => mockInvoke(...args) },
+    functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
   },
 }));
 
 vi.mock('@/lib/logger');
 
-import { useExternalCatalog, ExternalProduct, ExternalCategory, ExternalSupplier, ExternalProductVariant, CatalogFilters } from '@/hooks/useExternalCatalog';
+import {
+  useExternalCatalog,
+  ExternalProduct,
+  ExternalCategory,
+  ExternalSupplier,
+  ExternalProductVariant,
+  CatalogFilters,
+} from '@/hooks/useExternalCatalog';
 
 // ─── QueryClient Wrapper ──────────────────────────────────────
 function createWrapper() {
@@ -33,7 +40,7 @@ const mockProduct = (overrides: Partial<ExternalProduct> = {}): ExternalProduct 
   short_description: 'Caneta azul',
   sku: 'CAN-001',
   sale_price: 3.99,
-  suggested_price: 4.50,
+  suggested_price: 4.5,
   stock_quantity: 5000,
   primary_image_url: 'https://example.com/caneta.jpg',
   colors: ['Azul', 'Vermelho', 'Preto'],
@@ -90,15 +97,18 @@ const mockVariant = (overrides: Partial<ExternalProductVariant> = {}): ExternalP
   ...overrides,
 });
 
+// ─── Types ────────────────────────────────────────────────────
+type InvokeCall = [string, { body: { action: string; params?: Record<string, unknown> } }];
+
 // ─── Helper ───────────────────────────────────────────────────
-function setupMockInvoke(responses: Record<string, any>) {
-  const defaults: Record<string, any> = {
+function setupMockInvoke(responses: Record<string, unknown>) {
+  const defaults: Record<string, unknown> = {
     list_products: { data: [], meta: { total: 0, duration_ms: 1 } },
     list_categories: { data: [] },
     list_suppliers: { data: [] },
   };
   const merged = { ...defaults, ...responses };
-  mockInvoke.mockImplementation(async (fnName: string, opts: any) => {
+  mockInvoke.mockImplementation(async (fnName: string, opts) => {
     const action = opts?.body?.action;
     if (merged[action]) {
       return { data: merged[action], error: null };
@@ -150,7 +160,9 @@ describe('useExternalCatalog', () => {
       });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchProducts(); });
+      act(() => {
+        result.current.fetchProducts();
+      });
 
       await waitFor(() => {
         expect(result.current.products).toHaveLength(2);
@@ -161,11 +173,17 @@ describe('useExternalCatalog', () => {
     });
 
     it('sets loading state during fetch', async () => {
-      let resolvePromise: (v: any) => void;
-      mockInvoke.mockReturnValue(new Promise(r => { resolvePromise = r; }));
+      let resolvePromise: (v: unknown) => void;
+      mockInvoke.mockReturnValue(
+        new Promise((r) => {
+          resolvePromise = r;
+        })
+      );
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchProducts(); });
+      act(() => {
+        result.current.fetchProducts();
+      });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(true);
@@ -182,7 +200,9 @@ describe('useExternalCatalog', () => {
       });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchProducts(); });
+      act(() => {
+        result.current.fetchProducts();
+      });
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalled();
@@ -197,7 +217,9 @@ describe('useExternalCatalog', () => {
       });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchProducts(); });
+      act(() => {
+        result.current.fetchProducts();
+      });
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalled();
@@ -223,7 +245,9 @@ describe('useExternalCatalog', () => {
         order_by: 'sale_price',
         ascending: false,
       };
-      act(() => { result.current.fetchProducts(filters); });
+      act(() => {
+        result.current.fetchProducts(filters);
+      });
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('promogifts-catalog', {
@@ -242,11 +266,16 @@ describe('useExternalCatalog', () => {
       mockInvoke.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchProducts(); });
+      act(() => {
+        result.current.fetchProducts();
+      });
 
-      await waitFor(() => {
-        expect(result.current.error).toBe('Network error');
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(result.current.error).toBe('Network error');
+        },
+        { timeout: 5000 }
+      );
       expect(result.current.products).toEqual([]);
     });
 
@@ -257,11 +286,16 @@ describe('useExternalCatalog', () => {
       });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchProducts(); });
+      act(() => {
+        result.current.fetchProducts();
+      });
 
-      await waitFor(() => {
-        expect(result.current.error).toBe('External DB not configured');
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(result.current.error).toBe('External DB not configured');
+        },
+        { timeout: 5000 }
+      );
     });
 
     it('clears error on successful retry', async () => {
@@ -271,11 +305,16 @@ describe('useExternalCatalog', () => {
       });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchProducts(); });
+      act(() => {
+        result.current.fetchProducts();
+      });
 
-      await waitFor(() => {
-        expect(result.current.error).toBe('Timeout');
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(result.current.error).toBe('Timeout');
+        },
+        { timeout: 5000 }
+      );
 
       // Reset mock for success
       mockInvoke.mockResolvedValue({
@@ -284,11 +323,16 @@ describe('useExternalCatalog', () => {
       });
 
       // Change filters to trigger new query
-      act(() => { result.current.fetchProducts({ search: 'retry' }); });
+      act(() => {
+        result.current.fetchProducts({ search: 'retry' });
+      });
 
-      await waitFor(() => {
-        expect(result.current.products).toHaveLength(1);
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(result.current.products).toHaveLength(1);
+        },
+        { timeout: 5000 }
+      );
       expect(result.current.error).toBeNull();
     });
 
@@ -322,7 +366,9 @@ describe('useExternalCatalog', () => {
       });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchProducts({ limit: 50 }); });
+      act(() => {
+        result.current.fetchProducts({ limit: 50 });
+      });
 
       await waitFor(() => {
         expect(result.current.products).toHaveLength(50);
@@ -337,7 +383,10 @@ describe('useExternalCatalog', () => {
   describe('fetchProduct', () => {
     it('fetches a single product with variants', async () => {
       const product = mockProduct({
-        variants: [mockVariant(), mockVariant({ id: 'var2', sku: 'CAN-001-VER', color_name: 'Vermelho' })],
+        variants: [
+          mockVariant(),
+          mockVariant({ id: 'var2', sku: 'CAN-001-VER', color_name: 'Vermelho' }),
+        ],
       });
       setupMockInvoke({
         get_product: { data: product, meta: { duration_ms: 30 } },
@@ -408,12 +457,23 @@ describe('useExternalCatalog', () => {
       const cats = [
         mockCategory(),
         mockCategory({ id: 'cat2', name: 'Garrafas', slug: 'garrafas' }),
-        mockCategory({ id: 'cat3', name: 'Garrafas | Inox', slug: 'garrafas-inox', parent_id: 'cat2' }),
+        mockCategory({
+          id: 'cat3',
+          name: 'Garrafas | Inox',
+          slug: 'garrafas-inox',
+          parent_id: 'cat2',
+        }),
       ];
-      setupMockInvoke({ list_categories: { data: cats }, list_products: { data: [], meta: { total: 0 } }, list_suppliers: { data: [] } });
+      setupMockInvoke({
+        list_categories: { data: cats },
+        list_products: { data: [], meta: { total: 0 } },
+        list_suppliers: { data: [] },
+      });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchCategories(); });
+      act(() => {
+        result.current.fetchCategories();
+      });
 
       await waitFor(() => {
         expect(result.current.categories).toHaveLength(3);
@@ -421,10 +481,16 @@ describe('useExternalCatalog', () => {
     });
 
     it('handles empty categories', async () => {
-      setupMockInvoke({ list_categories: { data: [] }, list_products: { data: [], meta: { total: 0 } }, list_suppliers: { data: [] } });
+      setupMockInvoke({
+        list_categories: { data: [] },
+        list_products: { data: [], meta: { total: 0 } },
+        list_suppliers: { data: [] },
+      });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchCategories(); });
+      act(() => {
+        result.current.fetchCategories();
+      });
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalled();
@@ -436,7 +502,9 @@ describe('useExternalCatalog', () => {
       mockInvoke.mockRejectedValue(new Error('Server error'));
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchCategories(); });
+      act(() => {
+        result.current.fetchCategories();
+      });
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalled();
@@ -447,14 +515,17 @@ describe('useExternalCatalog', () => {
 
   describe('fetchSuppliers', () => {
     it('fetches suppliers successfully', async () => {
-      const sups = [
-        mockSupplier(),
-        mockSupplier({ id: 'sup2', name: 'XBZ Brindes' }),
-      ];
-      setupMockInvoke({ list_suppliers: { data: sups }, list_products: { data: [], meta: { total: 0 } }, list_categories: { data: [] } });
+      const sups = [mockSupplier(), mockSupplier({ id: 'sup2', name: 'XBZ Brindes' })];
+      setupMockInvoke({
+        list_suppliers: { data: sups },
+        list_products: { data: [], meta: { total: 0 } },
+        list_categories: { data: [] },
+      });
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchSuppliers(); });
+      act(() => {
+        result.current.fetchSuppliers();
+      });
 
       await waitFor(() => {
         expect(result.current.suppliers).toHaveLength(2);
@@ -465,7 +536,9 @@ describe('useExternalCatalog', () => {
       mockInvoke.mockRejectedValue(new Error('DB error'));
 
       const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-      act(() => { result.current.fetchSuppliers(); });
+      act(() => {
+        result.current.fetchSuppliers();
+      });
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalled();
@@ -482,8 +555,15 @@ describe('Type Contracts', () => {
   it('ExternalProduct has all required fields', () => {
     const product = mockProduct();
     const requiredFields: (keyof ExternalProduct)[] = [
-      'id', 'name', 'sku', 'sale_price', 'stock_quantity',
-      'is_active', 'is_stockout', 'is_kit', 'allows_personalization',
+      'id',
+      'name',
+      'sku',
+      'sale_price',
+      'stock_quantity',
+      'is_active',
+      'is_stockout',
+      'is_kit',
+      'allows_personalization',
     ];
     for (const field of requiredFields) {
       expect(product).toHaveProperty(field);
@@ -531,9 +611,15 @@ describe('Type Contracts', () => {
     expect(filters.limit).toBeUndefined();
 
     const full: CatalogFilters = {
-      search: 'a', category_id: 'c', supplier_id: 's',
-      only_active: true, only_in_stock: false,
-      limit: 10, offset: 0, order_by: 'name', ascending: true,
+      search: 'a',
+      category_id: 'c',
+      supplier_id: 's',
+      only_active: true,
+      only_in_stock: false,
+      limit: 10,
+      offset: 0,
+      order_by: 'name',
+      ascending: true,
     };
     expect(full.limit).toBe(10);
   });
@@ -547,7 +633,9 @@ describe('Edge Function Contract', () => {
     setupMockInvoke({ list_products: { data: [], meta: { total: 0 } } });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    act(() => { result.current.fetchProducts(); });
+    act(() => {
+      result.current.fetchProducts();
+    });
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith('promogifts-catalog', expect.any(Object));
@@ -558,48 +646,72 @@ describe('Edge Function Contract', () => {
     setupMockInvoke({ list_products: { data: [], meta: { total: 0 } } });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    act(() => { result.current.fetchProducts(); });
+    act(() => {
+      result.current.fetchProducts();
+    });
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalled();
     });
-    const productCall = mockInvoke.mock.calls.find((c: any) => c[1]?.body?.action === 'list_products');
+    const productCall = (mockInvoke.mock.calls as InvokeCall[]).find(
+      (c) => c[1]?.body?.action === 'list_products'
+    );
     expect(productCall).toBeTruthy();
-    expect(productCall[1].body.action).toBe('list_products');
+    expect(productCall![1].body.action).toBe('list_products');
   });
 
   it('sends get_product action for single product', async () => {
     setupMockInvoke({ get_product: { data: mockProduct() } });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    await act(async () => { await result.current.fetchProduct('p1'); });
+    await act(async () => {
+      await result.current.fetchProduct('p1');
+    });
 
-    const call = mockInvoke.mock.calls.find((c: any) => c[1]?.body?.action === 'get_product');
+    const call = (mockInvoke.mock.calls as InvokeCall[]).find(
+      (c) => c[1]?.body?.action === 'get_product'
+    );
     expect(call).toBeTruthy();
-    expect(call[1].body.action).toBe('get_product');
-    expect(call[1].body.params.product_id).toBe('p1');
+    expect(call![1].body.action).toBe('get_product');
+    expect(call![1].body.params?.product_id).toBe('p1');
   });
 
   it('sends list_categories action', async () => {
-    setupMockInvoke({ list_categories: { data: [] }, list_products: { data: [], meta: { total: 0 } }, list_suppliers: { data: [] } });
+    setupMockInvoke({
+      list_categories: { data: [] },
+      list_products: { data: [], meta: { total: 0 } },
+      list_suppliers: { data: [] },
+    });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    act(() => { result.current.fetchCategories(); });
+    act(() => {
+      result.current.fetchCategories();
+    });
 
     await waitFor(() => {
-      const catCall = mockInvoke.mock.calls.find((c: any) => c[1]?.body?.action === 'list_categories');
+      const catCall = (mockInvoke.mock.calls as InvokeCall[]).find(
+        (c) => c[1]?.body?.action === 'list_categories'
+      );
       expect(catCall).toBeTruthy();
     });
   });
 
   it('sends list_suppliers action', async () => {
-    setupMockInvoke({ list_suppliers: { data: [] }, list_products: { data: [], meta: { total: 0 } }, list_categories: { data: [] } });
+    setupMockInvoke({
+      list_suppliers: { data: [] },
+      list_products: { data: [], meta: { total: 0 } },
+      list_categories: { data: [] },
+    });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    act(() => { result.current.fetchSuppliers(); });
+    act(() => {
+      result.current.fetchSuppliers();
+    });
 
     await waitFor(() => {
-      const supCall = mockInvoke.mock.calls.find((c: any) => c[1]?.body?.action === 'list_suppliers');
+      const supCall = (mockInvoke.mock.calls as InvokeCall[]).find(
+        (c) => c[1]?.body?.action === 'list_suppliers'
+      );
       expect(supCall).toBeTruthy();
     });
   });
@@ -616,7 +728,9 @@ describe('Data Integrity', () => {
     });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    act(() => { result.current.fetchProducts(); });
+    act(() => {
+      result.current.fetchProducts();
+    });
 
     await waitFor(() => {
       expect(result.current.products).toHaveLength(1);
@@ -632,7 +746,9 @@ describe('Data Integrity', () => {
     });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    act(() => { result.current.fetchProducts(); });
+    act(() => {
+      result.current.fetchProducts();
+    });
 
     await waitFor(() => {
       expect(result.current.products).toHaveLength(1);
@@ -643,19 +759,34 @@ describe('Data Integrity', () => {
 
   it('handles product with all null optional fields', async () => {
     const bareProduct = mockProduct({
-      description: null, short_description: null, primary_image_url: null,
-      colors: null, brand: null, origin_country: null, min_quantity: null,
-      dimensions_display: null, weight_g: null, combined_sizes: null,
-      product_type: null, lead_time_days: null, supply_mode: null,
-      slug: null, capacity_ml: null, ncm_code: null,
-      categories: null, suppliers: null, suggested_price: null,
+      description: null,
+      short_description: null,
+      primary_image_url: null,
+      colors: null,
+      brand: null,
+      origin_country: null,
+      min_quantity: null,
+      dimensions_display: null,
+      weight_g: null,
+      combined_sizes: null,
+      product_type: null,
+      lead_time_days: null,
+      supply_mode: null,
+      slug: null,
+      capacity_ml: null,
+      ncm_code: null,
+      categories: null,
+      suppliers: null,
+      suggested_price: null,
     });
     setupMockInvoke({
       list_products: { data: [bareProduct], meta: { total: 1 } },
     });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    act(() => { result.current.fetchProducts(); });
+    act(() => {
+      result.current.fetchProducts();
+    });
 
     await waitFor(() => {
       expect(result.current.products).toHaveLength(1);
@@ -666,14 +797,21 @@ describe('Data Integrity', () => {
 
   it('preserves nested category structure', async () => {
     const product = mockProduct({
-      categories: { id: 'cat-child', name: 'Tábua | Plástico', slug: 'tabua-plastico', parent_id: 'cat-parent' },
+      categories: {
+        id: 'cat-child',
+        name: 'Tábua | Plástico',
+        slug: 'tabua-plastico',
+        parent_id: 'cat-parent',
+      },
     });
     setupMockInvoke({
       list_products: { data: [product], meta: { total: 1 } },
     });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    act(() => { result.current.fetchProducts(); });
+    act(() => {
+      result.current.fetchProducts();
+    });
 
     await waitFor(() => {
       expect(result.current.products).toHaveLength(1);
@@ -685,8 +823,17 @@ describe('Data Integrity', () => {
   it('preserves variant details', async () => {
     const product = mockProduct({
       variants: [
-        mockVariant({ color_hex: '#4169E1', stock_quantity: 29982, selected_thumbnail: 'https://img.com/1.jpg' }),
-        mockVariant({ id: 'var2', color_hex: '#EF941B', stock_quantity: 98963, color_name: 'Laranja' }),
+        mockVariant({
+          color_hex: '#4169E1',
+          stock_quantity: 29982,
+          selected_thumbnail: 'https://img.com/1.jpg',
+        }),
+        mockVariant({
+          id: 'var2',
+          color_hex: '#EF941B',
+          stock_quantity: 98963,
+          color_name: 'Laranja',
+        }),
       ],
     });
     setupMockInvoke({
@@ -694,14 +841,14 @@ describe('Data Integrity', () => {
     });
 
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
-    let fetched: any;
+    let fetched: ExternalProduct | undefined;
     await act(async () => {
       fetched = await result.current.fetchProduct('p1');
     });
 
-    expect(fetched.variants[0].color_hex).toBe('#4169E1');
-    expect(fetched.variants[1].color_name).toBe('Laranja');
-    expect(fetched.variants[0].stock_quantity).toBe(29982);
+    expect(fetched!.variants![0].color_hex).toBe('#4169E1');
+    expect(fetched!.variants![1].color_name).toBe('Laranja');
+    expect(fetched!.variants![0].stock_quantity).toBe(29982);
   });
 });
 
@@ -716,7 +863,8 @@ describe('Edge Cases & Boundaries', () => {
   });
 
   it('handles product with very long name', () => {
-    const longName = 'Kit churrasco em estojo de alumínio com luva de cozinha em poliéster e 6 utensílios em aço inox - Edição Premium Limitada';
+    const longName =
+      'Kit churrasco em estojo de alumínio com luva de cozinha em poliéster e 6 utensílios em aço inox - Edição Premium Limitada';
     const p = mockProduct({ name: longName });
     expect(p.name.length).toBeGreaterThan(100);
   });
@@ -748,9 +896,9 @@ describe('Edge Cases & Boundaries', () => {
       mockCategory({ id: 'mid', name: 'Garrafas', parent_id: 'root' }),
       mockCategory({ id: 'leaf', name: 'Garrafas Inox', parent_id: 'mid' }),
     ];
-    const roots = cats.filter(c => !c.parent_id);
-    const midLevel = cats.filter(c => c.parent_id === 'root');
-    const leaves = cats.filter(c => c.parent_id === 'mid');
+    const roots = cats.filter((c) => !c.parent_id);
+    const midLevel = cats.filter((c) => c.parent_id === 'root');
+    const leaves = cats.filter((c) => c.parent_id === 'mid');
     expect(roots).toHaveLength(1);
     expect(midLevel).toHaveLength(1);
     expect(leaves).toHaveLength(1);
@@ -797,11 +945,16 @@ describe('Edge Cases & Boundaries', () => {
       result.current.fetchProducts({ search: "caneta d'água & %" });
     });
 
-    await waitFor(() => {
-      const call = mockInvoke.mock.calls.find((c: any) => c[1]?.body?.action === 'list_products' && c[1]?.body?.params?.search);
-      expect(call).toBeTruthy();
-      expect(call[1].body.params.search).toBe("caneta d'água & %");
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        const call = (mockInvoke.mock.calls as InvokeCall[]).find(
+          (c) => c[1]?.body?.action === 'list_products' && c[1]?.body?.params?.search
+        );
+        expect(call).toBeTruthy();
+        expect(call![1].body.params?.search).toBe("caneta d'água & %");
+      },
+      { timeout: 5000 }
+    );
   });
 
   it('handles unicode characters in product data', () => {
@@ -894,8 +1047,7 @@ describe('Price Formatting (BRL)', () => {
 // WEIGHT FORMATTING
 // ═══════════════════════════════════════════════════════════════════
 describe('Weight Formatting', () => {
-  const fmtWeight = (g: number) =>
-    g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g} g`;
+  const fmtWeight = (g: number) => (g >= 1000 ? `${(g / 1000).toFixed(2)} kg` : `${g} g`);
 
   it('formats 12g correctly', () => {
     expect(fmtWeight(12)).toBe('12 g');
@@ -968,8 +1120,9 @@ describe('Filter Logic', () => {
       mockCategory({ id: 'c3', name: 'Canetas', parent_id: 'p2' }),
     ];
 
-    const parentCategories = categories.filter(c => !c.parent_id);
-    const getSubcategories = (parentId: string) => categories.filter(c => c.parent_id === parentId);
+    const parentCategories = categories.filter((c) => !c.parent_id);
+    const getSubcategories = (parentId: string) =>
+      categories.filter((c) => c.parent_id === parentId);
 
     expect(parentCategories).toHaveLength(2);
     expect(getSubcategories('p1')).toHaveLength(2);

@@ -67,7 +67,12 @@ export function MessageHoverToolbar({
   onMessageDeleted,
 }: MessageHoverToolbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { deleteMessage, markMessageAsRead, markMessageAsUnread, isLoading } = useEvolutionApi();
+  const {
+    deleteMessage,
+    markMessageAsRead,
+    markMessageAsUnread,
+    isLoading: _isLoading,
+  } = useEvolutionApi();
 
   const externalId = message.external_id;
 

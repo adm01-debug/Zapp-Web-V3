@@ -14,7 +14,10 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
   const runHealthCheck = useCallback(async () => {
     setRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('connection-health-check', { method: 'POST', body: {} });
+      const { data, error } = await supabase.functions.invoke('connection-health-check', {
+        method: 'POST',
+        body: {},
+      });
       if (error) throw error;
       toast.success(`Health check: ${data?.connections?.length || 0} conexões verificadas`);
       await fetchData();
@@ -45,16 +48,25 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
       });
       const latency = Math.round(performance.now() - start);
       if (invokeErr) throw invokeErr;
-      await new Promise(r => setTimeout(r, 1000));
-      const { data: msg , error: msgErr } = await supabase.from('messages').select('id').eq('external_id', testId).maybeSingle();
+      await new Promise((r) => setTimeout(r, 1000));
+      const { data: msg } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('external_id', testId)
+        .maybeSingle();
       if (msg) await supabase.from('messages').delete().eq('id', msg.id);
       setWebhookTest({
         status: msg ? 'success' : 'error',
-        message: msg ? `Webhook processou e persistiu em ${latency}ms` : 'Webhook respondeu OK mas mensagem não foi persistida',
+        message: msg
+          ? `Webhook processou e persistiu em ${latency}ms`
+          : 'Webhook respondeu OK mas mensagem não foi persistida',
         latencyMs: latency,
       });
     } catch (err) {
-      setWebhookTest({ status: 'error', message: err instanceof Error ? err.message : 'Erro desconhecido' });
+      setWebhookTest({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Erro desconhecido',
+      });
     }
   }, []);
 
@@ -77,63 +89,95 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
     }
   }, []);
 
-  const reconfigureWebhook = useCallback(async (instanceId: string) => {
-    setReconfiguring(true);
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const webhookUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
-      const { error } = await supabase.functions.invoke('evolution-api/set-webhook', {
-        method: 'POST',
-        body: {
-          instanceName: instanceId,
-          webhook: {
-            url: webhookUrl,
-            webhookByEvents: false,
-            webhookBase64: true,
-            events: [
-              'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'MESSAGES_DELETE', 'MESSAGES_SET',
-              'SEND_MESSAGE', 'CONTACTS_UPSERT', 'CONTACTS_UPDATE', 'CONTACTS_SET',
-              'PRESENCE_UPDATE', 'CHATS_UPSERT', 'CHATS_UPDATE', 'CHATS_DELETE', 'CHATS_SET',
-              'CONNECTION_UPDATE', 'LABELS_EDIT', 'LABELS_ASSOCIATION',
-              'GROUPS_UPSERT', 'GROUP_PARTICIPANTS_UPDATE', 'CALL', 'QRCODE_UPDATED',
-            ],
+  const reconfigureWebhook = useCallback(
+    async (instanceId: string) => {
+      setReconfiguring(true);
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const webhookUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
+        const { error } = await supabase.functions.invoke('evolution-api/set-webhook', {
+          method: 'POST',
+          body: {
+            instanceName: instanceId,
+            webhook: {
+              url: webhookUrl,
+              webhookByEvents: false,
+              webhookBase64: true,
+              events: [
+                'MESSAGES_UPSERT',
+                'MESSAGES_UPDATE',
+                'MESSAGES_DELETE',
+                'MESSAGES_SET',
+                'SEND_MESSAGE',
+                'CONTACTS_UPSERT',
+                'CONTACTS_UPDATE',
+                'CONTACTS_SET',
+                'PRESENCE_UPDATE',
+                'CHATS_UPSERT',
+                'CHATS_UPDATE',
+                'CHATS_DELETE',
+                'CHATS_SET',
+                'CONNECTION_UPDATE',
+                'LABELS_EDIT',
+                'LABELS_ASSOCIATION',
+                'GROUPS_UPSERT',
+                'GROUP_PARTICIPANTS_UPDATE',
+                'CALL',
+                'QRCODE_UPDATED',
+              ],
+            },
           },
-        },
-      });
-      if (error) throw error;
-      toast.success('Webhook reconfigurado com sucesso!');
-      await checkWebhookConfig(instanceId);
-    } catch (err) {
-      toast.error('Erro ao reconfigurar: ' + (err instanceof Error ? err.message : 'desconhecido'));
-    } finally {
-      setReconfiguring(false);
-    }
-  }, [checkWebhookConfig]);
-
-  const runDiagnostic = useCallback(async (autoFix = false) => {
-    setDiagnosing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('webhook-diagnostic', {
-        method: 'POST',
-        body: { action: autoFix ? 'auto-fix' : 'full-diagnostic' },
-      });
-      if (error) throw error;
-      setDiagnostic(data as DiagnosticResult);
-      if (autoFix) {
-        toast.success('Diagnóstico + auto-fix concluído!');
-        await fetchData();
-      } else {
-        toast.success('Diagnóstico concluído!');
+        });
+        if (error) throw error;
+        toast.success('Webhook reconfigurado com sucesso!');
+        await checkWebhookConfig(instanceId);
+      } catch (err) {
+        toast.error(
+          'Erro ao reconfigurar: ' + (err instanceof Error ? err.message : 'desconhecido')
+        );
+      } finally {
+        setReconfiguring(false);
       }
-    } catch {
-      toast.error('Erro no diagnóstico');
-    } finally {
-      setDiagnosing(false);
-    }
-  }, [fetchData]);
+    },
+    [checkWebhookConfig]
+  );
+
+  const runDiagnostic = useCallback(
+    async (autoFix = false) => {
+      setDiagnosing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('webhook-diagnostic', {
+          method: 'POST',
+          body: { action: autoFix ? 'auto-fix' : 'full-diagnostic' },
+        });
+        if (error) throw error;
+        setDiagnostic(data as DiagnosticResult);
+        if (autoFix) {
+          toast.success('Diagnóstico + auto-fix concluído!');
+          await fetchData();
+        } else {
+          toast.success('Diagnóstico concluído!');
+        }
+      } catch {
+        toast.error('Erro no diagnóstico');
+      } finally {
+        setDiagnosing(false);
+      }
+    },
+    [fetchData]
+  );
 
   return {
-    refreshing, webhookTest, webhookConfig, reconfiguring, diagnostic, diagnosing,
-    runHealthCheck, testWebhookDelivery, checkWebhookConfig, reconfigureWebhook, runDiagnostic,
+    refreshing,
+    webhookTest,
+    webhookConfig,
+    reconfiguring,
+    diagnostic,
+    diagnosing,
+    runHealthCheck,
+    testWebhookDelivery,
+    checkWebhookConfig,
+    reconfigureWebhook,
+    runDiagnostic,
   };
 }

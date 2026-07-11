@@ -7,7 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -22,11 +28,46 @@ interface RateLimitRule {
 }
 
 const DEFAULT_RULES: Omit<RateLimitRule, 'id'>[] = [
-  { name: 'Login', endpoint: '/auth/login', max_requests: 5, window_seconds: 300, is_active: true, action: 'block' },
-  { name: 'API Geral', endpoint: '/api/*', max_requests: 100, window_seconds: 60, is_active: true, action: 'throttle' },
-  { name: 'Mensagens', endpoint: '/messages/send', max_requests: 30, window_seconds: 60, is_active: true, action: 'throttle' },
-  { name: 'Webhooks', endpoint: '/webhooks/*', max_requests: 500, window_seconds: 60, is_active: true, action: 'alert' },
-  { name: 'Exportação', endpoint: '/export/*', max_requests: 5, window_seconds: 3600, is_active: true, action: 'block' },
+  {
+    name: 'Login',
+    endpoint: '/auth/login',
+    max_requests: 5,
+    window_seconds: 300,
+    is_active: true,
+    action: 'block',
+  },
+  {
+    name: 'API Geral',
+    endpoint: '/api/*',
+    max_requests: 100,
+    window_seconds: 60,
+    is_active: true,
+    action: 'throttle',
+  },
+  {
+    name: 'Mensagens',
+    endpoint: '/messages/send',
+    max_requests: 30,
+    window_seconds: 60,
+    is_active: true,
+    action: 'throttle',
+  },
+  {
+    name: 'Webhooks',
+    endpoint: '/webhooks/*',
+    max_requests: 500,
+    window_seconds: 60,
+    is_active: true,
+    action: 'alert',
+  },
+  {
+    name: 'Exportação',
+    endpoint: '/export/*',
+    max_requests: 5,
+    window_seconds: 3600,
+    is_active: true,
+    action: 'block',
+  },
 ];
 
 export function RateLimitConfigPanel() {
@@ -46,15 +87,17 @@ export function RateLimitConfigPanel() {
       .order('created_at', { ascending: true });
 
     if (!error && data && data.length > 0) {
-      setRules(data.map(r => ({
-        id: r.id,
-        name: r.name || r.endpoint_pattern,
-        endpoint: r.endpoint_pattern,
-        max_requests: r.max_requests,
-        window_seconds: r.window_seconds,
-        is_active: r.is_active ?? true,
-        action: 'block' as RateLimitRule['action'],
-      })));
+      setRules(
+        data.map((r) => ({
+          id: r.id,
+          name: r.name || r.endpoint_pattern,
+          endpoint: r.endpoint_pattern,
+          max_requests: r.max_requests,
+          window_seconds: r.window_seconds,
+          is_active: r.is_active ?? true,
+          action: 'block' as RateLimitRule['action'],
+        }))
+      );
     } else {
       // Initialize with defaults
       setRules(DEFAULT_RULES.map((r, i) => ({ ...r, id: `temp-${i}` })));
@@ -63,33 +106,39 @@ export function RateLimitConfigPanel() {
   };
 
   const updateRule = (id: string, updates: Partial<RateLimitRule>) => {
-    setRules(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    setRules((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));
   };
 
   const addRule = () => {
-    setRules(prev => [...prev, {
-      id: `temp-${Date.now()}`,
-      name: 'Nova Regra',
-      endpoint: '/api/custom',
-      max_requests: 60,
-      window_seconds: 60,
-      is_active: true,
-      action: 'throttle',
-    }]);
+    setRules((prev) => [
+      ...prev,
+      {
+        id: `temp-${Date.now()}`,
+        name: 'Nova Regra',
+        endpoint: '/api/custom',
+        max_requests: 60,
+        window_seconds: 60,
+        is_active: true,
+        action: 'throttle',
+      },
+    ]);
   };
 
   const removeRule = (id: string) => {
-    setRules(prev => prev.filter(r => r.id !== id));
+    setRules((prev) => prev.filter((r) => r.id !== id));
   };
 
   const saveRules = async () => {
     setSaving(true);
     try {
       // Delete existing rules
-      await supabase.from('rate_limit_configs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase
+        .from('rate_limit_configs')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       // Insert updated rules
-      const toInsert = rules.map(r => ({
+      const toInsert = rules.map((r) => ({
         name: r.name,
         endpoint_pattern: r.endpoint,
         max_requests: r.max_requests,
@@ -102,7 +151,7 @@ export function RateLimitConfigPanel() {
 
       toast.success('Regras de rate limit salvas!');
       await fetchRules();
-    } catch (err) {
+    } catch {
       toast.error('Erro ao salvar regras');
     } finally {
       setSaving(false);
@@ -111,10 +160,14 @@ export function RateLimitConfigPanel() {
 
   const getActionBadge = (action: string) => {
     switch (action) {
-      case 'block': return <Badge variant="destructive">Bloquear</Badge>;
-      case 'throttle': return <Badge className="bg-warning/10 text-warning border-warning/30">Limitar</Badge>;
-      case 'alert': return <Badge variant="outline">Alertar</Badge>;
-      default: return null;
+      case 'block':
+        return <Badge variant="destructive">Bloquear</Badge>;
+      case 'throttle':
+        return <Badge className="border-warning/30 bg-warning/10 text-warning">Limitar</Badge>;
+      case 'alert':
+        return <Badge variant="outline">Alertar</Badge>;
+      default:
+        return null;
     }
   };
 
@@ -122,7 +175,7 @@ export function RateLimitConfigPanel() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -134,20 +187,22 @@ export function RateLimitConfigPanel() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
+              <Shield className="h-5 w-5 text-primary" />
               Rate Limiting Granular
             </CardTitle>
-            <CardDescription>
-              Configure limites de requisições por endpoint
-            </CardDescription>
+            <CardDescription>Configure limites de requisições por endpoint</CardDescription>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={addRule}>
-              <Plus className="w-4 h-4 mr-1" />
+              <Plus className="mr-1 h-4 w-4" />
               Regra
             </Button>
             <Button size="sm" onClick={saveRules} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+              {saving ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-1 h-4 w-4" />
+              )}
               Salvar
             </Button>
           </div>
@@ -162,7 +217,7 @@ export function RateLimitConfigPanel() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="border rounded-lg p-4 space-y-3"
+              className="space-y-3 rounded-lg border p-4"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -174,25 +229,25 @@ export function RateLimitConfigPanel() {
                     <Input
                       value={rule.name}
                       onChange={(e) => updateRule(rule.id, { name: e.target.value })}
-                      className="h-7 text-sm font-medium border-none bg-transparent p-0"
+                      className="h-7 border-none bg-transparent p-0 text-sm font-medium"
                     />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {getActionBadge(rule.action)}
                   <Button variant="ghost" size="icon" onClick={() => removeRule(rule.id)}>
-                    <Trash2 className="w-4 h-4 text-destructive" />
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Endpoint</Label>
                   <Input
                     value={rule.endpoint}
                     onChange={(e) => updateRule(rule.id, { endpoint: e.target.value })}
-                    className="h-8 text-xs "
+                    className="h-8 text-xs"
                   />
                 </div>
                 <div>
@@ -200,7 +255,9 @@ export function RateLimitConfigPanel() {
                   <Input
                     type="number"
                     value={rule.max_requests}
-                    onChange={(e) => updateRule(rule.id, { max_requests: parseInt(e.target.value) || 1 })}
+                    onChange={(e) =>
+                      updateRule(rule.id, { max_requests: parseInt(e.target.value) || 1 })
+                    }
                     className="h-8 text-xs"
                   />
                 </div>
@@ -209,7 +266,9 @@ export function RateLimitConfigPanel() {
                   <Input
                     type="number"
                     value={rule.window_seconds}
-                    onChange={(e) => updateRule(rule.id, { window_seconds: parseInt(e.target.value) || 60 })}
+                    onChange={(e) =>
+                      updateRule(rule.id, { window_seconds: parseInt(e.target.value) || 60 })
+                    }
                     className="h-8 text-xs"
                   />
                 </div>
@@ -217,7 +276,9 @@ export function RateLimitConfigPanel() {
                   <Label className="text-xs text-muted-foreground">Ação</Label>
                   <Select
                     value={rule.action}
-                    onValueChange={(v) => updateRule(rule.id, { action: v as RateLimitRule['action'] })}
+                    onValueChange={(v) =>
+                      updateRule(rule.id, { action: v as RateLimitRule['action'] })
+                    }
                   >
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
@@ -233,7 +294,7 @@ export function RateLimitConfigPanel() {
 
               {!rule.is_active && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <AlertTriangle className="w-3 h-3" />
+                  <AlertTriangle className="h-3 w-3" />
                   Regra desativada
                 </div>
               )}

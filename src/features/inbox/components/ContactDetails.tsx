@@ -20,14 +20,29 @@ function getStoredAccordionState(): string[] {
   try {
     const stored = localStorage.getItem(ACCORDION_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
-  } catch { /* storage unavailable */ }
-  return ['info', 'crm-360', 'intelligence', 'tags', 'assignment', 'custom-fields', 'notes', 'history', 'sla-timeline', 'stats'];
+  } catch {
+    /* storage unavailable */
+  }
+  return [
+    'info',
+    'crm-360',
+    'intelligence',
+    'tags',
+    'assignment',
+    'custom-fields',
+    'notes',
+    'history',
+    'sla-timeline',
+    'stats',
+  ];
 }
 
 function saveAccordionState(value: string[]) {
   try {
     localStorage.setItem(ACCORDION_STORAGE_KEY, JSON.stringify(value));
-  } catch { /* storage unavailable */ }
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 interface ContactDetailsProps {
@@ -42,7 +57,7 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
   const { profileId } = useConversationActions();
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [showCompactHeader, setShowCompactHeader] = useState(false);
+  const [_showCompactHeader, setShowCompactHeader] = useState(false);
   const [accordionValue, setAccordionValue] = useState<string[]>(getStoredAccordionState);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -57,8 +72,12 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        e.preventDefault(); onClose();
+      if (
+        e.key === 'Escape' &&
+        !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)
+      ) {
+        e.preventDefault();
+        onClose();
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'n' && panelRef.current) {
         e.preventDefault();
@@ -66,7 +85,8 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
         toast.info('📝 Notas Privadas');
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 't' && panelRef.current) {
-        e.preventDefault(); toast.info('🏷️ Seção de Tags');
+        e.preventDefault();
+        toast.info('🏷️ Seção de Tags');
       }
     };
     window.addEventListener('keydown', handler);
@@ -75,26 +95,34 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
 
   const handleQuickAction = (action: string) => {
     switch (action) {
-      case 'edit': setEditDialogOpen(true); break;
+      case 'edit':
+        setEditDialogOpen(true);
+        break;
       case 'vip':
         undoToast({
           message: `${contact.name} marcado como VIP`,
           icon: '⭐',
-          onUndo: () => { toast.info('VIP removido'); },
+          onUndo: () => {
+            toast.info('VIP removido');
+          },
         });
         break;
       case 'archive':
         undoToast({
           message: `${contact.name} arquivado`,
           icon: '📦',
-          onUndo: () => { toast.info('Contato restaurado'); },
+          onUndo: () => {
+            toast.info('Contato restaurado');
+          },
         });
         break;
       case 'block':
         undoToast({
           message: `${contact.name} bloqueado`,
           icon: '🚫',
-          onUndo: () => { toast.info('Contato desbloqueado'); },
+          onUndo: () => {
+            toast.info('Contato desbloqueado');
+          },
         });
         break;
     }
@@ -102,37 +130,70 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
 
   return (
     <motion.div
-      initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }} ref={panelRef} role="complementary" aria-label="Detalhes do contato"
-      data-contact-details data-contact-id={contact.id}
+      initial={{ x: 100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 100, opacity: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      ref={panelRef}
+      role="complementary"
+      aria-label="Detalhes do contato"
+      data-contact-details
+      data-contact-id={contact.id}
       tabIndex={-1}
-      className="w-80 h-full min-h-0 shrink-0 bg-background dark:bg-background border-l border-border/40 flex flex-col overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/20 "
+      className="flex h-full min-h-0 w-80 shrink-0 flex-col overflow-hidden border-l border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 dark:bg-background"
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-card/30 backdrop-blur-md shrink-0">
+      <div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-card/30 px-5 py-4 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
-          <div className="w-1.5 h-5 rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.3)]" />
-          <h3 className="font-semibold text-foreground text-[15px] tracking-tight">Detalhes do Contato</h3>
+          <div className="h-5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.3)]" />
+          <h3 className="text-[15px] font-semibold tracking-tight text-foreground">
+            Detalhes do Contato
+          </h3>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar painel de detalhes" className="w-7 h-7 hover:bg-destructive/10 hover:text-destructive transition-colors">
-          <X className="w-3.5 h-3.5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          aria-label="Fechar painel de detalhes"
+          className="h-7 w-7 transition-colors hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="h-3.5 w-3.5" />
         </Button>
       </div>
 
       <div className="shrink-0">
         <ContactHeaderSection
-          contact={contact} enrichedData={enrichedData} conversation={conversation}
-          onQuickAction={handleQuickAction} hasExpandedSections={accordionValue.length > 0}
-          onCollapseAll={() => { setAccordionValue([]); saveAccordionState([]); }}
+          contact={contact}
+          enrichedData={enrichedData}
+          conversation={conversation}
+          onQuickAction={handleQuickAction}
+          hasExpandedSections={accordionValue.length > 0}
+          onCollapseAll={() => {
+            setAccordionValue([]);
+            saveAccordionState([]);
+          }}
         />
       </div>
 
-      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 min-h-0 overflow-y-auto scrollbar-thin bg-background/50">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="scrollbar-thin min-h-0 flex-1 overflow-y-auto bg-background/50"
+      >
         <AnalysisBadges contactId={contact.id} className="px-4 pb-2 pt-2" />
 
-        <Accordion type="multiple" value={accordionValue} onValueChange={handleAccordionChange} className="w-full">
+        <Accordion
+          type="multiple"
+          value={accordionValue}
+          onValueChange={handleAccordionChange}
+          className="w-full"
+        >
           <ContactAccordionSections
-            contact={contact} conversation={conversation} enrichedData={enrichedData}
-            aiTags={aiTags} slaInfo={slaInfo} profileId={profileId}
+            contact={contact}
+            conversation={conversation}
+            enrichedData={enrichedData}
+            aiTags={aiTags}
+            slaInfo={slaInfo}
+            profileId={profileId}
           />
         </Accordion>
 
@@ -141,16 +202,23 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
         </div>
       </div>
 
-
       <EditContactDialog
-        open={editDialogOpen} onOpenChange={setEditDialogOpen}
-        contact={{
-          id: contact.id, name: contact.name, phone: contact.phone,
-          email: contact.email, nickname: enrichedData?.nickname ?? undefined,
-          surname: enrichedData?.surname ?? undefined, job_title: enrichedData?.job_title ?? undefined,
-          company: enrichedData?.company ?? undefined, contact_type: enrichedData?.contact_type,
-          avatar: (contact as any).avatar,
-        } as any}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        contact={
+          {
+            id: contact.id,
+            name: contact.name,
+            phone: contact.phone,
+            email: contact.email,
+            nickname: enrichedData?.nickname ?? undefined,
+            surname: enrichedData?.surname ?? undefined,
+            job_title: enrichedData?.job_title ?? undefined,
+            company: enrichedData?.company ?? undefined,
+            contact_type: enrichedData?.contact_type,
+            avatar: (contact as any).avatar,
+          } as any
+        }
       />
     </motion.div>
   );

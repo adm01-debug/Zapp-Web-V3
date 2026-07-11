@@ -278,7 +278,7 @@ export function ContactHeaderSection({
           hasExpandedSections={hasExpandedSections}
           onCollapseAll={onCollapseAll}
           onQuickAction={onQuickAction}
-          onStartCall={(type) => setShowCallDialog(true)}
+          onStartCall={(_type) => setShowCallDialog(true)}
         />
       </motion.div>
 

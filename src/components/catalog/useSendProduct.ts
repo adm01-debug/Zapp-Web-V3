@@ -27,7 +27,7 @@ export function useContactSearch(step: 'configure' | 'selectContact') {
     }
     const timeout = setTimeout(async () => {
       setSearchingContacts(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
         .or(`name.ilike.%${contactSearch}%,phone.ilike.%${contactSearch}%`)
@@ -57,9 +57,12 @@ export function useContactSearch(step: 'configure' | 'selectContact') {
   }, []);
 
   return {
-    contactSearch, setContactSearch,
-    contactResults, searchingContacts,
-    selectedContact, setSelectedContact,
+    contactSearch,
+    setContactSearch,
+    contactResults,
+    searchingContacts,
+    selectedContact,
+    setSelectedContact,
     resetContactSelection,
   };
 }
@@ -67,84 +70,91 @@ export function useContactSearch(step: 'configure' | 'selectContact') {
 export function useSendToContact(onSuccess: () => void) {
   const [isSending, setIsSending] = useState(false);
 
-  const sendProductToContact = useCallback(async (
-    contact: ContactResult,
-    message: string,
-    imageUrls: string[],
-  ) => {
-    setIsSending(true);
-    try {
-      const { data: connections , error: connectionsErr } = await supabase
-        .from('whatsapp_connections')
-        .select('id, name')
-        .eq('status', 'connected')
-        .limit(1);
+  const sendProductToContact = useCallback(
+    async (contact: ContactResult, message: string, imageUrls: string[]) => {
+      setIsSending(true);
+      try {
+        const { data: connections } = await supabase
+          .from('whatsapp_connections')
+          .select('id, name')
+          .eq('status', 'connected')
+          .limit(1);
 
-      const connection = connections?.[0];
+        const connection = connections?.[0];
 
-      for (const imgUrl of imageUrls) {
-        const { data: dbResult } = await supabase.from('messages').insert({
-          contact_id: contact.id,
-          content: imgUrl,
-          sender: 'agent',
-          message_type: 'image',
-          status: 'sending',
-          whatsapp_connection_id: connection?.id || null,
-        }).select('id').single();
+        for (const imgUrl of imageUrls) {
+          const { data: dbResult } = await supabase
+            .from('messages')
+            .insert({
+              contact_id: contact.id,
+              content: imgUrl,
+              sender: 'agent',
+              message_type: 'image',
+              status: 'sending',
+              whatsapp_connection_id: connection?.id || null,
+            })
+            .select('id')
+            .single();
 
-        const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
+          const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
+            body: {
+              action: 'send-media',
+              instanceName: connection?.name || 'wpp2',
+              number: contact.phone,
+              mediatype: 'image',
+              media: imgUrl,
+              caption: '',
+            },
+          });
+
+          const externalId = extractEvolutionMessageId(apiResult);
+          if (dbResult?.id && externalId) {
+            await dbFrom('messages')
+              .update({ external_id: externalId, status: 'sent' })
+              .eq('id', dbResult.id);
+          }
+        }
+
+        const { data: textDbResult } = await supabase
+          .from('messages')
+          .insert({
+            contact_id: contact.id,
+            content: message,
+            sender: 'agent',
+            message_type: 'text',
+            status: 'sending',
+            whatsapp_connection_id: connection?.id || null,
+          })
+          .select('id')
+          .single();
+
+        const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
           body: {
-            action: 'send-media',
+            action: 'send-text',
             instanceName: connection?.name || 'wpp2',
             number: contact.phone,
-            mediatype: 'image',
-            media: imgUrl,
-            caption: '',
-          }
+            text: message,
+          },
         });
 
-        const externalId = extractEvolutionMessageId(apiResult);
-        if (dbResult?.id && externalId) {
+        const textExternalId = extractEvolutionMessageId(textApiResult);
+        if (textDbResult?.id && textExternalId) {
           await dbFrom('messages')
-            .update({ external_id: externalId, status: 'sent' })
-            .eq('id', dbResult.id);
+            .update({ external_id: textExternalId, status: 'sent' })
+            .eq('id', textDbResult.id);
         }
+
+        toast({ title: '✅ Produto enviado!', description: `Enviado para ${contact.name}` });
+        onSuccess();
+      } catch (err) {
+        log.error('Error sending product:', err);
+        toast({ title: 'Erro ao enviar produto', variant: 'destructive' });
+      } finally {
+        setIsSending(false);
       }
-
-      const { data: textDbResult } = await supabase.from('messages').insert({
-        contact_id: contact.id,
-        content: message,
-        sender: 'agent',
-        message_type: 'text',
-        status: 'sending',
-        whatsapp_connection_id: connection?.id || null,
-      }).select('id').single();
-
-      const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
-        body: {
-          action: 'send-text',
-          instanceName: connection?.name || 'wpp2',
-          number: contact.phone,
-          text: message,
-        }
-      });
-
-      const textExternalId = extractEvolutionMessageId(textApiResult);
-      if (textDbResult?.id && textExternalId) {
-        await dbFrom('messages')
-          .update({ external_id: textExternalId, status: 'sent' })
-          .eq('id', textDbResult.id);
-      }
-
-      toast({ title: '✅ Produto enviado!', description: `Enviado para ${contact.name}` });
-      onSuccess();
-    } catch (err) {
-      log.error('Error sending product:', err);
-      toast({ title: 'Erro ao enviar produto', variant: 'destructive' });
-    } finally {
-      setIsSending(false);
-    }
-  }, [onSuccess]);
+    },
+    [onSuccess]
+  );
 
   return { isSending, sendProductToContact };
 }

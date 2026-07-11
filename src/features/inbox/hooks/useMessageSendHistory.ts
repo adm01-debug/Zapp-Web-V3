@@ -54,7 +54,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
 
       // Se for um ID otimista (FATOR X), não temos métricas persistidas ainda.
       // Tentamos extrair o ID real se disponível.
-      const isOptimistic = messageId.startsWith('optimistic:');
+      const _isOptimistic = messageId.startsWith('optimistic:');
 
       const idempotencyKey = `msg:${messageId}`;
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
@@ -77,7 +77,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .select('*')
           .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
           .order('created_at', { ascending: false })
-          .limit(10)
+          .limit(10),
       ]);
 
       const auditEntries = (auditRes.data ?? []).map((e) => ({
@@ -97,7 +97,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           latency: e.latency_ms,
           instance: e.instance_name,
           error_code: e.error_code,
-          ...(typeof e.metadata === 'object' && e.metadata !== null ? e.metadata : {})
+          ...(typeof e.metadata === 'object' && e.metadata !== null ? e.metadata : {}),
         },
       }));
 

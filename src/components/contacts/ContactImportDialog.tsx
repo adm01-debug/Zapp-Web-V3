@@ -5,14 +5,24 @@
  */
 import React, { useState, useRef, useCallback } from 'react';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-  DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Upload, FileText, CheckCircle2, XCircle, AlertTriangle, Loader2, Download,
+  Upload,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Loader2,
+  Download,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,18 +31,18 @@ import { parseCsvFile, downloadCsv } from '@/lib/csvUtils';
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface ImportResult {
-  total:       number;
-  inserted:    number;
-  updated:     number;
-  skipped:     number;
-  errors:      Array<{ row: number; reason: string }>;
+  total: number;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  errors: Array<{ row: number; reason: string }>;
   duration_ms: number;
 }
 
 interface ContactImportDialogProps {
-  open:             boolean;
-  onOpenChange:     (v: boolean) => void;
-  workspaceId:      string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  workspaceId: string;
   onImportComplete: () => void;
 }
 
@@ -40,8 +50,14 @@ interface ContactImportDialogProps {
 
 const EXPECTED_COLUMNS = ['name', 'phone', 'email', 'company', 'tags', 'notes'];
 const COLUMN_ALIASES: Record<string, string> = {
-  nome: 'name', telefone: 'phone', celular: 'phone', 'e-mail': 'email',
-  empresa: 'company', etiquetas: 'tags', notas: 'notes', observacoes: 'notes',
+  nome: 'name',
+  telefone: 'phone',
+  celular: 'phone',
+  'e-mail': 'email',
+  empresa: 'company',
+  etiquetas: 'tags',
+  notas: 'notes',
+  observacoes: 'notes',
 };
 
 function mapHeader(header: string): string {
@@ -54,7 +70,9 @@ function parseRows(rawRows: string[][]): Array<Record<string, string>> {
   const headers = rawRows[0].map(mapHeader);
   return rawRows.slice(1).map((row) => {
     const obj: Record<string, string> = {};
-    headers.forEach((h, i) => { if (h) obj[h] = row[i] ?? ''; });
+    headers.forEach((h, i) => {
+      if (h) obj[h] = row[i] ?? '';
+    });
     return obj;
   });
 }
@@ -62,20 +80,25 @@ function parseRows(rawRows: string[][]): Array<Record<string, string>> {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export const ContactImportDialog: React.FC<ContactImportDialogProps> = ({
-  open, onOpenChange, workspaceId, onImportComplete,
+  open,
+  onOpenChange,
+  workspaceId: _workspaceId,
+  onImportComplete,
 }) => {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [file,      setFile]      = useState<File | null>(null);
-  const [preview,   setPreview]   = useState<Array<Record<string, string>>>([]);
-  const [loading,   setLoading]   = useState(false);
-  const [progress,  setProgress]  = useState(0);
-  const [result,    setResult]    = useState<ImportResult | null>(null);
-  const [error,     setError]     = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<Array<Record<string, string>>>([]);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileSelect = useCallback(async (f: File) => {
-    setFile(f); setResult(null); setError(null);
+    setFile(f);
+    setResult(null);
+    setError(null);
     try {
       const rawRows = await parseCsvFile(f);
       const rows = parseRows(rawRows);
@@ -85,28 +108,36 @@ export const ContactImportDialog: React.FC<ContactImportDialogProps> = ({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const dropped = e.dataTransfer.files[0];
-    if (dropped?.name.endsWith('.csv') || dropped?.type === 'text/csv') {
-      handleFileSelect(dropped);
-    }
-  }, [handleFileSelect]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const dropped = e.dataTransfer.files[0];
+      if (dropped?.name.endsWith('.csv') || dropped?.type === 'text/csv') {
+        handleFileSelect(dropped);
+      }
+    },
+    [handleFileSelect]
+  );
 
   const handleImport = async () => {
     if (!file) return;
-    setLoading(true); setProgress(10); setResult(null); setError(null);
+    setLoading(true);
+    setProgress(10);
+    setResult(null);
+    setError(null);
 
     try {
       const rawRows = await parseCsvFile(file);
-      const rows    = parseRows(rawRows);
+      const rows = parseRows(rawRows);
 
       if (rows.length === 0) {
         setError('Nenhuma linha válida encontrada no CSV.');
         return;
       }
       if (rows.length > 50_000) {
-        setError(`Máximo 50.000 contatos por importação. Este arquivo tem ${rows.length.toLocaleString('pt-BR')}.`);
+        setError(
+          `Máximo 50.000 contatos por importação. Este arquivo tem ${rows.length.toLocaleString('pt-BR')}.`
+        );
         return;
       }
 
@@ -131,7 +162,10 @@ export const ContactImportDialog: React.FC<ContactImportDialogProps> = ({
       });
 
       if (res.inserted > 0 || res.updated > 0) {
-        setTimeout(() => { onImportComplete(); onOpenChange(false); }, 2_000);
+        setTimeout(() => {
+          onImportComplete();
+          onOpenChange(false);
+        }, 2_000);
       }
     } catch (err) {
       setError(`Erro na importação: ${String(err)}`);
@@ -150,12 +184,22 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
   };
 
   const reset = () => {
-    setFile(null); setPreview([]); setResult(null); setError(null); setProgress(0);
+    setFile(null);
+    setPreview([]);
+    setResult(null);
+    setError(null);
+    setProgress(0);
     if (fileRef.current) fileRef.current.value = '';
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) reset();
+        onOpenChange(v);
+      }}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -175,11 +219,13 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => fileRef.current?.click()}
-              className="border-2 border-dashed border-muted rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+              className="cursor-pointer rounded-lg border-2 border-dashed border-muted p-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5"
             >
-              <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="font-medium text-sm">Arraste um arquivo CSV ou clique para selecionar</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="text-sm font-medium">
+                Arraste um arquivo CSV ou clique para selecionar
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Colunas: nome, telefone, email, empresa, tags, notas
               </p>
               <input
@@ -195,16 +241,20 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
           {/* File selected */}
           {file && !result && (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/20">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{file.name}</p>
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/20 p-3">
+                <FileText className="h-5 w-5 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{file.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {(file.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
                 {!loading && (
-                  <button type="button" onClick={reset} className="text-muted-foreground hover:text-foreground text-xs">
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
                     Trocar
                   </button>
                 )}
@@ -212,16 +262,21 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
 
               {/* Preview */}
               {preview.length > 0 && (
-                <div className="rounded-md border overflow-hidden">
-                  <div className="text-xs font-medium p-2 bg-muted/30 border-b">
+                <div className="overflow-hidden rounded-md border">
+                  <div className="border-b bg-muted/30 p-2 text-xs font-medium">
                     Prévia (primeiras {preview.length} linhas)
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="text-xs w-full">
+                    <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b">
                           {EXPECTED_COLUMNS.map((c) => (
-                            <th key={c} className="px-2 py-1 text-left text-muted-foreground font-medium">{c}</th>
+                            <th
+                              key={c}
+                              className="px-2 py-1 text-left font-medium text-muted-foreground"
+                            >
+                              {c}
+                            </th>
                           ))}
                         </tr>
                       </thead>
@@ -229,7 +284,9 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
                         {preview.map((row, i) => (
                           <tr key={i} className="border-b last:border-0">
                             {EXPECTED_COLUMNS.map((c) => (
-                              <td key={c} className="px-2 py-1 truncate max-w-[120px]">{row[c] ?? ''}</td>
+                              <td key={c} className="max-w-[120px] truncate px-2 py-1">
+                                {row[c] ?? ''}
+                              </td>
                             ))}
                           </tr>
                         ))}
@@ -262,10 +319,10 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
 
           {/* Result */}
           {result && (
-            <div className="rounded-lg border p-4 space-y-3">
+            <div className="space-y-3 rounded-lg border p-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-sm">Importação concluída!</span>
+                <span className="text-sm font-semibold">Importação concluída!</span>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[
@@ -281,11 +338,12 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
               </div>
               {result.errors.length > 0 && (
                 <details className="text-xs">
-                  <summary className="cursor-pointer flex items-center gap-1 text-warning-foreground">
+                  <summary className="flex cursor-pointer items-center gap-1 text-warning-foreground">
                     <AlertTriangle className="h-3 w-3" />
-                    {result.errors.length} erro{result.errors.length !== 1 ? 's' : ''} (clique para ver)
+                    {result.errors.length} erro{result.errors.length !== 1 ? 's' : ''} (clique para
+                    ver)
                   </summary>
-                  <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                  <div className="mt-2 max-h-32 space-y-1 overflow-y-auto">
                     {result.errors.slice(0, 20).map((e) => (
                       <div key={e.row} className="text-muted-foreground">
                         Linha {e.row}: {e.reason}
@@ -302,7 +360,7 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="ghost" size="sm" onClick={downloadTemplate} className="gap-1 mr-auto">
+          <Button variant="ghost" size="sm" onClick={downloadTemplate} className="mr-auto gap-1">
             <Download className="h-3.5 w-3.5" />
             Baixar template
           </Button>
@@ -311,7 +369,11 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
           </Button>
           {!result && (
             <Button onClick={handleImport} disabled={!file || loading} className="gap-2">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
               {loading ? 'Importando...' : 'Importar'}
             </Button>
           )}

@@ -65,8 +65,8 @@ export function useFileUploadLogic(opts: {
   const [isMultiMode, setIsMultiMode] = useState(false);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStage, setUploadStage] = useState<'uploading' | 'sending' | null>(null);
+  const [uploadProgress, _setUploadProgress] = useState(0);
+  const [uploadStage, _setUploadStage] = useState<'uploading' | 'sending' | null>(null);
   const [currentQueueIndex, setCurrentQueueIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

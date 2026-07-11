@@ -238,9 +238,17 @@ describe('AutoTicketClassifier', () => {
       expect(name).toBe('Desconhecido');
     });
 
-    it('handles zero confidence', () => {
-      const confidence = 0.7 * 100;
+    it('falls back to 70% when confidence is zero', () => {
+      // Mirrors production: ((tag.confidence as number) || 0.7) * 100
+      const rawConfidence = 0;
+      const confidence = (rawConfidence || 0.7) * 100;
       expect(confidence).toBe(70);
+    });
+
+    it('does not apply fallback when confidence is non-zero', () => {
+      const rawConfidence = 0.5;
+      const confidence = (rawConfidence || 0.7) * 100;
+      expect(confidence).toBe(50);
     });
 
     it('handles empty tags list', async () => {

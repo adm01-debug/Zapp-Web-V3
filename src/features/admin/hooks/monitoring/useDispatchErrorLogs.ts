@@ -28,7 +28,7 @@ export interface DispatchErrorLogFilters {
   pageSize?: number;
 }
 
-interface RpcRow extends DispatchErrorLogRow {
+interface _RpcRow extends DispatchErrorLogRow {
   total_count: number | string;
 }
 
@@ -52,7 +52,10 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
   const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
   return useQuery<{ rows: DispatchErrorLogRow[]; total: number }>({
-    queryKey: ['dispatch-error-logs', { hours, instance, agent, errorCode, search, page, pageSize }],
+    queryKey: [
+      'dispatch-error-logs',
+      { hours, instance, agent, errorCode, search, page, pageSize },
+    ],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs', {
         p_from: fromIso,
@@ -66,7 +69,9 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
       if (error) throw error;
       const list = (data ?? []) as any[];
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
-      const rows: DispatchErrorLogRow[] = list.map(({ total_count: _t, ...rest }) => rest as DispatchErrorLogRow);
+      const rows: DispatchErrorLogRow[] = list.map(
+        ({ total_count: _t, ...rest }) => rest as DispatchErrorLogRow
+      );
       return { rows, total };
     },
     staleTime: 30_000,

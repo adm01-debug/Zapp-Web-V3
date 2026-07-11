@@ -50,7 +50,7 @@ import {
 import { useContactAvatar } from '@/features/inbox';
 import { useDensity } from '@/hooks/useDensity';
 
-const contactTypeConfig: Record<string, { label: string; icon: typeof Users; color: string }> = {
+const _contactTypeConfig: Record<string, { label: string; icon: typeof Users; color: string }> = {
   cliente: { label: 'Cliente', icon: Users, color: 'bg-info/10 text-info border-info/30' },
   colaborador: {
     label: 'Colaborador',
@@ -103,7 +103,7 @@ interface ChatHeaderProps {
 
 export const ChatHeader = memo(function ChatHeader({
   conversation,
-  messages,
+  messages: _messages,
   isContactTyping,
   showAIAssistant,
   showDetails,
@@ -128,14 +128,14 @@ export const ChatHeader = memo(function ChatHeader({
   const { data: crmData } = useExternalContact360(
     isExternalConfigured ? conversation.contact.phone : undefined
   );
-  const crmCompany = crmData?.found ? crmData.company : null;
-  const crmCustomer = crmData?.found ? crmData.customer : null;
-  const crmRfm = crmData?.found ? crmData.rfm : null;
+  const _crmCompany = crmData?.found ? crmData.company : null;
+  const _crmCustomer = crmData?.found ? crmData.customer : null;
+  const _crmRfm = crmData?.found ? crmData.rfm : null;
 
   const { data: intel } = useContactIntelligence(
     isExternalConfigured ? conversation.contact.phone : undefined
   );
-  const briefing = intel?.found ? intel.briefing : null;
+  const _briefing = intel?.found ? intel.briefing : null;
   const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();
 

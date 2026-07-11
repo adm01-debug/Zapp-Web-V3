@@ -1,13 +1,18 @@
-import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
 import { invokeEvolutionWithRetry } from '@/lib/evolutionSendRetry';
-import { buildSendIdempotencyKey, buildSendIdempotencyKeyFromFingerprint } from '@/lib/sendIdempotency';
+import {
+  buildSendIdempotencyKey,
+  buildSendIdempotencyKeyFromFingerprint,
+} from '@/lib/sendIdempotency';
 import { toast } from '@/hooks/use-toast';
 import { emitSendStatus } from './sendStatusBus';
 import { dbFrom } from '@/integrations/datasource/db';
-import { getWhatsappConnectionById, getFirstConnectedWhatsapp } from '@/lib/whatsappConnectionsCache';
+import {
+  getWhatsappConnectionById,
+  getFirstConnectedWhatsapp,
+} from '@/lib/whatsappConnectionsCache';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 const MAX_RETRIES = 3;
@@ -18,8 +23,14 @@ function classifyAuthError(err: unknown): { isAuth: boolean; code?: number; reas
   const anyErr = err as { status?: number; message?: string; error?: { message?: string } };
   const status = anyErr.status;
   const msg = (anyErr.message || anyErr.error?.message || '').toLowerCase();
-  if (status === 401 || status === 403) return { isAuth: true, code: status, reason: anyErr.message };
-  if (msg.includes('unauthorized') || msg.includes('forbidden') || msg.includes('invalid token') || msg.includes('invalid api key')) {
+  if (status === 401 || status === 403)
+    return { isAuth: true, code: status, reason: anyErr.message };
+  if (
+    msg.includes('unauthorized') ||
+    msg.includes('forbidden') ||
+    msg.includes('invalid token') ||
+    msg.includes('invalid api key')
+  ) {
     return { isAuth: true, code: status, reason: anyErr.message || msg };
   }
   return { isAuth: false };
@@ -40,18 +51,31 @@ interface SendMessageResult {
  */
 async function resolveConnection(contactConnectionId: string | null) {
   let resolvedConnectionId = contactConnectionId;
-  let connection: { instance_id: string | null; instance_name: string | null; status: string | null } | null = null;
+  let connection: {
+    instance_id: string | null;
+    instance_name: string | null;
+    status: string | null;
+  } | null = null;
 
   if (resolvedConnectionId) {
     const row = await getWhatsappConnectionById(resolvedConnectionId);
-    if (row) connection = { instance_id: row.instance_id, instance_name: row.instance_name, status: row.status };
+    if (row)
+      connection = {
+        instance_id: row.instance_id,
+        instance_name: row.instance_name,
+        status: row.status,
+      };
   }
 
   if (!connection?.instance_id || connection.status !== 'connected') {
     const fallback = await getFirstConnectedWhatsapp();
     if (fallback?.instance_id) {
       resolvedConnectionId = fallback.id;
-      connection = { instance_id: fallback.instance_id, instance_name: fallback.instance_name, status: fallback.status };
+      connection = {
+        instance_id: fallback.instance_id,
+        instance_name: fallback.instance_name,
+        status: fallback.status,
+      };
     }
   }
 
@@ -72,25 +96,48 @@ function buildEvolutionPayload(
   if (messageType === 'image' && mediaUrl) {
     return {
       action: 'send-media',
-      body: { instanceName, number: phone, mediatype: 'image', media: mediaUrl, caption: content !== '[Imagem]' ? content : undefined },
+      body: {
+        instanceName,
+        number: phone,
+        mediatype: 'image',
+        media: mediaUrl,
+        caption: content !== '[Imagem]' ? content : undefined,
+      },
     };
   }
   if (messageType === 'audio' && (mediaPayload || mediaUrl)) {
     return {
       action: 'send-audio',
-      body: { instanceName, number: phone, audio: mediaUrl || mediaPayload, encoding: !mediaUrl && Boolean(mediaPayload) },
+      body: {
+        instanceName,
+        number: phone,
+        audio: mediaUrl || mediaPayload,
+        encoding: !mediaUrl && Boolean(mediaPayload),
+      },
     };
   }
   if (messageType === 'video' && mediaUrl) {
     return {
       action: 'send-media',
-      body: { instanceName, number: phone, mediatype: 'video', media: mediaUrl, caption: content !== '[Vídeo]' ? content : undefined },
+      body: {
+        instanceName,
+        number: phone,
+        mediatype: 'video',
+        media: mediaUrl,
+        caption: content !== '[Vídeo]' ? content : undefined,
+      },
     };
   }
   if (messageType === 'document' && mediaUrl) {
     return {
       action: 'send-media',
-      body: { instanceName, number: phone, mediatype: 'document', media: mediaUrl, fileName: content },
+      body: {
+        instanceName,
+        number: phone,
+        mediatype: 'document',
+        media: mediaUrl,
+        fileName: content,
+      },
     };
   }
   if (messageType === 'location') {
@@ -98,7 +145,14 @@ function buildEvolutionPayload(
       const loc = JSON.parse(content);
       return {
         action: 'send-location',
-        body: { instanceName, number: phone, latitude: loc.latitude, longitude: loc.longitude, name: loc.name || '', address: loc.address || '' },
+        body: {
+          instanceName,
+          number: phone,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          name: loc.name || '',
+          address: loc.address || '',
+        },
       };
     } catch {
       log.warn('Invalid location content, sending as text');
@@ -128,7 +182,7 @@ export async function sendMessageToContact(
   // We'll update the record after the API call or use the existing one if we were doing server-side optimistic.
   // However, the current flow is: DB Insert -> emit 'sending' -> API call -> update DB status.
   // To reach 10/10 velocity, we should ideally call API FIRST or concurrently, but we need the DB record for the ID.
-  
+
   const { data, error } = await dbFrom('messages')
     .insert({
       contact_id: contactId,
@@ -158,7 +212,7 @@ export async function sendMessageToContact(
         conversation_id: opts.conversationId,
         event_type: 'send_attempt',
         status: 'starting',
-        metadata: { messageType, hasMedia: !!(mediaUrl || mediaPayload) }
+        metadata: { messageType, hasMedia: !!(mediaUrl || mediaPayload) },
       });
     }
 
@@ -167,19 +221,23 @@ export async function sendMessageToContact(
       .eq('id', contactId)
       .single();
 
-    const { resolvedConnectionId, connection } = await resolveConnection(contact?.whatsapp_connection_id ?? null);
+    const { resolvedConnectionId, connection } = await resolveConnection(
+      contact?.whatsapp_connection_id ?? null
+    );
 
     if (!connection?.instance_id || connection.status !== 'connected') {
       log.warn('WhatsApp connection not active, message marked as failed');
-      await dbFrom('messages').update({ status: 'failed', error_reason: 'Nenhuma conexão WhatsApp ativa disponível' }).eq('id', data.id);
-      
-        await (supabase as any).from('conversation_audit_logs').insert({
-          conversation_id: opts.conversationId,
-          event_type: 'failed',
-          status: 'error',
-          error_message: 'Nenhuma conexão WhatsApp ativa disponível'
-        });
-      
+      await dbFrom('messages')
+        .update({ status: 'failed', error_reason: 'Nenhuma conexão WhatsApp ativa disponível' })
+        .eq('id', data.id);
+
+      await (supabase as any).from('conversation_audit_logs').insert({
+        conversation_id: opts.conversationId,
+        event_type: 'failed',
+        status: 'error',
+        error_message: 'Nenhuma conexão WhatsApp ativa disponível',
+      });
+
       throw new Error('Nenhuma conexão WhatsApp ativa disponível');
     }
 
@@ -195,21 +253,38 @@ export async function sendMessageToContact(
     // was never covered by that fix.
     const instanceName = evolutionInstanceName(connection);
     if (!instanceName) {
-      log.error('WhatsApp connection has no usable instance name (only UUID available), refusing to send', { connectionId: resolvedConnectionId });
-      await dbFrom('messages').update({ status: 'failed', error_reason: 'Conexão WhatsApp sem nome de instância válido' }).eq('id', data.id);
+      log.error(
+        'WhatsApp connection has no usable instance name (only UUID available), refusing to send',
+        { connectionId: resolvedConnectionId }
+      );
+      await dbFrom('messages')
+        .update({ status: 'failed', error_reason: 'Conexão WhatsApp sem nome de instância válido' })
+        .eq('id', data.id);
       await (supabase as any).from('conversation_audit_logs').insert({
         conversation_id: opts.conversationId,
         event_type: 'failed',
         status: 'error',
-        error_message: 'Conexão WhatsApp sem nome de instância válido (instance_id parece ser um UUID)',
+        error_message:
+          'Conexão WhatsApp sem nome de instância válido (instance_id parece ser um UUID)',
       });
       throw new Error('Conexão WhatsApp sem nome de instância válido');
     }
 
-    const { action, body } = buildEvolutionPayload(instanceName, phone, content, messageType, mediaUrl, mediaPayload);
-    
+    const { action, body } = buildEvolutionPayload(
+      instanceName,
+      phone,
+      content,
+      messageType,
+      mediaUrl,
+      mediaPayload
+    );
+
     if (opts.optimisticId) {
-      emitSendStatus(opts.optimisticId, { status: 'sending' }, { contactId, source: 'messageSender' });
+      emitSendStatus(
+        opts.optimisticId,
+        { status: 'sending' },
+        { contactId, source: 'messageSender' }
+      );
     }
 
     // Stable idempotency key per logical message. We prefer a content-aware
@@ -241,23 +316,37 @@ export async function sendMessageToContact(
         maxRetries: MAX_RETRIES,
         onRetry: (attempt, total) => {
           const sid = opts.optimisticId || data.id;
-          emitSendStatus(sid, { status: 'retrying', attempt, totalRetries: total }, { contactId, source: 'messageSender' });
-          
-            (supabase as any).from('conversation_audit_logs').insert({
+          emitSendStatus(
+            sid,
+            { status: 'retrying', attempt, totalRetries: total },
+            { contactId, source: 'messageSender' }
+          );
+
+          (supabase as any)
+            .from('conversation_audit_logs')
+            .insert({
               conversation_id: opts.conversationId,
               event_type: 'send_attempt',
               status: 'retrying',
               attempt_number: attempt,
-              metadata: { totalRetries: total }
-            }).then(() => null).catch(() => {});
+              metadata: { totalRetries: total },
+            })
+            .then(() => null)
+            .catch(() => {});
 
           // Persist counters so the "2/3" indicator survives a page reload.
           // Fire-and-forget — never block the retry loop.
-          dbFrom('messages').update({
-            status: 'retrying',
-            retry_attempt: attempt,
-            retry_total: total,
-          }).eq('id', data.id).then(() => undefined, () => undefined);
+          dbFrom('messages')
+            .update({
+              status: 'retrying',
+              retry_attempt: attempt,
+              retry_total: total,
+            })
+            .eq('id', data.id)
+            .then(
+              () => undefined,
+              () => undefined
+            );
           const last = lastInstabilityToastByContact.get(contactId) ?? 0;
           if (attempt === 1 && Date.now() - last > 60_000) {
             lastInstabilityToastByContact.set(contactId, Date.now());
@@ -274,39 +363,54 @@ export async function sendMessageToContact(
       const errPayload = apiError || (apiResult as { error?: unknown; message?: string });
       log.error('Evolution API send error:', errPayload);
       const auth = classifyAuthError(errPayload);
-      const reason = (apiResult as { message?: string })?.message
-        || (apiError as { message?: string } | null)?.message
-        || 'Falha ao enviar mensagem';
+      const reason =
+        (apiResult as { message?: string })?.message ||
+        (apiError as { message?: string } | null)?.message ||
+        'Falha ao enviar mensagem';
 
       if (auth.isAuth) {
-        await dbFrom('messages').update({
-          status: 'failed_auth',
-          whatsapp_connection_id: resolvedConnectionId,
-          error_code: auth.code ? String(auth.code) : null,
-          error_reason: auth.reason || reason,
-        }).eq('id', data.id);
+        await dbFrom('messages')
+          .update({
+            status: 'failed_auth',
+            whatsapp_connection_id: resolvedConnectionId,
+            error_code: auth.code ? String(auth.code) : null,
+            error_reason: auth.reason || reason,
+          })
+          .eq('id', data.id);
         const sid = opts.optimisticId || data.id;
-        emitSendStatus(sid, { status: 'failed_auth', errorCode: auth.code, errorReason: auth.reason || reason }, { contactId, source: 'messageSender' });
+        emitSendStatus(
+          sid,
+          { status: 'failed_auth', errorCode: auth.code, errorReason: auth.reason || reason },
+          { contactId, source: 'messageSender' }
+        );
       } else {
-        await dbFrom('messages').update({
-          status: 'failed',
-          whatsapp_connection_id: resolvedConnectionId,
-          error_reason: reason,
-        }).eq('id', data.id);
+        await dbFrom('messages')
+          .update({
+            status: 'failed',
+            whatsapp_connection_id: resolvedConnectionId,
+            error_reason: reason,
+          })
+          .eq('id', data.id);
         const sid = opts.optimisticId || data.id;
-        emitSendStatus(sid, { status: 'failed', errorReason: reason }, { contactId, source: 'messageSender' });
+        emitSendStatus(
+          sid,
+          { status: 'failed', errorReason: reason },
+          { contactId, source: 'messageSender' }
+        );
       }
       throw new Error(reason);
     }
 
     const externalId = extractEvolutionMessageId(apiResult);
-    await dbFrom('messages').update({
-      status: 'sent',
-      external_id: externalId,
-      whatsapp_connection_id: resolvedConnectionId,
-      retry_attempt: null,
-      retry_total: null,
-    }).eq('id', data.id);
+    await dbFrom('messages')
+      .update({
+        status: 'sent',
+        external_id: externalId,
+        whatsapp_connection_id: resolvedConnectionId,
+        retry_attempt: null,
+        retry_total: null,
+      })
+      .eq('id', data.id);
     const finalSid = opts.optimisticId || data.id;
     emitSendStatus(finalSid, { status: 'sent' }, { contactId, source: 'messageSender' });
 
@@ -315,40 +419,53 @@ export async function sendMessageToContact(
         conversation_id: opts.conversationId,
         event_type: 'delivered',
         status: 'success',
-        metadata: { externalId }
+        metadata: { externalId },
       });
     }
   } catch (evolutionError) {
     log.error('Error sending via Evolution API:', evolutionError);
     const auth = classifyAuthError(evolutionError);
-    const reason = evolutionError instanceof Error ? evolutionError.message : 'Falha ao enviar mensagem';
+    const reason =
+      evolutionError instanceof Error ? evolutionError.message : 'Falha ao enviar mensagem';
     const sid = opts.optimisticId || data.id;
     if (auth.isAuth) {
-      await dbFrom('messages').update({
-        status: 'failed_auth',
-        error_code: auth.code ? String(auth.code) : null,
-        error_reason: auth.reason || reason,
-      }).eq('id', data.id);
-      emitSendStatus(sid, { status: 'failed_auth', errorCode: auth.code, errorReason: auth.reason || reason }, { contactId, source: 'messageSender' });
+      await dbFrom('messages')
+        .update({
+          status: 'failed_auth',
+          error_code: auth.code ? String(auth.code) : null,
+          error_reason: auth.reason || reason,
+        })
+        .eq('id', data.id);
+      emitSendStatus(
+        sid,
+        { status: 'failed_auth', errorCode: auth.code, errorReason: auth.reason || reason },
+        { contactId, source: 'messageSender' }
+      );
     } else {
       // If error came from withRetry exhausting attempts, mark failed_retries.
       // Persist final attempt counters so the badge stays after a reload.
-      await dbFrom('messages').update({
-        status: 'failed_retries',
-        error_reason: reason,
-        retry_attempt: MAX_RETRIES,
-        retry_total: MAX_RETRIES,
-      }).eq('id', data.id);
-      emitSendStatus(sid, { status: 'failed_retries', totalRetries: MAX_RETRIES, errorReason: reason }, { contactId, source: 'messageSender' });
+      await dbFrom('messages')
+        .update({
+          status: 'failed_retries',
+          error_reason: reason,
+          retry_attempt: MAX_RETRIES,
+          retry_total: MAX_RETRIES,
+        })
+        .eq('id', data.id);
+      emitSendStatus(
+        sid,
+        { status: 'failed_retries', totalRetries: MAX_RETRIES, errorReason: reason },
+        { contactId, source: 'messageSender' }
+      );
     }
 
-      await (supabase as any).from('conversation_audit_logs').insert({
-        conversation_id: opts.conversationId,
-        event_type: 'failed',
-        status: 'error',
-        error_message: reason,
-        metadata: { authError: auth.isAuth, errorCode: auth.code }
-      });
+    await (supabase as any).from('conversation_audit_logs').insert({
+      conversation_id: opts.conversationId,
+      event_type: 'failed',
+      status: 'error',
+      error_message: reason,
+      metadata: { authError: auth.isAuth, errorCode: auth.code },
+    });
     throw evolutionError;
   }
 

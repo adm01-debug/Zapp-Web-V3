@@ -36,7 +36,7 @@ const LocationMessageDisplay = lazy(() =>
     default: m.LocationMessageDisplay,
   }))
 );
-const log = getLogger('MessageBubble');
+const _log = getLogger('MessageBubble');
 
 interface MessageBubbleProps {
   message: Message;
@@ -91,9 +91,9 @@ export const MessageBubble = memo(function MessageBubble({
   density = 'comfortable',
   onAudioVoiceChange,
 }: MessageBubbleProps) {
-  const { toast } = useToast();
+  const { toast: _toast } = useToast();
   const { profile } = useAuth();
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [_historyOpen, _setHistoryOpen] = useState(false);
   const [isActionsActive, setIsActionsActive] = useState(false);
 
   const isSent = message.sender === 'agent';
@@ -103,7 +103,7 @@ export const MessageBubble = memo(function MessageBubble({
     message.contactAvatar || contactAvatar
   );
 
-  const agentInitials = profile?.name ? profile.name.slice(0, 2).toUpperCase() : 'EU';
+  const _agentInitials = profile?.name ? profile.name.slice(0, 2).toUpperCase() : 'EU';
   const isFailedTerminal =
     isSent &&
     !message.is_deleted &&

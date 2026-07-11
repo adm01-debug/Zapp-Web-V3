@@ -57,7 +57,7 @@ export function MessageContextMenu({
   onDelete,
   onReport,
   onSpeak,
-  onDownload,
+  onDownload: _onDownload,
   onScheduleReply,
   onMarkAsRead,
   onMarkAsUnread,
@@ -68,16 +68,14 @@ export function MessageContextMenu({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
-        {children}
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-56 bg-card border-border/50 shadow-xl">
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+      <ContextMenuContent className="w-56 border-border/50 bg-card shadow-xl">
         {/* Quick Reactions */}
-        <div className="flex items-center justify-between px-2 py-1.5 border-b border-border/50">
+        <div className="flex items-center justify-between border-b border-border/50 px-2 py-1.5">
           {REACTION_EMOJIS.map((emoji) => (
             <button
               key={emoji}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-lg hover:scale-125"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-lg transition-colors hover:scale-125 hover:bg-muted"
               onClick={() => onReact?.(message.id, emoji)}
             >
               {emoji}
@@ -86,29 +84,20 @@ export function MessageContextMenu({
         </div>
 
         {/* Main Actions */}
-        <ContextMenuItem
-          onClick={() => onReply?.(message)}
-          className="gap-2 cursor-pointer"
-        >
-          <Reply className="w-4 h-4" />
+        <ContextMenuItem onClick={() => onReply?.(message)} className="cursor-pointer gap-2">
+          <Reply className="h-4 w-4" />
           Responder
           <ContextMenuShortcut>⌘R</ContextMenuShortcut>
         </ContextMenuItem>
 
-        <ContextMenuItem
-          onClick={() => onForward?.(message)}
-          className="gap-2 cursor-pointer"
-        >
-          <Forward className="w-4 h-4" />
+        <ContextMenuItem onClick={() => onForward?.(message)} className="cursor-pointer gap-2">
+          <Forward className="h-4 w-4" />
           Encaminhar
           <ContextMenuShortcut>⌘F</ContextMenuShortcut>
         </ContextMenuItem>
 
-        <ContextMenuItem
-          onClick={() => onCopy?.(message.content)}
-          className="gap-2 cursor-pointer"
-        >
-          <Copy className="w-4 h-4" />
+        <ContextMenuItem onClick={() => onCopy?.(message.content)} className="cursor-pointer gap-2">
+          <Copy className="h-4 w-4" />
           Copiar texto
           <ContextMenuShortcut>⌘C</ContextMenuShortcut>
         </ContextMenuItem>
@@ -119,9 +108,9 @@ export function MessageContextMenu({
         {message.type === 'text' && (
           <ContextMenuItem
             onClick={() => onSpeak?.(message.content, message.id)}
-            className="gap-2 cursor-pointer"
+            className="cursor-pointer gap-2"
           >
-            <Volume2 className="w-4 h-4" />
+            <Volume2 className="h-4 w-4" />
             Ouvir mensagem
           </ContextMenuItem>
         )}
@@ -130,11 +119,13 @@ export function MessageContextMenu({
         {hasMedia && (
           <ContextMenuItem
             onClick={() => {
-              import('sonner').then(({ toast }) => toast.error('🔒 Download bloqueado por política de segurança')).catch(() => {});
+              import('sonner')
+                .then(({ toast }) => toast.error('🔒 Download bloqueado por política de segurança'))
+                .catch(() => {});
             }}
-            className="gap-2 cursor-pointer opacity-50"
+            className="cursor-pointer gap-2 opacity-50"
           >
-            <Download className="w-4 h-4" />
+            <Download className="h-4 w-4" />
             Download Bloqueado 🔒
           </ContextMenuItem>
         )}
@@ -142,50 +133,44 @@ export function MessageContextMenu({
         <ContextMenuSeparator />
 
         {/* Organization Actions */}
-        <ContextMenuItem
-          onClick={() => onStar?.(message.id)}
-          className="gap-2 cursor-pointer"
-        >
-          <Star className="w-4 h-4" />
+        <ContextMenuItem onClick={() => onStar?.(message.id)} className="cursor-pointer gap-2">
+          <Star className="h-4 w-4" />
           Favoritar mensagem
         </ContextMenuItem>
 
-        <ContextMenuItem
-          onClick={() => onPin?.(message.id)}
-          className="gap-2 cursor-pointer"
-        >
-          <Pin className="w-4 h-4" />
+        <ContextMenuItem onClick={() => onPin?.(message.id)} className="cursor-pointer gap-2">
+          <Pin className="h-4 w-4" />
           Fixar mensagem
         </ContextMenuItem>
 
         {/* Schedule Reply */}
         <ContextMenuSub>
           <ContextMenuSubTrigger className="gap-2">
-            <Clock className="w-4 h-4" />
+            <Clock className="h-4 w-4" />
             Responder depois
           </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-48 bg-card border-border/50">
+          <ContextMenuSubContent className="w-48 border-border/50 bg-card">
             <ContextMenuItem
               onClick={() => onScheduleReply?.(message)}
-              className="gap-2 cursor-pointer"
+              className="cursor-pointer gap-2"
             >
               Em 1 hora
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => onScheduleReply?.(message)}
-              className="gap-2 cursor-pointer"
+              className="cursor-pointer gap-2"
             >
               Em 3 horas
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => onScheduleReply?.(message)}
-              className="gap-2 cursor-pointer"
+              className="cursor-pointer gap-2"
             >
               Amanhã
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => onScheduleReply?.(message)}
-              className="gap-2 cursor-pointer"
+              className="cursor-pointer gap-2"
             >
               Escolher data/hora...
             </ContextMenuItem>
@@ -197,17 +182,17 @@ export function MessageContextMenu({
         {/* Status Actions */}
         <ContextMenuItem
           onClick={() => onMarkAsRead?.(message.id)}
-          className="gap-2 cursor-pointer"
+          className="cursor-pointer gap-2"
         >
-          <CheckCircle className="w-4 h-4" />
+          <CheckCircle className="h-4 w-4" />
           Marcar como lido
         </ContextMenuItem>
 
         <ContextMenuItem
           onClick={() => onMarkAsUnread?.(message.id)}
-          className="gap-2 cursor-pointer"
+          className="cursor-pointer gap-2"
         >
-          <XCircle className="w-4 h-4" />
+          <XCircle className="h-4 w-4" />
           Marcar como não lido
         </ContextMenuItem>
 
@@ -217,9 +202,9 @@ export function MessageContextMenu({
         {!isFromAgent && (
           <ContextMenuItem
             onClick={() => onReport?.(message.id)}
-            className="gap-2 cursor-pointer text-warning"
+            className="cursor-pointer gap-2 text-warning"
           >
-            <Flag className="w-4 h-4" />
+            <Flag className="h-4 w-4" />
             Reportar mensagem
           </ContextMenuItem>
         )}
@@ -227,9 +212,9 @@ export function MessageContextMenu({
         {isFromAgent && (
           <ContextMenuItem
             onClick={() => onDelete?.(message.id)}
-            className="gap-2 cursor-pointer text-destructive"
+            className="cursor-pointer gap-2 text-destructive"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="h-4 w-4" />
             Excluir mensagem
           </ContextMenuItem>
         )}

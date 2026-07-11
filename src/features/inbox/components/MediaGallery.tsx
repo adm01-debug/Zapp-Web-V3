@@ -8,7 +8,21 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Image, FileVideo, FileAudio, File, Download, Search, Grid3X3, List, X, Check, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  Image,
+  FileVideo,
+  FileAudio,
+  File,
+  Download,
+  Search,
+  Grid3X3,
+  List,
+  X,
+  Check,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -30,10 +44,17 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloading, _setIsDownloading] = useState(false);
   const [isSlow, setIsSlow] = useState(false);
 
-  const { data: messages, isLoading, isError, error, isFetching, refetch } = useQuery({
+  const {
+    data: messages,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['media-gallery', contactId],
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
@@ -60,74 +81,157 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
 
   const mediaItems = useMemo((): MediaItem[] => {
     if (!messages) return [];
-    return messages.filter(m => m.media_url).map(m => ({
-      id: m.id, url: m.media_url!, type: getMediaType(m.media_url!, m.message_type),
-      filename: getFilename(m.media_url!), created_at: m.created_at, message_content: m.content,
-    }));
+    return messages
+      .filter((m) => m.media_url)
+      .map((m) => ({
+        id: m.id,
+        url: m.media_url!,
+        type: getMediaType(m.media_url!, m.message_type),
+        filename: getFilename(m.media_url!),
+        created_at: m.created_at,
+        message_content: m.content,
+      }));
   }, [messages]);
 
-  const filteredItems = useMemo(() => mediaItems.filter(item => {
-    const matchesFilter = filter === 'all' || item.type === filter;
-    const matchesSearch = !search || item.filename.toLowerCase().includes(search.toLowerCase()) || item.message_content.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
-  }), [mediaItems, filter, search]);
+  const filteredItems = useMemo(
+    () =>
+      mediaItems.filter((item) => {
+        const matchesFilter = filter === 'all' || item.type === filter;
+        const matchesSearch =
+          !search ||
+          item.filename.toLowerCase().includes(search.toLowerCase()) ||
+          item.message_content.toLowerCase().includes(search.toLowerCase());
+        return matchesFilter && matchesSearch;
+      }),
+    [mediaItems, filter, search]
+  );
 
-  const counts = useMemo(() => ({
-    all: mediaItems.length, image: mediaItems.filter(i => i.type === 'image').length,
-    video: mediaItems.filter(i => i.type === 'video').length, audio: mediaItems.filter(i => i.type === 'audio').length,
-    document: mediaItems.filter(i => i.type === 'document').length,
-  }), [mediaItems]);
+  const counts = useMemo(
+    () => ({
+      all: mediaItems.length,
+      image: mediaItems.filter((i) => i.type === 'image').length,
+      video: mediaItems.filter((i) => i.type === 'video').length,
+      audio: mediaItems.filter((i) => i.type === 'audio').length,
+      document: mediaItems.filter((i) => i.type === 'document').length,
+    }),
+    [mediaItems]
+  );
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedItems);
-    if (newSelected.has(id)) newSelected.delete(id); else newSelected.add(id);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
     setSelectedItems(newSelected);
   };
 
   const handleDownloadSelected = async () => {
     const { toast } = await import('sonner');
-    toast.error('🔒 Download bloqueado por política de segurança', { description: 'O download de arquivos está desabilitado para proteção de dados.' });
+    toast.error('🔒 Download bloqueado por política de segurança', {
+      description: 'O download de arquivos está desabilitado para proteção de dados.',
+    });
   };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Grid3X3 className="w-5 h-5" />Galeria de Mídia<Badge variant="secondary">{counts.all} itens</Badge>
+              <Grid3X3 className="h-5 w-5" />
+              Galeria de Mídia<Badge variant="secondary">{counts.all} itens</Badge>
             </DialogTitle>
           </DialogHeader>
 
           <div className="flex items-center gap-4 py-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar mídia..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar mídia..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <div className="flex items-center gap-1 border rounded-md p-1">
-              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}><Grid3X3 className="w-4 h-4" /></Button>
-              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}><List className="w-4 h-4" /></Button>
+            <div className="flex items-center gap-1 rounded-md border p-1">
+              <Button
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
           <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
             <TabsList className="grid grid-cols-5">
-              <TabsTrigger value="all" className="gap-1">Todos <Badge variant="outline" className="ml-1">{counts.all}</Badge></TabsTrigger>
-              <TabsTrigger value="image" className="gap-1"><Image className="w-3 h-3" /><span className="hidden sm:inline">Imagens</span><Badge variant="outline" className="ml-1">{counts.image}</Badge></TabsTrigger>
-              <TabsTrigger value="video" className="gap-1"><FileVideo className="w-3 h-3" /><span className="hidden sm:inline">Vídeos</span><Badge variant="outline" className="ml-1">{counts.video}</Badge></TabsTrigger>
-              <TabsTrigger value="audio" className="gap-1"><FileAudio className="w-3 h-3" /><span className="hidden sm:inline">Áudios</span><Badge variant="outline" className="ml-1">{counts.audio}</Badge></TabsTrigger>
-              <TabsTrigger value="document" className="gap-1"><File className="w-3 h-3" /><span className="hidden sm:inline">Docs</span><Badge variant="outline" className="ml-1">{counts.document}</Badge></TabsTrigger>
+              <TabsTrigger value="all" className="gap-1">
+                Todos{' '}
+                <Badge variant="outline" className="ml-1">
+                  {counts.all}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="image" className="gap-1">
+                <Image className="h-3 w-3" />
+                <span className="hidden sm:inline">Imagens</span>
+                <Badge variant="outline" className="ml-1">
+                  {counts.image}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="video" className="gap-1">
+                <FileVideo className="h-3 w-3" />
+                <span className="hidden sm:inline">Vídeos</span>
+                <Badge variant="outline" className="ml-1">
+                  {counts.video}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="audio" className="gap-1">
+                <FileAudio className="h-3 w-3" />
+                <span className="hidden sm:inline">Áudios</span>
+                <Badge variant="outline" className="ml-1">
+                  {counts.audio}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="document" className="gap-1">
+                <File className="h-3 w-3" />
+                <span className="hidden sm:inline">Docs</span>
+                <Badge variant="outline" className="ml-1">
+                  {counts.document}
+                </Badge>
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
           <AnimatePresence>
             {selectedItems.size > 0 && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-center justify-between p-2 bg-primary/10 rounded-lg">
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center justify-between rounded-lg bg-primary/10 p-2"
+              >
                 <span className="text-sm">{selectedItems.size} item(s) selecionado(s)</span>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedItems(new Set())}><X className="w-4 h-4 mr-1" />Limpar</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedItems(new Set())}>
+                    <X className="mr-1 h-4 w-4" />
+                    Limpar
+                  </Button>
                   <Button size="sm" onClick={handleDownloadSelected} disabled={isDownloading}>
-                    {isDownloading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Download className="w-4 h-4 mr-1" />}Download
+                    {isDownloading ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-1 h-4 w-4" />
+                    )}
+                    Download
                   </Button>
                 </div>
               </motion.div>
@@ -139,40 +243,32 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
             <div
               role="status"
               aria-live="polite"
-              className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground border-b"
+              className="flex items-center gap-2 border-b px-2 py-1 text-xs text-muted-foreground"
             >
-              <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
               Atualizando galeria…
             </div>
           )}
 
-          <ScrollArea className="flex-1 min-h-[300px]">
+          <ScrollArea className="min-h-[300px] flex-1">
             {isLoading ? (
-              <div
-                role="status"
-                aria-live="polite"
-                aria-label="Carregando mídias"
-                className="p-2"
-              >
+              <div role="status" aria-live="polite" aria-label="Carregando mídias" className="p-2">
                 <div className="grid grid-cols-4 gap-2">
                   {[...Array(8)].map((_, i) => (
                     <Skeleton key={i} className="aspect-square rounded-lg" />
                   ))}
                 </div>
                 {isSlow && (
-                  <div className="flex flex-col items-center gap-2 mt-6 text-center">
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden="true" />
-                    <p className="text-xs text-muted-foreground max-w-xs">
-                      A busca está demorando mais que o normal. Aguarde ou
-                      verifique sua conexão.
+                  <div className="mt-6 flex flex-col items-center gap-2 text-center">
+                    <Loader2
+                      className="h-4 w-4 animate-spin text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <p className="max-w-xs text-xs text-muted-foreground">
+                      A busca está demorando mais que o normal. Aguarde ou verifique sua conexão.
                     </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => refetch()}
-                      className="gap-2"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
+                    <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
+                      <RefreshCw className="h-3.5 w-3.5" />
                       Tentar de novo
                     </Button>
                   </div>
@@ -181,15 +277,19 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
             ) : isError ? (
               <div
                 role="alert"
-                className="flex flex-col items-center justify-center gap-3 py-12 px-4 text-center"
+                className="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center"
               >
-                <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-destructive" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                  <AlertCircle className="h-6 w-6 text-destructive" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Não foi possível carregar a mídia</p>
-                  <p className="text-xs text-muted-foreground max-w-sm">
-                    {error instanceof Error && error.message ? error.message : 'Verifique sua conexão e tente novamente.'}
+                  <p className="text-sm font-medium text-foreground">
+                    Não foi possível carregar a mídia
+                  </p>
+                  <p className="max-w-sm text-xs text-muted-foreground">
+                    {error instanceof Error && error.message
+                      ? error.message
+                      : 'Verifique sua conexão e tente novamente.'}
                   </p>
                 </div>
                 <Button
@@ -199,37 +299,87 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
                   disabled={isFetching}
                   className="gap-2"
                 >
-                  {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  {isFetching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
                   Tentar novamente
                 </Button>
               </div>
             ) : filteredItems.length === 0 ? (
-              <GenericEmptyState icon={Image} title="Sem mídias" description="Nenhuma mídia encontrada nesta conversa" className="py-8" />
+              <GenericEmptyState
+                icon={Image}
+                title="Sem mídias"
+                description="Nenhuma mídia encontrada nesta conversa"
+                className="py-8"
+              />
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-4 gap-2 p-2">
                 {filteredItems.map((item) => (
-                  <MediaCard key={item.id} item={item} isSelected={selectedItems.has(item.id)} onSelect={() => toggleSelect(item.id)} onPreview={() => setPreviewItem(item)} />
+                  <MediaCard
+                    key={item.id}
+                    item={item}
+                    isSelected={selectedItems.has(item.id)}
+                    onSelect={() => toggleSelect(item.id)}
+                    onPreview={() => setPreviewItem(item)}
+                  />
                 ))}
               </div>
             ) : (
               <div className="space-y-2 p-2">
                 {filteredItems.map((item) => (
-                  <div key={item.id} className={cn('flex items-center gap-3 p-2 rounded-lg border transition-colors cursor-pointer', selectedItems.has(item.id) ? 'border-primary bg-primary/5' : 'hover:bg-muted/50')} onClick={() => setPreviewItem(item)}>
-                    <div className={cn('w-5 h-5 rounded border-2 flex items-center justify-center shrink-0', selectedItems.has(item.id) ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/50')} onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}>
-                      {selectedItems.has(item.id) && <Check className="w-3 h-3" />}
+                  <div
+                    key={item.id}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-3 rounded-lg border p-2 transition-colors',
+                      selectedItems.has(item.id)
+                        ? 'border-primary bg-primary/5'
+                        : 'hover:bg-muted/50'
+                    )}
+                    onClick={() => setPreviewItem(item)}
+                  >
+                    <div
+                      className={cn(
+                        'flex h-5 w-5 shrink-0 items-center justify-center rounded border-2',
+                        selectedItems.has(item.id)
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-muted-foreground/50'
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(item.id);
+                      }}
+                    >
+                      {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
                     </div>
-                    <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
-                      {item.type === 'image' && <Image className="w-5 h-5 text-muted-foreground" />}
-                      {item.type === 'video' && <FileVideo className="w-5 h-5 text-muted-foreground" />}
-                      {item.type === 'audio' && <FileAudio className="w-5 h-5 text-muted-foreground" />}
-                      {item.type === 'document' && <File className="w-5 h-5 text-muted-foreground" />}
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-muted">
+                      {item.type === 'image' && <Image className="h-5 w-5 text-muted-foreground" />}
+                      {item.type === 'video' && (
+                        <FileVideo className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      {item.type === 'audio' && (
+                        <FileAudio className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      {item.type === 'document' && (
+                        <File className="h-5 w-5 text-muted-foreground" />
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.filename}</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(item.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{item.filename}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                      </p>
                     </div>
-                    <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
-                      <a href={item.url} download={item.filename}><Download className="w-4 h-4" /></a>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <a href={item.url} download={item.filename}>
+                        <Download className="h-4 w-4" />
+                      </a>
                     </Button>
                   </div>
                 ))}
@@ -239,7 +389,11 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
         </DialogContent>
       </Dialog>
 
-      <MediaPreviewDialog item={previewItem} open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)} />
+      <MediaPreviewDialog
+        item={previewItem}
+        open={!!previewItem}
+        onOpenChange={(open) => !open && setPreviewItem(null)}
+      />
     </>
   );
 }

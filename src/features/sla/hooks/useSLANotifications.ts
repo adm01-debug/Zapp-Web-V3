@@ -33,17 +33,18 @@ export const useSLANotifications = () => {
       contactId: string
     ) => {
       // Fetch contact info
-      const { data: contact , error } = await supabase
+      const { data: contact } = await supabase
         .from('contacts')
         .select('name, phone')
         .eq('id', contactId)
         .maybeSingle();
 
-      const title = type === 'first_response' 
-        ? '⚠️ SLA de Primeira Resposta Violado'
-        : '🚨 SLA de Resolução Violado';
-        
-      const description = contact 
+      const title =
+        type === 'first_response'
+          ? '⚠️ SLA de Primeira Resposta Violado'
+          : '🚨 SLA de Resolução Violado';
+
+      const description = contact
         ? type === 'first_response'
           ? `O contato ${contact.name || contact.phone} não recebeu resposta no prazo.`
           : `O atendimento do contato ${contact.name || contact.phone} excedeu o tempo de resolução.`
@@ -114,7 +115,7 @@ export const useSLANotifications = () => {
         },
         async (payload) => {
           const newRecord = payload.new as SLABreachPayload;
-          
+
           log.debug('New SLA record', { newRecord });
 
           // Check if already breached on insert

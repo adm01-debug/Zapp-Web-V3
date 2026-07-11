@@ -8,7 +8,7 @@ import { useAuth } from '@/features/auth';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { getLogger } from '@/lib/logger';
 
-const log = getLogger('AvatarUpload');
+const _log = getLogger('AvatarUpload');
 
 export function AvatarUpload() {
   const { user, profile, refreshProfile } = useAuth();
@@ -39,9 +39,9 @@ export function AvatarUpload() {
         if (uploadError) throw uploadError;
 
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
         const urlWithCache = `${publicUrl}?t=${Date.now()}`;
 
@@ -66,7 +66,7 @@ export function AvatarUpload() {
 
   const handleRemove = async () => {
     if (!user) return;
-    
+
     await feedback.withFeedback(
       async () => {
         const { error } = await supabase
@@ -84,18 +84,19 @@ export function AvatarUpload() {
     );
   };
 
-  const initials = profile?.name
-    ?.split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .slice(0, 2) || '?';
+  const initials =
+    profile?.name
+      ?.split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .slice(0, 2) || '?';
 
   return (
     <div className="flex items-center gap-6">
-      <div className="relative group">
-        <Avatar className="w-20 h-20 ring-2 ring-border/50 group-hover:ring-primary/50 transition-all">
+      <div className="group relative">
+        <Avatar className="h-20 w-20 ring-2 ring-border/50 transition-all group-hover:ring-primary/50">
           <AvatarImage src={avatarUrl || undefined} alt="Avatar" />
-          <AvatarFallback className="bg-primary/10 text-primary font-display text-xl font-bold">
+          <AvatarFallback className="bg-primary/10 font-display text-xl font-bold text-primary">
             {initials}
           </AvatarFallback>
         </Avatar>
@@ -105,12 +106,12 @@ export function AvatarUpload() {
           whileTap={{ scale: 0.9 }}
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+          className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
         >
           {uploading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Camera className="w-4 h-4" />
+            <Camera className="h-4 w-4" />
           )}
         </motion.button>
       </div>
@@ -129,9 +130,18 @@ export function AvatarUpload() {
           </Button>
           <AnimatePresence>
             {avatarUrl && (
-              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
-                <Button variant="ghost" size="sm" onClick={handleRemove} className="text-destructive hover:text-destructive">
-                  <Trash2 className="w-3 h-3 mr-1" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRemove}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="mr-1 h-3 w-3" />
                   Remover
                 </Button>
               </motion.div>

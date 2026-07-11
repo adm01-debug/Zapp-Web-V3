@@ -5,8 +5,10 @@ import { SwipeableMessage } from '@/components/mobile/SwipeableMessage';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, ...rest }: any) => (
-      <div className={className} style={style}>{children}</div>
+    div: ({ children, className, style, ..._rest }: any) => (
+      <div className={className} style={style}>
+        {children}
+      </div>
     ),
   },
   useMotionValue: () => ({ get: () => 0, set: vi.fn() }),

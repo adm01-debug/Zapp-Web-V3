@@ -32,7 +32,7 @@ export function useChatInputLogic({
   inputRef,
   fileUploaderRef,
   onSend,
-  onPasteFiles,
+  onPasteFiles: _onPasteFiles,
   isRecordingAudio,
 }: UseChatInputLogicParams) {
   const [showRichToolbar, setShowRichToolbar] = useState(false);

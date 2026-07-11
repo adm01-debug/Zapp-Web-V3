@@ -61,15 +61,15 @@ export function useConnectionsManager() {
   const {
     connections,
     setConnections,
-    loading,
+    loading: _loading,
     setLoading,
-    isAddDialogOpen,
+    isAddDialogOpen: _isAddDialogOpen,
     setIsAddDialogOpen,
     qrCodeDialog,
     setQrCodeDialog,
     newConnection,
     setNewConnection,
-    isCreating,
+    isCreating: _isCreating,
     setIsCreating,
     dialogGenRef,
     refreshInFlightRef,
@@ -80,7 +80,7 @@ export function useConnectionsManager() {
   const {
     isLoading: evolutionLoading,
     createInstance,
-    getInstanceStatus,
+    getInstanceStatus: _getInstanceStatus,
     disconnectInstance,
     deleteInstance,
   } = useEvolutionApi();

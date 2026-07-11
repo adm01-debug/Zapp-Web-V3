@@ -16,15 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  ArrowLeft,
-  Users,
-  MessageSquare,
-  TrendingUp,
-  Clock,
-  BarChart3,
-  Eye,
-} from 'lucide-react';
+import { ArrowLeft, Users, MessageSquare, TrendingUp, Clock, BarChart3, Eye } from 'lucide-react';
 import { QueuesComparisonCharts } from './QueuesComparisonCharts';
 import { useQueuesComparison } from '@/hooks/useQueuesComparison';
 import { PeriodSelector, PeriodOption } from './PeriodSelector';
@@ -46,7 +38,7 @@ export function QueuesComparisonDashboard() {
   };
 
   // Prepare data for charts
-  const barChartData = queuesPerformance.map(q => ({
+  const _barChartData = queuesPerformance.map((q) => ({
     name: q.name.length > 12 ? q.name.substring(0, 12) + '...' : q.name,
     fullName: q.name,
     contatos: q.totalContacts,
@@ -56,17 +48,48 @@ export function QueuesComparisonDashboard() {
   }));
 
   // Normalize data for radar chart (0-100 scale)
-  const maxContacts = Math.max(...queuesPerformance.map(q => q.totalContacts), 1);
-  const maxMessages = Math.max(...queuesPerformance.map(q => q.totalMessages), 1);
-  const maxAgents = Math.max(...queuesPerformance.map(q => q.agentsCount), 1);
-  const maxAvgMessages = Math.max(...queuesPerformance.map(q => q.avgMessagesPerContact), 1);
+  const maxContacts = Math.max(...queuesPerformance.map((q) => q.totalContacts), 1);
+  const maxMessages = Math.max(...queuesPerformance.map((q) => q.totalMessages), 1);
+  const maxAgents = Math.max(...queuesPerformance.map((q) => q.agentsCount), 1);
+  const maxAvgMessages = Math.max(...queuesPerformance.map((q) => q.avgMessagesPerContact), 1);
 
-  const radarData = [
-    { metric: 'Contatos', ...Object.fromEntries(queuesPerformance.map(q => [q.name, Math.round((q.totalContacts / maxContacts) * 100)])) },
-    { metric: 'Mensagens', ...Object.fromEntries(queuesPerformance.map(q => [q.name, Math.round((q.totalMessages / maxMessages) * 100)])) },
-    { metric: 'Atendentes', ...Object.fromEntries(queuesPerformance.map(q => [q.name, Math.round((q.agentsCount / maxAgents) * 100)])) },
-    { metric: 'Média Msgs', ...Object.fromEntries(queuesPerformance.map(q => [q.name, Math.round((q.avgMessagesPerContact / maxAvgMessages) * 100)])) },
-    { metric: 'Atribuídos', ...Object.fromEntries(queuesPerformance.map(q => [q.name, q.totalContacts > 0 ? Math.round((q.assignedContacts / q.totalContacts) * 100) : 0])) },
+  const _radarData = [
+    {
+      metric: 'Contatos',
+      ...Object.fromEntries(
+        queuesPerformance.map((q) => [q.name, Math.round((q.totalContacts / maxContacts) * 100)])
+      ),
+    },
+    {
+      metric: 'Mensagens',
+      ...Object.fromEntries(
+        queuesPerformance.map((q) => [q.name, Math.round((q.totalMessages / maxMessages) * 100)])
+      ),
+    },
+    {
+      metric: 'Atendentes',
+      ...Object.fromEntries(
+        queuesPerformance.map((q) => [q.name, Math.round((q.agentsCount / maxAgents) * 100)])
+      ),
+    },
+    {
+      metric: 'Média Msgs',
+      ...Object.fromEntries(
+        queuesPerformance.map((q) => [
+          q.name,
+          Math.round((q.avgMessagesPerContact / maxAvgMessages) * 100),
+        ])
+      ),
+    },
+    {
+      metric: 'Atribuídos',
+      ...Object.fromEntries(
+        queuesPerformance.map((q) => [
+          q.name,
+          q.totalContacts > 0 ? Math.round((q.assignedContacts / q.totalContacts) * 100) : 0,
+        ])
+      ),
+    },
   ];
 
   // Calculate totals
@@ -82,14 +105,14 @@ export function QueuesComparisonDashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6 overflow-y-auto h-full relative bg-background">
+      <div className="relative h-full space-y-6 overflow-y-auto bg-background p-6">
         <AuroraBorealis />
         <FloatingParticles />
         <div className="flex items-center gap-4">
           <Skeleton className="h-10 w-10" />
           <Skeleton className="h-8 w-64" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -100,7 +123,7 @@ export function QueuesComparisonDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full relative bg-background">
+    <div className="relative h-full space-y-6 overflow-y-auto bg-background p-6">
       <AuroraBorealis />
       <FloatingParticles />
 
@@ -113,29 +136,23 @@ export function QueuesComparisonDashboard() {
             onClick={() => navigate('/')}
             className="hover:bg-muted/30"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <BarChart3 className="w-6 h-6" />
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
+              <BarChart3 className="h-6 w-6" />
               Comparação de Filas
             </h1>
-            <p className="text-muted-foreground">
-              Análise comparativa de performance entre filas
-            </p>
+            <p className="text-muted-foreground">Análise comparativa de performance entre filas</p>
           </div>
         </div>
-        <PeriodSelector
-          value={period}
-          dateRange={dateRange}
-          onChange={handlePeriodChange}
-        />
+        <PeriodSelector value={period} dateRange={dateRange} onChange={handlePeriodChange} />
       </div>
 
       {queuesPerformance.length === 0 ? (
         <Card className="border border-secondary/20 bg-card/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <BarChart3 className="w-12 h-12 text-muted-foreground mb-4" />
+            <BarChart3 className="mb-4 h-12 w-12 text-muted-foreground" />
             <p className="text-lg font-medium text-foreground">Nenhuma fila encontrada</p>
             <p className="text-muted-foreground">Crie filas para ver a comparação de performance</p>
           </CardContent>
@@ -143,12 +160,12 @@ export function QueuesComparisonDashboard() {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card className="border border-secondary/20 bg-card/50 backdrop-blur">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-primary" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Users className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Contatos</p>
@@ -161,8 +178,8 @@ export function QueuesComparisonDashboard() {
             <Card className="border border-secondary/20 bg-card/50 backdrop-blur">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 text-success" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
+                    <MessageSquare className="h-5 w-5 text-success" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Mensagens</p>
@@ -175,8 +192,8 @@ export function QueuesComparisonDashboard() {
             <Card className="border border-secondary/20 bg-card/50 backdrop-blur">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-secondary" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/10">
+                    <TrendingUp className="h-5 w-5 text-secondary" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Atendentes</p>
@@ -189,8 +206,8 @@ export function QueuesComparisonDashboard() {
             <Card className="border border-secondary/20 bg-card/50 backdrop-blur">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-accent-foreground" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
+                    <Clock className="h-5 w-5 text-accent-foreground" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Aguardando</p>
@@ -207,8 +224,8 @@ export function QueuesComparisonDashboard() {
           {/* Detailed Table */}
           <Card className="border border-secondary/20 bg-card/50 backdrop-blur">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="w-4 h-4" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="h-4 w-4" />
                 Detalhamento por Fila
               </CardTitle>
             </CardHeader>
@@ -230,26 +247,35 @@ export function QueuesComparisonDashboard() {
                   </TableHeader>
                   <TableBody>
                     {queuesPerformance.map((queue) => {
-                      const assignmentRate = queue.totalContacts > 0
-                        ? Math.round((queue.assignedContacts / queue.totalContacts) * 100)
-                        : 0;
+                      const assignmentRate =
+                        queue.totalContacts > 0
+                          ? Math.round((queue.assignedContacts / queue.totalContacts) * 100)
+                          : 0;
 
                       return (
                         <TableRow key={queue.id} className="border-border/20 hover:bg-muted/10">
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <div
-                                className="w-3 h-3 rounded-full"
+                                className="h-3 w-3 rounded-full"
                                 style={{ backgroundColor: queue.color }}
                               />
                               <span className="font-medium text-foreground">{queue.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-medium">{queue.totalContacts}</TableCell>
-                          <TableCell className="text-right text-success">{queue.assignedContacts}</TableCell>
-                          <TableCell className="text-right text-accent-foreground">{queue.waitingContacts}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {queue.totalContacts}
+                          </TableCell>
+                          <TableCell className="text-right text-success">
+                            {queue.assignedContacts}
+                          </TableCell>
+                          <TableCell className="text-right text-accent-foreground">
+                            {queue.waitingContacts}
+                          </TableCell>
                           <TableCell className="text-right">{queue.totalMessages}</TableCell>
-                          <TableCell className="text-right">{queue.avgMessagesPerContact}</TableCell>
+                          <TableCell className="text-right">
+                            {queue.avgMessagesPerContact}
+                          </TableCell>
                           <TableCell className="text-right">{queue.agentsCount}</TableCell>
                           <TableCell className="text-right">
                             <Badge
@@ -258,8 +284,8 @@ export function QueuesComparisonDashboard() {
                                 assignmentRate >= 80
                                   ? 'bg-success/10 text-success'
                                   : assignmentRate >= 50
-                                  ? 'bg-warning/10 text-warning'
-                                  : 'bg-destructive/10 text-destructive'
+                                    ? 'bg-warning/10 text-warning'
+                                    : 'bg-destructive/10 text-destructive'
                               }
                             >
                               {assignmentRate}%
@@ -269,10 +295,10 @@ export function QueuesComparisonDashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="w-8 h-8"
+                              className="h-8 w-8"
                               onClick={() => navigate(`/queue/${queue.id}`)}
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="h-4 w-4" />
                             </Button>
                           </TableCell>
                         </TableRow>

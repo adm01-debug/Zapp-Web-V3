@@ -20,17 +20,22 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
   const [editingRule, setEditingRule] = useState<SLARule | null>(null);
 
   // Resolve human-readable names for UUID-based scopes
-  const contactIds = rules.filter(r => r.contact_id).map(r => r.contact_id!);
-  const queueIds = rules.filter(r => r.queue_id).map(r => r.queue_id!);
-  const agentIds = rules.filter(r => r.agent_id).map(r => r.agent_id!);
+  const contactIds = rules.filter((r) => r.contact_id).map((r) => r.contact_id!);
+  const queueIds = rules.filter((r) => r.queue_id).map((r) => r.queue_id!);
+  const agentIds = rules.filter((r) => r.agent_id).map((r) => r.agent_id!);
 
   const { data: contactNames = {} } = useQuery({
     queryKey: ['sla-contact-names', contactIds],
     queryFn: async () => {
       if (contactIds.length === 0) return {};
-      const { data, error } = await supabase.from('contacts').select('id, name, phone').in('id', contactIds);
+      const { data } = await supabase
+        .from('contacts')
+        .select('id, name, phone')
+        .in('id', contactIds);
       const map: Record<string, string> = {};
-      (data || []).forEach(c => { map[c.id] = `${c.name} (${c.phone})`; });
+      (data || []).forEach((c) => {
+        map[c.id] = `${c.name} (${c.phone})`;
+      });
       return map;
     },
     enabled: scope === 'contact' && contactIds.length > 0,
@@ -40,9 +45,11 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
     queryKey: ['sla-queue-names', queueIds],
     queryFn: async () => {
       if (queueIds.length === 0) return {};
-      const { data, error } = await supabase.from('queues').select('id, name').in('id', queueIds);
+      const { data } = await supabase.from('queues').select('id, name').in('id', queueIds);
       const map: Record<string, string> = {};
-      (data || []).forEach(q => { map[q.id] = q.name; });
+      (data || []).forEach((q) => {
+        map[q.id] = q.name;
+      });
       return map;
     },
     enabled: scope === 'queue' && queueIds.length > 0,
@@ -52,9 +59,11 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
     queryKey: ['sla-agent-names', agentIds],
     queryFn: async () => {
       if (agentIds.length === 0) return {};
-      const { data, error } = await supabase.from('profiles').select('id, name').in('id', agentIds);
+      const { data } = await supabase.from('profiles').select('id, name').in('id', agentIds);
       const map: Record<string, string> = {};
-      (data || []).forEach(a => { map[a.id] = a.name; });
+      (data || []).forEach((a) => {
+        map[a.id] = a.name;
+      });
       return map;
     },
     enabled: scope === 'agent' && agentIds.length > 0,
@@ -73,7 +82,7 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
   if (isLoading) {
     return (
       <div className="space-y-3 pt-4">
-        {[1, 2, 3].map(i => (
+        {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
       </div>
@@ -87,10 +96,13 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => { setEditingRule(null); setShowDialog(true); }}
+            onClick={() => {
+              setEditingRule(null);
+              setShowDialog(true);
+            }}
             className="gap-1.5 rounded-xl"
           >
-            <Plus className="w-3.5 h-3.5" /> Nova Regra
+            <Plus className="h-3.5 w-3.5" /> Nova Regra
           </Button>
         </motion.div>
       </div>
@@ -101,9 +113,9 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
           animate={{ opacity: 1 }}
           className="flex flex-col items-center justify-center py-12 text-muted-foreground"
         >
-          <AlertTriangle className="w-10 h-10 mb-3 opacity-30" />
+          <AlertTriangle className="mb-3 h-10 w-10 opacity-30" />
           <p className="text-sm font-medium">Nenhuma regra de SLA neste escopo</p>
-          <p className="text-xs mt-1 opacity-70">Crie uma regra para definir prazos específicos</p>
+          <p className="mt-1 text-xs opacity-70">Crie uma regra para definir prazos específicos</p>
         </motion.div>
       ) : (
         <ScrollArea className="max-h-[400px]">
@@ -115,7 +127,10 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
                 scope={scope}
                 scopeLabel={getScopeLabel(rule)}
                 index={index}
-                onEdit={() => { setEditingRule(rule); setShowDialog(true); }}
+                onEdit={() => {
+                  setEditingRule(rule);
+                  setShowDialog(true);
+                }}
                 onDelete={() => deleteRule(rule.id)}
                 onToggle={(active) => toggleRule({ id: rule.id, is_active: active })}
               />

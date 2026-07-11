@@ -34,14 +34,14 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [voiceChanged, setVoiceChanged] = useState(false);
+  const [_voiceChanged, setVoiceChanged] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [showTranscription, setShowTranscription] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [lastCancelledAudio, setLastCancelledAudio] = useState<{ blob: Blob; url: string } | null>(
+  const [_lastCancelledAudio, setLastCancelledAudio] = useState<{ blob: Blob; url: string } | null>(
     null
   );
   const [volume, setVolumeState] = useState<number>(() => {
@@ -94,7 +94,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
     restoreRecording,
     formatDuration,
   } = useAudioRecorder({
-    onRecordingComplete: (blob, url) => {
+    onRecordingComplete: (blob, _url) => {
       setAudioBlob(blob);
       setIsConfirming(true);
       onAudioReady?.(blob);
@@ -265,7 +265,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
   };
 
   // Lock recording (stop holding, keep recording)
-  const handleLock = useCallback(() => {
+  const _handleLock = useCallback(() => {
     setIsLocked(true);
   }, []);
 

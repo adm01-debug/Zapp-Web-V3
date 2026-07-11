@@ -7,7 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { MessageSquareHeart, Clock, Send, Zap } from 'lucide-react';
 import { useAuth } from '@/features/auth';
@@ -19,22 +25,25 @@ export function CSATAutoConfig() {
   const { data: connections = [] } = useQuery({
     queryKey: ['whatsapp-connections-csat'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('whatsapp_connections').select('id, name, status');
+      const { data } = await supabase.from('whatsapp_connections').select('id, name, status');
       return data || [];
     },
   });
 
-  const { data: config, isLoading } = useQuery({
+  const { data: config } = useQuery({
     queryKey: ['csat-auto-config'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('csat_auto_config').select('*').limit(1).maybeSingle();
+      const { data } = await supabase.from('csat_auto_config').select('*').limit(1).maybeSingle();
       return data;
     },
   });
 
   const [isEnabled, setIsEnabled] = useState(config?.is_enabled ?? false);
   const [delayMinutes, setDelayMinutes] = useState(config?.delay_minutes ?? 5);
-  const [template, setTemplate] = useState(config?.message_template ?? 'Olá {name}! Como foi seu atendimento? Avalie de 1 a 5 ⭐\n\n1️⃣ Péssimo\n2️⃣ Ruim\n3️⃣ Regular\n4️⃣ Bom\n5️⃣ Excelente');
+  const [template, setTemplate] = useState(
+    config?.message_template ??
+      'Olá {name}! Como foi seu atendimento? Avalie de 1 a 5 ⭐\n\n1️⃣ Péssimo\n2️⃣ Ruim\n3️⃣ Regular\n4️⃣ Bom\n5️⃣ Excelente'
+  );
   const [connectionId, setConnectionId] = useState(config?.whatsapp_connection_id ?? '');
 
   // Sync state when data loads
@@ -59,7 +68,10 @@ export function CSATAutoConfig() {
       };
 
       if (config?.id) {
-        const { error } = await supabase.from('csat_auto_config').update(payload).eq('id', config.id);
+        const { error } = await supabase
+          .from('csat_auto_config')
+          .update(payload)
+          .eq('id', config.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('csat_auto_config').insert(payload);
@@ -68,7 +80,10 @@ export function CSATAutoConfig() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['csat-auto-config'] });
-      toast({ title: 'Configuração CSAT salva!', description: 'As pesquisas de satisfação serão enviadas automaticamente.' });
+      toast({
+        title: 'Configuração CSAT salva!',
+        description: 'As pesquisas de satisfação serão enviadas automaticamente.',
+      });
     },
     onError: (err: Error) => {
       toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
@@ -78,19 +93,19 @@ export function CSATAutoConfig() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <MessageSquareHeart className="w-5 h-5 text-primary" />
+        <h2 className="flex items-center gap-2 text-xl font-bold">
+          <MessageSquareHeart className="h-5 w-5 text-primary" />
           CSAT Automático
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Envie pesquisas de satisfação automaticamente quando um ticket for resolvido.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Zap className="w-4 h-4" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Zap className="h-4 w-4" />
             Configuração
           </CardTitle>
           <CardDescription>
@@ -108,7 +123,7 @@ export function CSATAutoConfig() {
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
+              <Clock className="h-4 w-4" />
               Atraso após resolução (minutos)
             </Label>
             <Input
@@ -116,7 +131,7 @@ export function CSATAutoConfig() {
               min={0}
               max={1440}
               value={delayMinutes}
-              onChange={e => setDelayMinutes(Number(e.target.value))}
+              onChange={(e) => setDelayMinutes(Number(e.target.value))}
             />
             <p className="text-xs text-muted-foreground">
               Tempo de espera antes de enviar a pesquisa (0 = imediato)
@@ -130,7 +145,7 @@ export function CSATAutoConfig() {
                 <SelectValue placeholder="Selecione a conexão" />
               </SelectTrigger>
               <SelectContent>
-                {connections.map(c => (
+                {connections.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name} ({c.status})
                   </SelectItem>
@@ -141,13 +156,13 @@ export function CSATAutoConfig() {
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <Send className="w-4 h-4" />
+              <Send className="h-4 w-4" />
               Modelo da Mensagem
             </Label>
             <Textarea
               rows={5}
               value={template}
-              onChange={e => setTemplate(e.target.value)}
+              onChange={(e) => setTemplate(e.target.value)}
               placeholder="Use {name} para o nome do contato"
             />
             <p className="text-xs text-muted-foreground">
@@ -155,14 +170,21 @@ export function CSATAutoConfig() {
             </p>
           </div>
 
-          <div className="p-4 rounded-lg bg-muted/50 border">
-            <p className="text-xs font-medium mb-2">Pré-visualização:</p>
-            <p className="text-sm whitespace-pre-wrap">
-              {template.replace('{name}', 'João Silva').replace('{agent}', 'Maria').replace('{queue}', 'Suporte')}
+          <div className="rounded-lg border bg-muted/50 p-4">
+            <p className="mb-2 text-xs font-medium">Pré-visualização:</p>
+            <p className="whitespace-pre-wrap text-sm">
+              {template
+                .replace('{name}', 'João Silva')
+                .replace('{agent}', 'Maria')
+                .replace('{queue}', 'Suporte')}
             </p>
           </div>
 
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="w-full">
+          <Button
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending}
+            className="w-full"
+          >
             {saveMutation.isPending ? 'Salvando...' : 'Salvar Configuração'}
           </Button>
         </CardContent>

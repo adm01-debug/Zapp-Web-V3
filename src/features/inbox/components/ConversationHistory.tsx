@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { log } from '@/lib/logger';
-import { 
-  MessageSquare, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  MessageSquare,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
   ChevronRight,
   Calendar,
   Loader2,
   History,
-  Filter
+  Filter,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,24 +50,28 @@ const periodOptions: { value: PeriodFilter; label: string; days: number | null }
 ];
 
 const statusConfig = {
-  resolved: { 
-    label: 'Resolvido', 
-    icon: CheckCircle2, 
-    className: 'bg-success/10 text-success border-success/30' 
+  resolved: {
+    label: 'Resolvido',
+    icon: CheckCircle2,
+    className: 'bg-success/10 text-success border-success/30',
   },
-  pending: { 
-    label: 'Pendente', 
-    icon: AlertCircle, 
-    className: 'bg-warning/10 text-warning border-warning/30' 
+  pending: {
+    label: 'Pendente',
+    icon: AlertCircle,
+    className: 'bg-warning/10 text-warning border-warning/30',
   },
-  open: { 
-    label: 'Aberto', 
-    icon: MessageSquare, 
-    className: 'bg-info/10 text-info border-info/30' 
+  open: {
+    label: 'Aberto',
+    icon: MessageSquare,
+    className: 'bg-info/10 text-info border-info/30',
   },
 };
 
-export function ConversationHistory({ contactId, contactPhone, onSelectConversation }: ConversationHistoryProps) {
+export function ConversationHistory({
+  contactId,
+  contactPhone,
+  onSelectConversation,
+}: ConversationHistoryProps) {
   const [conversations, setConversations] = useState<ConversationHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -81,8 +85,8 @@ export function ConversationHistory({ contactId, contactPhone, onSelectConversat
     setIsLoading(true);
     try {
       // Get the date filter
-      const selectedPeriod = periodOptions.find(p => p.value === periodFilter);
-      const fromDate = selectedPeriod?.days 
+      const selectedPeriod = periodOptions.find((p) => p.value === periodFilter);
+      const fromDate = selectedPeriod?.days
         ? subDays(new Date(), selectedPeriod.days).toISOString()
         : null;
 
@@ -112,7 +116,7 @@ export function ConversationHistory({ contactId, contactPhone, onSelectConversat
 
       // Group messages by day to create "conversation sessions"
       const groupedByDay: Record<string, typeof messages> = {};
-      messages.forEach(msg => {
+      messages.forEach((msg) => {
         const dayKey = format(new Date(msg.created_at), 'yyyy-MM-dd');
         if (!groupedByDay[dayKey]) {
           groupedByDay[dayKey] = [];
@@ -142,13 +146,15 @@ export function ConversationHistory({ contactId, contactPhone, onSelectConversat
             id: dayKey,
             date: new Date(dayKey),
             messageCount: dayMessages.length,
-            lastMessage: lastMsg.content.length > 50 
-              ? `${lastMsg.content.substring(0, 50)}...` 
-              : lastMsg.content,
+            lastMessage:
+              lastMsg.content.length > 50
+                ? `${lastMsg.content.substring(0, 50)}...`
+                : lastMsg.content,
             status,
-            duration: durationMinutes > 60 
-              ? `${Math.round(durationMinutes / 60)}h ${durationMinutes % 60}min`
-              : `${durationMinutes}min`,
+            duration:
+              durationMinutes > 60
+                ? `${Math.round(durationMinutes / 60)}h ${durationMinutes % 60}min`
+                : `${durationMinutes}min`,
           };
         })
         .sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -163,23 +169,22 @@ export function ConversationHistory({ contactId, contactPhone, onSelectConversat
   };
 
   const displayedConversations = isExpanded ? conversations : conversations.slice(0, 3);
-  const selectedPeriodLabel = periodOptions.find(p => p.value === periodFilter)?.label || '';
+  const _selectedPeriodLabel = periodOptions.find((p) => p.value === periodFilter)?.label || '';
 
   return (
     <div className="space-y-3">
-
       {/* Period Filter */}
       <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
-        <SelectTrigger className="w-full h-8 text-xs bg-muted/20 border-border/30 hover:border-primary/30">
+        <SelectTrigger className="h-8 w-full border-border/30 bg-muted/20 text-xs hover:border-primary/30">
           <div className="flex items-center gap-2">
-            <Filter className="w-3 h-3 text-muted-foreground" />
+            <Filter className="h-3 w-3 text-muted-foreground" />
             <SelectValue placeholder="Filtrar período" />
           </div>
         </SelectTrigger>
-        <SelectContent className="bg-card border-border/30">
+        <SelectContent className="border-border/30 bg-card">
           {periodOptions.map((option) => (
-            <SelectItem 
-              key={option.value} 
+            <SelectItem
+              key={option.value}
               value={option.value}
               className="text-xs hover:bg-primary/10"
             >
@@ -191,11 +196,11 @@ export function ConversationHistory({ contactId, contactPhone, onSelectConversat
 
       {isLoading ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </div>
       ) : conversations.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground">
-          <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <div className="py-6 text-center text-muted-foreground">
+          <History className="mx-auto mb-2 h-8 w-8 opacity-50" />
           <p className="text-sm">Nenhuma conversa anterior</p>
           <p className="text-xs">Esta é a primeira interação</p>
         </div>
@@ -204,7 +209,7 @@ export function ConversationHistory({ contactId, contactPhone, onSelectConversat
           <AnimatePresence>
             {displayedConversations.map((conv, index) => {
               const StatusIcon = statusConfig[conv.status].icon;
-              
+
               return (
                 <motion.button
                   key={conv.id}
@@ -213,40 +218,38 @@ export function ConversationHistory({ contactId, contactPhone, onSelectConversat
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ delay: index * 0.05 }}
                   onClick={() => onSelectConversation?.(conv.id)}
-                  className="w-full text-left p-3 rounded-lg bg-muted/20 border border-border/20 hover:border-primary/30 hover:bg-muted/30 transition-all group"
+                  className="group w-full rounded-lg border border-border/20 bg-muted/20 p-3 text-left transition-all hover:border-primary/30 hover:bg-muted/30"
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className="text-xs font-medium">
                         {format(conv.date, "d 'de' MMM, yyyy", { locale: ptBR })}
                       </span>
                     </div>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={`text-[10px] ${statusConfig[conv.status].className}`}
                     >
-                      <StatusIcon className="w-3 h-3 mr-1" />
+                      <StatusIcon className="mr-1 h-3 w-3" />
                       {statusConfig[conv.status].label}
                     </Badge>
                   </div>
-                  
-                  <p className="text-sm text-foreground line-clamp-1 mb-2">
-                    {conv.lastMessage}
-                  </p>
-                  
+
+                  <p className="mb-2 line-clamp-1 text-sm text-foreground">{conv.lastMessage}</p>
+
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1">
-                        <MessageSquare className="w-3 h-3" />
+                        <MessageSquare className="h-3 w-3" />
                         {conv.messageCount} msg
                       </span>
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                        <Clock className="h-3 w-3" />
                         {conv.duration}
                       </span>
                     </div>
-                    <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+                    <ChevronRight className="h-4 w-4 text-primary opacity-0 transition-opacity group-hover:opacity-100" />
                   </div>
                 </motion.button>
               );
@@ -261,7 +264,9 @@ export function ConversationHistory({ contactId, contactPhone, onSelectConversat
               className="w-full text-xs text-muted-foreground hover:text-primary"
             >
               {isExpanded ? 'Ver menos' : `Ver mais ${conversations.length - 3} conversas`}
-              <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+              <ChevronRight
+                className={`ml-1 h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              />
             </Button>
           )}
         </div>

@@ -6,8 +6,8 @@ import { type StickerItem, type PendingUpload, CATEGORY_LABELS } from '@/feature
 
 const log = getLogger('StickerPicker');
 const RECENT_LIMIT = 8;
-const MAX_STICKER_SIZE = 500 * 1024; // 500KB
-const ACCEPTED_TYPES = ['image/webp', 'image/png', 'image/gif', 'image/jpeg'];
+const _MAX_STICKER_SIZE = 500 * 1024; // 500KB
+const _ACCEPTED_TYPES = ['image/webp', 'image/png', 'image/gif', 'image/jpeg'];
 
 /**
  * Safely extracts the storage path from a Supabase Storage URL.
@@ -31,7 +31,7 @@ function extractStoragePath(url: string, bucket: string): string | null {
 /**
  * Validates that a DB record has the required StickerItem fields.
  */
-function isStickerItem(item: unknown): item is StickerItem {
+function _isStickerItem(item: unknown): item is StickerItem {
   if (!item || typeof item !== 'object') return false;
   const obj = item as Record<string, unknown>;
   return typeof obj.id === 'string' && typeof obj.image_url === 'string';
@@ -52,7 +52,6 @@ function validateStickerRow(row: unknown): row is StickerItem {
   const r = row as Record<string, unknown>;
   return typeof r.id === 'string' && typeof r.image_url === 'string';
 }
-
 
 export function useStickerPicker(onSendSticker: (url: string) => void) {
   const [open, setOpen] = useState(false);
@@ -110,7 +109,7 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'S') {
         e.preventDefault();
-        setOpen(prev => !prev);
+        setOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handler);
@@ -155,14 +154,23 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
       });
 
       // Background AI classification — updates category when ready
-      supabase.functions.invoke('classify-sticker', { body: { image_url: urlData.publicUrl } })
+      supabase.functions
+        .invoke('classify-sticker', { body: { image_url: urlData.publicUrl } })
         .then(({ data: classifyData, error: classifyErr }) => {
           if (!classifyErr && classifyData?.category) {
-            setPendingUpload(prev => prev ? { ...prev, aiCategory: classifyData.category, selectedCategory: classifyData.category } : null);
+            setPendingUpload((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    aiCategory: classifyData.category,
+                    selectedCategory: classifyData.category,
+                  }
+                : null
+            );
             toast.success('🧠 IA classificou: ' + classifyData.category);
           }
         })
-        .catch(err => log.error('AI classification error:' , err));
+        .catch((err) => log.error('AI classification error:', err));
     } catch {
       toast.error('Erro ao processar figurinha');
     } finally {
@@ -172,46 +180,63 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); e.stopPropagation(); setIsDragOver(true);
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); e.stopPropagation(); setIsDragOver(false);
-  }, []);
-
-  // BUG 1 FIX: processFile now in dependency array
-  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) processFile(file);
-  }, [processFile]);
+  }, []);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-  }, [processFile]);
+  // BUG 1 FIX: processFile now in dependency array
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) processFile(file);
+    },
+    [processFile]
+  );
 
-  const handleConfirmUpload = useCallback(async (pending: PendingUpload) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error: insertError } = await supabase.from('stickers').insert({
-      name: pending.name,
-      image_url: pending.imageUrl,
-      category: pending.selectedCategory,
-      is_favorite: false,
-      use_count: 0,
-      uploaded_by: user?.id || null,
-    });
-    if (insertError) {
-      log.error('[StickerPicker] Insert error:', insertError);
-      toast.error('Erro ao salvar figurinha');
-      return;
-    }
-    toast.success(`✅ Figurinha "${pending.name}" salva como "${CATEGORY_LABELS[pending.selectedCategory]?.label}"!`);
-    setPendingUpload(null);
-    fetchStickers();
-  }, [fetchStickers]);
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) processFile(file);
+    },
+    [processFile]
+  );
+
+  const handleConfirmUpload = useCallback(
+    async (pending: PendingUpload) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const { error: insertError } = await supabase.from('stickers').insert({
+        name: pending.name,
+        image_url: pending.imageUrl,
+        category: pending.selectedCategory,
+        is_favorite: false,
+        use_count: 0,
+        uploaded_by: user?.id || null,
+      });
+      if (insertError) {
+        log.error('[StickerPicker] Insert error:', insertError);
+        toast.error('Erro ao salvar figurinha');
+        return;
+      }
+      toast.success(
+        `✅ Figurinha "${pending.name}" salva como "${CATEGORY_LABELS[pending.selectedCategory]?.label}"!`
+      );
+      setPendingUpload(null);
+      fetchStickers();
+    },
+    [fetchStickers]
+  );
 
   const handleCancelUpload = useCallback(async () => {
     if (pendingUpload) {
@@ -220,30 +245,37 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     setPendingUpload(null);
   }, [pendingUpload]);
 
-  const handleSend = useCallback(async (sticker: StickerItem) => {
-    onSendSticker(sticker.image_url);
-    setOpen(false);
+  const handleSend = useCallback(
+    async (sticker: StickerItem) => {
+      onSendSticker(sticker.image_url);
+      setOpen(false);
 
-    // FALHA 7 FIX: Error handling on use_count update
-    const { error: countError } = await supabase
-      .from('stickers')
-      .update({ use_count: (sticker.use_count || 0) + 1 })
-      .eq('id', sticker.id);
-    if (countError) {
-      log.error('[handleSend] use_count update failed:', countError.message);
-    }
-  }, [onSendSticker]);
+      // FALHA 7 FIX: Error handling on use_count update
+      const { error: countError } = await supabase
+        .from('stickers')
+        .update({ use_count: (sticker.use_count || 0) + 1 })
+        .eq('id', sticker.id);
+      if (countError) {
+        log.error('[handleSend] use_count update failed:', countError.message);
+      }
+    },
+    [onSendSticker]
+  );
 
   const toggleFavorite = useCallback(async (e: React.MouseEvent, sticker: StickerItem) => {
     e.stopPropagation();
     const newVal = !sticker.is_favorite;
-    setStickers(prev => prev.map(s => s.id === sticker.id ? { ...s, is_favorite: newVal } : s));
+    setStickers((prev) =>
+      prev.map((s) => (s.id === sticker.id ? { ...s, is_favorite: newVal } : s))
+    );
     await supabase.from('stickers').update({ is_favorite: newVal }).eq('id', sticker.id);
     toast.success(newVal ? '⭐ Adicionada aos favoritos' : 'Removida dos favoritos');
   }, []);
 
   const handleCategoryChange = useCallback(async (sticker: StickerItem, newCategory: string) => {
-    setStickers(prev => prev.map(s => s.id === sticker.id ? { ...s, category: newCategory } : s));
+    setStickers((prev) =>
+      prev.map((s) => (s.id === sticker.id ? { ...s, category: newCategory } : s))
+    );
     await supabase.from('stickers').update({ category: newCategory }).eq('id', sticker.id);
     toast.success(`Categoria: "${CATEGORY_LABELS[newCategory]?.label || newCategory}"`);
   }, []);
@@ -251,7 +283,7 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
   // FALHA 8 FIX: Safe URL parsing for storage path extraction
   const handleDelete = useCallback(async (e: React.MouseEvent, sticker: StickerItem) => {
     e.stopPropagation();
-    setStickers(prev => prev.filter(s => s.id !== sticker.id));
+    setStickers((prev) => prev.filter((s) => s.id !== sticker.id));
 
     // Determine bucket and extract clean path
     const bucket = sticker.image_url.includes('/whatsapp-media/') ? 'whatsapp-media' : 'stickers';
@@ -260,7 +292,10 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     if (path) {
       const { error: removeError } = await supabase.storage.from(bucket).remove([path]);
       if (removeError) {
-        log.error(`[handleDelete] Storage remove failed for ${bucket}/${path}:`, removeError.message);
+        log.error(
+          `[handleDelete] Storage remove failed for ${bucket}/${path}:`,
+          removeError.message
+        );
       }
     } else {
       log.warn('[handleDelete] Could not extract storage path from:', sticker.image_url);
@@ -277,31 +312,60 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     let result = stickers;
     if (search) {
       const term = search.toLowerCase();
-      result = result.filter(s =>
-        s.name?.toLowerCase().includes(term) ||
-        s.category?.toLowerCase().includes(term) ||
-        CATEGORY_LABELS[s.category]?.label.toLowerCase().includes(term)
+      result = result.filter(
+        (s) =>
+          s.name?.toLowerCase().includes(term) ||
+          s.category?.toLowerCase().includes(term) ||
+          CATEGORY_LABELS[s.category]?.label.toLowerCase().includes(term)
       );
     }
     if (showRecent) {
-      result = [...result].sort((a, b) => (b.use_count || 0) - (a.use_count || 0)).slice(0, RECENT_LIMIT);
+      result = [...result]
+        .sort((a, b) => (b.use_count || 0) - (a.use_count || 0))
+        .slice(0, RECENT_LIMIT);
     } else if (showFavorites) {
-      result = result.filter(s => s.is_favorite);
+      result = result.filter((s) => s.is_favorite);
     } else if (activeCategory) {
-      result = result.filter(s => s.category === activeCategory);
+      result = result.filter((s) => s.category === activeCategory);
     }
     return result;
   }, [stickers, search, showFavorites, showRecent, activeCategory]);
 
   const cycleGridSize = useCallback(() => {
-    setGridSize(prev => prev === 'sm' ? 'md' : prev === 'md' ? 'lg' : 'sm');
+    setGridSize((prev) => (prev === 'sm' ? 'md' : prev === 'md' ? 'lg' : 'sm'));
   }, []);
 
   return {
-    open, setOpen, stickers, filtered, loading, search, setSearch, uploading, activeCategory, setActiveCategory,
-    showFavorites, setShowFavorites, showRecent, setShowRecent, pendingUpload, setPendingUpload,
-    gridSize, isDragOver, fileInputRef, searchInputRef,
-    handleDragOver, handleDragLeave, handleDrop, handleFileSelect,
-    handleConfirmUpload, handleCancelUpload, handleSend, toggleFavorite, handleCategoryChange, handleDelete, cycleGridSize,
+    open,
+    setOpen,
+    stickers,
+    filtered,
+    loading,
+    search,
+    setSearch,
+    uploading,
+    activeCategory,
+    setActiveCategory,
+    showFavorites,
+    setShowFavorites,
+    showRecent,
+    setShowRecent,
+    pendingUpload,
+    setPendingUpload,
+    gridSize,
+    isDragOver,
+    fileInputRef,
+    searchInputRef,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleFileSelect,
+    handleConfirmUpload,
+    handleCancelUpload,
+    handleSend,
+    toggleFavorite,
+    handleCategoryChange,
+    handleDelete,
+    cycleGridSize,
   };
 }

@@ -60,8 +60,12 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
   const parts = useMemo(() => {
     if (!formattedContent) return [];
 
-    const segments: { type: 'text' | 'bold' | 'italic' | 'code' | 'link'; content: string; url?: string }[] = [];
-    const remaining = formattedContent;
+    const segments: {
+      type: 'text' | 'bold' | 'italic' | 'code' | 'link';
+      content: string;
+      url?: string;
+    }[] = [];
+    const _remaining = formattedContent;
 
     // Process formatting patterns
     const patterns = [
@@ -74,11 +78,17 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
 
     // Simple parsing - split on patterns
     let lastIndex = 0;
-    const allMatches: { index: number; length: number; type: typeof patterns[0]['type']; content: string; url?: string }[] = [];
+    const allMatches: {
+      index: number;
+      length: number;
+      type: (typeof patterns)[0]['type'];
+      content: string;
+      url?: string;
+    }[] = [];
 
     patterns.forEach(({ regex, type }) => {
       const matches = [...formattedContent.matchAll(regex)];
-      matches.forEach(match => {
+      matches.forEach((match) => {
         if (match.index !== undefined) {
           allMatches.push({
             index: match.index,
@@ -95,7 +105,7 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
     allMatches.sort((a, b) => a.index - b.index);
 
     // Build segments
-    allMatches.forEach(match => {
+    allMatches.forEach((match) => {
       if (match.index > lastIndex) {
         segments.push({ type: 'text', content: formattedContent.slice(lastIndex, match.index) });
       }
@@ -119,21 +129,32 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -5 }}
         className={cn(
-          "text-[13px] text-muted-foreground p-2 rounded-lg bg-muted/50 border border-border/50",
+          'rounded-lg border border-border/50 bg-muted/50 p-2 text-[13px] text-muted-foreground',
           className
         )}
       >
-        <span className="text-[11px] text-muted-foreground/70 block mb-1">Preview:</span>
+        <span className="mb-1 block text-[11px] text-muted-foreground/70">Preview:</span>
         <span className="break-words">
           {parts.map((part, index) => {
             switch (part.type) {
               case 'bold':
-                return <strong key={`${part.type}-${index}`} className="font-bold text-foreground">{part.content}</strong>;
+                return (
+                  <strong key={`${part.type}-${index}`} className="font-bold text-foreground">
+                    {part.content}
+                  </strong>
+                );
               case 'italic':
-                return <em key={`${part.type}-${index}`} className="italic">{part.content}</em>;
+                return (
+                  <em key={`${part.type}-${index}`} className="italic">
+                    {part.content}
+                  </em>
+                );
               case 'code':
                 return (
-                  <code key={`${part.type}-${index}`} className="px-1 py-0.5 bg-primary/10 text-primary rounded text-[11px] ">
+                  <code
+                    key={`${part.type}-${index}`}
+                    className="rounded bg-primary/10 px-1 py-0.5 text-[11px] text-primary"
+                  >
                     {part.content}
                   </code>
                 );
@@ -163,7 +184,7 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
 export function useHasFormattableContent(content: string): boolean {
   return useMemo(() => {
     if (!content) return false;
-    
+
     const patterns = [
       /\*\*.+?\*\*/, // bold
       /\*.+?\*/, // italic
@@ -171,9 +192,14 @@ export function useHasFormattableContent(content: string): boolean {
       /`.+?`/, // code
       /https?:\/\/[^\s]+/, // link
       /:[a-z_]+:/, // emoji shortcode
-      /:\)/, /:\(/, /:D/, /;\)/, /:P/, /<3/, // simple emojis
+      /:\)/,
+      /:\(/,
+      /:D/,
+      /;\)/,
+      /:P/,
+      /<3/, // simple emojis
     ];
 
-    return patterns.some(pattern => pattern.test(content));
+    return patterns.some((pattern) => pattern.test(content));
   }, [content]);
 }

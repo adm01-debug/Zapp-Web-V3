@@ -1,9 +1,29 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Search, Radar, GraduationCap, FileText, Info, Loader2, AlertTriangle, LayoutTemplate, ClipboardCheck, BarChart3 } from 'lucide-react';
+import {
+  Search,
+  Radar,
+  GraduationCap,
+  FileText,
+  Info,
+  Loader2,
+  AlertTriangle,
+  LayoutTemplate,
+  ClipboardCheck,
+  BarChart3,
+} from 'lucide-react';
 
-export type ActiveTool = 'chatSearch' | 'objections' | 'university' | 'aiAssistant' | 'summary' | 'teamFiles' | 'templates' | 'monitoring' | null;
+export type ActiveTool =
+  | 'chatSearch'
+  | 'objections'
+  | 'university'
+  | 'aiAssistant'
+  | 'summary'
+  | 'teamFiles'
+  | 'templates'
+  | 'monitoring'
+  | null;
 
 interface ChatHeaderToolbarProps {
   activeTool?: ActiveTool;
@@ -42,17 +62,22 @@ function ToolButton({ icon, label, active, onClick, disabled, badge, highlight }
           variant="ghost"
           size="icon"
           className={cn(
-            "w-9 h-9 active:scale-95 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
-            highlight ? "text-primary bg-primary/10 hover:bg-primary/20 hover:text-primary ring-1 ring-primary/20" :
-            active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted",
-            badge && "relative"
+            'h-9 w-9 outline-none transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 active:scale-95',
+            highlight
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20 hover:bg-primary/20 hover:text-primary'
+              : active
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            badge && 'relative'
           )}
           onClick={onClick}
           disabled={disabled}
           aria-label={label}
         >
           {icon}
-          {badge && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />}
+          {badge && (
+            <span className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-primary" />
+          )}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">{label}</TooltipContent>
@@ -61,22 +86,37 @@ function ToolButton({ icon, label, active, onClick, disabled, badge, highlight }
 }
 
 export function ChatHeaderToolbar({
-  activeTool, showAIAssistant, showDetails, showSummaryPanel, isSummaryLoading,
-  onOpenSearch, onSetActiveTool, onToggleAIAssistant, onToggleDetails, onGenerateSummary,
-  failuresOnly, onToggleFailuresOnly, failuresCount = 0,
+  activeTool,
+  showAIAssistant: _showAIAssistant,
+  showDetails,
+  showSummaryPanel,
+  isSummaryLoading,
+  onOpenSearch,
+  onSetActiveTool,
+  onToggleAIAssistant: _onToggleAIAssistant,
+  onToggleDetails,
+  onGenerateSummary,
+  failuresOnly,
+  onToggleFailuresOnly,
+  failuresCount = 0,
   onOpenValidation,
 }: ChatHeaderToolbarProps) {
   return (
     <>
-      <ToolButton icon={<Search className="w-[18px] h-[18px]" />} label="Buscar na conversa (Ctrl+F)" onClick={onOpenSearch} highlight />
+      <ToolButton
+        icon={<Search className="h-[18px] w-[18px]" />}
+        label="Buscar na conversa (Ctrl+F)"
+        onClick={onOpenSearch}
+        highlight
+      />
       {onToggleFailuresOnly && (
         <ToolButton
           icon={
             <span className="relative inline-flex">
-              <AlertTriangle className="w-[18px] h-[18px]" />
+              <AlertTriangle className="h-[18px] w-[18px]" />
               {failuresCount > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold leading-[14px] text-center"
+                  className="absolute -right-1 -top-1 h-[14px] min-w-[14px] rounded-full bg-destructive px-1 text-center text-[9px] font-bold leading-[14px] text-destructive-foreground"
                   aria-hidden="true"
                 >
                   {failuresCount > 99 ? '99+' : failuresCount}
@@ -95,21 +135,61 @@ export function ChatHeaderToolbar({
           onClick={onToggleFailuresOnly}
         />
       )}
-      <ToolButton icon={<Radar className="w-[18px] h-[18px]" />} label="Monitoramento de Objeções" active={activeTool === 'objections'} onClick={() => onSetActiveTool?.('objections')} />
-      <ToolButton icon={<GraduationCap className="w-[18px] h-[18px]" />} label="Ajuda dos Universitários" active={activeTool === 'university'} onClick={() => onSetActiveTool?.('university')} />
-      <ToolButton icon={<LayoutTemplate className="w-[18px] h-[18px]" />} label="Templates dinâmicos" active={activeTool === 'templates'} onClick={() => onSetActiveTool?.('templates')} />
+      <ToolButton
+        icon={<Radar className="h-[18px] w-[18px]" />}
+        label="Monitoramento de Objeções"
+        active={activeTool === 'objections'}
+        onClick={() => onSetActiveTool?.('objections')}
+      />
+      <ToolButton
+        icon={<GraduationCap className="h-[18px] w-[18px]" />}
+        label="Ajuda dos Universitários"
+        active={activeTool === 'university'}
+        onClick={() => onSetActiveTool?.('university')}
+      />
+      <ToolButton
+        icon={<LayoutTemplate className="h-[18px] w-[18px]" />}
+        label="Templates dinâmicos"
+        active={activeTool === 'templates'}
+        onClick={() => onSetActiveTool?.('templates')}
+      />
       {onGenerateSummary && (
         <ToolButton
-          icon={isSummaryLoading ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : <FileText className="w-[18px] h-[18px]" />}
-          label="Resumo da conversa" active={showSummaryPanel} onClick={onGenerateSummary} disabled={isSummaryLoading}
+          icon={
+            isSummaryLoading ? (
+              <Loader2 className="h-[18px] w-[18px] animate-spin" />
+            ) : (
+              <FileText className="h-[18px] w-[18px]" />
+            )
+          }
+          label="Resumo da conversa"
+          active={showSummaryPanel}
+          onClick={onGenerateSummary}
+          disabled={isSummaryLoading}
         />
       )}
       {onToggleDetails && (
-        <ToolButton icon={<Info className="w-[18px] h-[18px]" />} label="Detalhes do contato" active={showDetails} onClick={onToggleDetails} badge={!showDetails} />
+        <ToolButton
+          icon={<Info className="h-[18px] w-[18px]" />}
+          label="Detalhes do contato"
+          active={showDetails}
+          onClick={onToggleDetails}
+          badge={!showDetails}
+        />
       )}
-      <ToolButton icon={<BarChart3 className="w-[18px] h-[18px]" />} label="Métricas de Envio" active={activeTool === 'monitoring'} onClick={() => onSetActiveTool?.('monitoring')} />
+      <ToolButton
+        icon={<BarChart3 className="h-[18px] w-[18px]" />}
+        label="Métricas de Envio"
+        active={activeTool === 'monitoring'}
+        onClick={() => onSetActiveTool?.('monitoring')}
+      />
       {onOpenValidation && (
-        <ToolButton icon={<ClipboardCheck className="w-[18px] h-[18px]" />} label="Checklist de Validação 10/10" onClick={onOpenValidation} highlight />
+        <ToolButton
+          icon={<ClipboardCheck className="h-[18px] w-[18px]" />}
+          label="Checklist de Validação 10/10"
+          onClick={onOpenValidation}
+          highlight
+        />
       )}
     </>
   );

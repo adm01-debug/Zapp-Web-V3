@@ -5,7 +5,7 @@ import { VisionIcon } from '../ai-tools/VisionIcon';
 import { Message } from '@/types/chat';
 import type { ActiveTool } from './ChatHeaderToolbar';
 
-const ConversationSummary = lazy(() =>
+const _ConversationSummary = lazy(() =>
   import('../ConversationSummary').then((m) => ({ default: m.ConversationSummary }))
 );
 const ObjectionDetector = lazy(() =>

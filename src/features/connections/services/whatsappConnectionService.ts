@@ -39,7 +39,7 @@ export const whatsappConnectionService = {
   async logQrAttempt(connId: string, instanceId: string, name: string, status: string = 'pending') {
     try {
       log.debug(`Logging QR attempt for ${instanceId} (${status})`);
-      const { data: userData , error } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       const result = await whatsappConnectionRepository.logQrAttempt({
         connection_id: connId,
         instance_id: instanceId,

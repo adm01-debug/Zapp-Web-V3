@@ -75,7 +75,7 @@ function formatMessageTime(date: Date): string {
 
 export function ChatMessageBubble({
   message,
-  reactions,
+  reactions: _reactions,
   ttsLoading,
   ttsPlaying,
   ttsMessageId,

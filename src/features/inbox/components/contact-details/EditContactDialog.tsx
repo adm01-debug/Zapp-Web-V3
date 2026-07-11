@@ -10,8 +10,12 @@
  */
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-  DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,59 +31,67 @@ import { useRetryOperation } from '@/hooks/useRetryOperation';
 import { ContactPhoneManager, PhoneEntry } from '@/components/contacts/ContactPhoneManager';
 import { ContactConsentManager } from '@/components/contacts/ContactConsentManager';
 import { AuditLogPanel } from '@/components/contacts/AuditLogPanel';
-import { ConflictResolutionDialog, ConflictInfo } from '@/components/contacts/ConflictResolutionDialog';
+import {
+  ConflictResolutionDialog,
+  ConflictInfo,
+} from '@/components/contacts/ConflictResolutionDialog';
 import { dbFrom } from '@/integrations/datasource/db';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface ContactData {
-  id:             string;
-  name:           string;
-  phone:          string | null;
-  email:          string | null;
-  company:        string | null;
-  notes:          string | null;
-  tags:           string[];
-  phone_numbers:  PhoneEntry[];
-  version:        number;
-  lgpd_consent_at:         string | null;
-  lgpd_consent_channel:    string | null;
-  lgpd_opt_out_at:         string | null;
-  lgpd_marketing_consent:  boolean;
-  lgpd_data_sharing:       boolean;
-  lgpd_profiling:          boolean;
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  company: string | null;
+  notes: string | null;
+  tags: string[];
+  phone_numbers: PhoneEntry[];
+  version: number;
+  lgpd_consent_at: string | null;
+  lgpd_consent_channel: string | null;
+  lgpd_opt_out_at: string | null;
+  lgpd_marketing_consent: boolean;
+  lgpd_data_sharing: boolean;
+  lgpd_profiling: boolean;
 }
 
 interface EditContactDialogProps {
-  open:          boolean;
-  onOpenChange:  (v: boolean) => void;
-  contact:       ContactData;
-  onSaved?:      (updated: ContactData) => void;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  contact: ContactData;
+  onSaved?: (updated: ContactData) => void;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
 
 export const EditContactDialog: React.FC<EditContactDialogProps> = ({
-  open, onOpenChange, contact, onSaved,
+  open,
+  onOpenChange,
+  contact,
+  onSaved,
 }) => {
   const { toast } = useToast();
   const { withRetry, loading: retryLoading } = useRetryOperation(3, 500);
 
   // Form state
-  const [name,         setName]         = useState(contact.name);
-  const [email,        setEmail]        = useState(contact.email ?? '');
-  const [company,      setCompany]      = useState(contact.company ?? '');
-  const [notes,        setNotes]        = useState(contact.notes ?? '');
+  const [name, setName] = useState(contact.name);
+  const [email, setEmail] = useState(contact.email ?? '');
+  const [company, setCompany] = useState(contact.company ?? '');
+  const [notes, setNotes] = useState(contact.notes ?? '');
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneEntry[]>(
     contact.phone_numbers?.length > 0
       ? contact.phone_numbers
-      : contact.phone ? [{ number: contact.phone, type: 'mobile', is_whatsapp: true, is_primary: true }] : []
+      : contact.phone
+        ? [{ number: contact.phone, type: 'mobile', is_whatsapp: true, is_primary: true }]
+        : []
   );
 
   // Conflict resolution state
   const [conflictOpen, setConflictOpen] = useState(false);
-  const [conflict,     setConflict]     = useState<ConflictInfo | null>(null);
-  const [pendingData,  setPendingData]  = useState<Record<string, unknown> | null>(null);
+  const [conflict, setConflict] = useState<ConflictInfo | null>(null);
+  const [_pendingData, setPendingData] = useState<Record<string, unknown> | null>(null);
 
   // Reset form when contact changes (use contact.id to avoid infinite re-render loop — #310)
   useEffect(() => {
@@ -90,24 +102,34 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
     setPhoneNumbers(
       contact.phone_numbers?.length > 0
         ? contact.phone_numbers
-        : contact.phone ? [{ number: contact.phone, type: 'mobile' as const, is_whatsapp: true, is_primary: true }] : []
+        : contact.phone
+          ? [
+              {
+                number: contact.phone,
+                type: 'mobile' as const,
+                is_whatsapp: true,
+                is_primary: true,
+              },
+            ]
+          : []
     );
   }, [contact.id]);
 
   const buildUpdateData = () => ({
-    name:          sanitizeText(name).trim(),
-    email:         email.trim() || null,
-    company:       sanitizeText(company).trim() || null,
-    notes:         sanitizeHtml(notes).trim() || null,
+    name: sanitizeText(name).trim(),
+    email: email.trim() || null,
+    company: sanitizeText(company).trim() || null,
+    notes: sanitizeHtml(notes).trim() || null,
     phone_numbers: phoneNumbers,
-    phone:         phoneNumbers.find((p) => p.is_primary)?.number ?? null,
+    phone: phoneNumbers.find((p) => p.is_primary)?.number ?? null,
   });
 
   const saveWithVersionCheck = async (force = false) => {
     const data = buildUpdateData();
 
     if (!data.name) {
-      toast({ title: 'Nome obrigatório', variant: 'destructive' }); return;
+      toast({ title: 'Nome obrigatório', variant: 'destructive' });
+      return;
     }
 
     // Validate primary phone if present
@@ -115,7 +137,8 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
     if (primaryPhone) {
       const validation = validatePhone(primaryPhone.number);
       if (!validation.valid) {
-        toast({ title: `Telefone inválido: ${validation.error}`, variant: 'destructive' }); return;
+        toast({ title: `Telefone inválido: ${validation.error}`, variant: 'destructive' });
+        return;
       }
     }
 
@@ -129,11 +152,14 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
           if (updateError) throw updateError;
         } else {
           // Use versioned update to detect concurrent edits
-          const { data: result, error: rpcError } = await (supabase as any).rpc('update_contact_versioned', {
-            p_contact_id:       contact.id,
-            p_expected_version: contact.version,
-            p_updates:          data,
-          });
+          const { data: result, error: rpcError } = await (supabase as any).rpc(
+            'update_contact_versioned',
+            {
+              p_contact_id: contact.id,
+              p_expected_version: contact.version,
+              p_updates: data,
+            }
+          );
 
           if (rpcError) throw rpcError;
 
@@ -162,27 +188,28 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
               Editar Contato
             </DialogTitle>
-            <DialogDescription>
-              {sanitizeText(contact.name)}
-            </DialogDescription>
+            <DialogDescription>{sanitizeText(contact.name)}</DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="info">
             <TabsList className="mb-4">
               <TabsTrigger value="info" className="gap-1">
-                <User className="h-3.5 w-3.5" />Informações
+                <User className="h-3.5 w-3.5" />
+                Informações
               </TabsTrigger>
               <TabsTrigger value="consent" className="gap-1">
-                <Shield className="h-3.5 w-3.5" />LGPD
+                <Shield className="h-3.5 w-3.5" />
+                LGPD
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-1">
-                <History className="h-3.5 w-3.5" />Histórico
+                <History className="h-3.5 w-3.5" />
+                Histórico
               </TabsTrigger>
             </TabsList>
 
@@ -223,10 +250,7 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
               <Separator />
 
               {/* Phone manager */}
-              <ContactPhoneManager
-                phones={phoneNumbers}
-                onChange={setPhoneNumbers}
-              />
+              <ContactPhoneManager phones={phoneNumbers} onChange={setPhoneNumbers} />
 
               <Separator />
 
@@ -239,7 +263,7 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Observações sobre o contato..."
                   rows={3}
-                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="min-h-[80px] w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
             </TabsContent>
@@ -250,12 +274,12 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
                 contactId={contact.id}
                 contactName={sanitizeText(contact.name)}
                 consentData={{
-                  lgpd_consent_at:        contact.lgpd_consent_at,
-                  lgpd_consent_channel:   contact.lgpd_consent_channel,
-                  lgpd_opt_out_at:        contact.lgpd_opt_out_at,
+                  lgpd_consent_at: contact.lgpd_consent_at,
+                  lgpd_consent_channel: contact.lgpd_consent_channel,
+                  lgpd_opt_out_at: contact.lgpd_opt_out_at,
                   lgpd_marketing_consent: contact.lgpd_marketing_consent,
-                  lgpd_data_sharing:      contact.lgpd_data_sharing,
-                  lgpd_profiling:         contact.lgpd_profiling,
+                  lgpd_data_sharing: contact.lgpd_data_sharing,
+                  lgpd_profiling: contact.lgpd_profiling,
                 }}
               />
             </TabsContent>
@@ -270,8 +294,16 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={retryLoading}>
               Cancelar
             </Button>
-            <Button onClick={() => saveWithVersionCheck(false)} disabled={retryLoading} className="gap-2">
-              {retryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            <Button
+              onClick={() => saveWithVersionCheck(false)}
+              disabled={retryLoading}
+              className="gap-2"
+            >
+              {retryLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               {retryLoading ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
