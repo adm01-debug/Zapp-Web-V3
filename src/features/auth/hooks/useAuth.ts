@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { AuthContext } from '@/features/auth/context/AuthContext';
+import { AuthContext } from '../context/AuthContext';
 
 /**
  * Hook customizado e centralizado para acessar o estado de autenticação.

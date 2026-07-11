@@ -1,4 +1,4 @@
-import { dbFrom, dbChannel, dbClient, dbTable, dbList } from '@/integrations/datasource/db';
+import { dbFrom, dbChannel, dbClient, dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { RealtimePostgresChangesPayload, RealtimeChannel } from '@supabase/supabase-js';
 
@@ -46,11 +46,14 @@ export const messageRepository = {
     });
   },
 
-  subscribeToMessages(contactId: string, callbacks: {
-    onInsert: (payload: RealtimePostgresChangesPayload<Message>) => void;
-    onUpdate: (payload: RealtimePostgresChangesPayload<Message>) => void;
-    onDelete: (payload: RealtimePostgresChangesPayload<Message>) => void;
-  }) {
+  subscribeToMessages(
+    contactId: string,
+    callbacks: {
+      onInsert: (payload: RealtimePostgresChangesPayload<Message>) => void;
+      onUpdate: (payload: RealtimePostgresChangesPayload<Message>) => void;
+      onDelete: (payload: RealtimePostgresChangesPayload<Message>) => void;
+    }
+  ) {
     // FATOR X v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
     // A view compat `public.messages` nao emite eventos postgres_changes.
     const table = 'evolution_messages';
@@ -92,5 +95,5 @@ export const messageRepository = {
 
   unsubscribe(channel: RealtimeChannel) {
     dbClient('messages').removeChannel(channel);
-  }
+  },
 };

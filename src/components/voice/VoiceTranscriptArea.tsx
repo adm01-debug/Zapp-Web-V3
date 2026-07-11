@@ -23,12 +23,12 @@ export function VoiceTranscriptArea({
   finalTranscript,
   agentResponse,
   error,
-  colors,
+  colors: _colors,
 }: VoiceTranscriptAreaProps) {
   const prefersReduced = useReducedMotion();
 
   return (
-    <div className="w-full min-h-[56px] space-y-2" aria-live="polite" aria-atomic="true">
+    <div className="min-h-[56px] w-full space-y-2" aria-live="polite" aria-atomic="true">
       <AnimatePresence mode="wait">
         {partialTranscript && (
           <motion.div
@@ -36,7 +36,7 @@ export function VoiceTranscriptArea({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="text-center text-sm text-muted-foreground/50 italic"
+            className="text-center text-sm italic text-muted-foreground/50"
           >
             "{partialTranscript}"
           </motion.div>
@@ -47,7 +47,7 @@ export function VoiceTranscriptArea({
             key="final"
             initial={{ opacity: 0, y: prefersReduced ? 0 : 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center text-sm text-foreground/80 font-medium"
+            className="text-center text-sm font-medium text-foreground/80"
           >
             🎤 "{finalTranscript}"
           </motion.div>
@@ -58,9 +58,9 @@ export function VoiceTranscriptArea({
             key="response"
             initial={{ opacity: 0, y: prefersReduced ? 0 : 5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center text-sm font-medium px-4 py-3 rounded-2xl border border-primary/20 bg-primary/5 text-foreground shadow-glow-primary/5"
+            className="shadow-glow-primary/5 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-center text-sm font-medium text-foreground"
           >
-            <MessageCircle className="w-4 h-4 inline-block mr-2 opacity-70 text-primary" />
+            <MessageCircle className="mr-2 inline-block h-4 w-4 text-primary opacity-70" />
             {agentResponse}
           </motion.div>
         )}
@@ -70,9 +70,9 @@ export function VoiceTranscriptArea({
             key={phase}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex items-center justify-center gap-2 text-muted-foreground/50 text-xs font-medium"
+            className="flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground/50"
           >
-            <Loader2 className="w-4 h-4 animate-spin text-primary/60" />
+            <Loader2 className="h-4 w-4 animate-spin text-primary/60" />
             {phase === 'processing' ? 'Processando com IA...' : 'Conectando microfone...'}
           </motion.div>
         )}
@@ -83,12 +83,14 @@ export function VoiceTranscriptArea({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 py-3">
+            <Alert variant="destructive" className="border-destructive/20 bg-destructive/5 py-3">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="text-xs font-bold uppercase tracking-wider mb-1">Erro de Voz</AlertTitle>
+              <AlertTitle className="mb-1 text-xs font-bold uppercase tracking-wider">
+                Erro de Voz
+              </AlertTitle>
               <AlertDescription className="text-xs opacity-90">
                 {error}
-                <div className="mt-2 text-[10px] text-muted-foreground font-normal">
+                <div className="mt-2 text-[10px] font-normal text-muted-foreground">
                   Toque no orbe para tentar novamente
                 </div>
               </AlertDescription>

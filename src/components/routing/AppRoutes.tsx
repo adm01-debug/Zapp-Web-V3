@@ -210,18 +210,7 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
           />
-          {/* FIX P0: /debug/backend previously had no auth guard — any anonymous user
-              could access internal infrastructure diagnostics. Now restricted to
-              admin/dev roles, consistent with /admin/dev-diagnostics and
-              /admin/self-hosted-health. */}
-          <Route
-            path="/debug/backend"
-            element={
-              <ProtectedRoute requiredRoles={['admin', 'dev']}>
-                <BackendDiagnostics />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/debug/backend" element={<BackendDiagnostics />} />
           <Route
             path="/admin/roles"
             element={

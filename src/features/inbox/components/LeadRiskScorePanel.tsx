@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { TrendingUp, ShieldAlert, Save, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -36,7 +42,7 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
   }, [contactId]);
 
   const loadData = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('contacts')
       .select('lead_score, risk_score, lead_origin, consent_status')
       .eq('id', contactId)
@@ -71,7 +77,7 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
     return 'text-destructive';
   };
 
-  if (!loaded) return <div className="h-24 bg-muted/20 rounded-lg animate-pulse" />;
+  if (!loaded) return <div className="h-24 animate-pulse rounded-lg bg-muted/20" />;
 
   return (
     <div className="space-y-4">
@@ -79,30 +85,46 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-primary" />
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-medium">Lead Score</span>
           </div>
           <span className={`text-lg font-bold ${getScoreColor(leadScore)}`}>{leadScore}</span>
         </div>
-        <Slider value={[leadScore]} onValueChange={([v]) => setLeadScore(v)} max={100} step={5} className="w-full" />
+        <Slider
+          value={[leadScore]}
+          onValueChange={([v]) => setLeadScore(v)}
+          max={100}
+          step={5}
+          className="w-full"
+        />
       </div>
 
       {/* Risk Score */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <ShieldAlert className="w-3.5 h-3.5 text-warning" />
+            <ShieldAlert className="h-3.5 w-3.5 text-warning" />
             <span className="text-xs font-medium">Risk Score</span>
           </div>
-          <span className={`text-lg font-bold ${riskScore >= 70 ? 'text-destructive' : riskScore >= 40 ? 'text-warning' : 'text-success'}`}>{riskScore}</span>
+          <span
+            className={`text-lg font-bold ${riskScore >= 70 ? 'text-destructive' : riskScore >= 40 ? 'text-warning' : 'text-success'}`}
+          >
+            {riskScore}
+          </span>
         </div>
-        <Slider value={[riskScore]} onValueChange={([v]) => setRiskScore(v)} max={100} step={5} className="w-full" />
+        <Slider
+          value={[riskScore]}
+          onValueChange={([v]) => setRiskScore(v)}
+          max={100}
+          step={5}
+          className="w-full"
+        />
       </div>
 
       {/* Lead Origin */}
       <div className="space-y-1.5">
         <div className="flex items-center gap-1.5">
-          <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-xs font-medium">Origem do Lead</span>
         </div>
         <Select value={leadOrigin} onValueChange={setLeadOrigin}>
@@ -110,8 +132,10 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
             <SelectValue placeholder="Selecione a origem" />
           </SelectTrigger>
           <SelectContent>
-            {LEAD_ORIGINS.map(o => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            {LEAD_ORIGINS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -133,8 +157,8 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
         </Select>
       </div>
 
-      <Button size="sm" className="w-full h-8 text-xs" onClick={save} disabled={saving}>
-        <Save className="w-3 h-3 mr-1" />
+      <Button size="sm" className="h-8 w-full text-xs" onClick={save} disabled={saving}>
+        <Save className="mr-1 h-3 w-3" />
         {saving ? 'Salvando...' : 'Salvar alterações'}
       </Button>
     </div>

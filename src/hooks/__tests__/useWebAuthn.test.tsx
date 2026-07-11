@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import type { ReactNode } from 'react';
 
 const mockFrom = vi.fn();
 const mockInvoke = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
-    functions: { invoke: (...args: any[]) => mockInvoke(...args) },
+    from: mockFrom,
+    functions: { invoke: mockInvoke },
     auth: {
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
     },
   },
@@ -24,7 +27,7 @@ vi.mock('@/lib/logger');
 const mockUseAuth = vi.fn();
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
-  AuthProvider: ({ children }: any) => children,
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
@@ -54,7 +57,7 @@ describe('useWebAuthn', () => {
     mockUseAuth.mockReturnValue({ user: null });
     const { result } = renderHook(() => useWebAuthn());
 
-    let res: any;
+    let res: { success: boolean } = { success: false };
     await act(async () => {
       res = await result.current.registerPasskey('My Key');
     });
@@ -66,7 +69,7 @@ describe('useWebAuthn', () => {
     mockUseAuth.mockReturnValue({ user: { id: 'u1', email: 'test@test.com' } });
     const { result } = renderHook(() => useWebAuthn());
 
-    let res: any;
+    let res: { success: boolean } = { success: false };
     await act(async () => {
       res = await result.current.registerPasskey('My Key');
     });
@@ -77,7 +80,7 @@ describe('useWebAuthn', () => {
   it('authenticateWithPasskey fails when WebAuthn not supported', async () => {
     const { result } = renderHook(() => useWebAuthn());
 
-    let res: any;
+    let res: { success: boolean } = { success: false };
     await act(async () => {
       res = await result.current.authenticateWithPasskey('test@test.com');
     });
@@ -89,7 +92,7 @@ describe('useWebAuthn', () => {
     mockUseAuth.mockReturnValue({ user: null });
     const { result } = renderHook(() => useWebAuthn());
 
-    let res: any;
+    let res: { success: boolean } = { success: false };
     await act(async () => {
       res = await result.current.deletePasskey('passkey-1');
     });
@@ -114,7 +117,7 @@ describe('useWebAuthn', () => {
 
     const { result } = renderHook(() => useWebAuthn());
 
-    let res: any;
+    let res: { success: boolean } = { success: false };
     await act(async () => {
       res = await result.current.deletePasskey('passkey-1');
     });
@@ -126,7 +129,7 @@ describe('useWebAuthn', () => {
     mockUseAuth.mockReturnValue({ user: null });
     const { result } = renderHook(() => useWebAuthn());
 
-    let res: any;
+    let res: { success: boolean } = { success: false };
     await act(async () => {
       res = await result.current.renamePasskey('pk-1', 'New Name');
     });
@@ -151,7 +154,7 @@ describe('useWebAuthn', () => {
 
     const { result } = renderHook(() => useWebAuthn());
 
-    let res: any;
+    let res: { success: boolean } = { success: false };
     await act(async () => {
       res = await result.current.renamePasskey('pk-1', 'Updated Key');
     });
@@ -173,7 +176,14 @@ describe('useWebAuthn', () => {
 
   it('fetchPasskeys returns passkeys for logged-in user', async () => {
     const mockPasskeys = [
-      { id: 'pk-1', credential_id: 'cred-1', friendly_name: 'iPhone', device_type: 'platform', created_at: '2024-01-01', last_used_at: null },
+      {
+        id: 'pk-1',
+        credential_id: 'cred-1',
+        friendly_name: 'iPhone',
+        device_type: 'platform',
+        created_at: '2024-01-01',
+        last_used_at: null,
+      },
     ];
 
     mockUseAuth.mockReturnValue({ user: { id: 'u1' } });

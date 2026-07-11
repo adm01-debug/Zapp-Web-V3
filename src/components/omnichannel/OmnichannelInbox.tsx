@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Instagram, Send as SendIcon, Facebook, Mail, Globe, RefreshCw, Search } from 'lucide-react';
+import {
+  MessageSquare,
+  Instagram,
+  Send as SendIcon,
+  Facebook,
+  Mail,
+  Globe,
+  RefreshCw,
+  Search,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +38,10 @@ interface UnifiedMessage {
   assignedTo: string | null;
 }
 
-const CHANNEL_CONFIG: Record<ChannelType, { icon: typeof MessageSquare; label: string; color: string }> = {
+const CHANNEL_CONFIG: Record<
+  ChannelType,
+  { icon: typeof MessageSquare; label: string; color: string }
+> = {
   whatsapp: { icon: MessageSquare, label: 'WhatsApp', color: 'text-success bg-success/10' },
   instagram: { icon: Instagram, label: 'Instagram', color: 'text-accent bg-accent/10' },
   telegram: { icon: SendIcon, label: 'Telegram', color: 'text-info bg-info/10' },
@@ -53,11 +65,11 @@ export function OmnichannelInbox() {
   }, []);
 
   const loadConnections = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('channel_connections_safe')
       .select('*')
       .eq('is_active', true);
-    
+
     if (data) setConnections(data);
   };
 
@@ -71,7 +83,7 @@ export function OmnichannelInbox() {
 
       if (error) throw error;
 
-      const unified: UnifiedMessage[] = (contacts || []).map(contact => ({
+      const unified: UnifiedMessage[] = (contacts || []).map((contact) => ({
         id: contact.id,
         contactName: contact.name,
         contactPhone: contact.phone,
@@ -86,18 +98,18 @@ export function OmnichannelInbox() {
       setMessages(unified);
 
       const stats: Record<string, number> = {};
-      unified.forEach(m => {
+      unified.forEach((m) => {
         stats[m.channelType] = (stats[m.channelType] || 0) + 1;
       });
       setChannelStats(stats);
-    } catch (err) {
+    } catch {
       toast.error('Erro ao carregar inbox unificado');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredMessages = messages.filter(m => {
+  const filteredMessages = messages.filter((m) => {
     if (activeChannel !== 'all' && m.channelType !== activeChannel) return false;
     if (search) {
       const s = search.toLowerCase();
@@ -110,66 +122,82 @@ export function OmnichannelInbox() {
     const config = CHANNEL_CONFIG[type] ?? CHANNEL_CONFIG.webchat;
     const Icon = config.icon;
     return (
-      <div className={`p-1.5 rounded-lg ${config.color}`}>
-        <Icon className="w-3.5 h-3.5" />
+      <div className={`rounded-lg p-1.5 ${config.color}`}>
+        <Icon className="h-3.5 w-3.5" />
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Main Tabs: Channels | Email Chat */}
-      <Tabs value={activeMainTab} onValueChange={(v) => setActiveMainTab(v as 'channels' | 'email')} className="flex flex-col h-full">
+      <Tabs
+        value={activeMainTab}
+        onValueChange={(v) => setActiveMainTab(v as 'channels' | 'email')}
+        className="flex h-full flex-col"
+      >
         <div className="border-b px-4">
           <TabsList className="h-10 bg-transparent">
-            <TabsTrigger value="channels" className="gap-1.5 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-              <Globe className="w-4 h-4" />
+            <TabsTrigger
+              value="channels"
+              className="gap-1.5 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
+            >
+              <Globe className="h-4 w-4" />
               Canais
             </TabsTrigger>
-            <TabsTrigger value="email" className="gap-1.5 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
-              <Mail className="w-4 h-4" />
+            <TabsTrigger
+              value="email"
+              className="gap-1.5 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
+            >
+              <Mail className="h-4 w-4" />
               Email Chat
             </TabsTrigger>
           </TabsList>
         </div>
 
         {/* Channels tab (original content) */}
-        <TabsContent value="channels" className="flex-1 mt-0 overflow-auto">
-          <div className="space-y-4 md:space-y-6 p-4">
+        <TabsContent value="channels" className="mt-0 flex-1 overflow-auto">
+          <div className="space-y-4 p-4 md:space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Globe className="w-5 h-5 text-primary" />
+                <div className="rounded-xl bg-primary/10 p-2">
+                  <Globe className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg md:text-xl font-bold">Inbox Omnichannel</h2>
-                  <p className="text-xs md:text-sm text-muted-foreground">
+                  <h2 className="text-lg font-bold md:text-xl">Inbox Omnichannel</h2>
+                  <p className="text-xs text-muted-foreground md:text-sm">
                     Todas as conversas em um só lugar • {connections.length} canais conectados
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={loadUnifiedInbox} disabled={loading} className="w-full sm:w-auto">
-                <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadUnifiedInbox}
+                disabled={loading}
+                className="w-full sm:w-auto"
+              >
+                <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
             </div>
 
             {/* Channel Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
               {Object.entries(CHANNEL_CONFIG).map(([type, config]) => {
                 const Icon = config.icon;
                 const count = channelStats[type] || 0;
                 return (
-                  <Card 
-                    key={type} 
+                  <Card
+                    key={type}
                     className={`cursor-pointer transition-all ${activeChannel === type ? 'ring-2 ring-primary' : 'hover:bg-muted/50'}`}
                     onClick={() => setActiveChannel(activeChannel === type ? 'all' : type)}
                   >
-                    <CardContent className="pt-3 pb-3">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className={`p-1.5 rounded ${config.color}`}>
-                          <Icon className="w-4 h-4" />
+                    <CardContent className="pb-3 pt-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className={`rounded p-1.5 ${config.color}`}>
+                          <Icon className="h-4 w-4" />
                         </div>
                         <div>
                           <p className="text-lg font-bold">{count}</p>
@@ -184,7 +212,7 @@ export function OmnichannelInbox() {
 
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome ou telefone..."
                 value={search}
@@ -198,7 +226,7 @@ export function OmnichannelInbox() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" />
+                    <MessageSquare className="h-5 w-5" />
                     Conversas ({filteredMessages.length})
                   </CardTitle>
                   {activeChannel !== 'all' && (
@@ -213,11 +241,11 @@ export function OmnichannelInbox() {
                   <div className="space-y-1">
                     {loading ? (
                       Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="h-16 bg-muted/50 animate-pulse rounded-lg" />
+                        <div key={i} className="h-16 animate-pulse rounded-lg bg-muted/50" />
                       ))
                     ) : filteredMessages.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Globe className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                      <div className="py-12 text-center">
+                        <Globe className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
                         <p className="text-muted-foreground">Nenhuma conversa encontrada</p>
                       </div>
                     ) : (
@@ -226,10 +254,10 @@ export function OmnichannelInbox() {
                           key={msg.id}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                          className="flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50"
                         >
                           <div className="relative">
-                            <Avatar className="w-10 h-10">
+                            <Avatar className="h-10 w-10">
                               <AvatarFallback className="text-xs">
                                 {msg.contactName.substring(0, 2).toUpperCase()}
                               </AvatarFallback>
@@ -238,19 +266,19 @@ export function OmnichannelInbox() {
                               {getChannelIcon(msg.channelType)}
                             </div>
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between">
-                              <p className="font-medium text-sm truncate">{msg.contactName}</p>
+                              <p className="truncate text-sm font-medium">{msg.contactName}</p>
                               <span className="text-xs text-muted-foreground">
                                 {format(new Date(msg.timestamp), 'HH:mm', { locale: ptBR })}
                               </span>
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="truncate text-xs text-muted-foreground">
                               {msg.contactPhone}
                             </p>
                           </div>
                           {msg.unread && (
-                            <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />
+                            <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
                           )}
                         </motion.div>
                       ))
@@ -268,16 +296,18 @@ export function OmnichannelInbox() {
               <CardContent>
                 <div className="flex flex-wrap gap-2">
                   {connections.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum canal adicional conectado</p>
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum canal adicional conectado
+                    </p>
                   ) : (
                     connections.map((conn) => {
                       const channelType = (conn.channel_type as ChannelType) || 'webchat';
                       const config = CHANNEL_CONFIG[channelType];
                       return (
                         <Badge key={conn.id as string} variant="outline" className="gap-1">
-                          {config && <config.icon className="w-3 h-3" />}
+                          {config && <config.icon className="h-3 w-3" />}
                           {(conn.name as string) || config?.label || channelType}
-                          <span className="w-1.5 h-1.5 rounded-full bg-success ml-1" />
+                          <span className="ml-1 h-1.5 w-1.5 rounded-full bg-success" />
                         </Badge>
                       );
                     })
@@ -289,7 +319,7 @@ export function OmnichannelInbox() {
         </TabsContent>
 
         {/* Email Chat tab */}
-        <TabsContent value="email" className="flex-1 mt-0 min-h-0">
+        <TabsContent value="email" className="mt-0 min-h-0 flex-1">
           <EmailChatInbox />
         </TabsContent>
       </Tabs>

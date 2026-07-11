@@ -85,10 +85,7 @@ export function useTalkX() {
 
   const createCampaign = useMutation({
     mutationFn: async (campaign: CampaignPayload) => {
-      const { data: profile , error: profileErr } = await supabase
-        .from('profiles')
-        .select('id')
-        .single();
+      const { data: profile } = await supabase.from('profiles').select('id').single();
 
       const { data, error } = await fromTable('talkx_campaigns')
         .insert({ ...campaign, created_by: profile?.id })
@@ -142,8 +139,7 @@ export function useTalkX() {
         campaign_id: campaignId,
         contact_id,
       }));
-      const { error } = await fromTable('talkx_recipients')
-        .insert(rows);
+      const { error } = await fromTable('talkx_recipients').insert(rows);
       if (error) throw error;
 
       await fromTable('talkx_campaigns')
@@ -157,52 +153,61 @@ export function useTalkX() {
     },
   });
 
-  const startCampaign = useCallback(async (campaignId: string) => {
-    const trace = newRequestId('talkx-start');
-    try {
-      const { data, error } = await supabase.functions.invoke('talkx-send', {
-        body: { campaignId, action: 'start' },
-        headers: trace.headers,
-      });
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
-      toast.success('Campanha Talk X iniciada! 🚀');
-      return data;
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast.error(`Erro ao iniciar: ${msg}`);
-    }
-  }, [queryClient]);
+  const startCampaign = useCallback(
+    async (campaignId: string) => {
+      const trace = newRequestId('talkx-start');
+      try {
+        const { data, error } = await supabase.functions.invoke('talkx-send', {
+          body: { campaignId, action: 'start' },
+          headers: trace.headers,
+        });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
+        toast.success('Campanha Talk X iniciada! 🚀');
+        return data;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Erro desconhecido';
+        toast.error(`Erro ao iniciar: ${msg}`);
+      }
+    },
+    [queryClient]
+  );
 
-  const pauseCampaign = useCallback(async (campaignId: string) => {
-    const trace = newRequestId('talkx-pause');
-    try {
-      await supabase.functions.invoke('talkx-send', {
-        body: { campaignId, action: 'pause' },
-        headers: trace.headers,
-      });
-      queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
-      toast.info('Campanha pausada');
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast.error(`Erro ao pausar: ${msg}`);
-    }
-  }, [queryClient]);
+  const pauseCampaign = useCallback(
+    async (campaignId: string) => {
+      const trace = newRequestId('talkx-pause');
+      try {
+        await supabase.functions.invoke('talkx-send', {
+          body: { campaignId, action: 'pause' },
+          headers: trace.headers,
+        });
+        queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
+        toast.info('Campanha pausada');
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Erro desconhecido';
+        toast.error(`Erro ao pausar: ${msg}`);
+      }
+    },
+    [queryClient]
+  );
 
-  const cancelCampaign = useCallback(async (campaignId: string) => {
-    const trace = newRequestId('talkx-cancel');
-    try {
-      await supabase.functions.invoke('talkx-send', {
-        body: { campaignId, action: 'cancel' },
-        headers: trace.headers,
-      });
-      queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
-      toast.info('Campanha cancelada');
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast.error(`Erro ao cancelar: ${msg}`);
-    }
-  }, [queryClient]);
+  const cancelCampaign = useCallback(
+    async (campaignId: string) => {
+      const trace = newRequestId('talkx-cancel');
+      try {
+        await supabase.functions.invoke('talkx-send', {
+          body: { campaignId, action: 'cancel' },
+          headers: trace.headers,
+        });
+        queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
+        toast.info('Campanha cancelada');
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Erro desconhecido';
+        toast.error(`Erro ao cancelar: ${msg}`);
+      }
+    },
+    [queryClient]
+  );
 
   /**
    * Pré-valida números via `evolution-api/check-numbers` antes de iniciar a
@@ -210,28 +215,33 @@ export function useTalkX() {
    * possa decidir se segue, avisa o usuário ou remove inválidos.
    * Falhas de rede tornam-se "todos válidos" — best-effort, nunca bloqueia.
    */
-  const validateRecipientsViaWhatsApp = useCallback(async (
-    instanceName: string,
-    phones: string[],
-  ): Promise<{ valid: string[]; invalid: string[] }> => {
-    const unique = Array.from(new Set(phones.map((p) => p.replace(/\D/g, '')).filter(Boolean)));
-    if (unique.length === 0) return { valid: [], invalid: [] };
-    try {
-      const { data, error } = await supabase.functions.invoke('evolution-api/check-numbers', {
-        body: { instanceName, numbers: unique },
-      });
-      if (error) throw error;
-      const list = Array.isArray((data as { numbers?: unknown[] })?.numbers)
-        ? ((data as { numbers: Array<{ number: string; exists?: boolean }> }).numbers)
-        : [];
-      const validSet = new Set(list.filter((n) => n.exists).map((n) => n.number.replace(/\D/g, '')));
-      const valid = unique.filter((p) => validSet.has(p));
-      const invalid = unique.filter((p) => !validSet.has(p));
-      return { valid, invalid };
-    } catch {
-      return { valid: unique, invalid: [] };
-    }
-  }, []);
+  const validateRecipientsViaWhatsApp = useCallback(
+    async (
+      instanceName: string,
+      phones: string[]
+    ): Promise<{ valid: string[]; invalid: string[] }> => {
+      const unique = Array.from(new Set(phones.map((p) => p.replace(/\D/g, '')).filter(Boolean)));
+      if (unique.length === 0) return { valid: [], invalid: [] };
+      try {
+        const { data, error } = await supabase.functions.invoke('evolution-api/check-numbers', {
+          body: { instanceName, numbers: unique },
+        });
+        if (error) throw error;
+        const list = Array.isArray((data as { numbers?: unknown[] })?.numbers)
+          ? (data as { numbers: Array<{ number: string; exists?: boolean }> }).numbers
+          : [];
+        const validSet = new Set(
+          list.filter((n) => n.exists).map((n) => n.number.replace(/\D/g, ''))
+        );
+        const valid = unique.filter((p) => validSet.has(p));
+        const invalid = unique.filter((p) => !validSet.has(p));
+        return { valid, invalid };
+      } catch {
+        return { valid: unique, invalid: [] };
+      }
+    },
+    []
+  );
 
   return {
     campaigns: campaignsQuery.data || [],

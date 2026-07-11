@@ -11,7 +11,13 @@ import { useOfflineCache } from '@/hooks/useOfflineCache';
 
 function makeConversation(id: string, msgCount = 1) {
   return {
-    contact: { id, name: `Contact ${id}`, phone: `+55${id}`, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    contact: {
+      id,
+      name: `Contact ${id}`,
+      phone: `+55${id}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
     messages: Array.from({ length: msgCount }, (_, i) => ({
       id: `msg-${id}-${i}`,
       content: `Message ${i}`,
@@ -22,7 +28,7 @@ function makeConversation(id: string, msgCount = 1) {
     })),
     lastMessage: { id: `msg-${id}-0`, content: 'Last', created_at: new Date().toISOString() },
     unreadCount: 1,
-  } as any;
+  } as unknown as Parameters<typeof useOfflineCache>[0][number];
 }
 
 describe('useOfflineCache', () => {
@@ -89,11 +95,11 @@ describe('useOfflineCache', () => {
   it('reads expired cache as null', () => {
     const entry = {
       data: [makeConversation('1')],
-      timestamp: Date.now() - (31 * 60 * 1000), // 31 min ago (TTL is 30 min)
+      timestamp: Date.now() - 31 * 60 * 1000, // 31 min ago (TTL is 30 min)
     };
     localStorage.setItem('offline_conversations', JSON.stringify(entry));
 
-    const { result } = renderHook(() => useOfflineCache([], true));
+    const { result: _result } = renderHook(() => useOfflineCache([], true));
 
     // Expired cache should be removed
     expect(localStorage.getItem('offline_conversations')).toBeNull();

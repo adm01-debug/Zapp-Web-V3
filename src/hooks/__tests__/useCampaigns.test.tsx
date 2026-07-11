@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockFrom = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: (...args: any[]) => mockFrom(...args) },
+  supabase: { from: mockFrom },
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -38,7 +38,9 @@ describe('useCampaigns', () => {
       update: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { id: 'c1', status: 'sending' }, error: null }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: { id: 'c1', status: 'sending' }, error: null }),
           }),
         }),
       }),

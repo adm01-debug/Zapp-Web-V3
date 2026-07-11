@@ -10,7 +10,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2, Mail, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -43,7 +49,11 @@ export function InviteAgentDialog({ open, onOpenChange }: InviteAgentDialogProps
             <h2>Você foi convidado!</h2>
             <p>Olá ${name || 'colega'},</p>
             <p>Você foi convidado para participar da plataforma ZAPP como <strong>${
-              role === 'admin' ? 'Administrador' : role === 'supervisor' ? 'Supervisor' : 'Atendente'
+              role === 'admin'
+                ? 'Administrador'
+                : role === 'supervisor'
+                  ? 'Supervisor'
+                  : 'Atendente'
             }</strong>.</p>
             <p>Acesse a plataforma e crie sua conta para começar.</p>
           `,
@@ -57,7 +67,7 @@ export function InviteAgentDialog({ open, onOpenChange }: InviteAgentDialogProps
       setName('');
       setRole('agent');
       onOpenChange(false);
-    } catch (err) {
+    } catch {
       toast.error('Erro ao enviar convite. Verifique a configuração de email.');
     } finally {
       setIsSending(false);
@@ -69,7 +79,7 @@ export function InviteAgentDialog({ open, onOpenChange }: InviteAgentDialogProps
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-primary" />
+            <UserPlus className="h-5 w-5 text-primary" />
             Convidar Agente
           </DialogTitle>
           <DialogDescription>
@@ -118,9 +128,9 @@ export function InviteAgentDialog({ open, onOpenChange }: InviteAgentDialogProps
           </Button>
           <Button onClick={handleInvite} disabled={isSending}>
             {isSending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Mail className="w-4 h-4 mr-2" />
+              <Mail className="mr-2 h-4 w-4" />
             )}
             Enviar Convite
           </Button>

@@ -48,7 +48,7 @@ vi.mock('@/utils/notificationSounds', () => ({
   showBrowserNotification: vi.fn(),
 }));
 
-import { useSLANotifications } from '@/features/sla/hooks/useSLANotifications';
+import { useSLANotifications } from '../useSLANotifications';
 
 const UUID_A = '11111111-1111-4111-8111-111111111111';
 const UUID_B = '22222222-2222-4222-8222-222222222222';

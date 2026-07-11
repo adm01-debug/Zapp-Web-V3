@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const mockFrom = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: mockFrom,
     channel: vi.fn().mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
@@ -45,9 +45,22 @@ describe('useWarRoomAlerts', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue({ data: [
-                  { id: 'a1', alert_type: 'sla_breach', title: 'SLA Alert', message: 'Breach!', is_read: false, source: null, created_at: new Date().toISOString() },
-                ], error: null }),
+                limit: vi
+                  .fn()
+                  .mockResolvedValue({
+                    data: [
+                      {
+                        id: 'a1',
+                        alert_type: 'sla_breach',
+                        title: 'SLA Alert',
+                        message: 'Breach!',
+                        is_read: false,
+                        source: null,
+                        created_at: new Date().toISOString(),
+                      },
+                    ],
+                    error: null,
+                  }),
               }),
             }),
           }),

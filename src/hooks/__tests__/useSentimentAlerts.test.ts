@@ -6,8 +6,8 @@ const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    functions: { invoke: (...args: any[]) => mockFunctionsInvoke(...args) },
-    from: (...args: any[]) => mockFrom(...args),
+    functions: { invoke: mockFunctionsInvoke },
+    from: mockFrom,
   },
 }));
 
@@ -116,7 +116,10 @@ describe('useSentimentAlerts', () => {
   });
 
   it('checkAndTriggerAlert returns triggered when alerted', async () => {
-    mockFunctionsInvoke.mockResolvedValue({ data: { alerted: true, consecutiveLow: 3, emailSent: true }, error: null });
+    mockFunctionsInvoke.mockResolvedValue({
+      data: { alerted: true, consecutiveLow: 3, emailSent: true },
+      error: null,
+    });
     const { result } = renderHook(() => useSentimentAlerts());
     const outcome = await result.current.checkAndTriggerAlert({
       contactId: 'c1',
@@ -149,7 +152,15 @@ describe('useSentimentAlerts', () => {
         eq: vi.fn().mockReturnValue({
           order: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue({
-              data: [{ id: 'a1', entity_id: 'c1', created_at: '2024-01-01', action: 'sentiment_alert', details: { score: 10 } }],
+              data: [
+                {
+                  id: 'a1',
+                  entity_id: 'c1',
+                  created_at: '2024-01-01',
+                  action: 'sentiment_alert',
+                  details: { score: 10 },
+                },
+              ],
               error: null,
             }),
           }),

@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 
 // Mock supabase
+type DataCb = (result: { data: unknown[]; error: null }) => void;
+type MutateCb = (result: { error: null }) => void;
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: () => ({
@@ -13,30 +16,30 @@ vi.mock('@/integrations/supabase/client', () => ({
             is: () => ({
               is: () => ({
                 is: () => ({
-                  then: (r: unknown) => (r as Function)({ data: [], error: null }),
+                  then: (r: DataCb) => r({ data: [], error: null }),
                 }),
-                then: (r: unknown) => (r as Function)({ data: [], error: null }),
+                then: (r: DataCb) => r({ data: [], error: null }),
               }),
-              then: (r: unknown) => (r as Function)({ data: [], error: null }),
+              then: (r: DataCb) => r({ data: [], error: null }),
             }),
-            then: (r: unknown) => (r as Function)({ data: [], error: null }),
+            then: (r: DataCb) => r({ data: [], error: null }),
           }),
-          then: (r: unknown) => (r as Function)({ data: [], error: null }),
+          then: (r: DataCb) => r({ data: [], error: null }),
         }),
         not: () => ({
-          then: (r: unknown) => (r as Function)({ data: [], error: null }),
+          then: (r: DataCb) => r({ data: [], error: null }),
         }),
         eq: () => ({
-          then: (r: unknown) => (r as Function)({ data: [], error: null }),
+          then: (r: DataCb) => r({ data: [], error: null }),
         }),
-        then: (r: unknown) => (r as Function)({ data: [], error: null }),
+        then: (r: DataCb) => r({ data: [], error: null }),
       }),
-      insert: () => ({ then: (r: unknown) => (r as Function)({ error: null }) }),
+      insert: () => ({ then: (r: MutateCb) => r({ error: null }) }),
       update: () => ({
-        eq: () => ({ then: (r: unknown) => (r as Function)({ error: null }) }),
+        eq: () => ({ then: (r: MutateCb) => r({ error: null }) }),
       }),
       delete: () => ({
-        eq: () => ({ then: (r: unknown) => (r as Function)({ error: null }) }),
+        eq: () => ({ then: (r: MutateCb) => r({ error: null }) }),
       }),
     }),
   },
@@ -115,7 +118,9 @@ describe('SLARulesManager', () => {
     render(<SLARulesManager />, { wrapper: createWrapper() });
     await waitFor(() => fireEvent.click(screen.getByText('Nova Regra')));
     await waitFor(() => {
-      expect(screen.getByText(/Defina prazos específicos de resposta e resolução/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Defina prazos específicos de resposta e resolução/)
+      ).toBeInTheDocument();
     });
   });
 

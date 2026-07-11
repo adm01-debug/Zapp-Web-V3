@@ -1,4 +1,9 @@
-import { whatsappStatusRepository, WhatsAppStatusMessage, WhatsAppPresenceInfo, ContactConnectionInfo } from '@/features/inbox/data-access/whatsappStatusRepository';
+import {
+  whatsappStatusRepository,
+  WhatsAppStatusMessage,
+  WhatsAppPresenceInfo,
+  ContactConnectionInfo,
+} from '../data-access/whatsappStatusRepository';
 
 const normalizeDigits = (value?: string | null) => (value ?? '').replace(/\D/g, '');
 
@@ -91,14 +96,16 @@ export const whatsappStatusService = {
     };
   },
 
-  async fetchStatusData(phone: string): Promise<{ statusMessages: WhatsAppStatusMessage[]; presence: WhatsAppPresenceInfo }> {
+  async fetchStatusData(
+    phone: string
+  ): Promise<{ statusMessages: WhatsAppStatusMessage[]; presence: WhatsAppPresenceInfo }> {
     const { instanceName, contactName } = await this.getConnectionInfo(phone);
 
     if (!instanceName) {
       throw new Error('Sem conexão WhatsApp disponível');
     }
 
-    const [statusResult, presenceResult] = await Promise.allSettled([
+    const [statusResult, _presenceResult] = await Promise.allSettled([
       whatsappStatusRepository.findStatusMessages(instanceName),
       whatsappStatusRepository.sendChatPresence(instanceName, phone),
     ]);
@@ -133,13 +140,16 @@ export const whatsappStatusService = {
           const phoneMatch = candidateFields.some((value) => matchesPhone(value, phoneNeedles));
           const nameMatch = Boolean(
             normalizedContactName &&
-              typeof status.pushName === 'string' &&
-              status.pushName.trim().toLowerCase() === normalizedContactName,
+            typeof status.pushName === 'string' &&
+            status.pushName.trim().toLowerCase() === normalizedContactName
           );
 
           return phoneMatch || nameMatch;
         })
-        .sort((left, right) => toTimestampNumber(right.messageTimestamp) - toTimestampNumber(left.messageTimestamp));
+        .sort(
+          (left, right) =>
+            toTimestampNumber(right.messageTimestamp) - toTimestampNumber(left.messageTimestamp)
+        );
     }
 
     const presence: WhatsAppPresenceInfo = {

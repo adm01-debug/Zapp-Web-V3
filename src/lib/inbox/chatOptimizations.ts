@@ -20,7 +20,12 @@ export const isNearTop = (scrollTop: number, threshold = 100) => {
 /**
  * Checks if the scroll is at the bottom to maintain auto-scroll.
  */
-export const isAtBottom = (scrollHeight: number, scrollTop: number, clientHeight: number, threshold = 100) => {
+export const isAtBottom = (
+  scrollHeight: number,
+  scrollTop: number,
+  clientHeight: number,
+  threshold = 100
+) => {
   return scrollHeight - scrollTop <= clientHeight + threshold;
 };
 
@@ -28,8 +33,8 @@ export const isAtBottom = (scrollHeight: number, scrollTop: number, clientHeight
  * Simple message deduplication by message_id or ID.
  */
 export const deduplicateMessages = (existing: Message[], incoming: Message[]) => {
-  const existingIds = new Set(existing.map(m => m.message_id || m.id));
-  return incoming.filter(m => !existingIds.has(m.message_id || m.id));
+  const existingIds = new Set(existing.map((m) => m.message_id || m.id));
+  return incoming.filter((m) => !existingIds.has(m.message_id || m.id));
 };
 
 /**
@@ -57,7 +62,7 @@ export const getLastReceived = (remoteJid: string): LastReceivedInfo | null => {
   try {
     const data = JSON.parse(localStorage.getItem(LAST_RECEIVED_KEY) || '{}');
     return data[remoteJid] || null;
-  } catch (e) {
+  } catch {
     return null;
   }
 };

@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QueueMetricsDashboard } from '../monitoring/QueueMetricsDashboard';
-import type { QueueMetrics } from '@/features/inbox/hooks/useMessageQueue';
+import type { QueueMetrics } from '../../hooks/useMessageQueue';
 
 interface Props {
   open: boolean;

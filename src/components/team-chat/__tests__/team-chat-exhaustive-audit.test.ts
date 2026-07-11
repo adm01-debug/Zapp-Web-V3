@@ -5,7 +5,11 @@ import * as path from 'path';
 // Read source files for static analysis
 const root = path.resolve(__dirname, '../../..');
 const readSrc = (p: string) => {
-  try { return fs.readFileSync(path.join(root, p), 'utf-8'); } catch { return ''; }
+  try {
+    return fs.readFileSync(path.join(root, p), 'utf-8');
+  } catch {
+    return '';
+  }
 };
 
 const panelSrc = readSrc('components/team-chat/TeamChatPanel.tsx');
@@ -13,12 +17,11 @@ const inputSrc = readSrc('components/team-chat/TeamChatInputArea.tsx');
 const headerSrc = readSrc('components/team-chat/TeamChatHeader.tsx');
 const uploaderSrc = readSrc('components/team-chat/TeamFileUploader.tsx');
 const viewSrc = readSrc('components/team-chat/TeamChatView.tsx');
-const hookSrc = readSrc('hooks/team-chat/useTeamMessages.ts');
-const mutationHookSrc = readSrc('hooks/team-chat/useTeamChatMutations.ts');
+const _hookSrc = readSrc('hooks/team-chat/useTeamMessages.ts');
+const _mutationHookSrc = readSrc('hooks/team-chat/useTeamChatMutations.ts');
 const panelHookSrc = readSrc('components/team-chat/useTeamChatPanel.ts');
 
 describe('Team Chat — Exhaustive Audit', () => {
-
   // ═══════════════════════════════════════════
   // 1. INPUT AREA — EDGE CASES
   // ═══════════════════════════════════════════

@@ -26,7 +26,7 @@ interface UndoableActionState {
  * Hook for actions with temporal undo capability
  * Shows a toast with undo button for specified duration before committing
  */
-export function useUndoableAction<T>() {
+export function useUndoableAction() {
   const [state, setState] = useState<UndoableActionState>({
     isPending: false,
     canUndo: false,
@@ -80,7 +80,7 @@ export function useUndoableAction<T>() {
       intervalRef.current = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, Math.ceil((undoDuration - elapsed) / 1000));
-        setState(prev => ({ ...prev, timeRemaining: remaining }));
+        setState((prev) => ({ ...prev, timeRemaining: remaining }));
       }, 100);
 
       // Show toast with undo button
@@ -96,7 +96,7 @@ export function useUndoableAction<T>() {
             try {
               await pendingActionRef.current?.undoAction();
               toast.success(undoMessage);
-            } catch (error) {
+            } catch {
               toast.error('Erro ao desfazer ação');
             } finally {
               pendingActionRef.current = null;
@@ -113,10 +113,10 @@ export function useUndoableAction<T>() {
       // Set timeout to commit action
       timeoutRef.current = setTimeout(() => {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        
+
         pendingActionRef.current?.onCommit?.();
         pendingActionRef.current = null;
-        
+
         setState({
           isPending: false,
           canUndo: false,
@@ -145,7 +145,7 @@ export function useUndoableAction<T>() {
     try {
       await pendingActionRef.current.undoAction();
       toast.success('Ação desfeita');
-    } catch (error) {
+    } catch {
       toast.error('Erro ao desfazer ação');
     } finally {
       pendingActionRef.current = null;
