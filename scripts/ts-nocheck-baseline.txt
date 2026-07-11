@@ -46,12 +46,10 @@ src/features/inbox/hooks/useMessageSendHistory.ts
 src/features/inbox/hooks/useMessageTemplates.ts
 src/hooks/__tests__/useExternalCatalog.test.ts
 src/hooks/admin/useDepartmentsAdmin.ts
-src/hooks/campaigns/useCampaignABTesting.ts
 src/hooks/integrations/useEvolutionApiIntegration.ts
 src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/monitoring/useMonitoringData.ts
 src/hooks/sticker-picker/useStickerPicker.ts
-src/hooks/useAutomations.ts
 src/hooks/useClientWallet.ts
 src/hooks/useConversationAnalyses.ts
 src/hooks/useDashboardData.ts
@@ -70,9 +68,5 @@ src/lib/stressTest/mediaSamplers.ts
 src/pages/AdminAlertHistoryPage.tsx
 src/pages/QueueDetails.tsx
 src/pages/admin-webhook-secret-status/HmacAuditHistoryPanel.tsx
-src/pages/admin/AdminAutomationLogsPage.tsx
-src/pages/admin/AdminDevDiagnosticsPage.tsx
 src/pages/admin/AdminEvoApiHealthPage.tsx
-src/pages/admin/AdminWhatsAppLogsPage.tsx
-src/pages/admin/operations/OpsLogsTab.tsx
 src/services/email/emailApi.ts
