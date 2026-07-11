@@ -14,16 +14,19 @@ export function formatWhatsAppText(text: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
     // Code blocks (```...```) — must come before inline
-    .replace(/```([\s\S]*?)```/g, '<code class="bg-muted/50 px-1.5 py-0.5 rounded text-xs ">$1</code>')
-    // Bold (*...*) — not greedy, avoid matching ** 
-    .replace(/\*([^\*]+)\*/g, '<strong>$1</strong>')
+    .replace(
+      /```([\s\S]*?)```/g,
+      '<code class="bg-muted/50 px-1.5 py-0.5 rounded text-xs ">$1</code>'
+    )
+    // Bold (*...*) — not greedy, avoid matching **
+    .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
     // Italic (_..._)
     .replace(/_((?!_)[^_]+)_/g, '<em>$1</em>')
     // Strikethrough (~...~)
     .replace(/~([^~]+)~/g, '<del class="text-muted-foreground">$1</del>')
     // Line breaks
     .replace(/\n/g, '<br />');
-  
+
   return formatted;
 }
 
@@ -33,14 +36,16 @@ interface MarkdownPreviewProps {
 }
 
 export function MarkdownPreview({ text, className }: MarkdownPreviewProps) {
-  const html = useMemo(() => DOMPurify.sanitize(formatWhatsAppText(text), { ALLOWED_TAGS: ['b', 'strong', 'i', 'em', 'del', 's', 'code', 'pre', 'br', 'span'], ALLOWED_ATTR: ['class'] }), [text]);
-  
-  if (!text.trim()) return null;
-  
-  return (
-    <div 
-      className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+  const html = useMemo(
+    () =>
+      DOMPurify.sanitize(formatWhatsAppText(text), {
+        ALLOWED_TAGS: ['b', 'strong', 'i', 'em', 'del', 's', 'code', 'pre', 'br', 'span'],
+        ALLOWED_ATTR: ['class'],
+      }),
+    [text]
   );
+
+  if (!text.trim()) return null;
+
+  return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }

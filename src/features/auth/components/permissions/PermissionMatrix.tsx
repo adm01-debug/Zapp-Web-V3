@@ -9,9 +9,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 const ROLE_LABELS = {
-  admin: { label: 'Administrador', color: 'bg-destructive/10 text-destructive dark:bg-destructive/20/30 dark:text-destructive' },
-  supervisor: { label: 'Supervisor', color: 'bg-info/10 text-info dark:bg-info/20/30 dark:text-info' },
-  agent: { label: 'Agente', color: 'bg-success/10 text-success dark:bg-success/20/30 dark:text-success' }
+  admin: {
+    label: 'Administrador',
+    color: 'bg-destructive/10 text-destructive dark:bg-destructive/20/30 dark:text-destructive',
+  },
+  supervisor: {
+    label: 'Supervisor',
+    color: 'bg-info/10 text-info dark:bg-info/20/30 dark:text-info',
+  },
+  agent: {
+    label: 'Agente',
+    color: 'bg-success/10 text-success dark:bg-success/20/30 dark:text-success',
+  },
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -24,30 +33,35 @@ const CATEGORY_LABELS: Record<string, string> = {
   settings: 'Configurações',
   connections: 'Conexões',
   security: 'Segurança',
-  general: 'Geral'
+  general: 'Geral',
 };
 
 export function PermissionMatrix() {
-  const { permissions, rolePermissions, addPermissionToRole, removePermissionFromRole, loading } = usePermissions();
+  const { permissions, rolePermissions, addPermissionToRole, removePermissionFromRole, loading } =
+    usePermissions();
   const [search, setSearch] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'admin' | 'supervisor' | 'agent'>('admin');
 
-  const filteredPermissions = permissions.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.description?.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
+  const filteredPermissions = permissions.filter(
+    (p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.description?.toLowerCase().includes(search.toLowerCase()) ||
+      p.category.toLowerCase().includes(search.toLowerCase())
   );
 
-  const groupedPermissions = filteredPermissions.reduce((acc, perm) => {
-    const category = perm.category || 'general';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(perm);
-    return acc;
-  }, {} as Record<string, typeof permissions>);
+  const groupedPermissions = filteredPermissions.reduce(
+    (acc, perm) => {
+      const category = perm.category || 'general';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(perm);
+      return acc;
+    },
+    {} as Record<string, typeof permissions>
+  );
 
   const hasPermission = (role: string, permissionId: string): boolean => {
-    return rolePermissions.some(rp => rp.role === role && rp.permission_id === permissionId);
+    return rolePermissions.some((rp) => rp.role === role && rp.permission_id === permissionId);
   };
 
   const handleToggle = async (role: 'admin' | 'supervisor' | 'agent', permissionId: string) => {
@@ -63,7 +77,7 @@ export function PermissionMatrix() {
         await addPermissionToRole(role, permissionId);
         toast.success('Permissão adicionada');
       }
-    } catch (err) {
+    } catch {
       toast.error('Erro ao atualizar permissão');
     } finally {
       setUpdating(null);
@@ -73,7 +87,7 @@ export function PermissionMatrix() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -82,21 +96,19 @@ export function PermissionMatrix() {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-            <Shield className="w-5 h-5 text-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+            <Shield className="h-5 w-5 text-primary" />
           </div>
           <div>
             <CardTitle>Matriz de Permissões</CardTitle>
-            <CardDescription>
-              Configure as permissões de cada role
-            </CardDescription>
+            <CardDescription>Configure as permissões de cada role</CardDescription>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar permissões..."
             value={search}
@@ -105,7 +117,10 @@ export function PermissionMatrix() {
           />
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'admin' | 'supervisor' | 'agent')}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as 'admin' | 'supervisor' | 'agent')}
+        >
           <TabsList className="w-full">
             {Object.entries(ROLE_LABELS).map(([role, { label }]) => (
               <TabsTrigger key={role} value={role} className="flex-1">
@@ -115,7 +130,7 @@ export function PermissionMatrix() {
           </TabsList>
 
           {Object.entries(ROLE_LABELS).map(([role]) => (
-            <TabsContent key={role} value={role} className="space-y-4 mt-4">
+            <TabsContent key={role} value={role} className="mt-4 space-y-4">
               {Object.entries(groupedPermissions).map(([category, perms]) => (
                 <motion.div
                   key={category}
@@ -123,7 +138,7 @@ export function PermissionMatrix() {
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-2"
                 >
-                  <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                  <h4 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
                     {CATEGORY_LABELS[category] || category}
                   </h4>
                   <div className="grid gap-2">
@@ -135,25 +150,25 @@ export function PermissionMatrix() {
                       return (
                         <div
                           key={perm.id}
-                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                            checked ? 'bg-primary/5 border-primary/20' : 'hover:bg-muted/50'
+                          className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+                            checked ? 'border-primary/20 bg-primary/5' : 'hover:bg-muted/50'
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <Checkbox
                               checked={checked}
-                              onCheckedChange={() => handleToggle(role as 'admin' | 'supervisor' | 'agent', perm.id)}
+                              onCheckedChange={() =>
+                                handleToggle(role as 'admin' | 'supervisor' | 'agent', perm.id)
+                              }
                               disabled={isUpdating || role === 'admin'}
                               className="data-[state=checked]:bg-primary"
                             />
                             <div>
-                              <p className="font-medium text-sm">{perm.description || perm.name}</p>
+                              <p className="text-sm font-medium">{perm.description || perm.name}</p>
                               <code className="text-xs text-muted-foreground">{perm.name}</code>
                             </div>
                           </div>
-                          {isUpdating && (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          )}
+                          {isUpdating && <Loader2 className="h-4 w-4 animate-spin" />}
                         </div>
                       );
                     })}
@@ -162,8 +177,9 @@ export function PermissionMatrix() {
               ))}
 
               {role === 'admin' && (
-                <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
-                  <strong>Nota:</strong> Administradores têm todas as permissões por padrão e não podem ser alterados.
+                <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                  <strong>Nota:</strong> Administradores têm todas as permissões por padrão e não
+                  podem ser alterados.
                 </div>
               )}
             </TabsContent>

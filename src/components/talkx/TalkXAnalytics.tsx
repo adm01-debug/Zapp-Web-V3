@@ -1,19 +1,26 @@
 import { useMemo } from 'react';
 import {
-  BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer,
-  XAxis, YAxis, Tooltip as ReTooltip, CartesianGrid, Legend,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip as ReTooltip,
+  CartesianGrid,
+  Legend,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  BarChart3, TrendingUp, Users, CheckCircle2, XCircle, Zap, Target
-} from 'lucide-react';
+import { BarChart3, TrendingUp, Users, CheckCircle2, XCircle, Zap, Target } from 'lucide-react';
 import type { TalkXCampaign } from '@/hooks/useTalkX';
 
 interface Props {
   campaigns: TalkXCampaign[];
 }
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--muted-foreground))'];
+const _COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--muted-foreground))'];
 
 export function TalkXAnalytics({ campaigns }: Props) {
   const stats = useMemo(() => {
@@ -22,9 +29,8 @@ export function TalkXAnalytics({ campaigns }: Props) {
     const totalFailed = campaigns.reduce((a, c) => a + c.failed_count, 0);
     const totalRecipients = campaigns.reduce((a, c) => a + c.total_recipients, 0);
     const completed = campaigns.filter((c) => c.status === 'completed').length;
-    const avgSuccessRate = totalSent + totalFailed > 0
-      ? Math.round((totalSent / (totalSent + totalFailed)) * 100)
-      : 0;
+    const avgSuccessRate =
+      totalSent + totalFailed > 0 ? Math.round((totalSent / (totalSent + totalFailed)) * 100) : 0;
 
     return { total, totalSent, totalFailed, totalRecipients, completed, avgSuccessRate };
   }, [campaigns]);
@@ -72,8 +78,8 @@ export function TalkXAnalytics({ campaigns }: Props) {
 
   if (campaigns.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <BarChart3 className="w-10 h-10 text-muted-foreground/30" />
+      <div className="flex flex-col items-center justify-center gap-3 py-16">
+        <BarChart3 className="h-10 w-10 text-muted-foreground/30" />
         <p className="text-sm text-muted-foreground">Nenhuma campanha para analisar</p>
       </div>
     );
@@ -82,32 +88,52 @@ export function TalkXAnalytics({ campaigns }: Props) {
   return (
     <div className="space-y-4 md:space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
         {[
           { label: 'Campanhas', value: stats.total, icon: Zap, cls: 'text-primary' },
           { label: 'Concluídas', value: stats.completed, icon: CheckCircle2, cls: 'text-primary' },
-          { label: 'Total Enviadas', value: stats.totalSent, icon: TrendingUp, cls: 'text-primary' },
-          { label: 'Total Falhas', value: stats.totalFailed, icon: XCircle, cls: 'text-destructive' },
-          { label: 'Destinatários', value: stats.totalRecipients, icon: Users, cls: 'text-muted-foreground' },
-          { label: 'Taxa Sucesso', value: `${stats.avgSuccessRate}%`, icon: Target, cls: 'text-primary' },
+          {
+            label: 'Total Enviadas',
+            value: stats.totalSent,
+            icon: TrendingUp,
+            cls: 'text-primary',
+          },
+          {
+            label: 'Total Falhas',
+            value: stats.totalFailed,
+            icon: XCircle,
+            cls: 'text-destructive',
+          },
+          {
+            label: 'Destinatários',
+            value: stats.totalRecipients,
+            icon: Users,
+            cls: 'text-muted-foreground',
+          },
+          {
+            label: 'Taxa Sucesso',
+            value: `${stats.avgSuccessRate}%`,
+            icon: Target,
+            cls: 'text-primary',
+          },
         ].map(({ label, value, icon: Icon, cls }) => (
           <Card key={label} className="border-border/50">
-            <CardContent className="flex flex-col items-center p-3 gap-1">
-              <Icon className={`w-4 h-4 ${cls}`} />
+            <CardContent className="flex flex-col items-center gap-1 p-3">
+              <Icon className={`h-4 w-4 ${cls}`} />
               <p className="text-lg font-bold text-foreground">{value}</p>
-              <p className="text-[10px] text-muted-foreground text-center">{label}</p>
+              <p className="text-center text-[10px] text-muted-foreground">{label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
         {/* Bar Chart - Per Campaign Performance */}
         {barData.length > 0 && (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <BarChart3 className="h-4 w-4 text-primary" />
                 Desempenho por Campanha
               </CardTitle>
             </CardHeader>
@@ -137,8 +163,8 @@ export function TalkXAnalytics({ campaigns }: Props) {
         {/* Pie Chart - Status Distribution */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Target className="h-4 w-4 text-primary" />
               Distribuição por Status
             </CardTitle>
           </CardHeader>

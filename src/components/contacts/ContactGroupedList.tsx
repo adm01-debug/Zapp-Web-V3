@@ -19,11 +19,18 @@ interface ContactGroupedListProps {
 }
 
 export function ContactGroupedList({
-  contacts, selectedIds, onToggleSelect, onOpenChat, onEdit, onDelete, getCRMData, searchQuery,
+  contacts,
+  selectedIds,
+  onToggleSelect,
+  onOpenChat,
+  onEdit,
+  onDelete,
+  getCRMData,
+  searchQuery,
 }: ContactGroupedListProps) {
   const groups = useMemo(() => {
     const map = new Map<string, Contact[]>();
-    contacts.forEach(c => {
+    contacts.forEach((c) => {
       const key = c.company?.trim() || 'Sem empresa';
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(c);
@@ -38,9 +45,13 @@ export function ContactGroupedList({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const toggleGroup = (key: string) => {
-    setCollapsed(prev => {
+    setCollapsed((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
       return next;
     });
   };
@@ -55,30 +66,32 @@ export function ContactGroupedList({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: gi * 0.03 }}
-            className="rounded-xl border border-border/40 overflow-hidden bg-card"
+            className="overflow-hidden rounded-xl border border-border/40 bg-card"
           >
             {/* Group Header */}
             <button
               onClick={() => toggleGroup(company)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+              className="flex w-full items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50"
             >
-              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                 {company === 'Sem empresa' ? (
-                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
                 ) : (
-                  <Building className="w-3.5 h-3.5 text-primary" />
+                  <Building className="h-3.5 w-3.5 text-primary" />
                 )}
               </div>
-              <span className="text-sm font-semibold text-foreground flex-1 text-left truncate">
+              <span className="flex-1 truncate text-left text-sm font-semibold text-foreground">
                 {company}
               </span>
-              <Badge variant="secondary" className="text-[10px] h-5 px-2 font-medium">
+              <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium">
                 {members.length}
               </Badge>
-              <ChevronDown className={cn(
-                'w-4 h-4 text-muted-foreground transition-transform duration-200',
-                isCollapsed && '-rotate-90'
-              )} />
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 text-muted-foreground transition-transform duration-200',
+                  isCollapsed && '-rotate-90'
+                )}
+              />
             </button>
 
             {/* Group Content */}
@@ -91,7 +104,7 @@ export function ContactGroupedList({
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="border-t border-border/20 space-y-1 p-1">
+                  <div className="space-y-1 border-t border-border/20 p-1">
                     {members.map((contact, index) => (
                       <ContactListItem
                         key={contact.id}

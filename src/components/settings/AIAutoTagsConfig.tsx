@@ -16,18 +16,17 @@ export function AIAutoTagsConfig() {
   const { data: tagStats = [], isLoading } = useQuery({
     queryKey: ['ai-tag-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ai_conversation_tags')
-        .select('tag_name, confidence');
-      
+      const { data } = await supabase.from('ai_conversation_tags').select('tag_name, confidence');
+
       if (!data) return [];
 
       // Aggregate by tag
       const tagMap = new Map<string, { count: number; avgConfidence: number }>();
-      data.forEach(t => {
+      data.forEach((t) => {
         const existing = tagMap.get(t.tag_name) || { count: 0, avgConfidence: 0 };
         existing.count += 1;
-        existing.avgConfidence = (existing.avgConfidence * (existing.count - 1) + Number(t.confidence)) / existing.count;
+        existing.avgConfidence =
+          (existing.avgConfidence * (existing.count - 1) + Number(t.confidence)) / existing.count;
         tagMap.set(t.tag_name, existing);
       });
 
@@ -40,7 +39,7 @@ export function AIAutoTagsConfig() {
   const retagMutation = useMutation({
     mutationFn: async () => {
       // Get recent contacts with messages
-      const { data: contacts , error: contactsErr } = await supabase
+      const { data: contacts } = await supabase
         .from('contacts')
         .select('id')
         .order('updated_at', { ascending: false })
@@ -59,13 +58,16 @@ export function AIAutoTagsConfig() {
           log.error('Error tagging contact:', contact.id, e);
         }
         // Small delay to avoid rate limits
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 1000));
       }
       return processed;
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['ai-tag-stats'] });
-      toast({ title: 'Tags atualizadas!', description: `${count} conversas classificadas por IA.` });
+      toast({
+        title: 'Tags atualizadas!',
+        description: `${count} conversas classificadas por IA.`,
+      });
     },
     onError: (e: Error) => {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
@@ -88,11 +90,11 @@ export function AIAutoTagsConfig() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Tags className="w-5 h-5 text-primary" />
+          <h2 className="flex items-center gap-2 text-xl font-bold">
+            <Tags className="h-5 w-5 text-primary" />
             Tags Automáticas por IA
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             Classificação automática de conversas por tema e sentimento usando IA.
           </p>
         </div>
@@ -102,9 +104,9 @@ export function AIAutoTagsConfig() {
           className="gap-2"
         >
           {retagMutation.isPending ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
+            <RefreshCw className="h-4 w-4 animate-spin" />
           ) : (
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="h-4 w-4" />
           )}
           {retagMutation.isPending ? 'Classificando...' : 'Classificar Recentes'}
         </Button>
@@ -112,8 +114,8 @@ export function AIAutoTagsConfig() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Brain className="w-4 h-4" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Brain className="h-4 w-4" />
             Distribuição de Tags
           </CardTitle>
           <CardDescription>
@@ -122,17 +124,19 @@ export function AIAutoTagsConfig() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center text-muted-foreground py-8">Carregando...</div>
+            <div className="py-8 text-center text-muted-foreground">Carregando...</div>
           ) : tagStats.length === 0 ? (
-            <div className="text-center py-8">
-              <Tags className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
+            <div className="py-8 text-center">
+              <Tags className="mx-auto mb-2 h-10 w-10 text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">Nenhuma tag gerada ainda.</p>
-              <p className="text-xs text-muted-foreground mt-1">Clique em "Classificar Recentes" para começar.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Clique em "Classificar Recentes" para começar.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {tagStats.map(tag => {
-                const maxCount = Math.max(...tagStats.map(t => t.count));
+              {tagStats.map((tag) => {
+                const maxCount = Math.max(...tagStats.map((t) => t.count));
                 const barWidth = (tag.count / maxCount) * 100;
                 const colorClass = tagColors[tag.name] || 'bg-muted text-foreground border-border';
 
@@ -148,9 +152,9 @@ export function AIAutoTagsConfig() {
                         <span>{(tag.avgConfidence * 100).toFixed(0)}% confiança</span>
                       </div>
                     </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full bg-primary/60 rounded-full transition-all"
+                        className="h-full rounded-full bg-primary/60 transition-all"
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>

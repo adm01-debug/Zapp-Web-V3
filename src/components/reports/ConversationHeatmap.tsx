@@ -1,7 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Flame } from 'lucide-react';
 
 interface HeatmapCell {
@@ -27,7 +33,7 @@ export function ConversationHeatmap() {
     const since = new Date();
     since.setDate(since.getDate() - parseInt(period));
 
-    const { data: messages , error } = await supabase
+    const { data: messages } = await supabase
       .from('messages')
       .select('created_at')
       .gte('created_at', since.toISOString())
@@ -53,7 +59,7 @@ export function ConversationHeatmap() {
     setLoading(false);
   };
 
-  const maxCount = useMemo(() => Math.max(1, ...data.map(c => c.count)), [data]);
+  const maxCount = useMemo(() => Math.max(1, ...data.map((c) => c.count)), [data]);
 
   const getIntensity = (count: number): string => {
     if (count === 0) return 'bg-muted/20';
@@ -68,12 +74,12 @@ export function ConversationHeatmap() {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Flame className="w-4 h-4 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Flame className="h-4 w-4 text-primary" />
             Heatmap de Volume
           </CardTitle>
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-28 h-7 text-xs">
+            <SelectTrigger className="h-7 w-28 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -86,13 +92,16 @@ export function ConversationHeatmap() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="h-40 bg-muted/20 rounded-xl animate-pulse" />
+          <div className="h-40 animate-pulse rounded-xl bg-muted/20" />
         ) : (
           <div className="space-y-1">
             {/* Header: hours */}
-            <div className="flex gap-0.5 ml-10">
-              {HOURS.filter(h => h % 3 === 0).map(h => (
-                <div key={h} className="text-[9px] text-muted-foreground w-[calc((100%-40px)/8)] text-center">
+            <div className="ml-10 flex gap-0.5">
+              {HOURS.filter((h) => h % 3 === 0).map((h) => (
+                <div
+                  key={h}
+                  className="w-[calc((100%-40px)/8)] text-center text-[9px] text-muted-foreground"
+                >
                   {String(h).padStart(2, '0')}h
                 </div>
               ))}
@@ -100,10 +109,12 @@ export function ConversationHeatmap() {
             {/* Grid */}
             {DAYS.map((dayName, dayIdx) => (
               <div key={dayIdx} className="flex items-center gap-0.5">
-                <span className="text-[10px] text-muted-foreground w-10 text-right pr-1">{dayName}</span>
-                <div className="flex gap-0.5 flex-1">
-                  {HOURS.map(h => {
-                    const cell = data.find(c => c.day === dayIdx && c.hour === h);
+                <span className="w-10 pr-1 text-right text-[10px] text-muted-foreground">
+                  {dayName}
+                </span>
+                <div className="flex flex-1 gap-0.5">
+                  {HOURS.map((h) => {
+                    const cell = data.find((c) => c.day === dayIdx && c.hour === h);
                     return (
                       <div
                         key={h}
@@ -116,11 +127,17 @@ export function ConversationHeatmap() {
               </div>
             ))}
             {/* Legend */}
-            <div className="flex items-center gap-2 justify-end pt-2">
+            <div className="flex items-center justify-end gap-2 pt-2">
               <span className="text-[9px] text-muted-foreground">Menos</span>
               <div className="flex gap-0.5">
-                {['bg-muted/20', 'bg-primary/25', 'bg-primary/60', 'bg-warning/80', 'bg-destructive/80'].map((c, i) => (
-                  <div key={i} className={`w-3 h-3 rounded-sm ${c}`} />
+                {[
+                  'bg-muted/20',
+                  'bg-primary/25',
+                  'bg-primary/60',
+                  'bg-warning/80',
+                  'bg-destructive/80',
+                ].map((c, i) => (
+                  <div key={i} className={`h-3 w-3 rounded-sm ${c}`} />
                 ))}
               </div>
               <span className="text-[9px] text-muted-foreground">Mais</span>

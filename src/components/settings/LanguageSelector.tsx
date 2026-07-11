@@ -10,11 +10,11 @@ import {
 import { Globe, Check } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 
-export const LanguageSelector = forwardRef<HTMLDivElement>((_, ref) => {
-  const { t } = useTranslation();
+export const LanguageSelector = forwardRef<HTMLDivElement>((_, _ref) => {
+  const { t: _t } = useTranslation();
   const { currentLanguage, changeLanguage, languages } = useLanguage();
 
-  const currentLang = languages.find(l => l.code === currentLanguage);
+  const currentLang = languages.find((l) => l.code === currentLanguage);
 
   return (
     <DropdownMenu>
@@ -34,9 +34,7 @@ export const LanguageSelector = forwardRef<HTMLDivElement>((_, ref) => {
           >
             <span>{lang.flag}</span>
             <span>{lang.name}</span>
-            {currentLanguage === lang.code && (
-              <Check className="h-4 w-4 ml-auto" />
-            )}
+            {currentLanguage === lang.code && <Check className="ml-auto h-4 w-4" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

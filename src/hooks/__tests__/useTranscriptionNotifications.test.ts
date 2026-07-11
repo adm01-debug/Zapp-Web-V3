@@ -5,7 +5,7 @@ const mockRemoveChannel = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    channel: (...args: any[]) => mockChannel(...args),
+    channel: mockChannel,
     removeChannel: mockRemoveChannel,
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
@@ -92,11 +92,13 @@ describe('useTranscriptionNotifications', () => {
   });
 
   it('accepts custom options', () => {
-    renderHook(() => useTranscriptionNotifications({
-      showToast: false,
-      playSound: false,
-      showBrowserNotification: false,
-    }));
+    renderHook(() =>
+      useTranscriptionNotifications({
+        showToast: false,
+        playSound: false,
+        showBrowserNotification: false,
+      })
+    );
     expect(mockChannel).toHaveBeenCalled();
   });
 });

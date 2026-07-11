@@ -1,18 +1,24 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameDay,
+  isSameMonth,
+  addMonths,
+  subMonths,
+  startOfWeek,
+  endOfWeek,
+} from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -40,7 +46,9 @@ interface ScheduleCalendarViewProps {
   onSelectMessage?: (message: ScheduledMessage) => void;
 }
 
-export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewProps) {
+export function ScheduleCalendarView({
+  onSelectMessage: _onSelectMessage,
+}: ScheduleCalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
@@ -48,9 +56,9 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
   const { agents } = useAgents();
 
   const pendingMessages = useMemo(() => {
-    let filtered = messages.filter(m => m.status === 'pending');
+    let filtered = messages.filter((m) => m.status === 'pending');
     if (selectedAgent !== 'all') {
-      filtered = filtered.filter(m => m.created_by === selectedAgent);
+      filtered = filtered.filter((m) => m.created_by === selectedAgent);
     }
     return filtered;
   }, [messages, selectedAgent]);
@@ -67,7 +75,7 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
   // Group messages by date
   const messagesByDate = useMemo(() => {
     const grouped: Record<string, ScheduledMessage[]> = {};
-    pendingMessages.forEach(msg => {
+    pendingMessages.forEach((msg) => {
       const dateKey = format(new Date(msg.scheduled_at), 'yyyy-MM-dd');
       if (!grouped[dateKey]) grouped[dateKey] = [];
       grouped[dateKey].push(msg);
@@ -83,10 +91,14 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
 
   const getMessageIcon = (type: string) => {
     switch (type) {
-      case 'image': return <Image className="w-3 h-3" />;
-      case 'audio': return <Mic className="w-3 h-3" />;
-      case 'document': return <File className="w-3 h-3" />;
-      default: return <MessageSquare className="w-3 h-3" />;
+      case 'image':
+        return <Image className="h-3 w-3" />;
+      case 'audio':
+        return <Mic className="h-3 w-3" />;
+      case 'document':
+        return <File className="h-3 w-3" />;
+      default:
+        return <MessageSquare className="h-3 w-3" />;
     }
   };
 
@@ -113,21 +125,21 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
         <CardHeader className="border-b border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-primary" />
+              <Calendar className="h-5 w-5 text-primary" />
               <CardTitle>Calendário de Agendamentos</CardTitle>
               <Badge variant="secondary">{pendingMessages.length} pendentes</Badge>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {/* Agent filter */}
               <Select value={selectedAgent} onValueChange={setSelectedAgent}>
                 <SelectTrigger className="w-[180px]">
-                  <User className="w-4 h-4 mr-2" />
+                  <User className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Todos os agentes" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os agentes</SelectItem>
-                  {agents?.map(agent => (
+                  {agents?.map((agent) => (
                     <SelectItem key={agent.id} value={agent.id}>
                       {agent.name}
                     </SelectItem>
@@ -137,22 +149,22 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
 
               {/* Month navigation */}
               <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium w-32 text-center">
+                <span className="w-32 text-center text-sm font-medium">
                   {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
                 </span>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -161,11 +173,11 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
 
         <CardContent className="p-4">
           {/* Weekday headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-              <div 
-                key={day} 
-                className="h-8 flex items-center justify-center text-xs font-medium text-muted-foreground"
+          <div className="mb-2 grid grid-cols-7 gap-1">
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
+              <div
+                key={day}
+                className="flex h-8 items-center justify-center text-xs font-medium text-muted-foreground"
               >
                 {day}
               </div>
@@ -174,7 +186,7 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
 
           {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map(day => {
+            {calendarDays.map((day) => {
               const dateKey = format(day, 'yyyy-MM-dd');
               const dayMessages = messagesByDate[dateKey] || [];
               const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -188,30 +200,32 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedDate(day)}
                   className={cn(
-                    "h-20 p-1 rounded-lg border transition-all text-left flex flex-col",
-                    isCurrentMonth ? "bg-card" : "bg-muted/30 opacity-50",
-                    isToday && "border-primary/50",
-                    isSelected && "ring-2 ring-primary border-primary",
-                    dayMessages.length > 0 && "border-secondary/50 bg-secondary/5",
-                    !isCurrentMonth && "pointer-events-none"
+                    'flex h-20 flex-col rounded-lg border p-1 text-left transition-all',
+                    isCurrentMonth ? 'bg-card' : 'bg-muted/30 opacity-50',
+                    isToday && 'border-primary/50',
+                    isSelected && 'border-primary ring-2 ring-primary',
+                    dayMessages.length > 0 && 'border-secondary/50 bg-secondary/5',
+                    !isCurrentMonth && 'pointer-events-none'
                   )}
                 >
-                  <span className={cn(
-                    "text-xs font-medium",
-                    isToday && "text-primary font-bold",
-                    !isCurrentMonth && "text-muted-foreground"
-                  )}>
+                  <span
+                    className={cn(
+                      'text-xs font-medium',
+                      isToday && 'font-bold text-primary',
+                      !isCurrentMonth && 'text-muted-foreground'
+                    )}
+                  >
                     {format(day, 'd')}
                   </span>
-                  
+
                   {dayMessages.length > 0 && (
-                    <div className="flex-1 flex flex-col gap-0.5 mt-1 overflow-hidden">
-                      {dayMessages.slice(0, 3).map((msg, i) => (
-                        <div 
+                    <div className="mt-1 flex flex-1 flex-col gap-0.5 overflow-hidden">
+                      {dayMessages.slice(0, 3).map((msg, _i) => (
+                        <div
                           key={msg.id}
-                          className="flex items-center gap-1 text-[10px] text-secondary truncate"
+                          className="flex items-center gap-1 truncate text-[10px] text-secondary"
                         >
-                          <Clock className="w-2.5 h-2.5 shrink-0" />
+                          <Clock className="h-2.5 w-2.5 shrink-0" />
                           <span>{format(new Date(msg.scheduled_at), 'HH:mm')}</span>
                         </div>
                       ))}
@@ -230,11 +244,14 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
       </Card>
 
       {/* Selected date detail dialog */}
-      <Dialog open={!!selectedDate && selectedDateMessages.length > 0} onOpenChange={() => setSelectedDate(null)}>
+      <Dialog
+        open={!!selectedDate && selectedDateMessages.length > 0}
+        onOpenChange={() => setSelectedDate(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
+              <Calendar className="h-5 w-5 text-primary" />
               {selectedDate && format(selectedDate, "EEEE, d 'de' MMMM", { locale: ptBR })}
             </DialogTitle>
           </DialogHeader>
@@ -249,12 +266,12 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ delay: index * 0.05 }}
-                    className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                    className="rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Clock className="w-4 h-4 text-primary" />
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-primary" />
                           <span className="font-medium">
                             {format(new Date(msg.scheduled_at), 'HH:mm')}
                           </span>
@@ -263,9 +280,7 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
                             {msg.message_type}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {msg.content}
-                        </p>
+                        <p className="line-clamp-2 text-sm text-muted-foreground">{msg.content}</p>
                       </div>
                       <Button
                         variant="ghost"
@@ -273,7 +288,7 @@ export function ScheduleCalendarView({ onSelectMessage }: ScheduleCalendarViewPr
                         className="shrink-0 text-destructive hover:text-destructive"
                         onClick={() => cancelMessage(msg.id)}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
                   </motion.div>

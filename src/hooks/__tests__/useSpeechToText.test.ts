@@ -2,14 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 
+type WindowWithSR = typeof window & {
+  SpeechRecognition?: typeof MockSpeechRecognition;
+  webkitSpeechRecognition?: typeof MockSpeechRecognition;
+};
+
 // Mock SpeechRecognition
 class MockSpeechRecognition {
   lang = '';
   continuous = false;
   interimResults = false;
-  onresult: ((event: any) => void) | null = null;
+  onresult: ((event: Event) => void) | null = null;
   onend: (() => void) | null = null;
-  onerror: ((event: any) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
 
   start = vi.fn();
   stop = vi.fn(() => {
@@ -19,17 +24,22 @@ class MockSpeechRecognition {
 }
 
 describe('useSpeechToText', () => {
-  let originalSR: any;
+  let originalSR: unknown;
+  const win = window as unknown as WindowWithSR;
 
   beforeEach(() => {
-    originalSR = (window as any).SpeechRecognition;
-    (window as any).SpeechRecognition = MockSpeechRecognition;
+    originalSR = win.SpeechRecognition;
+    win.SpeechRecognition = MockSpeechRecognition;
     // Mock navigator.vibrate
-    Object.defineProperty(navigator, 'vibrate', { value: vi.fn(), writable: true, configurable: true });
+    Object.defineProperty(navigator, 'vibrate', {
+      value: vi.fn(),
+      writable: true,
+      configurable: true,
+    });
   });
 
   afterEach(() => {
-    (window as any).SpeechRecognition = originalSR;
+    win.SpeechRecognition = originalSR as typeof MockSpeechRecognition | undefined;
     vi.restoreAllMocks();
   });
 
@@ -39,8 +49,8 @@ describe('useSpeechToText', () => {
   });
 
   it('returns unsupported when no SpeechRecognition', () => {
-    (window as any).SpeechRecognition = undefined;
-    (window as any).webkitSpeechRecognition = undefined;
+    win.SpeechRecognition = undefined;
+    win.webkitSpeechRecognition = undefined;
     const { result } = renderHook(() => useSpeechToText());
     expect(result.current.isSupported).toBe(false);
   });
@@ -84,11 +94,9 @@ describe('useSpeechToText', () => {
     });
 
     // Simulate a speech recognition result
-    const mockEvent = {
+    const _mockEvent = {
       resultIndex: 0,
-      results: [
-        { 0: { transcript: 'hello world' }, isFinal: true, length: 1 },
-      ],
+      results: [{ 0: { transcript: 'hello world' }, isFinal: true, length: 1 }],
     };
 
     // Get the recognition instance and trigger onresult
@@ -108,8 +116,8 @@ describe('useSpeechToText', () => {
   });
 
   it('does not start when unsupported', () => {
-    (window as any).SpeechRecognition = undefined;
-    (window as any).webkitSpeechRecognition = undefined;
+    win.SpeechRecognition = undefined;
+    win.webkitSpeechRecognition = undefined;
     const { result } = renderHook(() => useSpeechToText());
 
     act(() => {

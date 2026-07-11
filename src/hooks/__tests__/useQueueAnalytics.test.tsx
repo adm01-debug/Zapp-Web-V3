@@ -5,7 +5,7 @@ const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: mockFrom,
   },
 }));
 
@@ -42,8 +42,18 @@ describe('useQueueAnalytics', () => {
               gte: vi.fn().mockReturnValue({
                 lte: vi.fn().mockResolvedValue({
                   data: [
-                    { id: 'm1', contact_id: 'c1', sender: 'agent', created_at: '2024-01-03T10:00:00Z' },
-                    { id: 'm2', contact_id: 'c1', sender: 'contact', created_at: '2024-01-03T11:00:00Z' },
+                    {
+                      id: 'm1',
+                      contact_id: 'c1',
+                      sender: 'agent',
+                      created_at: '2024-01-03T10:00:00Z',
+                    },
+                    {
+                      id: 'm2',
+                      contact_id: 'c1',
+                      sender: 'contact',
+                      created_at: '2024-01-03T11:00:00Z',
+                    },
                   ],
                   error: null,
                 }),
@@ -143,7 +153,7 @@ describe('useQueueAnalytics', () => {
     const { result } = renderHook(() => useQueueAnalytics('q1', dateRange));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    result.current.statusData.forEach(s => {
+    result.current.statusData.forEach((s) => {
       // Colors are now semantic HSL tokens like 'hsl(var(--primary))'
       expect(s.color).toContain('hsl(var(--');
       expect(s.name).toBeTruthy();

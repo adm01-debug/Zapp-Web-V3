@@ -18,7 +18,11 @@ export function useOnboarding() {
 
     // Check localStorage first for quick response
     let localCompleted: string | null = null;
-    try { localCompleted = localStorage.getItem(`${ONBOARDING_KEY}_${user.id}`); } catch { /* storage unavailable */ }
+    try {
+      localCompleted = localStorage.getItem(`${ONBOARDING_KEY}_${user.id}`);
+    } catch {
+      /* storage unavailable */
+    }
     if (localCompleted === 'true') {
       setHasCompletedOnboarding(true);
       setLoading(false);
@@ -28,7 +32,7 @@ export function useOnboarding() {
     // Check user_settings in database
     const checkOnboarding = async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('user_settings')
           .select('onboarding_completed')
           .eq('user_id', user.id)
@@ -37,7 +41,11 @@ export function useOnboarding() {
         // If user has settings, they've been here before
         if (data && data.onboarding_completed) {
           setHasCompletedOnboarding(true);
-          try { localStorage.setItem(`${ONBOARDING_KEY}_${user.id}`, 'true'); } catch { /* storage unavailable */ }
+          try {
+            localStorage.setItem(`${ONBOARDING_KEY}_${user.id}`, 'true');
+          } catch {
+            /* storage unavailable */
+          }
         } else {
           setHasCompletedOnboarding(false);
         }
@@ -59,9 +67,11 @@ export function useOnboarding() {
           .from('user_settings')
           .update({ onboarding_completed: true })
           .eq('user_id', user.id);
-        
+
         localStorage.setItem(`${ONBOARDING_KEY}_${user.id}`, 'true');
-      } catch { /* ignore storage error */ }
+      } catch {
+        /* ignore storage error */
+      }
       setHasCompletedOnboarding(true);
     }
   };
@@ -73,9 +83,11 @@ export function useOnboarding() {
           .from('user_settings')
           .update({ onboarding_completed: false })
           .eq('user_id', user.id);
-          
+
         localStorage.removeItem(`${ONBOARDING_KEY}_${user.id}`);
-      } catch { /* ignore storage error */ }
+      } catch {
+        /* ignore storage error */
+      }
       setHasCompletedOnboarding(false);
     }
   };

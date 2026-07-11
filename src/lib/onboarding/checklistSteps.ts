@@ -20,15 +20,17 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
     action: 'Completar perfil',
     actionRoute: 'agents',
     checkCondition: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('name, avatar_url')
         .eq('user_id', user.id)
         .maybeSingle();
       return !!(data?.name && data.name.length > 2);
-    }
+    },
   },
   {
     id: 'connection',
@@ -38,13 +40,13 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
     action: 'Conectar WhatsApp',
     actionRoute: 'connections',
     checkCondition: async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('whatsapp_connections')
         .select('id')
         .eq('status', 'connected')
         .limit(1);
       return (data?.length || 0) > 0;
-    }
+    },
   },
   {
     id: 'hours',
@@ -54,15 +56,17 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
     action: 'Configurar horários',
     actionRoute: 'settings',
     checkCondition: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_settings')
         .select('business_hours_enabled')
         .eq('user_id', user.id)
         .maybeSingle();
       return data?.business_hours_enabled === true;
-    }
+    },
   },
   {
     id: 'templates',
@@ -72,15 +76,17 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
     action: 'Criar template',
     actionRoute: 'inbox',
     checkCondition: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('message_templates')
         .select('id')
         .eq('user_id', user.id)
         .limit(1);
       return (data?.length || 0) > 0;
-    }
+    },
   },
   {
     id: 'notifications',
@@ -90,15 +96,17 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
     action: 'Configurar alertas',
     actionRoute: 'settings',
     checkCondition: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_settings')
         .select('browser_notifications_enabled, sound_enabled')
         .eq('user_id', user.id)
         .maybeSingle();
       return data?.browser_notifications_enabled === true || data?.sound_enabled === true;
-    }
+    },
   },
   {
     id: 'theme',
@@ -108,14 +116,16 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
     action: 'Personalizar',
     actionRoute: 'settings',
     checkCondition: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_settings')
         .select('theme')
         .eq('user_id', user.id)
         .maybeSingle();
       return data?.theme !== null && data?.theme !== 'system';
-    }
+    },
   },
 ];

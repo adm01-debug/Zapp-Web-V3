@@ -17,9 +17,11 @@ export function useMessageSignature() {
 
   useEffect(() => {
     const fetchName = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user || !mountedRef.current) return;
-      const { data: profile , error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('name, job_title')
         .eq('user_id', user.id)
@@ -27,9 +29,7 @@ export function useMessageSignature() {
       if (!mountedRef.current) return;
       if (profile?.name) {
         const firstName = profile.name.split(' ')[0];
-        const sig = profile.job_title
-          ? `${firstName} - ${profile.job_title}`
-          : firstName;
+        const sig = profile.job_title ? `${firstName} - ${profile.job_title}` : firstName;
         setAgentSignature(sig);
       }
     };
@@ -37,17 +37,24 @@ export function useMessageSignature() {
   }, []);
 
   const toggleSignature = useCallback(() => {
-    setSignatureEnabled(prev => {
+    setSignatureEnabled((prev) => {
       const next = !prev;
-      try { localStorage.setItem(SIGNATURE_ENABLED_KEY, String(next)); } catch { /* storage unavailable */ }
+      try {
+        localStorage.setItem(SIGNATURE_ENABLED_KEY, String(next));
+      } catch {
+        /* storage unavailable */
+      }
       return next;
     });
   }, []);
 
-  const applySignature = useCallback((content: string): string => {
-    if (!signatureEnabled || !agentSignature) return content;
-    return `*${agentSignature}:*\n${content}`;
-  }, [signatureEnabled, agentSignature]);
+  const applySignature = useCallback(
+    (content: string): string => {
+      if (!signatureEnabled || !agentSignature) return content;
+      return `*${agentSignature}:*\n${content}`;
+    },
+    [signatureEnabled, agentSignature]
+  );
 
   return { signatureEnabled, agentName: agentSignature, toggleSignature, applySignature };
 }

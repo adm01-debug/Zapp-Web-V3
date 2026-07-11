@@ -1,21 +1,38 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, MotionCardComponent } from "../card";
-import { Button } from "../button";
-import { Badge } from "../badge";
-import { User, Settings, Bell, Star } from "lucide-react";
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  MotionCardComponent,
+} from '../card';
+import { Button } from '../button';
+import { Badge } from '../badge';
+import { User, Settings, Bell, Star } from 'lucide-react';
 
 const meta: Meta<typeof Card> = {
-  title: "UI/Card",
+  title: 'UI/Card',
   component: Card,
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   argTypes: {
     variant: {
-      control: "select",
-      options: ["default", "elevated", "interactive", "selected", "ghost", "glass", "neon", "gradient"],
+      control: 'select',
+      options: [
+        'default',
+        'elevated',
+        'interactive',
+        'selected',
+        'ghost',
+        'glass',
+        'neon',
+        'gradient',
+      ],
     },
     padding: {
-      control: "select",
-      options: ["none", "sm", "default", "lg"],
+      control: 'select',
+      options: ['none', 'sm', 'default', 'lg'],
     },
   },
 };
@@ -31,10 +48,14 @@ export const Default: Story = {
         <CardDescription>Using design system tokens for spacing and colors.</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground">This content area follows the design system typography rules.</p>
+        <p className="text-sm text-muted-foreground">
+          This content area follows the design system typography rules.
+        </p>
       </CardContent>
       <CardFooter className="justify-between">
-        <Button variant="ghost" size="sm">Cancel</Button>
+        <Button variant="ghost" size="sm">
+          Cancel
+        </Button>
         <Button size="sm">Continue</Button>
       </CardFooter>
     </Card>
@@ -43,7 +64,7 @@ export const Default: Story = {
 
 export const VariantGallery: Story = {
   render: () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
+    <div className="grid grid-cols-1 gap-6 p-4 md:grid-cols-2">
       <Card variant="elevated">
         <CardHeader>
           <CardTitle className="text-lg">Elevated Card</CardTitle>
@@ -51,7 +72,7 @@ export const VariantGallery: Story = {
         </CardHeader>
         <CardContent>Uses tokens for depth and elevation.</CardContent>
       </Card>
-      
+
       <Card variant="neon" className="bg-slate-950">
         <CardHeader>
           <CardTitle className="text-lg text-secondary">Neon Card</CardTitle>
@@ -60,7 +81,10 @@ export const VariantGallery: Story = {
         <CardContent className="text-secondary/90">Uses secondary color tokens.</CardContent>
       </Card>
 
-      <Card variant="glass" className="bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-xl border-white/10">
+      <Card
+        variant="glass"
+        className="border-white/10 bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-xl"
+      >
         <CardHeader>
           <CardTitle className="text-lg">OLED Glass</CardTitle>
           <CardDescription>Blurred background</CardDescription>
@@ -83,9 +107,9 @@ export const ProfileCard: Story = {
   render: () => (
     <Card className="w-[300px] overflow-hidden">
       <div className="h-24 bg-gradient-to-r from-primary to-secondary" />
-      <div className="px-6 -mt-10 pb-6">
-        <div className="w-20 h-20 rounded-full border-4 border-card bg-muted flex items-center justify-center mb-4">
-          <User className="w-10 h-10 text-muted-foreground" />
+      <div className="-mt-10 px-6 pb-6">
+        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full border-4 border-card bg-muted">
+          <User className="h-10 w-10 text-muted-foreground" />
         </div>
         <CardTitle>Jane Cooper</CardTitle>
         <CardDescription>Senior UI Designer</CardDescription>
@@ -94,7 +118,7 @@ export const ProfileCard: Story = {
           <Badge variant="outline">Figma</Badge>
           <Badge variant="outline">React</Badge>
         </div>
-        <Button className="w-full mt-6">View Profile</Button>
+        <Button className="mt-6 w-full">View Profile</Button>
       </div>
     </Card>
   ),
@@ -102,24 +126,24 @@ export const ProfileCard: Story = {
 
 export const MotionCard: Story = {
   render: () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
-      <MotionCardComponent className="h-32 flex items-center justify-center">
+    <div className="grid grid-cols-1 gap-6 p-4 md:grid-cols-3">
+      <MotionCardComponent className="flex h-32 items-center justify-center">
         <div className="text-center">
-          <Settings className="w-6 h-6 mx-auto mb-2 text-primary" />
+          <Settings className="mx-auto mb-2 h-6 w-6 text-primary" />
           <span className="text-sm font-medium">Settings</span>
         </div>
       </MotionCardComponent>
-      
-      <MotionCardComponent className="h-32 flex items-center justify-center">
+
+      <MotionCardComponent className="flex h-32 items-center justify-center">
         <div className="text-center">
-          <Bell className="w-6 h-6 mx-auto mb-2 text-primary" />
+          <Bell className="mx-auto mb-2 h-6 w-6 text-primary" />
           <span className="text-sm font-medium">Notifications</span>
         </div>
       </MotionCardComponent>
 
-      <MotionCardComponent className="h-32 flex items-center justify-center">
+      <MotionCardComponent className="flex h-32 items-center justify-center">
         <div className="text-center">
-          <Star className="w-6 h-6 mx-auto mb-2 text-primary" />
+          <Star className="mx-auto mb-2 h-6 w-6 text-primary" />
           <span className="text-sm font-medium">Favorites</span>
         </div>
       </MotionCardComponent>

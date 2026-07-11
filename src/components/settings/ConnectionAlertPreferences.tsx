@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { Bell, BellOff } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { Bell, BellOff } from 'lucide-react';
 
 interface Prefs {
   push_enabled: boolean;
@@ -26,17 +26,17 @@ export function ConnectionAlertPreferences() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission>(
-    typeof Notification !== "undefined" ? Notification.permission : "denied",
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   );
 
   useEffect(() => {
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return setLoading(false);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('connection_alert_preferences')
-        .select("push_enabled, email_enabled, alert_on_degraded, alert_on_disconnected")
-        .eq("user_id", auth.user.id)
+        .select('push_enabled, email_enabled, alert_on_degraded, alert_on_disconnected')
+        .eq('user_id', auth.user.id)
         .maybeSingle();
       if (data) setPrefs(data as Prefs);
       setLoading(false);
@@ -44,29 +44,29 @@ export function ConnectionAlertPreferences() {
   }, []);
 
   const requestPermission = async () => {
-    if (typeof Notification === "undefined") {
-      toast.error("Seu navegador não suporta notificações.");
+    if (typeof Notification === 'undefined') {
+      toast.error('Seu navegador não suporta notificações.');
       return;
     }
     const result = await Notification.requestPermission();
     setBrowserPermission(result);
-    if (result === "granted") toast.success("Notificações ativadas no navegador.");
-    else toast.error("Permissão negada para notificações.");
+    if (result === 'granted') toast.success('Notificações ativadas no navegador.');
+    else toast.error('Permissão negada para notificações.');
   };
 
   const save = async () => {
     setSaving(true);
-    const { data: auth , error: authErr } = await supabase.auth.getUser();
+    const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
       setSaving(false);
       return;
     }
     const { error } = await supabase
       .from('connection_alert_preferences')
-      .upsert({ user_id: auth.user.id, ...prefs }, { onConflict: "user_id" });
+      .upsert({ user_id: auth.user.id, ...prefs }, { onConflict: 'user_id' });
     setSaving(false);
-    if (error) toast.error("Falha ao salvar preferências");
-    else toast.success("Preferências salvas");
+    if (error) toast.error('Falha ao salvar preferências');
+    else toast.success('Preferências salvas');
   };
 
   if (loading) return null;
@@ -75,17 +75,17 @@ export function ConnectionAlertPreferences() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Bell className="w-5 h-5" /> Alertas de Conexão
+          <Bell className="h-5 w-5" /> Alertas de Conexão
         </CardTitle>
         <CardDescription>
           Receba avisos quando uma instância ficar instável ou desconectar.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {browserPermission !== "granted" && (
-          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+        {browserPermission !== 'granted' && (
+          <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
             <div className="flex items-center gap-2 text-sm">
-              <BellOff className="w-4 h-4 text-muted-foreground" />
+              <BellOff className="h-4 w-4 text-muted-foreground" />
               Permissão do navegador para push: <strong>{browserPermission}</strong>
             </div>
             <Button size="sm" variant="outline" onClick={requestPermission}>
@@ -115,7 +115,7 @@ export function ConnectionAlertPreferences() {
           />
         </div>
 
-        <div className="border-t pt-4 space-y-3">
+        <div className="space-y-3 border-t pt-4">
           <p className="text-sm font-medium">Quando alertar</p>
           <div className="flex items-center justify-between">
             <Label htmlFor="degraded">Conexão degradada (CONNECTION_CLOSED recente)</Label>
@@ -136,7 +136,7 @@ export function ConnectionAlertPreferences() {
         </div>
 
         <Button onClick={save} disabled={saving} className="w-full">
-          {saving ? "Salvando..." : "Salvar preferências"}
+          {saving ? 'Salvando...' : 'Salvar preferências'}
         </Button>
       </CardContent>
     </Card>

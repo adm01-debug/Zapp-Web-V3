@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { normalizeMessage, buildConversation } from './realtimeUtils';
-import type { ConversationWithMessages, RealtimeMessage } from '@/features/inbox/hooks/useRealtimeMessages';
+import type { ConversationWithMessages, RealtimeMessage } from '../useRealtimeMessages';
 
 export interface MessageBatcherStatus {
   /** True while there are pending updates waiting for the debounce window to flush. */
@@ -20,8 +20,10 @@ export interface MessageBatcherStatus {
  */
 export function useMessageUpdateBatcher(
   conversationsRef: React.MutableRefObject<ConversationWithMessages[]>,
-  commitConversations: (updater: (prev: ConversationWithMessages[]) => ConversationWithMessages[]) => void,
-  hydrateConversationForMessage: (message: RealtimeMessage) => Promise<void>,
+  commitConversations: (
+    updater: (prev: ConversationWithMessages[]) => ConversationWithMessages[]
+  ) => void,
+  hydrateConversationForMessage: (message: RealtimeMessage) => Promise<void>
 ) {
   const pendingUpdatesRef = useRef<Map<string, RealtimeMessage>>(new Map());
   const updateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,18 +65,24 @@ export function useMessageUpdateBatcher(
 
       for (const updatedMessage of updates) {
         if (!updatedMessage.contact_id) continue;
-        const convIdx = next.findIndex(c => c.contact.id === updatedMessage.contact_id);
+        const convIdx = next.findIndex((c) => c.contact.id === updatedMessage.contact_id);
         if (convIdx < 0) continue;
         const conv = next[convIdx];
-        const msgIdx = conv.messages.findIndex(m => m.id === updatedMessage.id);
+        const msgIdx = conv.messages.findIndex((m) => m.id === updatedMessage.id);
         if (msgIdx < 0) continue;
-        if (!changed) { next = [...next]; changed = true; }
+        if (!changed) {
+          next = [...next];
+          changed = true;
+        }
         const updatedMessages = [...conv.messages];
         // Preserva o contactAvatar já cacheado na mensagem antiga ao aplicar o update
         const existingMessage = conv.messages[msgIdx];
-        updatedMessages[msgIdx] = { 
-          ...updatedMessage, 
-          contactAvatar: updatedMessage.contactAvatar || existingMessage.contactAvatar || conv.contact.avatar_url 
+        updatedMessages[msgIdx] = {
+          ...updatedMessage,
+          contactAvatar:
+            updatedMessage.contactAvatar ||
+            existingMessage.contactAvatar ||
+            conv.contact.avatar_url,
         };
         next[convIdx] = buildConversation(conv.contact, updatedMessages);
       }
@@ -101,7 +109,7 @@ export function useMessageUpdateBatcher(
 
       const messageWithAvatar = {
         ...updatedMessage,
-        contactAvatar: updatedMessage.contactAvatar || existingConversation.contact.avatar_url
+        contactAvatar: updatedMessage.contactAvatar || existingConversation.contact.avatar_url,
       };
       pendingUpdatesRef.current.set(updatedMessage.id, messageWithAvatar);
 
@@ -110,12 +118,9 @@ export function useMessageUpdateBatcher(
       // espera ver o duplo-check azul (CheckCheck text-info) sem o delay do
       // debounce padrão de 100ms. Detectamos a mudança comparando o status
       // antigo (snapshot em memória) com o novo recebido.
-      const previousMessage = existingConversation.messages.find(
-        (m) => m.id === updatedMessage.id,
-      );
+      const previousMessage = existingConversation.messages.find((m) => m.id === updatedMessage.id);
       const isPlayedTransition =
-        updatedMessage.status === 'played' &&
-        previousMessage?.status !== 'played';
+        updatedMessage.status === 'played' && previousMessage?.status !== 'played';
 
       if (isPlayedTransition) {
         if (updateTimerRef.current) {

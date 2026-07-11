@@ -30,54 +30,56 @@ const ITEM_HEIGHT_NORMAL = 96; // Comfortable mode with breathing room
 const ITEM_HEIGHT_COMPACT = 82; // Compact mode with clear card separation
 const EMPTY_SET = new Set<string>();
 
-const VirtualizedItem = memo(({
-  virtualRow,
-  conversation,
-  selectedContactId,
-  selectedIds,
-  pinnedIds,
-  selectionMode,
-  onToggleSelection,
-  onSelectConversation
-}: {
-  virtualRow: any;
-  conversation: ConversationWithMessages;
-  selectedContactId: string | null;
-  selectedIds: Set<string>;
-  pinnedIds: Set<string>;
-  selectionMode: boolean;
-  onToggleSelection?: (id: string) => void;
-  onSelectConversation: (contactId: string) => void;
-}) => {
-  const contactId = conversation.contact.id;
-  const isSelected = selectedContactId === contactId;
-  const isMultiSelected = selectedIds.has(contactId);
-  const isPinned = pinnedIds.has(contactId);
+const VirtualizedItem = memo(
+  ({
+    virtualRow,
+    conversation,
+    selectedContactId,
+    selectedIds,
+    pinnedIds,
+    selectionMode,
+    onToggleSelection,
+    onSelectConversation,
+  }: {
+    virtualRow: any;
+    conversation: ConversationWithMessages;
+    selectedContactId: string | null;
+    selectedIds: Set<string>;
+    pinnedIds: Set<string>;
+    selectionMode: boolean;
+    onToggleSelection?: (id: string) => void;
+    onSelectConversation: (contactId: string) => void;
+  }) => {
+    const contactId = conversation.contact.id;
+    const isSelected = selectedContactId === contactId;
+    const isMultiSelected = selectedIds.has(contactId);
+    const isPinned = pinnedIds.has(contactId);
 
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: `${virtualRow.size}px`,
-        transform: `translateY(${virtualRow.start}px)`,
-      }}
-      className="w-full"
-    >
-      <SharedConversationItem 
-        conversation={conversation}
-        isSelected={isSelected}
-        onSelect={() => onSelectConversation(contactId)}
-        selectionMode={selectionMode}
-        isMultiSelected={isMultiSelected}
-        onToggleSelection={onToggleSelection}
-        isPinned={isPinned}
-      />
-    </div>
-  );
-});
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: `${virtualRow.size}px`,
+          transform: `translateY(${virtualRow.start}px)`,
+        }}
+        className="w-full"
+      >
+        <SharedConversationItem
+          conversation={conversation}
+          isSelected={isSelected}
+          onSelect={() => onSelectConversation(contactId)}
+          selectionMode={selectionMode}
+          isMultiSelected={isMultiSelected}
+          onToggleSelection={onToggleSelection}
+          isPinned={isPinned}
+        />
+      </div>
+    );
+  }
+);
 
 export function VirtualizedRealtimeList({
   conversations,
@@ -86,9 +88,9 @@ export function VirtualizedRealtimeList({
   selectionMode = false,
   selectedIds = EMPTY_SET,
   onToggleSelection,
-  onMarkAsRead,
-  onArchive,
-  onPin,
+  onMarkAsRead: _onMarkAsRead,
+  onArchive: _onArchive,
+  onPin: _onPin,
   pinnedIds = EMPTY_SET,
 }: VirtualizedRealtimeListProps) {
   const { density } = useDensity();
@@ -99,13 +101,13 @@ export function VirtualizedRealtimeList({
     const hasReal = Array.isArray(conversations) && conversations.length > 0;
     const base = !hasReal && MOCKS_FLAG ? MOCK_CONVERSATIONS : conversations;
     if (!Array.isArray(base)) return [];
-    return base.filter(c => c?.contact?.id);
+    return base.filter((c) => c?.contact?.id);
   }, [conversations]);
 
   const sortedConversations = useMemo(() => {
     const deduped: ConversationWithMessages[] = [];
     const seen = new Set<string>();
-    
+
     for (const c of safeConversations) {
       if (!seen.has(c.contact.id)) {
         deduped.push(c);
@@ -127,7 +129,7 @@ export function VirtualizedRealtimeList({
   const virtualizer = useVirtualizer({
     count: sortedConversations.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => isCompact ? ITEM_HEIGHT_COMPACT : ITEM_HEIGHT_NORMAL,
+    estimateSize: () => (isCompact ? ITEM_HEIGHT_COMPACT : ITEM_HEIGHT_NORMAL),
     overscan: 5,
   });
 
@@ -136,7 +138,7 @@ export function VirtualizedRealtimeList({
   }
 
   return (
-    <div ref={parentRef} className="h-full overflow-auto scrollbar-thin">
+    <div ref={parentRef} className="scrollbar-thin h-full overflow-auto">
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -149,7 +151,7 @@ export function VirtualizedRealtimeList({
           if (!conversation?.contact?.id) return null;
 
           return (
-            <VirtualizedItem 
+            <VirtualizedItem
               key={conversation.contact.id}
               virtualRow={virtualRow}
               conversation={conversation}

@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -38,11 +37,11 @@ describe('Auth Flows', () => {
   it('should handle signIn successfully', async () => {
     const mockUser = { id: 'test-user-id', email: 'test@example.com' };
     const mockSession = { user: mockUser, access_token: 'fake-token' };
-    
-    (supabase.auth.signInWithPassword as any).mockResolvedValueOnce({
+
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
       data: { user: mockUser, session: mockSession },
       error: null,
-    });
+    } as unknown as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -57,7 +56,7 @@ describe('Auth Flows', () => {
   });
 
   it('should handle signOut successfully', async () => {
-    (supabase.auth.signOut as any).mockResolvedValueOnce({ error: null });
+    vi.mocked(supabase.auth.signOut).mockResolvedValueOnce({ error: null });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -68,4 +67,3 @@ describe('Auth Flows', () => {
     expect(supabase.auth.signOut).toHaveBeenCalled();
   });
 });
-

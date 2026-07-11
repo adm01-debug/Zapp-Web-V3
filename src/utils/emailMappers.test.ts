@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from 'vitest';
 import { emailMappers } from '../utils/emailMappers';
 
@@ -14,7 +13,7 @@ describe('emailMappers', () => {
         is_active: true,
         token_expiry: '2026-05-06T12:00:00Z',
         watch_expiry: '2026-05-06T12:00:00Z',
-        created_at: '2026-05-01T00:00:00Z'
+        created_at: '2026-05-01T00:00:00Z',
       };
       const result = emailMappers.account(raw);
       expect(result).toEqual({
@@ -26,14 +25,14 @@ describe('emailMappers', () => {
         is_active: true,
         token_expiry: '2026-05-06T12:00:00Z',
         watch_expiry: '2026-05-06T12:00:00Z',
-        created_at: '2026-05-01T00:00:00Z'
+        created_at: '2026-05-01T00:00:00Z',
       });
     });
 
     it('should handle missing optional fields in account', () => {
       const raw = {
         id: 'acc_123',
-        email: 'test@example.com'
+        email: 'test@example.com',
       };
       const result = emailMappers.account(raw);
       expect(result.is_active).toBe(true);
@@ -51,7 +50,7 @@ describe('emailMappers', () => {
         token_expiry: '2026-05-06T12:00:00Z',
         watch_status: 'active',
         watch_expiry: '2026-05-06T12:00:00Z',
-        minutes_until_expiry: 60
+        minutes_until_expiry: 60,
       };
       const result = emailMappers.tokenInfo(raw);
       expect(result).toEqual(raw);
@@ -87,7 +86,7 @@ describe('emailMappers', () => {
         first_reply_at: '2026-05-06T10:05:00Z',
         created_at: '2026-05-06T09:00:00Z',
         contact: { name: 'Contact' },
-        tags: ['urgent']
+        tags: ['urgent'],
       };
       const result = emailMappers.thread(raw);
       expect(result.id).toBe('thread_123');
@@ -121,7 +120,7 @@ describe('emailMappers', () => {
         type: 'system',
         color: '#ff0000',
         thread_count: 10,
-        unread_count: 2
+        unread_count: 2,
       };
       const result = emailMappers.label(raw);
       expect(result).toEqual(raw);
@@ -142,8 +141,12 @@ describe('emailMappers', () => {
     });
 
     it('should return empty array when input is null/undefined', () => {
-      expect(emailMappers.accounts(null as any)).toEqual([]);
-      expect(emailMappers.threads(undefined as any)).toEqual([]);
+      expect(
+        emailMappers.accounts(null as unknown as Parameters<typeof emailMappers.accounts>[0])
+      ).toEqual([]);
+      expect(
+        emailMappers.threads(undefined as unknown as Parameters<typeof emailMappers.threads>[0])
+      ).toEqual([]);
     });
   });
 });
