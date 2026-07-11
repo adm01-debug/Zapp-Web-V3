@@ -222,9 +222,6 @@ export function useMediaLibrary(type: MediaType) {
   const handleBulkDelete = async () => {
     const toDelete = items.filter((i) => selected.has(i.id));
     if (toDelete.length === 0) return;
-    for (const item of toDelete) {
-      await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
-    }
     const ids = [...selected];
     const { error } = await supabase
       .from(
@@ -235,6 +232,9 @@ export function useMediaLibrary(type: MediaType) {
     if (error) {
       toast.error('Erro ao excluir itens');
       return;
+    }
+    for (const item of toDelete) {
+      await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
     }
     setItems((prev) => prev.filter((i) => !selected.has(i.id)));
     setSelected(new Set());
@@ -353,7 +353,6 @@ export function useMediaLibrary(type: MediaType) {
   };
 
   const handleDelete = async (item: MediaItem) => {
-    await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
     const { error } = await supabase
       .from(
         type as 'stickers'
@@ -364,6 +363,7 @@ export function useMediaLibrary(type: MediaType) {
       toast.error('Erro ao excluir item');
       return;
     }
+    await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
     setItems((prev) => prev.filter((i) => i.id !== item.id));
     toast.success('Item excluído');
   };
