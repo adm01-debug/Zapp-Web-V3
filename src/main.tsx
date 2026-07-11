@@ -1,79 +1,82 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
-import "./index.css";
-import "./i18n"; // Initialize i18n 
-import { getLogger } from "./lib/logger";
-import { initSentry, SentryErrorBoundary } from "./lib/sentry";
-import { initWebVitals } from "./lib/web-vitals";
-import { registerExternalSessionBridge } from "./integrations/supabase/externalSessionBridge";
-
-// Instala bridge dual-session (FATOR X external)
-registerExternalSessionBridge();
-
-declare global {
-  interface Window {
-    __zappHideRootLoader?: () => void;
-  }
-}
-
-// Init Sentry first (no-op se VITE_SENTRY_DSN não estiver configurada)
-const sentryEnabled = initSentry();
-
-const log = getLogger('App');
-if (sentryEnabled) log.info('Sentry SDK ativo');
-log.info('Initialized at', new Date().toISOString());
-
-// Global unhandled error handlers for resilience
-window.addEventListener('unhandledrejection', (event) => {
-  log.error('Unhandled promise rejection:', event.reason);
-});
-
-window.addEventListener('error', (event) => {
-  log.error('Unhandled error:', event.error || event.message);
-});
-
-// Initialize Web Vitals monitoring
-initWebVitals();
-
-// Accessibility auditing in development mode
-if (import.meta.env.DEV) {
-  import('@axe-core/react').then((axe) => {
-    axe.default(React, ReactDOM, 1000, undefined, undefined, (results) => {
-      const violations = results?.violations;
-      if (violations?.length) {
-        log.warn(`[A11Y] ${violations.length} accessibility violation(s) detected`);
-        violations.forEach((v) => {
-          log.warn(`[A11Y] ${String(v.impact || 'UNKNOWN').toUpperCase()}: ${v.id} — ${v.description} (${v.nodes.length} element(s))`);
-        });
-      }
-    });
-    log.info('[A11Y] axe-core accessibility auditing enabled');
-  });
-}
-
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <SentryErrorBoundary
-    fallback={({ error, resetError }) => (
-      <div role="alert" className="p-6  max-w-2xl mx-auto my-10 bg-card rounded-2xl border border-border shadow-xl">
-        <h1 className="text-2xl font-bold mb-3 text-foreground">Algo deu errado</h1>
-        <p className="text-muted-foreground mb-4">
-          O erro foi registrado e nossa equipe foi notificada. Você pode tentar de novo:
-        </p>
-        <button onClick={resetError} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity">
-          Tentar novamente
-        </button>
-        {import.meta.env.DEV && (
-          <pre className="mt-4 p-3 bg-muted text-destructive rounded-lg overflow-auto text-xs ">
-            {String(error?.toString?.() ?? error)}
-          </pre>
-        )}
-      </div>
-    )}
-    showDialog={false}
-  >
-    <App />
-  </SentryErrorBoundary>
-);
-
-// window.__zappHideRootLoader is now called from App.tsx useEffect for better reliability
+aW1wb3J0IFJlYWN0IGZyb20gInJlYWN0IjsKaW1wb3J0IFJlYWN0RE9NIGZy
+b20gInJlYWN0LWRvbS9jbGllbnQiOwppbXBvcnQgQXBwIGZyb20gIi4vQXBw
+LnRzeCI7CmltcG9ydCAiLi9pbmRleC5jc3MiOwppbXBvcnQgIi4vaTE4biI7
+IC8vIEluaXRpYWxpemUgaTE4biAKaW1wb3J0IHsgZ2V0TG9nZ2VyIH0gZnJv
+bSAiLi9saWIvbG9nZ2VyIjsKaW1wb3J0IHsgaW5pdFNlbnRyeSwgU2VudHJ5
+RXJyb3JCb3VuZGFyeSB9IGZyb20gIi4vbGliL3NlbnRyeSI7CmltcG9ydCB7
+IGluaXRXZWJWaXRhbHMgfSBmcm9tICIuL2xpYi93ZWItdml0YWxzIjsKaW1w
+b3J0IHsgcmVnaXN0ZXJFeHRlcm5hbFNlc3Npb25CcmlkZ2UgfSBmcm9tICIu
+L2ludGVncmF0aW9ucy9zdXBhYmFzZS9leHRlcm5hbFNlc3Npb25CcmlkZ2Ui
+OwoKLy8gSW5zdGFsYSBicmlkZ2UgZHVhbC1zZXNzaW9uIChGQVRPUiBYIGV4
+dGVybmFsKQpyZWdpc3RlckV4dGVybmFsU2Vzc2lvbkJyaWRnZSgpOwoKZGVj
+bGFyZSBnbG9iYWwgewogIGludGVyZmFjZSBXaW5kb3cgewogICAgX196YXBw
+SGlkZVJvb3RMb2FkZXI/OiAoKSA9PiB2b2lkOwogIH0KfQoKLy8gSW5pdCBT
+ZW50cnkgZmlyc3QgKG5vLW9wIHNlIFZJVEVfU0VOVFJZX0RTTiBuw6NvIGVz
+dGl2ZXIgY29uZmlndXJhZGEpCmNvbnN0IHNlbnRyeUVuYWJsZWQgPSBpbml0
+U2VudHJ5KCk7Cgpjb25zdCBsb2cgPSBnZXRMb2dnZXIoJ0FwcCcpOwppZiAo
+c2VudHJ5RW5hYmxlZCkgbG9nLmluZm8oJ1NlbnRyeSBTREsgYXRpdm8nKTsK
+bG9nLmluZm8oJ0luaXRpYWxpemVkIGF0JywgbmV3IERhdGUoKS50b0lTT1N0
+cmluZygpKTsKCi8qKgogKiBDb25zb2xpZGF0ZWQgdW5oYW5kbGVkcmVqZWN0
+aW9uIGhhbmRsZXIuCiAqCiAqIEhhbmRsZXMgYm90aCBsb2dnaW5nIGFuZCBz
+dXBwcmVzc2lvbiBpbiBhIHNpbmdsZSBsaXN0ZW5lciB0byBhdm9pZCB0aGUK
+ICogZG91YmxlLWhhbmRsZXIgcHJvYmxlbSAocHJldmlvdXNseSBtYWluLnRz
+eCBsb2dnZWQgZXZlcnl0aGluZywgdGhlbgogKiBBcHAudHN4IHJlZ2lzdGVy
+ZWQgYSBzZWNvbmQgaGFuZGxlciB0byBzdXBwcmVzcyBzb21lIGVycm9ycyDi
+gJQgYnV0CiAqIG1haW4udHN4IGZpcmVkIGZpcnN0LCBsb2dnaW5nIGVycm9y
+cyB0aGF0IHRoZSBzZWNvbmQgaGFuZGxlciB3b3VsZAogKiBoYXZlIHNpbGVu
+Y2VkKS4KICoKICogU3VwcHJlc3NlczoKICogLSBUaW1lb3V0RXJyb3I6IGV4
+cGVjdGVkIGJyb3dzZXIgdGltZW91dCBmcm9tIHN0b3JhZ2UvSURCIG9wZXJh
+dGlvbnMKICogLSBJbnZhbGlkU3RhdGVFcnJvcjogZXhwZWN0ZWQgZnJvbSBz
+ZXJ2aWNlIHdvcmtlciAvIElEQiBsaWZlY3ljbGUgZXZlbnRzCiAqLwp3aW5k
+b3cuYWRkRXZlbnRMaXN0ZW5lcigndW5oYW5kbGVkcmVqZWN0aW9uJywgKGV2
+ZW50OiBQcm9taXNlUmVqZWN0aW9uRXZlbnQpID0+IHsKICBjb25zdCByZWFz
+b24gPSBldmVudC5yZWFzb247CiAgaWYgKHJlYXNvbiAmJiB0eXBlb2YgcmVh
+c29uID09PSAnb2JqZWN0JyAmJiAnbmFtZScgaW4gcmVhc29uKSB7CiAgICBj
+b25zdCBuYW1lID0gKHJlYXNvbiBhcyB7IG5hbWU6IHN0cmluZyB9KS5uYW1l
+OwogICAgaWYgKG5hbWUgPT09ICdUaW1lb3V0RXJyb3InIHx8IG5hbWUgPT09
+ICdJbnZhbGlkU3RhdGVFcnJvcicpIHsKICAgICAgLy8gS25vd24gYnJvd3Nl
+ciBub2lzZSDigJQgc3VwcHJlc3Mgc2lsZW50bHkuCiAgICAgIGV2ZW50LnBy
+ZXZlbnREZWZhdWx0KCk7CiAgICAgIHJldHVybjsKICAgIH0KICB9CiAgbG9n
+LmVycm9yKCdVbmhhbmRsZWQgcHJvbWlzZSByZWplY3Rpb246JywgZXZlbnQu
+cmVhc29uKTsKfSk7Cgp3aW5kb3cuYWRkRXZlbnRMaXN0ZW5lcignZXJyb3In
+LCAoZXZlbnQpID0+IHsKICBsb2cuZXJyb3IoJ1VuaGFuZGxlZCBlcnJvcjon
+LCBldmVudC5lcnJvciB8fCBldmVudC5tZXNzYWdlKTsKfSk7CgovLyBJbml0
+aWFsaXplIFdlYiBWaXRhbHMgbW9uaXRvcmluZwppbml0V2ViVml0YWxzKCk7
+CgovLyBBY2Nlc3NpYmlsaXR5IGF1ZGl0aW5nIGluIGRldmVsb3BtZW50IG1v
+ZGUKaWYgKGltcG9ydC5tZXRhLmVudi5ERVYpIHsKICBpbXBvcnQoJ0BheGUt
+Y29yZS9yZWFjdCcpLnRoZW4oKGF4ZSkgPT4gewogICAgYXhlLmRlZmF1bHQo
+UmVhY3QsIFJlYWN0RE9NLCAxMDAwLCB1bmRlZmluZWQsIHVuZGVmaW5lZCwg
+KHJlc3VsdHMpID0+IHsKICAgICAgY29uc3QgdmlvbGF0aW9ucyA9IHJlc3Vs
+dHM/LnZpb2xhdGlvbnM7CiAgICAgIGlmICh2aW9sYXRpb25zPy5sZW5ndGgp
+IHsKICAgICAgICBsb2cud2FybihgW0ExMVldICR7dmlvbGF0aW9ucy5sZW5n
+dGh9IGFjY2Vzc2liaWxpdHkgdmlvbGF0aW9uKHMpIGRldGVjdGVkYCk7CiAg
+ICAgICAgdmlvbGF0aW9ucy5mb3JFYWNoKCh2KSA9PiB7CiAgICAgICAgICBs
+b2cud2FybihgW0ExMVldICR7U3RyaW5nKHYuaW1wYWN0IHx8ICdVTktOT1dO
+JykudG9VcHBlckNhc2UoKX06ICR7di5pZH0g4oCUICR7di5kZXNjcmlwdGlv
+bn0gKCR7di5ub2Rlcy5sZW5ndGh9IGVsZW1lbnQocykpYCk7CiAgICAgICAg
+fSk7CiAgICAgIH0KICAgIH0pOwogICAgbG9nLmluZm8oJ1tBMTFZXSBheGUt
+Y29yZSBhY2Nlc3NpYmlsaXR5IGF1ZGl0aW5nIGVuYWJsZWQnKTsKICB9KTsK
+fQoKUmVhY3RET00uY3JlYXRlUm9vdChkb2N1bWVudC5nZXRFbGVtZW50QnlJ
+ZCgicm9vdCIpISkucmVuZGVyKAogIDxTZW50cnlFcnJvckJvdW5kYXJ5CiAg
+ICBmYWxsYmFjaz17KHsgZXJyb3IsIHJlc2V0RXJyb3IgfSkgPT4gKAogICAg
+ICA8ZGl2IHJvbGU9ImFsZXJ0IiBjbGFzc05hbWU9InAtNiAgbWF4LXctMnhs
+IG14LWF1dG8gbXktMTAgYmctY2FyZCByb3VuZGVkLTJ4bCBib3JkZXIgYm9y
+ZGVyLWJvcmRlciBzaGFkb3cteGwiPgogICAgICAgIDxoMSBjbGFzc05hbWU9
+InRleHQtMnhsIGZvbnQtYm9sZCBtYi0zIHRleHQtZm9yZWdyb3VuZCI+QWxn
+byBkZXUgZXJyYWRvPC9oMT4KICAgICAgICA8cCBjbGFzc05hbWU9InRleHQt
+bXV0ZWQtZm9yZWdyb3VuZCBtYi00Ij4KICAgICAgICAgIE8gZXJybyBmb2kg
+cmVnaXN0cmFkbyBlIG5vc3NhIGVxdWlwZSBmb2kgbm90aWZpY2FkYS4gVm9j
+w6ogcG9kZSB0ZW50YXIgZGUgbm92bzoKICAgICAgICA8L3A+CiAgICAgICAg
+PGJ1dHRvbiBvbkNsaWNrPXtyZXNldEVycm9yfSBjbGFzc05hbWU9InB4LTQg
+cHktMiByb3VuZGVkLWxnIGJnLXByaW1hcnkgdGV4dC1wcmltYXJ5LWZvcmVn
+cm91bmQgZm9udC1zZW1pYm9sZCBob3ZlcjpvcGFjaXR5LTkwIHRyYW5zaXRp
+b24tb3BhY2l0eSI+CiAgICAgICAgICBUZW50YXIgbm92YW1lbnRlCiAgICAg
+ICAgPC9idXR0b24+CiAgICAgICAge2ltcG9ydC5tZXRhLmVudi5ERVYgJiYg
+KAogICAgICAgICAgPHByZSBjbGFzc05hbWU9Im10LTQgcC0zIGJnLW11dGVk
+IHRleHQtZGVzdHJ1Y3RpdmUgcm91bmRlZC1sZyBvdmVyZmxvdy1hdXRvIHRl
+eHQteHMgIj4KICAgICAgICAgICAge1N0cmluZyhlcnJvcj8udG9TdHJpbmc/
+LigpID8/IGVycm9yKX0KICAgICAgICAgIDwvcHJlPgogICAgICAgICl9CiAg
+ICAgIDwvZGl2PgogICAgKX0KICAgIHNob3dEaWFsb2c9e2ZhbHNlfQogID4K
+ICAgIDxBcHAgLz4KICA8L1NlbnRyeUVycm9yQm91bmRhcnk+Cik7CgovLyB3
+aW5kb3cuX196YXBwSGlkZVJvb3RMb2FkZXIgaXMgbm93IGNhbGxlZCBmcm9t
+IEFwcC50c3ggdXNlRWZmZWN0IGZvciBiZXR0ZXIgcmVsaWFiaWxpdHkK
