@@ -6428,6 +6428,51 @@ export type Database = {
           },
         ]
       }
+      sicoob_reply_outbox: {
+        Row: {
+          agent_id: string | null
+          attempts: number
+          contact_id: string
+          content: string
+          created_at: string
+          id: string
+          last_error: string | null
+          message_id: string
+          next_attempt_at: string
+          processed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          attempts?: number
+          contact_id: string
+          content: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message_id: string
+          next_attempt_at?: string
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          attempts?: number
+          contact_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message_id?: string
+          next_attempt_at?: string
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sla_configurations: {
         Row: {
           created_at: string
