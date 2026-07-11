@@ -11,21 +11,11 @@
 #                     tem CREATE FUNCTION em supabase/migrations.
 #   [B] TABELA ÓRFÃ:  supabase.from('Y') (client principal) para um Y que NÃO
 #                     tem CREATE TABLE/VIEW/MATERIALIZED VIEW em migrations.
-#                     (Buckets de Storage e relações de bancos externos são
-#                      excluídos — ver regras abaixo e scripts/.sync-ignore.)
 #   [C] ALTER SEM CREATE: migration faz ALTER FUNCTION em uma função que nunca
-#                     teve CREATE FUNCTION — isso explode num banco limpo com
-#                     "function ... does not exist".
-#
-# Limitações conscientes (mesma filosofia do check-edge-function-sync.sh):
-#   - Só detecta nomes LITERAIS em .rpc('x') / .from('y'). Nomes 100% dinâmicos
-#     (template string sem prefixo estático) não são cobertos.
-#   - Atribuição de client é feita excluindo (1) chamadas storage.from() e
-#     (2) nomes no allowlist scripts/.sync-ignore (relações de bancos externos).
-#     Isso evita falsos-positivos com FATOR X / zappweb / Storage.
+#                     teve CREATE FUNCTION.
 #
 # Uso: bash scripts/check-fe-be-sync.sh
-# Saída != 0 em qualquer dessincronismo. Pensado para o estágio de lint/pre-build.
+# Saída != 0 em qualquer dessincronismo.
 # =============================================================================
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -51,19 +41,23 @@ fi
 # =============================================================================
 # Conjunto FONTE-DA-VERDADE: tudo que as migrations CRIAM (reproduzível).
 # =============================================================================
-grep -rhoiE "create (or replace )?function [a-zA-Z0-9_.\"]+ " "${MIG_DIRS[@]}" 2>/dev/null \
+# IMPORTANTE: o padrao de grep NÃO pode ter espaco no final do character class!
+# "create ... function [chars]+ " (com espaco) falharia em nomes sem espaco
+# antes de '(' como fn_foo() — capturaria zero nomes, zerando fn_defined.txt
+# e gerando centenas de falsos-positivos.
+grep -rhoiE "create (or replace )?function [a-zA-Z0-9_.\"]+[a-zA-Z0-9_\"]" "${MIG_DIRS[@]}" 2>/dev/null \
   | sed -E 's/[Cc][Rr][Ee][Aa][Tt][Ee]( [Oo][Rr] [Rr][Ee][Pp][Ll][Aa][Cc][Ee])? [Ff][Uu][Nn][Cc][Tt][Ii][Oo][Nn] //' \
   | norm | sort -u > "$TMP/fn_defined.txt"
 
-grep -rhoiE "create (or replace )?(table|view|materialized view)( if not exists)? [a-zA-Z0-9_.\"]+ " "${MIG_DIRS[@]}" 2>/dev/null \
+grep -rhoiE "create (or replace )?(table|view|materialized view)( if not exists)? [a-zA-Z0-9_.\"]+[a-zA-Z0-9_\"]" "${MIG_DIRS[@]}" 2>/dev/null \
   | sed -E 's/[Cc][Rr][Ee][Aa][Tt][Ee] ([Oo][Rr] [Rr][Ee][Pp][Ll][Aa][Cc][Ee] )?([Tt][Aa][Bb][Ll][Ee]|[Vv][Ii][Ee][Ww]|[Mm][Aa][Tt][Ee][Rr][Ii][Aa][Ll][Ii][Zz][Ee][Dd] [Vv][Ii][Ee][Ww])( [Ii][Ff] [Nn][Oo][Tt] [Ee][Xx][Ii][Ss][Tt][Ss])? //' \
   | norm | sort -u > "$TMP/rel_defined.txt"
 
 # =============================================================================
 # [A] RPC ÓRFÃ
 # =============================================================================
-grep -rhoE "\.rpc\(\s*['\"\'\`][a-zA-Z0-9_]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
-  | sed -E "s/.*rpc\(\s*['\"\'\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/rpc_called.txt"
+grep -rhoE "\.rpc\(\s*['\"\`][a-zA-Z0-9_]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
+  | sed -E "s/.*rpc\(\s*['\"\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/rpc_called.txt"
 
 comm -23 "$TMP/rpc_called.txt" "$TMP/fn_defined.txt" \
   | comm -23 - "$TMP/ignore.txt" > "$TMP/rpc_orphans.txt" || true
@@ -78,20 +72,15 @@ fi
 # =============================================================================
 # [B] TABELA ÓRFÃ (client principal; exclui Storage e allowlist)
 # =============================================================================
-# 1) todos os .from('x')
-grep -rhoE "\.from\(\s*['\"\'\`][a-zA-Z0-9_-]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
-  | sed -E "s/.*from\(\s*['\"\'\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/from_all.txt"
-# 2) buckets de Storage: storage.from('bucket')  -> excluir
-grep -rhoE "storage\s*\.\s*from\(\s*['\"\'\`][a-zA-Z0-9_-]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
-  | sed -E "s/.*from\(\s*['\"\'\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/from_storage.txt"
+grep -rhoE "\.from\(\s*['\"\`][a-zA-Z0-9_-]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
+  | sed -E "s/.*from\(\s*['\"\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/from_all.txt"
+grep -rhoE "storage\s*\.\s*from\(\s*['\"\`][a-zA-Z0-9_-]+" "$SRC_DIR" --include='*.ts' --include='*.tsx' 2>/dev/null \
+  | sed -E "s/.*from\(\s*['\"\`]//" | tr 'A-Z' 'a-z' | sort -u > "$TMP/from_storage.txt"
 
 comm -23 "$TMP/from_all.txt" "$TMP/from_storage.txt" \
   | comm -23 - "$TMP/rel_defined.txt" \
   | comm -23 - "$TMP/ignore.txt" \
   | grep -vE '-' > "$TMP/tbl_orphans.txt" || true
-# Nota: nomes com hífen (ex.: 'chat-media') são buckets de Storage por convenção
-# (identificadores Postgres com hífen exigiriam aspas e praticamente nunca são
-# usados como tabela), então são excluídos do check de tabela.
 
 if [[ -s "$TMP/tbl_orphans.txt" ]]; then
   fail=1
@@ -104,22 +93,15 @@ fi
 # =============================================================================
 # [C] ALTER FUNCTION sem CREATE FUNCTION
 # =============================================================================
-# Abordagem multi-passo para corrigir dois bugs do padrão anterior:
-#
-# Bug 1: `(public\.)?[a-zA-Z0-9_]+` só capturava `evo` de `evo.fn_name(...)`
-#         -> false-positive "função chamada 'evo' não tem CREATE".
-# Bug 2: linhas de comentário SQL (-- ...) eram incluídas na análise,
-#         causando false-positive "SET" de "-- Fix: ALTER FUNCTION SET search_path".
-#
-# Solução multi-passo:
+# Abordagem multi-passo:
 #   Passo 1: grep -rih preserva a linha inteira (sem nome de arquivo)
 #   Passo 2: filtra linhas que começam com -- (comentário SQL)
 #   Passo 3: extrai ALTER FUNCTION nome (para antes do '(')
-#   Passo 4: remove o prefixo e normaliza (strip schema prefix, lowercase)
-# O [C] também passa pelo .sync-ignore (igual a [A] e [B]).
+#   Passo 4: remove o prefixo e normaliza (strip schema, lowercase)
+# O [C] também filtra pelo .sync-ignore (igual a [A] e [B]).
 grep -rihE "alter function " "${MIG_DIRS[@]}" 2>/dev/null \
   | grep -viE '^\s*--' \
-  | grep -oiE "alter function [a-zA-Z0-9_\.\"]*[a-zA-Z0-9_\"]" \
+  | grep -oiE "alter function [a-zA-Z0-9_.\"]*[a-zA-Z0-9_\"]" \
   | sed -E 's/[Aa][Ll][Tt][Ee][Rr] [Ff][Uu][Nn][Cc][Tt][Ii][Oo][Nn] //' \
   | norm | grep -v '^$' | sort -u > "$TMP/fn_altered.txt"
 
