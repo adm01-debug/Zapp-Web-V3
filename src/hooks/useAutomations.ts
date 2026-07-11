@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
 
@@ -193,12 +194,12 @@ export function useAutomations({
         if (!matched) continue;
 
         // Registra execução respeitando cooldown (RPC)
-        const { data: execId } = await (supabase as any).rpc('rpc_register_automation_execution', {
+        const { data: execId } = await safeClient.rpc<string>('rpc_register_automation_execution', {
           p_rule_id: rule.id,
           p_remote_jid: remoteJid,
           p_instance_name: instanceName,
           p_assigned_to: assignedTo,
-          p_trigger_payload: payload as any,
+          p_trigger_payload: payload,
         });
 
         if (!execId) continue;
@@ -223,21 +224,22 @@ export function useAutomations({
               p_instance: instanceName,
               p_tags: allTags,
             });
-            await (supabase as any)
-              .from('automation_executions')
-              .update({
-                applied_tags: allTags,
-                trigger_payload: {
-                  ...payload,
-                  ...(escalate?.enabled
-                    ? { sla_escalated_to: escalate.level, sla_reason: escalate.reason ?? null }
-                    : {}),
-                },
-              })
-              .eq('id', execId);
+            await safeClient.from('automation_executions', (q) =>
+              q
+                .update({
+                  applied_tags: allTags,
+                  trigger_payload: {
+                    ...payload,
+                    ...(escalate?.enabled
+                      ? { sla_escalated_to: escalate.level, sla_reason: escalate.reason ?? null }
+                      : {}),
+                  },
+                })
+                .eq('id', execId)
+            );
           } catch (e: any) {
             log.warn('[automation] apply_tags/escalate failed', e);
-            await (supabase as any).rpc('rpc_record_automation_error', {
+            await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
               p_error: String(e?.message ?? e),
               p_context: { stage: 'apply_tags_or_escalate', tags: allTags },
@@ -262,11 +264,11 @@ export function useAutomations({
 
             // Auto envio
             if (actions.auto_send) {
-              const { data: exec } = await (supabase as any)
-                .from('automation_executions')
-                .select('suggestion_text')
-                .eq('id', execId)
-                .maybeSingle();
+              const { data: execArr } = await safeClient.from<{ suggestion_text: string | null }>(
+                'automation_executions',
+                (q) => q.select('suggestion_text').eq('id', execId).limit(1)
+              );
+              const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
                 await (client as any).rpc('rpc_insert_message', {
                   p_remote_jid: remoteJid,
@@ -274,15 +276,16 @@ export function useAutomations({
                   p_from_me: true,
                   p_message_type: 'text',
                 });
-                await (supabase as any)
-                  .from('automation_executions')
-                  .update({ status: 'executed', acted_at: new Date().toISOString() })
-                  .eq('id', execId);
+                await safeClient.from('automation_executions', (q) =>
+                  q
+                    .update({ status: 'executed', acted_at: new Date().toISOString() })
+                    .eq('id', execId)
+                );
               }
             }
           } catch (e: any) {
             log.warn('[automation] suggest_reply failed', e);
-            await (supabase as any).rpc('rpc_record_automation_error', {
+            await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
               p_error: String(e?.message ?? e),
               p_context: { stage: 'suggest_reply_or_autosend' },
