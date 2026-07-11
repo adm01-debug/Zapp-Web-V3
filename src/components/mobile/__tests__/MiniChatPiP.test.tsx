@@ -1,17 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import { MiniChatPiP } from '@/components/mobile/MiniChatPiP';
 
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, onClick, ..._rest }: any) => (
+    div: ({ children, className, style, onClick, ..._rest }: HTMLAttributes<HTMLDivElement>) => (
       <div className={className} style={style} onClick={onClick} data-testid="pip-container">
         {children}
       </div>
     ),
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 describe('MiniChatPiP', () => {

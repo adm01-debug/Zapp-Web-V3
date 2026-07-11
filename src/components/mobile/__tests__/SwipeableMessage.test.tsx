@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { HTMLAttributes } from 'react';
 import { SwipeableMessage } from '@/components/mobile/SwipeableMessage';
 
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, ..._rest }: any) => (
+    div: ({ children, className, style, ..._rest }: HTMLAttributes<HTMLDivElement>) => (
       <div className={className} style={style}>
         {children}
       </div>
@@ -32,7 +33,7 @@ describe('SwipeableMessage', () => {
 
   it('renders children on mobile with swipe container', async () => {
     const { useIsMobile } = await import('@/hooks/use-mobile');
-    (useIsMobile as any).mockReturnValue(true);
+    vi.mocked(useIsMobile).mockReturnValue(true);
 
     render(
       <SwipeableMessage onSwipeRight={vi.fn()} onSwipeLeft={vi.fn()}>

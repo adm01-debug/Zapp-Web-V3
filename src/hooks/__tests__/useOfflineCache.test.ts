@@ -28,7 +28,7 @@ function makeConversation(id: string, msgCount = 1) {
     })),
     lastMessage: { id: `msg-${id}-0`, content: 'Last', created_at: new Date().toISOString() },
     unreadCount: 1,
-  } as any;
+  } as unknown as Parameters<typeof useOfflineCache>[0][number];
 }
 
 describe('useOfflineCache', () => {
