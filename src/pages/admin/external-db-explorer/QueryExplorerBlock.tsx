@@ -262,6 +262,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                 onChange={(e) => setRpcParamsText(e.target.value)}
                 rows={8}
                 spellCheck={false}
+                aria-label="Parâmetros RPC em JSON"
                 className="w-full  text-xs rounded-md border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-ring"
               />
               {paramsError && <p className="text-xs text-destructive mt-1">{paramsError}</p>}

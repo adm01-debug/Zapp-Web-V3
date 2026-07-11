@@ -51,7 +51,13 @@ export function PersonalStickers({ onSend }: PersonalStickersProps) {
         {isLoading ? (
           <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 text-muted-foreground animate-spin" /></div>
         ) : stickers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:border-primary/30 transition-colors" onClick={() => fileInputRef.current?.click()}>
+          <div
+            role="button"
+            tabIndex={0}
+            className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:border-primary/30 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && fileInputRef.current?.click()}
+          >
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3"><User className="w-7 h-7 text-primary" /></div>
             <p className="text-sm font-medium text-foreground">Adicione suas fotos</p>
             <p className="text-xs text-muted-foreground mt-1 text-center max-w-xs">Clique para enviar fotos pessoais como figurinhas.</p>

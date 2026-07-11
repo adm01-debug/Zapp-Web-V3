@@ -49,7 +49,7 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
         </div>
 
         {isLoading && (
-          <div className="flex items-center justify-center py-4 text-muted-foreground">
+          <div role="status" aria-live="polite" className="flex items-center justify-center py-4 text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
             <span className="text-xs">Pesquisando...</span>
           </div>

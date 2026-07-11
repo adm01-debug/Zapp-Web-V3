@@ -479,6 +479,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                         onChange={(e) => setTranscription(e.target.value)}
                         className="min-h-[60px] w-full resize-none border-t border-border/30 bg-transparent pt-2 text-sm font-medium italic leading-relaxed text-foreground/80 outline-none"
                         placeholder="Edite a transcrição aqui..."
+                        aria-label="Editar transcrição de áudio"
                       />
                     </motion.div>
                   )}

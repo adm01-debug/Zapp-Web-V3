@@ -262,7 +262,7 @@ export function AIConversationAssistant({
       )}
 
       {isLoading && (
-        <div className="space-y-3">
+        <div role="status" aria-live="polite" aria-atomic="true" className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <span className="text-xs font-medium text-muted-foreground">

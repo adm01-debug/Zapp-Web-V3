@@ -185,7 +185,7 @@ export default function AdminAutomationsPage() {
       </Card>
 
       <div className="space-y-3">
-        {loading && <p className="text-muted-foreground">Carregando…</p>}
+        {loading && <p role="status" aria-live="polite" className="text-muted-foreground">Carregando…</p>}
         {!loading && filtered.length === 0 && (
           <Card className="p-8 text-center text-muted-foreground">
             Nenhuma regra com esses filtros.
