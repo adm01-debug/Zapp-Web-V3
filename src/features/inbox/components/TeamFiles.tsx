@@ -63,6 +63,10 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         data: { publicUrl },
       } = supabase.storage.from('whatsapp-media').getPublicUrl(filePath);
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { error: dbError } = await safeClient.from('whisper_files', (q) =>
         q.insert({
           contact_id: contactId,
@@ -70,7 +74,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           file_url: publicUrl,
           file_size: file.size,
           file_type: file.type,
-          sender_id: (await supabase.auth.getUser()).data.user?.id,
+          sender_id: user?.id,
         })
       );
 
