@@ -258,7 +258,7 @@ export const safeClient = {
       return data;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const masked: any = Array.isArray(data)
+    const masked: any = Array.isArray(data) // ignore-audit: union array|object not narrowable without any
       ? [...(data as unknown[])]
       : { ...(data as Record<string, unknown>) };
     for (const key in masked) {
