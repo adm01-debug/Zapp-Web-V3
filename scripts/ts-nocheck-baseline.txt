@@ -69,7 +69,6 @@ src/features/sla/hooks/useSLAMetrics.ts
 src/hooks/__tests__/useAuth.test.tsx
 src/hooks/__tests__/useExternalCatalog.test.ts
 src/hooks/__tests__/useMFA.test.tsx
-src/hooks/admin/useAdminAutomations.ts
 src/hooks/admin/useDepartmentsAdmin.ts
 src/hooks/integrations/useEvolutionApiIntegration.ts
 src/hooks/monitoring/useMonitoringData.ts
