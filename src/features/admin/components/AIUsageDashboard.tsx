@@ -184,7 +184,7 @@ export function AIUsageDashboard() {
                             <Cell key={entry.name} fill={FUNCTION_COLORS[entry.name] || '#666'} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'} />
+                        <Tooltip formatter={formatTokens} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="mt-2 space-y-1.5">
