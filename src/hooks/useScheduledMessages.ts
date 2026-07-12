@@ -25,6 +25,7 @@ export function useScheduledMessages(contactId?: string) {
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['scheduled-messages', contactId],
+    staleTime: 30_000,
     queryFn: async () => {
       let query = supabase
         .from('scheduled_messages')
@@ -50,11 +51,18 @@ export function useScheduledMessages(contactId?: string) {
       mediaUrl?: string;
       connectionId?: string;
     }) => {
-      const { data: profile } = await supabase
+      if (!user) throw new Error('Usuário não autenticado');
+
+      if (data.scheduledAt <= new Date()) {
+        throw new Error('A data de agendamento deve ser no futuro');
+      }
+
+      const { data: profile, error: profileErr } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', user?.id ?? '')
+        .eq('user_id', user.id)
         .maybeSingle();
+      if (profileErr) throw profileErr;
 
       const { data: msg, error: msgErr } = await supabase
         .from('scheduled_messages')

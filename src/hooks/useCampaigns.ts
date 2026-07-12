@@ -78,21 +78,11 @@ export function useCampaigns() {
 
   const addContactsToCampaign = useMutation({
     mutationFn: async ({ campaignId, contactIds }: { campaignId: string; contactIds: string[] }) => {
-      const records = contactIds.map(contactId => ({
-        campaign_id: campaignId,
-        contact_id: contactId,
-        status: 'pending',
-      }));
-      const { error } = await supabase
-        .from('campaign_contacts')
-        .insert(records);
+      const { error } = await supabase.rpc('add_contacts_to_campaign', {
+        p_campaign_id: campaignId,
+        p_contact_ids: contactIds,
+      });
       if (error) throw error;
-
-      // Update total
-      await supabase
-        .from('campaigns')
-        .update({ total_contacts: contactIds.length })
-        .eq('id', campaignId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });

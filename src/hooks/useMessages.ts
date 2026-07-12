@@ -14,7 +14,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
-import { sanitizeText } from '@/lib/sanitize';
+import { sanitizeText, sanitizeUrl } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
 import { dbList, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
@@ -62,7 +62,7 @@ const mapRow = (row: Record<string, unknown>): Message => ({
   from_me:           Boolean(row.from_me ?? false),
   message_type:      String(row.message_type ?? 'text'),
   content:           row.content ? sanitizeText(row.content as string) : null,
-  media_url:         row.media_url as string | null,
+  media_url:         row.media_url ? sanitizeUrl(row.media_url as string) || null : null,
   media_mimetype:    row.media_mimetype as string | null,
   quoted_message_id: row.quoted_message_id as string | null,
   is_starred:        Boolean(row.is_starred ?? false),
@@ -148,6 +148,7 @@ export function useMessages(
         p_limit:      PAGE_SIZE,
         p_offset:     offsetRef.current,
       });
+      if (!mountedRef.current) return;
       if (error) throw error;
       const newItems = ((data ?? []) as Record<string, unknown>[]).map(mapRow);
       const reversed = [...newItems].reverse();
@@ -160,9 +161,9 @@ export function useMessages(
     } catch (err) {
       log.error('loadMore error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
-      setLoadingMore(false);
+      if (mountedRef.current) setLoadingMore(false);
     }
-  }, [remoteJid, loadingMore, hasMore, instanceName]);
+  }, [remoteJid, loadingMore, hasMore, instanceName, mountedRef]);
 
   // ── Realtime (CORRIGIDO: evo.evolution_messages BASE TABLE, não VIEW) ───
 
@@ -170,7 +171,7 @@ export function useMessages(
     if (!remoteJid) return;
 
     const channel = supabase
-      .channel(`evo-messages:${remoteJid}`)
+      .channel(`evo-messages:${instanceName ?? 'default'}:${remoteJid}`)
       // INSERT — nova mensagem
       .on('postgres_changes', {
         event:  'INSERT',
@@ -219,7 +220,7 @@ export function useMessages(
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [remoteJid]);
+  }, [remoteJid, instanceName]);
 
   // Reload após reconexão
   useEffect(() => {

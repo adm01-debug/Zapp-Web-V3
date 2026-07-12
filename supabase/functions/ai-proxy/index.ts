@@ -8,7 +8,26 @@ import { z, parseBody } from "../_shared/schemas.ts";
 import { logAiUsage, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { callLovableAI, callOpenAICompatible, callCustomWebhook, withRetry } from "../_shared/ai-providers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
-import { requireUser } from "../_shared/auth.ts";
+import { requireUser, getBearer } from "../_shared/auth.ts";
+
+const AiToolFunctionSchema = z.object({
+  name: z.string().min(1).max(64),
+  description: z.string().max(1000).optional(),
+  parameters: z.record(z.unknown()).optional(),
+});
+
+const AiToolSchema = z.object({
+  type: z.literal('function'),
+  function: AiToolFunctionSchema,
+});
+
+const AiToolChoiceSchema = z.union([
+  z.enum(['none', 'auto', 'required']),
+  z.object({
+    type: z.literal('function'),
+    function: z.object({ name: z.string().min(1).max(64) }),
+  }),
+]);
 
 const AiProxySchema = z.object({
   messages: z.array(z.object({
@@ -18,8 +37,8 @@ const AiProxySchema = z.object({
   model: z.string().max(100).optional(),
   use_for: z.enum(['copilot', 'analysis', 'summary', 'tagging', 'auto_reply']).default('copilot'),
   provider_id: z.string().uuid().optional(),
-  tools: z.any().optional(),
-  tool_choice: z.any().optional(),
+  tools: z.array(AiToolSchema).max(128).optional(),
+  tool_choice: AiToolChoiceSchema.optional(),
   stream: z.boolean().optional().default(false),
 });
 
@@ -122,7 +141,27 @@ Deno.serve(async (req) => {
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const provider = await getProvider(supabase, use_for as string, provider_id);
+    // For explicit provider_id selection, use the caller's JWT so RLS enforces
+    // admin-only access on ai_providers.  Non-admins get null → fall through to
+    // the service-role default lookup below, which is the intended behaviour.
+    // For the default lookup (no provider_id), keep service role so all users
+    // benefit from the admin-configured default without a separate RLS grant.
+    let provider;
+    if (provider_id) {
+      const bearerToken = getBearer(req);
+      const anonKey = requireEnv("SUPABASE_ANON_KEY");
+      const userSupabase = bearerToken
+        ? createClient(supabaseUrl, anonKey, {
+            global: { headers: { Authorization: `Bearer ${bearerToken}` } },
+          })
+        : supabase;
+      // If RLS denies the user-scoped lookup (non-admin), fall back to the
+      // service-role default so the request still gets a working provider.
+      provider = (await getProvider(userSupabase, use_for as string, provider_id))
+        ?? await getProvider(supabase, use_for as string);
+    } else {
+      provider = await getProvider(supabase, use_for as string);
+    }
     const providerType = provider?.provider_type || 'lovable_ai';
     const providerName = provider?.name || 'Lovable AI';
 

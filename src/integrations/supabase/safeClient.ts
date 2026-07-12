@@ -123,7 +123,7 @@ export const safeClient = {
     table: string,
     queryBuilder: (query: ReturnType<typeof supabase.from>) => PromiseLike<{ data: unknown; error: unknown }>
   ): Promise<SafeResponse<T[]>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = crypto.randomUUID();
     stats.totalCalls++;
     try {
       if (table.startsWith('email_')) {
@@ -163,7 +163,7 @@ export const safeClient = {
     table: string,
     queryBuilder: (query: ReturnType<typeof supabase.from>) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
   ): Promise<SafeResponse<T>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = crypto.randomUUID();
     stats.totalCalls++;
     try {
       if (table.startsWith('email_')) {
@@ -196,7 +196,7 @@ export const safeClient = {
   },
 
   async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = crypto.randomUUID();
     stats.totalCalls++;
     try {
       if (name.startsWith('rpc_email_')) {

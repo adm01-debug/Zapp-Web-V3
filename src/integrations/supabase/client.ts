@@ -81,10 +81,23 @@ if (!isSupabaseConfigured) {
   console.error(
     '[Supabase] URL ou chave inválida — verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'
   );
-} else if (import.meta.env.DEV) {
-  console.warn(
-    `[Supabase] Conectado: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
-  );
+} else {
+  // Warn in any environment when falling back to hardcoded credentials.
+  // The anon key is intentionally public per Supabase's model, but having it
+  // hardcoded in source control means it has been published and should be rotated.
+  // Action: set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY in the deploy env and
+  // rotate the self-hosted anon key via `supabase gen secret` after deploy.
+  if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
+    console.warn(
+      '[Supabase] ATENÇÃO: usando credenciais hardcoded (fallback). ' +
+      'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
+      'e rotacione a anon key para remover a exposição do source control.'
+    );
+  } else if (import.meta.env.DEV) {
+    console.warn(
+      `[Supabase] Conectado: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
+    );
+  }
 }
 
 const supabaseUrl = isSupabaseConfigured ? SUPABASE_URL : 'https://supabase-unconfigured.invalid';

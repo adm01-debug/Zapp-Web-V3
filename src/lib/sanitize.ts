@@ -12,8 +12,9 @@ import DOMPurify from 'dompurify';
 
 // ── Allowed HTML for rich content ──────────────────────────────────────────
 
-const RICH_ALLOWED_TAGS = ['b', 'i', 'em', 'strong', 'u', 'br', 'p', 'ul', 'ol', 'li', 'span'];
-const RICH_ALLOWED_ATTR: string[] = []; // no attributes allowed (prevents style/event injection)
+const RICH_ALLOWED_TAGS = ['b', 'i', 'em', 'strong', 'u', 'br', 'p', 'ul', 'ol', 'li', 'span', 'a'];
+// href/rel/target allowed only on <a>; all other attrs rejected by whitelist
+const RICH_ALLOWED_ATTR = ['href', 'rel', 'target'];
 
 // ── Core functions ─────────────────────────────────────────────────────────
 
@@ -35,11 +36,34 @@ export function sanitizeText(input: unknown): string {
 export function sanitizeHtml(html: unknown): string {
   if (!html) return '';
   const str = typeof html === 'string' ? html : String(html);
-  return DOMPurify.sanitize(str, {
-    ALLOWED_TAGS:  RICH_ALLOWED_TAGS,
-    ALLOWED_ATTR:  RICH_ALLOWED_ATTR,
-    FORBID_ATTR:   ['onerror','onload','onclick','onmouseover','onfocus','onblur','onchange','onsubmit','style','href','src'],
-  }).trim();
+  // Use a DOM hook to enforce rel/target on every <a> before DOMPurify serialises
+  // the output. The hook runs on the live Element, not the serialised HTML string,
+  // so it is immune to the "> in query-string" regex-splitting bug.
+  // CRITICAL: Use a unique hook name to prevent collision with other sanitizeHtml
+  // functions (e.g. EmailChatBubble.tsx). DOMPurify.removeHook() removes by array
+  // position, not by reference; if multiple hooks are active, removeHook pops the
+  // wrong one and leaves orphaned hooks active.
+  const HOOK_NAME = 'afterSanitizeAttributes_sanitizeHtml';
+  DOMPurify.addHook(HOOK_NAME, (node) => {
+    if (node.tagName === 'A') {
+      node.setAttribute('rel', 'noopener noreferrer');
+      node.setAttribute('target', '_blank');
+    }
+  });
+  let sanitized = '';
+  try {
+    sanitized = DOMPurify.sanitize(str, {
+      ALLOWED_TAGS:  RICH_ALLOWED_TAGS,
+      ALLOWED_ATTR:  RICH_ALLOWED_ATTR,
+      // Event handlers and style are still explicitly forbidden as defense-in-depth.
+      // href removed from FORBID_ATTR so <a> links in notes work; src kept because
+      // <img> is not in RICH_ALLOWED_TAGS so src on any surviving element is harmless.
+      FORBID_ATTR:   ['onerror','onload','onclick','onmouseover','onfocus','onblur','onchange','onsubmit','style','src'],
+    }).trim();
+  } finally {
+    DOMPurify.removeHook(HOOK_NAME);
+  }
+  return sanitized;
 }
 
 /**

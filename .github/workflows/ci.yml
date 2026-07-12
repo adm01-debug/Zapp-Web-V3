@@ -281,15 +281,23 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Dependency audit diagnostics
+      - name: Dependency audit (blocking on CRITICAL)
+        # Gate: fail CI only when CRITICAL severity CVEs are present.
+        # HIGH CVEs in this repo are all confined to dev/build-only transitive deps
+        # (wait-on→axios, eslint→flatted, @rollup/plugin-terser→serialize-javascript@6,
+        # picomatch@2) — none of these packages are included in the production bundle.
+        # Upgrade blockers: wait-on@9 pins axios@1.x; eslint@8 pins flatted@3.
+        # Intentional: --audit-level=critical (not high). Rationale documented above.
         run: |
           set +e
-          bun audit --audit-level=high
+          bun audit --audit-level=critical
           status=$?
+          set -e
           if [ "$status" -ne 0 ]; then
-            echo "::warning title=Dependency audit::Dependency audit reported findings or the command failed; review logs."
+            echo "::error title=Dependency audit::CRITICAL severity vulnerabilities found. Pin or replace the offending packages before merging."
+            exit "$status"
           fi
-          exit 0
+          echo "Dependency audit passed — no CRITICAL CVEs found."
 
       - name: Check for obvious secrets in code
         run: |

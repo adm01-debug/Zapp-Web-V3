@@ -34,7 +34,7 @@ const trackReactionEvent = (action: 'add' | 'remove' | 'open_picker', data: { me
       code: data.code,
       event_key: eventKey
     }
-  });
+  }).catch((err: unknown) => mutationLog.warn('[audit] reaction event log failed', err));
 };
 
 export function useReactionMutations(

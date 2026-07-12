@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useDepartmentManagement');
 
 interface Department {
   id: string;
@@ -195,7 +198,7 @@ export function useDepartmentManagement(
         entity_type: 'department',
         user_id: user?.id,
         details: { profile_id: profileId },
-      });
+      }).catch((err: unknown) => log.warn('[audit] department member change log failed', err));
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['dept-profiles', initialDepartment.id] });
