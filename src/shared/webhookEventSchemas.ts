@@ -31,7 +31,7 @@ export function safeParseEvent<T>(
     ok: false,
     error: {
       code,
-      details: result.error.errors.map((e) => ({
+      details: result.error.issues.map((e) => ({
         path: e.path.map(String).join('.'),
         message: e.message,
       })),
@@ -296,7 +296,7 @@ export const evolutionMessageRowSchema = z.object({
   transcription: z.string().nullable().optional(),
   instance_id: z.string().nullable().optional(),
   updated_at: z.string().nullable().optional(),
-});
+}).passthrough();
 
 export type EvolutionMessageRow = z.infer<typeof evolutionMessageRowSchema>;
 
