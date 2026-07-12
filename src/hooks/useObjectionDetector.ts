@@ -53,6 +53,12 @@ export function useObjectionDetector(
   }, [contactId]);
 
   useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     setAnalyzed(false);
     setObjections([]);
     setError(null);

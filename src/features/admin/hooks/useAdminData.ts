@@ -57,33 +57,27 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     setLoading(true);
 
     if (activeTab === 'users') {
-      const PAGE = 1000;
-      const allProfiles: Record<string, unknown>[] = [];
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase.from('profiles').select('*').order('name').order('id').range(from, from + PAGE - 1);
-        if (error) { break; } if (!data || data.length === 0) break;
-        allProfiles.push(...data); if (data.length < PAGE) break; from += PAGE;
-      }
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('name')
+        .order('id')
+        .limit(2000);
 
-      const allRoles: Record<string, unknown>[] = [];
-      from = 0;
-      while (true) {
-        const { data, error } = await supabase.from('user_roles').select('*').order('id').range(from, from + PAGE - 1);
-        if (error) { break; } if (!data || data.length === 0) break;
-        allRoles.push(...data); if (data.length < PAGE) break; from += PAGE;
-      }
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('*')
+        .order('id')
+        .limit(2000);
 
-      if (allProfiles.length > 0) {
-        const usersWithRoles = allProfiles.map((profile) => {
-          const userRole = (allRoles as Array<{ user_id: string; role: string }>).find((r) => r.user_id === (profile as { user_id: string }).user_id);
-          return {
-            ...profile,
-            role: (userRole?.role || 'agent') as AppRole,
-          };
-        });
-        setUsers(usersWithRoles as unknown as UserWithRole[]);
-      }
+      const usersWithRoles = (profiles ?? []).map((profile) => {
+        const userRole = (roles ?? []).find((r) => r.user_id === profile.user_id);
+        return {
+          ...profile,
+          role: (userRole?.role || 'agent') as AppRole,
+        };
+      });
+      setUsers(usersWithRoles as unknown as UserWithRole[]);
     } else if (activeTab === 'audit') {
       const { data: logs, error: logsErr } = await supabase
         .from('audit_logs')
