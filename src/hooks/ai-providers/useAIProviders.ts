@@ -20,7 +20,8 @@ export function useAIProviders() {
         .from('ai_providers')
         .select('*')
         .order('is_default', { ascending: false })
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
       if (error) throw error;
       return (data || []) as unknown as AIProvider[];
     },

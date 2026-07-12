@@ -78,7 +78,8 @@ export function useTalkX() {
       const { data, error } = await safeClient.from<TalkXRecipient>('talkx_recipients', q =>
         q.select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)')
           .eq('campaign_id', selectedCampaignId)
-          .order('created_at'),
+          .order('created_at')
+          .order('id'),
       );
       if (error) throw error;
       return data ?? [];

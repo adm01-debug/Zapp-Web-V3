@@ -30,6 +30,7 @@ export const messageRepository = {
       .select('*')
       .eq('contact_id', contactId)
       .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
       .range(from, from + limit - 1);
   },
 
