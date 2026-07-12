@@ -1,9 +1,86 @@
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import { PostgrestError } from '@supabase/supabase-js';
+import { generateCorrelationId } from '@/lib/correlationId';
 
 const supabase = _supabase;
 const _log = getLogger('safeClient');
+
+// Whitelist of allowed tables to prevent SQL injection via table name parameter
+// Generated from schema migrations - only these tables can be queried via safeClient
+const ALLOWED_TABLES = new Set([
+  // Agent & AI
+  'agent_achievements', 'agent_skills', 'agent_stats', 'agent_visibility_grants',
+  'ai_conversation_tags', 'ai_providers', 'ai_usage_logs',
+  // Access Control
+  'allowed_countries', 'blocked_countries', 'blocked_ips',
+  // Automation
+  'automations', 'automation_executions', 'auto_close_config',
+  'away_messages', 'followup_sequences', 'followup_executions',
+  // Audio & Media
+  'audio_memes', 'custom_emojis',
+  // Business Hours & SLA
+  'business_hours', 'csat_auto_config', 'csat_surveys',
+  // Calls
+  'calls', 'channel_connections', 'channel_routing_rules', 'channel_queues',
+  // Campaigns & Contacts
+  'campaign_contacts', 'campaigns', 'contact_custom_fields', 'contact_notes',
+  'contact_tags', 'contacts', 'favorite_contacts',
+  // Conversation Management
+  'conversation_analyses', 'conversation_audit_logs', 'conversation_closures',
+  'conversation_events', 'conversation_memory', 'conversation_reads',
+  'conversation_sla', 'conversation_snoozes', 'conversation_tasks',
+  'conversation_transfers',
+  // Chatbot
+  'chatbot_executions', 'chatbot_flows',
+  // Client Management
+  'client_wallet_rules',
+  // Deal Management
+  'deal_activities', 'sales_deals', 'sales_pipeline_stages',
+  // Email
+  'email_accounts', 'email_attachments', 'email_drafts', 'email_labels',
+  'email_messages', 'email_revalidation_jobs', 'email_threads',
+  // Evolution API
+  'evolution_retry_metrics', 'evolution_instance_features', 'evolution_webhook_logs',
+  // Global Settings
+  'global_settings', 'knowledge_base_articles', 'knowledge_base_categories',
+  // Logging & Audit
+  'audit_logs', 'connection_health_logs', 'failed_messages', 'rls_audit_log',
+  // Notifications
+  'notification_preferences', 'notification_queue', 'notification_templates',
+  // Passwords & Auth
+  'password_reset_requests_safe',
+  // Profiles & Users
+  'profiles', 'user_roles', 'user_settings',
+  // Queue Management
+  'queue_members', 'queue_skill_requirements', 'queues',
+  // Security Alerts
+  'security_alerts',
+  // Typebot Integration
+  'typebot_executions',
+  // WhatsApp
+  'whatsapp_connections', 'whatsapp_groups', 'whatsapp_media_urls',
+  // Views (read-only)
+  'messages', 'message_templates',
+  // RPC helper tables
+  'rpc_dlq_log_reprocess_result', 'rpc_dlq_log_reprocess_trigger',
+] as const);
+
+type AllowedTable = typeof ALLOWED_TABLES extends Set<infer T> ? T : never;
+
+/**
+ * Valida se o nome da tabela está na whitelist de tabelas permitidas.
+ * Previne SQL injection via injeção de nomes de tabelas.
+ * Throws se tabela não estiver autorizada.
+ */
+function validateTableName(table: string): void {
+  if (!ALLOWED_TABLES.has(table as any)) {
+    throw new Error(
+      `SQL Injection Prevention: Table "${table}" is not in the allowed tables whitelist. ` +
+      `Only these tables can be accessed via safeClient: ${Array.from(ALLOWED_TABLES).slice(0, 5).join(', ')}...`
+    );
+  }
+}
 
 /**
  * Interface para retorno padronizado do safeClient
@@ -42,9 +119,12 @@ export const safeClient = {
     table: string,
     queryBuilder: (query: any) => any
   ): Promise<SafeResponse<T[]>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = generateCorrelationId();
     stats.totalCalls++;
     try {
+      // Validação de SQL injection: verifica se tabela está na whitelist
+      validateTableName(table);
+
       // Validação automática para tabelas email_*
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
@@ -62,11 +142,24 @@ export const safeClient = {
         stats.failedCalls++;
         return { data: [] as T[], error: this.formatError(error), requestId };
       }
-      
+
       return { data: (Array.isArray(data) ? data : []) as T[], error: null, requestId };
     } catch (err) {
-      this.log(requestId, 'error', `Erro crítico ao consultar tabela ${table}`, err);
-      this.recordFailure(requestId, 'from', table, err instanceof Error ? err.message : String(err));
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const isSqlInjectionAttempt = errorMsg.includes('SQL Injection Prevention');
+
+      if (isSqlInjectionAttempt) {
+        this.log(requestId, 'error', `🚨 SECURITY ALERT: SQL Injection attempt blocked on table access`, {
+          table,
+          attemptedTable: table,
+          errorMsg
+        });
+        this.recordFailure(requestId, 'from', table, `SQL Injection attempt blocked: ${errorMsg}`);
+      } else {
+        this.log(requestId, 'error', `Erro crítico ao consultar tabela ${table}`, err);
+        this.recordFailure(requestId, 'from', table, errorMsg);
+      }
+
       stats.failedCalls++;
       return { data: [] as T[], error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
@@ -79,9 +172,12 @@ export const safeClient = {
     table: string,
     queryBuilder: (query: any) => any
   ): Promise<SafeResponse<T>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = generateCorrelationId();
     stats.totalCalls++;
     try {
+      // Validação de SQL injection: verifica se tabela está na whitelist
+      validateTableName(table);
+
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {
@@ -100,8 +196,21 @@ export const safeClient = {
       }
       return { data: data as T, error: null, requestId };
     } catch (err) {
-      this.log(requestId, 'error', `Erro crítico single ${table}`, err);
-      this.recordFailure(requestId, 'single', table, err instanceof Error ? err.message : String(err));
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const isSqlInjectionAttempt = errorMsg.includes('SQL Injection Prevention');
+
+      if (isSqlInjectionAttempt) {
+        this.log(requestId, 'error', `🚨 SECURITY ALERT: SQL Injection attempt blocked on single query`, {
+          table,
+          attemptedTable: table,
+          errorMsg
+        });
+        this.recordFailure(requestId, 'single', table, `SQL Injection attempt blocked: ${errorMsg}`);
+      } else {
+        this.log(requestId, 'error', `Erro crítico single ${table}`, err);
+        this.recordFailure(requestId, 'single', table, errorMsg);
+      }
+
       stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
@@ -114,7 +223,7 @@ export const safeClient = {
     name: string,
     params?: Record<string, any>
   ): Promise<SafeResponse<T>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = generateCorrelationId();
     stats.totalCalls++;
     try {
       // Validação automática para RPCs rpc_email_*
@@ -134,9 +243,9 @@ export const safeClient = {
         stats.failedCalls++;
         return { data: null, error: this.formatError(error), requestId };
       }
-      
+
       if (data === undefined || data === null) return { data: null, error: null, requestId };
-      
+
       return { data: data as T, error: null, requestId };
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico RPC ${name}`, err);
