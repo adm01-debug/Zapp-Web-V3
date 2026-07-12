@@ -1,5 +1,27 @@
-// Sprint 2 — Consumidor da outbox Sicoob.
-// Invocado por pg_cron a cada 1 min. Drena itens pendentes com backoff exponencial.
+/**
+ * Edge Function: Sicoob Outbox Consumer
+ *
+ * Scheduled outbox message processor that drains pending/failed messages with exponential backoff retry.
+ * Invoked by pg_cron every 1 minute to deliver agent replies to Sicoob chat-bridge.
+ *
+ * Workflow:
+ * 1. Atomically claim next batch of pending/failed items (MAX_BATCH=25) via sicoob_outbox_claim RPC
+ *    (or fallback to SELECT + UPDATE if RPC unavailable)
+ * 2. For each item: resolve sicoob_contact_mapping, fetch agent name, POST to Sicoob chat-bridge
+ * 3. Mark as "sent" on success; mark as "failed" or "abandoned" on error with exponential backoff
+ * 4. Backoff formula: 2^attempts minutes, capped at 60 minutes; abandon after MAX_ATTEMPTS (6 attempts)
+ *
+ * Error Handling:
+ * - HTTP errors: Mark as failed, schedule retry with exponential backoff
+ * - Fatal errors (no sicoob mapping): Mark as abandoned, skip retries
+ * - Database errors: Log and mark as failed for manual intervention
+ * - Transient timeout errors (15s): Treated as retryable failures
+ *
+ * Security:
+ * - Requires Supabase service role key (admin access bypasses RLS for atomic operations)
+ * - Validates sicoob_contact_mapping existence before sending (prevents orphaned messages)
+ * - Signs all chat-bridge requests with SICOOB_GIFTS_BRIDGE_SECRET
+ */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
@@ -49,6 +71,31 @@ Deno.serve(async (req) => {
   }
 });
 
+/**
+ * Processes a batch of claimed outbox items by delivering each to Sicoob chat-bridge.
+ *
+ * Flow per item:
+ * 1. Query sicoob_contact_mapping to get Sicoob IDs (user_id, vendedor_id, singular_id)
+ *    - Fatal failure if mapping missing → mark abandoned, skip further retries
+ * 2. Resolve agent_name from profiles.full_name (fallback: "Vendedor" if not found)
+ * 3. POST to Sicoob chat-bridge with agent_reply action and all contact/message context
+ *    - 15-second timeout to prevent function hanging
+ *    - Requires valid HTTP 2xx response
+ * 4. On success: Atomically update status to "sent" and set processed_at timestamp
+ *    - Database errors during update: Mark as failed to retry (prevents silent data loss)
+ * 5. On HTTP/timeout errors: Delegate to markFailed() for exponential backoff retry logic
+ *
+ * Error Recovery Strategy:
+ * - Try-catch wraps entire item processing to catch fetch/timeout/database errors
+ * - If update succeeds but item-level exception occurs: markFailed() tries to recover
+ * - If markFailed() itself fails: Logged but doesn't block other items (continue processing)
+ *
+ * @param items - Array of outbox items with id, contact_id, message_id, agent_id, content, attempts
+ * @param supabase - Supabase service role client (admin access to bypass RLS)
+ * @param sicoobGiftsUrl - Base URL to Sicoob chat-bridge function
+ * @param bridgeSecret - Authorization bearer token for chat-bridge requests
+ * @returns JSON response with ok, sent count, failed count, and total items processed
+ */
 async function processBatch(
   items: Array<{ id: string; contact_id: string; message_id: string; agent_id: string | null; content: string; attempts: number }>,
   supabase: ReturnType<typeof createClient>,
@@ -159,6 +206,31 @@ async function processBatch(
   return json({ ok: true, sent, failed, total: items.length });
 }
 
+/**
+ * Marks an outbox item as failed or abandoned with exponential backoff retry scheduling.
+ *
+ * Backoff Strategy (exponential):
+ * - Retry intervals: 2^attempts minutes, min 1 minute, capped at 60 minutes
+ * - Sequence: 1, 2, 4, 8, 16, 32, 60, 60, ... minutes
+ * - MAX_ATTEMPTS=6: After 6 failures (~63 minutes total backoff), item is abandoned
+ * - next_attempt_at calculation: now + (backoffMin * 60,000 milliseconds)
+ *
+ * Failure Classification:
+ * - fatal=true: Unrecoverable errors (no sicoob mapping, invalid contact) → status "abandoned"
+ *   Skip all retries, prevent wasted API calls
+ * - fatal=false: Transient errors (HTTP 5xx, timeout, network) → status "failed"
+ *   Schedule retry after backoff interval; attempt counter increments
+ *
+ * Atomic Update (fire-and-forget telemetry pattern):
+ * - Updates sicoob_reply_outbox: status, attempts, last_error, next_attempt_at
+ * - Database errors logged but not re-thrown (prevents cascade failures)
+ * - Item remains in queue for manual intervention if update fails
+ *
+ * @param supabase - Supabase service role client (admin access)
+ * @param item - Outbox item with id and current attempts count
+ * @param error - Human-readable error message to persist in last_error column (max 300 chars in caller)
+ * @param fatal - Whether error is unrecoverable (true) or transient/retryable (false)
+ */
 async function markFailed(
   supabase: ReturnType<typeof createClient>,
   item: { id: string; attempts: number },
@@ -196,6 +268,16 @@ async function markFailed(
   }
 }
 
+/**
+ * Constructs a JSON HTTP response with CORS headers and specified status code.
+ *
+ * Includes cross-origin headers for browser clients; used by Deno.serve() to return
+ * batch processing results (sent count, failed count, total items).
+ *
+ * @param body - Response payload object (serialized to JSON)
+ * @param status - HTTP status code (default 200); use 503 for configuration errors, 500 for exceptions
+ * @returns Response object with JSON body, CORS headers, and specified status
+ */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,

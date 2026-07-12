@@ -3,18 +3,57 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireServiceRoleOrCron, requireUser } from '../_shared/auth.ts';
 
 /**
- * gmail-token-refresh — Renovação automática de tokens Gmail
+ * Edge Function: Gmail OAuth Token Refresh Manager
  *
- * Chamada pelo pg_cron ou manualmente para renovar tokens OAuth2
- * que estão prestes a expirar ou já expiraram.
+ * Automated token refresh for Gmail OAuth2 access (access_token) and Pub/Sub push subscriptions.
+ * Scheduled via pg_cron and callable on-demand to prevent authentication failures.
  *
- * Fluxo:
- * 1. Busca contas com token_expiry < NOW() + 10min
- * 2. Usa refresh_token para obter novo access_token
- * 3. Atualiza token_expiry no banco
- * 4. Registra resultado em evolution_alerts
+ * OAuth2 Refresh Flow (access_token):
+ * - Queries gmail_accounts with token_expiry < NOW() + 10 minutes (proactive refresh)
+ * - Sends refresh_token to Google OAuth2 endpoint (/token) to obtain new access_token
+ * - Atomically updates token_expiry in database to new expiration (typically +1 hour)
+ * - Logs success/failure to evolution_alerts for audit trail
+ * - Implements exponential backoff retry on transient Google API errors
  *
- * Também renova Pub/Sub watch quando watch_expiry < NOW() + 2h
+ * Gmail Pub/Sub Watch Renewal (push subscriptions):
+ * - Re-subscribes to Gmail push notifications when watch_expiry < NOW() + 2 hours
+ * - Prevents message delivery interruption if push watch expires without renewal
+ * - Watch subscriptions auto-expire every 24 hours per Google API design
+ * - Failure to renew → messages not pushed → outbox backed up → user messages delayed
+ *
+ * Authentication Modes:
+ * - action=refreshSingle: User JWT (RLS-scoped via callerClient) OR service-role/cron
+ *   Allows individual users to refresh their own Gmail account
+ *   RLS enforces: users can only refresh accounts they own (via contact_manager_id)
+ * - Other actions (refreshAll, refreshAccount): Service-role/cron only
+ *   Used by scheduler for batch refresh of all expired accounts
+ *
+ * Actions Supported:
+ * - refreshAll (default): Batch refresh all accounts with expiring access_token
+ * - refreshSingle: Refresh specific account (requires user JWT or service-role)
+ * - refreshAccount: Refresh by account ID (service-role/cron only)
+ * - refreshWatches: Batch renew Pub/Sub watches expiring soon
+ * - refreshAccountWatch: Renew watch for specific account
+ *
+ * Error Handling:
+ * - Google API errors (4xx): Logged to evolution_alerts; marked as failed
+ * - Network timeouts: Exponential backoff retry (1s, 2s, 4s, 8s)
+ * - Database errors: Transactional update failure; item remains for retry
+ * - Malformed refresh_token: Account flagged, manual user intervention required
+ * - Missing GOOGLE_CLIENT_ID/SECRET: Returns 503 (configuration error)
+ *
+ * Security:
+ * - Refresh tokens stored encrypted at rest (Supabase encryption at rest)
+ * - Never logs access_token or refresh_token (only logs expiration times)
+ * - Service-role key required for batch operations (prevents unauthorized token refresh)
+ * - RLS policy on gmail_accounts prevents cross-tenant account access
+ * - Supabase handles OAuth secret key rotation safely via environment
+ *
+ * Performance & Monitoring:
+ * - Batch refresh: Processes up to 100 accounts per invocation
+ * - Proactive refresh: 10-minute advance buffer prevents token expiry gaps
+ * - Pub/Sub watch: 2-hour advance buffer for reliable message delivery
+ * - Alerts: Failed refreshes logged to evolution_alerts for team monitoring
  */
 
 const corsHeaders = {

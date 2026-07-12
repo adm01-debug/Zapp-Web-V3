@@ -1,7 +1,49 @@
 /**
- * Talk X — Humanized bulk messaging edge function
- * Simulates typing, personalized messages with {{nome}}, {{apelido}}, {{empresa}}, {{saudacao}}
- * Supports text + media (image, video, document, audio)
+ * Edge Function: TalkX Bulk Messaging — Humanized Campaign Engine
+ *
+ * Orchestrates personalized WhatsApp message delivery with typing simulation for realistic user experience.
+ * Supports multi-channel messaging (text + media) with campaign state management (pending, sent, failed, paused, cancelled).
+ *
+ * Authentication:
+ * - Accepts either admin/supervisor JWT (manual UI triggers: pause, cancel) OR
+ * - Service role key / cron secret (talkx-scheduler automated invocation)
+ * - Enforces fine-grained authorization for campaign state mutations
+ *
+ * Personalization Strategy:
+ * - Template placeholders: {{nome}} (first name), {{nome_completo}} (full name),
+ *   {{apelido}} (nickname), {{empresa}} (company), {{saudacao}} (time-based greeting)
+ * - Resolves contact data from contacts table via campaign's recipients list
+ * - Greeting determined by São Paulo timezone (Bom dia/Boa tarde/Boa noite)
+ *
+ * Typing Simulation & Rate Limiting:
+ * - Calculates simulate_typing_ms = message length / 50 chars/sec (human-realistic)
+ * - Batch processing: Fetch N recipients (limit 50), dispatch to Evolution API in sequence
+ * - Exponential backoff retry: 2^attempt seconds delay, 15s timeout per request
+ * - Prevents API abuse through rate limit compliance and message pacing
+ *
+ * Media Handling:
+ * - Supports audio, image, video, document types via Evolution API
+ * - Audio uses dedicated sendWhatsAppAudio endpoint; others use generic sendMedia
+ * - Media URL fetched with retry logic; errors logged but campaign continues
+ *
+ * Flow:
+ * 1. Verify campaign exists and load state (pending count, status, recipients)
+ * 2. If action=pause/cancel: Update status atomically and return
+ * 3. If action=(send or empty): Fetch batch of N pending recipients
+ * 4. For each recipient: Personalize message, calculate typing delay, invoke Evolution API
+ * 5. Mark sent/failed atomically; track counts for telemetry and UI display
+ * 6. Return summary with sent count, failed count, pending count, and next batch ETA
+ *
+ * Security Controls:
+ * - Campaign ownership verified via contact_manager_id (prevents cross-tenant access)
+ * - Evolution API secret required for all message delivery
+ * - Supabase service role (bypasses RLS) used for atomic batch operations
+ * - Evolution API calls sign with bearer token for authentication
+ *
+ * Error Handling:
+ * - Network/timeout errors: Marked as failed, backoff scheduled
+ * - API validation errors (4xx): Logged but not retried (user error)
+ * - Campaign state conflicts (paused/cancelled during dispatch): Gracefully abandon batch
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
@@ -9,6 +51,11 @@ import { parseOrReject } from "../_shared/contract-kit.ts";
 import { TalkxSendV1Schema } from "../_shared/contract-schemas.ts";
 import { requireAdminOrSupervisor, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
+/**
+ * Generates Portuguese greeting based on São Paulo timezone and current hour.
+ * Used to personalize bulk messages with time-appropriate salutations.
+ * @returns Greeting: "Bom dia" (5-11:59), "Boa tarde" (12-17:59), or "Boa noite" (18-4:59)
+ */
 function getGreeting(): string {
   const hour = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false });
   const h = parseInt(hour, 10);
@@ -17,6 +64,14 @@ function getGreeting(): string {
   return "Boa noite";
 }
 
+/**
+ * Personalizes message templates with contact-specific variables.
+ * Replaces placeholders: {{nome}} (first name), {{nome_completo}} (full), {{apelido}} (nickname),
+ * {{empresa}} (company), {{saudacao}} (greeting).
+ * @param template - Template string with placeholder variables
+ * @param contact - Contact data (name, nickname, company)
+ * @returns Personalized message with placeholders replaced
+ */
 function personalize(template: string, contact: { name: string; nickname?: string; company?: string }): string {
   const firstName = contact.name?.split(" ")[0] || "";
   return template
@@ -27,14 +82,37 @@ function personalize(template: string, contact: { name: string; nickname?: strin
     .replace(/\{\{saudacao\}\}/gi, getGreeting());
 }
 
+/**
+ * Generates random integer between min and max (inclusive).
+ * Used for jitter in retry delays and typing simulation intervals.
+ * @param min - Minimum value
+ * @param max - Maximum value
+ * @returns Random integer in [min, max]
+ */
 function randomBetween(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/**
+ * Delays execution for specified milliseconds.
+ * Used for typing simulation and exponential backoff between retries.
+ * @param ms - Delay in milliseconds
+ * @returns Promise that resolves after specified delay
+ */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Fetches URL with exponential backoff retry logic.
+ * Retries on transient errors (5xx, timeouts) but not client errors (4xx).
+ * Implements timeout per attempt to prevent hanging requests.
+ * @param url - URL to fetch
+ * @param options - Fetch RequestInit options
+ * @param maxRetries - Maximum retry attempts (default 2)
+ * @param timeoutMs - Timeout per attempt in milliseconds (default 15s)
+ * @returns Response object or throws Error if all retries exhausted
+ */
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2, timeoutMs = 15_000): Promise<Response> {
   let lastError: Error | null = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -53,6 +131,12 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2,
   throw lastError || new Error("Fetch failed after retries");
 }
 
+/**
+ * Maps media type to Evolution API endpoint for sending.
+ * Audio uses dedicated sendWhatsAppAudio endpoint; others use generic sendMedia.
+ * @param mediaType - Type of media: 'audio', 'image', 'video', 'document'
+ * @returns API endpoint name for Evolution API call
+ */
 function getMediaEndpoint(mediaType: string): string {
   switch (mediaType) {
     case "audio": return "sendWhatsAppAudio";

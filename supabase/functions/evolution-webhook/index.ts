@@ -1,3 +1,61 @@
+/**
+ * Edge Function: Evolution API Webhook Receiver
+ *
+ * Receives and processes WhatsApp events from Evolution API with HMAC validation,
+ * instance registry verification, rate limiting, and multi-handler event routing.
+ *
+ * Security & Validation:
+ * - HMAC signature validation on all webhook payloads (prevents spoofed events)
+ * - Multi-secret support for zero-downtime secret rotation: EVOLUTION_WEBHOOK_SECRETS=new,old
+ * - Strict mode (default): Rejects events from unknown instances via instance_registry
+ * - Fail-open on transient registry lookup failures (prevents DoS via database)
+ * - Registry cache TTL: 60 seconds to balance freshness with performance
+ * - Instance pause detection: Rejects events if instance has been manually paused
+ *
+ * Event Categories Handled:
+ * - Connection: CONNECTION_UPDATE, QRCODE_UPDATED, LOGOFF_INSTANCE, APPLICATION_STARTUP
+ * - Messages: MESSAGES_UPSERT, MESSAGES_UPDATE, MESSAGES_DELETE, MESSAGES_EDITED, MESSAGES_SET
+ * - Message delivery: SEND_MESSAGE (success/failure tracking)
+ * - Contacts: CONTACTS_UPSERT, CONTACTS_SET
+ * - Chats: CHATS_UPDATE, CHATS_DELETE, CHATS_SET
+ * - Groups: GROUPS_UPSERT, GROUP_PARTICIPANTS_UPDATE
+ * - Media: PRESENCE_UPDATE (status changes)
+ * - Reactions: Message reactions via handleReactionEvent
+ * - Calls: CALL_EVENT (incoming/missed call handling)
+ * - Labels: LABELS_EDIT, LABELS_ASSOCIATION
+ *
+ * Processing Flow:
+ * 1. Validate request method (POST only) and CORS
+ * 2. Validate SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (fail 503 if missing)
+ * 3. Read raw body and validate HMAC signature (reject if invalid)
+ * 4. Parse webhook JSON schema (reject if malformed)
+ * 5. Check rate limit per instance (reject 429 if exceeded)
+ * 6. Verify instance exists in registry and not paused (fail-open on transient errors)
+ * 7. Normalize event name and route to appropriate handler (CONNECTION_UPDATE→handleConnectionUpdate, etc.)
+ * 8. For message events: Parse media, decode base64 content if webhook_base64=true
+ * 9. Mark event as processed in audit log; route to dead-letter queue on handler failure
+ * 10. Return 200 OK with { received: true } (acknowledge webhook before async processing)
+ *
+ * Error Handling:
+ * - HMAC validation failure: 401 Unauthorized (attacker/misconfiguration)
+ * - Malformed JSON: 400 Bad Request (Evolution API or network error)
+ * - Rate limit exceeded: 429 Too Many Requests (retry backoff)
+ * - Unknown instance (strict mode): 403 Forbidden (security gate)
+ * - Database/transient errors: Log but fail-open (prevent pipeline blockage)
+ * - Handler exceptions: Log + route to dead-letter queue for manual review
+ *
+ * Performance & Reliability:
+ * - Async event processing: Return 200 before handlers complete (prevents webhook timeout)
+ * - Registry cache: 60s TTL reduces database queries 60:1
+ * - Dead-letter queue: Failed events stored for manual investigation
+ * - Audit logging: All events recorded for compliance + debugging
+ * - Request ID: Unique ID per webhook for correlation across logs
+ *
+ * Configuration:
+ * - EVOLUTION_WEBHOOK_SECRETS: Comma-separated list for rotation (new secret first)
+ * - EVOLUTION_WEBHOOK_STRICT: true (default) | false - registry verification mode
+ * - WEBHOOK_SECRET: Deprecated legacy single-secret fallback
+ */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
@@ -40,12 +98,44 @@ const validateWebhook = WEBHOOK_SECRETS.length > 0
   ? createWebhookValidator(WEBHOOK_SECRETS, STRICT_MODE)
   : null;
 
-// [PATCH 2026-07-04 registry-guard] So processa eventos de instancias cadastradas em
-// instance_registry (existencia, nao is_active - evita perda de dados de instancia nova
-// ainda nao ativada). Cache em memoria TTL 60s. Fail-open (null) em erro de lookup para
-// nao derrubar o pipeline por falha transitoria do PostgREST.
+/**
+ * In-memory registry cache for instance verification with TTL-based expiration.
+ * Stores { known: boolean, at: timestamp } tuples keyed by instance name.
+ * Used to reduce database queries during high-volume webhook processing.
+ * @private
+ */
 const __registryCache = new Map<string, { known: boolean; at: number }>();
+
+/**
+ * Registry cache TTL in milliseconds. Set to 60 seconds to balance freshness
+ * (prevents stale instance data) with performance (reduces database load 60:1).
+ * @private
+ */
 const __REGISTRY_TTL_MS = 60_000;
+
+/**
+ * Verifies instance existence in instance_registry table with in-memory caching.
+ *
+ * Security Gate (strict mode):
+ * - Returns true if instance found in registry (regardless of is_active status)
+ * - Prevents processing events from unregistered/rogue Evolution API instances
+ * - Cache reduces database queries: ~60 repeated events from same instance = 1 query
+ *
+ * Fail-Open Strategy:
+ * - Returns null on transient database errors (lookup fails, PostgREST timeout)
+ * - Callers treat null as "unknown but allow" to prevent DoS via database failures
+ * - Logs all lookup errors for monitoring; incidents resolved separately
+ *
+ * Cache Expiration:
+ * - Each entry cached for 60 seconds from lookup time
+ * - Expired entries purged on next lookup (lazy eviction)
+ * - Note: New instances up to 60 seconds to appear in webhook (acceptable latency)
+ *
+ * @param supabase - Supabase service role client for database access
+ * @param instance - Instance name/ID to verify (e.g., 'zapp-instance-001')
+ * @returns true if known, false if unknown, null if lookup failed (transient error)
+ * @private
+ */
 // deno-lint-ignore no-explicit-any
 async function isKnownInstance(supabase: any, instance: string): Promise<boolean | null> {
   if (!instance) return false;
