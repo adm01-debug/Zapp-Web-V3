@@ -146,7 +146,7 @@ https://zapp-web-v3.vercel.app
 ```
 Documento: docs/infra/evolution-stack.reconciled.yml
 Stack Portainer id=25 atualizado em 2026-07-11 via portainer_update_stack:
-  1. AUTHENTICATION_API_KEY=2D10188F28DD94ACD5D18DFDB01BFB07 em environment: (Spec.Env permanente)
+  1. AUTHENTICATION_API_KEY=<REDACTED-ROTACIONAR-AUTHENTICATION_API_KEY> em environment: (Spec.Env permanente)
   2. tr -d '\n\r' em todos os cat /run/secrets/* (era len=33, agora len=32)
 
 Verificação container 0c9e3cd35f07:

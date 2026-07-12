@@ -14,7 +14,7 @@ do service `evolution_evolution` (label `auth-key-spec-env-2026-07-11`, Version.
 pode ver o valor em texto claro.
 **Evidência:**
 ```
-"AUTHENTICATION_API_KEY=2D10188F28DD94ACD5D18DFDB01BFB07"
+"AUTHENTICATION_API_KEY=<REDACTED-ROTACIONAR-AUTHENTICATION_API_KEY>"
 ```
 Presente em `Spec.TaskTemplate.ContainerSpec.Env`.
 **Impacto funcional:** Zero (o entrypoint sobrepõe com o secret via `cat /run/secrets/... | tr -d`).

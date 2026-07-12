@@ -73,7 +73,7 @@ services:
 
     environment:
       # FIX R10: AUTHENTICATION_API_KEY no Spec.Env para sobreviver rollbacks do swarm-task-guardian
-      - AUTHENTICATION_API_KEY=2D10188F28DD94ACD5D18DFDB01BFB07
+      - AUTHENTICATION_API_KEY=<REDACTED-ROTACIONAR-AUTHENTICATION_API_KEY>
       - SERVER_URL=https://evolution.atomicabr.com.br
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false
       - DEL_INSTANCE=false
