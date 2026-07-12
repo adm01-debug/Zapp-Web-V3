@@ -27,7 +27,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
             staleTime: 1000 * 60 * 5, // 5 minutes
             gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
             retry: (failureCount, error) => {
-              const e = error as { status?: number; code?: string };
+              const e = error as { status?: number; code?: string }; // ignore-audit: React Query types error as unknown; narrowing via cast is the intended pattern
               // Don't retry for 401/403 errors (authentication/authorization)
               if (e?.status === 401 || e?.status === 403 || e?.code === 'PGRST301') return false;
               return failureCount < 2;
