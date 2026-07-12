@@ -28,7 +28,11 @@ const QUERY_KEY = ['admin', 'rate-limit-logs'] as const;
 export function useRateLimitLogs() {
   const queryClient = useQueryClient();
 
-  const { data: logs = [], isFetching: loading, refetch } = useQuery<RateLimitLog[]>({
+  const {
+    data: logs = [],
+    isFetching: loading,
+    refetch,
+  } = useQuery<RateLimitLog[]>({
     queryKey: QUERY_KEY,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,18 +60,20 @@ export function useRateLimitLogs() {
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      channel.unsubscribe();
+    };
   }, [queryClient]);
 
   const stats = useMemo<RateLimitStats | null>(() => {
     if (logs.length === 0) return null;
 
     const totalRequests = logs.reduce((sum, log) => sum + log.request_count, 0);
-    const blockedRequests = logs.filter(log => log.blocked).length;
-    const uniqueIPs = new Set(logs.map(log => log.ip_address)).size;
+    const blockedRequests = logs.filter((log) => log.blocked).length;
+    const uniqueIPs = new Set(logs.map((log) => log.ip_address)).size;
 
     const endpointCounts: Record<string, number> = {};
-    logs.forEach(log => {
+    logs.forEach((log) => {
       endpointCounts[log.endpoint] = (endpointCounts[log.endpoint] || 0) + log.request_count;
     });
     const topEndpoints = Object.entries(endpointCounts)
@@ -76,7 +82,7 @@ export function useRateLimitLogs() {
       .slice(0, 5);
 
     const ipData: Record<string, { count: number; blocked: boolean }> = {};
-    logs.forEach(log => {
+    logs.forEach((log) => {
       if (!ipData[log.ip_address]) {
         ipData[log.ip_address] = { count: 0, blocked: false };
       }

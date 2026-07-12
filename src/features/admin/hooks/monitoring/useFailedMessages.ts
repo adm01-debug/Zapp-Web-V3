@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,9 +16,16 @@ import {
 const log = getLogger('useFailedMessages');
 
 // Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
-  (supabase as any).rpc(fn, args) as Promise<{ data: T; error: Error | null }>;
+interface RpcClient {
+  rpc<T = unknown>(
+    fn: string,
+    args?: Record<string, unknown>
+  ): Promise<{ data: T; error: Error | null }>;
+}
+const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) => {
+  const rpcClient = supabase as unknown as RpcClient;
+  return rpcClient.rpc<T>(fn, args);
+};
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
 
@@ -212,7 +218,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       })
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [queryClient]);
 
