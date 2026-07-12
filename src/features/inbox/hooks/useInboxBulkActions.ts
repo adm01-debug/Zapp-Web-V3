@@ -118,11 +118,18 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
         },
         undoAction: async () => {
           if (originalContacts) {
-            for (const contact of originalContacts) {
-              await dbFrom('contacts')
-                .update({ assigned_to: contact.assigned_to })
-                .eq('id', contact.id);
+            // Group contacts by their original assigned_to so we restore with
+            // one .in() update per unique agent instead of N sequential writes.
+            const byAssignee = new Map<string | null, string[]>();
+            for (const c of originalContacts) {
+              if (!byAssignee.has(c.assigned_to)) byAssignee.set(c.assigned_to, []);
+              byAssignee.get(c.assigned_to)!.push(c.id);
             }
+            await Promise.all(
+              Array.from(byAssignee.entries()).map(([assignedTo, ids]) =>
+                dbFrom('contacts').update({ assigned_to: assignedTo }).in('id', ids)
+              )
+            );
           }
           refetch();
         },

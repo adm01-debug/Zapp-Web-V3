@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { log } from '@/lib/logger';
 import { toast } from 'sonner';
 import { useGroupActions } from './groups/actions';
@@ -23,26 +22,26 @@ export function useGroupsManager() {
 
   const fetchGroups = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('whatsapp_groups')
-      .select('*')
-      .order('name', { ascending: true });
+    const { data, error } = await safeClient.from<WhatsAppGroup>('whatsapp_groups', (q) =>
+      q.select('*').order('name', { ascending: true })
+    );
     if (!mountedRef.current) return;
     if (error) {
       toast.error('Erro ao carregar grupos');
       log.error('Error fetching groups:', error);
-    } else setGroups(data || []);
+    } else setGroups(data ?? []);
     setIsLoading(false);
   }, []);
 
   const fetchConnections = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('whatsapp_connections')
-      .select('id, name, phone_number, instance_id, instance_name')
-      .order('name', { ascending: true });
+    const { data, error } = await safeClient.from<WhatsAppConnection>('whatsapp_connections', (q) =>
+      q
+        .select('id, name, phone_number, instance_id, instance_name')
+        .order('name', { ascending: true })
+    );
     if (!mountedRef.current) return;
     if (error) log.error('Error fetching connections:', error);
-    else setConnections(data || []);
+    else setConnections(data ?? []);
   }, []);
 
   useEffect(() => {

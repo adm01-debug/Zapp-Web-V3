@@ -93,22 +93,20 @@ export function useBusinessHours(connectionId: string) {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async ({ hours, away }: { hours: BusinessHour[]; away: AwayMessage }) => {
-      // Upsert business hours
-      for (const hour of hours) {
-        const { error } = await safeClient.from('business_hours', (q) =>
-          q.upsert(
-            {
-              whatsapp_connection_id: connectionId,
-              day_of_week: hour.day_of_week,
-              is_enabled: hour.is_enabled,
-              start_time: hour.start_time,
-              end_time: hour.end_time,
-            },
-            { onConflict: 'whatsapp_connection_id,day_of_week' }
-          )
-        );
-        if (error) throw error;
-      }
+      // Batch upsert all 7 rows in a single round trip instead of one upsert per row.
+      const { error } = await safeClient.from('business_hours', (q) =>
+        q.upsert(
+          hours.map((hour) => ({
+            whatsapp_connection_id: connectionId,
+            day_of_week: hour.day_of_week,
+            is_enabled: hour.is_enabled,
+            start_time: hour.start_time,
+            end_time: hour.end_time,
+          })),
+          { onConflict: 'whatsapp_connection_id,day_of_week' }
+        )
+      );
+      if (error) throw error;
 
       // Upsert away message
       const { error: awayError } = await supabase.from('away_messages').upsert(

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
@@ -258,7 +257,9 @@ export function useUserSettings() {
         }, 30000);
       });
 
-      const { error } = await Promise.race([savePromise, timeoutPromise]) as Awaited<typeof savePromise>;
+      const { error } = (await Promise.race([savePromise, timeoutPromise])) as Awaited<
+        typeof savePromise
+      >;
 
       if (timeoutId) clearTimeout(timeoutId);
 
@@ -282,9 +283,10 @@ export function useUserSettings() {
       log.error('Error in saveSettings:', err);
       toast({
         title: 'Erro ao salvar',
-        description: err instanceof Error && err.message.includes('timed out')
-          ? 'A operação demorou muito tempo. Verifique sua conexão.'
-          : 'Ocorreu um erro inesperado.',
+        description:
+          err instanceof Error && err.message.includes('timed out')
+            ? 'A operação demorou muito tempo. Verifique sua conexão.'
+            : 'Ocorreu um erro inesperado.',
         variant: 'destructive',
       });
       return false;

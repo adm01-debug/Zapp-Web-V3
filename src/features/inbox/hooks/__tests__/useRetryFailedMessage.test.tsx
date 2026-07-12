@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
@@ -50,7 +49,7 @@ describe('useRetryFailedMessage', () => {
     expect(mockRpc).toHaveBeenCalledWith('rpc_dlq_retry_now', { p_id: 'fm-1' });
     expect(spy).toHaveBeenCalledWith({ queryKey: ['message-send-history', 'm-1'] });
     expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Reenvio enfileirado' }),
+      expect.objectContaining({ title: 'Reenvio enfileirado' })
     );
   });
 
@@ -60,7 +59,7 @@ describe('useRetryFailedMessage', () => {
     const { result } = renderHook(() => useRetryFailedMessage(), { wrapper: Wrapper });
 
     await expect(
-      result.current.mutateAsync({ failedMessageId: 'fm-1', messageId: 'm-1' }),
+      result.current.mutateAsync({ failedMessageId: 'fm-1', messageId: 'm-1' })
     ).rejects.toThrow(/[Aa]utentica/);
     expect(mockRpc).not.toHaveBeenCalled();
   });
@@ -75,7 +74,7 @@ describe('useRetryFailedMessage', () => {
       await result.current.mutateAsync({ failedMessageId: 'fm-1', messageId: 'm-1' });
     });
     await expect(
-      result.current.mutateAsync({ failedMessageId: 'fm-1', messageId: 'm-1' }),
+      result.current.mutateAsync({ failedMessageId: 'fm-1', messageId: 'm-1' })
     ).rejects.toThrow(/[Aa]guarde/);
     expect(mockRpc).toHaveBeenCalledTimes(1);
   });
@@ -87,11 +86,11 @@ describe('useRetryFailedMessage', () => {
     const { result } = renderHook(() => useRetryFailedMessage(), { wrapper: Wrapper });
 
     await expect(
-      result.current.mutateAsync({ failedMessageId: 'fm-1', messageId: 'm-1' }),
+      result.current.mutateAsync({ failedMessageId: 'fm-1', messageId: 'm-1' })
     ).rejects.toThrow();
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ description: expect.stringMatching(/permiss/i) }),
+        expect.objectContaining({ description: expect.stringMatching(/permiss/i) })
       );
     });
   });
