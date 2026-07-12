@@ -96,6 +96,9 @@ interface ContactTypeFilterProps {
  */
 export function ContactTypeFilter({ value, onChange, conversations }: ContactTypeFilterProps) {
   const [open, setOpen] = useState(false);
+  const [focusedIdx, setFocusedIdx] = useState(-1);
+  const focusedIdxRef = useRef(-1);
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { density } = useDensity();
   const isCompact = density === 'compact' || density === 'dense';
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,25 +108,45 @@ export function ContactTypeFilter({ value, onChange, conversations }: ContactTyp
   const activeOption = FILTER_OPTIONS.find((o) => o.value === (value || 'all')) ?? FILTER_OPTIONS[0];
   const TriggerIcon = activeOption.icon;
 
+  const moveFocus = useCallback((idx: number) => {
+    const clamped = Math.max(0, Math.min(idx, FILTER_OPTIONS.length - 1));
+    focusedIdxRef.current = clamped;
+    setFocusedIdx(clamped);
+    requestAnimationFrame(() => optionRefs.current[clamped]?.focus());
+  }, []);
+
   const handleSelect = useCallback((next: string) => {
     setOpen(false);
     onChange(next === 'all' ? null : next);
   }, [onChange]);
 
-  // Click outside + Esc
+  // Auto-focus selected option when listbox opens
+  useEffect(() => {
+    if (!open) { setFocusedIdx(-1); focusedIdxRef.current = -1; return; }
+    const selectedIdx = FILTER_OPTIONS.findIndex(o => (value || 'all') === o.value);
+    moveFocus(selectedIdx >= 0 ? selectedIdx : 0);
+  }, [open, value, moveFocus]);
+
+  // Click outside + Esc + Arrow key navigation
   useEffect(() => {
     if (!open) return;
     const onDocDown = (e: MouseEvent) => {
       if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setOpen(false); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); moveFocus(focusedIdxRef.current + 1); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); moveFocus(focusedIdxRef.current - 1); return; }
+      if (e.key === 'Home') { e.preventDefault(); moveFocus(0); return; }
+      if (e.key === 'End') { e.preventDefault(); moveFocus(FILTER_OPTIONS.length - 1); }
+    };
     document.addEventListener('mousedown', onDocDown);
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('mousedown', onDocDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [open, moveFocus]);
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -150,6 +173,7 @@ export function ContactTypeFilter({ value, onChange, conversations }: ContactTyp
         <div
           role="listbox"
           aria-label="Tipos de contato"
+          aria-activedescendant={focusedIdx >= 0 ? `ctf-opt-${FILTER_OPTIONS[focusedIdx]?.value}` : undefined}
           className={cn(
             'absolute z-50 mt-1 left-0 min-w-[220px] max-h-[360px] overflow-y-auto',
             'rounded-md border bg-popover text-popover-foreground shadow-md p-1',
@@ -163,6 +187,8 @@ export function ContactTypeFilter({ value, onChange, conversations }: ContactTyp
             return (
               <React.Fragment key={opt.value}>
                 <button
+                  id={`ctf-opt-${opt.value}`}
+                  ref={el => { optionRefs.current[idx] = el; }}
                   type="button"
                   role="option"
                   aria-selected={selected}
