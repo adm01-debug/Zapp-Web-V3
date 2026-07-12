@@ -10,6 +10,7 @@ import {
   columnMap,
   type WhatsAppConnectionCanonical,
   type ContactCanonical,
+  type MessageCanonical,
 } from './columnMap';
 
 // Re-exporta os normalizadores de profile já consolidados em features/admin,
@@ -84,5 +85,47 @@ export function normalizeContact(row: ContactRow | null | undefined): ContactCan
     queue_id: row.queue_id ?? null,
     created_at: row.created_at ?? null,
     updated_at: row.updated_at ?? null,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// messages
+// -----------------------------------------------------------------------------
+
+type MessageRow = Partial<MessageCanonical> & {
+  sender_id?: string | null; // alias legado
+  external_message_id?: string | null; // alias legado (schema antigo)
+};
+
+export function normalizeMessage(row: MessageRow | null | undefined): MessageCanonical | null {
+  if (!row || typeof row !== 'object' || typeof row.id !== 'string') return null;
+  const cols = columnMap.messages.columns;
+  return {
+    id: row.id,
+    contact_id: row.contact_id ?? null,
+    whatsapp_connection_id: row.whatsapp_connection_id ?? null,
+    sender: row.sender ?? '',
+    content: row.content ?? (cols.content.default as string),
+    message_type: row.message_type ?? (cols.message_type.default as string),
+    media_url: row.media_url ?? null,
+    is_read: row.is_read ?? null,
+    agent_id: row.agent_id ?? row.sender_id ?? null,
+    external_id: row.external_id ?? row.external_message_id ?? null,
+    created_at: row.created_at ?? new Date(0).toISOString(),
+    updated_at: row.updated_at ?? row.created_at ?? new Date(0).toISOString(),
+    transcription: row.transcription ?? null,
+    transcription_status: row.transcription_status ?? null,
+    status: row.status ?? null,
+    status_updated_at: row.status_updated_at ?? null,
+    is_deleted: row.is_deleted ?? null,
+    channel_type: row.channel_type ?? null,
+    channel_connection_id: row.channel_connection_id ?? null,
+    is_edited: row.is_edited ?? (cols.is_edited.default as boolean),
+    media_meta: row.media_meta ?? null,
+    media_type: row.media_type ?? null,
+    media_mimetype: row.media_mimetype ?? null,
+    link_preview: row.link_preview ?? null,
+    reply_to_id: row.reply_to_id ?? null,
+    deleted_at: row.deleted_at ?? null,
   };
 }

@@ -107,6 +107,7 @@ export function WhisperMode({
       )
       .subscribe();
     return () => {
+      void channel.unsubscribe();
       void supabase.removeChannel(channel);
     };
   }, [contactId, queryClient, contactIsUUID]);

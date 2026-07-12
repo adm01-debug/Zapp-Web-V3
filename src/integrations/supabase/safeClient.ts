@@ -2,6 +2,7 @@
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import { PostgrestError } from '@supabase/supabase-js';
+import { generateCorrelationId } from '@/lib/correlationId';
 
 const supabase = _supabase;
 const _log = getLogger('safeClient');
@@ -320,9 +321,9 @@ export function safeFrom(table: string): SafeQueryBuilder {
 export const safeClient = {
   async from<T = unknown>(
     table: string,
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => PromiseLike<{ data: unknown; error: unknown }>
+    queryBuilder: (query: SafeQueryBuilder) => PromiseLike<{ data: unknown; error: unknown }>
   ): Promise<SafeResponse<T[]>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
       if (table.startsWith('email_')) {
@@ -360,11 +361,14 @@ export const safeClient = {
 
   async single<T = unknown>(
     table: string,
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
+    queryBuilder: (query: SafeQueryBuilder) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
   ): Promise<SafeResponse<T>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
+      // Validação de SQL injection: verifica se tabela está na whitelist
+      validateTableName(table);
+
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {
@@ -395,7 +399,7 @@ export const safeClient = {
   },
 
   async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
-    const requestId = Math.random().toString(36).substring(7);
+    const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
       if (name.startsWith('rpc_email_')) {

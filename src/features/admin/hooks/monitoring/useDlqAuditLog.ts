@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/features/auth';
 
@@ -39,14 +40,17 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
   const { limit = 30, action = null, enabled = true } = opts;
   const { isDev } = useUserRole();
 
-  return useQuery<DlqAuditEntry[]>({
-    queryKey: ['dlq-audit-log', { limit, action }],
+  // Cursor-based pagination: track cursor for pagination (initially null for first page)
+  const [cursor, setCursor] = useState<string | null>(null);
+
+  const query = useQuery<DlqAuditEntry[]>({
+    queryKey: ['dlq-audit-log', { limit, action, cursor }],
     enabled: enabled && isDev,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_dlq_list_audit', {
+      const { data, error } = await supabase.rpc('rpc_dlq_list_audit_cursor', {
         p_limit: limit,
-        p_offset: 0,
         p_action: action,
+        p_cursor_id: cursor,
       });
       if (error) throw error;
       return (data ?? []) as DlqAuditEntry[];
@@ -54,4 +58,6 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
     staleTime: 15_000,
     refetchInterval: 60_000,
   });
+
+  return { ...query, setCursor };
 }
