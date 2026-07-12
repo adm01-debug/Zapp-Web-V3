@@ -18,21 +18,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface PaymentLink {
-  id: string;
-  title: string;
-  description: string | null;
-  amount: number;
-  currency: string;
-  status: string;
-  payment_method: string;
-  payment_url: string | null;
-  contact_id: string | null;
-  paid_at: string | null;
-  expires_at: string | null;
-  created_at: string;
-}
+import { normalizePaymentLink, type NormalizedPaymentLink as PaymentLink } from '@/lib/normalizers';
 
 export function PaymentLinksView() {
   const mountedRef = useMountedRef();
@@ -50,7 +36,7 @@ export function PaymentLinksView() {
     setLoading(true);
     const { data } = await supabase.from('payment_links').select('*').order('created_at', { ascending: false });
     if (mountedRef.current) {
-      if (data) setLinks(data);
+      if (data) setLinks(data.map((row) => normalizePaymentLink(row as unknown as Record<string, unknown>)));
       setLoading(false);
     }
   }, [mountedRef]);
