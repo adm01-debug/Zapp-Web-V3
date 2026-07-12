@@ -24,7 +24,6 @@ src/components/monitoring/RetryMetricsPanel.tsx
 src/components/queues/QueueCharts.tsx
 src/components/reports/AbandonmentRate.tsx
 src/components/reports/ReportCharts.tsx
-src/components/security/DevicesPanel.tsx
 src/components/settings/IntegrationKeysSection.tsx
 src/components/talkx/TalkXLiveMonitor.tsx
 src/components/talkx/TalkXRecipientsList.tsx
@@ -136,7 +135,6 @@ src/hooks/useEvolutionAutoReconnect.ts
 src/hooks/useEvolutionAutoSync.ts
 src/hooks/useExternalCargos.ts
 src/hooks/useExternalDB.ts
-src/hooks/useExternalEvolution.ts
 src/hooks/useForwardMessage.ts
 src/hooks/useGmailLabels.ts
 src/hooks/useGoalsDashboard.ts
@@ -146,7 +144,6 @@ src/hooks/useProviderPanel.ts
 src/hooks/useQueueSlaPanel.ts
 src/hooks/useQueuesComparison.ts
 src/hooks/useTags.ts
-src/hooks/useTalkX.ts
 src/integrations/supabase/safeClient.ts
 src/integrations/zappweb/evolutionClient.ts
 src/integrations/zappweb/hooks/useZappMessages.ts
@@ -177,6 +174,5 @@ src/pages/admin/operations/OpsLogsTab.tsx
 src/services/email/emailApi.ts
 src/services/email/emailHealthService.ts
 src/services/email/types.ts
-src/shared/webhookEventSchemas.ts
 src/utils/emailMappers.ts
 supabase/functions/connection-health-check/index.ts
