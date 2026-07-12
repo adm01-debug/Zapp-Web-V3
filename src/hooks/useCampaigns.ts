@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -64,10 +63,7 @@ export function useCampaigns() {
 
   const deleteCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('campaigns').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -78,7 +74,13 @@ export function useCampaigns() {
   });
 
   const addContactsToCampaign = useMutation({
-    mutationFn: async ({ campaignId, contactIds }: { campaignId: string; contactIds: string[] }) => {
+    mutationFn: async ({
+      campaignId,
+      contactIds,
+    }: {
+      campaignId: string;
+      contactIds: string[];
+    }) => {
       const { error } = await supabase.rpc('add_contacts_to_campaign', {
         p_campaign_id: campaignId,
         p_contact_ids: contactIds,

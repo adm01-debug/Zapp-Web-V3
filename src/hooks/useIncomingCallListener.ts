@@ -74,7 +74,7 @@ export function useIncomingCallListener() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [profile?.id]);
 

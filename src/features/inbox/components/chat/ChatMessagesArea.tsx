@@ -137,7 +137,7 @@ export const ChatMessagesArea = memo(
           )
           .subscribe();
         return () => {
-          void supabase.removeChannel(channel);
+          void channel.unsubscribe();
         };
       }, [conversationId, queryClient]);
 

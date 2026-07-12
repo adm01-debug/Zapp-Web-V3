@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef, useCallback } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +20,27 @@ interface SlaEscalate {
   reason?: string | null;
 }
 
+// Minimal shapes for rows returned by the external (FATOR X) RPCs.
+// These functions exist only in the external DB schema and are not in ExtendedDatabase.Functions.
+interface ExternalMessage {
+  message_timestamp: string;
+  created_at: string;
+  from_me: boolean;
+  content: unknown;
+}
+
+interface ExternalContact {
+  tags?: unknown[];
+}
+
+// Handles Supabase/PostgREST errors (plain objects with .message) and standard Errors.
+const toErrMsg = (e: unknown): string => {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null && 'message' in e)
+    return String((e as { message: unknown }).message);
+  return String(e);
+};
+
 interface AutomationRule {
   id: string;
   name: string;
@@ -29,12 +49,6 @@ interface AutomationRule {
   actions: Record<string, unknown>;
   is_active: boolean;
   priority: number;
-}
-
-interface MsgRow {
-  created_at: string;
-  from_me: boolean;
-  content: string;
 }
 
 interface UseAutomationsArgs {
@@ -113,9 +127,8 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...(msgs as ExternalMessage[] /* ignore-audit: narrows Supabase query result to local interface */)].sort(
-        (a, b) =>
-          new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
+      const sorted = [...(msgs as ExternalMessage[])].sort(
+        (a, b) => new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
       if (!last) return;

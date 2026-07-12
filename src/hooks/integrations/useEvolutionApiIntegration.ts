@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEvolutionApiIntegration — Wave 3 (2026-07-06)
  * Camada de dados extraída de EvolutionApiIntegrationView (componente ficou 100% UI).
@@ -102,7 +101,7 @@ export function useEvolutionApiIntegration() {
 
       const responseTime = Date.now() - startTime;
       const isSuccess = response.ok;
-      let errorMsg = null;
+      let errorMsg: string | null = null;
       let onlineCount = 0;
       let totalCount = 0;
 

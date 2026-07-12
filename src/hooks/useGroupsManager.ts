@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -27,11 +26,17 @@ export function useGroupsManager() {
       .from('whatsapp_groups')
       .select('*')
       .order('name', { ascending: true });
-    if (!mountedRef.current) return;
     if (error) {
       toast.error('Erro ao carregar grupos');
       log.error('Error fetching groups:', error);
-    } else setGroups(data || []);
+    } else {
+      const normalizedData = (data || []).map((g) => ({
+        ...g,
+        is_admin: g.is_admin ?? false,
+        participant_count: g.participant_count ?? 0,
+      }));
+      setGroups(normalizedData);
+    }
     setIsLoading(false);
   }, []);
 
@@ -40,7 +45,6 @@ export function useGroupsManager() {
       .from('whatsapp_connections')
       .select('id, name, phone_number, instance_id, instance_name')
       .order('name', { ascending: true });
-    if (!mountedRef.current) return;
     if (error) log.error('Error fetching connections:', error);
     else setConnections(data || []);
   }, []);

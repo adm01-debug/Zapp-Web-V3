@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -62,7 +61,7 @@ export function useQueuesComparison(dateRange: DateRange) {
       if (membersError) throw membersError;
 
       // Get all contact IDs for message counting
-      const contactIds = contacts?.map(c => c.id) || [];
+      const contactIds = contacts?.map((c) => c.id) || [];
 
       // Fetch messages in date range
       let messages: Array<{ contact_id: string }> = [];
@@ -79,13 +78,13 @@ export function useQueuesComparison(dateRange: DateRange) {
 
       // Count messages per contact
       const messagesPerContact: Record<string, number> = {};
-      messages.forEach(m => {
+      messages.forEach((m) => {
         messagesPerContact[m.contact_id] = (messagesPerContact[m.contact_id] || 0) + 1;
       });
 
       // Map contact to queue for message counting
       const contactToQueue: Record<string, string> = {};
-      contacts?.forEach(c => {
+      contacts?.forEach((c) => {
         if (c.queue_id) {
           contactToQueue[c.id] = c.queue_id;
         }
@@ -101,11 +100,11 @@ export function useQueuesComparison(dateRange: DateRange) {
       });
 
       // Build performance data for each queue
-      const performance: QueuePerformance[] = queues.map(queue => {
-        const queueContacts = contacts?.filter(c => c.queue_id === queue.id) || [];
-        const assignedContacts = queueContacts.filter(c => c.assigned_to);
-        const waitingContacts = queueContacts.filter(c => !c.assigned_to);
-        const queueMembers = members?.filter(m => m.queue_id === queue.id) || [];
+      const performance: QueuePerformance[] = queues.map((queue) => {
+        const queueContacts = contacts?.filter((c) => c.queue_id === queue.id) || [];
+        const assignedContacts = queueContacts.filter((c) => c.assigned_to);
+        const waitingContacts = queueContacts.filter((c) => !c.assigned_to);
+        const queueMembers = members?.filter((m) => m.queue_id === queue.id) || [];
         const totalMessages = messagesPerQueue[queue.id] || 0;
 
         return {
@@ -116,9 +115,10 @@ export function useQueuesComparison(dateRange: DateRange) {
           assignedContacts: assignedContacts.length,
           waitingContacts: waitingContacts.length,
           totalMessages,
-          avgMessagesPerContact: queueContacts.length > 0 
-            ? Math.round(totalMessages / queueContacts.length * 10) / 10 
-            : 0,
+          avgMessagesPerContact:
+            queueContacts.length > 0
+              ? Math.round((totalMessages / queueContacts.length) * 10) / 10
+              : 0,
           agentsCount: queueMembers.length,
         };
       });

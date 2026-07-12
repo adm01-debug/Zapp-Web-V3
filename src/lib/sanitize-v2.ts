@@ -13,9 +13,6 @@ const SANITIZE_CONFIG = {
   ALLOWED_ATTR: ['href', 'title', 'target'],
   KEEP_CONTENT: true,
   FORCE_BODY: true,
-  IN_PLACE: false,
-  RETURN_DOM: false,
-  RETURN_DOM_FRAGMENT: false,
   // Use strict attribute validation
   ATTR_FILTER: (tag: string, attr: string, value: string) => {
     if (tag === 'a' && attr === 'href') {
@@ -122,8 +119,7 @@ function decodeHtmlEntities(html: string): string {
  */
 function validateNoControlCharacters(text: string): void {
   // Check for null bytes and control characters (Gap 9.3)
-  // Includes: null, SOH-ETX, EOT-BS, tab, LF, VT, FF, CR, SO-US, DEL
-  if (/[\x00-\x1F\x7F]/.test(text)) {
+  if (/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/.test(text)) {
     throw new Error('Input contains invalid control characters');
   }
 }
@@ -190,7 +186,7 @@ export function sanitizeHtml(
     const sanitized = DOMPurify.sanitize(processed, config);
 
     // Post-sanitization validation
-    if (sanitized === null || sanitized === undefined || typeof sanitized !== 'string') {
+    if (!sanitized || typeof sanitized !== 'string') {
       throw new Error('DOMPurify.sanitize() returned invalid result');
     }
 
@@ -294,17 +290,25 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
     });
   };
 
+  // Type the DOMPurify API for dynamic hook registration
+  interface DOMPurifyWithHooks {
+    addHook(hookName: string, callback: (node: Element) => void): void;
+    removeHook(hookName: string): void;
+    sanitize(html: string, config?: Record<string, unknown>): string | HTMLElement;
+  }
+  const purify = DOMPurify as DOMPurifyWithHooks;
+
   try {
-    DOMPurify.addHook(hookId as any, attributeSanitizer as any);
-    return DOMPurify.sanitize(html, { ...SANITIZE_CONFIG });
+    purify.addHook(hookId, attributeSanitizer);
+    return purify.sanitize(html, { ...SANITIZE_CONFIG }) as string;
   } catch (err) {
     console.error(`[sanitizeHtml] Hook error: ${err}`);
     // Fallback to config-based sanitization
-    return DOMPurify.sanitize(html, SANITIZE_CONFIG);
+    return purify.sanitize(html, SANITIZE_CONFIG) as string;
   } finally {
     // CRITICAL: Guarantee hook cleanup despite exceptions (Gap 3.1)
     try {
-      DOMPurify.removeHook(hookId as any);
+      purify.removeHook(hookId);
     } catch (cleanupErr) {
       console.warn(`[sanitizeHtml] Hook cleanup failed: ${cleanupErr}`);
     }

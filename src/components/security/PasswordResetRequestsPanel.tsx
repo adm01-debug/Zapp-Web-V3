@@ -50,7 +50,7 @@ export function PasswordResetRequestsPanel() {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, []);
 

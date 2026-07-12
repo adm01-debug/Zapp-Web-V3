@@ -62,11 +62,37 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
 
       const idempotencyKey = `msg:${messageId}`;
       // Tabelas evolution_retry_metrics/outbound_delivery_audit ainda não estão em types.ts —
-      // usamos cast para `any` até a próxima regeneração dos tipos.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supa = supabase as any; // ignore-audit — evolution_retry_metrics/outbound_delivery_audit not in generated types
-      const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
-        supabase
+      // usamos interface tipada em vez de cast `any` até a próxima regeneração dos tipos.
+      interface UntypedClient {
+        from(table: string): {
+          select(columns: string): {
+            eq(
+              column: string,
+              value: unknown
+            ): {
+              order(
+                column: string,
+                options?: { ascending?: boolean }
+              ): {
+                limit(n: number): {
+                  maybeSingle(): Promise<{ data: Record<string, unknown> | null; error: unknown }>;
+                };
+              };
+            };
+            or(filter: string): {
+              order(
+                column: string,
+                options?: { ascending?: boolean }
+              ): {
+                limit(n: number): Promise<{ data: unknown[]; error: unknown }>;
+              };
+            };
+          };
+        };
+      }
+      const supa = supabase as unknown as UntypedClient;
+      const results = await Promise.allSettled([
+        supa
           .from('evolution_retry_metrics')
           .select('*')
           .eq('idempotency_key', idempotencyKey)
@@ -83,7 +109,24 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         outboundQuery,
       ]);
 
-      const auditEntries: AuditEntry[] = (auditRes.data ?? []).map((e) => ({
+      const metricRes =
+        results[0].status === 'fulfilled' ? results[0].value : { data: null, error: null };
+      const auditRes =
+        results[1].status === 'fulfilled' ? results[1].value : { data: [], error: null };
+      const outboundAuditRes =
+        results[2].status === 'fulfilled' ? results[2].value : { data: [], error: null };
+
+      const failures = results
+        .map((r, i) => (r.status === 'rejected' ? i : -1))
+        .filter((i) => i >= 0);
+      if (failures.length > 0) {
+        const labels = ['retryMetrics', 'auditLogs', 'outboundAudit'];
+        console.warn(
+          `useMessageSendHistory(${messageId}): Failed to load ${failures.map((i) => labels[i]).join(', ')}`
+        );
+      }
+
+      const auditEntries = (auditRes.data ?? []).map((e) => ({
         id: e.id,
         action: e.action,
         createdAt: e.created_at ?? new Date(0).toISOString(),
@@ -112,20 +155,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       const row = metricRes.data;
       if (!row) return { metric: null, auditEntries: combinedAudit };
 
-      const attempts = padRetryAttempts(
-        normalizeRetryReasons(row.retry_reasons),
-        row.attempt_count ?? 0,
-      );
-      const finalStatus = deriveFinalStatus({
-        externalMessageId:
-          (row as unknown as { external_message_id?: string | null }).external_message_id ?? null,
-        retryCount: row.attempt_count ?? 0,
-        maxRetries:
-          (row as unknown as { max_retries?: number | null }).max_retries ?? attempts.length,
-        nextRetryAt:
-          (row as unknown as { next_retry_at?: string | null }).next_retry_at ?? null,
-        storedFinalStatus: row.final_status,
-      });
+      const reasons = Array.isArray(row.retry_reasons) ? (row.retry_reasons as RetryAttempt[]) : [];
 
       return {
         metric: {
