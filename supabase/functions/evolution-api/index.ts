@@ -119,7 +119,8 @@ Deno.serve(async (req) => {
         _formDataCache = await req.formData();
         return { isMultipart: true, data: _formDataCache };
       } catch (e) {
-        console.error("[Evolution API] Error parsing FormData:", e);
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        console.error("[Evolution API] Error parsing FormData:", errorMsg);
         return { isMultipart: false, data: {} };
       }
     }
@@ -573,7 +574,8 @@ Deno.serve(async (req) => {
           // Wait 500ms before retry
           await new Promise(r => setTimeout(r, 500));
         } catch (e) {
-          console.error('[evolution-api] disconnect fetch error:', (e as Error).message);
+          const errorMsg = e instanceof Error ? e.message : String(e);
+          console.error('[evolution-api] disconnect fetch error:', errorMsg);
           data = { message: 'Upstream request failed' };
           if (attempts >= MAX_ATTEMPTS) break;
           await new Promise(r => setTimeout(r, 500));
