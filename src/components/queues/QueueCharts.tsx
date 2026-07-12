@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useState } from 'react';
 import { subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -197,7 +197,7 @@ export function QueueCharts({ queueId, queueColor }: QueueChartsProps) {
                   </Pie>
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
-                    formatter={(value: number | string) => [String(value) + '%', '']}
+                    formatter={(value) => [String(value ?? '') + '%', '']}
                   />
                 </PieChart>
               </ResponsiveContainer>

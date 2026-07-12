@@ -10,7 +10,7 @@ interface UserUsage {
 
 interface AIUsageUsersTabProps {
   userUsage: UserUsage[];
-  profileMap: Map<string, { name?: string; email?: string }>;
+  profileMap: Map<string, { name?: string | null; email?: string | null }>;
 }
 
 export function AIUsageUsersTab({ userUsage, profileMap }: AIUsageUsersTabProps) {

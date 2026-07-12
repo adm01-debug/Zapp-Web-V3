@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -595,11 +595,11 @@ function TopReasonsChart({
                 fontSize: 11,
                 color: 'hsl(var(--popover-foreground))',
               }}
-              formatter={(value: number | string, name: string | number) => {
+              formatter={(value, name) => {
                 const label = name === 'previous' ? 'Período anterior' : 'Período atual';
-                return [String(value) + ' retries', label];
+                return [String(value ?? '') + ' retries', label];
               }}
-              labelFormatter={(label: string | number) => String(label)}
+              labelFormatter={(label) => String(label ?? '')}
             />
             {compareMode && (
               <Legend
