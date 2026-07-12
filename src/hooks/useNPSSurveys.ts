@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('NPSSurveys');
@@ -24,31 +24,58 @@ interface NPSMetrics {
   avgScore: number;
 }
 
+const EMPTY_METRICS: NPSMetrics = {
+  totalResponses: 0,
+  promoters: 0,
+  passives: 0,
+  detractors: 0,
+  npsScore: 0,
+  avgScore: 0,
+};
+
 export function useNPSSurveys() {
+  // surveys holds only the 10 most recent entries — display list only.
+  // Aggregate metrics come from the get_nps_stats RPC to avoid O(N) pagination.
   const [surveys, setSurveys] = useState<NPSSurvey[]>([]);
+  const [metrics, setMetrics] = useState<NPSMetrics>(EMPTY_METRICS);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSurveys = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Paginate to guarantee correct NPS metrics — a fixed .limit() causes
-      // score/totalResponses to be wrong whenever the count exceeds that cap.
-      const PAGE = 1000;
-      const allSurveys: NPSSurvey[] = [];
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
+      const [statsResult, recentResult] = await Promise.all([
+        supabase.rpc('get_nps_stats'),
+        supabase
           .from('nps_surveys')
           .select('*')
           .order('created_at', { ascending: false })
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allSurveys.push(...(data as NPSSurvey[]));
-        if (data.length < PAGE) break;
-        from += PAGE;
+          .order('id', { ascending: false })
+          .limit(10),
+      ]);
+
+      if (statsResult.error) throw statsResult.error;
+      if (recentResult.error) throw recentResult.error;
+
+      interface RawStats {
+        total_responses: number | string;
+        promoters: number | string;
+        passives: number | string;
+        detractors: number | string;
+        nps_score: number | string;
+        avg_score: number | string;
       }
-      setSurveys(allSurveys);
+      const stats = (statsResult.data as unknown as RawStats[] | null)?.[0];
+      if (stats) {
+        setMetrics({
+          totalResponses: Number(stats.total_responses),
+          promoters: Number(stats.promoters),
+          passives: Number(stats.passives),
+          detractors: Number(stats.detractors),
+          npsScore: Number(stats.nps_score),
+          avgScore: Number(stats.avg_score),
+        });
+      }
+      setSurveys((recentResult.data as NPSSurvey[]) ?? []);
     } catch (err) {
       log.error('Error fetching NPS surveys:', err);
     } finally {
@@ -92,28 +119,6 @@ export function useNPSSurveys() {
     },
     [fetchSurveys]
   );
-
-  const metrics: NPSMetrics = useMemo(() => {
-    const total = surveys.length;
-    if (total === 0) {
-      return {
-        totalResponses: 0,
-        promoters: 0,
-        passives: 0,
-        detractors: 0,
-        npsScore: 0,
-        avgScore: 0,
-      };
-    }
-
-    const promoters = surveys.filter((s) => s.score >= 9).length;
-    const passives = surveys.filter((s) => s.score >= 7 && s.score <= 8).length;
-    const detractors = surveys.filter((s) => s.score <= 6).length;
-    const npsScore = Math.round(((promoters - detractors) / total) * 100);
-    const avgScore = +(surveys.reduce((sum, s) => sum + s.score, 0) / total).toFixed(1);
-
-    return { totalResponses: total, promoters, passives, detractors, npsScore, avgScore };
-  }, [surveys]);
 
   return { surveys, isLoading, metrics, createSurvey, refetch: fetchSurveys };
 }
