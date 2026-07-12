@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('Audit');
