@@ -410,19 +410,22 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                     transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
                   />
                 </div>
-                {item.attempts && item.attempts.length > 0 && (
-                  <div className="mt-1 hidden border-t border-primary/5 pt-1 group-hover:block">
-                    <div className="flex items-center justify-between text-[8px] text-muted-foreground">
-                      <span>
-                        {item.attempts.length}{' '}
-                        {item.attempts.length === 1 ? 'tentativa' : 'tentativas'}
-                      </span>
-                      {item.attempts[item.attempts.length - 1]?.duration && (
-                        <span>{item.attempts[item.attempts.length - 1]?.duration}ms</span>
-                      )}
+                {(() => {
+                  const attemptsList = normalizeAttempts(item.attempts);
+                  if (attemptsList.length === 0) return null;
+                  const lastDuration = getLastAttemptDuration(item.attempts);
+                  return (
+                    <div className="mt-1 hidden border-t border-primary/5 pt-1 group-hover:block">
+                      <div className="flex items-center justify-between text-[8px] text-muted-foreground">
+                        <span>
+                          {attemptsList.length}{' '}
+                          {attemptsList.length === 1 ? 'tentativa' : 'tentativas'}
+                        </span>
+                        {typeof lastDuration === 'number' && <span>{lastDuration}ms</span>}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             ))}
           </motion.div>
