@@ -47,7 +47,8 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
         .from('csat_surveys')
         .select('*')
         .gte('created_at', getDateFilter())
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
       return data as CSATSurvey[];

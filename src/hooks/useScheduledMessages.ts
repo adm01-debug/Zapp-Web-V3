@@ -29,7 +29,8 @@ export function useScheduledMessages(contactId?: string) {
       let query = supabase
         .from('scheduled_messages')
         .select('*')
-        .order('scheduled_at', { ascending: true });
+        .order('scheduled_at', { ascending: true })
+        .limit(500);
 
       if (contactId) {
         query = query.eq('contact_id', contactId);

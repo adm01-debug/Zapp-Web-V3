@@ -73,7 +73,8 @@ export function useAutomations({
           .from('automations')
           .select('id,name,trigger_type,trigger_config,actions,is_active')
           .eq('is_active', true)
-          .order('name', { ascending: true });
+          .order('name', { ascending: true })
+          .limit(100);
 
         if (error) throw error;
         if (!cancelled && data) rulesRef.current = data as AutomationRule[];

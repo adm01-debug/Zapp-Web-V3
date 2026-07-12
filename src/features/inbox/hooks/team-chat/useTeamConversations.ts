@@ -18,7 +18,8 @@ export function useTeamConversations() {
       const { data: conversations, error: convErr } = await supabase
         .from('team_conversations')
         .select('*')
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(100);
 
       if (convErr) throw convErr;
       if (!conversations?.length) return [];

@@ -64,7 +64,7 @@ export function useWhatsAppTemplates() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('whatsapp_templates').select('*').order('updated_at', { ascending: false });
+        .from('whatsapp_templates').select('*').order('updated_at', { ascending: false }).limit(200);
       if (error) throw error;
       setTemplates((data || []) as unknown as WhatsAppTemplate[]);
     } catch (err) {
