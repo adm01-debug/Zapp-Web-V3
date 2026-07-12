@@ -61,15 +61,19 @@ Deno.serve(async (req) => {
   let body: BulkRequest = {};
   try {
     if (req.headers.get("content-length") !== "0") {
-      body = await req.json();
+      const raw = await req.json();
+      if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
+        body = raw as Record<string, unknown>;
+      }
     }
   } catch {
     body = {};
   }
 
-  const limit = Math.min(Math.max(body.limit ?? 50, 1), 200);
+  const bodyLimit = typeof body.limit === 'number' ? body.limit : 50;
+  const limit = Math.min(Math.max(bodyLimit, 1), 200);
   const dryRun = body.dry_run === true;
-  const source = body.source ?? "panel";
+  const source = typeof body.source === 'string' ? body.source : "panel";
 
   const admin = createClient(url, serviceKey, {
     auth: { persistSession: false },
@@ -93,12 +97,36 @@ Deno.serve(async (req) => {
   }
 
   const now = Date.now();
-  const filtered = (candidates as ContactCandidate[] ?? [])
-    .filter(c => c.queues?.is_active && c.queues?.auto_rebalance_enabled)
+  const candidatesArray = Array.isArray(candidates) ? candidates : [];
+  const filtered = candidatesArray
+    .filter((c): c is Record<string, unknown> => typeof c === 'object' && c !== null && !Array.isArray(c))
+    .filter(c => {
+      const queues = typeof c.queues === 'object' && c.queues !== null && !Array.isArray(c.queues)
+        ? (c.queues as Record<string, unknown>)
+        : null;
+      return queues && queues.is_active === true && queues.auto_rebalance_enabled === true;
+    })
     .map((c): FilteredCandidate => {
-      const waitingMin = (now - new Date(c.created_at).getTime()) / 60000;
-      const breached = waitingMin > c.queues.max_wait_time_minutes;
-      return { ...c, waitingMin, breached };
+      const queues = (c.queues as Record<string, unknown>) || {};
+      const createdAt = typeof c.created_at === 'string' ? c.created_at : '';
+      const maxWaitMinutes = typeof queues.max_wait_time_minutes === 'number' ? queues.max_wait_time_minutes : 0;
+      const waitingMin = (now - (createdAt ? new Date(createdAt).getTime() : now)) / 60000;
+      const breached = waitingMin > maxWaitMinutes;
+      return {
+        id: typeof c.id === 'string' ? c.id : '',
+        queue_id: typeof c.queue_id === 'string' ? c.queue_id : '',
+        assigned_to: typeof c.assigned_to === 'string' ? c.assigned_to : null,
+        created_at: createdAt,
+        queues: {
+          max_wait_time_minutes: maxWaitMinutes,
+          sla_priority: typeof queues.sla_priority === 'string' ? queues.sla_priority : 'medium',
+          routing_weight: typeof queues.routing_weight === 'number' ? queues.routing_weight : 0,
+          auto_rebalance_enabled: queues.auto_rebalance_enabled === true,
+          is_active: queues.is_active === true,
+        },
+        waitingMin,
+        breached,
+      };
     })
     .filter(c => c.assigned_to === null || c.breached)
     .sort((a, b) => {
@@ -137,15 +165,23 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const r = resolved as { agent_profile_id: string | null; queue_id: string | null };
-    if (!r?.agent_profile_id) {
+    if (typeof resolved !== 'object' || resolved === null || Array.isArray(resolved)) {
+      skipped++;
+      continue;
+    }
+
+    const r = resolved as Record<string, unknown>;
+    const agentProfileId = typeof r.agent_profile_id === 'string' ? r.agent_profile_id : null;
+    const queueId = typeof r.queue_id === 'string' ? r.queue_id : null;
+
+    if (!agentProfileId) {
       skipped++;
       continue;
     }
 
     const { error: updErr } = await admin
       .from("contacts")
-      .update({ assigned_to: r.agent_profile_id, queue_id: r.queue_id })
+      .update({ assigned_to: agentProfileId, queue_id: queueId })
       .eq("id", c.id);
 
     if (updErr) {
@@ -156,9 +192,9 @@ Deno.serve(async (req) => {
 
     await admin.rpc("fn_register_sticky_assignment", {
       p_contact_id: c.id,
-      p_agent_profile_id: r.agent_profile_id,
+      p_agent_profile_id: agentProfileId,
       p_channel_connection_id: null,
-      p_queue_id: r.queue_id,
+      p_queue_id: queueId,
     });
 
     assigned++;

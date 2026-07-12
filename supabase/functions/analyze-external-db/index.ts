@@ -45,11 +45,25 @@ async function probeTable(
       .select('*', { count: 'exact' })
       .limit(3);
     if (error || !data) return null;
+
+    // Safely extract column names from first row without type assertions
+    // Only treat as object if it's a plain object (not array, null, or primitive)
+    let columns: string[] = [];
+    if (data.length > 0 && data[0] !== null && typeof data[0] === 'object' && !Array.isArray(data[0])) {
+      try {
+        columns = Object.keys(data[0]);
+      } catch (e) {
+        console.warn(`[analyze-external-db] failed to extract columns from ${table}`, {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
     return [table, {
       exists: true,
       count,
       sample: data,
-      columns: data.length > 0 ? Object.keys(data[0] as object) : [],
+      columns,
     }];
   } catch {
     return null;
