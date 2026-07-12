@@ -20,6 +20,10 @@ type SystemConnectionRow = {
   updated_at: string;
 };
 
+export async function runConnectionDiagnostics() {
+  return runSupabaseDiagnostics();
+}
+
 export async function runSupabaseDiagnostics() {
   const results: Record<string, unknown> = {};
 
