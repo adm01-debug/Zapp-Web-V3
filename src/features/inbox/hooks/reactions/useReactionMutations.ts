@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,6 +6,21 @@ import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
 
 const mutationLog = getLogger('useReactionMutations');
+
+interface CachedReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  contact_id?: string;
+  created_at?: string;
+  user_name?: string;
+}
+
+interface ApiError extends Error {
+  status?: number | string;
+  code?: number | string;
+}
 
 interface ReactionMutationOptions {
   instanceName?: string;
@@ -18,12 +32,15 @@ interface ReactionMutationOptions {
 /**
  * Analytics helper
  */
-const trackReactionEvent = (action: 'add' | 'remove' | 'open_picker', data: { messageId: string; emoji?: string; status?: string; code?: number | string }) => {
+const trackReactionEvent = (
+  action: 'add' | 'remove' | 'open_picker',
+  data: { messageId: string; emoji?: string; status?: string; code?: number | string }
+) => {
   if (!data.messageId) return;
   // Use unique key to prevent duplicate tracking of same event in rapid succession
   const eventKey = `${action}-${data.messageId}-${data.emoji || 'no-emoji'}-${Date.now()}`;
   mutationLog.info(`[Analytics] Reaction Event: ${action}`, { ...data, eventKey });
-  
+
   // Forward to Operations Audit Log (audit_logs table)
   void supabase.from('audit_logs').insert({
     action: `Reaction Event: ${action}`,
@@ -33,9 +50,9 @@ const trackReactionEvent = (action: 'add' | 'remove' | 'open_picker', data: { me
       emoji: data.emoji,
       status: data.status,
       code: data.code,
-      event_key: eventKey
-    }
-  }).catch((err: unknown) => mutationLog.warn('[audit] reaction event log failed', err));
+      event_key: eventKey,
+    },
+  });
 };
 
 export function useReactionMutations(
@@ -99,19 +116,22 @@ export function useReactionMutations(
     onMutate: async (emoji) => {
       await queryClient.cancelQueries({ queryKey: ['message-reactions', messageId] });
       const previous = queryClient.getQueryData(['message-reactions', messageId]);
-      
+
       if (profileId) {
-        queryClient.setQueryData(['message-reactions', messageId], (old: any) => [
-          ...(old || []),
-          {
-            id: 'temp-' + Date.now(),
-            message_id: messageId,
-            user_id: profileId,
-            emoji,
-            created_at: new Date().toISOString(),
-            user_name: 'Você'
-          }
-        ]);
+        queryClient.setQueryData(
+          ['message-reactions', messageId],
+          (old: CachedReaction[] | undefined) => [
+            ...(old || []),
+            {
+              id: 'temp-' + Date.now(),
+              message_id: messageId,
+              user_id: profileId,
+              emoji,
+              created_at: new Date().toISOString(),
+              user_name: 'Você',
+            },
+          ]
+        );
       }
       return { previous };
     },
@@ -120,22 +140,25 @@ export function useReactionMutations(
       toast.dismiss(`reaction-error-${messageId}`); // Clear any previous errors on success
       trackReactionEvent('add', { messageId, emoji, status: 'success' });
     },
-    onError: (error: any, emoji, context) => {
+    onError: (error: ApiError, emoji, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['message-reactions', messageId], context.previous);
       }
       mutationLog.error('Failed to add reaction', error);
-      
+
       const status = error?.status || error?.code || (error?.message?.includes('401') ? 401 : 500);
       let errorMsg = 'Erro interno no servidor (500)';
-      
-      if (status === 401 || status === '401') errorMsg = 'Sessão expirada. Por favor, faça login novamente.';
-      else if (status === 504 || status === '504' || status === 'PGRST116') errorMsg = 'O servidor demorou muito para responder. Tente novamente.';
-      else if (status === 403 || status === '403') errorMsg = 'Você não tem permissão para reagir nesta mensagem.';
-      
+
+      if (status === 401 || status === '401')
+        errorMsg = 'Sessão expirada. Por favor, faça login novamente.';
+      else if (status === 504 || status === '504' || status === 'PGRST116')
+        errorMsg = 'O servidor demorou muito para responder. Tente novamente.';
+      else if (status === 403 || status === '403')
+        errorMsg = 'Você não tem permissão para reagir nesta mensagem.';
+
       toast.error(`Erro ao adicionar reação: ${errorMsg}`, {
         id: `reaction-error-${messageId}`, // Stable ID for replacement
-        className: "bg-destructive text-destructive-foreground font-medium",
+        className: 'bg-destructive text-destructive-foreground font-medium',
         duration: 4000,
       });
 
@@ -175,10 +198,12 @@ export function useReactionMutations(
     onMutate: async (emoji) => {
       await queryClient.cancelQueries({ queryKey: ['message-reactions', messageId] });
       const previous = queryClient.getQueryData(['message-reactions', messageId]);
-      
+
       if (profileId) {
-        queryClient.setQueryData(['message-reactions', messageId], (old: any) => 
-          (old || []).filter((r: any) => !(r.user_id === profileId && r.emoji === emoji))
+        queryClient.setQueryData(
+          ['message-reactions', messageId],
+          (old: CachedReaction[] | undefined) =>
+            (old || []).filter((r) => !(r.user_id === profileId && r.emoji === emoji))
         );
       }
       return { previous };
@@ -188,17 +213,17 @@ export function useReactionMutations(
       toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('remove', { messageId, emoji, status: 'success' });
     },
-    onError: (error: any, emoji, context) => {
+    onError: (_error: ApiError, emoji, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['message-reactions', messageId], context.previous);
       }
       toast.error('Não foi possível remover sua reação. Verifique sua conexão.', {
         id: `reaction-error-${messageId}`, // Same ID to replace add errors
-        className: "bg-destructive text-destructive-foreground font-medium",
+        className: 'bg-destructive text-destructive-foreground font-medium',
         duration: 4000,
       });
       trackReactionEvent('remove', { messageId, emoji, status: 'error' });
-    }
+    },
   });
 
   return { addMutation, removeMutation, trackReactionEvent };
