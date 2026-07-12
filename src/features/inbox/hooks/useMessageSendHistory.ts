@@ -55,9 +55,8 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       const idempotencyKey = `msg:${messageId}`;
       // Tabelas evolution_retry_metrics/outbound_delivery_audit ainda não estão em types.ts —
       // usamos cast para `any` até a próxima regeneração dos tipos.
-      const supa = supabase as unknown as {
-        from: (table: string) => ReturnType<typeof supabase.from>;
-      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const supa = supabase as any;
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
         supa
           .from('evolution_retry_metrics')
@@ -110,7 +109,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       if (!row) return { metric: null, auditEntries: combinedAudit };
 
       const reasons = Array.isArray(row.retry_reasons)
-        ? (row.retry_reasons as unknown as RetryAttempt[])
+        ? (row.retry_reasons as RetryAttempt[])
         : [];
 
       return {

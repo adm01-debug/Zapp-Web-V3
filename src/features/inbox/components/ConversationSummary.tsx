@@ -28,7 +28,7 @@ const sentimentConfig = {
 };
 
 export function ConversationSummary({ messages, contactName, contactId, initialSummary }: ConversationSummaryProps) {
-  const [summary, setSummary] = useState<SummaryData | null>((initialSummary as unknown as SummaryData) ?? null);
+  const [summary, setSummary] = useState<SummaryData | null>((initialSummary as SummaryData) ?? null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(!!initialSummary);
 
@@ -38,7 +38,7 @@ export function ConversationSummary({ messages, contactName, contactId, initialS
 
   useEffect(() => { setSummary(null); setHasGenerated(false); }, [contactId]);
   useEffect(() => { if (hasGenerated) { setSummary(null); setHasGenerated(false); } }, [analysisPeriod, customDateFrom, customDateTo]);
-  useEffect(() => { if (initialSummary) { setSummary(initialSummary as unknown as SummaryData); setHasGenerated(true); } }, [initialSummary]);
+  useEffect(() => { if (initialSummary) { setSummary(initialSummary as SummaryData); setHasGenerated(true); } }, [initialSummary]);
 
   const buildFullNarrationText = useCallback(() => {
     if (!summary) return '';

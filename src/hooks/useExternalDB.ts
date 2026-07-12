@@ -228,7 +228,7 @@ export function useExternalMutation() {
       if (params.action === 'insert') {
         const { data, error } = await getExternalSupabase()
           .from(params.table)
-          .insert(params.data as unknown as object)
+          .insert(params.data as object)
           .select();
         if (error) throw new Error(error.message);
         return data;
@@ -236,7 +236,7 @@ export function useExternalMutation() {
       if (params.action === 'update') {
         let q = getExternalSupabase()
           .from(params.table)
-          .update(params.data as unknown as object);
+          .update(params.data as object);
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }
