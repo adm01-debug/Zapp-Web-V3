@@ -634,10 +634,11 @@ Responda APENAS em JSON:
 
     const tagUpdateResult: Record<string, unknown> = { attempted: false, success: false, error: null };
 
-    if (validContactId && result.tags?.length > 0) {
+    // C.19: Validate result.tags is an array before mapping (not just any object with .length)
+    if (validContactId && Array.isArray(result.tags) && result.tags.length > 0) {
       const tagData = result.tags.map((t: any) => ({
-        name: sanitizeString(t.name, 100) || 'unknown',
-        confidence: Math.min(Math.max(Number(t.confidence) || 0, 0), 1),
+        name: sanitizeString(t?.name, 100) || 'unknown',
+        confidence: Math.min(Math.max(Number(t?.confidence) || 0, 0), 1),
       }));
 
       try {
