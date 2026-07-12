@@ -54,9 +54,35 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
 
       const idempotencyKey = `msg:${messageId}`;
       // Tabelas evolution_retry_metrics/outbound_delivery_audit ainda não estão em types.ts —
-      // usamos cast para `any` até a próxima regeneração dos tipos.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supa = supabase as any;
+      // usamos interface tipada em vez de cast `any` até a próxima regeneração dos tipos.
+      interface UntypedClient {
+        from(table: string): {
+          select(columns: string): {
+            eq(
+              column: string,
+              value: unknown
+            ): {
+              order(
+                column: string,
+                options?: { ascending?: boolean }
+              ): {
+                limit(n: number): {
+                  maybeSingle(): Promise<{ data: Record<string, unknown> | null; error: unknown }>;
+                };
+              };
+            };
+            or(filter: string): {
+              order(
+                column: string,
+                options?: { ascending?: boolean }
+              ): {
+                limit(n: number): Promise<{ data: unknown[]; error: unknown }>;
+              };
+            };
+          };
+        };
+      }
+      const supa = supabase as unknown as UntypedClient;
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
         supa
           .from('evolution_retry_metrics')

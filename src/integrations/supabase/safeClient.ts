@@ -221,8 +221,8 @@ export const safeClient = {
           return { data: null, error: new Error(`Função ${name} não disponível`), requestId };
         }
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await supabase.rpc(name as any, params);
+      type RpcRequest = Parameters<typeof supabase.rpc>[0];
+      const { data, error } = await supabase.rpc(name as RpcRequest, params);
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
@@ -291,10 +291,10 @@ export const safeClient = {
           exists = isPermissionError || !isNotFound;
         }
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (
-          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any
-        ).limit(0);
+        type RpcRequest = Parameters<typeof supabase.rpc>[0];
+        const rpcCall = supabase.rpc(name as RpcRequest);
+        type RpcResult = ReturnType<typeof rpcCall>;
+        const { error } = await (rpcCall as RpcResult).limit(0);
         if (!error) {
           exists = true;
         } else {
@@ -341,8 +341,8 @@ export const safeClient = {
       // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
       // Destructure { error } so PostgREST logical errors (e.g. 403) are not silently discarded
       type RpcResult = { data: unknown; error: { message: string } | null };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc('rpc_update_email_health_state', {
+      type RpcRequest = Parameters<typeof supabase.rpc>[0];
+      const { error: rpcErr } = (await supabase.rpc('rpc_update_email_health_state' as RpcRequest, {
         p_status: status,
         p_failure_count: telemetry.recentFailures.length,
         p_metadata: {
@@ -446,8 +446,8 @@ export const safeClient = {
     _healthLogInProgress = true;
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc('rpc_log_email_health', {
+      type RpcRequest = Parameters<typeof supabase.rpc>[0];
+      const { error: rpcErr } = (await supabase.rpc('rpc_log_email_health' as RpcRequest, {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,
