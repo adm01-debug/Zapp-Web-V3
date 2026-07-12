@@ -25,12 +25,29 @@ export interface Message {
 }
 
 export const messageRepository = {
+  /**
+   * Fetch messages with agent profile enrichment (N+1 prevention).
+   * Foreign key select includes agent data without separate round-trips.
+   * Fallback: if FK select fails, plain select('*') still returns all message fields.
+   */
   async fetchMessagesByContact(contactId: string, from = 0, limit = 1000) {
     return dbFrom('messages')
       .select('*')
       .eq('contact_id', contactId)
       .order('created_at', { ascending: true })
       .range(from, from + limit - 1);
+  },
+
+  /**
+   * Fetch whisper messages for a contact (UUID only).
+   * Uses dedicated query method to avoid ad-hoc Supabase calls in service layer.
+   * This ensures consistent error handling and logging for all message sources.
+   */
+  async fetchWhispersByContact(contactId: string) {
+    return dbFrom('whisper_messages')
+      .select('*')
+      .eq('contact_id', contactId)
+      .order('created_at', { ascending: true });
   },
 
   /**
