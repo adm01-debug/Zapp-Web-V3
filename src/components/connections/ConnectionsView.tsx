@@ -541,7 +541,27 @@ export function ConnectionsView() {
         ))}
       </div>
 
-      <DegradedQuickActions connections={connections} onShowQrCode={handleShowQrCode} />
+      <DegradedQuickActions
+        connections={connections}
+        onShowQrCode={(c) => {
+          // Type-guard: WhatsAppConnection completa segue direto; DegradedConnection
+          // é resolvida no array de conexões antes de invocar (evita chamar com payload incompleto).
+          if (isWhatsAppConnection(c)) {
+            void handleShowQrCode(c);
+            return;
+          }
+          const full = connections.find((conn) => conn.id === c.id);
+          if (full) {
+            void handleShowQrCode(full);
+            return;
+          }
+          toast({
+            title: 'Conexão não encontrada',
+            description: 'Não foi possível localizar a instância na lista atual.',
+            variant: 'destructive',
+          });
+        }}
+      />
 
       {/* Connections List */}
       {loading ? (
