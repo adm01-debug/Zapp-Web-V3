@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock supabase
@@ -175,8 +174,9 @@ describe('Security - Knowledge Base Search', () => {
       search_query: 'como funciona',
       max_results: 5,
     });
+    expect(result.data).toBeDefined();
     expect(result.data).toHaveLength(1);
-    expect(result.data[0].title).toBe('FAQ');
+    expect(result.data?.[0]?.title).toBe('FAQ');
   });
 });
 

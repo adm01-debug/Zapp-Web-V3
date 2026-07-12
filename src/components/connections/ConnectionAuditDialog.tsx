@@ -53,16 +53,7 @@ export function ConnectionAuditDialog({
 
       if (!mountedRef.current) return;
       if (error) throw error;
-      const normalized: AuditLog[] = (data ?? []).map((row) => ({
-        id: row.id,
-        action: row.action,
-        created_at: row.created_at,
-        details:
-          row.details && typeof row.details === 'object' && !Array.isArray(row.details)
-            ? (row.details as Record<string, unknown>)
-            : {},
-      }));
-      setLogs(normalized);
+      setLogs(Array.isArray(data) ? (data as AuditLog[]) : []);
     } catch (err) {
       log.error('Failed to fetch connection audit logs', err);
     } finally {
@@ -139,20 +130,16 @@ export function ConnectionAuditDialog({
                       </span>
                     </div>
 
-                    {Object.keys(log.details).length > 0 && (
+                    {log.details && (
                       <div className="mt-2 rounded border bg-card p-2 text-xs text-muted-foreground">
-                        {(() => {
-                          const raw = log.details.cause;
-                          const cause: string | number | boolean | null =
-                            typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean'
-                              ? raw
-                              : raw == null
-                                ? null
-                                : JSON.stringify(raw);
-                          return cause !== null && cause !== '' ? (
-                            <p className="mb-1 font-medium text-destructive">Motivo: {cause}</p>
-                          ) : null;
-                        })()}
+                        {typeof log.details === 'object' &&
+                          log.details !== null &&
+                          'cause' in log.details &&
+                          typeof (log.details as Record<string, unknown>).cause === 'string' && (
+                            <p className="mb-1 font-medium text-destructive">
+                              Motivo: {(log.details as Record<string, unknown>).cause}
+                            </p>
+                          )}
                         <pre className="overflow-x-auto whitespace-pre-wrap font-mono">
                           {JSON.stringify(log.details, null, 2)}
                         </pre>

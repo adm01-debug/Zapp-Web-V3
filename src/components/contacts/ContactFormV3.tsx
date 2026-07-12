@@ -216,18 +216,31 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
 
           if (error) throw error;
 
-          const result = (data ?? {}) as Record<string, unknown>;
-          if (result?.error === 'CONFLICT') {
-            setConflict(result as unknown as ConflictInfo);
-            setConflictOpen(true);
-            return;
+          if (data && typeof data === 'object' && 'error' in data && data.error === 'CONFLICT') {
+            const isValidConflict = (obj: Record<string, unknown>): obj is ConflictInfo => {
+              return (
+                typeof obj.message === 'string' &&
+                typeof obj.current_version === 'number' &&
+                typeof obj.your_version === 'number' &&
+                typeof obj.last_updated_by === 'string' &&
+                typeof obj.last_updated_at === 'string'
+              );
+            };
+            const dataObj = data as Record<string, unknown>;
+            if (isValidConflict(dataObj)) {
+              setConflict(dataObj);
+              setConflictOpen(true);
+              return;
+            }
           }
 
           // Update local version
-          setForm((prev) => ({
-            ...prev,
-            version: (result?.version as number | undefined) ?? prev.version,
-          }));
+          if (data && typeof data === 'object' && 'version' in data) {
+            setForm((prev) => ({
+              ...prev,
+              version: (data.version as number | undefined) ?? prev.version,
+            }));
+          }
         } else if (mode === 'edit' && form.id && forceOverwrite) {
           // Force overwrite after conflict resolution
           const { error } = await dbFrom('contacts').update(payload).eq('id', form.id);
@@ -282,12 +295,14 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
               <Button
                 variant="link"
                 size="sm"
-                disabled={loadingMergeTarget}
-                onClick={() => void openMergeDialog(duplicates[0].id)}
+                onClick={() => {
+                  setMergeTarget(duplicates[0] as unknown as ContactForMerge);
+                  setMergeOpen(true);
+                }}
                 className="ml-2 h-auto p-0 text-warning-foreground underline"
               >
                 <GitMerge className="mr-1 h-3.5 w-3.5" />
-                {loadingMergeTarget ? 'Carregando…' : 'Mesclar'}
+                Mesclar
               </Button>
             )}
           </AlertDescription>
@@ -510,7 +525,6 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
             email: form.email,
             company: form.company,
             tags: form.tags,
-            notes: form.notes || null,
             channel: null,
             avatar_url: null,
             created_at: new Date().toISOString(),
