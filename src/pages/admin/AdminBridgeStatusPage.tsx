@@ -50,7 +50,7 @@ const log = getLogger('AdminBridgeStatusPage');
 
 type BridgeStatus = 'online' | 'degraded' | 'offline' | 'loading';
 
-interface IncidentRow {
+interface SystemIncident {
   id: string;
   title: string;
   description: string;
@@ -59,11 +59,12 @@ interface IncidentRow {
   resolved_at: string | null;
 }
 
-interface AlertRow {
+interface ActiveAlert {
   id: string;
   title: string;
   alert_type: string;
 }
+
 
 export default function BridgeStatusPage() {
   const { toast } = useToast();
@@ -76,8 +77,8 @@ export default function BridgeStatusPage() {
   const [lovableDb, setLovableDb] = useState<boolean | null>(null);
   const [externalDb, setExternalDb] = useState<boolean | null>(null);
   const [whatsappTransport, setWhatsappTransport] = useState<string>('...');
-  const [activeAlerts, setActiveAlerts] = useState<AlertRow[]>([]);
-  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<ActiveAlert[]>([]);
+  const [incidents, setIncidents] = useState<SystemIncident[]>([]);
   const [instanceCount, _setInstanceCount] = useState<number>(0);
   const [recentTraffic, setRecentTraffic] = useState<{ count: number; last_at: string | null }>({
     count: 0,

@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,12 +43,12 @@ interface ExecutionRow {
   remote_jid: string;
   instance_name: string | null;
   status: 'pending' | 'executed' | 'dismissed' | 'error' | string;
-  trigger_payload: Record<string, unknown>;
+  trigger_payload: Record<string, unknown> | null;
   suggestion_text: string | null;
   applied_tags: string[] | null;
   recommended_tag: string | null;
   kb_sources: string[] | null;
-  rule_snapshot: Record<string, unknown>;
+  rule_snapshot: Record<string, unknown> | null;
   channel_id: string | null;
   department_id: string | null;
   error_message: string | null;
@@ -64,10 +63,7 @@ interface RuleLite {
   name: string;
 }
 
-const STATUS_META: Record<
-  string,
-  { label: string; icon: LucideIcon; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
-> = {
+const STATUS_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; variant: string }> = {
   pending: { label: 'Pendente', icon: Clock, variant: 'outline' },
   accepted: { label: 'Aceita', icon: CheckCircle2, variant: 'default' },
   executed: { label: 'Executada', icon: CheckCircle2, variant: 'default' },
