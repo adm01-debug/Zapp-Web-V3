@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useExternalEvolution — Hooks for reading evolution_messages from external FATOR X DB
  * Replaces the local DB reads for the Inbox when external DB is the source of truth.
@@ -55,7 +54,10 @@ const OPTIMISTIC_FALLBACK_WINDOW_MS = 120_000;
 const MEDIA_TYPES = new Set(['audio', 'image', 'video', 'document', 'sticker']);
 
 // Optimistic messages may carry extra fields not in RealtimeMessage (set by useChatMediaSending).
-type WithOptimisticExtras = { media_meta?: { ptt?: boolean } | null; audio_meme_id?: string | null };
+type WithOptimisticExtras = {
+  media_meta?: { ptt?: boolean } | null;
+  audio_meme_id?: string | null;
+};
 
 function resolveAudioSubtype(m: RealtimeMessage): string {
   const extra = m as RealtimeMessage & WithOptimisticExtras;
@@ -399,7 +401,10 @@ interface ContactEnrichmentData {
   [key: string]: unknown;
 }
 // ─── Global Enrichment Cache to avoid redundant RPC calls ──────────
-const contactEnrichmentCache = new Map<string, { data: ContactEnrichmentData; timestamp: number }>();
+const contactEnrichmentCache = new Map<
+  string,
+  { data: ContactEnrichmentData; timestamp: number }
+>();
 const CACHE_TTL = 300_000; // 5 minutes
 
 // Enrichment `tags` may arrive as a JSON array string, a plain comma-separated
@@ -416,7 +421,10 @@ function _safeParseTags(raw: string): string[] {
       return [];
     }
   }
-  return trimmed.split(',').map(t => t.trim()).filter(Boolean);
+  return trimmed
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
 }
 
 // ─── Hook: External Conversations (list for sidebar) ──────────
@@ -604,8 +612,13 @@ export function useExternalMessages(remoteJid: string | null) {
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens
         const currentAvatar =
-          queryClient.getQueryData<{ avatar_url?: string | null }>(['contact', remoteJid])?.avatar_url ||
-          queryClient.getQueryData<{ avatar_url?: string | null }>(['external-evolution', 'contact', remoteJid])?.avatar_url;
+          queryClient.getQueryData<{ avatar_url?: string | null }>(['contact', remoteJid])
+            ?.avatar_url ||
+          queryClient.getQueryData<{ avatar_url?: string | null }>([
+            'external-evolution',
+            'contact',
+            remoteJid,
+          ])?.avatar_url;
 
         // Propaga o avatar para todas as mensagens (canônicas e otimistas remanescentes)
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
@@ -656,8 +669,13 @@ export function useExternalMessages(remoteJid: string | null) {
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens poladas
         const currentAvatar =
-          queryClient.getQueryData<{ avatar_url?: string | null }>(['contact', remoteJid])?.avatar_url ||
-          queryClient.getQueryData<{ avatar_url?: string | null }>(['external-evolution', 'contact', remoteJid])?.avatar_url;
+          queryClient.getQueryData<{ avatar_url?: string | null }>(['contact', remoteJid])
+            ?.avatar_url ||
+          queryClient.getQueryData<{ avatar_url?: string | null }>([
+            'external-evolution',
+            'contact',
+            remoteJid,
+          ])?.avatar_url;
 
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
         return [...filteredPrev, ...additionsWithAvatar];

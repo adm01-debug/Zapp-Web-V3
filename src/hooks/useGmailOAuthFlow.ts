@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEmailOAuthFlow.ts — OAuth2 Email com refresh automático de token
  *
@@ -109,9 +108,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       );
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
 
-      log.info(
-        `Token refreshed for account ${accountId}, expires at ${result.data?.expiresAt}`
-      );
+      log.info(`Token refreshed for account ${accountId}, expires at ${result.data?.expiresAt}`);
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));

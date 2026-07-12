@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -21,54 +20,86 @@ export function useGroupsManager() {
 
   const fetchGroups = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.from('whatsapp_groups').select('*').order('name', { ascending: true });
-    if (error) { toast.error('Erro ao carregar grupos'); log.error('Error fetching groups:', error); }
-    else setGroups(data || []);
+    const { data, error } = await supabase
+      .from('whatsapp_groups')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) {
+      toast.error('Erro ao carregar grupos');
+      log.error('Error fetching groups:', error);
+    } else setGroups(data || []);
     setIsLoading(false);
   }, []);
 
   const fetchConnections = useCallback(async () => {
-    const { data, error } = await supabase.from('whatsapp_connections').select('id, name, phone_number, instance_id, instance_name').order('name', { ascending: true });
+    const { data, error } = await supabase
+      .from('whatsapp_connections')
+      .select('id, name, phone_number, instance_id, instance_name')
+      .order('name', { ascending: true });
     if (error) log.error('Error fetching connections:', error);
     else setConnections(data || []);
   }, []);
 
-  useEffect(() => { fetchGroups(); fetchConnections(); }, [fetchGroups, fetchConnections]);
+  useEffect(() => {
+    fetchGroups();
+    fetchConnections();
+  }, [fetchGroups, fetchConnections]);
 
-  const actions = useGroupActions({ connections, groups, selectedGroups, setGroups, setSelectedGroups, fetchGroups });
+  const actions = useGroupActions({
+    connections,
+    groups,
+    selectedGroups,
+    setGroups,
+    setSelectedGroups,
+    fetchGroups,
+  });
 
   const filteredGroups = groups.filter((group) => {
-    const matchesSearch = group.name.toLowerCase().includes(search.toLowerCase()) || group.group_id.includes(search);
-    const matchesCategory = !categoryFilter || (categoryFilter === 'sem_categoria' ? !group.category : group.category === categoryFilter);
+    const matchesSearch =
+      group.name.toLowerCase().includes(search.toLowerCase()) || group.group_id.includes(search);
+    const matchesCategory =
+      !categoryFilter ||
+      (categoryFilter === 'sem_categoria' ? !group.category : group.category === categoryFilter);
     return matchesSearch && matchesCategory;
   });
 
   const toggleGroupSelection = (groupId: string) => {
-    setSelectedGroups(prev => {
+    setSelectedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId); else next.add(groupId);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
       return next;
     });
   };
 
   const selectAllGroups = () => {
     if (selectedGroups.size === filteredGroups.length) setSelectedGroups(new Set());
-    else setSelectedGroups(new Set(filteredGroups.map(g => g.id)));
+    else setSelectedGroups(new Set(filteredGroups.map((g) => g.id)));
   };
 
   const getConnectionName = (connectionId: string | null) => {
     if (!connectionId) return 'Não vinculado';
-    return connections.find(c => c.id === connectionId)?.name || 'Desconhecido';
+    return connections.find((c) => c.id === connectionId)?.name || 'Desconhecido';
   };
 
   return {
-    groups, connections, search, setSearch, categoryFilter, setCategoryFilter,
-    isLoading, isSyncing, selectedGroups, filteredGroups,
+    groups,
+    connections,
+    search,
+    setSearch,
+    categoryFilter,
+    setCategoryFilter,
+    isLoading,
+    isSyncing,
+    selectedGroups,
+    filteredGroups,
     handleAutoSync: () => actions.handleAutoSync(setIsSyncing),
     handleAddGroup: actions.handleAddGroup,
     handleDeleteGroup: actions.handleDeleteGroup,
     handleBroadcast: actions.handleBroadcast,
     handleCategoryChange: actions.handleCategoryChange,
-    toggleGroupSelection, selectAllGroups, getConnectionName,
+    toggleGroupSelection,
+    selectAllGroups,
+    getConnectionName,
   };
 }
