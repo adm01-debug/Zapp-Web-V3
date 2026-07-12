@@ -43,7 +43,8 @@ export type LogicalEntity =
   | 'evolution_contacts'
   | 'evolution_messages'
   | 'provider_configs'
-  | 'automation_executions';
+  | 'automation_executions'
+  | 'whisper_messages';
 
 export type DatasourceClient = 'lovable' | 'external';
 
