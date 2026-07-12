@@ -307,7 +307,7 @@ export function safeFrom(table: string): SafeQueryBuilder {
 export const safeClient = {
   async from<T = unknown>(
     table: string,
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => PromiseLike<{ data: unknown; error: unknown }>
+    queryBuilder: (query: SafeQueryBuilder) => PromiseLike<{ data: unknown; error: unknown }>
   ): Promise<SafeResponse<T[]>> {
     const requestId = crypto.randomUUID();
     stats.totalCalls++;
