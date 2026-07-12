@@ -115,7 +115,9 @@ export async function handleMessagesUpdate(supabase: SupabaseClient, instance: s
         // Now we log a structured warning so operators/monitoring can detect orphan ACKs.
         // The message.upsert handler will create the real row when/if Evolution delivers it.
         const remoteJid = resolveEventJid(entry, baseData);
-        console.warn(`[UPDATE][orphan-ack] no message found for external_id=${key.id} instance=${instance} status=${newStatus} remoteJid=${remoteJid ?? 'unknown'}`);
+        // Mask remoteJid to avoid logging phone numbers (PII)
+        const maskedJid = remoteJid ? remoteJid.replace(/(\d{4})\d+(@)/, '$1***$2') : 'unknown';
+        console.warn(`[UPDATE][orphan-ack] no message found for external_id=${key.id} instance=${instance} status=${newStatus} remoteJid=${maskedJid}`);
       }
     }
   }

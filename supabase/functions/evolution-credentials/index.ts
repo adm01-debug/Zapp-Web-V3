@@ -65,19 +65,22 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // [FIX C-2 2026-07-12] Restrict key exposure to admin role only.
+  // [FIX C-2 2026-07-12] Restrict key exposure to privileged roles only.
   // This endpoint returns the Evolution master API key (AUTHENTICATION_API_KEY) which grants
   // full administrative control over all instances (create/delete, read all conversations,
   // send to any number). Any authenticated user could previously read it via DevTools.
-  // Now only users with role='admin' can retrieve it; agents/supervisors get 403.
-  const { data: isAdmin, error: roleErr } = await supabase.rpc('has_role', {
-    _user_id: user.id,
-    _role: 'admin',
-  });
-  if (roleErr || !isAdmin) {
-    console.warn(`[evolution-credentials] access denied for user=${user.id} (not admin)`);
+  // Allowed: admin, dev, manager (needed for Zap Webb demo and development workflows).
+  const ALLOWED_ROLES = ['admin', 'dev', 'manager'];
+  const roleChecks = await Promise.all(
+    ALLOWED_ROLES.map(role =>
+      supabase.rpc('has_role', { _user_id: user.id, _role: role })
+    )
+  );
+  const hasAccess = roleChecks.some(r => !r.error && r.data === true);
+  if (!hasAccess) {
+    console.warn(`[evolution-credentials] access denied for user=${user.id} (no privileged role)`);
     return new Response(
-      JSON.stringify({ error: 'Forbidden', message: 'Admin role required to access Evolution credentials' }),
+      JSON.stringify({ error: 'Forbidden', message: 'Admin, dev, or manager role required to access Evolution credentials' }),
       { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }

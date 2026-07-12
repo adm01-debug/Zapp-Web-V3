@@ -25,10 +25,11 @@
 --   updated              – bulk UPDATE contacts … FROM best_assignments
 --   events_inserted      – bulk INSERT conversation_events … FROM updated
 --
--- Trade-off: the CTE snapshot does not reflect within-batch load changes
--- (multiple contacts may get assigned to the same newly-lightly-loaded agent
--- before that agent's count increments). This is acceptable because the
--- function runs as a cron and the next run corrects any imbalance.
+-- Load distribution: DENSE_RANK round-robin offsets each contact's pick
+-- across the ranked candidate list, so 100 contacts spread across all eligible
+-- agents instead of all landing on the single least-loaded one. The CTE snapshot
+-- still does not reflect within-batch changes, but the round-robin eliminates
+-- the systematic pile-up. The next cron run fine-tunes any residual imbalance.
 --
 -- IDEMPOTENT: CREATE OR REPLACE is safe on repeated runs.
 -- ============================================================================
@@ -69,13 +70,18 @@ BEGIN
     SELECT
       ctr.contact_id,
       ctr.absent_agent_id,
-      qm.profile_id                         AS new_agent_id,
-      COALESCE(al.contact_count, 0)         AS agent_load,
+      qm.profile_id                                    AS new_agent_id,
+      COALESCE(al.contact_count, 0)                    AS agent_load,
+      -- Rank candidates per contact by load (ascending), then id for determinism
       ROW_NUMBER() OVER (
         PARTITION BY ctr.contact_id
         ORDER BY COALESCE(al.contact_count, 0) ASC,
-                 qm.profile_id               -- deterministic tie-break
-      )                                      AS rn
+                 qm.profile_id
+      )                                                AS rank_within_contact,
+      -- Total candidates for this contact (for modulo wrap-around)
+      COUNT(*) OVER (PARTITION BY ctr.contact_id)      AS num_candidates,
+      -- 0-indexed global position of this contact so each picks a different rank
+      DENSE_RANK() OVER (ORDER BY ctr.contact_id) - 1  AS contact_idx
     FROM contacts_to_reassign ctr
     JOIN queue_members qm
       ON (ctr.queue_id IS NULL OR qm.queue_id = ctr.queue_id)
@@ -90,9 +96,12 @@ BEGIN
       )
   ),
   best_assignments AS (
+    -- Round-robin: contact 0 → rank 1, contact 1 → rank 2, … wraps via modulo.
+    -- Distributes 100 contacts across all N candidates instead of piling on rank 1.
     SELECT contact_id, absent_agent_id, new_agent_id
     FROM candidate_agents
-    WHERE rn = 1
+    WHERE rank_within_contact =
+            1 + (contact_idx % GREATEST(num_candidates, 1))
   ),
   updated AS (
     UPDATE contacts c
@@ -127,7 +136,9 @@ $$;
 
 COMMENT ON FUNCTION public.reassign_absent_agents(integer) IS
   'M-3 (2026-07-12): Bulk-reassigns contacts from absent agents via a single '
-  'CTE chain (UPDATE…FROM + INSERT…SELECT). Replaces O(N×M) PL/pgSQL loop.';
+  'CTE chain (UPDATE…FROM + INSERT…SELECT). Replaces O(N×M) PL/pgSQL loop. '
+  'Uses DENSE_RANK round-robin to distribute contacts evenly across all '
+  'eligible agents instead of assigning all to the single least-loaded one.';
 
 -- ──────────────────────────────────────────────────────────────────────────────
 -- Validate: function exists with correct signature

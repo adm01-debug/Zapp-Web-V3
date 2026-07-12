@@ -71,7 +71,7 @@ BEGIN
   -- which reported A+/100 even when the consumer was down and evolution_messages_wpp2
   -- showed a 321-min gap (same table queried by fn_pipeline_health_probe).
   v_max:=v_max+15;
-  SELECT MAX(created_at) INTO vt FROM zapp.webhook_audit_log;
+  SELECT MAX(created_at) INTO vt FROM public.webhook_audit_log;
   SELECT MAX(created_at) INTO vt2 FROM evo.evolution_webhook_events_v2;
   -- Ingestion-layer gap
   v_hours_silent:=COALESCE(ROUND(EXTRACT(EPOCH FROM(NOW()-GREATEST(vt,vt2)))/3600,1),9999);
@@ -80,10 +80,12 @@ BEGIN
   v_msg_hours_silent:=COALESCE(ROUND(EXTRACT(EPOCH FROM(NOW()-vt))/3600,1),9999);
   -- Effective gap: worst of both layers so ingestion freshness cannot mask delivery failure
   v_hours_silent:=GREATEST(v_hours_silent, v_msg_hours_silent);
-  SELECT COUNT(*) INTO v_events_1h FROM zapp.webhook_events_processed WHERE processed_at>NOW()-INTERVAL '1 hour';
-  SELECT COUNT(*) INTO v_audit_1h FROM zapp.webhook_audit_log WHERE status='processed' AND created_at>NOW()-INTERVAL '1 hour';
+  SELECT COUNT(*) INTO v_events_1h FROM public.webhook_events_processed WHERE processed_at>NOW()-INTERVAL '1 hour';
+  SELECT COUNT(*) INTO v_audit_1h FROM public.webhook_audit_log WHERE status='processed' AND created_at>NOW()-INTERVAL '1 hour';
   SELECT COUNT(*) FILTER(WHERE created_at>NOW()-INTERVAL '7 days'),COUNT(*) FILTER(WHERE created_at>NOW()-INTERVAL '24 hours') INTO v_msgs_7d,v_msgs_24h FROM evo.evolution_messages WHERE instance_name='wpp2';
-  v_pipe_score:=CASE WHEN v_hours_silent<=1 THEN 15 WHEN v_hours_silent<=6 THEN 12 WHEN v_audit_1h>=500 THEN 15 WHEN v_audit_1h>=100 THEN 12 WHEN v_audit_1h>=10 THEN 10 WHEN v_hours_silent<=24 THEN 8 WHEN v_hours_silent<=96 AND v_msgs_7d>100 AND v_eff_state='connected' THEN 8 WHEN v_hours_silent<=96 AND v_msgs_7d>0 AND v_eff_state='connected' THEN 5 ELSE 0 END;
+  -- audit_1h fallback gated on v_hours_silent<24 so a stalled delivery layer
+  -- cannot masquerade as healthy just because ingestion is still processing rows.
+  v_pipe_score:=CASE WHEN v_hours_silent<=1 THEN 15 WHEN v_hours_silent<=6 THEN 12 WHEN v_audit_1h>=500 AND v_hours_silent<24 THEN 15 WHEN v_audit_1h>=100 AND v_hours_silent<24 THEN 12 WHEN v_audit_1h>=10 AND v_hours_silent<24 THEN 10 WHEN v_hours_silent<=24 THEN 8 WHEN v_hours_silent<=96 AND v_msgs_7d>100 AND v_eff_state='connected' THEN 8 WHEN v_hours_silent<=96 AND v_msgs_7d>0 AND v_eff_state='connected' THEN 5 ELSE 0 END;
   v_pipe_note:=CASE WHEN v_pipe_score=15 AND v_hours_silent<=1 THEN 'e2e_fresh' WHEN v_pipe_score=15 THEN 'audit_very_active' WHEN v_pipe_score=12 AND v_hours_silent<=6 THEN 'e2e_recent' WHEN v_pipe_score=12 THEN 'audit_active' WHEN v_pipe_score=10 THEN 'audit_low_traffic' WHEN v_pipe_score=8 AND v_hours_silent<=24 THEN 'e2e_stale_ok' WHEN v_pipe_score=8 THEN 'healthy_idle_msgs_7d' WHEN v_pipe_score=5 THEN 'healthy_idle_low_volume' ELSE 'degraded' END;
   v_score:=v_score+v_pipe_score;
   v_bd:=v_bd||jsonb_build_object('webhook_pipeline',jsonb_build_object('score',v_pipe_score,'max',15,'hours_silent',v_hours_silent,'msg_gap_hours',v_msg_hours_silent,'pending',v_events_1h,'audit_1h',v_audit_1h,'msgs_7d',v_msgs_7d,'msgs_24h',v_msgs_24h,'processed_1h',v_events_1h,'note',v_pipe_note));
@@ -143,7 +145,7 @@ BEGIN
 
   -- 9. audit_log_bloat (5pts) -- R7-16: threshold 300MB/1GB
   v_max:=v_max+5;
-  SELECT pg_total_relation_size('zapp.webhook_audit_log') INTO vb;
+  SELECT pg_total_relation_size('public.webhook_audit_log') INTO vb;
   v_score:=v_score+CASE WHEN vb<314572800 THEN 5 WHEN vb<1073741824 THEN 3 ELSE 0 END;
   v_bd:=v_bd||jsonb_build_object('audit_log_bloat',jsonb_build_object('score',CASE WHEN vb<314572800 THEN 5 WHEN vb<1073741824 THEN 3 ELSE 0 END,'max',5,'size',pg_size_pretty(vb),'threshold','300MB/1GB'));
 

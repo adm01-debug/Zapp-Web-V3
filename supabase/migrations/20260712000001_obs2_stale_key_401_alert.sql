@@ -6,7 +6,7 @@
 -- -------
 -- The Evolution container generates ~1 × 401 every 5 min because an unknown
 -- consumer (n8n workflow or Docker monitoring script) still uses a pre-v4 API
--- key.  The current key is evolution_api_key_v4_20260704.
+-- key.  The current key version is stored in the Vault (evolution_api_key secret).
 --
 -- Two things were hiding this:
 --   1. logpatch T3 beforeSend filtered [401,403] from GlitchTip — fixed in
@@ -65,7 +65,7 @@ DECLARE
 BEGIN
   -- Source 1: webhook_audit_log — 401 rejections from edge fn (HMAC failures)
   SELECT count(*)::int INTO v_count_log
-  FROM zapp.webhook_audit_log
+  FROM public.webhook_audit_log
   WHERE status_code = 401
     AND created_at > now() - interval '15min';
 
@@ -128,7 +128,7 @@ BEGIN
       format('🚨 401 BURST: %s signals em 15min', v_total),
       format(
         'Sources: webhook_audit_log=%s | evolution_ip_watch=%s | health_alerts=%s '
-        '— Verificar imediatamente. Chave atual: evolution_api_key_v4_20260704.',
+        '— Verificar imediatamente a chave de API Evolution em uso pelos consumers.',
         v_count_log, v_count_ipwatch, v_count_health
       ),
       'fn_detect_401_bursts'
@@ -159,14 +159,13 @@ BEGIN
       'info',
       '🔍 OBS-2 stale_api_key_hunt: encontre o consumer com chave velha',
       'A Evolution API gera ~1 × 401 a cada 5 min de um consumer com apikey obsoleta. '
-      'Chave atual: evolution_api_key_v4_20260704. '
       'CHECKLIST: '
-      '(1) n8n: Configurações → Credenciais → filtrar "Evolution" — verificar todas com chave diferente de v4_20260704. '
+      '(1) n8n: Configurações → Credenciais → filtrar "Evolution" — verificar chave de cada credencial. '
       '(2) Docker Swarm: docker service ls | grep -i "evo\|monitor\|watch\|canary\|guard" — inspecionar cada serviço. '
       '(3) Portainer → Stacks → expandir blobs base64 em evolution/zapp-health-guard/canary. '
       '(4) Variáveis de ambiente: docker service inspect <svc> --format "{{json .Spec.TaskTemplate.ContainerSpec.Env}}" '
       '| grep -i "api_key\|apikey". '
-      '(5) Após encontrar: atualizar secret/variável para evolution_api_key_v4_20260704. '
+      '(5) Após encontrar: atualizar secret/variável para a chave Evolution atual (ver Vault). '
       '(6) Confirmar resolução: verificar GlitchTip — 401s devem cessar em ≤10min. '
       'Ref: AUDITORIA_EVO_API_2026-07-12.md OBS-2.',
       'fn_detect_401_bursts'
@@ -190,12 +189,15 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION evo.fn_detect_401_bursts() FROM PUBLIC;
+
 COMMENT ON FUNCTION evo.fn_detect_401_bursts() IS
   'OBS-2 v3 (2026-07-12): 3-source 401 burst detector + 24h stale-consumer hunt prompt. '
-  'Sources: zapp.webhook_audit_log (edge-fn rejections), evo.evolution_ip_watch (VPS log pipeline), '
+  'Sources: public.webhook_audit_log (edge-fn rejections), evo.evolution_ip_watch (VPS log pipeline), '
   'zapp.webhook_health_alerts (GlitchTip feed). '
   'Fires: critical burst (>=3 signals/15min, 30min cooldown), '
-  'warning gap (6h cooldown), info hunt (24h cooldown while ip_watch is empty).';
+  'warning gap (6h cooldown), info hunt (24h cooldown while ip_watch is empty). '
+  'Not callable by PUBLIC — scheduled via cron.job only.';
 
 -- ──────────────────────────────────────────────────────────────────────────────
 -- 2. Ensure fn_log_api_401 shim is correctly defined (idempotent)
@@ -205,8 +207,9 @@ COMMENT ON FUNCTION evo.fn_detect_401_bursts() IS
 -- signature is stable for future wiring without a schema error.
 CREATE OR REPLACE FUNCTION evo.fn_log_api_401(
   p_ip       text,
-  p_endpoint text DEFAULT NULL,
-  p_ua       text DEFAULT NULL
+  p_endpoint text    DEFAULT NULL,
+  p_ua       text    DEFAULT NULL,
+  p_status   integer DEFAULT 401
 )
 RETURNS void
 LANGUAGE plpgsql
@@ -217,7 +220,7 @@ BEGIN
   INSERT INTO evo.evolution_ip_watch (
     ip_address, http_status, endpoint, user_agent, created_at
   ) VALUES (
-    p_ip, 401, p_endpoint, p_ua, now()
+    p_ip, p_status, p_endpoint, p_ua, now()
   )
   ON CONFLICT DO NOTHING;
 EXCEPTION WHEN OTHERS THEN
@@ -226,10 +229,13 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-COMMENT ON FUNCTION evo.fn_log_api_401(text, text, text) IS
-  'OBS-2 shim (2026-07-12): receives 401 events from external sources '
+REVOKE EXECUTE ON FUNCTION evo.fn_log_api_401(text, text, text, integer) FROM PUBLIC;
+
+COMMENT ON FUNCTION evo.fn_log_api_401(text, text, text, integer) IS
+  'OBS-2 shim (2026-07-12): receives 401/4xx events from external sources '
   '(Traefik log pipeline, n8n, edge function). Inserts into evolution_ip_watch. '
-  'Currently not called; signature stable for future wiring.';
+  'Currently not called; signature stable for future wiring. '
+  'Not callable by PUBLIC — internal callers only.';
 
 -- ──────────────────────────────────────────────────────────────────────────────
 -- 3. webhook_audit_log: backfill trigger to add status_code=200 on success rows
@@ -252,16 +258,20 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION zapp.fn_webhook_audit_set_success_status() FROM PUBLIC;
+
 COMMENT ON FUNCTION zapp.fn_webhook_audit_set_success_status() IS
   'OBS-2 (2026-07-12): fills status_code=200 for processed/duplicate rows '
   'where the edge function omits it. Allows fn_detect_401_bursts to count '
-  'real 401 rejections separately from successful 200 events.';
+  'real 401 rejections separately from successful 200 events. '
+  'Trigger function — not directly callable by PUBLIC.';
 
+-- Attach to public.webhook_audit_log (the real table; zapp.webhook_audit_log does not exist)
 DROP TRIGGER IF EXISTS trg_webhook_audit_set_success_status
-  ON zapp.webhook_audit_log;
+  ON public.webhook_audit_log;
 
 CREATE TRIGGER trg_webhook_audit_set_success_status
-  BEFORE INSERT ON zapp.webhook_audit_log
+  BEFORE INSERT ON public.webhook_audit_log
   FOR EACH ROW
   EXECUTE FUNCTION zapp.fn_webhook_audit_set_success_status();
 
@@ -277,8 +287,7 @@ SELECT
   '(B) fn_detect_401_bursts v3 dispara hunt checklist diário; '
   '(C) trigger webhook_audit_log preenche status_code=200 em linhas de sucesso. '
   'PRÓXIMO PASSO: verificar GlitchTip em ≤5min por erros "Unauthorized" '
-  'e rastrear o consumer (n8n cred, Docker env var) usando a key antiga. '
-  'Chave atual: evolution_api_key_v4_20260704. '
+  'e rastrear o consumer (n8n cred, Docker env var) com chave obsoleta. '
   'Ref: AUDITORIA_EVO_API_2026-07-12.md OBS-2.',
   'migration-obs2-2026-07-12'
 WHERE NOT EXISTS (

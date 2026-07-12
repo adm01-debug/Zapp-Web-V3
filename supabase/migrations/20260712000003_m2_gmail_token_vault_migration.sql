@@ -72,10 +72,33 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.resolve_gmail_encryption_key() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.resolve_gmail_encryption_key() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.resolve_gmail_encryption_key() FROM anon;
+-- service_role also revoked: key resolution must only happen inside SECURITY DEFINER callers.
+-- Edge Functions use supabase.rpc() with service_role key but the call chain goes through
+-- encrypt/decrypt_gmail_token (SECURITY DEFINER) which calls resolve internally — callers
+-- never need direct access to resolve_gmail_encryption_key.
+REVOKE EXECUTE ON FUNCTION public.resolve_gmail_encryption_key() FROM service_role;
+
+-- ── Two-phase key rotation procedure ─────────────────────────────────────────
+-- Rotating gmail_encryption_key invalidates all existing encrypted tokens because
+-- pgp_sym_decrypt will fail for tokens encrypted under the old key.
+-- PROCEDURE (must be run manually by a postgres-role operator):
+--   Phase 1 — Add new key alongside old one:
+--     SELECT vault.update_secret('<new-key>', 'gmail_encryption_key_next');
+--     UPDATE user_gmail_tokens
+--       SET encrypted_token = pgp_sym_encrypt(
+--             pgp_sym_decrypt(encrypted_token, '<old-key>'), '<new-key>'
+--           );
+--   Phase 2 — Promote new key (zero-downtime swap):
+--     SELECT vault.update_secret('<new-key>', 'gmail_encryption_key');
+--     SELECT vault.delete_secret('gmail_encryption_key_next');
+-- WARNING: vault.update_secret() on 'gmail_encryption_key' while old tokens
+-- remain will lock out all existing Gmail integrations until re-encrypted.
 
 COMMENT ON FUNCTION public.resolve_gmail_encryption_key() IS
   'M-2 (2026-07-12): Returns Gmail symmetric key from vault.decrypted_secrets '
-  '(''gmail_encryption_key'') with GUC fallback. Callable only by postgres role.';
+  '(''gmail_encryption_key'') with GUC fallback. Callable only by postgres role '
+  '(all other roles incl. service_role explicitly revoked). '
+  'See migration header for two-phase key rotation procedure.';
 
 -- ──────────────────────────────────────────────────────────────────────────────
 -- 2. Update encrypt_gmail_token to use vault-backed key

@@ -80,10 +80,10 @@ serve(async (req) => {
       // Without this check, any POST could inject or poison message statuses.
       // The active channel is Baileys (not Meta Cloud), but the endpoint is published and
       // reachable — an unsigned request can write UPDATE messages SET status with arbitrary data.
-      // If WHATSAPP_APP_SECRET is provisioned, enforce it. If not configured, fail-closed to
+      // If WHATSAPP_CLOUD_APP_SECRET is provisioned, enforce it. If not configured, fail-closed to
       // prevent unauthenticated writes on the Meta channel.
       const rawBodyText = await req.text();
-      const metaAppSecret = Deno.env.get('WHATSAPP_APP_SECRET');
+      const metaAppSecret = Deno.env.get('WHATSAPP_CLOUD_APP_SECRET');
       const hubSignature = req.headers.get('x-hub-signature-256');
 
       if (metaAppSecret) {
@@ -100,9 +100,9 @@ serve(async (req) => {
         }
       } else {
         // No secret configured: fail-closed. This endpoint accepts unauthenticated writes
-        // when WHATSAPP_APP_SECRET is absent. Return 503 so operators know to provision it.
-        log.error("WHATSAPP_APP_SECRET not configured — rejecting POST (fail-closed)");
-        return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'Set WHATSAPP_APP_SECRET to enable this webhook.' }),
+        // when WHATSAPP_CLOUD_APP_SECRET is absent. Return 503 so operators know to provision it.
+        log.error("WHATSAPP_CLOUD_APP_SECRET not configured — rejecting POST (fail-closed)");
+        return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'Set WHATSAPP_CLOUD_APP_SECRET to enable this webhook.' }),
           { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 

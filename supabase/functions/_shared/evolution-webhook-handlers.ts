@@ -343,13 +343,16 @@ export async function handleChatsUpdate(supabase: SupabaseClient, instance: stri
 
     // Update name only if the contact has no human-set name (avoids overwriting CRM edits)
     if (chatName && !contact.name && !contact.push_name) contactUpdate.name = chatName;
-    if (chatName) contactUpdate.push_name = chatName;
+    // Only write push_name when the value actually changed (avoids unnecessary WAL churn)
+    if (chatName && chatName !== contact.push_name) contactUpdate.push_name = chatName;
     if (conversationTimestamp) {
       contactUpdate.last_message_at = new Date(conversationTimestamp * 1000).toISOString();
     }
     if (unreadCount !== undefined) contactUpdate.unread_count = unreadCount;
 
-    // Merge pin/mute/archive into metadata JSONB without clobbering other keys
+    // Merge pin/mute/archive into metadata JSONB without clobbering other keys.
+    // Uses server-side JSONB || operator (merge_contact_metadata RPC) so concurrent
+    // chats.* events don't race and silently drop each other's keys.
     const metaOverlay: Record<string, unknown> = {};
     if (pinned !== undefined) metaOverlay.wa_pinned = pinned;
     if (muted !== undefined || muteExpiration !== undefined) {
@@ -358,13 +361,16 @@ export async function handleChatsUpdate(supabase: SupabaseClient, instance: stri
     }
     if (archived !== undefined) metaOverlay.wa_archived = archived;
     if (notSpam !== undefined) metaOverlay.wa_not_spam = notSpam;
-    if (Object.keys(metaOverlay).length > 0) {
-      const existingMeta = (isRecord(contact.metadata) ? contact.metadata : {}) as Record<string, unknown>;
-      contactUpdate.metadata = { ...existingMeta, ...metaOverlay };
-    }
 
     if (Object.keys(contactUpdate).length > 1) {
       await supabase.from('contacts').update(contactUpdate).eq('id', contact.id);
+    }
+
+    if (Object.keys(metaOverlay).length > 0) {
+      await supabase.rpc('merge_contact_metadata', {
+        p_contact_id: contact.id,
+        p_overlay: metaOverlay,
+      });
     }
 
     // Mark messages as read in evo layer when unreadCount resets to 0

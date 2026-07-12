@@ -9,7 +9,7 @@
 -- the error path had no structured logging so transient failures were silent.
 --
 -- Cron jobid 152 (purge_webhook_events_processed, 04:30 daily, 3-day TTL):
--- HEALTHY — zapp.webhook_events_processed.processed_at has DEFAULT now()
+-- HEALTHY — public.webhook_events_processed.processed_at has DEFAULT now()
 -- on the underlying table. No action needed.
 --
 -- "Dedup adicional por key.id": WhatsApp messages arrive with a stable
@@ -21,21 +21,23 @@
 --
 -- CHANGES
 -- -------
--- 1. Add nullable column message_key_id TEXT to zapp.webhook_events_processed
+-- 1. Add nullable column message_key_id TEXT to public.webhook_events_processed
 -- 2. Add partial unique index on (instance, message_key_id) WHERE NOT NULL
 -- 3. The edge function (_shared/evolution-helpers.ts) is updated separately
 --    to pass message_key_id for messages.upsert entries (edge function commit).
 --
--- IDEMPOTENT: IF NOT EXISTS / CREATE INDEX CONCURRENTLY safe on repeated runs.
+-- IDEMPOTENT: ALTER TABLE … ADD COLUMN IF NOT EXISTS / CREATE UNIQUE INDEX IF NOT EXISTS.
+-- NOTE: No CONCURRENTLY — Supabase migrations run inside a transaction and
+-- CONCURRENTLY is not allowed inside a transaction block.
 -- ============================================================================
 
 -- ──────────────────────────────────────────────────────────────────────────────
--- 1. Add message_key_id column to zapp.webhook_events_processed
+-- 1. Add message_key_id column to public.webhook_events_processed
 -- ──────────────────────────────────────────────────────────────────────────────
-ALTER TABLE zapp.webhook_events_processed
+ALTER TABLE public.webhook_events_processed
   ADD COLUMN IF NOT EXISTS message_key_id TEXT;
 
-COMMENT ON COLUMN zapp.webhook_events_processed.message_key_id IS
+COMMENT ON COLUMN public.webhook_events_processed.message_key_id IS
   'M-3 (2026-07-12): WhatsApp message WAMID (key.id from messages.upsert payload). '
   'NULL for non-message events. Used for secondary dedup on top of sha256 event hash '
   'so the same WhatsApp message is never double-processed even when raw body bytes differ.';
@@ -44,9 +46,9 @@ COMMENT ON COLUMN zapp.webhook_events_processed.message_key_id IS
 -- 2. Partial unique index: (instance, message_key_id) WHERE NOT NULL
 -- ──────────────────────────────────────────────────────────────────────────────
 -- Partial so non-message events (NULL message_key_id) are not affected.
--- CONCURRENTLY keeps the production table online during index build.
+-- IF NOT EXISTS makes this safe to re-run; production table stays online via HOT.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_wep_instance_message_key
-  ON zapp.webhook_events_processed (instance, message_key_id)
+  ON public.webhook_events_processed (instance, message_key_id)
   WHERE message_key_id IS NOT NULL;
 
 -- ──────────────────────────────────────────────────────────────────────────────
@@ -60,7 +62,7 @@ DECLARE
 BEGIN
   SELECT COUNT(*) INTO v_idx_count
   FROM pg_indexes
-  WHERE schemaname = 'zapp'
+  WHERE schemaname = 'public'
     AND tablename  = 'webhook_events_processed'
     AND indexname  = 'idx_wep_instance_message_key';
 
@@ -70,7 +72,7 @@ BEGIN
 
   SELECT COUNT(*), COUNT(*) FILTER (WHERE message_key_id IS NULL)
   INTO v_row_count, v_null_count
-  FROM zapp.webhook_events_processed;
+  FROM public.webhook_events_processed;
 
   RAISE NOTICE 'M-3 OK: idx_wep_instance_message_key created. rows=% null_key=%',
     v_row_count, v_null_count;
