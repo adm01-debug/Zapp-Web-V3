@@ -27,8 +27,14 @@ serve(async (req) => {
       .limit(10);
 
     const instanceMap = new Map<string, string>();
-    for (const conn of connections || []) {
-      if (conn.instance_id) instanceMap.set(conn.id, conn.instance_id);
+    const connsArray = Array.isArray(connections) ? connections : [];
+    for (const conn of connsArray) {
+      if (typeof conn === 'object' && conn !== null && !Array.isArray(conn)) {
+        const connObj = conn as Record<string, unknown>;
+        const id = typeof connObj.id === 'string' ? connObj.id : '';
+        const instanceId = typeof connObj.instance_id === 'string' ? connObj.instance_id : '';
+        if (id && instanceId) instanceMap.set(id, instanceId);
+      }
     }
 
     // Find all messages with WhatsApp CDN URLs
@@ -61,35 +67,44 @@ serve(async (req) => {
 
     for (const msg of messages) {
       try {
-        let permanentUrl = await downloadAndUpload(supabase, msg.media_url, msg.message_type, msg.id, log);
+        if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) continue;
+        const msgObj = msg as Record<string, unknown>;
+        const mediaUrl = typeof msgObj.media_url === 'string' ? msgObj.media_url : '';
+        const messageType = typeof msgObj.message_type === 'string' ? msgObj.message_type : '';
+        const messageId = typeof msgObj.id === 'string' ? msgObj.id : '';
+        const externalId = typeof msgObj.external_id === 'string' ? msgObj.external_id : '';
+        const connId = typeof msgObj.whatsapp_connection_id === 'string' ? msgObj.whatsapp_connection_id : '';
 
-        if (!permanentUrl && evolutionUrl && evolutionKey && msg.external_id) {
-          log.info("CDN failed, trying API fallback", { messageId: msg.id });
-          const connId = msg.whatsapp_connection_id;
+        if (!mediaUrl || !messageType || !messageId) continue;
+
+        let permanentUrl = await downloadAndUpload(supabase, mediaUrl, messageType, messageId, log);
+
+        if (!permanentUrl && evolutionUrl && evolutionKey && externalId) {
+          log.info("CDN failed, trying API fallback", { messageId: messageId });
           const instance = connId ? instanceMap.get(connId) : null;
           const instancesToTry = instance ? [instance] : Array.from(instanceMap.values());
 
           for (const inst of instancesToTry) {
             permanentUrl = await getBase64Fallback(
               supabase, evolutionUrl, evolutionKey, inst,
-              msg.external_id, msg.message_type, msg.id, log
+              externalId, messageType, messageId, log
             );
             if (permanentUrl) break;
           }
         }
 
         if (permanentUrl) {
-          await supabase.from('messages').update({ media_url: permanentUrl }).eq('id', msg.id);
+          await supabase.from('messages').update({ media_url: permanentUrl }).eq('id', messageId);
           migrated++;
-          details.push(`✅ ${msg.message_type} ${msg.id.substring(0, 8)}`);
+          details.push(`✅ ${messageType} ${messageId.substring(0, 8)}`);
         } else {
           failed++;
-          details.push(`❌ ${msg.message_type} ${msg.id.substring(0, 8)} (irrecuperável)`);
+          details.push(`❌ ${messageType} ${messageId.substring(0, 8)} (irrecuperável)`);
         }
       } catch (err) {
-        log.error(`Migration error for ${msg.id}`, { error: err instanceof Error ? err.message : String(err) });
+        log.error(`Migration error for ${messageId}`, { error: err instanceof Error ? err.message : String(err) });
         failed++;
-        details.push(`❌ ${msg.message_type} ${msg.id.substring(0, 8)} (erro)`);
+        details.push(`❌ ${messageType} ${messageId.substring(0, 8)} (erro)`);
       }
 
       await new Promise(r => setTimeout(r, 300));
@@ -170,8 +185,18 @@ async function getBase64Fallback(
       return null;
     }
 
-    const result = await resp.json();
-    const b64 = (result.base64 as string) || (result.data as string) || (result.media as string);
+    let result: unknown;
+    try {
+      result = await resp.json();
+    } catch {
+      return null;
+    }
+
+    if (typeof result !== 'object' || result === null || Array.isArray(result)) return null;
+    const resultObj = result as Record<string, unknown>;
+    const b64 = (typeof resultObj.base64 === 'string' ? resultObj.base64 : '')
+      || (typeof resultObj.data === 'string' ? resultObj.data : '')
+      || (typeof resultObj.media === 'string' ? resultObj.media : '');
     if (!b64) return null;
 
     const raw = b64.includes(',') ? b64.split(',')[1] : b64;
@@ -181,7 +206,7 @@ async function getBase64Fallback(
 
     if (bytes.length < 100) return null;
 
-    const mimeType = (result.mimetype as string) || 'application/octet-stream';
+    const mimeType = (typeof resultObj.mimetype === 'string' ? resultObj.mimetype : '') || 'application/octet-stream';
     const ext = detectExtension(mimeType, messageType);
     return await uploadToStorage(supabase, bytes, mimeType, messageType, messageId, ext);
   } catch (err) {
@@ -225,7 +250,11 @@ async function uploadToStorage(
   }
 
   const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-  return urlData.publicUrl;
+  if (typeof urlData === 'object' && urlData !== null && !Array.isArray(urlData)) {
+    const dataObj = urlData as Record<string, unknown>;
+    if (typeof dataObj.publicUrl === 'string') return dataObj.publicUrl;
+  }
+  return null;
 }
 
 async function migrateSimple(
@@ -250,9 +279,17 @@ async function migrateSimple(
   let failed = 0;
 
   for (const msg of messages) {
-    const url = await downloadAndUpload(supabase, msg.media_url, msg.message_type, msg.id, log);
+    if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) continue;
+    const msgObj = msg as Record<string, unknown>;
+    const mediaUrl = typeof msgObj.media_url === 'string' ? msgObj.media_url : '';
+    const messageType = typeof msgObj.message_type === 'string' ? msgObj.message_type : '';
+    const messageId = typeof msgObj.id === 'string' ? msgObj.id : '';
+
+    if (!mediaUrl || !messageType || !messageId) continue;
+
+    const url = await downloadAndUpload(supabase, mediaUrl, messageType, messageId, log);
     if (url) {
-      await supabase.from('messages').update({ media_url: url }).eq('id', msg.id);
+      await supabase.from('messages').update({ media_url: url }).eq('id', messageId);
       migrated++;
     } else {
       failed++;
