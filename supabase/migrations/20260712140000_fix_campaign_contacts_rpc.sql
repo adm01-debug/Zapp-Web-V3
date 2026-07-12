@@ -30,6 +30,12 @@ LOCK TABLE public.campaign_contacts IN SHARE ROW EXCLUSIVE MODE;
 CREATE TABLE IF NOT EXISTS public._backup_campaign_contacts_20260712
   AS SELECT * FROM public.campaign_contacts;
 
+-- RLS deny-all: PostgREST auto-exposes every public-schema table; enabling RLS
+-- with zero policies is a complete read/write denial for all roles.
+-- Scheduled for DROP on 2026-08-12 once the migration is confirmed stable:
+--   DROP TABLE IF EXISTS public._backup_campaign_contacts_20260712;
+ALTER TABLE public._backup_campaign_contacts_20260712 ENABLE ROW LEVEL SECURITY;
+
 -- ── 3. De-duplicate existing rows ───────────────────────────────────────────
 -- Keep the oldest copy (min ctid) of each (campaign_id, contact_id) pair and
 -- remove all others. The lock above ensures no new duplicates arrive during this.

@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
                   profile_picture_url: null,
                   company:             null,
                   role_title:          null,
+                  instance_name:       null,
                   notes:               null,
                   raw_data:            null,
                   dedup_hash:          null,
@@ -153,6 +154,7 @@ Deno.serve(async (req) => {
         .from('evolution_contacts')
         .select('id, phone_number, email, full_name')
         .is('dedup_hash', null)
+        .is('pii_masked_at', null)
         .limit(5000);
 
       if (hashFetchErr) {
