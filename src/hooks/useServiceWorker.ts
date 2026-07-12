@@ -73,12 +73,10 @@ export function useServiceWorker() {
         log.debug('[ServiceWorker] Registration successful:', registration.scope);
 
         // Check for updates every 5 minutes (was 1 min — too frequent)
-        const intervalId = setInterval(async () => {
-          try {
-            await registration.update();
-          } catch (err) {
+        const intervalId = setInterval(() => {
+          registration.update().catch((err) => {
             log.debug('[ServiceWorker] Update check failed:', err);
-          }
+          });
         }, 300_000);
 
         // Handle service worker updates
