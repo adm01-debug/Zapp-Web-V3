@@ -74,9 +74,9 @@ class ExternalDbProxyClient {
       });
 
       const text = await response.text();
-      let result: { error?: string } | Record<string, unknown> | null = null;
+      let result: { error?: string; [key: string]: unknown } | null = null;
       try {
-        result = text ? JSON.parse(text) : null;
+        result = text ? (JSON.parse(text) as typeof result) : null;
       } catch {
         result = { error: text || `HTTP ${response.status}` };
       }
@@ -105,7 +105,7 @@ class ExternalDbProxyClient {
         throw new Error(errorMsg);
       }
 
-      const okResult = result as ProxyResponse<T> | null;
+      const okResult = result as ProxyResponse<T> | null; // ignore-audit: narrows Supabase query result to local interface
       return {
         data: (okResult?.data ?? null) as T | null,
         schema_unavailable: !!okResult?.schema_unavailable,
