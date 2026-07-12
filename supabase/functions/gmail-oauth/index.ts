@@ -190,7 +190,8 @@ serve(async (req) => {
         .single();
 
       if (upsertErr) {
-        console.error('[gmail-oauth] account upsert failed', upsertErr.message);
+        const errorMsg = upsertErr instanceof Error ? upsertErr.message : String(upsertErr);
+        console.error('[gmail-oauth] account upsert failed', errorMsg);
         return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: jsonHeaders });
       }
 
