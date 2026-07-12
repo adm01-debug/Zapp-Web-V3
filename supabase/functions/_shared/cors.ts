@@ -14,6 +14,7 @@ const ALLOWED_PATTERNS = [
   /^https:\/\/.*\.supabase\.co$/,
   /^https:\/\/.*\.promobrindes\.com\.br$/,
   /^https:\/\/.*\.atomicabr\.com\.br$/,
+  /^https:\/\/zapp-web-v3[a-z0-9-]*\.vercel\.app$/,
 ];
 const ALLOWED_HEADERS = [
   'authorization', 'x-client-info', 'apikey', 'content-type',
