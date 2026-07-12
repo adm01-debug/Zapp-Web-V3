@@ -23,7 +23,7 @@ const ALLOWED_PATTERNS = [
 ];
 const ALLOWED_HEADERS = [
   'authorization', 'x-client-info', 'apikey', 'content-type',
-  'x-api-key', 'x-request-id',
+  'x-api-key', 'x-request-id', 'x-correlation-id',
   'idempotency-key', 'x-idempotency-key',
   'x-hub-signature-256',
 ].join(', ');

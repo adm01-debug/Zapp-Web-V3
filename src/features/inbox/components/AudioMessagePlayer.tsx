@@ -146,7 +146,10 @@ export function AudioMessagePlayer({
             // Fetch the new audio and trigger update
             fetch(newData.output_audio_url)
               .then((r) => r.blob())
-              .then((blob) => onVoiceChange(messageId, blob));
+              .then((blob) => onVoiceChange(messageId, blob))
+              .catch((err) =>
+                console.error('[AudioMessagePlayer] Failed to fetch converted audio:', err)
+              );
           }
         }
       )
@@ -304,7 +307,9 @@ export function AudioMessagePlayer({
       >
         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
           <Button
-            aria-label={hasError ? 'Tentar novamente' : isPlaying ? 'Pausar áudio' : 'Reproduzir áudio'}
+            aria-label={
+              hasError ? 'Tentar novamente' : isPlaying ? 'Pausar áudio' : 'Reproduzir áudio'
+            }
             variant="ghost"
             size="icon"
             className={cn(

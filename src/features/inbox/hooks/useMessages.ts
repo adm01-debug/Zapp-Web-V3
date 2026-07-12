@@ -27,6 +27,8 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
   // Fetch messages for contact
   const fetchMessages = useCallback(async () => {
     if (!contactId || !mountedRef.current) {
+      // Nullify so any in-flight response for a prior contact fails the stale check.
+      latestFetchContactIdRef.current = null;
       if (mountedRef.current) {
         setMessages([]);
         setLoading(false);

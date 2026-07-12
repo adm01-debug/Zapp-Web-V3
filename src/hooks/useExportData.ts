@@ -24,7 +24,9 @@ const BLOCKED_MSG = 'Exportação bloqueada por política de segurança';
 
 // Prefix values that start with formula characters so Excel/Google Sheets
 // does not interpret them as formulas (CSV formula injection / OWASP A03).
-const sanitizeCsvCell = (val: string): string => (/^[=+\-@\t\r\n]/.test(val) ? '\t' + val : val);
+// Also blocks full-width lookalikes ＝＋－＠ which bypass the ASCII-only check.
+const sanitizeCsvCell = (val: string): string =>
+  /^[=+\-@＝＋－＠\t\r\n]/.test(val) ? '\t' + val : val;
 
 export function useExportData<T extends Record<string, unknown>>(options: UseExportDataOptions<T>) {
   const { canDownload } = useDownloadPermission();

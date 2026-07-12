@@ -55,11 +55,24 @@ export async function markEventProcessed(supabase: any, eventId: string, instanc
   return true;
 }
 
+// Removes an idempotency record so a 429-rejected event can be retried.
+// deno-lint-ignore no-explicit-any
+export async function unmarkEventProcessed(supabase: any, eventId: string): Promise<void> {
+  try {
+    const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
+    if (error) console.warn('[idempotency] unmark failed:', error.message ?? error.code);
+  } catch (e) {
+    console.warn('[idempotency] unmark exception:', e instanceof Error ? e.message : String(e));
+  }
+}
+
 export interface WebhookAuditRow {
   request_id: string;
   instance?: string | null;
   event_type?: string | null;
   status: 'received' | 'processed' | 'duplicate' | 'error' | 'rejected';
+  /** HTTP status code. Stored when the column exists (see migration 20260712_add_status_code_audit). */
+  status_code?: number | null;
   duration_ms?: number | null;
   error_message?: string | null;
 }

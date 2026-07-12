@@ -250,6 +250,10 @@ export const VoiceChanger = memo(function VoiceChanger({
         setOpen(false);
         cleanup();
         toast.success('Áudio com voz alterada pronto para envio!');
+      })
+      .catch((err) => {
+        console.error('[VoiceChanger] Failed to fetch converted audio:', err);
+        toast.error('Erro ao carregar áudio convertido');
       });
   }, [convertedAudioUrl, onVoiceChanged, cleanup]);
 

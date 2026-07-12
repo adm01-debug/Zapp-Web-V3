@@ -3,13 +3,17 @@ import { Message } from '@/types/chat';
 
 export type SearchFilter = 'all' | 'text' | 'image' | 'video' | 'audio' | 'document' | 'link';
 
-export type DatePreset = 'all' | 'last_interaction' | 'today' | '3d' | '7d' | '14d' | '30d' | '90d' | 'custom';
+export type DatePreset =
+  'all' | 'last_interaction' | 'today' | '3d' | '7d' | '14d' | '30d' | '90d' | 'custom';
 
 const URL_REGEX = /https?:\/\/\S+/i;
 
 /** Normalize text for accent-insensitive search */
 function normalizeText(text: string): string {
-  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 
 function startOfDay(date: Date): Date {
@@ -67,8 +71,10 @@ export function useChatSearch({
   // Stable refs for callbacks
   const onHighlightChangeRef = useRef(onHighlightChange);
   const onNavigateToMessageRef = useRef(onNavigateToMessage);
+  const onSearchQueryChangeRef = useRef(onSearchQueryChange);
   onHighlightChangeRef.current = onHighlightChange;
   onNavigateToMessageRef.current = onNavigateToMessage;
+  onSearchQueryChangeRef.current = onSearchQueryChange;
 
   // Compute effective date range
   const dateRange = useMemo(() => {
@@ -77,7 +83,9 @@ export function useChatSearch({
     }
     if (datePreset === 'last_interaction') {
       // Find the start of the last interaction session (gap > 4h between messages)
-      const sorted = [...messages].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const sorted = [...messages].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
       if (sorted.length === 0) return { from: null, to: null };
       const GAP_MS = 4 * 60 * 60 * 1000; // 4 hours
       let cutoff = new Date(sorted[0].timestamp);
@@ -108,7 +116,7 @@ export function useChatSearch({
       setCustomDateFrom(null);
       setCustomDateTo(null);
       onHighlightChangeRef.current(new Set(), null);
-      onSearchQueryChange?.('');
+      onSearchQueryChangeRef.current?.('');
     }
   }, [isOpen]);
 
@@ -117,23 +125,28 @@ export function useChatSearch({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setDebouncedQuery(query);
-      onSearchQueryChange?.(query);
+      onSearchQueryChangeRef.current?.(query);
     }, 200);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [query]);
 
   // Date filter helper
-  const matchesDateRange = useCallback((msg: Message): boolean => {
-    if (!hasDateFilter) return true;
-    const msgDate = new Date(msg.timestamp);
-    if (dateRange.from && msgDate < dateRange.from) return false;
-    if (dateRange.to) {
-      const endOfTo = new Date(dateRange.to);
-      endOfTo.setHours(23, 59, 59, 999);
-      if (msgDate > endOfTo) return false;
-    }
-    return true;
-  }, [hasDateFilter, dateRange]);
+  const matchesDateRange = useCallback(
+    (msg: Message): boolean => {
+      if (!hasDateFilter) return true;
+      const msgDate = new Date(msg.timestamp);
+      if (dateRange.from && msgDate < dateRange.from) return false;
+      if (dateRange.to) {
+        const endOfTo = new Date(dateRange.to);
+        endOfTo.setHours(23, 59, 59, 999);
+        if (msgDate > endOfTo) return false;
+      }
+      return true;
+    },
+    [hasDateFilter, dateRange]
+  );
 
   // Search logic — excludes deleted messages, accent-insensitive, date-filtered
   const results = useMemo(() => {
@@ -179,7 +192,13 @@ export function useChatSearch({
     };
 
     const counts: Record<SearchFilter, number> = {
-      all: 0, text: 0, image: 0, video: 0, audio: 0, document: 0, link: 0,
+      all: 0,
+      text: 0,
+      image: 0,
+      video: 0,
+      audio: 0,
+      document: 0,
+      link: 0,
     };
 
     for (const msg of activeMessages) {

@@ -480,7 +480,7 @@ export function useExternalConversations(enabled = true) {
                 rpc: 'rpc_get_contact',
                 params: {
                   p_remote_jid: jid,
-                  p_instance: ACTIVE_INSTANCE,
+                  p_instance: null, // null = all instances; needed so historical wpp2 contacts also get enriched
                 },
               })
                 .then((res) => ({ jid, res }))

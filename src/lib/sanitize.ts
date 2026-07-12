@@ -132,14 +132,16 @@ export function sanitizeForSearch(input: unknown): string {
 }
 
 /**
- * Sanitize a value for use in a PostgREST filter (e.g. ilike).
- * Strips XSS but does NOT escape LIKE wildcards — use this when the
- * caller supplies explicit % wildcards in the query string directly.
- * Use sanitizeForSearch() instead when building the wildcard internally.
+ * Sanitize a value for use in a PostgREST filter expression (e.g. `.or()` ilike).
+ * Strips XSS AND removes `"` and `\` so callers can safely wrap the value in
+ * double-quotes inside the filter string without introducing injection vectors.
+ * Does NOT escape LIKE wildcards — use sanitizeForSearch() when adding `%` internally.
  */
 export function sanitizePostgrestFilter(input: unknown): string {
   if (!input) return '';
-  return sanitizeText(input).slice(0, 200);
+  return sanitizeText(input)
+    .replace(/["\\\(\)]/g, '') // strip chars that break PostgREST quoted filter values
+    .slice(0, 200);
 }
 
 /**
