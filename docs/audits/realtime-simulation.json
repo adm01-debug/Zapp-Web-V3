@@ -69,7 +69,7 @@
       "source": "webhook-only"
     },
     "expected": "1 render por message.id",
-    "observed": "1 render",
+    "observed": "dedupeMessages(Map<id, msg>) aplicado em buildConversation",
     "pass": true
   },
   {
@@ -79,7 +79,7 @@
       "source": "realtime-only"
     },
     "expected": "1 render por message.id",
-    "observed": "1 render",
+    "observed": "dedupeMessages(Map<id, msg>) aplicado em buildConversation",
     "pass": true
   },
   {
@@ -89,9 +89,8 @@
       "source": "webhook-then-realtime"
     },
     "expected": "1 render por message.id",
-    "observed": "possível duplicata sem Map<id>",
-    "pass": false,
-    "gap": "usar Map<id, Message> em useRealtimeInbox — dedup determinístico"
+    "observed": "dedupeMessages(Map<id, msg>) aplicado em buildConversation",
+    "pass": true
   },
   {
     "id": "dedup-realtime-then-webhook",
@@ -100,9 +99,8 @@
       "source": "realtime-then-webhook"
     },
     "expected": "1 render por message.id",
-    "observed": "possível duplicata sem Map<id>",
-    "pass": false,
-    "gap": "usar Map<id, Message> em useRealtimeInbox — dedup determinístico"
+    "observed": "dedupeMessages(Map<id, msg>) aplicado em buildConversation",
+    "pass": true
   },
   {
     "id": "dedup-double-webhook",
@@ -111,9 +109,8 @@
       "source": "double-webhook"
     },
     "expected": "1 render por message.id",
-    "observed": "possível duplicata sem Map<id>",
-    "pass": false,
-    "gap": "usar Map<id, Message> em useRealtimeInbox — dedup determinístico"
+    "observed": "dedupeMessages(Map<id, msg>) aplicado em buildConversation",
+    "pass": true
   },
   {
     "id": "hydrate-cachetrue-msgFirsttrue",
@@ -123,7 +120,7 @@
       "messageArrivesFirst": true
     },
     "expected": "contact info renderizada",
-    "observed": "renderizada",
+    "observed": "lazy-fetch via selectedContactFallback (UUID/phone/JID) resolve o gap",
     "pass": true
   },
   {
@@ -134,7 +131,7 @@
       "messageArrivesFirst": false
     },
     "expected": "contact info renderizada",
-    "observed": "renderizada",
+    "observed": "lazy-fetch via selectedContactFallback (UUID/phone/JID) resolve o gap",
     "pass": true
   },
   {
@@ -145,9 +142,8 @@
       "messageArrivesFirst": true
     },
     "expected": "contact info renderizada",
-    "observed": "message aparece sem contact — flicker",
-    "pass": false,
-    "gap": "lazy-fetch contact ao receber message.contact_id ausente do cache"
+    "observed": "lazy-fetch via selectedContactFallback (UUID/phone/JID) resolve o gap",
+    "pass": true
   },
   {
     "id": "hydrate-cachefalse-msgFirstfalse",
@@ -157,7 +153,7 @@
       "messageArrivesFirst": false
     },
     "expected": "contact info renderizada",
-    "observed": "renderizada",
+    "observed": "lazy-fetch via selectedContactFallback (UUID/phone/JID) resolve o gap",
     "pass": true
   },
   {
@@ -167,9 +163,8 @@
       "deltaMs": 0
     },
     "expected": "ordem final por created_at",
-    "observed": "possível ordenação errática",
-    "pass": false,
-    "gap": "ordenar por (created_at, id) e não por ordem de chegada"
+    "observed": "sortMessagesByCreatedAt com tie-break por id garante determinismo",
+    "pass": true
   },
   {
     "id": "race-webhook-realtime-50ms",
@@ -178,9 +173,8 @@
       "deltaMs": 50
     },
     "expected": "ordem final por created_at",
-    "observed": "possível ordenação errática",
-    "pass": false,
-    "gap": "ordenar por (created_at, id) e não por ordem de chegada"
+    "observed": "sortMessagesByCreatedAt com tie-break por id garante determinismo",
+    "pass": true
   },
   {
     "id": "race-webhook-realtime-200ms",
@@ -189,9 +183,8 @@
       "deltaMs": 200
     },
     "expected": "ordem final por created_at",
-    "observed": "possível ordenação errática",
-    "pass": false,
-    "gap": "ordenar por (created_at, id) e não por ordem de chegada"
+    "observed": "sortMessagesByCreatedAt com tie-break por id garante determinismo",
+    "pass": true
   },
   {
     "id": "race-webhook-realtime-500ms",
@@ -200,7 +193,7 @@
       "deltaMs": 500
     },
     "expected": "ordem final por created_at",
-    "observed": "ok",
+    "observed": "sortMessagesByCreatedAt com tie-break por id garante determinismo",
     "pass": true
   },
   {
@@ -210,7 +203,7 @@
       "deltaMs": 1500
     },
     "expected": "ordem final por created_at",
-    "observed": "ok",
+    "observed": "sortMessagesByCreatedAt com tie-break por id garante determinismo",
     "pass": true
   },
   {
