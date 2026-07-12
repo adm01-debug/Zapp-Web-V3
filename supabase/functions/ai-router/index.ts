@@ -118,6 +118,18 @@ interface RequestContext {
   concurrencyKey?: string; // IMPROVEMENT 8: For cleanup on completion
 }
 
+/**
+ * IMPROVEMENT 9: Partial Success Response Tracking
+ * Tracks individual operations within a handler to report which succeeded and which failed.
+ * Enables clients to know exactly what completed vs failed instead of getting generic success: true/false.
+ */
+interface OperationResult {
+  operation: string; // e.g., 'tag_update', 'contact_update', 'notification_send'
+  status: 'success' | 'failed' | 'partial' | 'skipped';
+  message?: string; // Error message if failed
+  metadata?: Record<string, unknown>; // Operation-specific details
+}
+
 interface ActionResult {
   success: boolean;
   data?: unknown;
@@ -125,6 +137,8 @@ interface ActionResult {
   duration_ms: number;
   metrics?: Record<string, unknown>;
   isValidationError?: boolean; // C.16: Track if error is validation (422) vs internal (500)
+  partial_success?: boolean; // IMPROVEMENT 9: True if some operations succeeded, some failed
+  error_details?: OperationResult[]; // IMPROVEMENT 9: Detailed tracking of each operation
 }
 
 /**
@@ -396,6 +410,77 @@ async function logAiMetrics(params: {
   } catch {
     // Metrics logging is non-critical, do not propagate errors
   }
+}
+
+/**
+ * IMPROVEMENT 9: Partial Success Response Building
+ * Helps handlers track individual operations and build comprehensive error_details array.
+ * Enables clients to know exactly what succeeded vs failed instead of generic success: true/false.
+ *
+ * PATTERN:
+ * 1. Create array: const operations: OperationResult[] = []
+ * 2. Track each operation: operations.push({operation: 'tag_update', status: 'success'})
+ * 3. After all operations: const response = buildPartialSuccessResponse(operations, data, durationMs)
+ * 4. Return response
+ *
+ * CLIENT RECEIVES:
+ * - success: true → all operations succeeded
+ * - success: false, partial_success: false → all operations failed
+ * - success: false, partial_success: true → some operations succeeded, some failed
+ * - error_details: [{operation, status, message}] → detailed per-operation status
+ */
+function buildPartialSuccessResponse(
+  operations: OperationResult[],
+  data: unknown,
+  durationMs: number,
+  metrics?: Record<string, unknown>
+): ActionResult {
+  const successCount = operations.filter(op => op.status === 'success').length;
+  const failedCount = operations.filter(op => op.status === 'failed').length;
+  const totalOps = operations.length;
+
+  // All succeeded
+  if (failedCount === 0 && totalOps > 0) {
+    return {
+      success: true,
+      data,
+      duration_ms: durationMs,
+      metrics,
+      error_details: operations,
+    };
+  }
+
+  // None succeeded
+  if (successCount === 0 && totalOps > 0) {
+    return {
+      success: false,
+      error: "All operations failed",
+      duration_ms: durationMs,
+      partial_success: false,
+      error_details: operations,
+    };
+  }
+
+  // Some succeeded, some failed (partial success)
+  if (successCount > 0 && failedCount > 0) {
+    return {
+      success: false,
+      error: `Partial success: ${successCount}/${totalOps} operations completed`,
+      data,
+      duration_ms: durationMs,
+      partial_success: true,
+      error_details: operations,
+      metrics,
+    };
+  }
+
+  // No operations tracked (fallback)
+  return {
+    success: true,
+    data,
+    duration_ms: durationMs,
+    metrics,
+  };
 }
 
 // H.15: Memory usage monitoring and enforcement
@@ -796,6 +881,25 @@ Deno.serve(async (req) => {
     }
 
     if (!result.success) {
+      // IMPROVEMENT 9: Partial success should return 200 with error_details, not 500
+      if (result.partial_success) {
+        log.warn("Partial success (some operations failed)", {
+          action,
+          error: result.error,
+          operationsDetails: result.error_details,
+        });
+        // Return 200 with partial success details instead of error response
+        const response = jsonResponse({
+          ...result.data,
+          success: false,
+          partial_success: true,
+          error: result.error,
+          error_details: result.error_details,
+          duration_ms: result.duration_ms,
+        }, 200, req);
+        if (ctx?.requestId) ctx.requestId = "";
+        return addCorrelationIdHeader(response, ctx.correlationId);
+      }
       // C.16: Return 422 for validation errors, 500 for internal errors
       const statusCode = result.isValidationError ? 422 : 500;
       return errorResponse(result.error || "Action failed", statusCode, req);
@@ -829,8 +933,12 @@ Deno.serve(async (req) => {
       ctx.requestId = "";
     }
 
-    // IMPROVEMENT 7: Add correlationId to response headers
-    const response = jsonResponse(result.data, 200, req);
+    // IMPROVEMENT 7 & 9: Add correlationId to response headers and include error_details for operation tracking
+    const responseBody = {
+      ...result.data,
+      ...(result.error_details && { error_details: result.error_details }),
+    };
+    const response = jsonResponse(responseBody, 200, req);
     return addCorrelationIdHeader(response, ctx.correlationId);
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1224,12 +1332,29 @@ Responda APENAS em JSON:
       }
     };
 
-    return {
-      success: true,
-      data: responsePayload,
-      duration_ms: durationMs,
-      metrics: { tags_count: result.tags?.length || 0 },
-    };
+    // IMPROVEMENT 9: Build partial success response with detailed operation tracking
+    const operations: OperationResult[] = [];
+    if (tagUpdateResult.attempted) {
+      operations.push({
+        operation: 'tag_update',
+        status: tagUpdateResult.success ? 'success' : 'failed',
+        message: tagUpdateResult.error || (tagUpdateResult.success ? 'Tags updated successfully' : 'Failed to update tags'),
+        metadata: { contactId: validContactId, tagCount: result.tags?.length || 0 },
+      });
+    }
+    operations.push({
+      operation: 'ai_classification',
+      status: 'success',
+      message: 'AI classification completed successfully',
+      metadata: { tags: result.tags?.length || 0, sentiment: result.sentiment, priority: result.priority },
+    });
+
+    return buildPartialSuccessResponse(
+      operations,
+      responsePayload,
+      durationMs,
+      { tags_count: result.tags?.length || 0 }
+    );
   } catch (err) {
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
