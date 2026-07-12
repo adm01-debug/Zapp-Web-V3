@@ -1012,6 +1012,11 @@ Foque em:
       return { success: false, error: `AI error: ${response.status}`, duration_ms: durationMs };
     }
 
+    // C.21: Validate AI response structure for conversation_summary
+    if (!data || typeof data !== 'object' || !Array.isArray(data.choices)) {
+      return { success: false, error: "Invalid AI response structure", duration_ms: performance.now() - startTime };
+    }
+
     const toolCall = (data.choices as Array<{message: {tool_calls?: Array<{function: {arguments: string}}>}}>)?.[0]?.message?.tool_calls?.[0];
 
     let analysisData: any = { summary: 'Análise não disponível', status: 'pendente', keyPoints: [], sentiment: 'neutro', sentimentScore: 50, customerSatisfaction: 3, topics: [], urgency: 'media' };
@@ -1341,6 +1346,11 @@ Regras importantes:
       return { success: false, error: `AI error: ${response.status}`, duration_ms: durationMs };
     }
 
+    // C.21: Validate AI response structure for enhance_message
+    if (!data || typeof data !== 'object' || !Array.isArray(data.choices)) {
+      return { success: false, error: "Invalid AI response structure", duration_ms: performance.now() - startTime };
+    }
+
     const enhancedMessage = (data.choices as Array<{message: {content: string}}>)?.[0]?.message?.content?.trim();
 
     if (!enhancedMessage) {
@@ -1519,6 +1529,11 @@ async function handleClassifyEmoji(
         return { success: false, error: "Payment required", duration_ms: durationMs };
       }
       return { success: false, error: `AI error: ${response.status}`, duration_ms: durationMs };
+    }
+
+    // C.21: Validate AI response structure for classify_emoji
+    if (!data || typeof data !== 'object' || !Array.isArray(data.choices)) {
+      return { success: false, error: "Invalid AI response structure", duration_ms: performance.now() - startTime };
     }
 
     const content = (data.choices as any[])?.[0]?.message?.content;
@@ -1709,6 +1724,11 @@ async function handleClassifySticker(
         return { success: false, error: "Payment required", duration_ms: durationMs };
       }
       return { success: false, error: `AI error: ${response.status}`, duration_ms: durationMs };
+    }
+
+    // C.21: Validate AI response structure for classify_sticker
+    if (!data || typeof data !== 'object' || !Array.isArray(data.choices)) {
+      return { success: false, error: "Invalid AI response structure", duration_ms: performance.now() - startTime };
     }
 
     const content = (data.choices as any[])?.[0]?.message?.content;
@@ -2239,6 +2259,11 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       return { success: false, error: `AI error: ${response.status}`, duration_ms: durationMs };
     }
 
+    // C.21: Validate AI response structure for conversation_analysis
+    if (!data || typeof data !== 'object' || !Array.isArray(data.choices)) {
+      return { success: false, error: "Invalid AI response structure", duration_ms: performance.now() - startTime };
+    }
+
     const toolCall = (data.choices as Array<{message: {tool_calls?: Array<{function: {arguments: string}}>}}>)?.[0]?.message?.tool_calls?.[0];
 
     let analysisData: any = { summary: 'Análise não disponível', status: 'pendente', keyPoints: [], sentiment: 'neutro', sentimentScore: 50, customerSatisfaction: 3, topics: [], urgency: 'media' };
@@ -2615,6 +2640,11 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         return { success: false, error: "Payment required", duration_ms: durationMs };
       }
       return { success: false, error: `AI error: ${response.status}`, duration_ms: durationMs };
+    }
+
+    // C.21: Validate AI response structure for suggest_reply
+    if (!data || typeof data !== 'object' || !Array.isArray(data.choices)) {
+      return { success: false, error: "Invalid AI response structure", duration_ms: performance.now() - startTime };
     }
 
     const content = (data?.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content;
