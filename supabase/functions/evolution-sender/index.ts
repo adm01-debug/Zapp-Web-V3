@@ -298,7 +298,7 @@ async function processQueue(): Promise<{
 }
 
 Deno.serve(async (request: Request) => {
-    if (request.method === "OPTIONS") return handleCorsPreflight(req);
+  if (request.method === "OPTIONS") return handleCorsPreflight(request);
 
   // Internal cron endpoint — require service role or cron secret
   const authErr = requireServiceRoleOrCron(request);
@@ -319,11 +319,11 @@ Deno.serve(async (request: Request) => {
     }).then(() => {}, () => {});
     return new Response(JSON.stringify({
       success: true, version: "v6", ...result, timestamp: new Date().toISOString(),
-    }), { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    }), { status: 200, headers: { ...getCorsHeaders(request), "Content-Type": "application/json" } });
   } catch (error) {
     console.error("evolution-sender v6 error:", error);
     return new Response(JSON.stringify({
       error: "Internal server error",
-    }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    }), { status: 500, headers: { ...getCorsHeaders(request), "Content-Type": "application/json" } });
   }
 });
