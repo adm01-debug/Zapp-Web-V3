@@ -58,7 +58,10 @@ export function useContactsCRUD() {
 
   const generateProtocol = useCallback(() => {
     const now = new Date();
-    return `CT-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+    const rng = new Uint8Array(4);
+    crypto.getRandomValues(rng);
+    const suffix = Array.from(rng, b => b.toString(36).padStart(2, '0')).join('').slice(0, 6).toUpperCase();
+    return `CT-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${suffix}`;
   }, []);
 
   const handleAddContact = async () => {

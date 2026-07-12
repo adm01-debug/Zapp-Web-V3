@@ -60,8 +60,9 @@ export function PublicApiDashboard() {
 
   const generateToken = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = 'zapp_';
-    for (let i = 0; i < 40; i++) token += chars.charAt(Math.floor(Math.random() * chars.length));
+    const rng = new Uint8Array(40);
+    crypto.getRandomValues(rng);
+    const token = 'zapp_' + Array.from(rng, b => chars[b % chars.length]).join('');
     setNewToken(token);
   };
 

@@ -11,12 +11,15 @@ interface MFABackupCodesProps {
   onClose?: () => void;
 }
 
-// Generate deterministic-looking backup codes (in production, these come from the auth server)
+// Generates backup codes using CSPRNG (in production, these come from the auth server)
+const BACKUP_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function generateBackupCodes(count: number = 10): string[] {
   const codes: string[] = [];
   for (let i = 0; i < count; i++) {
-    const part1 = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const part2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const rng = new Uint8Array(8);
+    crypto.getRandomValues(rng);
+    const part1 = Array.from(rng.slice(0, 4), b => BACKUP_CODE_CHARS[b % BACKUP_CODE_CHARS.length]).join('');
+    const part2 = Array.from(rng.slice(4, 8), b => BACKUP_CODE_CHARS[b % BACKUP_CODE_CHARS.length]).join('');
     codes.push(`${part1}-${part2}`);
   }
   return codes;
