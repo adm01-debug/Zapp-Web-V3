@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { log } from '@/lib/logger';
 
 export interface ChecklistStatus {
@@ -51,11 +52,8 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
 
       // Check WhatsApp connection
       try {
-        const { data: connections } = await supabase
-          .from('whatsapp_connections')
-          .select('id')
-          .eq('status', 'connected')
-          .limit(1);
+        const safeQueries = safeWhatsAppConnectionsQuery(supabase);
+        const { data: connections } = await safeQueries.getList({ status: 'connected' });
         newStatus.connection = (connections?.length || 0) > 0;
       } catch {
         newStatus.connection = false;

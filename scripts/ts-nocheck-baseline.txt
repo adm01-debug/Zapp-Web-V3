@@ -2,7 +2,6 @@ src/__tests__/inbox-crud.test.tsx
 src/__tests__/security-and-performance.test.ts
 src/adapters/evolutionAdapter.ts
 src/components/ai/__tests__/AutoTicketClassifier.test.tsx
-src/components/alerts/DegradedConnectionsBanner.tsx
 src/components/campaigns/CampaignsView.tsx
 src/components/chatbot/ChatbotExecutionsDashboard.tsx
 src/components/compliance/LGPDComplianceView.tsx
