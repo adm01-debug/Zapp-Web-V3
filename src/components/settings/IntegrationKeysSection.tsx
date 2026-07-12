@@ -21,6 +21,14 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { cn } from '@/lib/utils';
 
+interface EvolutionInstance {
+  instance?: {
+    status: string;
+    instanceName: string;
+    number: string;
+  };
+}
+
 interface KeyField {
   key: string;
   label: string;
@@ -61,7 +69,7 @@ export function IntegrationKeysSection() {
     message: string;
     details?: { instances: number; status: string; version?: string };
   } | null>(null);
-  const [detectedInstances, setDetectedInstances] = useState<any[]>([]);
+  const [detectedInstances, setDetectedInstances] = useState<EvolutionInstance[]>([]);
 
   const { syncAll } = useEvolutionAutoSync();
 

@@ -13,6 +13,7 @@ import { Megaphone, Loader2 } from 'lucide-react';
 import { UseMutationResult } from '@tanstack/react-query';
 
 type TargetType = 'all' | 'tag' | 'queue' | 'groups' | 'custom';
+type CampaignInput = Omit<FormData, 'target_type'> & { target_type: 'all' | 'custom' | 'queue' | 'tag' };
 
 interface FormData {
   name: string;
@@ -31,8 +32,7 @@ const INITIAL_FORM: FormData = {
 interface CampaignCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createCampaign: UseMutationResult<any, Error, any, unknown>;
+  createCampaign: UseMutationResult<unknown, Error, CampaignInput, unknown>;
 }
 
 export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: CampaignCreateDialogProps) {

@@ -13,6 +13,13 @@ interface SimMessage {
   content: string;
 }
 
+interface TrainingSession {
+  id: string;
+  scenario_name: string;
+  status: string;
+  score: number | null;
+}
+
 const SCENARIOS = [
   {
     name: 'Reclamação sobre entrega',
@@ -60,7 +67,7 @@ export function TrainingMode() {
   const [customerStep, setCustomerStep] = useState(0);
   const [score, setScore] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [profileId, setProfileId] = useState<string | null>(null);
 
   useEffect(() => {

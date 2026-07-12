@@ -90,8 +90,7 @@ export async function runSupabaseDiagnostics() {
     };
 
     const validatedPayload = systemConnectionSchema.parse(payload);
-    const { error: upsertError } = await safeClient.from('system_connections', (q: any) =>
-      // ignore-audit
+    const { error: upsertError } = await safeClient.from('system_connections', (q: any) => // ignore-audit — query builder shape not in generated types
       q.upsert({
         ...validatedPayload,
         created_at: new Date().toISOString(),

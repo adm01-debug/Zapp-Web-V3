@@ -19,6 +19,14 @@ import { ptBR } from 'date-fns/locale';
 
 const log = getLogger('InstanceSettingsDialog');
 
+interface ReconnectionLog {
+  id: string;
+  result: 'success' | string;
+  created_at: string;
+  attempt_number: number;
+  error_message: string | null;
+}
+
 interface InstanceSettingsDialogProps {
   open: boolean; 
   onOpenChange: (open: boolean) => void; 
@@ -63,7 +71,7 @@ export function InstanceSettingsDialog({ open, onOpenChange, instanceName, conne
     maxAttempts: 5,
     loopProtection: false 
   });
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<ReconnectionLog[]>([]);
   const [loadingTab, setLoadingTab] = useState('');
 
   useEffect(() => { 

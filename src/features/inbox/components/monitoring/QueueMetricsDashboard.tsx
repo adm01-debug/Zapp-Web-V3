@@ -18,7 +18,7 @@ const log = getLogger('QueueMetricsDashboard');
 const _COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React.memo(({ metrics }) => {
-  const [stsMetrics, setStsMetrics] = useState<any[]>([]);
+  const [stsMetrics, setStsMetrics] = useState<Record<string, unknown>[]>([]);
   const [loadingSts, setLoadingSts] = useState(true);
 
   useEffect(() => {
