@@ -231,7 +231,7 @@ async function invokeCloud(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
   if (error) throw error;
   if (data && typeof data === 'object' && 'error' in data) {
-    throw new Error((data as any).error ?? 'cloud_send_failed');
+    throw new Error(String((data as { error: unknown }).error ?? 'cloud_send_failed'));
   }
   return data;
 }
