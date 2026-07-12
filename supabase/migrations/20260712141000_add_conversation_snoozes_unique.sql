@@ -12,6 +12,10 @@
 
 -- Lock against concurrent writers so no new duplicate can sneak in between
 -- the DELETE and the ADD CONSTRAINT (same pattern as campaign_contacts migration).
+-- lock_timeout + deadlock_timeout guard against indefinite hangs and deadlocks
+-- under concurrent application load (mirrors campaign_contacts migration).
+SET lock_timeout = '10s';
+SET deadlock_timeout = '500ms';
 LOCK TABLE public.conversation_snoozes IN SHARE ROW EXCLUSIVE MODE;
 
 -- De-duplicate any pre-existing rows, keeping the most-recent snooze_until.

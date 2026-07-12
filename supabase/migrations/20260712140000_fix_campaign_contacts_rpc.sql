@@ -21,6 +21,15 @@
 -- SHARE ROW EXCLUSIVE blocks concurrent INSERT/UPDATE/DELETE on campaign_contacts
 -- but allows reads. Held for the entire migration transaction, so no concurrent
 -- writer can slip in a duplicate between the DELETE and ADD CONSTRAINT.
+--
+-- lock_timeout: abort rather than wait indefinitely if another session holds a
+-- conflicting lock (e.g. long-running app transaction on campaign_contacts).
+-- deadlock_timeout: PostgreSQL detects deadlocks after this interval; setting it
+-- lower than the default 1s lets the deadlock resolver fire quickly when a
+-- concurrent add_contacts_to_campaign call holds a campaigns row lock and both
+-- sessions are waiting on each other's resource.
+SET lock_timeout = '10s';
+SET deadlock_timeout = '500ms';
 LOCK TABLE public.campaign_contacts IN SHARE ROW EXCLUSIVE MODE;
 
 -- ── 2. Archive full table state before any destructive operation ────────────
