@@ -36,6 +36,15 @@ export function sanitizeText(input: unknown): string {
 export function sanitizeHtml(html: unknown): string {
   if (!html) return '';
   const str = typeof html === 'string' ? html : String(html);
+  // Use a DOM hook to enforce rel/target on every <a> before DOMPurify serialises
+  // the output. The hook runs on the live Element, not the serialised HTML string,
+  // so it is immune to the "> in query-string" regex-splitting bug.
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'A') {
+      node.setAttribute('rel', 'noopener noreferrer');
+      node.setAttribute('target', '_blank');
+    }
+  });
   const sanitized = DOMPurify.sanitize(str, {
     ALLOWED_TAGS:  RICH_ALLOWED_TAGS,
     ALLOWED_ATTR:  RICH_ALLOWED_ATTR,
@@ -44,17 +53,8 @@ export function sanitizeHtml(html: unknown): string {
     // restricts them; re-forbidding href blocked legitimate <a> links in notes.
     FORBID_ATTR:   ['onerror','onload','onclick','onmouseover','onfocus','onblur','onchange','onsubmit','style','src'],
   }).trim();
-  // Enforce rel="noopener noreferrer" on every <a> to prevent tabnapping,
-  // regardless of what href value survived DOMPurify's URL sanitization.
-  return sanitized.replace(/<a\b([^>]*)>/gi, (_m, attrs) => {
-    let a = /\brel=/i.test(attrs)
-      ? attrs.replace(/\brel="[^"]*"/i, 'rel="noopener noreferrer"')
-      : attrs + ' rel="noopener noreferrer"';
-    a = /\btarget=/i.test(a)
-      ? a.replace(/\btarget="[^"]*"/i, 'target="_blank"')
-      : a + ' target="_blank"';
-    return `<a${a}>`;
-  });
+  DOMPurify.removeHook('afterSanitizeAttributes');
+  return sanitized;
 }
 
 /**

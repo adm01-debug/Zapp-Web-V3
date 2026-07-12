@@ -238,9 +238,12 @@ const breaker = new Map<string, { fails: number; openedAt: number }>();
 // so a bad token on one Evolution instance doesn't block requests to others.
 const authLockUntil = new Map<string, number>();
 const AUTH_LOCK_MS = 60_000;
-// Persistent config-auth errors (502 with "service_role rejected") won't be
-// fixed by retrying — hold requests for 5 minutes to give the operator time
-// to rotate the secret without flooding telemetry.
+
+// Session-wide config-auth lock: a "service_role rejected / JWT_SECRET mismatch"
+// error means the server-side secret is misconfigured — retrying ANY target
+// will fail until the operator rotates the secret. One scalar covers the entire
+// session so we don't need a per-target entry for this class of error.
+let configAuthLockUntil = 0;
 const CONFIG_LOCK_MS = 5 * 60_000;
 
 function isAuthLocked(target: string): number {
@@ -249,9 +252,19 @@ function isAuthLocked(target: string): number {
   return until > now ? until - now : 0;
 }
 
+function isConfigAuthLocked(): number {
+  const now = Date.now();
+  return configAuthLockUntil > now ? configAuthLockUntil - now : 0;
+}
+
 function tripAuthLock(target: string, cooldownMs: number = AUTH_LOCK_MS, reason: string = 'auth'): void {
   authLockUntil.set(target, Math.max(authLockUntil.get(target) ?? 0, Date.now() + cooldownMs));
   proxyLog.warn('proxy auth lock tripped', { target, cooldownMs, reason });
+}
+
+function tripConfigAuthLock(reason: string = 'config_service_role_mismatch'): void {
+  configAuthLockUntil = Math.max(configAuthLockUntil, Date.now() + CONFIG_LOCK_MS);
+  proxyLog.warn('proxy config-auth lock tripped (session-wide)', { cooldownMs: CONFIG_LOCK_MS, reason });
 }
 
 function isBreakerOpen(target: string): { open: boolean; remainingMs: number } {
@@ -285,6 +298,7 @@ function recordBreakerSuccess(target: string): void {
     breaker.delete(target);
   }
   authLockUntil.delete(target);
+  configAuthLockUntil = 0;
 }
 
 // Internal reset — only used via the __testing namespace in non-production builds.
@@ -292,6 +306,7 @@ function __resetBreakerAndCoalesce(): void {
   breaker.clear();
   inflight.clear();
   authLockUntil.clear();
+  configAuthLockUntil = 0;
 }
 
 export async function queryExternalProxy<T = unknown>(
@@ -301,6 +316,16 @@ export async function queryExternalProxy<T = unknown>(
   const { signal, ...rawBody } = params as ProxyParams & { signal?: AbortSignal };
   const body = normalizeProxyBody(rawBody as Record<string, unknown>);
   const meta = deriveTelemetryMeta(body);
+
+  // ── Session-wide config-auth lock ──
+  // A service_role/JWT_SECRET mismatch affects all targets equally — no point
+  // trying any endpoint until the operator rotates the secret.
+  const configRemaining = isConfigAuthLocked();
+  if (configRemaining > 0) {
+    throw new Error(
+      `Proxy config-auth locked (session-wide, retry in ${configRemaining}ms) — service_role secret inválido`
+    );
+  }
 
   // ── Per-target auth lock ──
   // If a previous call to this specific target returned 401/403, short-circuit
@@ -495,7 +520,7 @@ async function executeProxyCall<T>(
       if (transient) transientCount += 1;
       if (isGhostPost) recordBreakerFailure(meta.target);
       if (isAuthError) tripAuthLock(meta.target, AUTH_LOCK_MS, 'auth_401_403');
-      if (isConfigAuthError) tripAuthLock(meta.target, CONFIG_LOCK_MS, 'config_service_role_mismatch');
+      if (isConfigAuthError) tripConfigAuthLock('config_service_role_mismatch');
       if (ok) recordBreakerSuccess(meta.target);
 
       const isAbort = error?.name === 'AbortError';
