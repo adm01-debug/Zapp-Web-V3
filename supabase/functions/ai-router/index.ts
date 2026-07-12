@@ -335,7 +335,9 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // ━━━ PHASE 4: Idempotency Check (5-min window) ━━━
-    const requestId = String(body.requestId || "");
+    const rawRequestId = String(body.requestId || "").trim();
+    // C.18: Validate requestId is not empty and not just whitespace
+    const requestId = rawRequestId && rawRequestId.length > 0 ? rawRequestId : "";
     let cachedResult: unknown = null;
 
     if (requestId) {
@@ -415,13 +417,19 @@ Deno.serve(async (req) => {
     // ━━━ PHASE 6: Record Result for Idempotency ━━━
     if (requestId) {
       try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: action,
-          p_user_id: userId,
-          p_status_code: 200,
-          p_result_payload: result.data,
-        }).catch(() => {}); // Not critical
+        // C.18: Add timeout to record_processed_request to prevent blocking final response
+        await Promise.race([
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: action,
+            p_user_id: userId,
+            p_status_code: 200,
+            p_result_payload: result.data,
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Record request timeout after 3s')), 3_000)
+          ),
+        ]).catch(() => {}); // Not critical
       } catch {
         // Silently fail idempotency recording
       }
