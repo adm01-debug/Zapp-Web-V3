@@ -1,6 +1,16 @@
-
 import { EmailHealthInfo, EmailHealthFilters, EmailFailure } from './types';
 import { EmailHealthRepository } from './emailHealthRepository';
+import type { OperationFailure } from '@/integrations/supabase/safeClient';
+
+function toEmailFailure(f: OperationFailure): EmailFailure {
+  return {
+    requestId: f.requestId,
+    operation: f.operation,
+    resource: f.table ?? 'unknown',
+    error: f.error,
+    timestamp: new Date(f.timestamp).toISOString(),
+  };
+}
 
 export class EmailHealthService {
   private repository: EmailHealthRepository;
@@ -17,10 +27,12 @@ export class EmailHealthService {
     if (summary) {
       return {
         status: (summary.status as 'healthy' | 'degraded' | 'error') || 'healthy',
-        lastValidation: summary.last_validation ? new Date(summary.last_validation) : telemetry.lastValidation,
+        lastValidation: summary.last_validation
+          ? new Date(summary.last_validation)
+          : telemetry.lastValidation,
         cacheExpiration: cacheInfo.expiration,
         recentFailures: telemetry.recentFailures,
-        stats: telemetry.stats
+        stats: telemetry.stats,
       };
     }
 
@@ -29,22 +41,28 @@ export class EmailHealthService {
       lastValidation: telemetry.lastValidation,
       cacheExpiration: cacheInfo.expiration,
       recentFailures: telemetry.recentFailures,
-      stats: telemetry.stats
+      stats: telemetry.stats,
     };
   }
 
-  getFailures(filters: EmailHealthFilters = {}): { items: EmailFailure[], total: number } {
+  getFailures(filters: EmailHealthFilters = {}): { items: EmailFailure[]; total: number } {
     const telemetry = this.repository.getLocalTelemetry();
-    let failures: EmailFailure[] = Array.isArray(telemetry?.recentFailures) ? telemetry.recentFailures : [];
+    let failures: EmailFailure[] = Array.isArray(telemetry?.recentFailures)
+      ? telemetry.recentFailures.map(toEmailFailure)
+      : [];
 
     if (filters.requestId) {
-      failures = failures.filter(f => f.requestId.includes(filters.requestId!));
+      failures = failures.filter((f) => f.requestId.includes(filters.requestId!));
     }
     if (filters.operation) {
-      failures = failures.filter(f => f.operation.toLowerCase() === filters.operation!.toLowerCase());
+      failures = failures.filter(
+        (f) => f.operation.toLowerCase() === filters.operation!.toLowerCase()
+      );
     }
     if (filters.resource) {
-      failures = failures.filter(f => f.resource.toLowerCase().includes(filters.resource!.toLowerCase()));
+      failures = failures.filter((f) =>
+        f.resource.toLowerCase().includes(filters.resource!.toLowerCase())
+      );
     }
 
     const total = failures.length;

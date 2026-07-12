@@ -20,7 +20,7 @@ type ParseResult<T> = ParseOk<T> | ParseFail;
 export function safeParseEvent<T>(
   schema: z.ZodType<T>,
   raw: unknown,
-  code: ContractErrorCode = ContractErrorCode.INVALID_PAYLOAD,
+  code: ContractErrorCode = ContractErrorCode.INVALID_PAYLOAD
 ): ParseResult<T> {
   const result = schema.safeParse(raw);
   if (result.success) {
@@ -39,8 +39,8 @@ export const realtimeEnvelopeSchema = z.object({
   schema: z.string(),
   table: z.string(),
   eventType: z.enum(['INSERT', 'UPDATE', 'DELETE']),
-  new: z.record(z.unknown()).nullable().optional(),
-  old: z.record(z.unknown()).nullable().optional(),
+  new: z.record(z.string(), z.unknown()).nullable().optional(),
+  old: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export function realtimeEnvelopeFor<T>(rowSchema: z.ZodType<T>) {
@@ -188,7 +188,7 @@ export const sentimentAlertAuditRowSchema = z.object({
   entity_id: z.string().nullable(),
   entity_type: z.string().nullable(),
   user_id: z.string().nullable(),
-  details: z.record(z.unknown()).nullable(),
+  details: z.record(z.string(), z.unknown()).nullable(),
   created_at: z.string(),
 });
 
@@ -197,10 +197,7 @@ export const teamMessageNotificationRowSchema = z.object({
   conversation_id: z.string().uuid(),
   sender_id: z.string().uuid(),
   content: z.string(),
-  media_type: z
-    .enum(['image', 'audio', 'video', 'document', 'sticker'])
-    .nullable()
-    .optional(),
+  media_type: z.enum(['image', 'audio', 'video', 'document', 'sticker']).nullable().optional(),
   created_at: z.string(),
 });
 
