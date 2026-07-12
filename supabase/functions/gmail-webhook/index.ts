@@ -110,57 +110,14 @@ serve(async (req) => {
       const { data: watch } = await supabase.from('email_watch_history').select('history_id').eq('account_id', account.id).maybeSingle();
       const startHistoryId = watch?.history_id ?? historyId;
 
-      const histRes = await fetch(`${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const histData = await histRes.json();
-
-      const messages = histData.history?.flatMap((h: { messagesAdded?: { message: { id: string } }[] }) =>
-        h.messagesAdded?.map(m => m.message.id) ?? []
-      ) ?? [];
-
-      const processed: string[] = [];
-      for (const msgId of messages.slice(0, 10)) {
-        const msgRes = await fetch(`${GMAIL_API}/messages/${msgId}?format=full`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const msg = await msgRes.json();
-        if (!msgRes.ok) continue;
-
-        const headers = msg.payload?.headers ?? [];
-        const getHeader = (name: string) => headers.find((h: { name: string; value: string }) => h.name.toLowerCase() === name.toLowerCase())?.value ?? '';
-
-        const subject = getHeader('Subject');
-        const from = getHeader('From');
-        const to = getHeader('To');
-        const date = getHeader('Date');
-        const messageId = getHeader('Message-Id');
-
-        const getBody = (payload: { mimeType: string; body?: { data?: string }; parts?: unknown[] }): string => {
-          if (payload.mimeType === 'text/plain' && payload.body?.data) return atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-          if (payload.parts) return (payload.parts as { mimeType: string; body?: { data?: string }; parts?: unknown[] }[]).map(p => getBody(p)).join('');
-          return '';
-        };
-
-        const body_text = getBody(msg.payload);
-
-        const { error: insertErr } = await supabase.from('email_messages').upsert({
-          account_id: account.id, message_id: msgId, thread_id: msg.threadId,
-          external_message_id: messageId, subject, from_address: from,
-          to_address: to, received_at: date ? new Date(date).toISOString() : null,
-          body_text: body_text.slice(0, 5000), snippet: msg.snippet,
-          labels: msg.labelIds ?? [], is_read: !msg.labelIds?.includes('UNREAD'),
-        }, { onConflict: 'account_id,message_id' });
-
-        if (!insertErr) processed.push(msgId);
-      }
+      await processHistory(supabase, token, account.id, startHistoryId);
 
       await supabase.from('email_watch_history').upsert({
         account_id: account.id, history_id: historyId,
         status: 'active',
       }, { onConflict: 'account_id' });
 
-      return json({ ok: true, processed: processed.length, messages: messages.length });
+      return json({ ok: true });
     }
 
     // ── GET: status endpoint ────────────────────────────────────────
