@@ -90,11 +90,9 @@ SELECT vault.update_secret(
 # Verificar que a chave antiga foi revogada (deve retornar 401)
 # Usa $OLD_KEY_FILE capturado no Step 2b — NÃO tenta ler do container (secret já foi removido)
 if [ ! -s "$OLD_KEY_FILE" ]; then
-  echo "[AVISO] Step 2b não foi executado ou falhou — $OLD_KEY_FILE ausente/vazio." >&2
-  echo "[AVISO] Verificação automática impossível. Confirme a revogação manualmente:" >&2
-  echo "  curl -s -o /dev/null -w '%{http_code}' -H 'apikey: <CHAVE-ANTIGA>' \\" >&2
-  echo "    https://evolution.atomicabr.com.br/instance/fetchInstances" >&2
-  echo "  # Deve retornar 401" >&2
+  echo "[ERRO] Step 2b não foi executado ou falhou — $OLD_KEY_FILE ausente/vazio." >&2
+  echo "[ERRO] Não remova o secret antigo sem confirmar a revogação (HTTP 401)." >&2
+  exit 1
 else
   OLD_APIKEY=$(cat "$OLD_KEY_FILE")
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "apikey: ${OLD_APIKEY}" \
@@ -107,10 +105,9 @@ else
     exit 1
   fi
   echo "Revogação confirmada (401). Removendo secret antigo."
+  # Remover o secret antigo somente após confirmação explícita de 401
+  docker secret rm evolution_api_key_v4_20260704
 fi
-
-# Remover o secret antigo somente após confirmar 401
-docker secret rm evolution_api_key_v4_20260704
 ```
 
 ### 6. Verificar
@@ -131,10 +128,21 @@ unset APIKEY
 ### 7. Limpar histórico Git (opcional, recomendado)
 
 ```bash
-# OBRIGATÓRIO: fazer backup verificável antes de reescrever histórico
-git bundle create /tmp/zapp-web-v3-backup-$(date +%Y%m%d).bundle --all
-# Verificar que o bundle é válido:
-git bundle verify /tmp/zapp-web-v3-backup-$(date +%Y%m%d).bundle
+# OBRIGATÓRIO: fazer backup protegido e com restauração testada antes de reescrever histórico
+BACKUP_DIR="$HOME/backups"
+mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
+BUNDLE="$BACKUP_DIR/zapp-web-v3-backup-$(date +%Y%m%d).bundle"
+git bundle create "$BUNDLE" --all
+chmod 600 "$BUNDLE"
+# Verificar integridade do bundle:
+git bundle verify "$BUNDLE"
+# Testar restauração real — git bundle verify não garante restaurabilidade:
+VERIFY_CLONE=$(mktemp -d)
+git clone --mirror "$BUNDLE" "$VERIFY_CLONE/repo.git" \
+  && echo "Restauração testada com sucesso ($BUNDLE)." \
+  || { echo "ERRO: bundle não pode ser restaurado — aborte antes de reescrever o histórico." >&2; rm -rf "$VERIFY_CLONE"; exit 1; }
+rm -rf "$VERIFY_CLONE"
 
 # Instalar git-filter-repo se necessário
 pip install git-filter-repo
