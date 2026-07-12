@@ -52,6 +52,7 @@ describe('safeClient Masking', () => {
     const data = { authorization: longToken, name: 'John' };
     const result = safeClient.maskSensitiveData(data) as Record<string, string>;
     expect(result.name).toBe('John');
+    expect(result.authorization).toBe('***MASKED***');
   });
 
   it('should handle arrays of objects', () => {

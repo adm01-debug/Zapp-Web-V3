@@ -87,10 +87,14 @@ function recordFailure(operation: string, error: unknown, table?: string): void 
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(`Request timeout after ${ms}ms`)), ms),
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`Request timeout after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).then(
+    (result) => { if (timeoutId !== undefined) clearTimeout(timeoutId); return result as T; },
+    (err) => { if (timeoutId !== undefined) clearTimeout(timeoutId); throw err; },
   );
-  return Promise.race([promise, timeout]) as Promise<T>;
 }
 
 export const maskEmail = (email: string): string => {
@@ -106,6 +110,7 @@ export const maskSensitiveData = (
   const SENSITIVE_KEYS = new Set([
     'password', 'senha', 'secret', 'token', 'api_key', 'apikey', 'api-key',
     'access_token', 'refresh_token', 'private_key', 'auth_token',
+    'authorization', 'x-api-key', 'x-auth-token', 'x-access-token', 'bearer',
   ]);
   const PARTIAL_KEYS = new Set(['email', 'e-mail', 'e_mail']);
   const LONG_TOKEN_PATTERN = /^[A-Za-z0-9+/=._-]{40,}$/;
@@ -167,7 +172,10 @@ async function executeSingle<T>(
   table: string,
   callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
 ): Promise<SafeResponse<T>> {
-  return executeQuery<T>('single', table, callback);
+  return executeQuery<T>('single', table, (q) => {
+    const query = callback(q) as any;
+    return typeof query.single === 'function' ? query.single() : query;
+  });
 }
 
 async function executeFrom<T>(
