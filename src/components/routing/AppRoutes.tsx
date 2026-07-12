@@ -208,7 +208,7 @@ export function AppRoutes() {
           <Route
             path="/debug/realtime-fanout"
             element={
-              <ProtectedRoute requiredRoles={['dev', 'admin']}>
+              <ProtectedRoute requiredRoles={['admin', 'dev']}>
                 <RealtimeFanoutDebug />
               </ProtectedRoute>
             }
