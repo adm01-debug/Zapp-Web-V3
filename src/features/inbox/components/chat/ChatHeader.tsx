@@ -92,7 +92,7 @@ interface ChatHeaderProps {
   onSpeedChange: (speed: number) => void;
   onBack?: () => void;
   onCloseConversation?: () => void;
-  onGenerateSummary?: (tool?: any) => void;
+  onGenerateSummary?: (tool?: string) => void;
   failuresOnly?: boolean;
   onToggleFailuresOnly?: () => void;
   failuresCount?: number;

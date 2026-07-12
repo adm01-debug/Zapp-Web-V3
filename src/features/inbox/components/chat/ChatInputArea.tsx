@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useEffect, useRef } from 'react';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
@@ -42,6 +41,14 @@ interface QuickReplyItem {
   shortcut: string;
   content: string;
   category: string;
+}
+
+interface QueueItem {
+  id: string;
+  status: 'sending' | 'failed' | 'confirmed' | 'pending';
+  progress?: number;
+  error?: { message?: string } | Error;
+  attempts?: Array<{ duration?: number }>;
 }
 
 interface ChatInputAreaProps {
@@ -92,7 +99,7 @@ interface ChatInputAreaProps {
   fileUploaderRef: React.RefObject<FileUploaderRef | null>;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   onOpenTeamFiles?: () => void;
-  queue?: any[];
+  queue?: QueueItem[];
   onRetry?: (id: string) => void;
   onRemoveFromQueue?: (id: string) => void;
 }
@@ -267,7 +274,11 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                   className="group relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted"
                 >
                   {att.preview ? (
-                    <img src={att.preview} alt="Pré-visualização do anexo" className="h-full w-full object-cover" />
+                    <img
+                      src={att.preview}
+                      alt="Pré-visualização do anexo"
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <div className="flex flex-col items-center gap-1 p-1 text-muted-foreground">
                       {att.category === 'video' ? (
@@ -310,7 +321,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
             exit={{ opacity: 0, height: 0 }}
             className="border-t border-primary/10 bg-primary/5 px-4 py-1.5"
           >
-            {props.queue?.map((item: any) => (
+            {props.queue?.map((item: QueueItem) => (
               <div key={item.id} className="group mb-2 last:mb-0">
                 <div className="mb-1 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -354,7 +365,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                       <div className="flex gap-2">
                         <button
                           onClick={() => props.onRetry?.(item.id)}
-                          className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary-accessible transition-colors hover:text-primary"
+                          className="text-primary-accessible rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black transition-colors hover:text-primary"
                         >
                           Tentar novamente
                         </button>
