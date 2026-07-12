@@ -64,6 +64,22 @@ const EMOJI_CATEGORIES = [
 ];
 
 // ============================================================================
+// Utility: Timeout wrapper for API calls (P0-FIX-004)
+// ============================================================================
+
+async function callAiWithTimeout<T>(
+  fn: () => Promise<T>,
+  timeoutMs: number = 30_000,
+): Promise<T> {
+  return Promise.race([
+    fn(),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`API call timeout after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
+}
+
+// ============================================================================
 // Handlers for each AI action
 // ============================================================================
 
@@ -136,17 +152,18 @@ Foque em:
 - Identificar riscos (churn, rompimento com fornecedor, turnover)
 - Sugerir ações concretas e mensuráveis`;
 
-  const { response, data } = await callAiWithTracking({
-    functionName: 'ai-router',
-    userId,
-    apiKey: lovableApiKey,
-    body: {
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Conversa com ${contactName || 'Cliente'}:\n\n${conversationText}` }
-      ],
-      tools: [
+  const { response, data } = await callAiWithTimeout(
+    () => callAiWithTracking({
+      functionName: 'ai-router',
+      userId,
+      apiKey: lovableApiKey,
+      body: {
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Conversa com ${contactName || 'Cliente'}:\n\n${conversationText}` }
+        ],
+        tools: [
         {
           type: "function",
           function: {
@@ -177,7 +194,9 @@ Foque em:
       ],
       tool_choice: { type: "function", function: { name: "generate_analysis" } }
     },
-  });
+    }),
+    30_000
+  );
 
   if (!response.ok || !data) {
     if (response.status === 429) return errorResponse("Rate limit exceeded", 429, req);
@@ -284,25 +303,28 @@ async function handleEnhanceMessage(
 
   log.info("Enhancing message", { tone, len: message.length, hasContactName: !!firstName });
 
-  const { response, data } = await callAiWithTracking({
-    functionName: 'ai-router',
-    userId,
-    apiKey: lovableApiKey,
-    body: {
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        {
-          role: 'system',
-          content: `${systemPrompt}${humanizationRule}`,
-        },
-        {
-          role: 'user',
-          content: `Reescreva esta mensagem:\n\n"${message}"`,
-        }
-      ],
-      temperature: 0.7,
-    },
-  });
+  const { response, data } = await callAiWithTimeout(
+    () => callAiWithTracking({
+      functionName: 'ai-router',
+      userId,
+      apiKey: lovableApiKey,
+      body: {
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          {
+            role: 'system',
+            content: `${systemPrompt}${humanizationRule}`,
+          },
+          {
+            role: 'user',
+            content: `Reescreva esta mensagem:\n\n"${message}"`,
+          }
+        ],
+        temperature: 0.7,
+      },
+    }),
+    30_000
+  );
 
   if (!response.ok || !data) {
     if (response.status === 429) return errorResponse("Limite de requisições excedido. Tente novamente.", 429, req);
@@ -359,20 +381,23 @@ Categorias: ${EMOJI_CATEGORIES.join(', ')}`;
     text: prompt,
   });
 
-  const { response, data } = await callAiWithTracking({
-    functionName: 'ai-router',
-    userId,
-    apiKey: lovableApiKey,
-    body: {
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        {
-          role: 'user',
-          content: contentParts,
-        }
-      ],
-    },
-  });
+  const { response, data } = await callAiWithTimeout(
+    () => callAiWithTracking({
+      functionName: 'ai-router',
+      userId,
+      apiKey: lovableApiKey,
+      body: {
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          {
+            role: 'user',
+            content: contentParts,
+          }
+        ],
+      },
+    }),
+    15_000
+  );
 
   if (!response.ok || !data) {
     log.error("Classify emoji error", { status: response.status });
@@ -439,16 +464,17 @@ async function handleAutoTag(
 
   log.info("Classifying conversation", { contactId: validContactId, msgCount: conversationMessages.length });
 
-  const { response, data } = await callAiWithTracking({
-    functionName: 'ai-router',
-    userId,
-    apiKey: lovableApiKey,
-    body: {
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        {
-          role: "system",
-          content: `Você é um classificador avançado de conversas de atendimento ao cliente. Analise a conversa e retorne classificação completa.
+  const { response, data } = await callAiWithTimeout(
+    () => callAiWithTracking({
+      functionName: 'ai-router',
+      userId,
+      apiKey: lovableApiKey,
+      body: {
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: `Você é um classificador avançado de conversas de atendimento ao cliente. Analise a conversa e retorne classificação completa.
 
 Categorias possíveis: suporte_tecnico, vendas, financeiro, reclamacao, elogio, duvida, urgente, cancelamento, troca, entrega, pagamento, produto, servico, feedback, agendamento, orcamento
 
@@ -467,12 +493,14 @@ Responda APENAS em JSON:
   "requires_immediate_attention": false,
   "escalation_reason": null
 }`
-        },
-        { role: "user", content: conversationText }
-      ],
-      temperature: 0.3,
-    },
-  });
+          },
+          { role: "user", content: conversationText }
+        ],
+        temperature: 0.3,
+      },
+    }),
+    30_000
+  );
 
   if (!response.ok || !data) {
     if (response.status === 429) return errorResponse("Rate limit exceeded", 429, req);
@@ -665,19 +693,22 @@ ${knowledgeContext}`;
     .map((msg: any) => `${msg.role === 'user' ? (contactName || 'Cliente') : 'Você'}: ${msg.content}`)
     .join('\n');
 
-  const { response, data } = await callAiWithTracking({
-    functionName: 'ai-router',
-    userId,
-    apiKey: lovableApiKey,
-    body: {
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Conversa:\n${conversationText}\n\nGere 3 sugestões de resposta concisas e naturais.` }
-      ],
-      temperature: 0.7,
-    },
-  });
+  const { response, data } = await callAiWithTimeout(
+    () => callAiWithTracking({
+      functionName: 'ai-router',
+      userId,
+      apiKey: lovableApiKey,
+      body: {
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Conversa:\n${conversationText}\n\nGere 3 sugestões de resposta concisas e naturais.` }
+        ],
+        temperature: 0.7,
+      },
+    }),
+    30_000
+  );
 
   if (!response.ok || !data) {
     if (response.status === 429) return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
@@ -810,15 +841,18 @@ Responda APENAS em JSON: {"category": "categoria_aqui", "confidence": 0.95, "des
   contentParts.push({ type: 'text', text: prompt });
 
   try {
-    const { response, data } = await callAiWithTracking({
-      functionName: 'ai-router',
-      userId,
-      apiKey: lovableApiKey,
-      body: {
-        model: 'google/gemini-3-flash-preview',
-        messages: [{ role: 'user', content: contentParts }],
-      },
-    });
+    const { response, data } = await callAiWithTimeout(
+      () => callAiWithTracking({
+        functionName: 'ai-router',
+        userId,
+        apiKey: lovableApiKey,
+        body: {
+          model: 'google/gemini-3-flash-preview',
+          messages: [{ role: 'user', content: contentParts }],
+        },
+      }),
+      15_000
+    );
 
     if (!response.ok || !data) {
       log.error("Classify sticker error", { status: response.status });
@@ -871,19 +905,22 @@ async function handleConversationAnalysis(
 
 Responda APENAS em JSON com essas chaves.`;
 
-  const { response, data } = await callAiWithTracking({
-    functionName: 'ai-router',
-    userId,
-    apiKey: lovableApiKey,
-    body: {
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: conversationText }
-      ],
-      temperature: 0.3,
-    },
-  });
+  const { response, data } = await callAiWithTimeout(
+    () => callAiWithTracking({
+      functionName: 'ai-router',
+      userId,
+      apiKey: lovableApiKey,
+      body: {
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: conversationText }
+        ],
+        temperature: 0.3,
+      },
+    }),
+    30_000
+  );
 
   if (!response.ok || !data) {
     log.error("Conversation analysis error", { status: response.status });
@@ -949,15 +986,18 @@ Responda APENAS com o texto transcrito, sem explicações.`;
   ];
 
   try {
-    const { response, data } = await callAiWithTracking({
-      functionName: 'ai-router',
-      userId,
-      apiKey: lovableApiKey,
-      body: {
-        model: 'google/gemini-3-flash-preview',
-        messages: [{ role: 'user', content: contentParts }],
-      },
-    });
+    const { response, data } = await callAiWithTimeout(
+      () => callAiWithTracking({
+        functionName: 'ai-router',
+        userId,
+        apiKey: lovableApiKey,
+        body: {
+          model: 'google/gemini-3-flash-preview',
+          messages: [{ role: 'user', content: contentParts }],
+        },
+      }),
+      60_000
+    );
 
     if (!response.ok || !data) {
       log.error("Transcribe error", { status: response.status });
@@ -985,9 +1025,32 @@ Deno.serve(async (req) => {
   const log = new Logger("ai-router");
 
   try {
+    // P0-FIX-001: Rate limit BEFORE authentication to prevent brute force
+    const clientIP = getClientIP(req);
+    const { allowed: globalRateLimited } = checkRateLimit(`router:global:${clientIP}`, 50, 60_000);
+    if (!globalRateLimited) return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
+
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
     const userId = authed.user.id;
+
+    // P0-FIX-002: Validate JWT algorithm to prevent algorithm confusion attacks
+    const authHeader = req.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) throw new Error('Invalid JWT format');
+        const header = JSON.parse(atob(parts[0]));
+        if (header.alg !== 'HS256' && header.alg !== 'RS256') {
+          log.warn('JWT with unexpected algorithm', { alg: header.alg });
+          return errorResponse('Invalid authentication', 401, req);
+        }
+      } catch (e) {
+        log.warn('JWT validation failed', { error: e instanceof Error ? e.message : String(e) });
+        return errorResponse('Invalid authentication', 401, req);
+      }
+    }
 
     const body = await req.json();
     const { action } = body as AiRouterRequest;
