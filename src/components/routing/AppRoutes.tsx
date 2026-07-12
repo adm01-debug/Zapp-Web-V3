@@ -194,10 +194,12 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          {/* FIX P0: /debug/send-status-bus had no role gate — restricted to
+              admin/dev roles, consistent with /debug/backend and /debug/realtime-fanout. */}
           <Route
             path="/debug/send-status-bus"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={['admin', 'dev']}>
                 <SendStatusBusDebug />
               </ProtectedRoute>
             }
