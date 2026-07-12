@@ -11,10 +11,10 @@ export interface AgentProfile {
   job_title: string | null;
   department: string | null;
   phone: string | null;
-  is_active: boolean | null;
-  max_chats: number | null;
-  created_at: string;
-  updated_at: string;
+  is_active: boolean;
+  max_chats: number;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export const agentRepository = {
