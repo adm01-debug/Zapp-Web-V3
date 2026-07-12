@@ -27,7 +27,8 @@ export function useAutomations() {
       const { data, error } = await supabase
         .from('automations')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as AutomationRow[];
     },

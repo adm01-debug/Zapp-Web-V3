@@ -21,6 +21,7 @@ export function useTeamConversations() {
         .from('team_conversations')
         .select('*')
         .order('updated_at', { ascending: false })
+        .order('id', { ascending: false })
         .range(0, PAGE - 1);
       if (convErr) throw convErr;
       const conversations = firstConvPage ?? [];
@@ -30,6 +31,7 @@ export function useTeamConversations() {
           .from('team_conversations')
           .select('*')
           .order('updated_at', { ascending: false })
+          .order('id', { ascending: false })
           .range(convFrom, convFrom + PAGE - 1);
         if (error) throw error;
         if (!page || page.length === 0) break;

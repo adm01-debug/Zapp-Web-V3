@@ -11,6 +11,7 @@ export function useEmailHealth() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const mountedRef = useRef(true);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -20,6 +21,8 @@ export function useEmailHealth() {
   }, []);
 
   const loadHealth = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setIsLoading(true);
     try {
       const data = await emailHealthService.getHealthStatus();
@@ -27,6 +30,7 @@ export function useEmailHealth() {
     } catch (err) {
       log.error('Email health load error', err);
     } finally {
+      loadingRef.current = false;
       if (mountedRef.current) setIsLoading(false);
     }
   }, []);

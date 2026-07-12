@@ -40,6 +40,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         .eq('remote_jid', remoteJid)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(limit);
       if (err) throw err;
       // ordenar ascendente para UI tipo chat

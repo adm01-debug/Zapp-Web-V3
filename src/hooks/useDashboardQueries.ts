@@ -30,7 +30,8 @@ export const useContactsQuery = (filters: DashboardFilters) =>
     queryFn: async () => {
       let query = dbFrom('contacts')
         .select('id, name, phone, avatar_url, queue_id, assigned_to, created_at, updated_at', { count: 'exact' })
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .order('id', { ascending: false });
       if (filters.queueId) query = query.eq('queue_id', filters.queueId);
       if (filters.agentId) query = query.eq('assigned_to', filters.agentId);
       if (filters.dateRange?.from) query = query.gte('updated_at', filters.dateRange.from.toISOString());

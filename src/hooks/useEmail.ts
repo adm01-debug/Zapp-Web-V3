@@ -327,8 +327,8 @@ export function useEmail() {
         if (!fnErr && data?.success) {
           await checkTokenStatus();
         }
-      } catch {
-        // Watch renewal é best-effort
+      } catch (err) {
+        log.warn('Watch renewal failed (best-effort)', err);
       }
     },
     [activeAccountId, checkTokenStatus]
@@ -580,7 +580,8 @@ export function useEmail() {
         let closed = false;
         try {
           closed = popup.closed;
-        } catch {
+        } catch (err) {
+          log.debug('popup.closed blocked by COOP — skipping this tick', err);
           closed = false;
         }
         if (closed) {

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type {
   FeedbackType,
@@ -18,6 +18,13 @@ export type { FeedbackType, FeedbackOptions, WithFeedbackOptions, UndoableOption
 export function useActionFeedback() {
   const { toast } = useToast();
   const activeToasts = useRef<Map<string, { dismiss: () => void }>>(new Map());
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
 
   const showFeedback = useCallback(
     (type: FeedbackType, options: FeedbackOptions) => {
@@ -118,7 +125,8 @@ export function useActionFeedback() {
             },
           },
         });
-        timeoutId = setTimeout(async () => {
+        undoTimerRef.current = timeoutId = setTimeout(async () => {
+          undoTimerRef.current = null;
           if (!undone) {
             try {
               const r = await action();

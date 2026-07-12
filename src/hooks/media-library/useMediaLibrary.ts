@@ -108,7 +108,8 @@ export function extractStoragePath(
       }
     }
     return null;
-  } catch {
+  } catch (err) {
+    log.warn('extractStoragePath: invalid URL', url, err);
     return null;
   }
 }
@@ -315,7 +316,8 @@ export function useMediaLibrary(type: MediaType) {
             updated++;
           } else errors++;
         }
-      } catch {
+      } catch (err) {
+        log.error('AI reclassify failed for item', item.id, err);
         errors++;
       }
     }

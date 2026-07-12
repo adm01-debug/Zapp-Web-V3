@@ -42,8 +42,9 @@ export function useConnectionAlertsPush() {
                 tag: `conn-${(n.metadata as any)?.connection_id ?? 'unknown'}`,
                 requireInteraction: (n.metadata as any)?.reason === 'disconnected',
               });
-            } catch {
-              /* ignore */
+            } catch (err) {
+              // Notification constructor can throw if permission revoked mid-session
+              if (process.env.NODE_ENV !== 'production') console.debug('[useConnectionAlertsPush] push notification failed:', err);
             }
           }
         )

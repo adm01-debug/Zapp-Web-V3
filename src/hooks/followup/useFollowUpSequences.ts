@@ -35,7 +35,8 @@ export function useFollowUpSequences() {
       const { data, error } = await supabase
         .from('followup_sequences')
         .select('id, name, is_active, trigger_event, followup_steps(id, step_order, delay_hours)')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as FollowUpSequence[];
     },

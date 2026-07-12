@@ -101,7 +101,8 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
   useEffect(() => {
     if (open) {
       void fetchStickers();
-      setTimeout(() => searchInputRef.current?.focus(), 100);
+      const t = setTimeout(() => searchInputRef.current?.focus(), 100);
+      return () => clearTimeout(t);
     }
   }, [open, fetchStickers]);
 
