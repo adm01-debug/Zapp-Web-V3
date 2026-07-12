@@ -584,4 +584,19 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
     console.error('[external-db-proxy] query exception', { schema, table, message: error instanceof Error ? error.message : String(error), cid });
     return jsonResponse(req, { error: "Database operation failed", cid, rid, data: [], count: 0 }, 500);
   }
+}
+
+Deno.serve(async (req) => {
+  const _t0 = Date.now();
+  try {
+    const res = await handleRequest(req, _t0);
+    inc("proxy_requests_total", { method: req.method, status: res.status });
+    observeMs("proxy_request_duration_ms", Date.now() - _t0, { outcome: res.status < 400 ? "ok" : "error" });
+    return res;
+  } catch (err) {
+    inc("proxy_requests_total", { method: req.method, status: 500 });
+    observeMs("proxy_request_duration_ms", Date.now() - _t0, { outcome: "exception" });
+    console.error("[external-db-proxy] unhandled", err instanceof Error ? err.message : String(err));
+    throw err;
+  }
 });
