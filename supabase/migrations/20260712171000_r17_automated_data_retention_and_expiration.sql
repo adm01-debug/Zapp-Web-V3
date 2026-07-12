@@ -91,7 +91,7 @@ END $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Execute Single Retention Policy Safely
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_execute_retention_policy(
+CREATE OR REPLACE FUNCTION public.fn_execute_retention_policy(
   p_policy_id BIGINT,
   p_batch_size INT DEFAULT 5000
 )
@@ -197,7 +197,7 @@ GRANT EXECUTE ON FUNCTION fn_execute_retention_policy(BIGINT, INT) TO service_ro
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. Execute All Active Retention Policies
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_execute_all_retention_policies()
+CREATE OR REPLACE FUNCTION public.fn_execute_all_retention_policies()
 RETURNS TABLE (
   policy_name TEXT,
   rows_deleted BIGINT,
@@ -251,7 +251,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6. Compliance Attestation: Verify retention policies are working
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_verify_retention_compliance()
+CREATE OR REPLACE FUNCTION public.fn_verify_retention_compliance()
 RETURNS TABLE (
   policy_name TEXT,
   schema_name TEXT,

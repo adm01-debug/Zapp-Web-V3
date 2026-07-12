@@ -105,7 +105,7 @@ CREATE INDEX IF NOT EXISTS idx_mfa_challenges_user_pending
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Generate Recovery Codes (batch of 16 codes)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_generate_recovery_codes(p_user_id UUID)
+CREATE OR REPLACE FUNCTION public.fn_generate_recovery_codes(p_user_id UUID)
 RETURNS TABLE (recovery_code TEXT)
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path = 'public'
@@ -137,7 +137,7 @@ GRANT EXECUTE ON FUNCTION fn_generate_recovery_codes(UUID) TO service_role;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6. Validate Recovery Code
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_validate_recovery_code(
+CREATE OR REPLACE FUNCTION public.fn_validate_recovery_code(
   p_user_id UUID,
   p_code TEXT
 )
@@ -181,7 +181,7 @@ GRANT EXECUTE ON FUNCTION fn_validate_recovery_code(UUID, TEXT) TO service_role;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 7. Check MFA Compliance Status
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_check_mfa_compliance(p_user_id UUID)
+CREATE OR REPLACE FUNCTION public.fn_check_mfa_compliance(p_user_id UUID)
 RETURNS TABLE (
   is_compliant BOOLEAN,
   methods_enabled INT,

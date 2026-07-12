@@ -83,7 +83,7 @@ END $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Determine User's Complexity Class
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_get_user_complexity_class()
+CREATE OR REPLACE FUNCTION public.fn_get_user_complexity_class()
 RETURNS TEXT
 LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path = 'public'
@@ -120,7 +120,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. Validate Query Plan Cost (before execution)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_validate_query_plan_cost(
+CREATE OR REPLACE FUNCTION public.fn_validate_query_plan_cost(
   p_query TEXT,
   p_complexity_class TEXT DEFAULT NULL
 )
@@ -194,7 +194,7 @@ GRANT EXECUTE ON FUNCTION fn_validate_query_plan_cost(TEXT, TEXT) TO service_rol
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Apply Resource Limits per User Class
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_apply_query_resource_limits(
+CREATE OR REPLACE FUNCTION public.fn_apply_query_resource_limits(
   p_complexity_class TEXT DEFAULT NULL
 )
 RETURNS TABLE (
@@ -242,7 +242,7 @@ GRANT EXECUTE ON FUNCTION fn_apply_query_resource_limits(TEXT) TO service_role;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6. Log Query Complexity Violations
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_log_query_violation(
+CREATE OR REPLACE FUNCTION public.fn_log_query_violation(
   p_user_id UUID,
   p_complexity_class TEXT,
   p_query_text TEXT,
@@ -328,7 +328,7 @@ GRANT SELECT ON VIEW public.v_query_complexity_summary TO service_role;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 8. Recursive CTE Depth Limiter (prevent billion-row generation)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_validate_cte_safety(p_query TEXT)
+CREATE OR REPLACE FUNCTION public.fn_validate_cte_safety(p_query TEXT)
 RETURNS TABLE (
   is_safe BOOLEAN,
   issue TEXT

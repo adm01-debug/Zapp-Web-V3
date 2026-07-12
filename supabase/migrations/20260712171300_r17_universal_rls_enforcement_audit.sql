@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.rls_enforcement_registry (
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. Audit RLS Status of All Tables
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_audit_rls_status()
+CREATE OR REPLACE FUNCTION public.fn_audit_rls_status()
 RETURNS TABLE (
   schema_name TEXT,
   table_name TEXT,

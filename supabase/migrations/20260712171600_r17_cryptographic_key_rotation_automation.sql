@@ -56,7 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_key_rotation_purpose
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Check if Key Rotation is Due
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_is_key_rotation_due(
+CREATE OR REPLACE FUNCTION public.fn_is_key_rotation_due(
   p_key_purpose TEXT
 )
 RETURNS TABLE (
@@ -99,7 +99,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. Execute Key Rotation (create new key, mark old as inactive)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_rotate_key(
+CREATE OR REPLACE FUNCTION public.fn_rotate_key(
   p_key_purpose TEXT,
   p_new_vault_key_id UUID
 )
@@ -178,7 +178,7 @@ GRANT EXECUTE ON FUNCTION fn_rotate_key(TEXT, UUID) TO service_role;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Schedule Automated Key Rotation Checks
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_check_and_alert_overdue_rotations()
+CREATE OR REPLACE FUNCTION public.fn_check_and_alert_overdue_rotations()
 RETURNS TABLE (
   key_purpose TEXT,
   days_overdue INT

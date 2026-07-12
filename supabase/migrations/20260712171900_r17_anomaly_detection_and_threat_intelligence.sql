@@ -88,7 +88,7 @@ ON CONFLICT (rule_name) DO NOTHING;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. Calculate Threat Score
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_calculate_threat_score(
+CREATE OR REPLACE FUNCTION public.fn_calculate_threat_score(
   p_user_id UUID,
   p_threat_type TEXT,
   p_indicators JSONB
@@ -128,7 +128,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Record Threat Intelligence Event
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_record_threat_event(
+CREATE OR REPLACE FUNCTION public.fn_record_threat_event(
   p_user_id UUID,
   p_threat_type TEXT,
   p_indicators JSONB,
@@ -176,7 +176,7 @@ GRANT EXECUTE ON FUNCTION fn_record_threat_event(UUID, TEXT, JSONB, INET) TO ser
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6. Learn Baseline (Update anomaly detection baseline)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_learn_baseline(
+CREATE OR REPLACE FUNCTION public.fn_learn_baseline(
   p_user_id UUID,
   p_metric_name TEXT,
   p_value NUMERIC
@@ -223,7 +223,7 @@ GRANT EXECUTE ON FUNCTION fn_learn_baseline(UUID, TEXT, NUMERIC) TO service_role
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 7. Detect Anomaly
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_detect_anomaly(
+CREATE OR REPLACE FUNCTION public.fn_detect_anomaly(
   p_user_id UUID,
   p_metric_name TEXT,
   p_value NUMERIC

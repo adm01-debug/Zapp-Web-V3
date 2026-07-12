@@ -129,7 +129,7 @@ END $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. Resolve Endpoint to Configuration
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_resolve_endpoint_config(p_endpoint_path TEXT)
+CREATE OR REPLACE FUNCTION public.fn_resolve_endpoint_config(p_endpoint_path TEXT)
 RETURNS TABLE (
   endpoint_id BIGINT,
   endpoint_pattern TEXT,
@@ -169,7 +169,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Check Rate Limit for Endpoint (per-user, per-endpoint)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_check_endpoint_rate_limit(
+CREATE OR REPLACE FUNCTION public.fn_check_endpoint_rate_limit(
   p_user_id UUID,
   p_endpoint_path TEXT,
   p_ip_address INET DEFAULT NULL
@@ -314,7 +314,7 @@ GRANT SELECT ON VIEW public.v_rate_limit_violations_summary TO service_role;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 8. Cleanup Stale Rate Limit Counters (schedule via pg_cron)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_cleanup_stale_rate_limit_counters()
+CREATE OR REPLACE FUNCTION public.fn_cleanup_stale_rate_limit_counters()
 RETURNS INT
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path = 'public'

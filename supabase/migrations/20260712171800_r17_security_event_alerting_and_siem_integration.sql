@@ -99,7 +99,7 @@ CREATE INDEX IF NOT EXISTS idx_webhook_subs_active
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. Trigger Security Alert
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_trigger_security_alert(
+CREATE OR REPLACE FUNCTION public.fn_trigger_security_alert(
   p_rule_id BIGINT,
   p_event_type TEXT,
   p_event_details JSONB,
@@ -152,7 +152,7 @@ GRANT EXECUTE ON FUNCTION fn_trigger_security_alert(BIGINT, TEXT, JSONB, UUID) T
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Acknowledge Alert Incident
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_acknowledge_alert_incident(
+CREATE OR REPLACE FUNCTION public.fn_acknowledge_alert_incident(
   p_incident_id BIGINT,
   p_acknowledged_by UUID
 )
@@ -178,7 +178,7 @@ GRANT EXECUTE ON FUNCTION fn_acknowledge_alert_incident(BIGINT, UUID) TO service
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 6. Resolve Alert Incident
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_resolve_alert_incident(
+CREATE OR REPLACE FUNCTION public.fn_resolve_alert_incident(
   p_incident_id BIGINT,
   p_resolved_by UUID
 )

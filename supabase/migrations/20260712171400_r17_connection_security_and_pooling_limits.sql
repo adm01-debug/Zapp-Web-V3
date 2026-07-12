@@ -41,7 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_active_conn_role_time
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Monitor Connection Pool Health
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_monitor_connection_health()
+CREATE OR REPLACE FUNCTION public.fn_monitor_connection_health()
 RETURNS TABLE (
   role_name TEXT,
   current_connections INT,
@@ -72,7 +72,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. Force Idle Session Cleanup
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_cleanup_idle_sessions()
+CREATE OR REPLACE FUNCTION public.fn_cleanup_idle_sessions()
 RETURNS INT
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path = 'public'

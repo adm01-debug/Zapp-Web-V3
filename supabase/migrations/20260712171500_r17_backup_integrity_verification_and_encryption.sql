@@ -33,7 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_backup_timestamp
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 2. Verify Backup Integrity (SHA-256 hash validation)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_verify_backup_integrity(
+CREATE OR REPLACE FUNCTION public.fn_verify_backup_integrity(
   p_backup_id TEXT
 )
 RETURNS TABLE (
@@ -87,7 +87,7 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Automated Restore Testing (schedule weekly)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION fn_test_backup_restore(
+CREATE OR REPLACE FUNCTION public.fn_test_backup_restore(
   p_backup_id TEXT,
   p_test_db_name TEXT DEFAULT 'test_restore_db'
 )
