@@ -534,22 +534,52 @@ Responda APENAS em JSON:
     throw new Error(`AI error: ${response.status}`);
   }
 
+  // P2-FIX-006: Strict JSON schema validation to prevent prompt injection
   const content = (data.choices as any)?.[0]?.message?.content;
+
+  const AutoTagResponseSchema = z.object({
+    tags: z.array(z.object({
+      name: z.string().min(1).max(100),
+      confidence: z.number().min(0).max(1),
+    })).default([]),
+    sentiment: z.enum(['positive', 'neutral', 'negative', 'critical']).default('neutral'),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+    priority_reason: z.string().max(500).optional(),
+    summary: z.string().max(500).default(''),
+    suggested_queue_id: z.string().uuid().nullable().optional(),
+    suggested_queue_reason: z.string().max(500).optional(),
+    customer_intent: z.string().max(500).optional(),
+    requires_immediate_attention: z.boolean().default(false),
+    escalation_reason: z.string().max(500).nullable().optional(),
+  });
 
   let result;
   try {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    result = jsonMatch ? JSON.parse(jsonMatch[0]) : { tags: [], sentiment: 'neutral', summary: '', priority: 'normal' };
-  } catch {
-    result = { tags: [], sentiment: 'neutral', summary: '', priority: 'normal' };
-  }
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
-  if (result.suggested_queue_id && !isValidUUID(result.suggested_queue_id)) {
-    result.suggested_queue_id = null;
-  }
-  const validQueueIds = new Set((queues ?? []).map((q: any) => q.id));
-  if (result.suggested_queue_id && !validQueueIds.has(result.suggested_queue_id)) {
-    result.suggested_queue_id = null;
+    // Validate against schema - rejects unexpected fields and invalid types
+    result = AutoTagResponseSchema.parse(parsed);
+
+    // Additional validation: verify queue_id exists in system
+    if (result.suggested_queue_id) {
+      const validQueueIds = new Set((queues ?? []).map((q: any) => q.id));
+      if (!validQueueIds.has(result.suggested_queue_id)) {
+        result.suggested_queue_id = null;
+      }
+    }
+  } catch (e) {
+    log.warn('AI response failed schema validation, using defaults', {
+      error: e instanceof Error ? e.message : String(e),
+      raw: content?.substring(0, 200),
+    });
+    result = {
+      tags: [],
+      sentiment: 'neutral' as const,
+      priority: 'normal' as const,
+      summary: '',
+      requires_immediate_attention: false,
+    };
   }
 
   // P0-FIX-003: Atomic tag upsert/delete using database transaction
