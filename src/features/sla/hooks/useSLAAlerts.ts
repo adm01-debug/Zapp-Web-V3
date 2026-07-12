@@ -75,23 +75,27 @@ function alreadyFiredLocal(key: string): boolean {
   return key in store;
 }
 
-function markFiredLocal(key: string): void {
+/** `firedAt` opcional: usado na hidratação a partir do banco, para preservar
+ *  o horário REAL do disparo em vez de resetar o relógio do TTL para agora
+ *  (sem isso, um alerta descoberto perto do fim da janela de 24h ganhava
+ *  mais 24h completas de supressão local — quase 48h no total). */
+function markFiredLocal(key: string, firedAt: number = Date.now()): void {
   const store = readDedupeStore();
-  store[key] = Date.now();
+  store[key] = firedAt;
   writeDedupeStore(store);
 }
 
 /**
  * Persistent dedupe: checks `conversation_events` (event_type='sla_alert') for a previous
- * record with same kind+severity. Returns true if already fired (so we should skip).
- *
- * Best-effort: on query error we DO NOT block the alert — fail-open keeps the operator informed.
+ * record with same kind+severity dentro da janela de TTL. Retorna o `created_at` (ms) do
+ * registro encontrado, ou `null` se não disparou nessa janela (ou em caso de erro —
+ * fail-open, não bloqueia o alerta).
  */
 async function alreadyFiredPersistent(
   contactId: string,
   kind: AlertKind,
   severity: AlertSeverity
-): Promise<boolean> {
+): Promise<number | null> {
   try {
     // Mesma janela do layer de localStorage (LOCAL_TTL_MS): sem este filtro,
     // um alerta que já disparou uma vez para este contato nunca mais dispararia,
@@ -99,17 +103,18 @@ async function alreadyFiredPersistent(
     const since = new Date(Date.now() - LOCAL_TTL_MS).toISOString();
     const { data, error } = await supabase
       .from('conversation_events')
-      .select('id')
+      .select('created_at')
       .eq('contact_id', contactId)
       .eq('event_type', 'sla_alert')
       .contains('metadata', { kind, severity })
       .gte('created_at', since)
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (error) return false;
-    return !!data;
+    if (error || !data) return null;
+    return new Date(data.created_at).getTime();
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -127,7 +132,11 @@ async function alreadyFiredPersistent(
  * Respeita escopo `'none'` — não dispara.
  */
 export function useSLAAlerts(params: SLAAlertParams) {
-  const firedRef = useRef<Set<string>>(new Set());
+  // Map (não Set): guarda o horário do disparo para expirar após LOCAL_TTL_MS,
+  // igual ao layer de localStorage. Um Set nunca expira — numa aba de inbox
+  // aberta por dias, um alerta ficaria suprimido para sempre após o 1º disparo,
+  // mesmo que o SLA violasse de novo num ciclo totalmente novo.
+  const firedRef = useRef<Map<string, number>>(new Map());
   const inflightRef = useRef<Set<string>>(new Set());
   const { preferences } = useSLAAlertPreferences();
   // Removed redundant assignment using direct params access
@@ -151,13 +160,16 @@ export function useSLAAlerts(params: SLAAlertParams) {
       if (!kindEnabled || !severityEnabled) return;
 
       const key = dedupeKey(contactId, kind, severity);
+      const firedAt = firedRef.current.get(key);
+      const inMemoryFresh = firedAt !== undefined && Date.now() - firedAt < LOCAL_TTL_MS;
 
-      // Layer 1: in-memory (sync) — prevents re-entry from rapid effect runs.
-      if (firedRef.current.has(key) || inflightRef.current.has(key)) return;
+      // Layer 1: in-memory (sync) — prevents re-entry from rapid effect runs. Expira
+      // após LOCAL_TTL_MS, senão uma aba de inbox aberta há dias suprime para sempre.
+      if (inMemoryFresh || inflightRef.current.has(key)) return;
 
       // Layer 2: localStorage (sync, survives refresh) — instant skip without network round-trip.
       if (alreadyFiredLocal(key)) {
-        firedRef.current.add(key);
+        firedRef.current.set(key, Date.now());
         return;
       }
 
@@ -165,14 +177,16 @@ export function useSLAAlerts(params: SLAAlertParams) {
 
       try {
         // Layer 3: persistent (DB) — handles cross-device/cross-tab and recovers if localStorage was wiped.
-        const already = await alreadyFiredPersistent(contactId, kind, severity);
-        if (already) {
-          firedRef.current.add(key);
-          markFiredLocal(key); // hydrate localStorage so next refresh is instant
+        const persistedAt = await alreadyFiredPersistent(contactId, kind, severity);
+        if (persistedAt !== null) {
+          // Preserva o horário REAL do disparo (não Date.now()) — hidratar com o
+          // relógio zerado agora estenderia a supressão local por +24h completas.
+          firedRef.current.set(key, persistedAt);
+          markFiredLocal(key, persistedAt);
           return;
         }
 
-        firedRef.current.add(key);
+        firedRef.current.set(key, Date.now());
         markFiredLocal(key);
 
         const isBreach = severity === 'breached';

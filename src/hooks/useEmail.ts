@@ -508,6 +508,12 @@ export function useEmail() {
         return;
       }
 
+      // `state` emitido para este fluxo — validado no handler abaixo antes de
+      // trocar o code, para que uma mensagem postMessage forjada (de qualquer
+      // origem, já que o callback usa target '*') não consiga injetar o code
+      // de outra conta Google para ser vinculado ao usuário atual.
+      const expectedState = data.state as string | undefined;
+
       const popup = window.open(data.url, 'email_oauth', 'width=500,height=600,scrollbars=yes');
       if (!popup) {
         setError('Popup bloqueado. Permita popups para este site.');
@@ -542,10 +548,17 @@ export function useEmail() {
           return;
         }
         if (event.data?.type !== 'gmail-oauth-code') return;
+
+        const { code, state: returnedState } = event.data;
+        if (!expectedState || returnedState !== expectedState) {
+          // Não finaliza o fluxo (settled=false): uma mensagem forjada não deve
+          // encerrar a espera pela mensagem legítima do popup real.
+          log.warn('[gmail-oauth] state inválido no callback — mensagem ignorada');
+          return;
+        }
         settled = true;
         cleanupListeners();
 
-        const { code } = event.data;
         if (!code) {
           oauthInFlightRef.current = false;
           return;
