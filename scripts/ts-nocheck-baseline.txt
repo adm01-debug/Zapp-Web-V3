@@ -95,7 +95,6 @@ src/hooks/__tests__/useAuth.test.tsx
 src/hooks/__tests__/useExternalCatalog.test.ts
 src/hooks/__tests__/useMFA.test.tsx
 src/hooks/admin/useAdminQueues.ts
-src/hooks/admin/useHmacSelfTest.ts
 src/hooks/followup/useFollowUpSequences.ts
 src/hooks/integrations/useEvolutionApiIntegration.ts
 src/hooks/sla/useSLAScopeOptions.ts
@@ -124,14 +123,12 @@ src/hooks/useExternalDB.ts
 src/hooks/useExternalEvolution.ts
 src/hooks/useForwardMessage.ts
 src/hooks/useGmailLabels.ts
-src/hooks/useGmailOAuthFlow.ts
 src/hooks/useGoalsDashboard.ts
 src/hooks/useProviderPanel.ts
 src/hooks/useQueueSlaPanel.ts
 src/hooks/useQueuesComparison.ts
 src/hooks/useTags.ts
 src/hooks/useTalkX.ts
-src/hooks/useUserSettings.ts
 src/integrations/supabase/safeClient.ts
 src/integrations/zappweb/evolutionClient.ts
 src/lib/diagnostics.ts
