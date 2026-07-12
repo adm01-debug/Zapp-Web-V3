@@ -89,6 +89,21 @@ serve(async (req) => {
       );
     }
 
+    // Re-verify ownership before upsert using admin client — double-check that ownedConn.instance_name
+    // matches the requested instanceName to prevent RLS bypass via admin client upsert.
+    // This mitigates risk if RLS policies on evolution_contacts are weaker than expected.
+    if (ownedConn.instance_name !== instanceName) {
+      console.error('[contacts-import] instance_name mismatch after RLS check', {
+        user_id: user.id,
+        requested: instanceName,
+        verified: ownedConn.instance_name,
+      });
+      return new Response(
+        JSON.stringify({ error: 'Instance name mismatch — authorization revoked' }),
+        { status: 403, headers: JSON_CORS }
+      );
+    }
+
     let inserted = 0, skipped = 0;
     const errors: { row: number; error: string }[] = [];
     const startTime = Date.now();
@@ -109,7 +124,7 @@ serve(async (req) => {
           email: sanitize(row.email),
           company: sanitize(row.company ?? row.empresa),
           notes: sanitize(row.notes ?? row.notas),
-          tags, instance_name: instanceName,
+          tags, instance_name: ownedConn.instance_name,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
