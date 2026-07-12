@@ -332,22 +332,33 @@ Deno.serve(async (req) => {
   const rid = req.headers.get("x-request-id") || crypto.randomUUID();
   const start = Date.now();
 
-  let body: RequestBody;
+  let bodyRaw: unknown;
   try {
-    body = await req.json() as RequestBody;
+    bodyRaw = await req.json();
   } catch {
     return jsonResponse(req, { error: "Invalid JSON body", cid, rid }, 400);
   }
 
-  const requestedSchema = String(body.schema ?? "public");
-  const table = String(body.table ?? "");
-  const rpc = typeof body.rpc === "string" ? body.rpc : null;
-  const action = typeof body.action === "string" ? body.action : rpc ? "rpc" : table ? "select" : null;
+  if (!bodyRaw || typeof bodyRaw !== 'object' || Array.isArray(bodyRaw)) {
+    return jsonResponse(req, { error: "Invalid request body", cid, rid }, 400);
+  }
+
+  const body = bodyRaw as Record<string, unknown>;
+
+  const requestedSchema = typeof body.schema === 'string' && body.schema.length > 0 ? body.schema : 'public';
+  const table = typeof body.table === 'string' ? body.table : '';
+  const rpc = typeof body.rpc === 'string' ? body.rpc : null;
+  const action = typeof body.action === 'string' ? body.action : rpc ? 'rpc' : table ? 'select' : null;
 
   if (action === "rpc" && rpc) {
     if (!isSafeIdent(rpc)) return jsonResponse(req, { error: "Invalid rpc identifier", cid, rid }, 400);
 
-    const params = { ...(body.params ?? {}) };
+    let paramsObj: Record<string, unknown> = {};
+    if (body.params && typeof body.params === 'object' && !Array.isArray(body.params)) {
+      paramsObj = body.params as Record<string, unknown>;
+    }
+
+    const params = { ...paramsObj };
     delete params.__cid;
 
     // Validate parameters: reject if not plain object or contains untrusted types
@@ -379,13 +390,41 @@ Deno.serve(async (req) => {
     }
   }
 
-  const selectCols = String(body.select ?? "*");
-  const limit = Math.min(Math.max(Number(body.limit ?? 50), 1), 500);
-  const offset = Math.max(Number(body.offset ?? 0), 0);
-  const filter = body.filter && typeof body.filter === "object" ? body.filter : null;
-  const filters = Array.isArray(body.filters) ? body.filters : null;
-  const orderBy = body.order_by ? String(body.order_by) : body.order?.column ? String(body.order.column) : null;
-  const orderAsc = body.order_asc !== undefined ? Boolean(body.order_asc) : Boolean(body.order?.ascending);
+  const selectCols = typeof body.select === 'string' ? body.select : "*";
+  const limitVal = typeof body.limit === 'number' ? body.limit : 50;
+  const limit = Math.min(Math.max(limitVal, 1), 500);
+  const offsetVal = typeof body.offset === 'number' ? body.offset : 0;
+  const offset = Math.max(offsetVal, 0);
+
+  let filter: Record<string, unknown> | null = null;
+  if (body.filter && typeof body.filter === "object" && !Array.isArray(body.filter)) {
+    filter = body.filter as Record<string, unknown>;
+  }
+
+  let filters: Array<{ column?: unknown; operator?: unknown; value?: unknown }> | null = null;
+  if (Array.isArray(body.filters)) {
+    filters = body.filters;
+  }
+
+  let orderBy: string | null = null;
+  if (typeof body.order_by === 'string' && body.order_by.length > 0) {
+    orderBy = body.order_by;
+  } else if (body.order && typeof body.order === 'object' && !Array.isArray(body.order)) {
+    const orderObj = body.order as Record<string, unknown>;
+    if (typeof orderObj.column === 'string' && orderObj.column.length > 0) {
+      orderBy = orderObj.column;
+    }
+  }
+
+  let orderAsc = true;
+  if (typeof body.order_asc === 'boolean') {
+    orderAsc = body.order_asc;
+  } else if (body.order && typeof body.order === 'object' && !Array.isArray(body.order)) {
+    const orderObj = body.order as Record<string, unknown>;
+    if (typeof orderObj.ascending === 'boolean') {
+      orderAsc = orderObj.ascending;
+    }
+  }
 
   if (!isSafeIdent(requestedSchema)) return jsonResponse(req, { error: "Invalid schema", cid, rid }, 400);
   if (!isSafeIdent(table)) return jsonResponse(req, { error: "Invalid table", cid, rid }, 400);
@@ -408,12 +447,14 @@ Deno.serve(async (req) => {
 
     if (filters) {
       for (const item of filters) {
-        const column = String(item.column ?? "");
-        const operator = String(item.operator ?? "eq");
-        if (!isSafeIdent(column) || !isSafeIdent(operator)) continue;
+        if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+        const itemObj = item as Record<string, unknown>;
+        const column = typeof itemObj.column === 'string' ? itemObj.column : "";
+        const operator = typeof itemObj.operator === 'string' ? itemObj.operator : "eq";
+        if (!column || !isSafeIdent(column) || !isSafeIdent(operator)) continue;
         const maybeOperator = query[operator as keyof typeof query];
         if (typeof maybeOperator === "function") {
-          query = (maybeOperator as (column: string, value: unknown) => typeof query).call(query, column, item.value);
+          query = (maybeOperator as (column: string, value: unknown) => typeof query).call(query, column, itemObj.value);
         }
       }
     } else if (filter) {
@@ -428,8 +469,10 @@ Deno.serve(async (req) => {
 
     const { data, count, error } = await query;
     if (error) {
-      const err = error as { code?: string; message: string };
-      const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
+      const err = error as Record<string, unknown>;
+      const errCode = typeof err.code === 'string' ? err.code : '';
+      const errMessage = typeof err.message === 'string' ? err.message : '';
+      const missing = errCode === "42P01" || errCode === "PGRST205" || /does not exist|schema cache/i.test(errMessage);
       if (missing) {
         console.warn("[external-db-proxy] missing_table", { schema, table, cid });
         return jsonResponse(req, {
@@ -446,7 +489,7 @@ Deno.serve(async (req) => {
           latency_ms: Date.now() - start,
         }, 503);
       }
-      const isUnauthorized = /unauthorized|jwt|invalid signature|invalid api key|jws/i.test(err.message ?? "");
+      const isUnauthorized = /unauthorized|jwt|invalid signature|invalid api key|jws/i.test(errMessage);
       if (isUnauthorized) {
         console.error('[external-db-proxy] AUTH MISMATCH — service_role key não é aceita pelo self-hosted', {
           schema, table, cid,
@@ -455,7 +498,7 @@ Deno.serve(async (req) => {
           key_role: KEY_ROLE,
           key_iss: KEY_ISS,
           key_ref: KEY_REF,
-          message: err.message,
+          message: errMessage,
         });
         return jsonResponse(req, {
           error: "Self-hosted rejeitou a service_role key (assinatura inválida).",
@@ -463,7 +506,7 @@ Deno.serve(async (req) => {
           cid, rid, data: [], count: 0, latency_ms: Date.now() - start,
         }, 502);
       }
-      console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
+      console.error('[external-db-proxy] query error', { schema, table, code: errCode, message: errMessage, cid });
       return jsonResponse(req, { error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
     }
 
