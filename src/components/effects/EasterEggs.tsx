@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, forwardRef } from 'react';
+import { useState, useEffect, useCallback, forwardRef, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Confetti, useCelebration } from './Confetti';
 import { toast } from '@/hooks/use-toast';
@@ -38,6 +38,23 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     const [matrixMode, setMatrixMode] = useState(false);
     const [shakeCount, setShakeCount] = useState(0);
     const { celebrate, celebrating } = useCelebration();
+
+    // Tracked timer IDs so they can be cleared on unmount
+    const rainbowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const partyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const matrixTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const discoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Clean up all pending timers and body classes when component unmounts
+    useEffect(() => {
+      return () => {
+        if (rainbowTimerRef.current) clearTimeout(rainbowTimerRef.current);
+        if (partyTimerRef.current) clearTimeout(partyTimerRef.current);
+        if (matrixTimerRef.current) clearTimeout(matrixTimerRef.current);
+        if (discoTimerRef.current) clearTimeout(discoTimerRef.current);
+        document.body.classList.remove('rainbow-mode', 'disco-mode');
+      };
+    }, []);
 
     // Konami Code Detection
     useEffect(() => {
@@ -169,7 +186,8 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
 
       // Add rainbow effect to body
       document.body.classList.add('rainbow-mode');
-      setTimeout(() => {
+      if (rainbowTimerRef.current) clearTimeout(rainbowTimerRef.current);
+      rainbowTimerRef.current = setTimeout(() => {
         document.body.classList.remove('rainbow-mode');
       }, 5000);
     }, [celebrate]);
@@ -202,7 +220,8 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               subtitle: 'Vamos celebrar!',
               emoji: '🥳',
             });
-            setTimeout(() => setPartyMode(false), 10000);
+            if (partyTimerRef.current) clearTimeout(partyTimerRef.current);
+            partyTimerRef.current = setTimeout(() => setPartyMode(false), 10000);
             break;
 
           case 'matrix':
@@ -211,7 +230,8 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               title: '💊 Matrix Mode',
               description: 'Você escolheu a pílula vermelha...',
             });
-            setTimeout(() => setMatrixMode(false), 8000);
+            if (matrixTimerRef.current) clearTimeout(matrixTimerRef.current);
+            matrixTimerRef.current = setTimeout(() => setMatrixMode(false), 8000);
             break;
 
           case 'disco':
@@ -220,7 +240,8 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               title: '🪩 Disco Mode!',
               description: 'Brilhe como nos anos 70!',
             });
-            setTimeout(() => {
+            if (discoTimerRef.current) clearTimeout(discoTimerRef.current);
+            discoTimerRef.current = setTimeout(() => {
               document.body.classList.remove('disco-mode');
             }, 8000);
             break;
