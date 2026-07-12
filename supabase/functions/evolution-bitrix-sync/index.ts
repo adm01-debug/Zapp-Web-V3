@@ -4,9 +4,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
 
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const SUPABASE_URL = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+const initSupabaseClient = () => {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Missing Supabase configuration (URL or SERVICE_ROLE_KEY)');
+  }
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+};
+
+let supabase: ReturnType<typeof createClient> | null = null;
+try {
+  supabase = initSupabaseClient();
+} catch (e) {
+  console.error('[evolution-bitrix-sync] Initialization error:', e instanceof Error ? e.message : String(e));
+}
 
 interface BitrixResult {
   success: boolean;
@@ -179,6 +192,10 @@ Deno.serve(async (req: Request) => {
   // Internal cron endpoint — require service role or cron secret
   const authErr = requireServiceRoleOrCron(req);
   if (authErr) return authErr;
+
+  if (!supabase) {
+    return new Response(JSON.stringify({ error: "Supabase not initialized", message: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY configuration" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   const bitrixUrl = await getBitrixUrl();
   if (!bitrixUrl) return new Response(JSON.stringify({ error: "Bitrix24 não configurado", message: "Configure bitrix_webhook_url no Vault ou env BITRIX_WEBHOOK_URL" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });

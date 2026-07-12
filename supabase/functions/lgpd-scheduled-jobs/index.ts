@@ -30,10 +30,14 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-  );
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+  const supabaseKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[lgpd-scheduled-jobs] Missing Supabase configuration');
+    return json({ error: 'Supabase configuration missing' }, 503);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
