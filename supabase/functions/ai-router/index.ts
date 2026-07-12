@@ -86,6 +86,41 @@ interface ActionResult {
   isValidationError?: boolean; // C.16: Track if error is validation (422) vs internal (500)
 }
 
+/**
+ * FIX #8: Circuit Breaker Pattern Documentation
+ *
+ * PATTERN OVERVIEW:
+ * Implements the circuit breaker pattern to gracefully degrade service when external AI APIs fail.
+ * Prevents cascading failures by blocking requests during outages and implementing exponential backoff
+ * for recovery attempts.
+ *
+ * STATE MACHINE:
+ * ┌─────────┐  (failures >= 5)  ┌──────┐  (cooldown passed)  ┌─────────┐
+ * │ CLOSED  │─────────────────→ │ OPEN │─────────────────→ │HALF_OPEN│
+ * └────▲────┘                   └──────┘                     └────┬────┘
+ *      │                                                          │
+ *      └──────────── (success on next call) ←────────────────────┘
+ *
+ * STATES:
+ * - CLOSED: Normal operation. Requests pass through. Failures counted.
+ * - OPEN: Service unavailable. Requests rejected immediately. Exponential backoff applied.
+ * - HALF_OPEN: Testing recovery. Next request attempts to call API. Success → CLOSED, Failure → OPEN.
+ *
+ * EXPONENTIAL BACKOFF:
+ * Cooldown formula: min(90s × 2^cycleCount, 600s)
+ * - Cycle 0: 90s cooldown
+ * - Cycle 1: 180s cooldown
+ * - Cycle 2: 360s cooldown
+ * - Cycle 3+: Capped at 600s (10 minutes)
+ * This prevents hammering a recovering service.
+ *
+ * TRANSITIONS:
+ * CLOSED → OPEN: When failureCount reaches CIRCUIT_BREAKER_THRESHOLD (5)
+ * OPEN → HALF_OPEN: When exponential backoff cooldown expires
+ * HALF_OPEN → CLOSED: On first successful request (resets cycles)
+ * HALF_OPEN → OPEN: On next failure (increments cycles, extends cooldown)
+ */
+
 // Circuit breaker state for external APIs (per provider)
 interface CircuitBreakerState {
   state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
@@ -131,6 +166,14 @@ function addMetricsToBuffer(entry: MetricsEntry): void {
   }
 }
 
+/**
+ * FIX #8: Retrieve or initialize circuit breaker state for a given provider/service.
+ * Each provider (lovable-auto-tag, lovable-conversation-summary, etc.) has independent state
+ * to prevent one service's outage from blocking another's recovery.
+ *
+ * @param key - Service identifier (e.g., 'lovable-auto-tag', 'lovable-suggest-reply')
+ * @returns CircuitBreakerState object (creates fresh state if missing)
+ */
 function getCircuitBreakerState(key: string): CircuitBreakerState {
   if (!circuitBreakerStates.has(key)) {
     circuitBreakerStates.set(key, {
@@ -143,13 +186,40 @@ function getCircuitBreakerState(key: string): CircuitBreakerState {
   return circuitBreakerStates.get(key)!;
 }
 
+/**
+ * FIX #8: Wraps AI API calls with circuit breaker protection.
+ * Monitors response codes and exceptions to detect outages and apply graceful degradation.
+ *
+ * BEHAVIOR BY STATE:
+ * - CLOSED: Calls fn(), counts failures, throws on threshold
+ * - OPEN: Immediately rejects with exponential backoff duration
+ * - HALF_OPEN: Attempts fn() to test recovery; success→CLOSED, failure→OPEN
+ *
+ * FAILURE TRIGGERS:
+ * 1. Network errors (DNS, connection refused, timeouts)
+ * 2. HTTP error responses (429 rate limit, 500+ server errors, etc.)
+ * 3. Malformed responses (missing ok/status fields)
+ *
+ * METRICS TRACKED:
+ * - failureCount: Cumulative failures in current burst (reset to 0 on success)
+ * - lastFailureTime: Timestamp of most recent failure (used for cooldown calculation)
+ * - cycleCount: Number of times circuit has cycled to OPEN (drives exponential backoff)
+ * - state: Current state (CLOSED|OPEN|HALF_OPEN)
+ *
+ * @template T - Return type of fn() (must have response.ok or response.status)
+ * @param fn - Async function that makes the actual API call
+ * @param key - Service key for independent state tracking (default: 'default')
+ * @returns Promise resolving to fn() result on success
+ * @throws Error with "Circuit breaker OPEN" message when circuit is open and cooldown active
+ * @throws Propagates any error from fn()
+ */
 async function withCircuitBreaker<T extends { response: { ok?: boolean; status?: number }; data?: unknown }>(
   fn: () => Promise<T>,
   key: string = 'default'
 ): Promise<T> {
   const breaker = getCircuitBreakerState(key);
 
-  // If open, check if exponential backoff cool-down period has passed (D.9)
+  // FIX #8: If open, check if exponential backoff cool-down period has passed (D.9)
   if (breaker.state === 'OPEN') {
     const now = Date.now();
     // Exponential backoff: 90s * 2^cycleCount, capped at 10 minutes
@@ -171,38 +241,38 @@ async function withCircuitBreaker<T extends { response: { ok?: boolean; status?:
   try {
     const result = await fn();
 
-    // Success - check if response is ok
+    // FIX #8: Success - check if response is ok (both .ok flag and status code < 400)
     const isSuccess = result.response?.ok === true || (result.response?.status !== undefined && result.response.status < 400);
 
     if (isSuccess) {
-      // On success, reset failure count and transition back to CLOSED
+      // FIX #8: On success, reset failure count and transition back to CLOSED
       breaker.failureCount = 0;
       if (breaker.state === 'HALF_OPEN') {
         breaker.state = 'CLOSED';
         breaker.successCount = 0;
-        breaker.cycleCount = 0; // D.9: Reset exponential backoff cycle on recovery
+        breaker.cycleCount = 0; // Reset exponential backoff cycle on recovery
       }
       return result;
     } else {
-      // HTTP error response (429, 402, 5xx, etc)
+      // FIX #8: HTTP error response (429, 402, 5xx, etc)
       breaker.failureCount++;
       breaker.lastFailureTime = Date.now();
 
       if (breaker.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
         breaker.state = 'OPEN';
-        breaker.cycleCount++; // D.9: Increment cycle for exponential backoff
+        breaker.cycleCount++; // Increment cycle for exponential backoff
         throw new Error(`Circuit breaker opened for ${key} after ${breaker.failureCount} failures`);
       }
       return result;
     }
   } catch (err) {
-    // Network or other errors
+    // FIX #8: Network or other errors (timeouts, connection refused, etc.)
     breaker.failureCount++;
     breaker.lastFailureTime = Date.now();
 
     if (breaker.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
       breaker.state = 'OPEN';
-      breaker.cycleCount++; // D.9: Increment cycle for exponential backoff
+      breaker.cycleCount++; // Increment cycle for exponential backoff
     }
     throw err;
   }
