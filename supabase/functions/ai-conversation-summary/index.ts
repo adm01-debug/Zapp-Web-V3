@@ -147,7 +147,11 @@ Foque em:
         // Attempt to extract JSON from malformed response
         const jsonMatch = toolCall.function.arguments.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          analysisData = JSON.parse(jsonMatch[0]);
+          try {
+            analysisData = JSON.parse(jsonMatch[0]);
+          } catch (regexParseErr) {
+            throw new Error("AI returned malformed JSON in tool_call (regex fallback also failed)");
+          }
         } else {
           throw new Error("AI returned malformed JSON in tool_call");
         }

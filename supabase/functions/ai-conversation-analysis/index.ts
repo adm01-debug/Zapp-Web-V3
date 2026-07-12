@@ -164,7 +164,11 @@ Responda em português brasileiro.`;
         log.error("Failed to parse tool_call arguments");
         const jsonMatch = toolCall.function.arguments.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          analysisData = JSON.parse(jsonMatch[0]);
+          try {
+            analysisData = JSON.parse(jsonMatch[0]);
+          } catch (regexParseErr) {
+            throw new Error("AI returned malformed JSON (regex fallback also failed)");
+          }
         } else {
           throw new Error("AI returned malformed JSON");
         }
