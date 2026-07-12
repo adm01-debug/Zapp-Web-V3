@@ -10,6 +10,10 @@
 --
 -- P1 finding from cubic security review: constraint missing, upsert fails at runtime.
 
+-- Lock against concurrent writers so no new duplicate can sneak in between
+-- the DELETE and the ADD CONSTRAINT (same pattern as campaign_contacts migration).
+LOCK TABLE public.conversation_snoozes IN SHARE ROW EXCLUSIVE MODE;
+
 -- De-duplicate any pre-existing rows, keeping the most-recent snooze_until.
 DELETE FROM public.conversation_snoozes
 WHERE ctid NOT IN (
@@ -52,8 +56,8 @@ BEGIN
       CREATE POLICY "Users can update their own snoozes"
         ON public.conversation_snoozes
         FOR UPDATE
-        USING (snoozed_by = auth.uid())
-        WITH CHECK (snoozed_by = auth.uid());
+        USING  (snoozed_by IN (SELECT id FROM public.profiles WHERE user_id = auth.uid()))
+        WITH CHECK (snoozed_by IN (SELECT id FROM public.profiles WHERE user_id = auth.uid()));
     $p$;
   END IF;
 END;

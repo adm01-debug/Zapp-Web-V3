@@ -92,6 +92,10 @@ BEGIN
   -- P1 serialisation: lock the campaigns row so concurrent callers queue up
   -- instead of racing on the recount at the end.
   PERFORM id FROM public.campaigns WHERE id = p_campaign_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'campaign % not found', p_campaign_id
+      USING ERRCODE = 'no_data_found';
+  END IF;
 
   -- Insert; UNIQUE constraint + ON CONFLICT make this idempotent and safe under
   -- concurrent calls — no more phantom duplicates.

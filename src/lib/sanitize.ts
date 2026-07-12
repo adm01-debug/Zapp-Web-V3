@@ -45,14 +45,14 @@ export function sanitizeHtml(html: unknown): string {
       node.setAttribute('target', '_blank');
     }
   });
-  let sanitized: string;
+  let sanitized = '';
   try {
     sanitized = DOMPurify.sanitize(str, {
       ALLOWED_TAGS:  RICH_ALLOWED_TAGS,
       ALLOWED_ATTR:  RICH_ALLOWED_ATTR,
       // Event handlers and style are still explicitly forbidden as defense-in-depth.
-      // href/src removed from FORBID_ATTR — the ALLOWED_ATTR whitelist already
-      // restricts them; re-forbidding href blocked legitimate <a> links in notes.
+      // href removed from FORBID_ATTR so <a> links in notes work; src kept because
+      // <img> is not in RICH_ALLOWED_TAGS so src on any surviving element is harmless.
       FORBID_ATTR:   ['onerror','onload','onclick','onmouseover','onfocus','onblur','onchange','onsubmit','style','src'],
     }).trim();
   } finally {
