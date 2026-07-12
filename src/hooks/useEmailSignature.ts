@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEmailSignature.ts — Gerenciamento de assinaturas de email por conta Email
  */

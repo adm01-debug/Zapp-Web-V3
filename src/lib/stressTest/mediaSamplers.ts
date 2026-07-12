@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Media samplers — fetch random items from existing libraries to feed the stress test.
  *
