@@ -155,7 +155,15 @@ export function useAdminAutomations() {
       .from('automations')
       .update({ priority: newPriority })
       .eq('id', r.id);
-    if (!error) load();
+    if (error) {
+      toast({
+        title: 'Erro ao ajustar prioridade',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+    load();
   };
 
   const channelMap = useMemo(
