@@ -197,9 +197,22 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
       .sort((a, b) => b.priority - a.priority || a.created_at - b.created_at)
       .slice(0, sc.batch_size);
 
+  // v7 semantics: classify errors as terminal vs retryable, backoff, circuit-breaker.
+  const TERMINAL_STATUSES = new Set([400, 401, 403]);
+  const isTerminalError = (res: { http_status?: number; error?: string }) => {
+    if (res.http_status && TERMINAL_STATUSES.has(res.http_status)) return true;
+    if (res.error === "invalid_number" || res.error?.includes("invalid number")) return true;
+    return false;
+  };
+  let circuitOpen = false;
+  const backoffUntil = new Map<string, number>();
+
   const processOne = async (r: QueueRow) => {
-    // lease (equivalente ao UPDATE ... WHERE status='pending')
-    if (r.status !== "pending") return; // race lost
+    if (r.status !== "pending") return;
+    if (circuitOpen) return;
+    const bo = backoffUntil.get(r.id);
+    if (bo && bo > Date.now()) return;
+
     const newAttempts = r.attempts + 1;
     r.history.push({ t: Date.now(), from: r.status, to: "processing" });
     r.status = "processing";
@@ -207,6 +220,18 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
 
     const res = await send(r);
     processed++;
+
+    // v7: duplicate_ack (200 sem messageId) tratado como falha transitória
+    if (res.success && !res.messageId) {
+      r.history.push({ t: Date.now(), from: "processing", to: "pending", reason: "missing messageId" });
+      r.status = "pending";
+      if (newAttempts >= r.max_attempts) {
+        r.status = "failed";
+        r.error_message = "missing messageId after retries";
+        failed++;
+      }
+      return;
+    }
 
     if (res.success) {
       if (seenSent.has(r.id)) {
@@ -219,7 +244,29 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
       r.sent_at = Date.now();
       r.whatsapp_message_id = res.messageId ?? null;
       sent++;
-    } else if (newAttempts >= r.max_attempts) {
+      return;
+    }
+
+    // v7: circuit-breaker global em falha de configuração
+    if (res.error === "Vault secrets missing") {
+      circuitOpen = true;
+      r.history.push({ t: Date.now(), from: "processing", to: "failed", reason: res.error });
+      r.status = "failed";
+      r.error_message = res.error;
+      failed++;
+      return;
+    }
+
+    // v7: fast-fail em erros terminais (401/403/400)
+    if (isTerminalError(res)) {
+      r.history.push({ t: Date.now(), from: "processing", to: "failed", reason: res.error });
+      r.status = "failed";
+      r.error_message = res.error ?? "terminal";
+      failed++;
+      return;
+    }
+
+    if (newAttempts >= r.max_attempts) {
       r.history.push({ t: Date.now(), from: "processing", to: "failed", reason: res.error });
       r.status = "failed";
       r.error_message = res.error ?? "unknown";
@@ -228,19 +275,25 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
       r.history.push({ t: Date.now(), from: "processing", to: "pending", reason: res.error });
       r.status = "pending";
       r.error_message = res.error ?? null;
+      // v7: backoff exponencial com jitter (base 10ms no simulador)
+      if (res.http_status === 429 || res.http_status === 500 || res.http_status === 502 || res.error === "timeout" || res.error === "fetch failed") {
+        const delay = 10 * Math.pow(2, newAttempts) + Math.floor(rand(5));
+        backoffUntil.set(r.id, Date.now() + delay);
+      }
     }
   };
 
   let ticks = 0;
   while (ticks++ < budgetTicks) {
+    if (circuitOpen) break;
     const batch = pickBatch();
     if (batch.length === 0) {
       const anyFuture = rows.some((r) => r.status === "pending" && r.scheduled_at && r.scheduled_at > Date.now());
-      if (!anyFuture) break;
+      const anyBackoff = [...backoffUntil.values()].some((t) => t > Date.now());
+      if (!anyFuture && !anyBackoff) break;
       await new Promise((r) => setTimeout(r, 5));
       continue;
     }
-    // concorrência dentro do batch
     const chunks: QueueRow[][] = [];
     for (let i = 0; i < batch.length; i += sc.concurrency) chunks.push(batch.slice(i, i + sc.concurrency));
     for (const c of chunks) {
@@ -262,18 +315,24 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
   if (dupAck > 0 && sc.failure === "duplicate_ack")
     violations.push(`missing-message-id-ack:${dupAck}`);
 
-  // 401 não deveria consumir retries → detectamos que consome
+  // v7 aligned: só reportar violação se a semântica esperada NÃO for observada.
   if (sc.failure === "http_401") {
-    const consumed = rows.every((r) => r.attempts === r.max_attempts);
-    if (consumed) violations.push("no-fast-fail-on-auth-error");
+    const anyConsumedAllRetries = rows.some((r) => r.attempts >= r.max_attempts && r.status === "failed" && r.max_attempts > 1);
+    // Se todas as mensagens falharam com attempts=1, fast-fail está funcionando.
+    const fastFailed = rows.every((r) => r.status === "failed" && r.attempts === 1);
+    if (!fastFailed && anyConsumedAllRetries) violations.push("no-fast-fail-on-auth-error");
   }
   if (sc.failure === "http_429") {
-    // ausência de backoff é gap: retries acontecem sem delay entre tentativas do mesmo item
-    violations.push("no-explicit-backoff-on-429");
+    // Se não houve backoff registrado, é gap.
+    if (backoffUntil.size === 0) violations.push("no-explicit-backoff-on-429");
   }
-  if (sc.failure === "vault_missing" && failed === rows.length && rows.length > 0) {
-    violations.push("no-circuit-breaker-on-config-failure");
+  if (sc.failure === "vault_missing") {
+    // Circuit-breaker OK: apenas 1 mensagem consumida antes de abrir o circuito.
+    if (!circuitOpen && failed === rows.length && rows.length > 0) {
+      violations.push("no-circuit-breaker-on-config-failure");
+    }
   }
+
 
   const final_status_counts: Record<Status, number> = { pending: 0, processing: 0, sent: 0, failed: 0 };
   for (const r of rows) final_status_counts[r.status]++;
