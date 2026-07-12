@@ -126,7 +126,7 @@ export function TeamChatHeader({
               size="icon"
               className={cn(
                 'h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground',
-                showSearch && "bg-primary/10 text-primary"
+                showSearch && 'bg-primary/10 text-primary'
               )}
               onClick={onToggleSearch}
             >
@@ -199,7 +199,7 @@ export function TeamChatHeader({
                 size="icon"
                 className={cn(
                   'h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground',
-                  showDetails && "bg-primary/10 text-primary"
+                  showDetails && 'bg-primary/10 text-primary'
                 )}
                 onClick={onToggleDetails}
               >
