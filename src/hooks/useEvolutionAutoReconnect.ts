@@ -199,12 +199,12 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
   useEffect(() => {
     const channel = supabase
       .channel('evolution-reconnect-monitor')
-      .on(
+      .on<WhatsAppConnection>(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'whatsapp_connections' },
         (payload) => {
-          const connection    = payload.new as WhatsAppConnection;
-          const oldConnection = payload.old as Pick<WhatsAppConnection, 'status'>;
+          const connection    = payload.new;
+          const oldConnection = payload.old;
 
           if (!connection.auto_reconnect_enabled || connection.loop_protection_active) return;
 

@@ -117,23 +117,22 @@ export default function AdminEmailStatusPage() {
 
     const channel = supabase
       .channel('email-admin-status')
-      .on(
+      .on<EmailHealthSummary>(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'email_health_summary' },
         (payload) => {
-          const newSummary = payload.new as EmailHealthSummary;
-          if (newSummary) {
+          if (payload.new) {
             setHealth((prev) =>
               prev
                 ? {
                     ...prev,
-                    status: castStatus(newSummary.status),
-                    lastValidation: newSummary.last_validation
-                      ? new Date(newSummary.last_validation)
+                    status: castStatus(payload.new.status),
+                    lastValidation: payload.new.last_validation
+                      ? new Date(payload.new.last_validation)
                       : prev.lastValidation,
                     stats: {
                       ...prev.stats,
-                      failedCalls: newSummary.failure_count_60m || 0,
+                      failedCalls: payload.new.failure_count_60m || 0,
                     },
                   }
                 : null

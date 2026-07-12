@@ -167,7 +167,7 @@ export function useRealtimeMessages() {
 
   const handleNewMessage = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const newMessage = normalizeMessage(payload.new as RealtimeMessage);
+      const newMessage = normalizeMessage(payload.new);
       if (!newMessage.contact_id) return;
 
       const existingConversation = conversationsRef.current.find((c) => c.contact.id === newMessage.contact_id);
@@ -200,7 +200,7 @@ export function useRealtimeMessages() {
   // lastMessage/unreadCount consistentes, sem reordenar a lista.
   const handleMessageDelete = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const deletedMessage = payload.old as RealtimeMessage;
+      const deletedMessage = payload.old;
       if (!deletedMessage?.id || !deletedMessage?.contact_id) return;
 
       commitConversations((prev) => {

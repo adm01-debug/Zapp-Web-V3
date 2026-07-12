@@ -54,7 +54,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
   useEffect(() => {
     const channel = supabase
       .channel(`talkx-monitor-${campaignId}`)
-      .on(
+      .on<TalkXCampaign>(
         'postgres_changes',
         {
           event: 'UPDATE',
@@ -63,7 +63,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
           filter: `id=eq.${campaignId}`,
         },
         (payload) => {
-          setCampaign(payload.new as TalkXCampaign);
+          setCampaign(payload.new);
         }
       )
       .on(

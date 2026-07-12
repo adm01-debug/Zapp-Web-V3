@@ -45,13 +45,12 @@ export function useRateLimitLogs() {
   useEffect(() => {
     const channel = supabase
       .channel('rate-limit-logs')
-      .on(
+      .on<RateLimitLog>(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'rate_limit_logs' },
         (payload) => {
-          const newLog = payload.new as RateLimitLog;
           queryClient.setQueryData<RateLimitLog[]>(QUERY_KEY, (prev) =>
-            [newLog, ...(prev ?? [])].slice(0, 100)
+            [payload.new, ...(prev ?? [])].slice(0, 100)
           );
         }
       )

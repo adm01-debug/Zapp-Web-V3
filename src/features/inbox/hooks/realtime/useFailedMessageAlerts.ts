@@ -51,12 +51,12 @@ export function useFailedMessageAlerts(enabled = true): void {
 
     const channel = supabase
       .channel('failed_messages_alerts')
-      .on(
+      .on<FailedMessageRowMinimal>(
         'postgres_changes',
         { event: 'UPDATE', schema: 'zapp', table: 'failed_messages' },
         (payload) => {
-          const next = payload.new as FailedMessageRowMinimal | null;
-          const prev = payload.old as FailedMessageRowMinimal | null;
+          const next = payload.new;
+          const prev = payload.old;
           if (!next || next.status !== 'abandoned') return;
           // Evita repetir toast caso o realtime reentregue o mesmo update.
           if (seenRef.current.has(next.id)) return;

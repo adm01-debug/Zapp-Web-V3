@@ -95,7 +95,7 @@ export function useMessageUpdateBatcher(
 
   const handleMessageUpdate = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const updatedMessage = normalizeMessage(payload.new as RealtimeMessage);
+      const updatedMessage = normalizeMessage(payload.new);
       if (!updatedMessage.contact_id) return;
 
       const existingConversation = conversationsRef.current.find(

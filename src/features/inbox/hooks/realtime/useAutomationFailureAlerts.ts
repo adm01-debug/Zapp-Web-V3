@@ -104,22 +104,19 @@ export function useAutomationFailureAlerts(enabled = true): void {
 
     const channel = supabase
       .channel("automation_executions_failure_alerts")
-      .on(
+      .on<AutomationExecutionRowMinimal>(
         "postgres_changes",
         { event: "UPDATE", schema: "zapp", table: "automation_executions" },
         (payload) => {
-          const next = payload.new as AutomationExecutionRowMinimal | null;
-          const prev = payload.old as AutomationExecutionRowMinimal | null;
-          handle(next, prev?.status ?? null);
+          handle(payload.new, payload.old?.status ?? null);
         },
       )
-      .on(
+      .on<AutomationExecutionRowMinimal>(
         "postgres_changes",
         { event: "INSERT", schema: "zapp", table: "automation_executions" },
         (payload) => {
           // Cobre o caso (raro) onde a execução já nasce 'failed'.
-          const next = payload.new as AutomationExecutionRowMinimal | null;
-          handle(next, null);
+          handle(payload.new, null);
         },
       )
       .subscribe();
