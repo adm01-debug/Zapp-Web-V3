@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
@@ -50,6 +50,7 @@ export function useWhatsAppTemplates() {
   const { user } = useAuth();
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const fetchSeqRef = useRef(0);
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -61,6 +62,7 @@ export function useWhatsAppTemplates() {
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchTemplates = useCallback(async () => {
+    const seq = ++fetchSeqRef.current;
     try {
       setLoading(true);
       const PAGE = 1000;
@@ -71,6 +73,7 @@ export function useWhatsAppTemplates() {
           .from('whatsapp_templates')
           .select('*')
           .order('updated_at', { ascending: false })
+          .order('id', { ascending: false })
           .range(from, from + PAGE - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
@@ -78,11 +81,15 @@ export function useWhatsAppTemplates() {
         if (data.length < PAGE) break;
         from += PAGE;
       }
+      // Guard against a slower earlier fetch overwriting a newer result.
+      if (fetchSeqRef.current !== seq) return;
       setTemplates(all);
     } catch (err) {
       log.error('Error fetching templates:', err);
       toast.error('Erro ao carregar templates');
-    } finally { setLoading(false); }
+    } finally {
+      if (fetchSeqRef.current === seq) setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchTemplates(); }, [fetchTemplates]);

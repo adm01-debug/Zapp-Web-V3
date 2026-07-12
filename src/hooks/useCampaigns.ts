@@ -25,6 +25,7 @@ export function useCampaigns() {
           .from('campaigns')
           .select('*')
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .range(from, from + PAGE - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;

@@ -26,5 +26,5 @@ AS $$
     tm.created_at
   FROM team_messages tm
   WHERE tm.conversation_id = ANY(conversation_ids)
-  ORDER BY tm.conversation_id, tm.created_at DESC;
+  ORDER BY tm.conversation_id, tm.created_at DESC, tm.id DESC;
 $$;

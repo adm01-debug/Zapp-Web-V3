@@ -55,42 +55,53 @@ export function useKnowledgeBase() {
     try {
       const PAGE = 1000;
 
-      const allArticles: Article[] = [];
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from('knowledge_base_articles')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .range(from, from + PAGE - 1);
-        if (error) {
-          toast({ title: 'Erro ao carregar artigos', description: error.message, variant: 'destructive' });
-          break;
+      const fetchAllArticles = async (): Promise<Article[]> => {
+        const acc: Article[] = [];
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from('knowledge_base_articles')
+            .select('*')
+            .order('updated_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, from + PAGE - 1);
+          if (error) {
+            toast({ title: 'Erro ao carregar artigos', description: error.message, variant: 'destructive' });
+            throw error;
+          }
+          if (!data || data.length === 0) break;
+          acc.push(...data.map((a) => ({ ...a, tags: a.tags || [] })));
+          if (data.length < PAGE) break;
+          from += PAGE;
         }
-        if (!data || data.length === 0) break;
-        allArticles.push(...data.map((a) => ({ ...a, tags: a.tags || [] })));
-        if (data.length < PAGE) break;
-        from += PAGE;
-      }
-      setArticles(allArticles);
+        return acc;
+      };
 
-      const allFiles: KBFile[] = [];
-      from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from('knowledge_base_files')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .range(from, from + PAGE - 1);
-        if (error) {
-          toast({ title: 'Erro ao carregar arquivos', description: error.message, variant: 'destructive' });
-          break;
+      const fetchAllFiles = async (): Promise<KBFile[]> => {
+        const acc: KBFile[] = [];
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from('knowledge_base_files')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(from, from + PAGE - 1);
+          if (error) {
+            toast({ title: 'Erro ao carregar arquivos', description: error.message, variant: 'destructive' });
+            throw error;
+          }
+          if (!data || data.length === 0) break;
+          acc.push(...data);
+          if (data.length < PAGE) break;
+          from += PAGE;
         }
-        if (!data || data.length === 0) break;
-        allFiles.push(...data);
-        if (data.length < PAGE) break;
-        from += PAGE;
-      }
+        return acc;
+      };
+
+      // Fetch both resources in parallel; only commit state once both complete.
+      const [allArticles, allFiles] = await Promise.all([fetchAllArticles(), fetchAllFiles()]);
+      setArticles(allArticles);
       setFiles(allFiles);
     } finally {
       setLoading(false);
