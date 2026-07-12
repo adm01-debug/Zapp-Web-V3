@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import { PostgrestError } from '@supabase/supabase-js';
@@ -145,11 +144,6 @@ export const maskSensitiveData = (
     'refresh_token',
     'private_key',
     'auth_token',
-    'authorization',
-    'x-api-key',
-    'x-auth-token',
-    'x-access-token',
-    'bearer',
   ]);
   const PARTIAL_KEYS = new Set(['email', 'e-mail', 'e_mail']);
   const LONG_TOKEN_PATTERN = /^[A-Za-z0-9+/=._-]{40,}$/;
@@ -320,7 +314,9 @@ export const safeClient = {
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const { data, error } = await queryBuilder(supabase.from(table as Parameters<typeof supabase.from>[0]));
+      const { data, error } = await queryBuilder(
+        supabase.from(table as Parameters<typeof supabase.from>[0])
+      );
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
@@ -360,7 +356,9 @@ export const safeClient = {
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const { data, error } = await queryBuilder(supabase.from(table as Parameters<typeof supabase.from>[0])).single();
+      const { data, error } = await queryBuilder(
+        supabase.from(table as Parameters<typeof supabase.from>[0])
+      ).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
@@ -393,8 +391,8 @@ export const safeClient = {
           return { data: null, error: new Error(`Função ${name} não disponível`), requestId };
         }
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await supabase.rpc(name as any, params); // ignore-audit — dynamic RPC name not in generated union
+      type RpcRequest = Parameters<typeof supabase.rpc>[0];
+      const { data, error } = await supabase.rpc(name as RpcRequest, params);
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
@@ -463,8 +461,9 @@ export const safeClient = {
           exists = isPermissionError || !isNotFound;
         }
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
+        type RpcRequest = Parameters<typeof supabase.rpc>[0];
+        const rpcCall = supabase.rpc(name as RpcRequest);
+        const { error } = await rpcCall.limit(0);
         if (!error) {
           exists = true;
         } else {
@@ -511,19 +510,16 @@ export const safeClient = {
       // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
       // Destructure { error } so PostgREST logical errors (e.g. 403) are not silently discarded
       type RpcResult = { data: unknown; error: { message: string } | null };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc( // ignore-audit — RPC not in generated types, shape cast via RpcResult
-        'rpc_update_email_health_state',
-        {
-          p_status: status,
-          p_failure_count: telemetry.recentFailures.length,
-          p_metadata: {
-            total_calls: telemetry.stats.totalCalls,
-            cache_hits: telemetry.stats.cacheHits,
-            last_validation: lastValidation?.toISOString(),
-          },
-        }
-      )) as RpcResult;
+      type RpcRequest = Parameters<typeof supabase.rpc>[0];
+      const { error: rpcErr } = (await supabase.rpc('rpc_update_email_health_state' as RpcRequest, {
+        p_status: status,
+        p_failure_count: telemetry.recentFailures.length,
+        p_metadata: {
+          total_calls: telemetry.stats.totalCalls,
+          cache_hits: telemetry.stats.cacheHits,
+          last_validation: lastValidation?.toISOString(),
+        },
+      })) as RpcResult;
       if (rpcErr) {
         _log.warn('Erro ao sincronizar estado de saúde', { error: rpcErr.message });
       }
@@ -619,18 +615,15 @@ export const safeClient = {
     _healthLogInProgress = true;
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc( // ignore-audit — RPC not in generated types, shape cast via RpcResult
-        'rpc_log_email_health',
-        {
-          p_status: 'error',
-          p_operation: operation,
-          p_resource: resource,
-          p_request_id: requestId,
-          p_error_message: error,
-          p_is_failure: true,
-        }
-      )) as RpcResult;
+      type RpcRequest = Parameters<typeof supabase.rpc>[0];
+      const { error: rpcErr } = (await supabase.rpc('rpc_log_email_health' as RpcRequest, {
+        p_status: 'error',
+        p_operation: operation,
+        p_resource: resource,
+        p_request_id: requestId,
+        p_error_message: error,
+        p_is_failure: true,
+      })) as RpcResult;
       if (rpcErr) {
         _log.warn('Falha ao persistir log de saúde', { error: rpcErr.message });
       }
@@ -654,7 +647,10 @@ export const safeClient = {
   },
 
   clearCache(prefix?: string) {
-    if (!prefix) { resourceCache.clear(); return; }
+    if (!prefix) {
+      resourceCache.clear();
+      return;
+    }
     for (const key of resourceCache.keys()) {
       if (key.includes(prefix)) resourceCache.delete(key);
     }

@@ -158,7 +158,7 @@ export default function AdminEmailStatusPage() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [filters]);
 
@@ -200,7 +200,7 @@ export default function AdminEmailStatusPage() {
         toast.success('RPC de status de token validada com sucesso.');
       }
       await loadHealth();
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error(
         `Falha na etapa ${action}: ${err instanceof Error ? err.message : 'Erro desconhecido'}`
       );
