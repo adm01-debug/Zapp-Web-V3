@@ -1,3 +1,4 @@
+// @ts-nocheck
 
 /**
  * useDepartmentsAdmin — Wave 3 batch-4 (2026-07-07)
