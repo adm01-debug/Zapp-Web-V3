@@ -193,19 +193,43 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
     staleTime: 60_000,
   });
 
-  // Load contact_tags mapping
+  // Load contact_tags mapping with bounds to prevent unbounded result set
+  // When conversations change (new contacts added), this cache will be used for filtering.
+  // Invalidation is handled via realtime subscriptions on contact_tags table.
   const { data: contactTagsMap = {} } = useQuery({
     queryKey: ['contact-tags-map'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contact_tags')
-        .select('contact_id, tag_id');
-      if (error) throw error;
+      const conversationContactIds = new Set(conversations
+        .filter(c => c?.contact?.id)
+        .map(c => c.contact.id));
+
+      if (conversationContactIds.size === 0) {
+        return {};
+      }
+
+      const contactIds = Array.from(conversationContactIds);
       const map: Record<string, string[]> = {};
-      (data || []).forEach(ct => {
-        if (!map[ct.contact_id]) map[ct.contact_id] = [];
-        map[ct.contact_id].push(ct.tag_id);
-      });
+
+      // Fetch tags in chunks to avoid massive IN clause
+      const CHUNK_SIZE = 500;
+      for (let i = 0; i < contactIds.length; i += CHUNK_SIZE) {
+        const chunk = contactIds.slice(i, i + CHUNK_SIZE);
+        const { data, error } = await supabase
+          .from('contact_tags')
+          .select('contact_id, tag_id')
+          .in('contact_id', chunk);
+
+        if (error) {
+          log.warn('Error fetching contact tags for chunk', { error: error.message });
+          continue;
+        }
+
+        (data || []).forEach(ct => {
+          if (!map[ct.contact_id]) map[ct.contact_id] = [];
+          map[ct.contact_id].push(ct.tag_id);
+        });
+      }
+
       return map;
     },
     staleTime: 30_000,
