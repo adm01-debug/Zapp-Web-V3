@@ -113,11 +113,15 @@ export const useSlaQuery = () =>
         .limit(50);
       if (error) throw error;
       if (!data || data.length === 0) return { avgResponseTime: null };
-      const responseTimes = data.map(sla => {
-        const messageTime = new Date(sla.first_message_at).getTime();
-        const responseTime = new Date(sla.first_response_at!).getTime();
-        return (responseTime - messageTime) / 1000;
-      });
+      const responseTimes = data
+        .filter(sla => sla.first_response_at && sla.first_message_at)
+        .map(sla => {
+          const messageTime = new Date(sla.first_message_at as string).getTime();
+          const responseTime = new Date(sla.first_response_at as string).getTime();
+          return (responseTime - messageTime) / 1000;
+        })
+        .filter(t => !isNaN(t) && t >= 0);
+      if (responseTimes.length === 0) return { avgResponseTime: null };
       return { avgResponseTime: Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) };
     },
     refetchInterval: 60000,
