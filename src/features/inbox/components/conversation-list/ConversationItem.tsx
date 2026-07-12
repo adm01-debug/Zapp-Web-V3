@@ -217,6 +217,8 @@ export const ConversationItem = memo(function ConversationItem({
           data-testid="conversation-item"
           data-density="compact"
           onClick={() => onSelect(conversation)}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onSelect(conversation))}
+          tabIndex={0}
           whileHover={{ scale: 1.02, x: 4 }}
           whileTap={{ scale: 0.98 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
