@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const log = getLogger('useQueues');
 
 export interface Queue {
   id: string;

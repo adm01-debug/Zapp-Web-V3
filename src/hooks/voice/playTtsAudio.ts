@@ -1,4 +1,6 @@
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('playTtsAudio');
 
 export interface TtsPlayback {
   promise: Promise<void>;

@@ -2,8 +2,10 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { useScribe, CommitStrategy } from '@elevenlabs/react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import type { VoiceAgentPhase, VoiceAgentAction, UseVoiceAgentOptions, UseVoiceAgentReturn } from '@/features/inbox/hooks/voice/types';
+
+const log = getLogger('useVoiceAgent');
 import { processVoiceTranscript } from '@/features/inbox/hooks/voice/processTranscript';
 import { playTtsAudio, type TtsPlayback } from '@/features/inbox/hooks/voice/playTtsAudio';
 import { logVoiceCommand } from '@/features/inbox/hooks/voice/logVoiceCommand';

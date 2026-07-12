@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { getExternalSupabase } from "@/integrations/supabase/externalClient";
 import { dbFrom } from "@/integrations/datasource/db";
 import { safeClient } from "@/integrations/supabase/safeClient";
-import { log } from "@/lib/logger";
+import { getLogger } from "@/lib/logger";
+
+const log = getLogger('useAutomations');
 
 interface EvolutionMessage {
   from_me: boolean;

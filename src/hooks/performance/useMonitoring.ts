@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { useAnimationFrame } from './useTimingHooks';
+
+const log = getLogger('useMonitoring');
 
 /**
  * Measure component render performance

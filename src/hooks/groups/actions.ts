@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
+
+const log = getLogger('useGroupActions');
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import type { WhatsAppGroup, WhatsAppConnection } from './types';
 import { dbFrom } from '@/integrations/datasource/db';
