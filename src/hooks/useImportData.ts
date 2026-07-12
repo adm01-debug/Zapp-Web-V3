@@ -7,7 +7,6 @@
 
 import { useState, useCallback } from 'react';
 import { z } from 'zod';
-import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
 // ============================================
@@ -48,11 +47,12 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ImportResult<T> | null>(null);
 
-  // Parsear CSV usando xlsx
+  // Parsear CSV usando xlsx (carregado sob demanda — ~600KB fora do bundle principal)
   const parseCSV = useCallback(async (file: File): Promise<unknown[]> => {
+    const XLSX = await import('xlsx');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         try {
           const text = e.target?.result as string;
@@ -62,7 +62,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
             defval: '',
             raw: false,
           });
-          
+
           // Normalizar headers
           const normalized = (jsonData as Record<string, unknown>[]).map((row: Record<string, unknown>) => {
             const newRow: Record<string, unknown> = {};
@@ -72,27 +72,28 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
             });
             return newRow;
           });
-          
+
           if (skipFirstRow && normalized.length > 0) {
             normalized.shift();
           }
-          
+
           resolve(normalized);
         } catch (error) {
           reject(error);
         }
       };
-      
+
       reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
       reader.readAsText(file);
     });
   }, [skipFirstRow]);
 
-  // Parsear Excel
+  // Parsear Excel (carregado sob demanda — ~600KB fora do bundle principal)
   const parseExcel = useCallback(async (file: File): Promise<unknown[]> => {
+    const XLSX = await import('xlsx');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -102,7 +103,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
             defval: '',
             raw: false,
           });
-          
+
           // Normalizar headers
           const normalized = (jsonData as Record<string, unknown>[]).map((row: Record<string, unknown>) => {
             const newRow: Record<string, unknown> = {};
@@ -112,17 +113,17 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
             });
             return newRow;
           });
-          
+
           if (skipFirstRow && normalized.length > 0) {
             normalized.shift();
           }
-          
+
           resolve(normalized);
         } catch (error) {
           reject(error);
         }
       };
-      
+
       reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
       reader.readAsArrayBuffer(file);
     });
