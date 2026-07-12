@@ -159,9 +159,7 @@ export function sanitizeHtml(
 
     if (typeof html !== 'string') {
       console.error(`[sanitizeHtml] Received non-string: ${typeof html}`);
-      throw new TypeError(
-        `sanitizeHtml() expects string, received ${typeof html}`
-      );
+      throw new TypeError(`sanitizeHtml() expects string, received ${typeof html}`);
     }
 
     if (html.length === 0) {
@@ -198,8 +196,7 @@ export function sanitizeHtml(
       sanitized: html !== sanitized,
     };
   } catch (err) {
-    const errorMsg =
-      err instanceof Error ? err.message : String(err);
+    const errorMsg = err instanceof Error ? err.message : String(err);
     console.error('[sanitizeHtml] Sanitization failed:', errorMsg);
 
     return {
@@ -214,7 +211,7 @@ export function sanitizeHtml(
 /**
  * Safe hook-based sanitization using immutable config.
  * Avoids mutable DOMPurify hook registry.
- * 
+ *
  * @param html - HTML to sanitize
  * @returns Sanitized HTML with tabnabbing prevention applied
  */
@@ -253,10 +250,10 @@ export function sanitizeHtmlWithHooks(html: string): string {
 /**
  * Backward-compatible sanitizeHtml with hook cleanup.
  * For components that require hook-based validation.
- * 
+ *
  * @param html - HTML to sanitize
  * @returns Sanitized HTML
- * 
+ *
  * Uses try/finally to guarantee hook cleanup (Gap 3.1).
  */
 export function sanitizeHtmlWithHookCleanup(html: string): string {
@@ -264,9 +261,6 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
     return '';
   }
 
-  // Generate unique hook ID to prevent collisions (Gap 3.2)
-  const hookId = `afterSanitizeAttributes_sanitizeHtml_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
   const attributeSanitizer = function (node: Element) {
     // Force safe attributes on all elements
     if (node.tagName === 'A' && node.hasAttribute('target')) {
@@ -277,10 +271,16 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
 
     // Remove dangerous attributes
     const forbiddenAttrs = [
-      'onerror', 'onload', 'onclick', 'onmouseover',
-      'onfocus', 'onblur', 'onchange', 'onsubmit',
+      'onerror',
+      'onload',
+      'onclick',
+      'onmouseover',
+      'onfocus',
+      'onblur',
+      'onchange',
+      'onsubmit',
     ];
-    forbiddenAttrs.forEach(attr => {
+    forbiddenAttrs.forEach((attr) => {
       if (node.hasAttribute(attr)) {
         node.removeAttribute(attr);
       }
@@ -288,7 +288,7 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
   };
 
   try {
-    DOMPurify.addHook(hookId as any, attributeSanitizer as any);
+    DOMPurify.addHook('afterSanitizeAttributes', attributeSanitizer);
     return DOMPurify.sanitize(html, { ...SANITIZE_CONFIG });
   } catch (err) {
     console.error(`[sanitizeHtml] Hook error: ${err}`);
@@ -297,10 +297,9 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
   } finally {
     // CRITICAL: Guarantee hook cleanup despite exceptions (Gap 3.1)
     try {
-      DOMPurify.removeHook(hookId as any);
+      DOMPurify.removeHook('afterSanitizeAttributes');
     } catch (cleanupErr) {
       console.warn(`[sanitizeHtml] Hook cleanup failed: ${cleanupErr}`);
     }
   }
 }
-

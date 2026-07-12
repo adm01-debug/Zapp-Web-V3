@@ -140,13 +140,23 @@ export function ConversationSummary({
     setIsLoading(true);
     try {
       const data = await conversationSummary({
-        messages: filteredMessages.map(m => ({ role: m.sender, content: m.content, sender: m.sender })),
+        messages: filteredMessages.map((m) => ({
+          role: m.sender,
+          content: m.content,
+          sender: m.sender,
+        })),
         contactName,
         contactId,
       });
-      setSummary(data as any); setHasGenerated(true); toast.success('Resumo gerado com sucesso!');
-    } catch (error) { log.error('Error generating summary:', error); toast.error('Erro ao gerar resumo. Tente novamente.'); }
-    finally { setIsLoading(false); }
+      setSummary((data?.data as unknown as SummaryData) ?? null);
+      setHasGenerated(true);
+      toast.success('Resumo gerado com sucesso!');
+    } catch (error) {
+      log.error('Error generating summary:', error);
+      toast.error('Erro ao gerar resumo. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const StatusIcon = summary ? statusConfig[summary.status]?.icon || Clock : Clock;
