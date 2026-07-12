@@ -93,7 +93,7 @@ async function callEvolution(endpoint: string, body: Record<string, any>, instan
       http_status: response.status,
     };
   } catch (error) {
-    return { success: false, error: (error as Error).message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -202,7 +202,7 @@ async function processMessage(message: QueuedMessage): Promise<SendResult> {
         const obj = typeof message.content === "string" ? JSON.parse(message.content!) : message.content;
         return sendButtonMessage(message.remote_jid, obj as Record<string, any>, instance);
       } catch (e) {
-        return { success: false, error: `invalid buttons JSON: ${(e as Error).message}` };
+        return { success: false, error: `invalid buttons JSON: ${e instanceof Error ? e.message : String(e)}` };
       }
     case "template":
       return sendTemplateMessage(message, instance);
@@ -282,7 +282,7 @@ async function processQueue(): Promise<{
       result = await processMessage(m);
     } catch (e) {
       // Unexpected exception — return row to pending so the next cycle can retry
-      const msg = (e as Error).message;
+      const msg = e instanceof Error ? e.message : String(e);
       console.error(`[processQueue] unexpected error processing ${m.id}:`, msg);
       await markPending(m.id, msg);
       retried++;
