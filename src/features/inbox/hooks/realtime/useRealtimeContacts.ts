@@ -50,7 +50,7 @@ function arraysEqual(a: unknown, b: unknown): boolean {
 
 function hasReorderingChange(
   oldRow: Partial<EvolutionContact> | null | undefined,
-  newRow: Partial<EvolutionContact> | null | undefined,
+  newRow: Partial<EvolutionContact> | null | undefined
 ): boolean {
   if (!oldRow || !newRow) return true; // unknown → be safe and reorder
   for (const f of REORDER_FIELDS) {
@@ -73,7 +73,7 @@ function hasReorderingChange(
  */
 function mergeContact<T extends Partial<EvolutionContact>>(
   prev: T,
-  next: Partial<EvolutionContact>,
+  next: Partial<EvolutionContact>
 ): T {
   const out: Record<string, unknown> = { ...(prev as Record<string, unknown>) };
   for (const k in next) {
@@ -127,11 +127,11 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
         // Patch individual contact cache if present (preserves omitted fields)
         queryClient.setQueriesData<EvolutionContact | undefined>(
           { queryKey: ['contact', remoteJid] },
-          (prev) => (prev ? mergeContact(prev, contact) : prev),
+          (prev) => (prev ? mergeContact(prev, contact) : prev)
         );
         queryClient.setQueriesData<EvolutionContact | undefined>(
           { queryKey: ['external-evolution', 'contact', remoteJid] },
-          (prev) => (prev ? mergeContact(prev, contact) : prev),
+          (prev) => (prev ? mergeContact(prev, contact) : prev)
         );
 
         // INSERT/DELETE always invalidate the list (ordering changes)
@@ -140,20 +140,17 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
         } else {
           // UPDATE: try to patch list entries in place, fallback to invalidate
           let patched = false;
-          queryClient.setQueriesData<unknown>(
-            { queryKey: ['contacts-list'] },
-            (prev) => {
-              if (!Array.isArray(prev)) return prev;
-              const idx = prev.findIndex(
-                (c) => c && typeof c === 'object' && (c as EvolutionContact).remote_jid === remoteJid,
-              );
-              if (idx < 0) return prev;
-              patched = true;
-              const next = prev.slice();
-              next[idx] = mergeContact(next[idx] as EvolutionContact, contact);
-              return next;
-            },
-          );
+          queryClient.setQueriesData<unknown>({ queryKey: ['contacts-list'] }, (prev) => {
+            if (!Array.isArray(prev)) return prev;
+            const idx = prev.findIndex(
+              (c) => c && typeof c === 'object' && (c as EvolutionContact).remote_jid === remoteJid
+            );
+            if (idx < 0) return prev;
+            patched = true;
+            const next = prev.slice();
+            next[idx] = mergeContact(next[idx] as EvolutionContact, contact);
+            return next;
+          });
           // Even if patched in-place, force a re-sort when ranking-relevant
           // fields changed (lead_status, assigned_to, pinned, tags, etc.).
           if (!patched || change.reorder) invalidateConversations = true;
@@ -164,7 +161,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
           window.dispatchEvent(
             new CustomEvent('contact-updated', {
               detail: { type: change.type, contact },
-            }),
+            })
           );
         } catch {
           /* noop in non-DOM env */
@@ -182,9 +179,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       flushTimerRef.current = setTimeout(flush, FLUSH_DELAY_MS);
     };
 
-    const handlePayload = (
-      payload: RealtimePostgresChangesPayload<EvolutionContact>,
-    ) => {
+    const handlePayload = (payload: RealtimePostgresChangesPayload<EvolutionContact>) => {
       const row = (payload.new ?? payload.old) as EvolutionContact | undefined;
       if (!row || !row.remote_jid) {
         log.warn('Payload sem remote_jid — descartando', { eventType: payload.eventType });
@@ -204,7 +199,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
         type === 'UPDATE'
           ? hasReorderingChange(
               payload.old as Partial<EvolutionContact> | undefined,
-              payload.new as Partial<EvolutionContact> | undefined,
+              payload.new as Partial<EvolutionContact> | undefined
             )
           : true;
 
@@ -215,7 +210,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       const prev = pendingRef.current.get(row.remote_jid);
       const mergedContact = prev ? mergeContact(prev.contact, row) : row;
       // DELETE always wins over earlier INSERT/UPDATE in the same burst.
-      const mergedType = type === 'DELETE' ? 'DELETE' : (prev?.type === 'INSERT' ? 'INSERT' : type);
+      const mergedType = type === 'DELETE' ? 'DELETE' : prev?.type === 'INSERT' ? 'INSERT' : type;
       pendingRef.current.set(row.remote_jid, {
         type: mergedType,
         contact: mergedContact,
@@ -235,12 +230,13 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
           table: 'evolution_contacts',
           filter: `instance_name=eq.${instance}`,
         },
-        handlePayload,
+        handlePayload
       )
       .subscribe((status) => {
         // Map Supabase realtime states → app-facing 3-state model
         if (status === 'SUBSCRIBED') setRealtimeContactsStatus('connected');
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeContactsStatus('error');
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')
+          setRealtimeContactsStatus('error');
         else if (status === 'CLOSED') setRealtimeContactsStatus('disconnected');
         else setRealtimeContactsStatus('connecting');
       });
@@ -252,7 +248,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       }
       pendingRef.current = new Map();
       setRealtimeContactsStatus('disconnected');
-      void externalSupabase.removeChannel(channel);
+      void channel.unsubscribe();
     };
   }, [enabled, instance, queryClient]);
 }
