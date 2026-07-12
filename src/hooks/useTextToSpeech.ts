@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useTextToSpeech');
 
 // Default voice: Custom voice from Voice Library
 const DEFAULT_VOICE_ID = 'TY3h8ANhQUsJaa0Bga5F';
