@@ -170,25 +170,62 @@ profilesMap.select = makeSelect(profilesMap.columns);
 export interface MessageCanonical extends Record<string, unknown> {
   id: string;
   contact_id: string | null;
+  whatsapp_connection_id: string | null;
+  sender: string;
+  content: string;
+  message_type: string;
+  media_url: string | null;
+  is_read: boolean | null;
   agent_id: string | null;
-  content: string | null;
-  sender: string | null;
+  external_id: string | null;
+  created_at: string;
+  updated_at: string;
+  transcription: string | null;
+  transcription_status: string | null;
+  status: string | null;
+  status_updated_at: string | null;
+  is_deleted: boolean | null;
   channel_type: string | null;
-  external_message_id: string | null;
-  created_at: string | null;
+  channel_connection_id: string | null;
+  is_edited: boolean;
+  media_meta: Record<string, unknown> | null;
+  media_type: string | null;
+  media_mimetype: string | null;
+  link_preview: Record<string, unknown> | null;
+  reply_to_id: string | null;
+  deleted_at: string | null;
 }
 
 export const messagesMap: EntityColumnMap<MessageCanonical> = {
   table: 'messages',
   columns: {
-    id:                  { physical: 'id',                  nullable: false },
-    contact_id:          { physical: 'contact_id',          nullable: true },
-    agent_id:            { physical: 'agent_id',            aliases: ['sender_id'], nullable: true },
-    content:             { physical: 'content',             nullable: true },
-    sender:              { physical: 'sender',              nullable: true },
-    channel_type:        { physical: 'channel_type',        nullable: true },
-    external_message_id: { physical: 'external_message_id', nullable: true },
-    created_at:          { physical: 'created_at',          nullable: true },
+    id:                     { physical: 'id',                     nullable: false },
+    contact_id:             { physical: 'contact_id',             nullable: true },
+    whatsapp_connection_id: { physical: 'whatsapp_connection_id', nullable: true },
+    sender:                 { physical: 'sender',                 nullable: false },
+    content:                { physical: 'content',                nullable: false, default: '' },
+    message_type:           { physical: 'message_type',           nullable: false, default: 'text' },
+    media_url:              { physical: 'media_url',              nullable: true },
+    is_read:                { physical: 'is_read',                nullable: true },
+    // Canônico: 'agent_id'. Alias 'sender_id' aceito só na leitura de legados.
+    agent_id:               { physical: 'agent_id',               aliases: ['sender_id'], nullable: true },
+    external_id:            { physical: 'external_id',            nullable: true },
+    created_at:             { physical: 'created_at',             nullable: false },
+    updated_at:             { physical: 'updated_at',             nullable: false },
+    transcription:          { physical: 'transcription',          nullable: true },
+    transcription_status:   { physical: 'transcription_status',   nullable: true },
+    status:                 { physical: 'status',                 nullable: true },
+    status_updated_at:      { physical: 'status_updated_at',      nullable: true },
+    is_deleted:             { physical: 'is_deleted',             nullable: true },
+    channel_type:           { physical: 'channel_type',           nullable: true },
+    channel_connection_id:  { physical: 'channel_connection_id',  nullable: true },
+    is_edited:              { physical: 'is_edited',              nullable: false, default: false },
+    media_meta:             { physical: 'media_meta',             nullable: true },
+    media_type:             { physical: 'media_type',             nullable: true },
+    media_mimetype:         { physical: 'media_mimetype',         nullable: true },
+    link_preview:           { physical: 'link_preview',           nullable: true },
+    reply_to_id:            { physical: 'reply_to_id',            nullable: true },
+    deleted_at:             { physical: 'deleted_at',             nullable: true },
   },
   embeds: {
     contact:    { kind: 'one', select: 'contact:contact_id (id, name, phone, remote_jid)' },

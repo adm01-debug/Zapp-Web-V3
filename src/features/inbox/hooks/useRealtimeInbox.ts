@@ -255,6 +255,7 @@ export function useRealtimeInbox() {
       .subscribe();
     return () => {
       cancelled = true;
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [selectedContactId, profile?.id]);

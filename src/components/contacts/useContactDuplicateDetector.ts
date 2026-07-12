@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * useContactDuplicateDetector.ts
  * Real-time duplicate detection when creating/editing contacts.

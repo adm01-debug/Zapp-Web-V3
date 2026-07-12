@@ -210,7 +210,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
 
           const result = (data ?? {}) as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
           if (result?.error === 'CONFLICT') {
-            setConflict(result as ConflictInfo); // ignore-audit: narrows Supabase query result to local interface
+            setConflict(result as unknown as ConflictInfo); // ignore-audit: narrows Supabase query result to local interface
             setConflictOpen(true);
             return;
           }

@@ -31,6 +31,7 @@ export const authService = {
     const result = await supabase.auth.signInWithPassword({ email, password });
     if (!result.error) {
       // dual-session: replica login no self-hosted com as mesmas credenciais
+      // mirrorExternalSignIn has an internal try/catch and never rejects — .catch() is dead code
       void mirrorExternalSignIn(email, password);
     }
     return result;

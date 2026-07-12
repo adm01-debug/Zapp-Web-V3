@@ -15,7 +15,7 @@
  *     // authed.user is now safe to use
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { errorResponse, requireEnv } from "./validation.ts";
+import { errorResponse, requireEnv, validateEnvironment } from "./validation.ts";
 
 export interface AuthedUser {
   user: { id: string; email: string | null };
@@ -146,6 +146,7 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
 }
 
 export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser | Response> {
+  // requireUser already validates token expiry, so no need to check again here
   const authed = await requireUser(req);
   if (authed instanceof Response) return authed;
 

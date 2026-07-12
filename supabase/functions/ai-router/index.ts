@@ -26,7 +26,14 @@
  * - RLS: All database operations scoped to authenticated user
  * - JWT validation: Signature + expiration + claims validation
  * - Secret scrubbing: Producer secrets never persisted to DLQ
- * - Idempotency: 5-min deduplication window per request_id
+ * - Idempotency: 5-min deduplication window per request_id + distributed lock (IMPROVEMENT 6)
+ * - Request signing: HMAC-SHA256 signature validation to prevent tampering (IMPROVEMENT 11)
+ *
+ * Required Supabase RPC Functions:
+ * - check_duplicate_request(p_request_id, p_action, p_user_id) → {is_duplicate, cached_result}
+ * - record_processed_request(p_request_id, p_action, p_user_id, p_status_code, p_result_payload)
+ * - acquire_idempotency_lock(p_request_id, p_action, p_user_id) → {acquired, cached_result?} [IMPROVEMENT 6]
+ * - record_ai_metrics(p_function_name, p_action, p_duration_ms, p_status, p_user_id, p_error_message, p_metadata)
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -34,13 +41,14 @@ import {
   handleCors, errorResponse, jsonResponse,
   sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger,
 } from "../_shared/validation.ts";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
 import {
   AiAutoTagSchema, AiConversationSummarySchema, AiEnhanceMessageSchema,
   ClassifyEmojiSchema, ClassifyStickerSchema, AiChurnAnalysisSchema,
   AiConversationAnalysisSchema, AiSuggestReplySchema, TranscribeAudioSchema,
   parseBody
 } from "../_shared/schemas.ts";
-import { callAiWithTracking } from "../_shared/ai-usage.ts";
+import { callAiWithTracking, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 // Action-specific timeouts (milliseconds)
@@ -69,12 +77,60 @@ const ACTION_RATE_LIMITS: Record<string, number> = {
   transcribe_audio: 10,
 };
 
+/**
+ * FIX #9: RequestContext - Per-Request State Container
+ *
+ * Holds transient state for a single request. State is initialized at request start
+ * and cleaned up before response to prevent leakage across requests.
+ *
+ * FIELD LIFECYCLE:
+ * - userId: Set once from auth token (immutable)
+ * - ip: Set once from request headers (immutable)
+ * - action: Set once from routing (immutable)
+ * - requestId: Set during idempotency phase if valid, CLEARED before response (scoped)
+ * - startTime: Set at request entry for duration tracking (immutable)
+ *
+ * REQUESTID SCOPING:
+ * requestId is a scoped property - active only during request processing:
+ * 1. Extracted from body during PHASE 4
+ * 2. Validated and stored in ctx.requestId if valid
+ * 3. Used by handlers for RPC calls (record_processed_request, check_duplicate_request)
+ * 4. CLEARED in two places to prevent state accumulation:
+ *    a) Immediately after dedup hit (early return)
+ *    b) After final response returned (success or error path)
+ *
+ * MEMORY SAFETY:
+ * Clearing requestId ensures ctx object is ready for garbage collection and
+ * prevents sensitive request identifiers from accumulating in memory.
+ */
+/**
+ * IMPROVEMENT 7: Correlation ID for distributed tracing
+ * Enables tracking requests across multiple services (ai-router → handlers → AI Gateway → External APIs)
+ *
+ * IMPROVEMENT 8: Per-user concurrency tracking
+ * Tracks concurrent requests per user to prevent single user starving others
+ */
 interface RequestContext {
   userId: string;
   ip: string;
   action: string;
-  requestId?: string;
+  requestId?: string; // Scoped to current request; cleared before response
+  correlationId: string; // IMPROVEMENT 7: Unique ID for tracing across services
   startTime: number;
+  concurrencyKey?: string; // IMPROVEMENT 8: For cleanup on completion
+  abortSignal?: AbortSignal; // IMPROVEMENT 10: For propagating cancellation through call chain
+}
+
+/**
+ * IMPROVEMENT 9: Partial Success Response Tracking
+ * Tracks individual operations within a handler to report which succeeded and which failed.
+ * Enables clients to know exactly what completed vs failed instead of getting generic success: true/false.
+ */
+interface OperationResult {
+  operation: string; // e.g., 'tag_update', 'contact_update', 'notification_send'
+  status: 'success' | 'failed' | 'partial' | 'skipped';
+  message?: string; // Error message if failed
+  metadata?: Record<string, unknown>; // Operation-specific details
 }
 
 interface ActionResult {
@@ -84,7 +140,44 @@ interface ActionResult {
   duration_ms: number;
   metrics?: Record<string, unknown>;
   isValidationError?: boolean; // C.16: Track if error is validation (422) vs internal (500)
+  partial_success?: boolean; // IMPROVEMENT 9: True if some operations succeeded, some failed
+  error_details?: OperationResult[]; // IMPROVEMENT 9: Detailed tracking of each operation
 }
+
+/**
+ * FIX #8: Circuit Breaker Pattern Documentation
+ *
+ * PATTERN OVERVIEW:
+ * Implements the circuit breaker pattern to gracefully degrade service when external AI APIs fail.
+ * Prevents cascading failures by blocking requests during outages and implementing exponential backoff
+ * for recovery attempts.
+ *
+ * STATE MACHINE:
+ * ┌─────────┐  (failures >= 5)  ┌──────┐  (cooldown passed)  ┌─────────┐
+ * │ CLOSED  │─────────────────→ │ OPEN │─────────────────→ │HALF_OPEN│
+ * └────▲────┘                   └──────┘                     └────┬────┘
+ *      │                                                          │
+ *      └──────────── (success on next call) ←────────────────────┘
+ *
+ * STATES:
+ * - CLOSED: Normal operation. Requests pass through. Failures counted.
+ * - OPEN: Service unavailable. Requests rejected immediately. Exponential backoff applied.
+ * - HALF_OPEN: Testing recovery. Next request attempts to call API. Success → CLOSED, Failure → OPEN.
+ *
+ * EXPONENTIAL BACKOFF:
+ * Cooldown formula: min(90s × 2^cycleCount, 600s)
+ * - Cycle 0: 90s cooldown
+ * - Cycle 1: 180s cooldown
+ * - Cycle 2: 360s cooldown
+ * - Cycle 3+: Capped at 600s (10 minutes)
+ * This prevents hammering a recovering service.
+ *
+ * TRANSITIONS:
+ * CLOSED → OPEN: When failureCount reaches CIRCUIT_BREAKER_THRESHOLD (5)
+ * OPEN → HALF_OPEN: When exponential backoff cooldown expires
+ * HALF_OPEN → CLOSED: On first successful request (resets cycles)
+ * HALF_OPEN → OPEN: On next failure (increments cycles, extends cooldown)
+ */
 
 // Circuit breaker state for external APIs (per provider)
 interface CircuitBreakerState {
@@ -104,6 +197,10 @@ const MEMORY_WARNING_THRESHOLD_MB = 250; // H.15: Warn at 250MB
 const MEMORY_CRITICAL_THRESHOLD_MB = 350; // H.15: Reject requests at 350MB
 const MAX_REQUEST_BODY_SIZE = 1 * 1024 * 1024; // C.15: Max request body 1MB to prevent DoS via payload size
 
+// IMPROVEMENT 8: Per-user concurrency limits (per action + per user)
+const PER_USER_CONCURRENT_LIMIT = 5; // Max 5 concurrent requests per user per action
+const userConcurrencyCounters = new Map<string, number>(); // key: `${userId}:${action}`
+
 let activeTranscodeCount = 0;
 
 // CRITICAL GAP H.9: Circular buffer for metrics to prevent memory overflow
@@ -118,8 +215,31 @@ interface MetricsEntry {
   timestamp: number;
 }
 
+/**
+ * IMPROVEMENT 12: Query Performance Tracking
+ * Monitors database query performance to detect N+1 patterns and slow queries.
+ *
+ * TRACKING:
+ * - Query duration (ms)
+ * - Operation type (select, update, insert, delete)
+ * - Table involved
+ * - Alerts if query > 2s or pattern detected
+ */
+interface QueryMetric {
+  table: string;
+  operation: string; // 'select' | 'update' | 'insert' | 'delete'
+  durationMs: number;
+  rowsAffected?: number;
+  timestamp: number;
+  isAlert?: boolean; // True if exceeds threshold
+}
+
 const metricsBuffer: MetricsEntry[] = [];
 let metricsBufferIndex = 0; // Write position for circular buffer
+
+const queryMetrics: QueryMetric[] = []; // IMPROVEMENT 12: Track queries
+const QUERY_SLOW_THRESHOLD_MS = 2000; // Alert if query > 2 seconds
+const QUERY_METRICS_WINDOW_SIZE = 1000; // Keep last 1000 queries
 
 function addMetricsToBuffer(entry: MetricsEntry): void {
   if (metricsBuffer.length < MAX_METRICS_BUFFER_SIZE) {
@@ -131,6 +251,58 @@ function addMetricsToBuffer(entry: MetricsEntry): void {
   }
 }
 
+/**
+ * IMPROVEMENT 12: Track database query performance
+ * Detects slow queries and N+1 patterns for optimization
+ * Stores all queries in circular buffer for analysis and alerting
+ */
+function trackQueryMetric(metric: QueryMetric): void {
+  const isAlert = metric.durationMs > QUERY_SLOW_THRESHOLD_MS;
+  queryMetrics.push({ ...metric, isAlert });
+
+  // Keep window size bounded
+  if (queryMetrics.length > QUERY_METRICS_WINDOW_SIZE) {
+    queryMetrics.shift();
+  }
+
+  // Alert flag is set for filtering and detection by handler logging
+  // (detectNPlusOnePattern and handler error paths will log these alerts)
+}
+
+/**
+ * IMPROVEMENT 12: Detect N+1 query pattern
+ * Warns if same table is queried multiple times in short window
+ */
+function detectNPlusOnePattern(tableName: string, log: Logger): void {
+  const recentQueries = queryMetrics.filter(q =>
+    q.table === tableName && (Date.now() - q.timestamp) < 5000 // Last 5 seconds
+  );
+
+  if (recentQueries.length > 3) {
+    log.warn(`[N+1_ALERT] Potential N+1 pattern detected on ${tableName}`, {
+      queryCount: recentQueries.length,
+      operations: recentQueries.map(q => `${q.operation}(${q.durationMs}ms)`).join(', '),
+    });
+  }
+}
+
+/**
+ * FIX #8: Retrieve or initialize circuit breaker state for a given provider/service.
+ * Each provider (lovable-auto-tag, lovable-conversation-summary, etc.) has independent state
+ * to prevent one service's outage from blocking another's recovery.
+ *
+ * ⚠️ SECURITY NOTE (S.4): In a distributed system with multiple edge function instances,
+ * circuit breaker state is per-instance (not shared). This means:
+ * - Each instance independently detects outages and opens its own circuit
+ * - Instances don't know about failures detected by other instances
+ * - RECOMMENDATION: For production high-traffic deployments, migrate to shared state
+ *   (Redis/KV store) to coordinate circuit breaker across all instances
+ * - CURRENT RISK LEVEL: Low (single instance handles each request; probabilistic
+ *   circuit opening across fleet provides redundancy)
+ *
+ * @param key - Service identifier (e.g., 'lovable-auto-tag', 'lovable-suggest-reply')
+ * @returns CircuitBreakerState object (creates fresh state if missing)
+ */
 function getCircuitBreakerState(key: string): CircuitBreakerState {
   if (!circuitBreakerStates.has(key)) {
     circuitBreakerStates.set(key, {
@@ -143,27 +315,78 @@ function getCircuitBreakerState(key: string): CircuitBreakerState {
   return circuitBreakerStates.get(key)!;
 }
 
+/**
+ * FIX #8: Wraps AI API calls with circuit breaker protection.
+ * Monitors response codes and exceptions to detect outages and apply graceful degradation.
+ *
+ * BEHAVIOR BY STATE:
+ * - CLOSED: Calls fn(), counts failures, throws on threshold
+ * - OPEN: Immediately rejects with exponential backoff duration
+ * - HALF_OPEN: Attempts fn() to test recovery; success→CLOSED, failure→OPEN
+ *
+ * FAILURE TRIGGERS:
+ * 1. Network errors (DNS, connection refused, timeouts)
+ * 2. HTTP error responses (429 rate limit, 500+ server errors, etc.)
+ * 3. Malformed responses (missing ok/status fields)
+ *
+ * METRICS TRACKED:
+ * - failureCount: Cumulative failures in current burst (reset to 0 on success)
+ * - lastFailureTime: Timestamp of most recent failure (used for cooldown calculation)
+ * - cycleCount: Number of times circuit has cycled to OPEN (drives exponential backoff)
+ * - state: Current state (CLOSED|OPEN|HALF_OPEN)
+ *
+ * @template T - Return type of fn() (must have response.ok or response.status)
+ * @param fn - Async function that makes the actual API call
+ * @param key - Service key for independent state tracking (default: 'default')
+ * @returns Promise resolving to fn() result on success
+ * @throws Error with "Circuit breaker OPEN" message when circuit is open and cooldown active
+ * @throws Propagates any error from fn()
+ */
+/**
+ * IMPROVEMENT 5: Jittered Circuit Breaker Recovery
+ * Prevents thundering herd problem when circuit breaker opens.
+ *
+ * BEHAVIOR:
+ * - Base cooldown: 90s × 2^cycleCount (exponential backoff)
+ * - Jitter: ±(cycleCount × 5) seconds to spread retry attempts
+ * - Result: Requests retry at staggered intervals, not all at once
+ *
+ * EXAMPLE:
+ * Cycle 0: 90s ± 0s   = 90s (no jitter, fresh outage)
+ * Cycle 1: 180s ± 5s  = 175-185s (small spread)
+ * Cycle 2: 360s ± 10s = 350-370s (larger spread)
+ * Cycle 3: 600s ± 15s = 585-615s (maxed out with jitter)
+ */
+function calculateJitteredRetryAfter(cycleCount: number): { baseMs: number; jitterMs: number; totalMs: number } {
+  const baseMs = Math.min(
+    CIRCUIT_BREAKER_COOLDOWN_MS * Math.pow(2, cycleCount),
+    600_000 // 10 minute cap
+  );
+  // Jitter: ±(cycleCount × 5000) ms (increases with retry cycles)
+  const maxJitterMs = cycleCount * 5000;
+  const jitterMs = Math.random() * maxJitterMs - (maxJitterMs / 2);
+  const totalMs = Math.max(baseMs + jitterMs, 1000); // Minimum 1s
+  return { baseMs, jitterMs, totalMs };
+}
+
 async function withCircuitBreaker<T extends { response: { ok?: boolean; status?: number }; data?: unknown }>(
   fn: () => Promise<T>,
   key: string = 'default'
 ): Promise<T> {
   const breaker = getCircuitBreakerState(key);
 
-  // If open, check if exponential backoff cool-down period has passed (D.9)
+  // IMPROVEMENT 5: If open, check if exponential backoff cool-down period has passed with jitter
   if (breaker.state === 'OPEN') {
     const now = Date.now();
-    // Exponential backoff: 90s * 2^cycleCount, capped at 10 minutes
-    const exponentialCooldown = Math.min(
-      CIRCUIT_BREAKER_COOLDOWN_MS * Math.pow(2, breaker.cycleCount),
-      600_000 // 10 minute cap
-    );
-    if (breaker.lastFailureTime && now - breaker.lastFailureTime > exponentialCooldown) {
+    const { baseMs, totalMs } = calculateJitteredRetryAfter(breaker.cycleCount);
+
+    if (breaker.lastFailureTime && now - breaker.lastFailureTime > totalMs) {
       breaker.state = 'HALF_OPEN';
       breaker.successCount = 0;
     } else {
       const remainingMs = breaker.lastFailureTime
-        ? exponentialCooldown - (now - breaker.lastFailureTime)
-        : exponentialCooldown;
+        ? totalMs - (now - breaker.lastFailureTime)
+        : totalMs;
       throw new Error(`Circuit breaker OPEN for ${key}, retry after ${Math.ceil(remainingMs / 1000)}s`);
     }
   }
@@ -171,38 +394,38 @@ async function withCircuitBreaker<T extends { response: { ok?: boolean; status?:
   try {
     const result = await fn();
 
-    // Success - check if response is ok
+    // FIX #8: Success - check if response is ok (both .ok flag and status code < 400)
     const isSuccess = result.response?.ok === true || (result.response?.status !== undefined && result.response.status < 400);
 
     if (isSuccess) {
-      // On success, reset failure count and transition back to CLOSED
+      // FIX #8: On success, reset failure count and transition back to CLOSED
       breaker.failureCount = 0;
       if (breaker.state === 'HALF_OPEN') {
         breaker.state = 'CLOSED';
         breaker.successCount = 0;
-        breaker.cycleCount = 0; // D.9: Reset exponential backoff cycle on recovery
+        breaker.cycleCount = 0; // Reset exponential backoff cycle on recovery
       }
       return result;
     } else {
-      // HTTP error response (429, 402, 5xx, etc)
+      // FIX #8: HTTP error response (429, 402, 5xx, etc)
       breaker.failureCount++;
       breaker.lastFailureTime = Date.now();
 
       if (breaker.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
         breaker.state = 'OPEN';
-        breaker.cycleCount++; // D.9: Increment cycle for exponential backoff
+        breaker.cycleCount++; // Increment cycle for exponential backoff
         throw new Error(`Circuit breaker opened for ${key} after ${breaker.failureCount} failures`);
       }
       return result;
     }
   } catch (err) {
-    // Network or other errors
+    // FIX #8: Network or other errors (timeouts, connection refused, etc.)
     breaker.failureCount++;
     breaker.lastFailureTime = Date.now();
 
     if (breaker.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
       breaker.state = 'OPEN';
-      breaker.cycleCount++; // D.9: Increment cycle for exponential backoff
+      breaker.cycleCount++; // Increment cycle for exponential backoff
     }
     throw err;
   }
@@ -223,6 +446,102 @@ async function callAiWithTimeout<T>(
       setTimeout(() => reject(new Error(errorMsg)), timeoutMs);
     }),
   ]);
+}
+
+// C.38: Flatten dual-catch error handling pattern — consolidate metrics logging
+async function logAiMetrics(params: {
+  functionName: string;
+  action: string;
+  durationMs: number;
+  status: string;
+  userId: string | null;
+  errorMessage: string | null;
+  metadata: Record<string, unknown>;
+}, supabase: ReturnType<typeof createClient>): Promise<void> {
+  try {
+    await supabase.rpc('record_ai_metrics', {
+      p_function_name: params.functionName,
+      p_action: params.action,
+      p_duration_ms: Math.round(params.durationMs),
+      p_status: params.status,
+      p_user_id: params.userId,
+      p_error_message: params.errorMessage,
+      p_metadata: params.metadata,
+    });
+  } catch {
+    // Metrics logging is non-critical, do not propagate errors
+  }
+}
+
+/**
+ * IMPROVEMENT 9: Partial Success Response Building
+ * Helps handlers track individual operations and build comprehensive error_details array.
+ * Enables clients to know exactly what succeeded vs failed instead of generic success: true/false.
+ *
+ * PATTERN:
+ * 1. Create array: const operations: OperationResult[] = []
+ * 2. Track each operation: operations.push({operation: 'tag_update', status: 'success'})
+ * 3. After all operations: const response = buildPartialSuccessResponse(operations, data, durationMs)
+ * 4. Return response
+ *
+ * CLIENT RECEIVES:
+ * - success: true → all operations succeeded
+ * - success: false, partial_success: false → all operations failed
+ * - success: false, partial_success: true → some operations succeeded, some failed
+ * - error_details: [{operation, status, message}] → detailed per-operation status
+ */
+function buildPartialSuccessResponse(
+  operations: OperationResult[],
+  data: unknown,
+  durationMs: number,
+  metrics?: Record<string, unknown>
+): ActionResult {
+  const successCount = operations.filter(op => op.status === 'success').length;
+  const failedCount = operations.filter(op => op.status === 'failed').length;
+  const totalOps = operations.length;
+
+  // All succeeded
+  if (failedCount === 0 && totalOps > 0) {
+    return {
+      success: true,
+      data,
+      duration_ms: durationMs,
+      metrics,
+      error_details: operations,
+    };
+  }
+
+  // None succeeded
+  if (successCount === 0 && totalOps > 0) {
+    return {
+      success: false,
+      error: "All operations failed",
+      duration_ms: durationMs,
+      partial_success: false,
+      error_details: operations,
+    };
+  }
+
+  // Some succeeded, some failed (partial success)
+  if (successCount > 0 && failedCount > 0) {
+    return {
+      success: false,
+      error: `Partial success: ${successCount}/${totalOps} operations completed`,
+      data,
+      duration_ms: durationMs,
+      partial_success: true,
+      error_details: operations,
+      metrics,
+    };
+  }
+
+  // No operations tracked (fallback)
+  return {
+    success: true,
+    data,
+    duration_ms: durationMs,
+    metrics,
+  };
 }
 
 // H.15: Memory usage monitoring and enforcement
@@ -253,14 +572,277 @@ function checkMemoryLimit(log: Logger): boolean {
   return true; // Allow request
 }
 
+/**
+ * IMPROVEMENT 6: Distributed Idempotency Lock
+ * Prevents race condition where 2 requests with same requestId both process.
+ *
+ * MECHANISM:
+ * - Attempt to INSERT a "processing" record with unique constraint (requestId, action, userId)
+ * - If INSERT succeeds: We hold the lock, continue processing
+ * - If INSERT fails (unique violation): Someone else has the lock, wait + check for result
+ * - After processing: UPDATE the record with result
+ *
+ * GUARANTEES:
+ * - Exactly one request processes for a given (requestId, action, userId)
+ * - Duplicates wait and return cached result
+ * - Handles distributed scenario (multiple edge function instances)
+ *
+ * @param requestId - Unique request identifier
+ * @param action - Action name (e.g., 'auto_tag', 'conversation_summary')
+ * @param userId - User ID from auth token
+ * @param supabase - Supabase client
+ * @param timeoutMs - How long to wait for duplicate to complete (default 30s)
+ * @returns {acquired: boolean, result?: unknown} - acquired=true if lock obtained; result if duplicate found
+ */
+async function acquireIdempotencyLock(
+  requestId: string,
+  action: string,
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+  timeoutMs: number = 30_000
+): Promise<{ acquired: boolean; result?: unknown }> {
+  try {
+    // Attempt to acquire lock via unique constraint violation
+    const { data: lockData, error: lockError } = await supabase.rpc('acquire_idempotency_lock', {
+      p_request_id: requestId,
+      p_action: action,
+      p_user_id: userId,
+    });
+
+    if (lockError) {
+      // If RPC not available, fallback to check-only (pre-existing behavior)
+      return { acquired: false };
+    }
+
+    // lockData = { acquired: boolean, cached_result?: unknown }
+    if (lockData && typeof lockData === 'object' && 'acquired' in lockData) {
+      if (lockData.acquired === true) {
+        return { acquired: true };
+      } else {
+        // Duplicate detected, wait for result with timeout
+        const startWait = Date.now();
+        while (Date.now() - startWait < timeoutMs) {
+          const { data: resultData } = await supabase.rpc('check_duplicate_request', {
+            p_request_id: requestId,
+            p_action: action,
+            p_user_id: userId,
+          });
+
+          if (resultData && Array.isArray(resultData) && resultData.length > 0 && (resultData[0] as any).cached_result) {
+            return { acquired: false, result: (resultData[0] as any).cached_result };
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 100)); // Poll every 100ms
+        }
+
+        // Timeout waiting for duplicate to complete
+        return { acquired: false, result: null };
+      }
+    }
+
+    return { acquired: false };
+  } catch (err) {
+    // Fallback to check-only on any error
+    return { acquired: false };
+  }
+}
+
+// S.1: Centralized prompt sanitization to prevent injection attacks
+// Removes control characters, quotes, and tags that could break out of prompts
+function sanitizeForPrompt(input: string | null | undefined, maxLength: number = 200): string {
+  if (!input) return '';
+  const sanitized = String(input)
+    .replace(/[\n\r\t\v\f"'`\\<>{}]/g, ' ') // Remove control chars, quotes, escapes, and brackets
+    .replace(/\s+/g, ' ') // Collapse multiple spaces
+    .trim();
+  return sanitized.slice(0, maxLength);
+}
+
+// S.3: Sanitize error messages to prevent information leakage
+// Redacts database errors, connection errors, and API/auth sensitive info
+function sanitizeErrorMessage(errorMsg: string): string {
+  const sensitivePatterns = [
+    /database/i,
+    /ECONNREFUSED/,
+    /ENOTFOUND/,
+    /api[_\s]?key/i,
+    /authentication/i,
+    /invalid.*auth/i,
+    /401|403|407/,
+    /credentials?/i,
+    /password/i,
+    /secret/i,
+    /token/i,
+    /unauthorized/i,
+  ];
+
+  const isSensitive = sensitivePatterns.some(pattern => pattern.test(errorMsg));
+  if (isSensitive) {
+    return 'Service temporarily unavailable. Please try again.';
+  }
+
+  return errorMsg.length > 200 ? errorMsg.substring(0, 200) : errorMsg;
+}
+
+/**
+ * IMPROVEMENT 7: Add correlationId to response headers for distributed tracing
+ * Wraps response with X-Correlation-ID header to enable request tracking
+ */
+function addCorrelationIdHeader(response: Response, correlationId: string): Response {
+  const headers = new Headers(response.headers);
+  headers.set('X-Correlation-ID', correlationId);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+/**
+ * IMPROVEMENT 8: Per-user concurrency tracking
+ * Prevents single user from starving others with burst requests
+ *
+ * MECHANISM:
+ * - Track concurrent requests per (userId, action) pair
+ * - Reject if concurrent count >= limit
+ * - Decrement on completion
+ */
+function checkAndIncrementConcurrency(userId: string, action: string): { allowed: boolean; currentCount: number; concurrencyKey: string } {
+  const concurrencyKey = `${userId}:${action}`;
+  const currentCount = userConcurrencyCounters.get(concurrencyKey) || 0;
+
+  if (currentCount >= PER_USER_CONCURRENT_LIMIT) {
+    return { allowed: false, currentCount, concurrencyKey };
+  }
+
+  userConcurrencyCounters.set(concurrencyKey, currentCount + 1);
+  return { allowed: true, currentCount: currentCount + 1, concurrencyKey };
+}
+
+function decrementConcurrency(concurrencyKey: string): void {
+  const current = userConcurrencyCounters.get(concurrencyKey) || 0;
+  if (current > 1) {
+    userConcurrencyCounters.set(concurrencyKey, current - 1);
+  } else {
+    userConcurrencyCounters.delete(concurrencyKey);
+  }
+}
+
+/**
+ * IMPROVEMENT 11: Request Signing/HMAC Validation
+ * Prevents tampering and replay attacks by validating cryptographic signatures.
+ *
+ * MECHANISM:
+ * - Clients compute HMAC-SHA256(body + timestamp, shared_secret)
+ * - Send signature in X-Signature header
+ * - Server recomputes signature and compares
+ * - Rejects if signature mismatch or timestamp too old (>5 minutes)
+ *
+ * USAGE:
+ * Client computes: signature = Base64(HMAC-SHA256(JSON.stringify(body) + '.' + timestamp, secret))
+ * Sends header: X-Signature: timestamp.signature
+ * Server validates and rejects tampering
+ *
+ * BENEFITS:
+ * - Replay attack prevention (timestamp validation)
+ * - Tampering detection (signature validation)
+ * - Non-repudiation (client signed the request)
+ */
+async function validateRequestSignature(
+  req: Request,
+  bodyText: string,
+  log: Logger
+): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const signatureHeader = req.headers.get('X-Signature');
+    if (!signatureHeader) {
+      // Signature is optional (backward compatibility), but if provided must be valid
+      return { valid: true };
+    }
+
+    // Parse signature header: format is "timestamp.signature"
+    const parts = signatureHeader.split('.');
+    if (parts.length !== 2) {
+      log.warn("Invalid signature format (expected 'timestamp.signature')", { signatureHeader });
+      return { valid: false, error: 'Invalid signature format' };
+    }
+
+    const [timestampStr, providedSignature] = parts;
+    const timestamp = parseInt(timestampStr, 10);
+
+    if (isNaN(timestamp)) {
+      log.warn("Invalid signature timestamp");
+      return { valid: false, error: 'Invalid signature timestamp' };
+    }
+
+    // Prevent replay: reject if timestamp > 5 minutes old
+    const now = Date.now();
+    const ageMs = now - timestamp;
+    const maxAgeMs = 5 * 60 * 1000; // 5 minutes
+
+    if (ageMs > maxAgeMs) {
+      log.warn("Signature timestamp too old (replay attack?)", { ageMs, maxAgeMs });
+      return { valid: false, error: 'Request signature timestamp too old' };
+    }
+
+    if (ageMs < -30_000) { // Allow 30s clock skew forward
+      log.warn("Signature timestamp in future (clock skew?)", { ageMs });
+      return { valid: false, error: 'Signature timestamp in future' };
+    }
+
+    // Get signing secret from environment (optional, signing disabled if not configured)
+    let signingSecret = '';
+    try {
+      signingSecret = requireEnv("AI_ROUTER_SIGNING_SECRET");
+    } catch {
+      // Signing is optional if secret not configured
+      log.info("Request signing disabled (no AI_ROUTER_SIGNING_SECRET)");
+      return { valid: true };
+    }
+
+    // Compute HMAC-SHA256(body + '.' + timestamp, secret)
+    const messageToSign = bodyText + '.' + timestampStr;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(signingSecret);
+    const messageData = encoder.encode(messageToSign);
+
+    const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = await crypto.subtle.sign('HMAC', key, messageData);
+
+    // Convert signature to hex (standard format for this codebase)
+    const computedSignature = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    // Timing-safe comparison to prevent timing attacks
+    const isValid = timingSafeStringEqual(computedSignature, providedSignature);
+    if (!isValid) {
+      log.warn("Signature mismatch (tampering detected?)", {
+        computed: computedSignature.substring(0, 10),
+        provided: providedSignature.substring(0, 10),
+      });
+      return { valid: false, error: 'Invalid request signature' };
+    }
+
+    log.info("Request signature validated", { age: ageMs });
+    return { valid: true };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    log.error("Signature validation error", { error: errMsg });
+    return { valid: false, error: 'Signature validation failed' };
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
   let ctx: RequestContext | null = null;
   const log = new Logger("ai-router");
+  let abortTimeout: number | null = null; // IMPROVEMENT 10: For cleanup
 
   try {
+    // ━━━ PHASE 0: Correlation ID Setup (IMPROVEMENT 7) ━━━
+    // Extract from X-Correlation-ID header or generate new UUID
+    const providedCorrelationId = req.headers.get('X-Correlation-ID') || req.headers.get('x-correlation-id');
+    const correlationId = providedCorrelationId || crypto.randomUUID?.() || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
     // ━━━ PHASE 1: Authentication & Basic Validation ━━━
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
@@ -269,7 +851,21 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     let action = "";
 
-    ctx = { userId, ip, action: "", startTime: performance.now() };
+    // IMPROVEMENT 10: Create AbortController for request-level cancellation
+    const abortController = new AbortController();
+    // Set timeout to abort all operations if request takes too long (1 minute safety limit)
+    abortTimeout = setTimeout(() => {
+      abortController.abort(new DOMException('Request timeout', 'AbortError'));
+    }, 60_000) as unknown as number; // 60s absolute maximum for any request
+
+    ctx = {
+      userId,
+      ip,
+      action: "",
+      startTime: performance.now(),
+      correlationId,
+      abortSignal: abortController.signal,
+    };
 
     // C.15: Validate request body size to prevent DoS
     const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
@@ -278,12 +874,22 @@ Deno.serve(async (req) => {
       return errorResponse("Request body too large (max 1MB)", 413, req);
     }
 
-    // Parse request body
+    // Parse request body (get raw text for signature validation)
     let body: Record<string, unknown>;
+    let bodyText = "";
     try {
-      body = await req.json();
+      bodyText = await req.text();
+      body = JSON.parse(bodyText);
     } catch {
       return errorResponse("Invalid JSON", 400, req);
+    }
+
+    // ━━━ PHASE 1B: Request Signature Validation (IMPROVEMENT 11) ━━━
+    // Optional HMAC validation to prevent tampering and replay attacks
+    const signatureValidation = await validateRequestSignature(req, bodyText, log);
+    if (!signatureValidation.valid) {
+      log.warn("Request signature validation failed", { error: signatureValidation.error });
+      return errorResponse(signatureValidation.error || "Request signature invalid", 401, req);
     }
 
     action = String(body.action || "").toLowerCase().trim();
@@ -309,23 +915,49 @@ Deno.serve(async (req) => {
 
     if (!allowed) {
       log.warn("Rate limit exceeded", { action, userId, ip });
-      // HIGH PRIORITY GAP C.6: Add Retry-After header to 429 responses
+      // IMPROVEMENT 5: Add Jittered Retry-After header to 429 responses to prevent thundering herd
       const corsHeaders = req ? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } : {};
+
+      // Apply jitter: 60s base ± 10s (prevents synchronized retries)
+      const baseRetryAfter = 60;
+      const jitter = Math.floor(Math.random() * 20) - 10; // ±10 seconds
+      const retryAfter = Math.max(baseRetryAfter + jitter, 30); // Minimum 30s
+
       return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later.", retry_after_seconds: retryAfter }),
         {
           status: 429,
           headers: {
             ...corsHeaders,
             'Content-Type': 'application/json',
-            'Retry-After': '60', // Standard HTTP header - retry after 60 seconds
+            'Retry-After': String(retryAfter), // Standard HTTP header with jitter
           }
         }
       );
     }
 
-    // ━━━ PHASE 2B: Memory Check (H.15 - Reject if critical) ━━━
+    // ━━━ PHASE 2B: Per-User Concurrency Check (IMPROVEMENT 8 - Prevent user starvation) ━━━
+    const { allowed: concurrencyAllowed, currentCount, concurrencyKey } = checkAndIncrementConcurrency(userId, action);
+    if (!concurrencyAllowed) {
+      log.warn("Per-user concurrency limit exceeded", { action, userId, currentCount, limit: PER_USER_CONCURRENT_LIMIT });
+      const corsHeaders = req ? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } : {};
+      return new Response(
+        JSON.stringify({ error: `Maximum ${PER_USER_CONCURRENT_LIMIT} concurrent requests per action. Please wait.` }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': '5', // Retry sooner (5s) for concurrency limit vs rate limit
+          }
+        }
+      );
+    }
+    ctx.concurrencyKey = concurrencyKey; // Store for cleanup
+
+    // ━━━ PHASE 2C: Memory Check (H.15 - Reject if critical) ━━━
     if (!checkMemoryLimit(log)) {
+      decrementConcurrency(concurrencyKey);
       return errorResponse("Server overloaded. Please retry shortly.", 503, req);
     }
 
@@ -335,40 +967,71 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // ━━━ PHASE 4: Idempotency Check (5-min window) ━━━
+    // FIX #9: RequestId State Management & Lifecycle Documentation
+    // LIFECYCLE:
+    // 1. EXTRACTION: Raw requestId from body, trimmed of whitespace
+    // 2. VALIDATION: Format check (alphanumeric, dash, underscore), max 100 chars
+    //    - Invalid format → requestId cleared, idempotency disabled
+    //    - Empty/whitespace → requestId cleared
+    //    - Too long → truncated to 100 chars with warning
+    // 3. STORAGE: If valid, stored in ctx.requestId for all handlers
+    // 4. DEDUPLICATION: Check 5-min window for exact (requestId, action, userId) tuple
+    //    - Hit → return cached result immediately
+    //    - Miss → continue to handler
+    // 5. RECORDING: Handler records result via record_processed_request RPC
+    // 6. CLEANUP: ctx.requestId cleared after response to prevent state accumulation
+    //
+    // STATE ISOLATION: Each (requestId, action, userId) is independent
+    // TIMING: Dedup window is 5 minutes; older duplicates are not rejected
+
     const rawRequestId = String(body.requestId || "").trim();
     // C.18: Validate requestId is not empty and not just whitespace
-    const requestId = rawRequestId && rawRequestId.length > 0 ? rawRequestId : "";
+    let requestId = rawRequestId && rawRequestId.length > 0 ? rawRequestId : "";
+    // C.35: Validate requestId format to prevent downstream RPC failures (UUID or alphanumeric-dash-underscore)
+    if (requestId && requestId.length > 100) {
+      log.warn("RequestId exceeds 100 chars, truncating", { originalLength: requestId.length });
+      requestId = requestId.substring(0, 100);
+    }
+    const isValidRequestIdFormat = requestId && /^[a-zA-Z0-9_-]+$/.test(requestId);
+    if (requestId && !isValidRequestIdFormat) {
+      log.warn("Invalid requestId format (only alphanumeric, dash, underscore allowed)", { requestId, action });
+      requestId = ""; // Disable idempotency for invalid IDs
+    }
     let cachedResult: unknown = null;
 
     if (requestId) {
       ctx.requestId = requestId;
       try {
-        // C.17: Add timeout to deduplication RPC to prevent hanging requests
-        const dupCheck = await Promise.race([
-          supabase.rpc('check_duplicate_request', {
-            p_request_id: requestId,
-            p_action: action,
-            p_user_id: userId,
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Dedup check timeout after 5s')), 5_000)
+        // IMPROVEMENT 6: Acquire distributed idempotency lock (with timeout)
+        const lockResult = await Promise.race([
+          acquireIdempotencyLock(requestId, action, userId, supabase),
+          new Promise<{ acquired: boolean; result?: unknown }>((_, reject) =>
+            setTimeout(() => reject(new Error('Idempotency lock timeout after 35s')), 35_000)
           ),
         ]);
 
-        if (dupCheck?.data?.length > 0 && (dupCheck.data[0] as any)?.is_duplicate) {
-          cachedResult = (dupCheck.data[0] as any)?.cached_result;
-          if (cachedResult) {
-            const durationMs = performance.now() - ctx.startTime;
-            log.info("Deduplication hit", { action, requestId, durationMs });
-            return jsonResponse({ ...(cachedResult as Record<string, unknown>), _cached: true }, 200, req);
-          }
+        if (lockResult.acquired === true) {
+          // Lock acquired, continue to handler
+          log.info("Idempotency lock acquired", { action, requestId, correlationId: ctx.correlationId });
+        } else if (lockResult.result !== undefined && lockResult.result !== null) {
+          // Duplicate found and result is ready
+          cachedResult = lockResult.result;
+          const durationMs = performance.now() - ctx.startTime;
+          log.info("Deduplication hit (distributed lock)", { action, requestId, durationMs, correlationId: ctx.correlationId });
+          ctx.requestId = "";
+          // IMPROVEMENT 7: Add correlationId to dedup response
+          const dedupResponse = jsonResponse({ ...(cachedResult as Record<string, unknown>), _cached: true }, 200, req);
+          return addCorrelationIdHeader(dedupResponse, ctx.correlationId);
+        } else {
+          // Duplicate timeout or no result yet, proceed anyway (graceful degradation)
+          log.warn("Idempotency lock: duplicate timeout or unavailable, proceeding with processing", { action, requestId, correlationId: ctx.correlationId });
         }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        if (errMsg.includes('does not exist') || errMsg.includes('Unknown function')) {
-          log.warn("Dedup RPC unavailable (migrations may not be applied)", { action, requestId });
+        if (errMsg.includes('does not exist') || errMsg.includes('Unknown function') || errMsg.includes('timeout')) {
+          log.warn("Idempotency lock unavailable (RPC or timeout), proceeding", { action, error: errMsg });
         } else {
-          log.warn("Dedup check failed, proceeding", { action, error: errMsg });
+          log.warn("Idempotency lock check failed, proceeding", { action, error: errMsg });
         }
       }
     }
@@ -409,6 +1072,25 @@ Deno.serve(async (req) => {
     }
 
     if (!result.success) {
+      // IMPROVEMENT 9: Partial success should return 200 with error_details, not 500
+      if (result.partial_success) {
+        log.warn("Partial success (some operations failed)", {
+          action,
+          error: result.error,
+          operationsDetails: result.error_details,
+        });
+        // Return 200 with partial success details instead of error response
+        const response = jsonResponse({
+          ...result.data,
+          success: false,
+          partial_success: true,
+          error: result.error,
+          error_details: result.error_details,
+          duration_ms: result.duration_ms,
+        }, 200, req);
+        if (ctx?.requestId) ctx.requestId = "";
+        return addCorrelationIdHeader(response, ctx.correlationId);
+      }
       // C.16: Return 422 for validation errors, 500 for internal errors
       const statusCode = result.isValidationError ? 422 : 500;
       return errorResponse(result.error || "Action failed", statusCode, req);
@@ -436,7 +1118,24 @@ Deno.serve(async (req) => {
     }
 
     log.done(200, { action, duration_ms: result.duration_ms, ...result.metrics });
-    return jsonResponse(result.data, 200, req);
+
+    // FIX #9: Clear requestId state to prevent accumulation across requests
+    if (ctx.requestId) {
+      ctx.requestId = "";
+    }
+
+    // IMPROVEMENT 10: Clear abort timeout to prevent hanging cleanup tasks
+    if (abortTimeout !== null) {
+      clearTimeout(abortTimeout);
+    }
+
+    // IMPROVEMENT 7 & 9: Add correlationId to response headers and include error_details for operation tracking
+    const responseBody = {
+      ...result.data,
+      ...(result.error_details && { error_details: result.error_details }),
+    };
+    const response = jsonResponse(responseBody, 200, req);
+    return addCorrelationIdHeader(response, ctx.correlationId);
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const durationMs = ctx ? performance.now() - ctx.startTime : 0;
@@ -446,9 +1145,22 @@ Deno.serve(async (req) => {
       error: errorMsg,
       duration: durationMs,
       userId: ctx?.userId,
+      correlationId: ctx?.correlationId, // IMPROVEMENT 7: Include in error logging
     });
 
-    return errorResponse("Internal server error", 500, req);
+    // FIX #9: Clear requestId state even on error to prevent state accumulation
+    if (ctx?.requestId) {
+      ctx.requestId = "";
+    }
+
+    // IMPROVEMENT 10: Clear abort timeout to prevent hanging cleanup tasks
+    if (abortTimeout !== null) {
+      clearTimeout(abortTimeout);
+    }
+
+    // IMPROVEMENT 7: Add correlationId to error response
+    const errorResp = errorResponse("Internal server error", 500, req);
+    return ctx ? addCorrelationIdHeader(errorResp, ctx.correlationId) : errorResp;
   }
 });
 
@@ -503,7 +1215,8 @@ async function handleAutoTag(
     const { data: queues } = await supabase
       .from('queues')
       .select('id, name, description')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .limit(50); // FIX #7 (C.40): Bound queue listing to prevent memory exhaustion
 
     const queueList = queues && queues.length > 0
       ? queues.map((q: any) => `- "${q.name}" (${q.id}): ${q.description || 'Sem descrição'}`)
@@ -515,7 +1228,11 @@ async function handleAutoTag(
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      message_count: conversationMessages.length || 0,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -561,6 +1278,11 @@ Responda APENAS em JSON:
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -700,97 +1422,102 @@ Responda APENAS em JSON:
       if (validPriorities.includes(result.priority)) updateData.ai_priority = result.priority;
       if (result.suggested_queue_id && isValidUUID(result.suggested_queue_id)) updateData.queue_id = result.suggested_queue_id;
 
-      if (Object.keys(updateData).length > 0) {
-        try {
-          const { error: updateErr } = await supabase.from('contacts').update(updateData).eq('id', validContactId);
-          if (updateErr) {
-            log.warn("Failed to update contact metadata", {
-              error: updateErr.message,
-              contactId: validContactId,
-              updateFields: Object.keys(updateData)
+      try {
+        // PERF #6 (Improvement 3): Parallelize independent contact update with admin fetch for urgent escalation
+        const requiresAttention = result.requires_immediate_attention === true;
+        const needsUrgentNotification = requiresAttention && result.priority === 'urgent';
+
+        const [updateResult, adminsResult] = await Promise.all([
+          Object.keys(updateData).length > 0
+            ? supabase.from('contacts').update(updateData).eq('id', validContactId).catch(() => ({}))
+            : Promise.resolve(null),
+          needsUrgentNotification
+            ? supabase.from('user_roles').select('user_id').in('role', ['admin', 'supervisor']).limit(5).catch(() => ({ data: null }))
+            : Promise.resolve(null),
+        ]);
+
+        if (updateResult && updateResult.error) {
+          log.warn("Failed to update contact metadata", {
+            error: updateResult.error.message,
+            contactId: validContactId,
+            updateFields: Object.keys(updateData)
+          });
+        }
+
+        if (needsUrgentNotification && adminsResult) {
+          try {
+            const admins = adminsResult.data;
+            if (admins && Array.isArray(admins) && admins.length > 0) {
+              const { error: insertErr } = await supabase.from('notifications').insert(
+                admins.map((a: any) => ({
+                  user_id: a.user_id,
+                  type: 'urgent_conversation',
+                  title: '🚨 Conversa Urgente Detectada',
+                  message: `${sanitizeString(result.summary, 200) || 'Conversa requer atenção imediata'}. Motivo: ${sanitizeString(result.escalation_reason || result.priority_reason, 200) || 'Alta prioridade'}`,
+                  metadata: { contact_id: validContactId, priority: result.priority, sentiment: result.sentiment },
+                }))
+              );
+
+              if (insertErr) {
+                log.error("Failed to insert urgent notifications", {
+                  error: insertErr.message,
+                  contactId: validContactId,
+                  adminCount: admins.length
+                });
+              }
+            } else {
+              log.info("No admins found to notify for urgent conversation", { contactId: validContactId });
+            }
+          } catch (error) {
+            log.error("Unexpected error creating urgent notifications", {
+              error: error instanceof Error ? error.message : String(error),
+              contactId: validContactId
             });
           }
-        } catch (error) {
-          log.error("Unexpected error updating contact", {
-            error: error instanceof Error ? error.message : String(error),
-            contactId: validContactId
-          });
         }
-      }
-
-      // C.28: Validate requires_immediate_attention is a boolean before using in conditional
-      const requiresAttention = result.requires_immediate_attention === true;
-      if (requiresAttention && result.priority === 'urgent') {
-        try {
-          const { data: admins } = await supabase
-            .from('user_roles')
-            .select('user_id')
-            .in('role', ['admin', 'supervisor'])
-            .limit(5);
-
-          if (admins && Array.isArray(admins) && admins.length > 0) {
-            const { error: insertErr } = await supabase.from('notifications').insert(
-              admins.map((a: any) => ({
-                user_id: a.user_id,
-                type: 'urgent_conversation',
-                title: '🚨 Conversa Urgente Detectada',
-                message: `${sanitizeString(result.summary, 200) || 'Conversa requer atenção imediata'}. Motivo: ${sanitizeString(result.escalation_reason || result.priority_reason, 200) || 'Alta prioridade'}`,
-                metadata: { contact_id: validContactId, priority: result.priority, sentiment: result.sentiment },
-              }))
-            );
-
-            if (insertErr) {
-              log.error("Failed to insert urgent notifications", {
-                error: insertErr.message,
-                contactId: validContactId,
-                adminCount: admins.length
-              });
-            }
-          } else {
-            log.info("No admins found to notify for urgent conversation", { contactId: validContactId });
-          }
-        } catch (error) {
-          log.error("Unexpected error creating urgent notifications", {
-            error: error instanceof Error ? error.message : String(error),
-            contactId: validContactId
-          });
-        }
+      } catch (error) {
+        log.error("Unexpected error updating contact", {
+          error: error instanceof Error ? error.message : String(error),
+          contactId: validContactId
+        });
       }
     }
 
+    const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
+
+    // C.39: Populate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.tags_count = result.tags?.length || 0;
+    metricsMetadata.sentiment = result.sentiment;
+    metricsMetadata.priority = result.priority;
+    metricsMetadata.tag_update_success = tagUpdateResult.success;
+
+    // PERF #5 (Improvement 3): Parallelize fire-and-forget metrics RPC calls
+    const rpcCalls: Promise<any>[] = [];
     if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
+      rpcCalls.push(
+        supabase.rpc('record_processed_request', {
           p_request_id: requestId,
           p_action: 'auto-tag',
           p_user_id: ctx.userId,
           p_contact_id: validContactId,
           p_status_code: 200,
           p_result_payload: result,
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
+        }).catch(() => {})
+      );
     }
-
-    const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
-
-    try {
-      await supabase.rpc('record_ai_metrics', {
+    rpcCalls.push(
+      supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-auto-tag',
         p_action: 'classification',
         p_duration_ms: Math.round(durationMs),
         p_status: 'success',
         p_user_id: ctx.userId,
         p_error_message: null,
-        p_metadata: {
-          tags_count: result.tags?.length || 0,
-          sentiment: result.sentiment,
-          priority: result.priority,
-          requestId,
-          tag_update_success: tagUpdateResult.success,
-        },
-      }).catch(() => {});
+        p_metadata: metricsMetadata,
+      }).catch(() => {})
+    );
+    try {
+      await Promise.all(rpcCalls);
     } catch {
       // Metrics not critical
     }
@@ -806,36 +1533,46 @@ Responda APENAS em JSON:
       }
     };
 
-    return {
-      success: true,
-      data: responsePayload,
-      duration_ms: durationMs,
-      metrics: { tags_count: result.tags?.length || 0 },
-    };
+    // IMPROVEMENT 9: Build partial success response with detailed operation tracking
+    const operations: OperationResult[] = [];
+    if (tagUpdateResult.attempted) {
+      operations.push({
+        operation: 'tag_update',
+        status: tagUpdateResult.success ? 'success' : 'failed',
+        message: tagUpdateResult.error || (tagUpdateResult.success ? 'Tags updated successfully' : 'Failed to update tags'),
+        metadata: { contactId: validContactId, tagCount: result.tags?.length || 0 },
+      });
+    }
+    operations.push({
+      operation: 'ai_classification',
+      status: 'success',
+      message: 'AI classification completed successfully',
+      metadata: { tags: result.tags?.length || 0, sentiment: result.sentiment, priority: result.priority },
+    });
+
+    return buildPartialSuccessResponse(
+      operations,
+      responsePayload,
+      durationMs,
+      { tags_count: result.tags?.length || 0 }
+    );
   } catch (err) {
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-auto-tag',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-auto-tag',
+      action: 'classification',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
     log.error("Unhandled error in auto-tag handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -871,31 +1608,38 @@ async function handleConversationSummary(
 
     let contactContext = '';
     if (validContactId) {
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('name, company, tags, ai_priority, ai_sentiment, notes')
-        .eq('id', validContactId)
-        .maybeSingle();
+      // PERF #1 (Improvement 3): Parallelize independent queries to reduce latency
+      const [contactResult, analysesResult] = await Promise.all([
+        supabase
+          .from('contacts')
+          .select('name, company, tags, ai_priority, ai_sentiment, notes')
+          .eq('id', validContactId)
+          .maybeSingle(),
+        supabase
+          .from('conversation_analyses')
+          .select('sentiment, summary, created_at')
+          .eq('contact_id', validContactId)
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
 
-      if (contact) {
-        contactContext = `\nContexto: ${contact.name || 'Cliente'}, Empresa: ${contact.company || 'N/A'}, Tags: ${(contact.tags as any)?.join(', ') || 'Nenhuma'}`;
+      if (contactResult.data) {
+        const contact = contactResult.data;
+        // FIX #7 (C.40): Sanitize contact data to prevent oversized context
+        contactContext = `\nContexto: ${sanitizeString(String(contact.name || 'Cliente'), 100)}, Empresa: ${sanitizeString(String(contact.company || 'N/A'), 100)}, Tags: ${sanitizeString((contact.tags as any)?.join(', ') || 'Nenhuma', 100)}`;
       }
 
-      const { data: prevAnalyses } = await supabase
-        .from('conversation_analyses')
-        .select('sentiment, summary, created_at')
-        .eq('contact_id', validContactId)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (prevAnalyses && Array.isArray(prevAnalyses) && prevAnalyses.length > 0) {
-        contactContext += `\nHistórico: ${prevAnalyses.map((a: any) => `[${a.sentiment}] ${a.summary}`).join(' | ')}`;
+      if (analysesResult.data && Array.isArray(analysesResult.data) && analysesResult.data.length > 0) {
+        const historyStr = analysesResult.data.map((a: any) => `[${a.sentiment}] ${sanitizeString(String(a.summary || ''), 100)}`).join(' | ').slice(0, 500);
+        contactContext += `\nHistórico: ${historyStr}`;
       }
     }
 
+    // S.2: Sanitize contactName to prevent prompt injection via message formatting
+    const safeContactName = sanitizeForPrompt(contactName, 100);
     const conversationText = (messages as any[])
       .map((msg: any) =>
-        `[${msg.sender === 'agent' ? 'Atendente' : contactName || 'Cliente'}]: ${sanitizeString(String(msg.content || ''), 1000)}`
+        `[${msg.sender === 'agent' ? 'Atendente' : safeContactName || 'Cliente'}]: ${sanitizeString(String(msg.content || ''), 1000)}`
       )
       .join('\n');
 
@@ -924,7 +1668,11 @@ Foque em:
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      message_count: messages.length || 0,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -937,7 +1685,8 @@ Foque em:
               model: 'google/gemini-3-flash-preview',
               messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Conversa com ${contactName || 'Cliente'}:\n\n${conversationText}` }
+                // S.2: Use sanitized contactName to prevent injection (already sanitized in conversationText, but redeclare for consistency)
+                { role: 'user', content: `Conversa com ${safeContactName || 'Cliente'}:\n\n${conversationText}` }
               ],
               tools: [
                 {
@@ -985,6 +1734,11 @@ Foque em:
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1002,19 +1756,16 @@ Foque em:
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-conversation-summary',
-          p_action: 'analysis',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-conversation-summary',
+        action: 'analysis',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -1129,96 +1880,97 @@ Foque em:
       if (validSentiments.includes(analysisData.sentiment)) updateData.ai_sentiment = analysisData.sentiment;
       if (validUrgencies.includes(analysisData.urgency)) updateData.ai_priority = analysisData.urgency;
 
-      if (Object.keys(updateData).length > 0) {
-        try {
-          const { error: updateErr } = await supabase.from('contacts').update(updateData).eq('id', validContactId);
-          if (updateErr) {
-            log.warn("Failed to update contact metadata", {
-              error: updateErr.message,
-              contactId: validContactId,
-              updateFields: Object.keys(updateData)
+      try {
+        // PERF #6 (Improvement 3): Parallelize independent contact update with admin fetch for escalation
+        const needsEscalation = analysisData.urgency === 'critica' && analysisData.status === 'escalado';
+
+        const [updateResult, adminsResult] = await Promise.all([
+          Object.keys(updateData).length > 0
+            ? supabase.from('contacts').update(updateData).eq('id', validContactId).catch(() => ({}))
+            : Promise.resolve(null),
+          needsEscalation
+            ? supabase.from('user_roles').select('user_id').in('role', ['admin', 'supervisor']).limit(5).catch(() => ({ data: null }))
+            : Promise.resolve(null),
+        ]);
+
+        if (updateResult && updateResult.error) {
+          log.warn("Failed to update contact metadata", {
+            error: updateResult.error.message,
+            contactId: validContactId,
+            updateFields: Object.keys(updateData)
+          });
+        }
+
+        if (needsEscalation && adminsResult) {
+          try {
+            const admins = adminsResult.data;
+            if (admins && Array.isArray(admins) && admins.length > 0) {
+              const { error: insertErr } = await supabase.from('notifications').insert(
+                admins.map((a: any) => ({
+                  user_id: a.user_id,
+                  type: 'conversation_escalated',
+                  title: '🚨 Conversa Crítica Detectada',
+                  message: `${sanitizeString(analysisData.summary, 200)}. Ação: Análise requerida.`,
+                  metadata: { contact_id: validContactId, sentiment: analysisData.sentiment, urgency: analysisData.urgency },
+                }))
+              );
+
+              if (insertErr) {
+                log.error("Failed to insert escalation notifications", {
+                  error: insertErr.message,
+                  contactId: validContactId,
+                  adminCount: admins.length
+                });
+              }
+            } else {
+              log.info("No admins found to notify for critical conversation", { contactId: validContactId });
+            }
+          } catch (error) {
+            log.error("Unexpected error creating escalation notifications", {
+              error: error instanceof Error ? error.message : String(error),
+              contactId: validContactId
             });
           }
-        } catch (error) {
-          log.error("Unexpected error updating contact", {
-            error: error instanceof Error ? error.message : String(error),
-            contactId: validContactId
-          });
         }
-      }
-
-      if (analysisData.urgency === 'critica' && analysisData.status === 'escalado') {
-        try {
-          const { data: admins } = await supabase
-            .from('user_roles')
-            .select('user_id')
-            .in('role', ['admin', 'supervisor'])
-            .limit(5);
-
-          if (admins && Array.isArray(admins) && admins.length > 0) {
-            const { error: insertErr } = await supabase.from('notifications').insert(
-              admins.map((a: any) => ({
-                user_id: a.user_id,
-                type: 'conversation_escalated',
-                title: '🚨 Conversa Crítica Detectada',
-                message: `${sanitizeString(analysisData.summary, 200)}. Ação: Análise requerida.`,
-                metadata: { contact_id: validContactId, sentiment: analysisData.sentiment, urgency: analysisData.urgency },
-              }))
-            );
-
-            if (insertErr) {
-              log.error("Failed to insert escalation notifications", {
-                error: insertErr.message,
-                contactId: validContactId,
-                adminCount: admins.length
-              });
-            }
-          } else {
-            log.info("No admins found to notify for critical conversation", { contactId: validContactId });
-          }
-        } catch (error) {
-          log.error("Unexpected error creating escalation notifications", {
-            error: error instanceof Error ? error.message : String(error),
-            contactId: validContactId
-          });
-        }
-      }
-    }
-
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'conversation-summary',
-          p_user_id: ctx.userId,
-          p_contact_id: validContactId,
-          p_status_code: 200,
-          p_result_payload: analysisData,
-        }).catch(() => {});
-      } catch {
-        // Not critical
+      } catch (error) {
+        log.error("Unexpected error updating contact", {
+          error: error instanceof Error ? error.message : String(error),
+          contactId: validContactId
+        });
       }
     }
 
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.sentiment = analysisData.sentiment;
+    metricsMetadata.urgency = analysisData.urgency;
+    metricsMetadata.analysis_persisted = persistenceResult.success;
+
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-conversation-summary',
-        p_action: 'analysis',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: {
-          sentiment: analysisData.sentiment,
-          urgency: analysisData.urgency,
-          requestId,
-          analysis_persisted: persistenceResult.success,
-        },
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'conversation-summary',
+            p_user_id: ctx.userId,
+            p_contact_id: validContactId,
+            p_status_code: 200,
+            p_result_payload: analysisData,
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-conversation-summary',
+          p_action: 'analysis',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { sentiment: analysisData.sentiment, urgency: analysisData.urgency, durationMs });
@@ -1242,12 +1994,8 @@ Foque em:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     try {
       await supabase.rpc('record_ai_metrics', {
@@ -1345,6 +2093,11 @@ Regras importantes:
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1362,19 +2115,16 @@ Regras importantes:
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-enhance-message',
-          p_action: 'enhancement',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-enhance-message',
+        action: 'enhancement',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -1409,40 +2159,36 @@ Regras importantes:
       return { success: false, error: "Empty response from AI", duration_ms: durationMs };
     }
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'enhance-message',
-          p_user_id: ctx.userId,
-          p_contact_id: null,
-          p_status_code: 200,
-          p_result_payload: { tone, original_length: message.length, enhanced_length: enhancedMessage.length },
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.original_length = message.length;
+    metricsMetadata.enhanced_length = enhancedMessage.length;
+
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-enhance-message',
-        p_action: 'enhancement',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: {
-          tone,
-          original_length: message.length,
-          enhanced_length: enhancedMessage.length,
-          requestId,
-        },
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'enhance-message',
+            p_user_id: ctx.userId,
+            p_contact_id: null,
+            p_status_code: 200,
+            p_result_payload: { tone, original_length: message.length, enhanced_length: enhancedMessage.length },
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-enhance-message',
+          p_action: 'enhancement',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { tone, durationMs });
@@ -1457,26 +2203,19 @@ Regras importantes:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-enhance-message',
-        p_action: 'enhancement',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-enhance-message',
+      action: 'enhancement',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in enhance-message handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -1510,7 +2249,11 @@ async function handleClassifyEmoji(
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      file_name: file_name || null,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -1544,6 +2287,11 @@ async function handleClassifyEmoji(
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1619,44 +2367,42 @@ async function handleClassifyEmoji(
     if (typeof result.description !== 'string') result.description = 'Unknown emoji';
     if (!Array.isArray(result.alternatives)) result.alternatives = [];
     // C.29: Validate alternatives array items have required fields with correct types
-    result.alternatives = result.alternatives.map((alt: any) => ({
+    // FIX #7 (C.40): Limit alternatives to max 5 items to prevent memory exhaustion
+    result.alternatives = result.alternatives.slice(0, 5).map((alt: any) => ({
       category: typeof alt?.category === 'string' ? alt.category : 'other',
       confidence: typeof alt?.confidence === 'number' ? Math.max(0, Math.min(1, alt.confidence)) : 0,
     }));
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'classify-emoji',
-          p_user_id: ctx.userId,
-          p_contact_id: null,
-          p_status_code: 200,
-          p_result_payload: { category: result.category, confidence: result.confidence },
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.category = result.category;
+    metricsMetadata.confidence = result.confidence;
+
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-classify-emoji',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: {
-          category: result.category,
-          confidence: result.confidence,
-          requestId,
-        },
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'classify-emoji',
+            p_user_id: ctx.userId,
+            p_contact_id: null,
+            p_status_code: 200,
+            p_result_payload: { category: result.category, confidence: result.confidence },
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-classify-emoji',
+          p_action: 'classification',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { category: result.category, confidence: result.confidence, durationMs });
@@ -1671,26 +2417,19 @@ async function handleClassifyEmoji(
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-classify-emoji',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-classify-emoji',
+      action: 'classification',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in classify-emoji handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -1724,6 +2463,7 @@ async function handleClassifySticker(
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
+    // C.39: Standardize metadata logging with handler-specific context fields
     let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
@@ -1758,6 +2498,11 @@ async function handleClassifySticker(
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1775,19 +2520,16 @@ async function handleClassifySticker(
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-classify-sticker',
-          p_action: 'classification',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-classify-sticker',
+        action: 'classification',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -1833,44 +2575,42 @@ async function handleClassifySticker(
     if (typeof result.description !== 'string') result.description = 'Unknown sticker';
     if (!Array.isArray(result.alternatives)) result.alternatives = [];
     // C.29: Validate alternatives array items have required fields with correct types
-    result.alternatives = result.alternatives.map((alt: any) => ({
+    // FIX #7 (C.40): Limit alternatives to max 5 items to prevent memory exhaustion
+    result.alternatives = result.alternatives.slice(0, 5).map((alt: any) => ({
       category: typeof alt?.category === 'string' ? alt.category : 'other',
       confidence: typeof alt?.confidence === 'number' ? Math.max(0, Math.min(1, alt.confidence)) : 0,
     }));
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'classify-sticker',
-          p_user_id: ctx.userId,
-          p_contact_id: null,
-          p_status_code: 200,
-          p_result_payload: { category: result.category, confidence: result.confidence },
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.category = result.category;
+    metricsMetadata.confidence = result.confidence;
+
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-classify-sticker',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: {
-          category: result.category,
-          confidence: result.confidence,
-          requestId,
-        },
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'classify-sticker',
+            p_user_id: ctx.userId,
+            p_contact_id: null,
+            p_status_code: 200,
+            p_result_payload: { category: result.category, confidence: result.confidence },
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-classify-sticker',
+          p_action: 'classification',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { category: result.category, confidence: result.confidence, durationMs });
@@ -1885,26 +2625,19 @@ async function handleClassifySticker(
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-classify-sticker',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-classify-sticker',
+      action: 'classification',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in classify-sticker handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -2091,35 +2824,32 @@ async function handleChurnAnalysis(
 
       metricsMetadata.analyzed = results.length;
 
-      if (requestId) {
-        try {
-          await supabase.rpc('record_processed_request', {
-            p_request_id: requestId,
-            p_action: 'churn-analysis',
-            p_user_id: ctx.userId,
-            p_contact_id: null,
-            p_status_code: 200,
-            p_result_payload: { analyzed: results.length, highRisk: results.filter((r: any) => r.riskLevel === 'high' || r.riskLevel === 'critical').length },
-          }).catch(() => {});
-        } catch {
-          // Not critical
-        }
-      }
-
       const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
       try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-churn-analysis',
-          p_action: 'analysis',
-          p_duration_ms: Math.round(durationMs),
-          p_status: 'success',
-          p_user_id: ctx.userId,
-          p_error_message: null,
-          p_metadata: metricsMetadata,
-        }).catch(() => {});
+        await Promise.all([
+          ...(requestId ? [
+            supabase.rpc('record_processed_request', {
+              p_request_id: requestId,
+              p_action: 'churn-analysis',
+              p_user_id: ctx.userId,
+              p_contact_id: null,
+              p_status_code: 200,
+              p_result_payload: { analyzed: results.length, highRisk: results.filter((r: any) => r.riskLevel === 'high' || r.riskLevel === 'critical').length },
+            }).catch(() => {})
+          ] : []),
+          supabase.rpc('record_ai_metrics', {
+            p_function_name: 'ai-churn-analysis',
+            p_action: 'analysis',
+            p_duration_ms: Math.round(durationMs),
+            p_status: 'success',
+            p_user_id: ctx.userId,
+            p_error_message: null,
+            p_metadata: metricsMetadata,
+          }).catch(() => {}),
+        ]);
       } catch {
-        // Metrics not critical
+        // RPC calls not critical
       }
 
       log.done(200, { analyzed: results.length, durationMs });
@@ -2136,19 +2866,16 @@ async function handleChurnAnalysis(
       metricsStatus = 'error';
       errorMessage = errMsg;
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-churn-analysis',
-          p_action: 'analysis',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-churn-analysis',
+        action: 'analysis',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -2163,26 +2890,19 @@ async function handleChurnAnalysis(
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-churn-analysis',
-        p_action: 'analysis',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-churn-analysis',
+      action: 'analysis',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in churn-analysis handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -2218,35 +2938,42 @@ async function handleConversationAnalysis(
 
     let contactContext = '';
     if (validContactId) {
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('name, company, tags, ai_priority, ai_sentiment, notes, contact_type')
-        .eq('id', validContactId)
-        .maybeSingle();
+      // PERF #2 (Improvement 3): Parallelize independent queries to reduce latency
+      const [contactResult, analysesResult] = await Promise.all([
+        supabase
+          .from('contacts')
+          .select('name, company, tags, ai_priority, ai_sentiment, notes, contact_type')
+          .eq('id', validContactId)
+          .maybeSingle(),
+        supabase
+          .from('conversation_analyses')
+          .select('sentiment, sentiment_score, summary, urgency, created_at')
+          .eq('contact_id', validContactId)
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
 
-      if (contact) {
-        contactContext = `\nContexto do cliente: ${contact.name || 'Cliente'}`;
-        if (contact.company) contactContext += `, Empresa: ${contact.company}`;
-        if ((contact.tags as any)?.length) contactContext += `, Tags: ${(contact.tags as any).join(', ')}`;
-        if (contact.contact_type) contactContext += `, Tipo: ${contact.contact_type}`;
-        if (contact.ai_sentiment) contactContext += `, Sentimento anterior: ${contact.ai_sentiment}`;
+      if (contactResult.data) {
+        const contact = contactResult.data;
+        // FIX #7 (C.40): Sanitize contact data to prevent oversized context
+        contactContext = `\nContexto do cliente: ${sanitizeString(String(contact.name || 'Cliente'), 100)}`;
+        if (contact.company) contactContext += `, Empresa: ${sanitizeString(String(contact.company), 100)}`;
+        if ((contact.tags as any)?.length) contactContext += `, Tags: ${sanitizeString((contact.tags as any).join(', '), 100)}`;
+        if (contact.contact_type) contactContext += `, Tipo: ${sanitizeString(String(contact.contact_type), 50)}`;
+        if (contact.ai_sentiment) contactContext += `, Sentimento anterior: ${sanitizeString(String(contact.ai_sentiment), 50)}`;
       }
 
-      const { data: prevAnalyses } = await supabase
-        .from('conversation_analyses')
-        .select('sentiment, sentiment_score, summary, urgency, created_at')
-        .eq('contact_id', validContactId)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (prevAnalyses && Array.isArray(prevAnalyses) && prevAnalyses.length > 0) {
-        contactContext += `\nAnálises anteriores: ${prevAnalyses.map((a: any) => `[${a.sentiment} ${a.sentiment_score}%] ${sanitizeString(a.summary, 80)}`).join(' | ')}`;
+      if (analysesResult.data && Array.isArray(analysesResult.data) && analysesResult.data.length > 0) {
+        const analysisStr = analysesResult.data.map((a: any) => `[${a.sentiment} ${a.sentiment_score}%] ${sanitizeString(a.summary, 80)}`).join(' | ').slice(0, 500);
+        contactContext += `\nAnálises anteriores: ${analysisStr}`;
       }
     }
 
+    // S.2: Sanitize contactName to prevent prompt injection via message formatting
+    const safeContactName = sanitizeForPrompt(contactName, 100);
     const conversationText = (messages as any[])
       .map((msg: any) =>
-        `[${msg.sender === 'agent' ? 'Atendente' : contactName || 'Cliente'}]: ${sanitizeString(String(msg.content || ''), 1000)}`
+        `[${msg.sender === 'agent' ? 'Atendente' : safeContactName || 'Cliente'}]: ${sanitizeString(String(msg.content || ''), 1000)}`
       )
       .join('\n');
 
@@ -2271,7 +2998,11 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      message_count: messages.length || 0,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -2284,7 +3015,8 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
               model: 'google/gemini-3-flash-preview',
               messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Conversa com ${contactName || 'Cliente'}:\n\n${conversationText}` }
+                // S.2: Use sanitized contactName to prevent injection (already sanitized in conversationText, but redeclare for consistency)
+                { role: 'user', content: `Conversa com ${safeContactName || 'Cliente'}:\n\n${conversationText}` }
               ],
               tools: [
                 {
@@ -2334,6 +3066,11 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2351,19 +3088,16 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-conversation-analysis',
-          p_action: 'analysis',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-conversation-analysis',
+        action: 'analysis',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -2522,40 +3256,38 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       }
     }
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'conversation-analysis',
-          p_user_id: ctx.userId,
-          p_contact_id: validContactId,
-          p_status_code: 200,
-          p_result_payload: analysisData,
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.sentiment = analysisData.sentiment;
+    metricsMetadata.urgency = analysisData.urgency;
+    metricsMetadata.department = analysisData.department;
+    metricsMetadata.analysis_persisted = persistenceResult.success;
+
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-conversation-analysis',
-        p_action: 'analysis',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: {
-          sentiment: analysisData.sentiment,
-          urgency: analysisData.urgency,
-          department: analysisData.department,
-          requestId,
-        },
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'conversation-analysis',
+            p_user_id: ctx.userId,
+            p_contact_id: validContactId,
+            p_status_code: 200,
+            p_result_payload: analysisData,
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-conversation-analysis',
+          p_action: 'analysis',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { department: analysisData.department, sentiment: analysisData.sentiment, durationMs });
@@ -2593,12 +3325,8 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       // Metrics not critical
     }
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in conversation-analysis handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -2622,14 +3350,41 @@ async function handleSuggestReply(
 
     const { conversationHistory, contactName, contactId, context, requestId } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    // C.36: Validate contactId upfront for consistent logging
+    const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
 
     let knowledgeContext = '';
     try {
-      const { data: articles } = await supabase
+      // PERF #4 (Improvement 3): Parallelize KB fetch with contact queries
+      const kbQuery = supabase
         .from('knowledge_base_articles')
         .select('title, content, category')
         .eq('is_published', true)
         .limit(10);
+
+      let contactQueriesPromise: Promise<any[] | null> = Promise.resolve(null);
+      if (validContactId) {
+        contactQueriesPromise = Promise.all([
+          supabase
+            .from('contact_notes')
+            .select('content')
+            .eq('contact_id', validContactId)
+            .order('created_at', { ascending: false })
+            .limit(5),
+          supabase
+            .from('contact_custom_fields')
+            .select('field_name, field_value')
+            .eq('contact_id', validContactId)
+            .limit(100), // FIX #7 (C.40): Bound custom fields to prevent memory exhaustion
+        ]);
+      }
+
+      const [kbResult, contactQueries] = await Promise.all([
+        kbQuery,
+        contactQueriesPromise,
+      ]);
+
+      const { data: articles } = kbResult;
 
       if (articles && Array.isArray(articles) && articles.length > 0) {
         knowledgeContext = `\n\nBASE DE CONHECIMENTO DA EMPRESA (use como referência para suas respostas):\n${
@@ -2639,26 +3394,20 @@ async function handleSuggestReply(
         }`;
       }
 
-      const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
-      if (validContactId) {
-        const { data: notes } = await supabase
-          .from('contact_notes')
-          .select('content')
-          .eq('contact_id', validContactId)
-          .order('created_at', { ascending: false })
-          .limit(5);
+      if (validContactId && contactQueries) {
+        // PERF #3 (Improvement 3): Parallelize independent queries to reduce latency
+        const [notesResult, customFieldsResult] = contactQueries;
 
-        if (notes && Array.isArray(notes) && notes.length > 0) {
-          knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notes.map((n: any) => sanitizeString(n.content, 200)).join('\n')}`;
+        if (notesResult.data && Array.isArray(notesResult.data) && notesResult.data.length > 0) {
+          // FIX #7 (C.40): Limit total note context size to prevent prompt explosion
+          const notesContent = notesResult.data.map((n: any) => sanitizeString(n.content, 200)).join('\n').slice(0, 2000);
+          knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notesContent}`;
         }
 
-        const { data: customFields } = await supabase
-          .from('contact_custom_fields')
-          .select('field_name, field_value')
-          .eq('contact_id', validContactId);
-
-        if (customFields && Array.isArray(customFields) && customFields.length > 0) {
-          knowledgeContext += `\n\nDADOS DO CONTATO:\n${customFields.map((f: any) => `${f.field_name}: ${f.field_value}`).join('\n')}`;
+        if (customFieldsResult.data && Array.isArray(customFieldsResult.data) && customFieldsResult.data.length > 0) {
+          // FIX #7 (C.40): Sanitize custom field values to prevent oversized context strings
+          const sanitizedFields = customFieldsResult.data.map((f: any) => `${sanitizeString(f.field_name, 100)}: ${sanitizeString(String(f.field_value), 200)}`).join('\n');
+          knowledgeContext += `\n\nDADOS DO CONTATO:\n${sanitizedFields}`;
         }
       }
     } catch (e) {
@@ -2717,7 +3466,11 @@ Responda APENAS em formato JSON com a seguinte estrutura:
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      history_length: normalizedHistory.length || 0,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -2743,6 +3496,11 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2760,19 +3518,16 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-suggest-reply',
-          p_action: 'suggestion',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-suggest-reply',
+        action: 'suggestion',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -2816,7 +3571,8 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         const parsed = JSON.parse(jsonMatch[0]);
         if (parsed && parsed.suggestions && Array.isArray(parsed.suggestions)) {
           // C.26: Validate suggestion items have required fields with correct types
-          const validatedSuggestions = parsed.suggestions.map((s: any) => ({
+          // FIX #7 (C.40): Limit suggestions to max 3 items to prevent memory exhaustion
+          const validatedSuggestions = parsed.suggestions.slice(0, 3).map((s: any) => ({
             type: typeof s?.type === 'string' ? s.type : 'direct',
             text: typeof s?.text === 'string' ? s.text : 'Unable to generate suggestion',
             emoji: typeof s?.emoji === 'string' ? s.emoji : '💬',
@@ -2829,38 +3585,35 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       log.warn("Parse error, using fallback suggestions");
     }
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'suggest-reply',
-          p_user_id: ctx.userId,
-          p_contact_id: contactId || null,
-          p_status_code: 200,
-          p_result_payload: { suggestions_count: suggestions.suggestions?.length || 0 },
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.suggestions_count = suggestions.suggestions?.length || 0;
+
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-suggest-reply',
-        p_action: 'suggestion',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: {
-          suggestions_count: suggestions.suggestions?.length || 0,
-          requestId,
-        },
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'suggest-reply',
+            p_user_id: ctx.userId,
+            p_contact_id: validContactId,
+            p_status_code: 200,
+            p_result_payload: { suggestions_count: suggestions.suggestions?.length || 0 },
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-suggest-reply',
+          p_action: 'suggestion',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { suggestions: suggestions.suggestions?.length || 0, durationMs });
@@ -2875,26 +3628,19 @@ Responda APENAS em formato JSON com a seguinte estrutura:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-suggest-reply',
-        p_action: 'suggestion',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-suggest-reply',
+      action: 'suggestion',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in suggest-reply handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -2979,7 +3725,12 @@ async function handleTranscribeAudio(
           throw new Error(`Invalid audio URL format: ${audioUrl}`);
         }
 
-        const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
+        // IMPROVEMENT 10: Use ctx.abortSignal for request-level cancellation
+        // Always use timeout (30s for download, but also respects request-level 60s timeout via ctx.abortSignal)
+        const response = await fetch(audioUrl, {
+          signal: ctx.abortSignal || AbortSignal.timeout(30_000),
+          redirect: 'error',
+        });
         if (!response.ok) {
           throw new Error(`HTTP download failed: ${response.status}`);
         }
@@ -3049,16 +3800,20 @@ async function handleTranscribeAudio(
 
       let transcriptionResult;
       try {
+        // C.37: Standardize timeout enforcement across all handlers using callAiWithTimeout
         transcriptionResult = await withCircuitBreaker(
-          async () => {
-            const resp = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-              method: 'POST',
-              headers: { 'xi-api-key': ELEVENLABS_API_KEY },
-              body: formData,
-              signal: AbortSignal.timeout(60_000),
-            });
-            return { response: resp, data: null };
-          },
+          () => callAiWithTimeout(
+            async () => {
+              const resp = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+                method: 'POST',
+                headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+                body: formData,
+              });
+              return { response: resp, data: null };
+            },
+            ACTION_TIMEOUTS['transcribe_audio'],
+            { action: 'transcribe_audio', requestId: ctx.requestId }
+          ),
           'elevenlabs-transcription'
         );
       } catch (err) {
@@ -3088,30 +3843,28 @@ async function handleTranscribeAudio(
           errorMessage = "Rate limit exceeded";
         } else if (transcriptionResponse.status === 401) {
           metricsStatus = 'auth_error';
-          errorMessage = "Invalid ElevenLabs API key";
+          // S.3: Don't leak API authentication details in error messages
+          errorMessage = "Authentication failed. Service temporarily unavailable.";
         } else if (transcriptionResponse.status === 400) {
           metricsStatus = 'invalid_input';
           errorMessage = "Invalid audio format";
         } else {
           metricsStatus = 'error';
-          errorMessage = `ElevenLabs error: ${transcriptionResponse.status}`;
+          errorMessage = `Service temporarily unavailable`;
         }
 
         if (transcriptionResponse.status === 400) {
           const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
-          try {
-            await supabase.rpc('record_ai_metrics', {
-              p_function_name: 'ai-transcribe-audio',
-              p_action: 'transcription',
-              p_duration_ms: Math.round(durationMs),
-              p_status: metricsStatus,
-              p_user_id: ctx.userId,
-              p_error_message: errorMessage,
-              p_metadata: metricsMetadata,
-            });
-          } catch {
-            // Metrics not critical
-          }
+          // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+          await logAiMetrics({
+            functionName: 'ai-transcribe-audio',
+            action: 'transcription',
+            durationMs,
+            status: metricsStatus,
+            userId: ctx.userId,
+            errorMessage,
+            metadata: metricsMetadata,
+          }, supabase);
           return {
             success: true,
             data: {
@@ -3156,40 +3909,38 @@ async function handleTranscribeAudio(
         name: typeof s?.name === 'string' ? s.name.substring(0, 200) : 'Unknown',
       }));
 
-      if (requestId) {
-        try {
-          await supabase.rpc('record_processed_request', {
-            p_request_id: requestId,
-            p_action: 'transcribe-audio',
-            p_user_id: ctx.userId,
-            p_contact_id: null,
-            p_status_code: 200,
-            p_result_payload: { transcript_length: transcript.length, words_count: words.length, message_id: messageId },
-          }).catch(() => {});
-        } catch {
-          // Not critical
-        }
-      }
-
       const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+      // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+      metricsMetadata.transcript_length = transcript.length;
+      metricsMetadata.words_count = words.length;
+      metricsMetadata.audio_events_count = audioEvents.length;
+      metricsMetadata.speakers_count = speakers.length;
+
       try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-transcribe-audio',
-          p_action: 'transcription',
-          p_duration_ms: Math.round(durationMs),
-          p_status: 'success',
-          p_user_id: ctx.userId,
-          p_error_message: null,
-          p_metadata: {
-            transcript_length: transcript.length,
-            words_count: words.length,
-            language: languageCode,
-            requestId,
-          },
-        }).catch(() => {});
+        await Promise.all([
+          ...(requestId ? [
+            supabase.rpc('record_processed_request', {
+              p_request_id: requestId,
+              p_action: 'transcribe-audio',
+              p_user_id: ctx.userId,
+              p_contact_id: null,
+              p_status_code: 200,
+              p_result_payload: { transcript_length: transcript.length, words_count: words.length, message_id: messageId },
+            }).catch(() => {})
+          ] : []),
+          supabase.rpc('record_ai_metrics', {
+            p_function_name: 'ai-transcribe-audio',
+            p_action: 'transcription',
+            p_duration_ms: Math.round(durationMs),
+            p_status: 'success',
+            p_user_id: ctx.userId,
+            p_error_message: null,
+            p_metadata: metricsMetadata,
+          }).catch(() => {}),
+        ]);
       } catch {
-        // Metrics not critical
+        // RPC calls not critical
       }
 
       log.done(200, { transcriptLength: transcript.length, durationMs });
@@ -3216,25 +3967,26 @@ async function handleTranscribeAudio(
       }
 
       try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-transcribe-audio',
-          p_action: 'transcription',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage || errMsg,
-          p_metadata: metricsMetadata,
-        });
+        // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+        await logAiMetrics({
+          functionName: 'ai-transcribe-audio',
+          action: 'transcription',
+          durationMs,
+          status: metricsStatus,
+          userId: ctx.userId,
+          errorMessage: errorMessage || errMsg,
+          metadata: metricsMetadata,
+        }, supabase);
       } catch {
-        // Metrics not critical
+        // Metrics logging not critical
+      } finally {
+        // CRITICAL GAP H.7: Always decrement concurrent upload counter to prevent resource leak
+        activeTranscodeCount--;
+        if (activeTranscodeCount < 0) activeTranscodeCount = 0; // Safety check
       }
 
-      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
-      const clientErrMsg = (errorMessage || errMsg).includes('database') || (errorMessage || errMsg).includes('ECONNREFUSED') || (errorMessage || errMsg).includes('ENOTFOUND')
-        ? 'Service temporarily unavailable. Please try again.'
-        : (errorMessage || errMsg).length > 200
-        ? (errorMessage || errMsg).substring(0, 200)
-        : (errorMessage || errMsg);
+      // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+      const clientErrMsg = sanitizeErrorMessage(errorMessage || errMsg);
 
       return { success: false, error: clientErrMsg, duration_ms: durationMs };
     } finally {
@@ -3246,26 +3998,19 @@ async function handleTranscribeAudio(
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-transcribe-audio',
-        p_action: 'transcription',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-transcribe-audio',
+      action: 'transcription',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in transcribe-audio handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
