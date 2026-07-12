@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getWebVitalsReport, WebVitalMetric } from '@/lib/web-vitals';
+import { getWebVitalsReport } from '@/lib/web-vitals';
+import type { WebVitalMetric } from '@/lib/web-vitals';
 import { Gauge, Zap, Layout, Timer, BarChart3, ShieldCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
