@@ -53,8 +53,8 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
     setOriginalMessage(inputValue);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-enhance-message', {
-        body: { message: inputValue, tone, contactName },
+      const { data, error } = await supabase.functions.invoke('ai-router', {
+        body: { action: 'enhance_message', message: inputValue, tone, contactName },
       });
 
       if (error) throw error;
@@ -63,8 +63,8 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
         throw new Error(data.error);
       }
 
-      if (data?.enhanced) {
-        onInputChange(data.enhanced);
+      if (data?.enhanced_message) {
+        onInputChange(data.enhanced_message);
         toast({
           title: '✨ Mensagem aprimorada!',
           description: 'Clique em ↩ para desfazer',

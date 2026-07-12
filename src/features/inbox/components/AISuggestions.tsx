@@ -48,8 +48,9 @@ export function AISuggestions({ messages, contactName, contactId, onSelectSugges
     setIsOpen(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('ai-suggest-reply', {
+      const { data, error } = await supabase.functions.invoke('ai-router', {
         body: {
+          action: 'suggest_reply',
           messages: messages.slice(-10).map(m => ({
             content: m.content,
             sender: m.sender
@@ -60,7 +61,7 @@ export function AISuggestions({ messages, contactName, contactId, onSelectSugges
       });
 
       if (error) throw error;
-      
+
       if (data?.suggestions) {
         setSuggestions(data.suggestions);
       }

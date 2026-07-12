@@ -77,8 +77,8 @@ export function useCustomEmojis(open: boolean) {
       let aiCategory = 'outros';
       try {
         toast.info('🔍 Classificando emoji com IA...');
-        const { data: classifyData, error: classifyErr } = await supabase.functions.invoke('classify-emoji', {
-          body: { image_url: urlData.publicUrl, file_name: file.name },
+        const { data: classifyData, error: classifyErr } = await supabase.functions.invoke('ai-router', {
+          body: { action: 'classify_emoji', image_url: urlData.publicUrl, file_name: file.name },
         });
         if (!classifyErr && classifyData?.category) aiCategory = classifyData.category;
       } catch (err) { log.error('Unexpected error in useCustomEmojis:', err); }

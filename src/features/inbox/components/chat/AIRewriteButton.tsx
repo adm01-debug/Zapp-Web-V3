@@ -40,14 +40,14 @@ export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewrit
     setLoadingTone(tone);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-enhance-message', {
-        body: { message: inputValue, tone, contactName },
+      const { data, error } = await supabase.functions.invoke('ai-router', {
+        body: { action: 'enhance_message', message: inputValue, tone, contactName },
       });
 
       if (error) throw error;
 
-      if (data?.enhanced) {
-        onRewrite(data.enhanced);
+      if (data?.enhanced_message) {
+        onRewrite(data.enhanced_message);
         setIsOpen(false);
         toast.success('Mensagem reescrita com IA!');
       } else if (data?.error) {

@@ -50,8 +50,8 @@ export function AIAutoTagsConfig() {
       let processed = 0;
       for (const contact of contacts) {
         try {
-          await supabase.functions.invoke('ai-auto-tag', {
-            body: { contactId: contact.id },
+          await supabase.functions.invoke('ai-router', {
+            body: { action: 'auto_tag', contactId: contact.id },
           });
           processed++;
         } catch (e) {

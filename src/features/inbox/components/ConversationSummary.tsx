@@ -53,8 +53,8 @@ export function ConversationSummary({ messages, contactName, contactId, initialS
     if (!canGenerateSummary) { toast.error('O período selecionado precisa ter pelo menos 10 mensagens.'); return; }
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-conversation-summary', {
-        body: { messages: filteredMessages.map(m => ({ sender: m.sender, content: m.content, created_at: m.created_at })), contactName, contactId },
+      const { data, error } = await supabase.functions.invoke('ai-router', {
+        body: { action: 'conversation_summary', messages: filteredMessages.map(m => ({ sender: m.sender, content: m.content, created_at: m.created_at })), contactName, contactId },
       });
       if (error) throw error;
       setSummary(data); setHasGenerated(true); toast.success('Resumo gerado com sucesso!');

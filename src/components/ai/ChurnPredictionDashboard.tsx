@@ -110,8 +110,8 @@ export function ChurnPredictionDashboard() {
   const runAIAnalysis = async () => {
     setAnalyzing(true);
     try {
-      const { error } = await supabase.functions.invoke('ai-churn-analysis', {
-        body: { contactIds: risks.slice(0, 20).map(r => r.contactId) }
+      const { error } = await supabase.functions.invoke('ai-router', {
+        body: { action: 'churn_analysis', contactIds: risks.slice(0, 20).map(r => r.contactId) }
       });
       if (error) throw error;
       toast.success('Análise de IA concluída!');

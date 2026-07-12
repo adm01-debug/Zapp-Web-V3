@@ -94,6 +94,61 @@ export const ClassifyStickerSchema = z.object({
   image_url: safeImageUrlSchema.optional().nullable(),
 });
 
+/** Schema para reescrita de mensagem (ai-enhance-message) */
+export const AiEnhanceMessageSchema = z.object({
+  message: z.string().max(10000),
+  tone: z.enum(['professional', 'casual', 'persuasive', 'empathetic', 'concise', 'detailed']),
+  contactName: z.string().max(200).optional().nullable(),
+});
+
+/** Schema para auto-tagging de conversas (ai-auto-tag) */
+export const AiAutoTagSchema = z.object({
+  contactId: z.string().uuid().optional().nullable(),
+  messages: z.array(z.object({
+    role: z.string(),
+    sender: z.string().optional(),
+    content: z.string(),
+    message_type: z.string().optional(),
+  })).optional().nullable(),
+});
+
+/** Schema para análise de churn (ai-churn-analysis) */
+export const AiChurnAnalysisSchema = z.object({
+  contactId: z.string().uuid(),
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'agent', 'client']),
+    content: z.string().max(10000),
+  })).min(1).max(200),
+  contactName: z.string().max(200).optional(),
+});
+
+/** Schema para classificação de tickets (ai-classify-tickets) */
+export const AiClassifyTicketsSchema = z.object({
+  ticketId: z.string().uuid(),
+  subject: z.string().max(500),
+  description: z.string().max(5000),
+  tags: z.array(z.string()).optional(),
+});
+
+/** Schema para análise de conversa (ai-conversation-analysis) */
+export const AiConversationAnalysisSchema = z.object({
+  contactId: z.string().uuid().optional().nullable(),
+  contactName: z.string().max(200).optional().nullable(),
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
+    content: z.string().max(10000),
+    sender: z.string().max(200).optional(),
+    timestamp: z.string().max(50).optional(),
+  })).min(1).max(200),
+});
+
+/** Schema para transcrição de áudio (ai-transcribe-audio) */
+export const TranscribeAudioSchema = z.object({
+  audio_url: z.string().url(),
+  language: z.string().max(10).optional().default('pt-BR'),
+  contact_id: z.string().uuid().optional().nullable(),
+});
+
 /** Helper para parse seguro */
 export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {
   const result = schema.safeParse(body);
