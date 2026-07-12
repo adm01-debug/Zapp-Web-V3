@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import {
   getWhatsappConnections,
   invalidateWhatsappConnectionsCache,
@@ -13,10 +14,12 @@ import type { WhatsAppConnectionCanonical } from '@/integrations/supabase/column
  *
  * Regra: nomes de coluna e shape canônico vêm de `columnMap.whatsapp_connections`
  * + `normalizeConnection`. Nenhum literal `'instance_name'`/`'name'` deve
- * aparecer aqui — a fonte da verdade é o columnMap.
+ * aparecer aqui — a fonte da verdade é o columnMap. As mutações usam
+ * `safeFrom` para evitar recursão de tipos (TS2589) do gerador.
  */
 const TABLE = columnMap.whatsapp_connections.table;
 const CANONICAL_SELECT = columnMap.whatsapp_connections.select();
+
 
 export const whatsappConnectionRepository = {
   /**
