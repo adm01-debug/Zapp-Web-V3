@@ -101,9 +101,9 @@ const KEY_SOURCE = KEY_PICK.source ?? "none";
 const ENV_SET = URL_SOURCE.startsWith("SELFHOSTED_") || KEY_SOURCE.startsWith("SELFHOSTED_") ? "SELFHOSTED_*" : URL_SOURCE.startsWith("EXTERNAL_") || KEY_SOURCE.startsWith("EXTERNAL_") ? "EXTERNAL_*" : "unknown";
 
 const KEY_PAYLOAD = EXTERNAL_KEY ? decodeJwtPayload(EXTERNAL_KEY) : null;
-const KEY_ROLE = (KEY_PAYLOAD?.role as string) ?? "unknown";
-const KEY_ISS = (KEY_PAYLOAD?.iss as string) ?? "unknown";
-const KEY_REF = (KEY_PAYLOAD?.ref as string) ?? "unknown";
+const KEY_ROLE = (typeof KEY_PAYLOAD?.role === 'string' ? KEY_PAYLOAD.role : "unknown");
+const KEY_ISS = (typeof KEY_PAYLOAD?.iss === 'string' ? KEY_PAYLOAD.iss : "unknown");
+const KEY_REF = (typeof KEY_PAYLOAD?.ref === 'string' ? KEY_PAYLOAD.ref : "unknown");
 
 console.log("[external-db-proxy] env resolved", {
   url_source: URL_SOURCE,
@@ -232,22 +232,28 @@ Deno.serve(async (req) => {
     const rawAuth = req.headers.get("authorization") || req.headers.get("Authorization") || "";
     const bearer = rawAuth.toLowerCase().startsWith("bearer ") ? rawAuth.slice(7).trim() : "";
     const callerPayload = bearer ? decodeJwtPayload(bearer) : null;
+    const callerRole = typeof callerPayload?.role === 'string' ? callerPayload.role : "unknown";
+    const callerIss = typeof callerPayload?.iss === 'string' ? callerPayload.iss : "unknown";
+    const callerRef = typeof callerPayload?.ref === 'string' ? callerPayload.ref : "unknown";
+    const callerSub = typeof callerPayload?.sub === 'string' ? callerPayload.sub : "unknown";
+    const callerAud = typeof callerPayload?.aud === 'string' ? callerPayload.aud : "unknown";
+    const callerExp = typeof callerPayload?.exp === 'number' && Number.isFinite(callerPayload.exp) ? callerPayload.exp : null;
+    const callerExpInS = callerExp !== null ? callerExp - Math.floor(Date.now() / 1000) : null;
+
     const callerInfo = {
       cid: req.headers.get("x-correlation-id") ?? undefined,
       rid: req.headers.get("x-request-id") ?? undefined,
       token_present: Boolean(bearer),
       token_len: bearer.length || 0,
-      token_role: (callerPayload?.role as string) ?? "unknown",
-      token_iss: (callerPayload?.iss as string) ?? "unknown",
-      token_ref: (callerPayload?.ref as string) ?? "unknown",
-      token_sub: (callerPayload?.sub as string) ?? "unknown",
-      token_aud: (callerPayload?.aud as string) ?? "unknown",
-      token_exp: (callerPayload?.exp as number) ?? null,
-      token_exp_in_s: typeof callerPayload?.exp === "number"
-        ? (callerPayload.exp as number) - Math.floor(Date.now() / 1000)
-        : null,
+      token_role: callerRole,
+      token_iss: callerIss,
+      token_ref: callerRef,
+      token_sub: callerSub,
+      token_aud: callerAud,
+      token_exp: callerExp,
+      token_exp_in_s: callerExpInS,
       // Which backend the fast-path in requireUser will TRY first.
-      expected_backend: (callerPayload?.iss as string) === `${EXTERNAL_URL}/auth/v1`
+      expected_backend: callerIss === `${EXTERNAL_URL}/auth/v1`
         ? "self-hosted"
         : "cloud-or-fallback",
     };
@@ -379,8 +385,11 @@ Deno.serve(async (req) => {
 
     try {
       const { data, error } = await supabase.rpc(rpc, params);
-      if (error) {
-        console.error('[external-db-proxy] rpc error', { rpc, cid, code: error.code, message: error.message });
+      if (error && typeof error === 'object' && !Array.isArray(error)) {
+        const errObj = error as Record<string, unknown>;
+        const errCode = typeof errObj.code === 'string' ? errObj.code : 'unknown';
+        const errMsg = typeof errObj.message === 'string' ? errObj.message : 'unknown error';
+        console.error('[external-db-proxy] rpc error', { rpc, cid, code: errCode, message: errMsg });
         return jsonResponse(req, { error: "Database operation failed", cid, rid, data: null }, 500);
       }
       return jsonResponse(req, { ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
