@@ -50,6 +50,7 @@ export function useSalesPipeline() {
         .select('id, name, phone')
         .order('name', { ascending: true })
         .range(from, from + PAGE - 1);
+      if (!mountedRef.current) break;
       if (error) break;
       if (!data || data.length === 0) break;
       allContacts.push(...data);

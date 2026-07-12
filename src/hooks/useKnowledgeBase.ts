@@ -103,6 +103,9 @@ export function useKnowledgeBase() {
       const [allArticles, allFiles] = await Promise.all([fetchAllArticles(), fetchAllFiles()]);
       setArticles(allArticles);
       setFiles(allFiles);
+    } catch {
+      // Errors are already surfaced via toast inside fetchAllArticles/fetchAllFiles.
+      // Swallow here so void fetchData() callers don't produce unhandled rejections.
     } finally {
       setLoading(false);
     }

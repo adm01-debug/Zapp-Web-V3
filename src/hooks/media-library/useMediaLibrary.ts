@@ -128,11 +128,13 @@ export function useMediaLibrary(type: MediaType) {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [reclassifying, setReclassifying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fetchSeqRef = useRef(0);
 
   const categories = getCategoriesForType(type);
   const bucket = getBucket(type);
 
   const fetchItems = useCallback(async () => {
+    const seq = ++fetchSeqRef.current;
     setLoading(true);
     try {
       // Paginate so the library is never silently truncated by PostgREST max_rows.
@@ -145,6 +147,7 @@ export function useMediaLibrary(type: MediaType) {
           .select('*')
           .order('created_at', { ascending: false })
           .range(from, from + PAGE - 1);
+        if (fetchSeqRef.current !== seq) return;
         if (error) {
           log.error(`Error fetching ${type}:`, error);
           toast.error(
@@ -157,12 +160,14 @@ export function useMediaLibrary(type: MediaType) {
         if (data.length < PAGE) break;
         from += PAGE;
       }
+      if (fetchSeqRef.current !== seq) return;
       setItems(allItems);
     } catch (err) {
+      if (fetchSeqRef.current !== seq) return;
       log.error(`Unexpected error fetching ${type}:`, err);
       setItems([]);
     } finally {
-      setLoading(false);
+      if (fetchSeqRef.current === seq) setLoading(false);
     }
   }, [type]);
 
