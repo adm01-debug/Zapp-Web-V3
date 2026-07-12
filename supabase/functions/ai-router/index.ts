@@ -101,6 +101,31 @@ const MAX_METRICS_BUFFER_SIZE = 10000; // Circular buffer limit
 
 let activeTranscodeCount = 0;
 
+// CRITICAL GAP H.9: Circular buffer for metrics to prevent memory overflow
+interface MetricsEntry {
+  functionName: string;
+  action: string;
+  durationMs: number;
+  status: string;
+  userId: string;
+  errorMessage?: string | null;
+  metadata?: Record<string, unknown>;
+  timestamp: number;
+}
+
+const metricsBuffer: MetricsEntry[] = [];
+let metricsBufferIndex = 0; // Write position for circular buffer
+
+function addMetricsToBuffer(entry: MetricsEntry): void {
+  if (metricsBuffer.length < MAX_METRICS_BUFFER_SIZE) {
+    metricsBuffer.push(entry);
+  } else {
+    // Circular: overwrite oldest entry
+    metricsBuffer[metricsBufferIndex] = entry;
+    metricsBufferIndex = (metricsBufferIndex + 1) % MAX_METRICS_BUFFER_SIZE;
+  }
+}
+
 function getCircuitBreakerState(key: string): CircuitBreakerState {
   if (!circuitBreakerStates.has(key)) {
     circuitBreakerStates.set(key, {
@@ -2162,29 +2187,50 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
 
     if (validContactId) {
       try {
-        const { error: insertErr } = await supabase.from('conversation_analyses').insert({
-          contact_id: validContactId,
-          department: analysisData.department,
-          relationship_type: analysisData.relationshipType,
-          summary: analysisData.summary,
-          sentiment: analysisData.sentiment,
-          sentiment_score: analysisData.sentimentScore,
-          customer_satisfaction: analysisData.customerSatisfaction,
-          key_points: analysisData.keyPoints,
-          next_steps: analysisData.nextSteps,
-          topics: analysisData.topics,
-          urgency: analysisData.urgency,
-          status: analysisData.status,
-          message_count: messages.length,
-        });
+        // CRITICAL GAP F.10 FIX: Check for recent duplicate analysis within 5 minutes to prevent concurrent write conflicts
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { data: recentAnalyses, error: checkErr } = await supabase
+          .from('conversation_analyses')
+          .select('id, created_at')
+          .eq('contact_id', validContactId)
+          .gte('created_at', fiveMinutesAgo)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-        persistenceResult.attempted = true;
-
-        if (insertErr) {
-          persistenceResult.error = insertErr.message;
-          log.warn("Failed to insert conversation analysis", { error: insertErr.message, contactId: validContactId });
-        } else {
+        if (!checkErr && recentAnalyses && recentAnalyses.length > 0) {
+          // Duplicate analysis detected within 5-minute window - return cached version to prevent concurrent writes
+          persistenceResult.attempted = true;
           persistenceResult.success = true;
+          log.info("Duplicate analysis skipped (within 5-min window)", {
+            contactId: validContactId,
+            recentAnalysisId: (recentAnalyses[0] as any)?.id
+          });
+        } else {
+          // No recent duplicate - proceed with INSERT
+          const { error: insertErr } = await supabase.from('conversation_analyses').insert({
+            contact_id: validContactId,
+            department: analysisData.department,
+            relationship_type: analysisData.relationshipType,
+            summary: analysisData.summary,
+            sentiment: analysisData.sentiment,
+            sentiment_score: analysisData.sentimentScore,
+            customer_satisfaction: analysisData.customerSatisfaction,
+            key_points: analysisData.keyPoints,
+            next_steps: analysisData.nextSteps,
+            topics: analysisData.topics,
+            urgency: analysisData.urgency,
+            status: analysisData.status,
+            message_count: messages.length,
+          });
+
+          persistenceResult.attempted = true;
+
+          if (insertErr) {
+            persistenceResult.error = insertErr.message;
+            log.warn("Failed to insert conversation analysis", { error: insertErr.message, contactId: validContactId });
+          } else {
+            persistenceResult.success = true;
+          }
         }
       } catch (error) {
         persistenceResult.attempted = true;
@@ -2584,12 +2630,23 @@ async function handleTranscribeAudio(
       return { success: false, error: "audioUrl is required", duration_ms: performance.now() - startTime };
     }
 
-    log.info("Starting transcription", { messageId, languageCode });
+    // CRITICAL GAP H.7 FIX: Enforce concurrent upload limit to prevent OOM crashes (5 * 25MB = 125MB exhaust)
+    if (activeTranscodeCount >= CONCURRENT_UPLOAD_LIMIT) {
+      log.warn("Concurrent upload limit exceeded", { activeCount: activeTranscodeCount, limit: CONCURRENT_UPLOAD_LIMIT });
+      return {
+        success: false,
+        error: "Service temporarily overloaded. Too many concurrent transcriptions. Please retry in a few seconds.",
+        duration_ms: performance.now() - startTime
+      };
+    }
+
+    log.info("Starting transcription", { messageId, languageCode, activeTranscodes: activeTranscodeCount });
 
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
     let metricsMetadata: Record<string, unknown> = { requestId, messageId, languageCode };
 
+    activeTranscodeCount++;
     try {
       const supabaseUrl = requireEnv("SUPABASE_URL");
       const isOwnStorage = audioUrl.includes(supabaseUrl) && audioUrl.includes("/storage/v1/");
@@ -2850,6 +2907,10 @@ async function handleTranscribeAudio(
       }
 
       return { success: false, error: errorMessage || errMsg, duration_ms: durationMs };
+    } finally {
+      // CRITICAL GAP H.7: Always decrement concurrent upload counter to prevent resource leak
+      activeTranscodeCount--;
+      if (activeTranscodeCount < 0) activeTranscodeCount = 0; // Safety check
     }
   } catch (err) {
     const durationMs = performance.now() - startTime;
