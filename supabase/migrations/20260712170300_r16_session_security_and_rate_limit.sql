@@ -27,8 +27,7 @@ CREATE TABLE IF NOT EXISTS public.session_blacklist (
 CREATE INDEX IF NOT EXISTS idx_session_blacklist_user
   ON public.session_blacklist (user_id, blacklisted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_session_blacklist_expires
-  ON public.session_blacklist (expires_at)
-  WHERE expires_at > now();
+  ON public.session_blacklist (expires_at);
 
 ALTER TABLE public.session_blacklist ENABLE ROW LEVEL SECURITY;
 
