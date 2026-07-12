@@ -68,13 +68,16 @@ docker secret rm evolution_api_key_v4_20260704
 ### 6. Verificar
 
 ```bash
+# Verificar tamanho da chave lendo direto do secret file (não de env var — não existe após remoção do Spec.Env)
 docker exec -it $(docker ps -qf name=evolution_evolution) bash -c \
-  'echo -n $AUTHENTICATION_API_KEY | wc -c'
+  'cat /run/secrets/evolution_api_key_v5_YYYYMMDD | tr -d "\n\r" | wc -c'
 # Deve retornar: 32
 
-# Testar autenticação
-curl -s -H "apikey: <nova-chave>" https://evolution.atomicabr.com.br/instance/fetchInstances | jq '.[0].instance.state'
+# Testar autenticação — ler a chave do secret file localmente para não expor no histórico do shell
+APIKEY=$(cat /run/secrets/evolution_api_key_v5_YYYYMMDD | tr -d '\n\r')
+curl -s -H "apikey: ${APIKEY}" https://evolution.atomicabr.com.br/instance/fetchInstances | jq '.[0].instance.state'
 # Deve retornar: "open"
+unset APIKEY
 ```
 
 ### 7. Limpar histórico Git (opcional, recomendado)

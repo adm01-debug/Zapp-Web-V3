@@ -7,7 +7,7 @@ import { AuthProvider } from '@/features/auth';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AriaAnnouncer } from '@/hooks/useAriaAnnouncer';
 import { Toaster as SonnerToaster } from 'sonner';
-import { InAppNotificationProvider } from '@/components/notifications/InAppNotificationProvider';
+import { InAppNotificationProvider } from '@/components/mobile/InAppNotificationProvider';
 
 // Lazy imports for code splitting (non-critical paths)
 const Index = lazy(() => import('./pages/Index'));
