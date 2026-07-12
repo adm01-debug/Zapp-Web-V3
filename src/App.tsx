@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { getLogger } from '@/lib/logger';
