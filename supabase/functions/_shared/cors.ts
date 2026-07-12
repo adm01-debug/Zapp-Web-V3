@@ -6,6 +6,11 @@ const ALLOWED_ORIGINS = [
   'https://atomicabr.com.br',
   'https://lovable.dev',
   'https://supabase.com',
+  // Produção/alias Vercel do app (o pattern abaixo só cobre previews -git-…-juca1).
+  // Sem estes, o fail-closed bloqueia o app servido nessas origens (mesmas listadas
+  // em evolution-credentials). Auditoria 2026-07-12 (Codex P1).
+  'https://zapp-web-v3.vercel.app',
+  'https://zapp-web-v3-juca1.vercel.app',
 ];
 const ALLOWED_PATTERNS = [
   /^https?:\/\/localhost(:\d+)?$/,
