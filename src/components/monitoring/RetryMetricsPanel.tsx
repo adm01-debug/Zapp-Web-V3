@@ -595,11 +595,11 @@ function TopReasonsChart({
                 fontSize: 11,
                 color: 'hsl(var(--popover-foreground))',
               }}
-              formatter={(value: number | string, name: string | number) => {
+              formatter={(value, name) => {
                 const label = name === 'previous' ? 'Período anterior' : 'Período atual';
-                return [String(value) + ' retries', label];
+                return [String(value ?? '') + ' retries', label];
               }}
-              labelFormatter={(label: string | number) => String(label)}
+              labelFormatter={(label) => String(label ?? '')}
             />
             {compareMode && (
               <Legend
