@@ -19,9 +19,11 @@ export function useAgentPendingCounts() {
       const all: Array<{ agent_id: string | null; status: string | null; sender: string }> = [];
       let from = 0;
       while (true) {
+        const statuses = ['pending', 'failed'];
         const { data, error } = await dbFrom('messages')
           .select('agent_id, status, sender')
-          .in('status', ['pending', 'failed'])
+          .in('status', statuses)
+          .limit(statuses.length)
           .eq('sender', 'me')
           .not('agent_id', 'is', null)
           .order('id', { ascending: false })

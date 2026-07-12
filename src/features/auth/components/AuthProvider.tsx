@@ -5,6 +5,7 @@ import { authService, Profile } from '../services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '../context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 /**
  * Componente central que fornece o estado de autenticação para toda a aplicação.
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: perms } = await safeClient.from<{ permissions: { name: string } | null }>(
         'role_permissions',
-        q => q.select('permissions(name)').in('role', roleNames)
+        q => q.select('permissions(name)').in('role', roleNames).limit(roleNames.length)
       );
 
       if (perms) {

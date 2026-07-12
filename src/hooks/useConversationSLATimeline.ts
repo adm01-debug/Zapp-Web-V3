@@ -146,6 +146,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
         : 'not-applicable';
 
       if (contactId) {
+        const eventTypes = ['close', 'reopen', 'assign'];
         const { data: events } = await safeClient.from<ConversationEventRow>('conversation_events', q =>
           q.select(`
             event_type, created_at, performed_by, from_agent_id, to_agent_id,
@@ -154,7 +155,8 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
             to_agent:profiles!conversation_events_to_agent_id_fkey(id, name),
             to_queue:queues!conversation_events_to_queue_id_fkey(id, name)
           `).eq('contact_id', contactId)
-            .in('event_type', ['close', 'reopen', 'assign'])
+            .in('event_type', eventTypes)
+            .limit(eventTypes.length)
             .order('created_at', { ascending: false })
             .order('id', { ascending: false }),
         );
