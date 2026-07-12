@@ -15,6 +15,7 @@ import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
 import type { QueueItem } from '@/features/inbox/hooks/useMessageQueue';
 import { useChatMediaSending } from '../hooks/useChatMediaSending';
+
 import { CRMAutoSync } from './CRMAutoSync';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatToolPanels } from './chat/ChatToolPanels';
@@ -39,7 +40,6 @@ import { FailureFilterBar } from './chat/FailureFilterBar';
 import { useChatFilters } from './chat/hooks/useChatFilters';
 import { useSLADelivery } from './chat/hooks/useSLADelivery';
 import { useChatSearchState } from './chat/hooks/useChatSearchState';
-import type { QueueItem } from '../hooks/useMessageQueue';
 import { useChatDialogs } from './chat/hooks/useChatDialogs';
 import { useInitialHighlight } from './chat/hooks/useInitialHighlight';
 import { useChatDragAndDrop } from './chat/hooks/useChatDragAndDrop';

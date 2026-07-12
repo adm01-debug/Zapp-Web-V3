@@ -28,10 +28,7 @@ interface AuditLogParams {
 }
 
 /** Split entityId into a UUID-safe value + a text fallback merged into details. */
-export function normalizeEntityId(
-  entityId: string | null | undefined,
-  details?: Record<string, unknown>
-): { entityId: string | null; details: Record<string, unknown> | null } {
+export function normalizeEntityId(entityId, details) {
   const trimmed = typeof entityId === 'string' ? entityId.trim() : '';
   if (!trimmed) return { entityId: null, details: details ?? null };
   if (isValidUUID(trimmed)) return { entityId: trimmed, details: details ?? null };
@@ -46,9 +43,9 @@ export async function logAudit({ action, entityType, entityId, details }: AuditL
     const norm = normalizeEntityId(entityId ?? null, details);
     const { error } = await supabase.rpc('log_audit_event', {
       p_action: action,
-      p_entity_type: entityType || null,
-      p_entity_id: norm.entityId,
-      p_details: norm.details ? JSON.parse(JSON.stringify(norm.details)) : null,
+      p_entity_type: entityType ?? null,
+      p_entity_id: norm.entityId ?? null,
+      p_details: (norm.details != null) ? JSON.parse(JSON.stringify(norm.details)) : null,
       p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
     });
 
