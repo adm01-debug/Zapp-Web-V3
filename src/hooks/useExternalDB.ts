@@ -226,7 +226,7 @@ export function useExternalMutation() {
       validateEntityAccess(params.table, 'external');
       const dc = getDynamicClient();
       if (params.action === 'insert') {
-        const { data, error } = await getExternalSupabase()
+        const { data, error } = await (getExternalSupabase() as any)
           .from(params.table)
           .insert(params.data as object)
           .select();
@@ -234,9 +234,7 @@ export function useExternalMutation() {
         return data;
       }
       if (params.action === 'update') {
-        let q = getExternalSupabase()
-          .from(params.table)
-          .update(params.data as object);
+        let q = (getExternalSupabase() as any).from(params.table).update(params.data as object);
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }

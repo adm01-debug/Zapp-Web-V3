@@ -99,15 +99,7 @@ export function useMessagesCursor({
       // NOTE: usa `externalSupabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
       // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `dbRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      interface ExternalSupabaseClient {
-        rpc(
-          name: string,
-          params?: Record<string, unknown>
-        ): {
-          abortSignal?(signal: AbortSignal): { data: unknown; error: unknown };
-        };
-      }
-      const ext = externalSupabase as ExternalSupabaseClient;
+      const ext = externalSupabase as any;
       const builder = ext.rpc('rpc_list_messages_lite', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
@@ -120,7 +112,7 @@ export function useMessagesCursor({
       // diretamente em todas as versoes.
       const withSignal = builder.abortSignal?.(controller.signal) ?? builder;
 
-      const { data, error: rpcError } = await withSignal;
+      const { data, error: rpcError } = (await withSignal) as { data: unknown; error: unknown };
       if (controller.signal.aborted) {
         const e = new Error('Aborted');
         e.name = 'AbortError';
@@ -234,7 +226,8 @@ export function useMessagesCursor({
         config: Record<string, unknown>,
         callback: (payload: Record<string, unknown>) => void
       ): RealtimeChannel;
-      subscribe(): void;
+      subscribe(): RealtimeChannel;
+      unsubscribe(): void;
     }
     const client = externalSupabase as RealtimeClient;
 
@@ -250,8 +243,8 @@ export function useMessagesCursor({
           filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
-          const raw = payload.new;
-          if (!raw || !raw.id) return;
+          const raw = (payload as any).new;
+          if (!raw || !(raw as any).id) return;
           // Realtime payloads are full rows; project to lite to keep memory low.
           const m = toEvolutionMessageLite(raw);
           setPages((prev) => {
@@ -274,8 +267,8 @@ export function useMessagesCursor({
           filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
-          const raw = payload.new;
-          if (!raw || !raw.id) return;
+          const raw = (payload as any).new;
+          if (!raw || !(raw as any).id) return;
           const m = toEvolutionMessageLite(raw);
           setPages((prev) =>
             prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x)))
@@ -292,7 +285,7 @@ export function useMessagesCursor({
           filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
-          const id = payload.old?.id;
+          const id = ((payload as any).old as any)?.id;
           if (!id) return;
           setPages((prev) => prev.map((page) => page.filter((x) => x.id !== id)));
         }

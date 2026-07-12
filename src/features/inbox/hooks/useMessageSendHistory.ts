@@ -49,7 +49,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
     queryKey: ['message-send-history', messageId],
     enabled: Boolean(messageId) && enabled,
     staleTime: STALE_MS,
-    queryFn: async () => {
+    queryFn: async (): Promise<MessageSendHistory> => {
       if (!messageId) return { metric: null, auditEntries: [] };
 
       const idempotencyKey = `msg:${messageId}`;
@@ -123,7 +123,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         );
       }
 
-      const auditEntries = (auditRes.data ?? []).map((e) => ({
+      const auditEntries = (auditRes.data ?? []).map((e: any) => ({
         id: e.id,
         action: e.action,
         createdAt: e.created_at,
@@ -131,7 +131,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       }));
 
       // Adiciona entradas do outbound_delivery_audit (FATOR X) ao histórico
-      const outboundEntries = (outboundAuditRes.data ?? []).map((e) => ({
+      const outboundEntries = (outboundAuditRes.data ?? []).map((e: any) => ({
         id: e.id,
         action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
         createdAt: e.created_at,
@@ -148,24 +148,26 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-      const row = metricRes.data;
+      const row = metricRes.data as any;
       if (!row) return { metric: null, auditEntries: combinedAudit };
 
-      const reasons = Array.isArray(row.retry_reasons) ? (row.retry_reasons as RetryAttempt[]) : [];
+      const reasons = Array.isArray((row as any).retry_reasons)
+        ? ((row as any).retry_reasons as RetryAttempt[])
+        : [];
 
       return {
         metric: {
-          id: row.id,
-          action: row.action,
-          method: row.method,
-          finalStatus: row.final_status as MessageSendHistory['metric']['finalStatus'],
-          finalHttpStatus: row.final_http_status,
-          attemptCount: row.attempt_count,
-          totalDurationMs: row.total_duration_ms,
-          instanceName: row.instance_name,
-          idempotencyKey: row.idempotency_key,
+          id: (row as any).id as string,
+          action: (row as any).action as string,
+          method: (row as any).method as string,
+          finalStatus: (row as any).final_status as string,
+          finalHttpStatus: (row as any).final_http_status as number | null,
+          attemptCount: (row as any).attempt_count as number,
+          totalDurationMs: (row as any).total_duration_ms as number | null,
+          instanceName: (row as any).instance_name as string | null,
+          idempotencyKey: (row as any).idempotency_key as string | null,
           retryReasons: reasons,
-          createdAt: row.created_at,
+          createdAt: (row as any).created_at as string,
           rawJson: row,
         },
         auditEntries: combinedAudit,

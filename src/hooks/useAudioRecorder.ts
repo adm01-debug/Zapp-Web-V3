@@ -28,7 +28,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any | null>(null);
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
   // Mirror of the latest transcription so async handlers (onstop) read the
@@ -135,8 +135,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
 
         // Enhanced Transcription with Backend Fallback Support
-        const win = window as Window & { webkitSpeechRecognition?: typeof SpeechRecognition };
-        const SpeechRecognitionImpl = win.SpeechRecognition || win.webkitSpeechRecognition;
+        const win = window as Window & { webkitSpeechRecognition?: any; SpeechRecognition?: any };
+        const SpeechRecognitionImpl =
+          (win as any).SpeechRecognition || (win as any).webkitSpeechRecognition;
         if (SpeechRecognitionImpl) {
           const recognition = new SpeechRecognitionImpl();
           recognition.lang = 'pt-BR';

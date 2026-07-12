@@ -77,13 +77,13 @@ export default function QueueDetails() {
         .eq('id', id)
         .single();
       if (queueError) throw queueError;
-      setQueue(queueData);
+      setQueue(queueData as any);
 
       const { data: membersData } = await supabase
         .from('queue_members')
         .select('id, profile_id, profile:profiles(name, avatar_url, is_active)')
         .eq('queue_id', id);
-      setMembers(membersData as QueueMember[]);
+      setMembers((membersData as any) || []);
 
       const { data: contactsData } = await dbFrom('contacts')
         .select('id, name, phone, avatar_url, assigned_to, created_at')
@@ -102,14 +102,14 @@ export default function QueueDetails() {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
-          let assignedAgent = null;
+          let assignedAgent: { name: string; avatar_url: string | null } | undefined = undefined;
           if (contact.assigned_to) {
             const { data } = await supabase
               .from('profiles')
               .select('name, avatar_url')
               .eq('id', contact.assigned_to)
               .maybeSingle();
-            assignedAgent = data;
+            assignedAgent = (data as any) || undefined;
           }
           return {
             ...contact,
@@ -119,7 +119,7 @@ export default function QueueDetails() {
           };
         })
       );
-      setContacts(contactsWithDetails);
+      setContacts(contactsWithDetails as any);
 
       const totalContacts = contactsWithDetails.length;
       const assignedContacts = contactsWithDetails.filter((c) => c.assigned_to).length;

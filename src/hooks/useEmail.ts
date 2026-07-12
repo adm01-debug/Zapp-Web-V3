@@ -251,7 +251,7 @@ export function useEmail() {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages(Array.isArray(data) ? data : []);
+      setMessages(Array.isArray(data) ? (data as any) : []);
     }
     setIsLoadingMessages(false);
   }, []);
@@ -615,10 +615,10 @@ export function useEmail() {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const nt = mapBaseThreadRow(payload.new);
+            const nt = mapBaseThreadRow(payload.new as any);
             setThreads((prev) => [nt, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            const ut = mapBaseThreadRow(payload.new);
+            const ut = mapBaseThreadRow(payload.new as any);
             setThreads((prev) =>
               prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
             );

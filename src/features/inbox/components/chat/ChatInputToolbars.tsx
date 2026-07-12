@@ -143,7 +143,7 @@ export function SecondaryToolbar({
         contactName={contactName}
       />
       <StickerPicker onSendSticker={onSendSticker} />
-      <AudioMemePicker onSendAudioMeme={onSendAudioMeme} />
+      <AudioMemePicker onSendAudioMeme={(meme) => onSendAudioMeme(meme.audio_url)} />
       <VoiceChangerPicker onSendAudio={onSendAudioMeme} />
       <CustomEmojiPicker onSendEmoji={onSendCustomEmoji} />
       <EmojiPicker
@@ -187,7 +187,7 @@ export function SecondaryToolbar({
         </Tooltip>
       )}
       <FileUploader
-        ref={fileUploaderRef}
+        ref={fileUploaderRef as any}
         instanceName={instanceName || ''}
         recipientNumber={contactPhone}
         contactId={contactId}

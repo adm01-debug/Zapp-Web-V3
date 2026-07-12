@@ -71,9 +71,9 @@ export function AuthEventTrendChart() {
   const trendQuery = useQuery({
     queryKey: ['auth-event-trend', hours, filterTrim],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
+      const { data, error } = await (supabase as any).rpc('rpc_instance_auth_event_trend', {
         p_hours: hours,
-        p_instance: filterTrim as string | null,
+        p_instance: filterTrim,
       });
       if (error) throw error;
       return (data ?? []) as TrendRow[];
@@ -84,12 +84,12 @@ export function AuthEventTrendChart() {
   const summaryQuery = useQuery({
     queryKey: ['auth-event-summary', hours, filterTrim],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_instance_auth_event_summary', {
+      const { data, error } = await (supabase as any).rpc('rpc_instance_auth_event_summary', {
         p_hours: hours,
-        p_instance: filterTrim as string | null,
+        p_instance: filterTrim,
       });
       if (error) throw error;
-      return data as SummaryResp;
+      return data as any as SummaryResp;
     },
     refetchInterval: 30_000,
   });

@@ -81,14 +81,14 @@ export function useSLAAlertPreferences() {
           return;
         }
 
-        const row = data?.[0] ?? null;
+        const row = (data?.[0] ?? null) as any;
         if (row) {
           setPreferences({
-            enabled: row.enabled,
-            alert_first_response: row.alert_first_response,
-            alert_resolution: row.alert_resolution,
-            severity_warning: row.severity_warning,
-            severity_breached: row.severity_breached,
+            enabled: (row as any).enabled,
+            alert_first_response: (row as any).alert_first_response,
+            alert_resolution: (row as any).alert_resolution,
+            severity_warning: (row as any).severity_warning,
+            severity_breached: (row as any).severity_breached,
           });
         }
         setIsLoading(false);
