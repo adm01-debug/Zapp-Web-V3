@@ -526,36 +526,34 @@ Responda APENAS em JSON:
     result.suggested_queue_id = null;
   }
 
+  // P0-FIX-003: Atomic tag upsert/delete using database transaction
+  // Prevents race condition where concurrent requests can corrupt tag state
   if (validContactId && result.tags?.length > 0) {
-    const tagRows = result.tags.map((t: any) => ({
-      contact_id: validContactId,
-      tag_name: sanitizeString(t.name, 100) || 'unknown',
+    const tagsPayload = result.tags.map((t: any) => ({
+      name: sanitizeString(t.name, 100) || 'unknown',
       confidence: Math.min(Math.max(Number(t.confidence) || 0, 0), 1),
-      source: 'ai',
     }));
-    const newTagNames = tagRows.map((r: any) => r.tag_name);
 
-    const { error: insertErr } = await supabase
-      .from('ai_conversation_tags')
-      .upsert(tagRows, { onConflict: 'contact_id,tag_name', ignoreDuplicates: false });
+    // Call atomic RPC that wraps upsert + delete in database transaction
+    const { data: rpcResult, error: rpcErr } = await supabase
+      .rpc('upsert_conversation_tags_atomic', {
+        p_contact_id: validContactId,
+        p_new_tags: tagsPayload,
+        p_should_delete_stale: true,
+      });
 
-    if (insertErr) {
-      log.warn("Failed to upsert tags, preserving existing", { error: insertErr.message });
-    } else {
-      const { data: existingTags } = await supabase
-        .from('ai_conversation_tags')
-        .select('tag_name')
-        .eq('contact_id', validContactId);
-      const staleTagNames = (existingTags ?? [])
-        .map((r: any) => r.tag_name)
-        .filter((n: string) => !newTagNames.includes(n));
-      if (staleTagNames.length > 0) {
-        await supabase
-          .from('ai_conversation_tags')
-          .delete()
-          .eq('contact_id', validContactId)
-          .in('tag_name', staleTagNames);
-      }
+    if (rpcErr) {
+      log.error('Atomic tag upsert failed', {
+        error: rpcErr.message,
+        contactId: validContactId,
+        tagsCount: tagsPayload.length,
+      });
+      // Fail gracefully - don't stop classification if tagging fails
+    } else if (rpcResult && !rpcResult.success) {
+      log.warn('Tag operation returned error status', {
+        detail: rpcResult.detail,
+        contactId: validContactId,
+      });
     }
   }
 
