@@ -1,4 +1,3 @@
-import { Message } from '@/hooks/useMessages';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('chatOptimizations');
@@ -29,10 +28,15 @@ export const isAtBottom = (
   return scrollHeight - scrollTop <= clientHeight + threshold;
 };
 
+interface WithId {
+  id: string;
+  message_id?: string;
+}
+
 /**
  * Simple message deduplication by message_id or ID.
  */
-export const deduplicateMessages = (existing: Message[], incoming: Message[]) => {
+export const deduplicateMessages = <T extends WithId>(existing: T[], incoming: T[]): T[] => {
   const existingIds = new Set(existing.map((m) => m.message_id || m.id));
   return incoming.filter((m) => !existingIds.has(m.message_id || m.id));
 };

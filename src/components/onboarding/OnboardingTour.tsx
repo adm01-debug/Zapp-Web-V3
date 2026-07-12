@@ -1,6 +1,6 @@
 import { useState, useCallback, ReactNode } from 'react';
 import { TourOverlay } from './TourOverlay';
-import { TourContext } from './tourContext';
+import { TourContextProvider } from './tourContext';
 import type { TourStep } from './tourContext';
 export type { TourStep } from './tourContext';
 export { useTour } from './tourContext';
@@ -52,12 +52,12 @@ export function TourProvider({ children, onComplete }: TourProviderProps) {
   );
 
   return (
-    <TourContext.Provider
+    <TourContextProvider
       value={{ isActive, currentStep, steps, startTour, endTour, nextStep, prevStep, goToStep }}
     >
       {children}
       <TourOverlay />
-    </TourContext.Provider>
+    </TourContextProvider>
   );
 }
 

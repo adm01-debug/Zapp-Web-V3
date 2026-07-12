@@ -20,7 +20,10 @@ export interface TourContextType {
   goToStep: (index: number) => void;
 }
 
-export const TourContext = createContext<TourContextType | null>(null);
+const TourContext = createContext<TourContextType | null>(null);
+
+/** Internal bridge for TourProvider — do not use TourContext directly outside this module. */
+export const TourContextProvider = TourContext.Provider;
 
 export function useTour(): TourContextType {
   const context = useContext(TourContext);

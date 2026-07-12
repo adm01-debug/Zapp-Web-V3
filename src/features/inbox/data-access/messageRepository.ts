@@ -56,14 +56,13 @@ export const messageRepository = {
   ) {
     // FATOR X v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
     // A view compat `public.messages` nao emite eventos postgres_changes.
-    const table = 'evolution_messages';
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'evo',
-          table,
+          table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },
         callbacks.onInsert
@@ -73,7 +72,7 @@ export const messageRepository = {
         {
           event: 'UPDATE',
           schema: 'evo',
-          table,
+          table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },
         callbacks.onUpdate
@@ -83,7 +82,7 @@ export const messageRepository = {
         {
           event: 'DELETE',
           schema: 'evo',
-          table,
+          table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },
         callbacks.onDelete
