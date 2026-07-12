@@ -182,7 +182,7 @@ export function EmailThreadList({
   });
 
   const unreadTotal = threads.filter((t) => t.unread_count > 0).length;
-  const breachedCount = threads.filter((t) => getStatus(t.thread_id) === 'breached').length;
+  const breachedCount = threads.filter((t) => getStatus(t.email_thread_id) === 'breached').length;
 
   return (
     <div className={cn('flex h-full flex-col', className)}>
@@ -262,7 +262,7 @@ export function EmailThreadList({
                 key={thread.id}
                 thread={thread}
                 selected={selectedThreadId === thread.id}
-                slaStatus={getStatus(thread.thread_id)}
+                slaStatus={getStatus(thread.email_thread_id)}
                 onClick={() => onSelectThread(thread)}
               />
             ))}
