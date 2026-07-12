@@ -101,6 +101,7 @@ const CONCURRENT_UPLOAD_LIMIT = 3; // Max concurrent transcribe_audio operations
 const MAX_METRICS_BUFFER_SIZE = 10000; // Circular buffer limit
 const MEMORY_WARNING_THRESHOLD_MB = 250; // H.15: Warn at 250MB
 const MEMORY_CRITICAL_THRESHOLD_MB = 350; // H.15: Reject requests at 350MB
+const MAX_REQUEST_BODY_SIZE = 1 * 1024 * 1024; // C.15: Max request body 1MB to prevent DoS via payload size
 
 let activeTranscodeCount = 0;
 
@@ -268,6 +269,13 @@ Deno.serve(async (req) => {
     let action = "";
 
     ctx = { userId, ip, action: "", startTime: performance.now() };
+
+    // C.15: Validate request body size to prevent DoS
+    const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+    if (contentLength > MAX_REQUEST_BODY_SIZE) {
+      log.warn("Request body too large", { contentLength, limit: MAX_REQUEST_BODY_SIZE });
+      return errorResponse("Request body too large (max 1MB)", 413, req);
+    }
 
     // Parse request body
     let body: Record<string, unknown>;

@@ -139,7 +139,7 @@ export const AiEnhanceMessageSchema = z.object({
 
 /** ai-transcribe-audio */
 export const TranscribeAudioSchema = z.object({
-  audioUrl: z.string().max(2000).optional().nullable(),
+  audioUrl: safeImageUrlSchema.optional().nullable(), // C.15: SSRF protection for audio URLs (must be public HTTPS)
   messageId: z.string().max(200).optional().nullable(),
   languageCode: z.string().max(20).optional().nullable(),
   enableDiarization: z.boolean().optional(),
