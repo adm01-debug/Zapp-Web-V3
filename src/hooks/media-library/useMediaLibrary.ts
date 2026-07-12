@@ -146,6 +146,7 @@ export function useMediaLibrary(type: MediaType) {
           .from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */
           .select('*')
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .range(from, from + PAGE - 1);
         if (fetchSeqRef.current !== seq) return;
         if (error) {
