@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { sha256Hex } from '../_shared/evolution-helpers.ts';
 
 /**
  * lgpd-scheduled-jobs — Jobs agendados de conformidade com LGPD
@@ -262,10 +263,3 @@ async function getConfig(
   }
 }
 
-async function sha256Hex(str: string): Promise<string> {
-  const data = new TextEncoder().encode(str);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}

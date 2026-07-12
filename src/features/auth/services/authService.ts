@@ -28,9 +28,8 @@ export const authService = {
     const result = await supabase.auth.signInWithPassword({ email, password });
     if (!result.error) {
       // dual-session: replica login no self-hosted com as mesmas credenciais
-      void mirrorExternalSignIn(email, password).catch(
-        (err) => log.error('mirrorExternalSignIn unhandled rejection', err)
-      );
+      // mirrorExternalSignIn has an internal try/catch and never rejects — .catch() is dead code
+      void mirrorExternalSignIn(email, password);
     }
     return result;
   },
@@ -46,9 +45,7 @@ export const authService = {
       }
     });
     if (!result.error) {
-      void mirrorExternalSignIn(email, password).catch(
-        (err) => log.error('mirrorExternalSignIn unhandled rejection', err)
-      );
+      void mirrorExternalSignIn(email, password);
     }
     return result;
   },
