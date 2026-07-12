@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import {
   PRESETS,
@@ -22,6 +22,7 @@ export function useThemePreset() {
   const { resolvedTheme } = useTheme();
   const [activePreset, setActivePreset] = useState<string>(DEFAULT_PRESET_ID);
   const [borderRadius, setBorderRadius] = useState<number>(8);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const save = useCallback((presetId: string, radius: number) => {
     localStorage.setItem(
@@ -84,7 +85,10 @@ export function useThemePreset() {
       toast.success(`Tema "${preset.name}" aplicado!`);
     }
 
-    setTimeout(() => root.classList.remove('theme-transitioning'), 350);
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    transitionTimerRef.current = setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+    }, 350);
   }, [applyPresetColors, resolvedTheme, borderRadius, save, applyBorderRadius]);
 
   // Initialize from localStorage. Color application is intentionally omitted
