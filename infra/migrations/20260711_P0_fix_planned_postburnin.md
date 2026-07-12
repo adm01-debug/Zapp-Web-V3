@@ -1,2 +1,117 @@
-IyBQMCBGaXggUGxhbmVqYWRvIOKAlCBQw7NzIEJ1cm5pbiAo4omlIDIwMjYtMDctMTQgMTI6MDAgVVRDKQoKIyMgU3RhdHVzOiBBR1VBUkRBTkRPIEJVUk5JTgoKTyB0ZXN0ZSBleGF1c3RpdmggZGUgdmFsaWRhw6fDo28gKDIwMjYtMDctMTEgfjE0OjMwIFVUQykgaWRlbnRpZmljb3UgMyByZWdyZXNzw7VlcyBubyBTcGVjIGF0dWFsCmRvIHNlcnZpY2UgYGV2b2x1dGlvbl9ldm9sdXRpb25gIChsYWJlbCBgYXV0aC1rZXktc3BlYy1lbnYtMjAyNi0wNy0xMWAsIFZlcnNpb24uSW5kZXg9MTI1MjUyNDApLgoKLS0tCgojIyBSZWdyZXNzw7VlcyBFbmNvbnRyYWRhcyAoU3BlYyBhdHVhbCB2cyBQcmV2aW91c1NwZWMpCgojIyMgUDAgLS0gQVVUSEVOVElDQVRJT05fQVBJX0tFWSBlbSBlbnYgcGxhaW50ZXh0CioqUmlzY286KiogRXhwb3N0YSBubyBgZG9ja2VyIHNlcnZpY2UgaW5zcGVjdGAg4oCUIHF1YWxxdWVyIG9wZXJhZG9yIGNvbSBhY2Vzc28gYW8gUG9ydGFpbmVyCnBvZGUgdmVyIG8gdmFsb3IgZW0gdGV4dG8gY2xhcm8uCioqRXZpZMOqbmNpYToqKgpgYGAKIkFVVEhFTlRJQ0FUSU9OX0FQSV9LRVk9W1JFREFDVEVEIC0tIHZhbG9yIGV4cG9zdG8gZW0gaGlzdMOzcmljbyBnaXQ7IHJvdGFjaW9uYXIgdmlhIEV2b2x1dGlvbiBBUEldIgpgYGAKUHJlc2VudGUgZW0gYFNwZWMuVGFza1RlbXBsYXRlLkNvbnRhaW5lclNwZWMuRW52YC4KKipJbXBhY3RvIGZ1bmNpb25hbDoqKiBaZXJvIChvIGVudHJ5cG9pbnQgc29icmVww7VlIGNvbSBvIHNlY3JldCB2aWEgYGNhdCAvcnVuL3NlY3JldHMvLi4uIHwgdHIgLWRgKS4KKipJbXBhY3RvIGRlIHNlZ3VyYW7Dp2E6KiogTcOpZGlvIChleHBvc2nDp8OjbyB2aWEgZG9ja2VyIGluc3BlY3QsIHJlcXVlciBhY2Vzc28gYW8gUG9ydGFpbmVyKS4KCiMjIyBQMSAtLSBUNWEgYXVzZW50ZSBubyBsb2dwYXRjaCBhdHVhbAoqKkV2aWTDqm5jaWE6KiogYC90bXAvbG9ncGF0Y2guY2pzYCB0ZW0gNjIgbGluaGFzOyBgVDVhX2luX2xvZ3BhdGNoOiBmYWxzZWAuCkxvZ3MgZG8gY29udGFpbmVyIG1vc3RyYW0gQ0FDSEUgbG9ncyB2ZXJib3Nvcy4KKipJbXBhY3RvOioqIFJ1w61kbyBkZSBsb2cg4oCUIHNlbSBpbXBhY3RvIGZ1bmNpb25hbC4KCiMjIyBQMiAtLSBUMyBzZW0gZmlsdHJvIGBtYWtlQnVja2V0YAoqKkV2aWTDqm5jaWE6KiogTyBUMyBhdHVhbCBuw6NvIHRlbSBgfHxlLm1lc3NhZ2UuaW5jbHVkZXMoIm1ha2VCdWNrZXQiKWAuCioqSW1wYWN0bzoqKiBFcnJvcyBkZSBpbml0IGRvIE1pbklPL1IyIGFwYXJlY2VtIG5vIFNlbnRyeSAt\
- cnXDrWRvLCBzZW0gaW1wYWN0byBmdW5jaW9uYWwuCgotLS0KCiMjIFBsYW5vIGRlIEFwbGljYcOnw6NvIFDDs3MtQnVybmluCgpBcMOzcyBlbmNlcnJhbWVudG8gZG8gYnVybmluICjiiYUgMjAyNi0wNy0xNCA5OjAwIEJSVCkgZSBjb25maXJtYcOnw6NvIGRlIHN0YWJpbGl0eToKCjEuICoqUGxhbmVqYXIgd2luZG93IGRlIG1hbnV0ZW7Dp8OjbyoqICh0w61waWNvIE1hbnV0ZW7Dp8OjbyA8MDMgaDAwIG91IGhvcmFzIGRlIGJhaXhvIHVzbyA8IDE1IG1lbnNhZ2Vucy9taW4pCjIuICoqUGFyYWRhIG9yZGVuYWRhKiogZGUgZW50cmFkYSBkZSBtZW5zYWdlbnMgKGZhY3VsdGF0aXZhOiBibG9xdWVhciBpbnN0w6JuY2lhIHdwcDIgbm8gRXZvbHV0aW9uKQozLiAqKkFwbGljYXIgdXBkYXRlKiogbm8gUG9ydGFpbmVyIGNvbSBvIHN0YWNrIGZpbGUgYXR1YWxpemFkbyAoUjExKToKICAgYGBgCiAgIHBvcnRhaW5lcl91cGRhdGVfc3RhY2soaWQ9MjUsIHN0YWNrX2ZpbGU9ZG9jcy9pbmZyYS9ldm9sdXRpb24tc3RhY2sucmVjb25jaWxlZC55bWwpCiAgIGBgYAo0LiAqKlJvdGFjaW9uYXIgQVVUSEVOVElDQVRJT05fQVBJX0tFWSoqIG5vIEV2b2x1dGlvbiBBUEkgKHZlciBgZG9jcy9pbmZyYS9naXQtc2VjcmV0cy1yb3RhdGlvbi5tZGApCjUuICoqVmVyaWZpY2FyIGVudHJ5cG9pbnQqKjogYHRlc3QgLXMgZXZvbHV0aW9uX2FwaV9rZXlfdjRfMjAyNjA3MDQgLT4gYXBpPXllc2AKNi4gKipWZXJpZmljYXIgYXV0ZW50aWNhw6fDo28qKjogYEdFVCAvc3RhdGUgPT4ge3N0YXRlOiBvcGVufWAKNy4gKipNb25pdG9yYXIqKiBwb3IgMTBtaW4gYXDDs3MgcmVzdGFydCBwYXJhIGNvbmZpcm1hciBzdGFiaWxpZGFkZQoKLS0tCgojIyBDaGVja2xpc3QgUMOzcyBBcGxpY2HDp8OjbwoKLSBbIF0gUG9ydGFpbmVyIHVwZGF0ZSBleGVjdXRhZG8KLSBbIF0gQ29udGFpbmVyIHJlc3RhcnRlZCBjb20gbm92byBTcGVjCi0gWyBdIGBkb2NrZXIgc2VydmljZSBpbnNwZWN0YCA9PiBuZW5odW1hIHZhcsOhdmVsIGRlIGFtYmllbnRlIGNvbSBBVVRIRU5USUNBVElPTl9BUElfS0VZCi0gWyBdIGBHRVQgL3N0YXRlYCA9PiBge3N0YXRlOiBvcGVufWAgcGFyYSB3cHAyCi0gWyBdIENoYXZlIHJvdGFjaW9uYWRhIG5vIEV2b2x1dGlvbgotIFsgXSBEb2NrZXIgc2VjcmV0IGF1dGhfa2V5IHJlY3JlYXRlZCBjb20gbm92byB2YWxvcgotIFsgXSBNb25pdG9yYW1lbnRvIDEwbWluIHBzLXJlc3RhcnQgT0sKCi0tLQoKIyMgU3RhdHVzIERhc2hib2FyZCBBdHVhbAoKLSBCdXJuLWluIGluaWNpYWRvOiAyMDI2LTA3LTEwIH4xMzowMCBCUlQKLSBFc3RhciBjb21wbGV0YWRvOiB+MjAyNi0wNy0xNCA5OjAwIEJSVAotIEhlYWx0aCBTY29yZTogMTAwLjAgLyBBKwotIFJlZ3Jlc3Npb24gdGVzdHM6IDI0LzI0IHBhc3NpbmcKLSBETE0gZmFpbHVyZXM6IDAKLSBDcm9uIGZhaWx1cmVzOiAwCi0gdnBwMiBzdGF0dXM6IENPTk5FQ1RFRAotIENvbnN1bWVyIHYxNzogUlVOTklORywgODggZXZlbnRvcy8zMG1pbiwgMCBlcnJvcwotIFNjb3JlOiA5Ny41L0ErIChkZWdyYWRhw6fDo28gb3Jnw6JuaWNhIGRlIGJhY2t1cF9mcmVzaG5lc3Mp
+# P0 Fix Planejado — Pós Burnin (≥ 2026-07-14 12:00 UTC)
+
+## Status: AGUARDANDO BURNIN
+
+O teste exaustivo de validação (2026-07-11 ~14:30 UTC) identificou 3 regressões no Spec atual
+do service `evolution_evolution` (label `auth-key-spec-env-2026-07-11`, Version.Index=12525240).
+
+---
+
+## Regressões Encontradas (Spec atual vs PreviousSpec)
+
+### P0 — AUTHENTICATION_API_KEY em env plaintext
+**Risco:** Exposta no `docker service inspect` — qualquer operador com acesso ao Portainer
+pode ver o valor em texto claro.
+**Evidência:**
+```
+"AUTHENTICATION_API_KEY=[REDACTED — valor exposto em histórico git; rotacionar via Evolution API]"
+```
+Presente em `Spec.TaskTemplate.ContainerSpec.Env`.
+**Impacto funcional:** Zero (o entrypoint sobrepõe com o secret via `cat /run/secrets/... | tr -d`).
+**Impacto de segurança:** Médio (exposição via docker inspect, requer acesso ao Portainer).
+
+### P1 — T5a ausente no logpatch atual
+**Evidência:** `/tmp/logpatch.cjs` tem 62 linhas; `T5a_in_logpatch: false`.
+Logs do container mostram CACHE logs verbosos.
+**Impacto:** Ruído de log — sem impacto funcional.
+
+### P2 — T3 sem filtro `makeBucket`
+**Evidência:** O T3 atual não tem `||e.message.includes("makeBucket")`.
+**Impacto:** Erros de init do MinIO/R2 aparecem no Sentry — ruído, sem impacto funcional.
+
+---
+
+## Causa
+
+O update de `13:53-13:57 UTC de 11/07/2026` aplicou o Spec com label
+`auth-key-spec-env-2026-07-11`. Esse Spec contém:
+- API key em plaintext em vez de exclusivamente via secret
+- Versão do logpatch sem T5a
+- T3 sem makeBucket
+
+O PreviousSpec (`auth-key-secret-restore-20260711-r13-plaintext-env-removed`) tinha
+T5a e `tr -d` corretos mas também não tinha T3+makeBucket.
+
+---
+
+## Fix Planejado
+
+Aplicar `portainer_update_service` com o entrypoint definitivo correto **após** o burnin
+concluir (~2026-07-14 12:00 UTC). O entrypoint correto está em:
+`infra/evolution/docker-compose.evolution.yml` (commit ccdef3bc).
+
+O entrypoint canônico tem:
+- Sem `AUTHENTICATION_API_KEY` no env (usa apenas secret via `cat | tr -d`)
+- T3 com `||e.message.includes("makeBucket")`
+- T5a com remoção do CACHE log verboso
+- `tr -d '\n\r'` em todos os secrets loading
+
+### Procedimento de aplicação:
+```bash
+# Verificar Version.Index atual antes de aplicar
+docker service inspect evolution_evolution --format '{{.Version.Index}}'
+
+# Aplicar via portainer_update_service com:
+# - Version.Index correto
+# - Command do docker-compose.evolution.yml
+# - Sem AUTHENTICATION_API_KEY no Env
+# - Label: fix-p0-t3-t5a-postburnin-20260714
+
+# Monitorar após restart:
+# wpp2 reconnect deve ocorrer em <90s
+# burnin já passou — sem risco de reset
+```
+
+### Validação pós-fix:
+```bash
+# Verificar que T5a foi aplicado:
+grep 'T5a\|t5_src' /tmp/logpatch.cjs
+
+# Verificar que API key não está em env:
+docker service inspect evolution_evolution | grep AUTHENTICATION_API_KEY
+# deve retornar vazio (apenas no secret)
+
+# Verificar CACHE log sumiu dos logs:
+docker service logs evolution_evolution 2>&1 | grep 'CACHE:'
+# deve retornar vazio após alguns minutos
+
+# Verificar score:
+SELECT public.fn_system_health_score();
+# deve ser 100.0/A+ (assumindo backup recente)
+```
+
+---
+
+## Por que NÃO aplicar agora?
+
+O burnin de 72h está em andamento:
+- `burn_in_start: 2026-07-11T12:00:00Z`
+- `elapsed: 3.6h`  
+- `remaining: 68.4h`
+- `worst_disconnect_so_far: 6s`
+
+Um rolling restart do Evolution causa desconexão estimada de 90-150s do wpp2.
+O threshold do burnin é 120s (`fn_burnin_disconnection_check`).
+Risco de reset do contador de 72h → Não aplicar até o burnin passar.
+
+---
+
+## Status do Sistema Atual (sem o fix)
+
+- wpp2: CONNECTED, isHealthy=true, uptime >1h
+- T4 mascaramento: ATIVO (api_key=***MASKED*** nos logs)
+- T1+T2 LGPD: ATIVOS
+- T3 Sentry 401/DEVICE_REMOVED: ATIVO (sem makeBucket)
+- T5a CACHE log: AUSENTE (ruído nos logs)
+- Consumer v18: RUNNING, 88 eventos/30min, 0 erros
+- Score: 97.5/A+ (degradação orgânica de backup_freshness)
