@@ -71,12 +71,14 @@ export function TalkXBlacklist() {
   const { data: blacklist = [], isLoading } = useQuery({
     queryKey: ['talkx-blacklist'],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<BlacklistEntry>(
+      const { data, error } = await (safeClient.from as unknown as (t: string, cb: (q: unknown) => unknown) => Promise<{ data: unknown; error: Error | null }>)(
         'talkx_blacklist',
-        q => q.select('*, contacts:contact_id(name, phone, company, avatar_url)').order('created_at', { ascending: false }),
+        (q) => (q as { select: (s: string) => { order: (c: string, o: { ascending: boolean }) => unknown } })
+          .select('*, contacts:contact_id(name, phone, company, avatar_url)')
+          .order('created_at', { ascending: false }),
       );
       if (error) throw error;
-      return data ?? [];
+      return ((data ?? []) as BlacklistEntry[]);
     },
   });
 
