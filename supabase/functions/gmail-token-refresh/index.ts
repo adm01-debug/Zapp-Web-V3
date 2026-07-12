@@ -39,6 +39,16 @@ serve(async (req) => {
   try { body = await req.json(); } catch { /* body not required */ }
   const { action = 'refreshAll' } = body as { action?: string };
 
+  // Validate Supabase configuration early
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+  const anonKey = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
+  const serviceRoleKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+    console.error('[gmail-token-refresh] Missing Supabase configuration');
+    return json({ error: 'Supabase configuration missing' }, 503);
+  }
+
   // refreshSingle: accept user JWT (RLS-scoped via callerClient) OR service-role/cron
   // all other actions: service-role/cron only
   let callerClient: ReturnType<typeof createClient> | null = null;
@@ -49,8 +59,8 @@ serve(async (req) => {
       if (authed instanceof Response) return authed;
       // Build caller-scoped client so RLS enforces account ownership
       callerClient = createClient(
-        (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-        (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
+        supabaseUrl,
+        anonKey,
         { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } }
       );
     }
@@ -59,10 +69,7 @@ serve(async (req) => {
     if (authDenied) return authDenied;
   }
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-  );
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   const clientId     = Deno.env.get('GOOGLE_CLIENT_ID');
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
