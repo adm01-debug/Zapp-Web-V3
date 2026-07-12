@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { isSuccessful, readNumber, hasField } from '@/lib/runtimeGuards';
+
+const log = getLogger('useBitrixApi');
 
 type EntityType = 'lead' | 'contact' | 'deal' | 'activity' | 'call';
 

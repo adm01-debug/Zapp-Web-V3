@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { DEFAULT_SHORTCUTS } from '@/hooks/shortcuts/defaultShortcuts';
+
+const log = getLogger('useCustomShortcuts');
 
 export interface ShortcutBinding {
   id: string;

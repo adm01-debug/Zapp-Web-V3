@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+
+const log = getLogger('useAudioPlayer');
 import { toast } from '@/hooks/use-toast';
 import type { MediaRefreshKey } from '@/types/mediaRefresh';
 import { audioPlaybackBus } from '@/features/inbox';
