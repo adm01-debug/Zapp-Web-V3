@@ -19,9 +19,7 @@ interface SpeechToTextReturn {
   toggleListening: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SpeechRecognitionInstance = any;
-type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
+type SpeechRecognitionCtor = new () => SpeechRecognition;
 
 function getSpeechRecognition(): SpeechRecognitionCtor | null {
   if (typeof window === 'undefined') return null;
@@ -33,12 +31,16 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
   const { language = 'pt-BR', continuous = true, onResult, onEnd } = options;
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const onResultRef = useRef(onResult);
   const onEndRef = useRef(onEnd);
 
-  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
-  useEffect(() => { onEndRef.current = onEnd; }, [onEnd]);
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+  useEffect(() => {
+    onEndRef.current = onEnd;
+  }, [onEnd]);
 
   const Ctor = getSpeechRecognition();
   const isSupported = !!Ctor;
@@ -52,7 +54,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
     recognition.continuous = continuous;
     recognition.interimResults = true;
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
       let interimTranscript = '';
 
@@ -78,7 +80,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
       onEndRef.current?.();
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       log.warn('Speech recognition error:', event.error);
       setIsListening(false);
     };
