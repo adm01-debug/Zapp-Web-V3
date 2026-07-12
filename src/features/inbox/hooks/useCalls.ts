@@ -51,11 +51,18 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const { data, error } = await supabase
+      const builder = supabase
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      // Pass abort signal to Supabase query builder if supported
+      const withSignal = (builder as unknown as {
+        abortSignal?: (s: AbortSignal) => typeof builder;
+      }).abortSignal?.(controller.signal) ?? builder;
+
+      const { data, error } = await (withSignal as typeof builder);
 
       if (controller.signal.aborted || !mountedRef.current) return null;
 
@@ -79,7 +86,7 @@ export const useCalls = () => {
 
       if (controller.signal.aborted || !mountedRef.current) return null;
 
-      const { data, error } = await supabase
+      const builder = supabase
         .from('calls')
         .insert({
           contact_id: params.contactId || null,
@@ -90,6 +97,13 @@ export const useCalls = () => {
         })
         .select()
         .single();
+
+      // Pass abort signal to Supabase query builder if supported
+      const withSignal = (builder as unknown as {
+        abortSignal?: (s: AbortSignal) => typeof builder;
+      }).abortSignal?.(controller.signal) ?? builder;
+
+      const { data, error } = await (withSignal as typeof builder);
 
       if (error) throw error;
 
@@ -121,13 +135,20 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const { error } = await supabase
+      const builder = supabase
         .from('calls')
         .update({
           status: 'answered',
           answered_at: new Date().toISOString(),
         })
         .eq('id', callId);
+
+      // Pass abort signal to Supabase query builder if supported
+      const withSignal = (builder as unknown as {
+        abortSignal?: (s: AbortSignal) => typeof builder;
+      }).abortSignal?.(controller.signal) ?? builder;
+
+      const { error } = await (withSignal as typeof builder);
 
       if (controller.signal.aborted) return false;
       if (error) throw error;
@@ -145,7 +166,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const { error } = await supabase
+      const builder = supabase
         .from('calls')
         .update({
           status: 'ended',
@@ -153,6 +174,13 @@ export const useCalls = () => {
           duration_seconds: durationSeconds,
         })
         .eq('id', callId);
+
+      // Pass abort signal to Supabase query builder if supported
+      const withSignal = (builder as unknown as {
+        abortSignal?: (s: AbortSignal) => typeof builder;
+      }).abortSignal?.(controller.signal) ?? builder;
+
+      const { error } = await (withSignal as typeof builder);
 
       if (controller.signal.aborted) return false;
       if (error) throw error;
@@ -181,13 +209,20 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const { error } = await supabase
+      const builder = supabase
         .from('calls')
         .update({
           status: 'missed',
           ended_at: new Date().toISOString(),
         })
         .eq('id', callId);
+
+      // Pass abort signal to Supabase query builder if supported
+      const withSignal = (builder as unknown as {
+        abortSignal?: (s: AbortSignal) => typeof builder;
+      }).abortSignal?.(controller.signal) ?? builder;
+
+      const { error } = await (withSignal as typeof builder);
 
       if (controller.signal.aborted) return false;
       if (error) throw error;
@@ -209,10 +244,17 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const { error } = await supabase
+      const builder = supabase
         .from('calls')
         .update({ notes })
         .eq('id', callId);
+
+      // Pass abort signal to Supabase query builder if supported
+      const withSignal = (builder as unknown as {
+        abortSignal?: (s: AbortSignal) => typeof builder;
+      }).abortSignal?.(controller.signal) ?? builder;
+
+      const { error } = await (withSignal as typeof builder);
 
       if (controller.signal.aborted) return false;
       if (error) throw error;
@@ -230,11 +272,18 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const { data, error } = await supabase
+      const builder = supabase
         .from('calls')
         .select('*')
         .eq('contact_id', contactId)
         .order('started_at', { ascending: false });
+
+      // Pass abort signal to Supabase query builder if supported
+      const withSignal = (builder as unknown as {
+        abortSignal?: (s: AbortSignal) => typeof builder;
+      }).abortSignal?.(controller.signal) ?? builder;
+
+      const { data, error } = await (withSignal as typeof builder);
 
       if (controller.signal.aborted) return [];
       if (error) throw error;
