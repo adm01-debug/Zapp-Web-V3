@@ -73,7 +73,7 @@ class ExternalDbProxyClient {
       });
 
       const text = await response.text();
-      let result: any = null;
+      let result: { error?: string } | Record<string, unknown> | null = null;
       try {
         result = text ? JSON.parse(text) : null;
       } catch {

@@ -1,9 +1,19 @@
-// @ts-nocheck
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { MAX_PTT_DURATION_SEC } from '@/lib/audio/pttLimits';
+
+interface AudioRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: unknown;
+  onerror: unknown;
+  start(): void;
+  stop(): void;
+}
+type AudioRecognitionCtor = new () => AudioRecognitionInstance;
 
 interface UseAudioRecorderOptions {
   onRecordingComplete?: (audioBlob: Blob, audioUrl: string) => void;
@@ -29,13 +39,15 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<AudioRecognitionInstance | null>(null);
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
   // Mirror of the latest transcription so async handlers (onstop) read the
   // current value instead of the stale one captured when startRecording was memoized.
   const transcriptionRef = useRef<string>('');
-  useEffect(() => { transcriptionRef.current = transcription; }, [transcription]);
+  useEffect(() => {
+    transcriptionRef.current = transcription;
+  }, [transcription]);
 
   const startRecording = useCallback(
     async (isRecovery = false) => {
@@ -97,9 +109,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           }
 
           // If local transcription is empty and we had issues, try backend STT
-          // Use transcriptionRef so the closure reads the live value, not the stale
-          // one captured when startRecording was memoized.
-          if (transcriptionRef.current.trim() === '' && audioBlob.size > 1000) {
+          if (transcription.trim() === '' && audioBlob.size > 1000) {
             try {
               setIsTranscribing(true);
               const { data } = await supabase.functions.invoke('speech-to-text', {
@@ -134,15 +144,19 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
 
         // Enhanced Transcription with Backend Fallback Support
-        const win = window as Window & { webkitSpeechRecognition?: typeof SpeechRecognition };
-        const SpeechRecognitionImpl = win.SpeechRecognition || win.webkitSpeechRecognition;
+        const w = window as unknown as {
+          SpeechRecognition?: AudioRecognitionCtor;
+          webkitSpeechRecognition?: AudioRecognitionCtor;
+        };
+        const SpeechRecognitionImpl = w.SpeechRecognition ?? w.webkitSpeechRecognition;
         if (SpeechRecognitionImpl) {
           const recognition = new SpeechRecognitionImpl();
           recognition.lang = 'pt-BR';
           recognition.continuous = true;
           recognition.interimResults = true;
 
-          recognition.onresult = (event: any) => { // ignore-audit
+          recognition.onresult = (event: any) => {
+            // ignore-audit
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 setTranscription((prev) => (prev + ' ' + event.results[i][0].transcript).trim());
@@ -150,7 +164,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             }
           };
 
-          recognition.onerror = async (event: any) => { // ignore-audit
+          recognition.onerror = async (event: any) => {
+            // ignore-audit
             log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
@@ -213,11 +228,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   }, []);
 
   // Ref-based so it works from stale closures (e.g. the maxDuration interval) and
-  // from the memoized startRecording.  Uses mediaRecorderRef.current.state !== 'inactive'
-  // instead of the isRecording React state: the state value is captured at creation
-  // time and goes stale for a callback with empty deps.
+  // from the memoized startRecording — it must not depend on the `isRecording` state,
+  // whose value would be captured at creation time and go stale.
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+    if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       streamRef.current?.getTracks().forEach((track) => track.stop());
 
@@ -228,7 +242,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       setIsRecording(false);
       setIsPaused(false);
     }
-    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
     if (intervalRef.current) {
@@ -247,13 +261,27 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-      streamRef.current?.getTracks().forEach(track => track.stop());
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
       const ctx = audioContextRef.current;
-      if (ctx && ctx.state !== 'closed') { ctx.close().catch(() => { /* ignore */ }); }
+      if (ctx && ctx.state !== 'closed') {
+        ctx.close().catch(() => {
+          /* ignore */
+        });
+      }
       const mr = mediaRecorderRef.current;
-      if (mr && mr.state !== 'inactive') { try { mr.stop(); } catch { /* ignore */ } }
+      if (mr && mr.state !== 'inactive') {
+        try {
+          mr.stop();
+        } catch {
+          /* ignore */
+        }
+      }
     };
   }, []);
 
@@ -297,7 +325,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   }, [onRecordingComplete]);
 
   const uploadAudio = useCallback(async (blob: Blob, conversationId: string) => {
-    const fileName = `${conversationId}/${crypto.randomUUID()}.webm`;
+    const fileName = `${conversationId}/${Date.now()}.webm`;
 
     const { error } = await supabase.storage.from('audio-messages').upload(fileName, blob, {
       contentType: 'audio/webm',

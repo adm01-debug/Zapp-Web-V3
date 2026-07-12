@@ -189,13 +189,15 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
     if (!accountId || isMockId(accountId)) return;
 
     safeClient
-      .from<any>('email_threads', (q) =>
-        q
-          .select('thread_id, last_message_at, unread_count')
-          .eq('account_id', accountId)
-          .gt('unread_count', 0)
-          .order('last_message_at', { ascending: true })
-          .limit(100)
+      .from<{ thread_id: string; last_message_at: string; unread_count: number }>(
+        'email_threads',
+        (q) =>
+          q
+            .select('thread_id, last_message_at, unread_count')
+            .eq('account_id', accountId)
+            .gt('unread_count', 0)
+            .order('last_message_at', { ascending: true })
+            .limit(100)
       )
       .then(({ data }) => {
         for (const row of data ?? []) {

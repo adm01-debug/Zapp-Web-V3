@@ -15,6 +15,13 @@ import { toast } from 'sonner';
 import { useAuth } from '@/features/auth';
 import { MentionInput } from './MentionInput';
 
+interface InternalNote {
+  id: string;
+  content: string;
+  created_at: string;
+  author?: { id: string; name: string | null; avatar_url: string | null } | null;
+}
+
 export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const [newNote, setNewNote] = useState('');
   const queryClient = useQueryClient();
@@ -23,11 +30,12 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const { data: notes, isLoading } = useQuery({
     queryKey: ['internal-notes', contactId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from('contact_notes', q =>
-        q.select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
-         .eq('contact_id', contactId)
-         .order('created_at', { ascending: false })
-         .limit(50)
+      const { data, error } = await safeClient.from<InternalNote>('contact_notes', (q) =>
+        q
+          .select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
+          .eq('contact_id', contactId)
+          .order('created_at', { ascending: false })
+          .limit(50)
       );
       if (error) throw error;
       return data || [];
@@ -97,7 +105,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
           ) : (
             <div className="space-y-3 pr-2">
               <AnimatePresence>
-                {notes?.map((note: any, index: number) => (
+                {notes?.map((note, index) => (
                   <motion.div
                     key={note.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -107,7 +115,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
                   >
                     <div className="mb-2 flex items-center gap-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={note.author?.avatar_url} alt={note.author?.name || ""} />
+                        <AvatarImage src={note.author?.avatar_url} alt={note.author?.name || ''} />
                         <AvatarFallback className="text-xs">
                           {note.author?.name?.substring(0, 2).toUpperCase() || 'NA'}
                         </AvatarFallback>

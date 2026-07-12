@@ -290,7 +290,7 @@ export default function AdminEmailStatusPage() {
           <CardContent>
             <div className="text-2xl font-bold">{getStatusLabel(health?.status)}</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {health && (health as any).source === 'edge_shared_storage'
+              {health && health.source === 'edge_shared_storage'
                 ? 'Telemetria persistida via Cloud Edge.'
                 : 'Telemetria em tempo real (client-side).'}
             </p>

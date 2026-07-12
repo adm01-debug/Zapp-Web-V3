@@ -202,11 +202,18 @@ export interface SendContactParams {
   instance?: string;
 }
 
+export interface TemplateComponent {
+  type: 'header' | 'body' | 'button' | string;
+  sub_type?: string;
+  index?: number;
+  parameters?: Array<{ type: string; text?: string; payload?: string; [key: string]: unknown }>;
+}
+
 export interface SendTemplateParams {
   remoteJid: string;
   name: string;
   language?: string;
-  components?: any[];
+  components?: TemplateComponent[];
 }
 
 export interface PresenceParams {
@@ -227,7 +234,7 @@ async function invokeCloud(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
   if (error) throw error;
   if (data && typeof data === 'object' && 'error' in data) {
-    throw new Error(((data as Record<string, unknown>).error as string | undefined) ?? 'cloud_send_failed');
+    throw new Error((data as { error?: string }).error ?? 'cloud_send_failed');
   }
   return data;
 }

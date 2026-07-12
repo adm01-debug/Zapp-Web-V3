@@ -75,9 +75,20 @@ interface SystemConnectionPayload {
   is_active: boolean;
 }
 
+interface SystemConnection {
+  id: string;
+  name: string;
+  provider: string;
+  config: { url: string; anon_key: string };
+  is_active: boolean;
+  created_at: string;
+  created_by?: string | null;
+  updated_at?: string | null;
+}
+
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
-  const [connections, setConnections] = useState<any[]>([]);
+  const [connections, setConnections] = useState<SystemConnection[]>([]);
   const [_loading, setLoading] = useState(true);
 
   const [externalUrl, setExternalUrl] = useState(DEFAULT_EXTERNAL_URL);
@@ -148,13 +159,13 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
-    const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+    const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
       q.select('*').order('created_at', { ascending: false })
     );
 
     if (!error && data) {
-      setConnections(data as any[]);
-      const fatorX: any = (data as any[]).find(
+      setConnections(data ?? []);
+      const fatorX = (data ?? []).find(
         // ignore-audit
         (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
       );
@@ -243,13 +254,13 @@ export default function AdminConnectionsPage() {
     };
 
     try {
-      const existing: any = connections.find(
+      const existing = connections.find(
         // ignore-audit
         (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
-      const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+      const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
         existing
           ? q.update(payload).eq('id', existing.id).select()
           : q.insert(insertPayload).select()
@@ -283,9 +294,11 @@ export default function AdminConnectionsPage() {
       // salvamento — safeClient.single() é o método correto para leitura de
       // linha única (retorna null quando não encontrado, ao contrário de
       // safeClient.from(), que sempre resolve para um array).
-      const { data: verify, error: verifyError } = await safeClient.single<any>(
-        'system_connections',
-        (q) => q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X')
+      const { data: verify, error: verifyError } = await safeClient.single<{
+        id: string;
+        updated_at: string | null;
+      }>('system_connections', (q) =>
+        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X')
       );
 
       if (verifyError || !verify) {
