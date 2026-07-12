@@ -224,7 +224,7 @@ export const ConversationItem = memo(function ConversationItem({
             e.preventDefault();
             onSelect(conversation);
           }}
-          tabIndex={isSelected ? 0 : -1}
+          tabIndex={0}
           whileHover={{ scale: 1.02, x: 4 }}
           whileTap={{ scale: 0.98 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
@@ -455,7 +455,7 @@ export const ConversationItem = memo(function ConversationItem({
             e.preventDefault();
             onSelect(conversation);
           }}
-          tabIndex={isSelected ? 0 : -1}
+          tabIndex={0}
           aria-selected={isSelected}
           role="option"
           className={cn(

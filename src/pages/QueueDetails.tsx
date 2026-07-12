@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -60,6 +60,9 @@ export default function QueueDetails() {
   const [contacts, setContacts] = useState<QueueContact[]>([]);
   const [metrics, setMetrics] = useState<QueueMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  // Sequence token: each navigation bumps this counter; callbacks check it before
+  // committing state so a slow queue-A fetch can't overwrite queue-B's state.
+  const fetchSeqRef = useRef(0);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -70,6 +73,7 @@ export default function QueueDetails() {
 
   const fetchQueueData = async () => {
     if (!id) return;
+    const seq = ++fetchSeqRef.current;
     try {
       setLoading(true);
       // Clear ALL stale data from the previously-viewed queue immediately so
@@ -85,12 +89,14 @@ export default function QueueDetails() {
         .eq('id', id)
         .single();
       if (queueError) throw queueError;
+      if (fetchSeqRef.current !== seq) return;
       setQueue(queueData);
 
       const { data: membersData } = await supabase
         .from('queue_members')
         .select('id, profile_id, profile:profiles(name, avatar_url, is_active)')
         .eq('queue_id', id);
+      if (fetchSeqRef.current !== seq) return;
       setMembers(membersData as unknown as QueueMember[]);
 
       const { data: contactsData } = await dbFrom('contacts')
@@ -146,6 +152,7 @@ export default function QueueDetails() {
         last_message_at: lastMessageMap.get(contact.id) ?? null,
         assigned_agent: contact.assigned_to ? (agentMap.get(contact.assigned_to) ?? null) : null,
       }));
+      if (fetchSeqRef.current !== seq) return;
       setContacts(contactsWithDetails);
 
       const totalContacts = contactsWithDetails.length;

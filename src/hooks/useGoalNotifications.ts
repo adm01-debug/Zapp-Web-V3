@@ -164,7 +164,7 @@ export function useGoalNotifications() {
               break;
           }
 
-          const achievedKey = `${goal.id}-${period}-${start.toISOString().split('T')[0]}`;
+          const achievedKey = `${goal.id}-${period}-${dateRanges[period].start.toISOString().split('T')[0]}`;
 
           // Check if goal was achieved
           if (current >= target && !achievedGoals.current.has(achievedKey)) {
