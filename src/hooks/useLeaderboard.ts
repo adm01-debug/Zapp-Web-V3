@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -43,8 +43,13 @@ export function useLeaderboard() {
   const [agents, setAgents] = useState<LeaderboardAgent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Monotonically-increasing token: prevents a slower earlier request from
+  // overwriting state committed by a faster later request when the user
+  // rapidly switches the time range.
+  const fetchTokenRef = useRef(0);
 
   const fetchLeaderboard = useCallback(async (range: 'today' | 'week' | 'month') => {
+    const token = ++fetchTokenRef.current;
     const since = rangeStart(range).toISOString();
     try {
       type AgentStatRow = {
@@ -118,6 +123,9 @@ export function useLeaderboard() {
         log.warn('Could not compute period message counts for leaderboard:', msgErr);
       }
 
+      // Discard results if a newer fetchLeaderboard call has already started.
+      if (fetchTokenRef.current !== token) return;
+
       setAgents(
         stats.map((stat, index) => {
           const profile = Array.isArray(stat.profiles) ? (stat.profiles[0] ?? null) : stat.profiles;
@@ -144,8 +152,10 @@ export function useLeaderboard() {
     } catch (error) {
       log.error('Error fetching leaderboard:', error);
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (fetchTokenRef.current === token) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, []);
 

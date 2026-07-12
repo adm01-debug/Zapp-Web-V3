@@ -607,6 +607,11 @@ export function useExternalMessages(remoteJid: string | null) {
         { lockTtl: 10_000, resultTtl: 15_000, waitTimeout: 8_000 }
       );
       if (!mountedRef.current) return;
+      // Guard: if the user switched contacts while this fetch was in-flight,
+      // previousJidRef.current was already updated to the new jid before the
+      // new initialFetch was called. Discard stale results to prevent the
+      // previous contact's messages bleeding into the current conversation.
+      if (previousJidRef.current !== remoteJid) return;
 
       const mapped = evoMessages.map(evolutionToRealtimeMessage);
 
