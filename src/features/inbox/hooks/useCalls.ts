@@ -205,7 +205,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const { error } = await supabase.from('calls').update({ notes }).eq('id', callId);
+      const builder = supabase.from('calls').update({ notes }).eq('id', callId);
 
       // Pass abort signal to Supabase query builder if supported
       const withSignal = (builder as unknown as {
