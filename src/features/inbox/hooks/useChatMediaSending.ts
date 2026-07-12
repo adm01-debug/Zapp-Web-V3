@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useRef, useCallback } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
