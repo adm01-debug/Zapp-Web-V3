@@ -72,6 +72,7 @@ export const ENTITY_MAP = {
   team_conversations:   { client: 'lovable', table: 'team_conversations' },
   evolution_contacts:   { client: 'lovable', table: 'evolution_contacts' },
   evolution_messages:   { client: 'lovable', table: 'evolution_messages' },
+  whisper_messages:     { client: 'lovable', table: 'whisper_messages' },
   imap_smtp_accounts:   { client: 'lovable', table: 'imap_smtp_accounts' },
   provider_configs:        { client: 'lovable', table: 'provider_configs' },
   automation_executions:   { client: 'lovable', table: 'automation_executions' },
