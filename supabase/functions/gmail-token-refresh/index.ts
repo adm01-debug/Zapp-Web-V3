@@ -265,6 +265,31 @@ serve(async (req) => {
   }
 });
 
+/**
+ * Refreshes OAuth access token for a single Gmail account and renews Pub/Sub watch if expiring.
+ *
+ * OAuth Token Refresh:
+ * - Validates refresh_token exists; skips if missing
+ * - POSTs refresh_token to Google OAuth endpoint (/token) with client credentials
+ * - Extracts new access_token + expiration from response (typically +1 hour from now)
+ * - Persists new access_token and token_expiry to gmail_accounts table
+ * - If Google returns 'invalid_grant' error: marks account inactive (deactivates for manual recovery)
+ *
+ * Gmail Pub/Sub Watch Renewal:
+ * - Checks if watch_expiry < NOW() + 2 hours
+ * - If expiring soon: POSTs new watch subscription to Gmail API using refreshed access_token
+ * - Extracts new expiration from watch response, persists watch_expiry and history_id
+ * - Failure to renew watch: logged as best-effort (no-op on error; message delivery may interrupt)
+ *
+ * Error Handling:
+ * - Invalid/expired refresh_token → Google returns error; account flagged inactive for user to re-auth
+ * - Network timeout (10s AbortSignal): Caught, error logged, returns status='error'
+ * - Watch renewal failure: Silently caught (best-effort); token already refreshed so sync continues
+ * - Parse errors on response JSON: Returns status='error'
+ *
+ * Returns: { email, status: 'refreshed'|'skipped'|'failed'|'error', error?: string }
+ * Side effects: Updates gmail_accounts table (access_token, token_expiry, possibly is_active=false, watch_expiry, history_id)
+ */
 async function refreshOneAccount(
   supabase: ReturnType<typeof createClient>,
   account: { id: string; email: string; refresh_token: string | null; watch_expiry: string | null },
