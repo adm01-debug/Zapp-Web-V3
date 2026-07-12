@@ -70,7 +70,12 @@ export function AIUsageDashboard() {
               <SelectItem value="30d">Últimos 30 dias</SelectItem>
             </SelectContent>
           </Select>
-          <Button aria-label="Atualizar dados de uso" variant="outline" size="icon" onClick={() => refetch()}>
+          <Button
+            aria-label="Atualizar dados de uso"
+            variant="outline"
+            size="icon"
+            onClick={() => refetch()}
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportCSV}>
@@ -184,7 +189,12 @@ export function AIUsageDashboard() {
                             <Cell key={entry.name} fill={FUNCTION_COLORS[entry.name] || '#666'} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(v: any) => String(v.toLocaleString()) + ' tokens'} /> // ignore-audit
+                        <Tooltip
+                          formatter={(v: number | string) =>
+                            String((typeof v === 'number' ? v : Number(v)).toLocaleString()) +
+                            ' tokens'
+                          }
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="mt-2 space-y-1.5">
