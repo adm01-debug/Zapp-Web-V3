@@ -188,11 +188,7 @@ export function useConnectionsManager() {
     [setQrCodeDialog, generateQr]
   );
 
-  const actions = (
-    useConnectionsActions as unknown as (
-      ...args: unknown[]
-    ) => ReturnType<typeof useConnectionsActions>
-  )(
+  const actions = useConnectionsActions(
     connections,
     setConnections,
     setIsCreating,
