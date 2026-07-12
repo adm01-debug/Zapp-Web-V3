@@ -27,7 +27,8 @@ export function useCampaignABTesting(campaignId: string) {
       .from('campaign_ab_variants')
       .select('*')
       .eq('campaign_id', campaignId)
-      .order('created_at');
+      .order('created_at')
+      .order('id');
     if (!error && data) {
       setVariants(
         data.map((v) => ({
