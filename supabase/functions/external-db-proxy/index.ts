@@ -443,7 +443,7 @@ Deno.serve(async (req) => {
         });
         return jsonResponse(req, {
           error: "Self-hosted rejeitou a service_role key (assinatura inválida).",
-          hint: `A chave em '${KEY_SOURCE}' (role=${KEY_ROLE}, iss=${KEY_ISS}, ref=${KEY_REF}) não corresponde ao JWT_SECRET de ${EXTERNAL_URL}. Copie a service_role key EXATA do painel do self-hosted (Settings → API) e atualize o secret.`,
+          hint: "Configure SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY corretamente. Verifique que a chave corresponde ao JWT_SECRET do self-hosted (Settings → API).",
           cid, rid, data: [], count: 0, latency_ms: Date.now() - start,
         }, 502);
       }
