@@ -194,6 +194,12 @@ export function stripJid(numberOrJid: string): string {
  * api_key: override de env OU runtime via edge fn `evolution-credentials`
  *          (nunca lida do banco pelo browser — REVOKE de 2026-07-05 mantido).
  */
+interface EvolutionInstancePublicRow {
+  instance_name: string;
+  api_url: string | null;
+  is_active: boolean;
+}
+
 export async function getEvolutionCredentials(
   instance: string = DEFAULT_INSTANCE
 ): Promise<EvolutionCredentials> {
@@ -207,7 +213,7 @@ export async function getEvolutionCredentials(
 
   try {
     // Consulta view SEGURA — sem api_key, sem instance_token (REVOKE aplicado 2026-07-05)
-    const { data: rows } = await safeClient.from<any>('evolution_instances_public', (q) =>
+    const { data: rows } = await safeClient.from<EvolutionInstancePublicRow>('evolution_instances_public', (q) =>
       q
         .select('instance_name, api_url, is_active')
         .eq('instance_name', instance)

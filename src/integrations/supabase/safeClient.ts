@@ -207,7 +207,7 @@ export const safeClient = {
         }
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await supabase.rpc(name as any, params);
+      const { data, error } = await supabase.rpc(name as any, params); // ignore-audit — dynamic RPC name not in generated union
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
@@ -277,7 +277,7 @@ export const safeClient = {
         }
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any).limit(0);
+        const { error } = await (supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
         if (!error) {
           exists = true;
         } else {
@@ -325,7 +325,7 @@ export const safeClient = {
       // Destructure { error } so PostgREST logical errors (e.g. 403) are not silently discarded
       type RpcResult = { data: unknown; error: { message: string } | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc(
+      const { error: rpcErr } = (await (supabase as any).rpc( // ignore-audit — RPC not in generated types, shape cast via RpcResult
         'rpc_update_email_health_state',
         {
           p_status: status,
@@ -433,7 +433,7 @@ export const safeClient = {
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc(
+      const { error: rpcErr } = (await (supabase as any).rpc( // ignore-audit — RPC not in generated types, shape cast via RpcResult
         'rpc_log_email_health',
         {
           p_status: 'error',
