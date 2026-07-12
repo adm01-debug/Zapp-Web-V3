@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +42,7 @@ export function QueuePositionNotifier({ contactId, className }: QueuePositionNot
       <Badge
         variant="outline"
         className="gap-1 text-[11px]"
-        style={{ borderColor: position.queueColor }}
+        style={{ borderColor: position.queueColor ?? undefined }}
       >
         <Users className="h-3 w-3" />#{position.position} na fila
       </Badge>
