@@ -378,15 +378,56 @@ serve(async (req) => {
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-// Marks a Gmail message error that is deterministically non-retryable (e.g. 400 Bad Request,
-// 403 Permission Denied). processHistory skips these so history_id can advance and the
-// account is not permanently stalled. Transient errors (network, 429, 5xx) are thrown as
-// plain Error so Pub/Sub retries the batch without advancing history_id.
+/**
+ * Error class for deterministically non-retryable Gmail API failures.
+ *
+ * Non-retryable errors (e.g., 400 Bad Request, 403 Permission Denied, insufficientPermissions)
+ * indicate a permanent issue that will never resolve via retry (e.g., malformed request, quota exceeded,
+ * permission denied). These are marked as "poison-pill" errors: processHistory skips them, logs warnings,
+ * and advances history_id to prevent the account from stalling permanently on a single bad message.
+ *
+ * Transient errors (network timeouts, 429 rate-limit, 5xx server errors) are thrown as plain Error,
+ * causing Pub/Sub to retry the batch without advancing history_id so the message can be recovered later.
+ *
+ * Error Taxonomy:
+ * - NonRetryableMessageError: 400, 403, insufficientPermissions, invalidArgument → skip and advance
+ * - Plain Error (transient): 429, 5xx, timeout, UNAUTHENTICATED → throw so Pub/Sub retries
+ */
 class NonRetryableMessageError extends Error {
   constructor(msg: string) { super(msg); this.name = 'NonRetryableMessageError'; }
 }
 
-
+/**
+ * Resolves or refreshes Gmail OAuth access token with automatic token refresh on expiration.
+ *
+ * Flow:
+ * 1. Query email_accounts table for stored access_token + refresh_token + token_expires_at
+ * 2. If access_token exists and not expired (+ 60s buffer): return immediately (fast path)
+ * 3. If no refresh_token: return null (can't refresh, account requires manual re-auth)
+ * 4. If refresh_token exists: POST to Google OAuth /token endpoint with grant_type=refresh_token
+ * 5. On success: extract new access_token + expires_in, persist to DB, return access_token
+ * 6. On failure (network error, 4xx/5xx, missing fields): log and return null
+ *
+ * Token Refresh Mechanism:
+ * - Proactive 60-second buffer: refresh at (token_expires_at - 60s) to avoid mid-call expiry
+ * - Fallback to account-level client credentials (client_id, client_secret) if not found in DB
+ * - Falls back to env vars GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+ * - Timeout: 10 seconds to prevent Pub/Sub retry delays
+ *
+ * Database Updates:
+ * - On successful refresh: update email_accounts (access_token, token_expires_at) for next cycle
+ * - Skipped on failure (return null without persisting bad tokens)
+ *
+ * Error Handling (Logged but Not Thrown):
+ * - Missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET: logged, return null
+ * - Network error on fetch: logged, return null
+ * - Invalid JSON response: logged, return null
+ * - Missing access_token in response: logged, return null
+ *
+ * @param supabase - Supabase client with service-role permissions
+ * @param accountId - UUID of email_accounts row
+ * @returns access_token string or null if unavailable/unrefreshable
+ */
 async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
   const { data: account, error } = await supabase.from('email_accounts').select('access_token, refresh_token, token_expires_at, client_id, client_secret').eq('id', accountId).maybeSingle();
   if (error || !account || typeof account !== 'object' || Array.isArray(account)) return null;
@@ -470,6 +511,45 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
   return newToken;
 }
 
+/**
+ * Fetches Gmail message history delta and persists new messages to database.
+ *
+ * Implements incremental sync via Gmail History API: queries for messageAdded events since
+ * startHistoryId, then fetches and persists full message payloads (headers, body, thread metadata).
+ *
+ * History Fetch:
+ * 1. GET /history?startHistoryId=X&historyTypes=messageAdded (10s timeout)
+ * 2. Parse history[] array for messagesAdded[] events
+ * 3. Extract messageId from each event.message (max 20 per invocation)
+ *
+ * Message Persistence:
+ * 4. For each message: call fetchAndPersistMessage() in parallel via Promise.allSettled()
+ * 5. Separate results by error type: NonRetryableMessageError (poison-pill, skip) vs Error (transient, retry)
+ *
+ * Error Handling & History Advancement:
+ * - If poison-pill errors (4xx, 403): logged as warning, skipped (history_id advances despite error)
+ * - If transient errors (5xx, timeout, 429): throw Error to make Pub/Sub retry the notification
+ *   WITHOUT advancing history_id, preventing data loss when a temporary API outage occurs.
+ * - If mix of both: throw only if >=1 transient error (single transient blocks retry)
+ *
+ * Side Effects:
+ * - Queries Gmail History API (may increment API quota usage)
+ * - Upserts to gmail_threads, gmail_messages tables via fetchAndPersistMessage()
+ * - Logs errors (warn for poison-pill, error for transient)
+ * - Throws Error if any transient failure detected (causing Pub/Sub retry)
+ *
+ * Performance:
+ * - Fetches up to 20 message payloads in parallel (Promise.allSettled)
+ * - Each fetch has 10s timeout (AbortSignal)
+ * - No batching; one history-fetch per invocation
+ *
+ * @param supabase - Supabase client with service-role permissions
+ * @param token - Gmail OAuth access_token (must be valid, not expired)
+ * @param accountId - UUID of email_accounts row
+ * @param startHistoryId - History ID to start from (advance incrementally per Pub/Sub batch)
+ * @throws Error if transient failures (5xx, timeout, 429) detected (causes Pub/Sub retry)
+ * @returns void (throws on transient error, silently skips on non-retryable errors)
+ */
 async function processHistory(
   supabase: ReturnType<typeof createClient>,
   token: string,
@@ -537,6 +617,67 @@ async function processHistory(
   }
 }
 
+/**
+ * Fetches full Gmail message payload and persists to database with comprehensive error classification.
+ *
+ * Gmail Message Fetch:
+ * 1. GET /messages/{id}?format=full with 10s timeout
+ * 2. Parse response JSON; handle both success (200 OK) and error (4xx/5xx with embedded error object)
+ *
+ * Error Taxonomy (Critical for Data Loss Prevention):
+ * - 404 Not Found: message deleted by user before ingestion → silently return (harmless)
+ * - 401/403 with status=UNAUTHENTICATED: token expired → transient, retry via Pub/Sub
+ * - 401/403 with status=insufficientPermissions: permanent permission issue → throw NonRetryableMessageError
+ * - 429/5xx: rate limit, server error → transient, retry via Pub/Sub
+ * - 400/403 with reason=badRequest: malformed request → non-retryable, skip and advance history_id
+ *
+ * Reason-Based Classification (not just HTTP codes):
+ * - Transient reasons: ratelimitexceeded, userratelimitexceeded, quotaexceeded, resource_exhausted
+ * - Non-retryable reasons: invalidArgument, permissionDenied, notFound (but 404 returns early)
+ *
+ * Message Parsing (Multi-Part MIME + Fallback):
+ * 3. Extract headers (Subject, From, To, Cc, Date, Message-Id) with .toLowerCase() normalization
+ * 4. Parse MIME parts: search for text/plain (bodyPlain) and text/html (bodyHtml) recursively
+ * 5. Fallback: if no parts array, try top-level payload.body (single-part message)
+ * 6. Decode base64-URL-encoded body data (handle - → +, _ → / padding variants)
+ * 7. Truncate body to storage limits: plain 50KB, html 200KB (prevent DB bloat)
+ *
+ * Metadata Extraction:
+ * - Thread ID, labels (INBOX, UNREAD, SENT, etc.), snippet, is_read (!UNREAD), is_sent (SENT label)
+ * - Attachment detection: scan parts[] for .filename attribute (boolean, not full attachments)
+ * - Parse From header as email + name (regex: "Name <email>" or plain email)
+ * - Date string to ISO timestamp (fallback to now() on parse error)
+ *
+ * Database Persistence (Three-Step Transactional Pattern):
+ * 1. Upsert gmail_threads row (dedupes by account_id + thread_id)
+ *    - onConflict: 'account_id,thread_id', ignoreDuplicates: true (no-op on duplicate insert)
+ * 2. Update gmail_threads with newest metadata (subject, snippet, label_ids, last_message_at)
+ *    - WHERE clause: lt('last_message_at', date) ensures latest timestamp always wins
+ *    - Prevents older parallel message from overwriting newer subject/snippet via row-level locking
+ * 3. Fetch thread row id (needed for thread_id_ref foreign key in gmail_messages)
+ * 4. Upsert gmail_messages with full message details (thread_id_ref, headers, body, labels, read status)
+ * 5. Recompute unread_count from actual message records (avoids last-write-wins race)
+ *    - Query: count messages where thread_id_ref=X and is_read=false
+ *    - Update gmail_threads.unread_count with accurate count
+ *
+ * Side Effects:
+ * - Queries Gmail API (10s timeout, increments quota)
+ * - Upserts 2-3 database rows per message (thread + message + count update)
+ * - No bulk batching (one message at a time from processHistory)
+ *
+ * Error Propagation:
+ * - Throws NonRetryableMessageError: 4xx permanent (400, 403 insufficientPermissions, etc.)
+ * - Throws Error: transient (5xx, 429, timeout, JSON parse errors)
+ * - Returns void: 404 (message already deleted), successful persistence
+ *
+ * @param supabase - Supabase client with service-role permissions
+ * @param token - Gmail OAuth access_token (must be valid, not expired)
+ * @param accountId - UUID of email_accounts row
+ * @param messageId - Gmail message ID (unique per account, not globally unique)
+ * @throws NonRetryableMessageError: permanent API error (400, 403 permission, malformed request)
+ * @throws Error: transient error (5xx, 429, timeout, network failure, JSON parse failure)
+ * @returns void (void return on success or 404 deletion)
+ */
 async function fetchAndPersistMessage(
   supabase: ReturnType<typeof createClient>,
   token: string,
