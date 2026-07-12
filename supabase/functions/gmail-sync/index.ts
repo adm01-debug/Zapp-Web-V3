@@ -350,17 +350,36 @@ async function batchSettled<T, R>(
   return results;
 }
 
+/**
+ * Converts Gmail header array to normalized Record<string, string>.
+ * Lowercases header names for case-insensitive lookup (e.g., "Subject", "From").
+ * Returns last value if duplicate headers exist. Used to extract Subject, From, To, etc.
+ */
 function headerMap(headers: Array<{name: string; value: string}>): Record<string, string> {
   const out: Record<string, string> = {};
   for (const h of headers) out[h.name.toLowerCase()] = h.value;
   return out;
 }
 
+/**
+ * Extracts email addresses from "From" header value.
+ * Handles both "Name <email@domain.com>" and plain "email@domain.com" formats.
+ * Returns array with single email address for consistency with multi-recipient headers.
+ */
 function extractEmails(from: string): string[] {
   const match = from.match(/<(.+?)>/);
   return [match?.[1] ?? from].filter(Boolean);
 }
 
+/**
+ * Retrieves and auto-refreshes OAuth access token for Gmail account.
+ * Proactively refreshes if token expires within next 5 minutes (prevents mid-sync failures).
+ * On successful refresh, persists new token + expiry to gmail_accounts table.
+ * On permanent failures (invalid refresh token, missing credentials, API error), marks account inactive.
+ *
+ * Returns: Valid access token string, or null if token unavailable/refresh failed.
+ * Prevents: Expired token usage, race conditions during token refresh, reuse of invalid tokens.
+ */
 async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
   const { data: acc } = await supabase
     .from('gmail_accounts')
@@ -437,6 +456,18 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
   return newAccessToken;
 }
 
+/**
+ * Fetches full message from Gmail API and persists normalized record to messages table.
+ * Extracts headers (Subject, From, To, Cc, Date), message body (plain + HTML),
+ * attachment metadata, and read/sent status from labels.
+ *
+ * Handles multipart MIME structures: walks parts tree, extracts base64-decoded bodies,
+ * detects plain/HTML/attachment content, normalizes sender/recipient email addresses.
+ *
+ * Graceful failure: Network timeouts (10s AbortSignal), parse errors, missing fields → silently skips.
+ * No exceptions raised; callers rely on batchSettled to continue if individual fetches fail.
+ * Used in bounded batches (concurrency=5) to respect Gmail API quota.
+ */
 async function fetchAndPersistMessage(
   supabase: ReturnType<typeof createClient>,
   token: string,
