@@ -337,7 +337,17 @@ Deno.serve(async (req) => {
     // ━━━ PHASE 4: Idempotency Check (5-min window) ━━━
     const rawRequestId = String(body.requestId || "").trim();
     // C.18: Validate requestId is not empty and not just whitespace
-    const requestId = rawRequestId && rawRequestId.length > 0 ? rawRequestId : "";
+    let requestId = rawRequestId && rawRequestId.length > 0 ? rawRequestId : "";
+    // C.35: Validate requestId format to prevent downstream RPC failures (UUID or alphanumeric-dash-underscore)
+    if (requestId && requestId.length > 100) {
+      log.warn("RequestId exceeds 100 chars, truncating", { originalLength: requestId.length });
+      requestId = requestId.substring(0, 100);
+    }
+    const isValidRequestIdFormat = requestId && /^[a-zA-Z0-9_-]+$/.test(requestId);
+    if (requestId && !isValidRequestIdFormat) {
+      log.warn("Invalid requestId format (only alphanumeric, dash, underscore allowed)", { requestId, action });
+      requestId = ""; // Disable idempotency for invalid IDs
+    }
     let cachedResult: unknown = null;
 
     if (requestId) {
