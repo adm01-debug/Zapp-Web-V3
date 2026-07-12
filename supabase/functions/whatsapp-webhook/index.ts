@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
+import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
 
 const WhatsAppStatusSchema = z.object({
   id: z.string().max(500),
@@ -75,7 +76,42 @@ serve(async (req) => {
       const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-      const rawPayload = await req.json();
+      // [FIX A-3 2026-07-12] Validate X-Hub-Signature-256 (Meta Cloud API HMAC).
+      // Without this check, any POST could inject or poison message statuses.
+      // The active channel is Baileys (not Meta Cloud), but the endpoint is published and
+      // reachable — an unsigned request can write UPDATE messages SET status with arbitrary data.
+      // If WHATSAPP_APP_SECRET is provisioned, enforce it. If not configured, fail-closed to
+      // prevent unauthenticated writes on the Meta channel.
+      const rawBodyText = await req.text();
+      const metaAppSecret = Deno.env.get('WHATSAPP_APP_SECRET');
+      const hubSignature = req.headers.get('x-hub-signature-256');
+
+      if (metaAppSecret) {
+        if (!hubSignature) {
+          log.warn("Missing X-Hub-Signature-256 header — rejected");
+          return new Response(JSON.stringify({ error: 'unauthorized', reason: 'missing_signature' }),
+            { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+        }
+        const valid = await verifyHmacSignature(rawBodyText, hubSignature, metaAppSecret);
+        if (!valid) {
+          log.warn("Invalid X-Hub-Signature-256 — rejected");
+          return new Response(JSON.stringify({ error: 'unauthorized', reason: 'invalid_signature' }),
+            { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+        }
+      } else {
+        // No secret configured: fail-closed. This endpoint accepts unauthenticated writes
+        // when WHATSAPP_APP_SECRET is absent. Return 503 so operators know to provision it.
+        log.error("WHATSAPP_APP_SECRET not configured — rejecting POST (fail-closed)");
+        return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'Set WHATSAPP_APP_SECRET to enable this webhook.' }),
+          { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+
+      let rawPayload: unknown;
+      try {
+        rawPayload = JSON.parse(rawBodyText);
+      } catch {
+        return errorResponse("Invalid JSON body", 400, req);
+      }
       const parsed = WhatsAppWebhookSchema.safeParse(rawPayload);
 
       if (!parsed.success) {
