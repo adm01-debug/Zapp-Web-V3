@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useServiceWorker');
 
 const CACHE_RESET_FLAG = 'sw-cache-reset-done';
 
