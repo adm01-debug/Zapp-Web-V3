@@ -87,6 +87,10 @@ export function useThemePreset() {
     setTimeout(() => root.classList.remove('theme-transitioning'), 350);
   }, [applyPresetColors, resolvedTheme, borderRadius, save, applyBorderRadius]);
 
+  // Initialize from localStorage. Color application is intentionally omitted
+  // here — the second effect below re-applies colors whenever resolvedTheme or
+  // activePreset changes, so it handles both the initial paint and theme toggles.
+  // applyBorderRadius and save both have stable [] dep arrays.
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -99,9 +103,6 @@ export function useThemePreset() {
         setBorderRadius(radius);
         applyBorderRadius(radius);
 
-        const preset = PRESETS.find(p => p.id === presetId);
-        if (preset) applyPresetColors(preset, resolvedTheme);
-
         if (
           parsed.preset !== presetId ||
           parsed.cssVarsCache ||
@@ -111,20 +112,16 @@ export function useThemePreset() {
           save(presetId, radius);
         }
       } catch {
-        const corporate = PRESETS.find(p => p.id === DEFAULT_PRESET_ID);
-        if (corporate) {
-          applyPresetColors(corporate, resolvedTheme);
-          save(DEFAULT_PRESET_ID, borderRadius);
-        }
+        setActivePreset(DEFAULT_PRESET_ID);
+        setBorderRadius(8);
+        save(DEFAULT_PRESET_ID, 8);
       }
     } else {
-      const corporate = PRESETS.find(p => p.id === DEFAULT_PRESET_ID);
-      if (corporate) {
-        applyPresetColors(corporate, resolvedTheme);
-        save(DEFAULT_PRESET_ID, borderRadius);
-      }
+      setActivePreset(DEFAULT_PRESET_ID);
+      setBorderRadius(8);
+      save(DEFAULT_PRESET_ID, 8);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyBorderRadius, save]);
 
   useEffect(() => {
     const preset = PRESETS.find(p => p.id === activePreset);
