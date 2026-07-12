@@ -126,6 +126,7 @@ export function NewMessageIndicator({
                       size="icon"
                       className="w-6 h-6 hover:bg-muted/50"
                       onClick={onDismiss}
+                      aria-label="Dispensar notificação"
                     >
                       <X className="w-4 h-4" />
                     </Button>

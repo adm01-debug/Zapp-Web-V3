@@ -62,7 +62,7 @@ export function PrivacyTabContent({ privacy, privacyItems, privacyOptions, onCha
       {privacyItems.map(({ key, label }) => (
         <div key={key} className="flex items-center justify-between p-3 rounded-lg border border-border/20">
           <Label className="text-sm">{label}</Label>
-          <select value={privacy[key]} onChange={(e) => onChange(key, e.target.value)} className="text-sm bg-background border border-border rounded-md px-2 py-1">
+          <select value={privacy[key]} onChange={(e) => onChange(key, e.target.value)} aria-label={label} className="text-sm bg-background border border-border rounded-md px-2 py-1">
             {privacyOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
         </div>

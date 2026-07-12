@@ -94,8 +94,8 @@ export function SoundCustomizationPanel() {
             <AnimatePresence>
               {settings.quiet_hours_enabled && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Início</Label><input type="time" value={settings.quiet_hours_start || '22:00'} onChange={(e) => updateSettings({ quiet_hours_start: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
-                  <div className="space-y-2"><Label>Término</Label><input type="time" value={settings.quiet_hours_end || '08:00'} onChange={(e) => updateSettings({ quiet_hours_end: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
+                  <div className="space-y-2"><Label htmlFor="quiet-start">Início</Label><input id="quiet-start" type="time" value={settings.quiet_hours_start || '22:00'} onChange={(e) => updateSettings({ quiet_hours_start: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
+                  <div className="space-y-2"><Label htmlFor="quiet-end">Término</Label><input id="quiet-end" type="time" value={settings.quiet_hours_end || '08:00'} onChange={(e) => updateSettings({ quiet_hours_end: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
                 </motion.div>
               )}
             </AnimatePresence>

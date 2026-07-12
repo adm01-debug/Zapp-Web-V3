@@ -11,7 +11,7 @@ interface Profile {
   id: string;
   name: string;
   avatar_url: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
 }
 
 interface AddMemberDialogProps {

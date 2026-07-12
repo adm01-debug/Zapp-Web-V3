@@ -33,13 +33,13 @@ export function AIUsageLogsTab({ logs, logsPage, setLogsPage, profileMap }: AIUs
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-background">
               <tr className="border-b bg-muted/50">
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Data</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Usuário</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Função</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Modelo</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">Tokens</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">Duração</th>
-                <th className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
+                <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Data</th>
+                <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Usuário</th>
+                <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Função</th>
+                <th scope="col" className="text-left px-3 py-2 font-medium text-muted-foreground">Modelo</th>
+                <th scope="col" className="text-right px-3 py-2 font-medium text-muted-foreground">Tokens</th>
+                <th scope="col" className="text-right px-3 py-2 font-medium text-muted-foreground">Duração</th>
+                <th scope="col" className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
               </tr>
             </thead>
             <tbody>

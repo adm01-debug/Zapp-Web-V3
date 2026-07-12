@@ -41,7 +41,7 @@ export function CompactContactHeader({ contact, isVip, companyName, firstName }:
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10"
+              <Button aria-label="Copiar telefone" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10"
                 onClick={() => { navigator.clipboard.writeText(contact.phone); toast.success('Telefone copiado!'); }}>
                 <Phone className="w-3.5 h-3.5 text-primary" />
               </Button>

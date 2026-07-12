@@ -117,7 +117,7 @@ export default function RealtimeFanoutDebug() {
         <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-3">
             <Link to="/" aria-label="Voltar">
-              <Button variant="ghost" size="icon">
+              <Button aria-label="Voltar" variant="ghost" size="icon">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>

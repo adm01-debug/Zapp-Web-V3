@@ -54,12 +54,13 @@ export function QueueAlertsDisplay({ alerts, onDismiss, onNavigate }: QueueAlert
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span 
-                    className="font-medium text-sm cursor-pointer hover:underline"
+                  <button
+                    type="button"
+                    className="font-medium text-sm cursor-pointer hover:underline bg-transparent border-none p-0 text-left"
                     onClick={() => onNavigate?.(alert.queueId)}
                   >
                     {alert.queueName}
-                  </span>
+                  </button>
                   <span className={`
                     text-xs px-1.5 py-0.5 rounded
                     ${alert.severity === 'critical' ? 'bg-destructive/20' : 'bg-warning/20'}
@@ -77,6 +78,7 @@ export function QueueAlertsDisplay({ alerts, onDismiss, onNavigate }: QueueAlert
 
               {onDismiss && (
                 <Button
+                  aria-label="Dispensar alerta"
                   variant="ghost"
                   size="icon"
                   className="w-6 h-6 opacity-60 hover:opacity-100"

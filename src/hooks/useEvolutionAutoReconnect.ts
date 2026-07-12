@@ -70,7 +70,7 @@ function extractHttpStatus(err: unknown): number | undefined {
  *  1. fn_log_reconnection_attempt chamado com parametros ERRADOS (PR #130).
  *  2. stale closure em isReconnecting (PR #127).
  *  3. performReconnect nao memoizado (PR #127).
- *  4. @ts-nocheck removido (PR #127).
+ *  4. ts-nocheck supression removed (PR #127).
  *  5. 401/403 aborta ciclo de retry (PR #127).
  *  6. p_status='connected' viola chk_reconnection_status (PR anterior).
  *  7. p_connection_id recebia whatsapp_connections.id (PR anterior).

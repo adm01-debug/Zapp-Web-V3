@@ -196,7 +196,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
 
           {/* Erro */}
           {error && (
-            <div className="shrink-0 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <div role="alert" className="shrink-0 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {error}
             </div>
           )}

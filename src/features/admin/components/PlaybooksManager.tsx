@@ -249,7 +249,7 @@ export function PlaybooksManager() {
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-[10px]">Passo {idx + 1}</Badge>
                     {steps.length > 1 && (
-                      <Button variant="ghost" size="icon" className="w-6 h-6" onClick={() => removeStep(idx)}>
+                      <Button aria-label="Remover passo do playbook" variant="ghost" size="icon" className="w-6 h-6" onClick={() => removeStep(idx)}>
                         <Trash2 className="w-3 h-3 text-destructive" />
                       </Button>
                     )}

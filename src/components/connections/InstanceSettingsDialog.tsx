@@ -243,7 +243,7 @@ export function InstanceSettingsDialog({ open, onOpenChange, instanceName, conne
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-4 mt-4">
-            {profile.pictureUrl && <div className="flex justify-center"><img src={profile.pictureUrl} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-primary/30" /></div>}
+            {profile.pictureUrl && <div className="flex justify-center"><img src={profile.pictureUrl} alt="Foto do perfil da instância" className="w-24 h-24 rounded-full object-cover border-2 border-primary/30" /></div>}
             <div><Label>Nome</Label><Input value={profile.name} onChange={(e) => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Nome do perfil" /></div>
             <div><Label>Recado (Status)</Label><Input value={profile.status} onChange={(e) => setProfile(p => ({ ...p, status: e.target.value }))} placeholder="Seu recado aqui..." /></div>
             <div><Label>Nova foto de perfil (URL)</Label>

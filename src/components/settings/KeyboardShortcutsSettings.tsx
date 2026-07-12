@@ -111,6 +111,7 @@ function ShortcutRow({ shortcut }: { shortcut: ShortcutBinding }) {
                 )}
               </div>
               <Button
+                aria-label="Confirmar atalho"
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
@@ -120,6 +121,7 @@ function ShortcutRow({ shortcut }: { shortcut: ShortcutBinding }) {
                 <Check className="w-4 h-4" />
               </Button>
               <Button
+                aria-label="Cancelar gravação"
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8 text-destructive hover:bg-destructive/10"
@@ -147,6 +149,7 @@ function ShortcutRow({ shortcut }: { shortcut: ShortcutBinding }) {
               </Button>
               {isCustomized && (
                 <Button
+                  aria-label="Restaurar padrão"
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8 text-muted-foreground hover:text-foreground"

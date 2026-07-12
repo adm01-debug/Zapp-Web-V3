@@ -19,10 +19,10 @@ export function MediaPreviewDialog({ item, open, onOpenChange }: MediaPreviewDia
           <DialogTitle className="flex items-center justify-between">
             <span className="truncate">{item.filename}</span>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" asChild>
+              <Button aria-label="Abrir em nova aba" variant="ghost" size="icon" asChild>
                 <a href={item.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4" /></a>
               </Button>
-              <Button variant="ghost" size="icon" asChild>
+              <Button aria-label="Baixar arquivo" variant="ghost" size="icon" asChild>
                 <a href={item.url} download={item.filename}><Download className="w-4 h-4" /></a>
               </Button>
             </div>

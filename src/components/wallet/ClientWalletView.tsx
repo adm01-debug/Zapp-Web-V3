@@ -113,7 +113,7 @@ export function ClientWalletView() {
                     <TableCell>{rule.connection ? <div className="flex items-center gap-1"><Phone className="w-3 h-3" />{rule.connection.name}</div> : <span className="text-muted-foreground">Todas</span>}</TableCell>
                     <TableCell><Badge variant="outline">{rule.priority}</Badge></TableCell>
                     <TableCell><Switch checked={rule.is_active} onCheckedChange={(checked) => w.handleToggleActive(rule.id, checked)} /></TableCell>
-                    <TableCell className="text-right"><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => w.handleDeleteRule(rule.id)}><Trash2 className="w-4 h-4" /></Button></TableCell>
+                    <TableCell className="text-right"><Button aria-label="Excluir regra" variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => w.handleDeleteRule(rule.id)}><Trash2 className="w-4 h-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

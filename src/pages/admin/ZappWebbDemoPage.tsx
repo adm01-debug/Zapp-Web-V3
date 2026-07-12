@@ -82,7 +82,7 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
         }`}
       >
         {isMedia && msg.media_type === 'image' && (
-          <img src={msg.media_url!} alt="" className="rounded-lg mb-1 max-h-60 object-cover" />
+          <img src={msg.media_url!} alt="Imagem da mensagem" className="rounded-lg mb-1 max-h-60 object-cover" />
         )}
         {isMedia && msg.media_type === 'audio' && (
           <audio controls src={msg.media_url!} className="w-56 my-1" />

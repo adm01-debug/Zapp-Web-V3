@@ -52,7 +52,7 @@ function UploadPreview({ pending, onConfirm, onCancel }: { pending: PendingEmoji
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-3 border border-border rounded-lg bg-card space-y-2.5">
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted/30 shrink-0 flex items-center justify-center border border-border/30">
-          <img src={pending.imageUrl} alt="Preview" className="w-full h-full object-contain p-0.5" />
+          <img src={pending.imageUrl} alt="Pré-visualização do emoji" className="w-full h-full object-contain p-0.5" />
         </div>
         <Input value={name} onChange={(e) => setName(e.target.value)} className="h-7 text-xs flex-1" placeholder="Nome do emoji" />
       </div>
@@ -116,7 +116,7 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
             {activeTab === 'custom' && (
               <div className="flex items-center gap-1">
                 <input ref={fileInputRef} type="file" accept="image/png,image/webp,image/gif,image/jpeg,image/svg+xml" className="hidden" onChange={handleFileSelect} />
-                <Button variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary" onClick={() => fileInputRef.current?.click()} disabled={uploading || !!pendingUpload} title="Adicionar emoji">
+                <Button aria-label="Adicionar emoji" variant="ghost" size="icon" className="w-7 h-7 text-muted-foreground hover:text-primary" onClick={() => fileInputRef.current?.click()} disabled={uploading || !!pendingUpload}>
                   {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 </Button>
               </div>

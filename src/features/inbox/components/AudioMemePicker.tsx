@@ -270,7 +270,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
               className="h-7 w-7 text-muted-foreground hover:text-primary"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || !!pendingUpload}
-              title="Adicionar áudio meme"
+              aria-label="Adicionar áudio meme"
             >
               {uploading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

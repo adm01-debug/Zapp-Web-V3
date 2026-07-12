@@ -150,11 +150,11 @@ export function WebhookAlertHistoryPanel({ history, onCleared }: Props) {
                 <table className="w-full text-xs">
                   <thead className="bg-muted/50">
                     <tr className="text-left">
-                      <th className="px-3 py-2 font-medium">Data/Hora</th>
-                      <th className="px-3 py-2 font-medium">Severidade</th>
-                      <th className="px-3 py-2 font-medium">Instância</th>
-                      <th className="px-3 py-2 font-medium">Tipo</th>
-                      <th className="px-3 py-2 font-medium">Métrica excedida</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Data/Hora</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Severidade</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Instância</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Tipo</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Métrica excedida</th>
                     </tr>
                   </thead>
                   <tbody>

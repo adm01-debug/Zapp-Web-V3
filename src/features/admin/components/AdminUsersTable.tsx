@@ -96,7 +96,7 @@ export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, 
                   {isAdmin && (
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => onEditUser(user)}>
+                        <Button aria-label="Editar usuário" variant="ghost" size="icon" className="w-8 h-8" onClick={() => onEditUser(user)}>
                           <Edit className="w-4 h-4" />
                         </Button>
                         <ForceLogoutButton userId={user.user_id} userName={user.name} />

@@ -178,12 +178,12 @@ export default function AdminInstancePausesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-4">Instância</th>
-                    <th className="py-2 pr-4">Tipo</th>
-                    <th className="py-2 pr-4">Motivo</th>
-                    <th className="py-2 pr-4">Gatilhos</th>
-                    <th className="py-2 pr-4">Termina</th>
-                    <th className="py-2 pr-4">Ação</th>
+                    <th scope="col" className="py-2 pr-4">Instância</th>
+                    <th scope="col" className="py-2 pr-4">Tipo</th>
+                    <th scope="col" className="py-2 pr-4">Motivo</th>
+                    <th scope="col" className="py-2 pr-4">Gatilhos</th>
+                    <th scope="col" className="py-2 pr-4">Termina</th>
+                    <th scope="col" className="py-2 pr-4">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -236,12 +236,12 @@ export default function AdminInstancePausesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-4">Quando</th>
-                    <th className="py-2 pr-4">Instância</th>
-                    <th className="py-2 pr-4">Tipo</th>
-                    <th className="py-2 pr-4">Motivo</th>
-                    <th className="py-2 pr-4">Gatilhos</th>
-                    <th className="py-2 pr-4">Status</th>
+                    <th scope="col" className="py-2 pr-4">Quando</th>
+                    <th scope="col" className="py-2 pr-4">Instância</th>
+                    <th scope="col" className="py-2 pr-4">Tipo</th>
+                    <th scope="col" className="py-2 pr-4">Motivo</th>
+                    <th scope="col" className="py-2 pr-4">Gatilhos</th>
+                    <th scope="col" className="py-2 pr-4">Status</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -139,6 +139,7 @@ export function FailedMessageTableRow({
               variant="ghost"
               onClick={() => onViewInChat(row)}
               title="Ver no chat"
+              aria-label="Ver no chat"
               data-testid="failed-message-view-in-chat-button"
             >
               <MessageSquare className="h-4 w-4" />
@@ -149,6 +150,7 @@ export function FailedMessageTableRow({
             variant="ghost"
             onClick={() => onSelect(row)}
             title="Ver detalhes"
+            aria-label="Ver detalhes"
             data-testid="failed-message-details-button"
           >
             <Eye className="h-4 w-4" />
@@ -163,6 +165,7 @@ export function FailedMessageTableRow({
                 onClick={() => onRetry(row.id)}
                 disabled={isRetrying}
                 title="Reprocessar agora"
+                aria-label="Reprocessar agora"
                 data-testid="failed-message-retry-button"
               >
                 <RotateCw className="h-4 w-4" />
@@ -175,6 +178,7 @@ export function FailedMessageTableRow({
               onClick={() => onAbandon(row.id)}
               disabled={isAbandoning}
               title="Abandonar"
+              aria-label="Abandonar mensagem"
               data-testid="failed-message-abandon-button"
             >
               <Ban className="h-4 w-4" />

@@ -65,7 +65,7 @@ export function useTags() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .maybeSingle();
 
       const { error } = await safeClient.from('tags', q =>
@@ -101,7 +101,7 @@ export function useTags() {
   // Update tag mutation
   const updateMutation = useMutation({
     mutationFn: async (data: { id: string; name: string; color: string; description?: string }) => {
-      const { data: tag } = await supabase
+      const { data: tag, error: tagErr } = await supabase
         .from('tags')
         .update({
           name: data.name,
@@ -179,7 +179,7 @@ export function useContactTags(contactId: string | undefined) {
 
       type ContactTagRow = { tag_id: string; tags: Tag | null };
       const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', q =>
-        q.select('tag_id, tags(*)').eq('contact_id', contactId),
+        q.select('tag_id, tags(*)').eq('contact_id', contactId!),
       );
 
       if (error) throw error;

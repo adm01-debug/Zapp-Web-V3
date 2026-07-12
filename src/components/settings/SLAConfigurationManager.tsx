@@ -80,10 +80,10 @@ export function SLAConfigurationManager() {
                             <span className="flex items-center gap-1"><Target className="w-3 h-3" /> Resolução: <span className="font-medium text-foreground/80">{formatSLAMinutes(cfg.resolution_minutes)}</span></span>
                           </div>
                         </div>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl hover:bg-primary/10" onClick={() => openEdit(cfg)}><Edit2 className="w-3.5 h-3.5" /></Button>
+                        <Button aria-label="Editar configuração de SLA" size="icon" variant="ghost" className="h-8 w-8 rounded-xl hover:bg-primary/10" onClick={() => openEdit(cfg)}><Edit2 className="w-3.5 h-3.5" /></Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5" /></Button>
+                            <Button aria-label="Excluir configuração de SLA" size="icon" variant="ghost" className="h-8 w-8 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5" /></Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>

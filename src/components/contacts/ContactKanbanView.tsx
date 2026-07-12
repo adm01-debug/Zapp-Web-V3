@@ -149,6 +149,7 @@ export function ContactKanbanView({ contacts, onContactClick }: ContactKanbanVie
                                       dragSnapshot.isDragging && "shadow-lg ring-2 ring-primary/30 rotate-1"
                                     )}
                                     onClick={() => !dragSnapshot.isDragging && onContactClick(contact.id)}
+                                    onKeyDown={(e) => !dragSnapshot.isDragging && e.key === 'Enter' && onContactClick(contact.id)}
                                   >
                                     <div className="flex items-center gap-2.5">
                                       <div

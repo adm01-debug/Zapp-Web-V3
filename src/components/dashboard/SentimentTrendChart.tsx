@@ -56,8 +56,8 @@ export function SentimentTrendChart({ data: externalData, isLoading, onRefresh, 
                 <SelectItem value="30">30 dias</SelectItem>
               </SelectContent>
             </Select>
-            {onRefresh && <Button variant="ghost" size="icon" onClick={onRefresh}><RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} /></Button>}
-            {onExport && <Button variant="ghost" size="icon" onClick={onExport}><Download className="w-4 h-4" /></Button>}
+            {onRefresh && <Button aria-label="Atualizar gráfico" variant="ghost" size="icon" onClick={onRefresh}><RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} /></Button>}
+            {onExport && <Button aria-label="Exportar dados" variant="ghost" size="icon" onClick={onExport}><Download className="w-4 h-4" /></Button>}
           </div>
         </div>
       </CardHeader>

@@ -5,7 +5,7 @@ const mockInvoke = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    rpc: mockRpc,
+    rpc: (...args: unknown[]) => mockRpc(...args),
     functions: {
       invoke: (...args: unknown[]) => mockInvoke(...args),
     },

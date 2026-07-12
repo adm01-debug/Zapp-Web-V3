@@ -5,6 +5,22 @@ import { PostgrestError } from '@supabase/supabase-js';
 const supabase = _supabase;
 const _log = getLogger('safeClient');
 
+// ---------------------------------------------------------------------------
+// AnyQueryResult — tipo para o callback passado a safeClient.from() e
+// safeClient.single().
+//
+// Por que não usar ReturnType<typeof supabase.from> como retorno?
+//   supabase.from(<tableName>) → PostgrestQueryBuilder
+//   query.select().eq()...    → PostgrestFilterBuilder  (subclasse diferente)
+//   FilterBuilder NÃO estende QueryBuilder → TS2739 em todos os callsites.
+//
+// Solução: anotar o retorno do callback como PromiseLike<{data,error}>, que
+// é a interface comum que QUALQUER builder supabase implementa ao ser `await`ed.
+// Isso é semanticamente correto: só precisamos que o callback retorne algo
+// que, ao ser awaited, devolva { data, error }. O runtime já faz `await cb(q)`.
+// ---------------------------------------------------------------------------
+type AnyQueryResult = PromiseLike<{ data: unknown; error: PostgrestError | null }>;
+
 export interface SafeResponse<T> {
   data: T | null;
   error: Error | null;
@@ -12,37 +28,217 @@ export interface SafeResponse<T> {
 }
 
 /** Record of a single operation failure captured in the telemetry buffer. */
-export interface FailureRecord {
-  requestId: string;
+export interface OperationFailure {
   operation: string;
-  resource: string;
+  table?: string;
   error: string;
-  timestamp: string;
+  timestamp: number;
+  requestId: string;
 }
 
-const CACHE_TTL = 300000; // 5 minutos
-const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+/** Telemetry snapshot returned by safeClient.getTelemetry(). */
+export interface ClientTelemetry {
+  lastValidation: Date | null;
+  recentFailures: OperationFailure[];
+  stats: {
+    totalCalls: number;
+    failedCalls: number;
+    cacheHits: number;
+  };
+}
 
-let lastValidation: Date | null = null;
-const recentFailures: FailureRecord[] = [];
-const MAX_FAILURES = 50;
-const stats = { totalCalls: 0, failedCalls: 0, cacheHits: 0 };
+/** Cache metadata returned by safeClient.getCacheInfo(). */
+export interface CacheInfo {
+  expiration: Date | null;
+  size: number;
+}
 
-/**
- * Re-entrancy guard for health logging.
- *
- * CRITICAL FIX: recordFailure() previously called this.rpc() which, on any
- * RPC error (e.g. anon lacks EXECUTE on rpc_log_email_health), called
- * recordFailure() again — infinite recursive POST flood (500+ requests/page).
- *
- * Root cycle that was happening:
- *   validateResource() → syncHealthState() → this.rpc(rpc_update_health_state)
- *   → 403 → recordFailure() → this.rpc(rpc_log_email_health) → 403
- *   → recordFailure() → this.rpc(rpc_log_email_health) → ... INFINITE
- *
- * This flag prevents any recursive entry into health-logging code paths.
- */
-let _healthLogInProgress = false;
+const MAX_FAILURES = 20;
+const REQUEST_TIMEOUT_MS = 15_000;
+
+const telemetry: ClientTelemetry = {
+  lastValidation: null,
+  recentFailures: [],
+  stats: { totalCalls: 0, failedCalls: 0, cacheHits: 0 },
+};
+
+const cache: CacheInfo = {
+  expiration: null,
+  size: 0,
+};
+
+function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function recordFailure(operation: string, error: unknown, table?: string): void {
+  const failure: OperationFailure = {
+    operation,
+    table,
+    error: error instanceof Error ? error.message : String(error),
+    timestamp: Date.now(),
+    requestId: generateRequestId(),
+  };
+  telemetry.recentFailures.push(failure);
+  if (telemetry.recentFailures.length > MAX_FAILURES) {
+    telemetry.recentFailures.shift();
+  }
+  telemetry.stats.failedCalls++;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(`Request timeout after ${ms}ms`)), ms),
+  );
+  return Promise.race([promise, timeout]) as Promise<T>;
+}
+
+export const maskEmail = (email: string): string => {
+  const [local, domain] = email.split('@');
+  if (!domain) return '***@' + (local || '');
+  const masked = local.length > 2 ? local.slice(0, 2) + '***' : '***';
+  return `${masked}@${domain}`;
+};
+
+export const maskSensitiveData = (
+  data: Record<string, unknown> | unknown[],
+): Record<string, unknown> | unknown[] => {
+  const SENSITIVE_KEYS = new Set([
+    'password', 'senha', 'secret', 'token', 'api_key', 'apikey', 'api-key',
+    'access_token', 'refresh_token', 'private_key', 'auth_token',
+  ]);
+  const PARTIAL_KEYS = new Set(['email', 'e-mail', 'e_mail']);
+  const LONG_TOKEN_PATTERN = /^[A-Za-z0-9+/=._-]{40,}$/;
+
+  const maskValue = (key: string, value: unknown): unknown => {
+    if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+      return maskAny(value as Record<string, unknown> | unknown[]);
+    }
+    const k = key.toLowerCase();
+    if (SENSITIVE_KEYS.has(k)) return '***MASKED***';
+    if (PARTIAL_KEYS.has(k) && typeof value === 'string') return maskEmail(value);
+    if (typeof value === 'string' && LONG_TOKEN_PATTERN.test(value)) return '***TOKEN***';
+    return value;
+  };
+
+  const maskAny = (
+    d: Record<string, unknown> | unknown[] | null | undefined,
+  ): Record<string, unknown> | unknown[] => {
+    if (Array.isArray(d)) return d.map(item => maskAny(item as Record<string, unknown>));
+    if (!d || typeof d !== 'object') return {} as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(d as Record<string, unknown>).map(([k, v]) => [k, maskValue(k, v)]),
+    );
+  };
+
+  return maskAny(data);
+};
+
+async function executeQuery<T>(
+  operation: string,
+  table: string,
+  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
+): Promise<SafeResponse<T>> {
+  const requestId = generateRequestId();
+  telemetry.stats.totalCalls++;
+  try {
+    const q = supabase.from(table as any);
+    const result = await withTimeout(
+      Promise.resolve(callback(q)) as Promise<{ data: unknown; error: PostgrestError | null }>,
+      REQUEST_TIMEOUT_MS,
+    );
+    if (result.error) {
+      recordFailure(operation, result.error, table);
+      return { data: null, error: result.error, requestId };
+    }
+    return { data: result.data as T, error: null, requestId };
+  } catch (err) {
+    recordFailure(operation, err, table);
+    _log.error(`[${requestId}] ${operation} on '${table}' failed`, err);
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error(String(err)),
+      requestId,
+    };
+  }
+}
+
+async function executeSingle<T>(
+  table: string,
+  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
+): Promise<SafeResponse<T>> {
+  return executeQuery<T>('single', table, callback);
+}
+
+async function executeFrom<T>(
+  table: string,
+  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
+): Promise<SafeResponse<T[]>> {
+  const result = await executeQuery<T[]>('from', table, callback);
+  return result;
+}
+
+async function executeRpc<T = unknown>(
+  fn: string,
+  params?: Record<string, unknown>,
+): Promise<SafeResponse<T>> {
+  const requestId = generateRequestId();
+  telemetry.stats.totalCalls++;
+  try {
+    const result = await withTimeout(
+      (supabase.rpc as unknown as (name: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: PostgrestError | null }>)(fn, params),
+      REQUEST_TIMEOUT_MS,
+    );
+    if (result.error) {
+      recordFailure('rpc', result.error, fn);
+      return { data: null, error: result.error, requestId };
+    }
+    return { data: result.data as T, error: null, requestId };
+  } catch (err) {
+    recordFailure('rpc', err, fn);
+    _log.error(`[${requestId}] rpc '${fn}' failed`, err);
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error(String(err)),
+      requestId,
+    };
+  }
+}
+
+async function invokeFunction<T = unknown>(
+  fn: string,
+  body?: unknown,
+): Promise<SafeResponse<T>> {
+  const requestId = generateRequestId();
+  telemetry.stats.totalCalls++;
+  try {
+    const result = await withTimeout(
+      supabase.functions.invoke(fn, { body }),
+      REQUEST_TIMEOUT_MS,
+    );
+    if (result.error) {
+      recordFailure('invoke', result.error, fn);
+      return { data: null, error: result.error, requestId };
+    }
+    return { data: result.data as T, error: null, requestId };
+  } catch (err) {
+    recordFailure('invoke', err, fn);
+    _log.error(`[${requestId}] invoke '${fn}' failed`, err);
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error(String(err)),
+      requestId,
+    };
+  }
+}
+
+function getTelemetry(): ClientTelemetry {
+  return { ...telemetry, recentFailures: [...telemetry.recentFailures] };
+}
+
+function getCacheInfo(): CacheInfo {
+  return { ...cache };
+}
 
 export const safeClient = {
   async from<T = unknown>(

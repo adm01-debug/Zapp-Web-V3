@@ -185,6 +185,7 @@ export function OmnichannelManager() {
                       variant="ghost"
                       size="icon"
                       onClick={() => deleteChannel.mutate(channel.id)}
+                      aria-label="Excluir canal"
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>

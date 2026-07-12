@@ -95,7 +95,7 @@ export const useThemeAudit = () => {
 };
 
 function getElementPath(el: Element): string {
-  const path = [];
+  const path: string[] = [];
   let current: Element | null = el;
   while (current && current !== document.body) {
     let name = current.tagName.toLowerCase();

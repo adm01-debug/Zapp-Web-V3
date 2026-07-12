@@ -102,6 +102,7 @@ export function ChannelRoutingRules() {
                     variant="ghost"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
                     onClick={() => deleteRule.mutate(rule.id)}
+                    aria-label="Excluir regra"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>

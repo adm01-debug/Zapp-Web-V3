@@ -397,10 +397,10 @@ function ReasonBackoffTable() {
         <table className="w-full text-xs tabular-nums">
           <thead className="text-muted-foreground">
             <tr className="border-b">
-              <th className="py-1.5 pr-2 text-left font-medium">Motivo</th>
-              <th className="px-2 py-1.5 text-right font-medium">Mult.</th>
-              <th className="px-2 py-1.5 text-right font-medium">Mín.</th>
-              <th className="py-1.5 pl-2 text-left font-medium">Quando aplica</th>
+              <th scope="col" className="py-1.5 pr-2 text-left font-medium">Motivo</th>
+              <th scope="col" className="px-2 py-1.5 text-right font-medium">Mult.</th>
+              <th scope="col" className="px-2 py-1.5 text-right font-medium">Mín.</th>
+              <th scope="col" className="py-1.5 pl-2 text-left font-medium">Quando aplica</th>
             </tr>
           </thead>
           <tbody>

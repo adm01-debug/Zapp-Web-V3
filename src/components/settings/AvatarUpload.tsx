@@ -95,7 +95,7 @@ export function AvatarUpload() {
     <div className="flex items-center gap-6">
       <div className="group relative">
         <Avatar className="h-20 w-20 ring-2 ring-border/50 transition-all group-hover:ring-primary/50">
-          <AvatarImage src={avatarUrl || undefined} alt="Avatar" />
+          <AvatarImage src={avatarUrl || undefined} alt="Foto de perfil" />
           <AvatarFallback className="bg-primary/10 font-display text-xl font-bold text-primary">
             {initials}
           </AvatarFallback>

@@ -62,6 +62,9 @@ export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: Docum
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label="Abrir pré-visualização do arquivo"
       className={cn(
         'flex min-w-[240px] max-w-[320px] cursor-pointer items-center gap-3 rounded-md p-2.5 transition-colors',
         isSent
@@ -69,6 +72,7 @@ export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: Docum
           : 'border border-border bg-chat-received'
       )}
       onClick={handleOpen}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleOpen()}
     >
       <div
         className={cn(
@@ -286,7 +290,7 @@ export function StickerPreview({ url, isSent: _isSent }: StickerPreviewProps) {
       {!isLoaded && <div className="h-[120px] w-[120px] animate-pulse rounded-md bg-card" />}
       <motion.img
         src={url}
-        alt="Sticker"
+        alt="Figurinha"
         onLoad={() => setIsLoaded(true)}
         whileHover={{ scale: 1.05 }}
         className={cn('max-h-[120px] max-w-[120px] object-contain', !isLoaded && 'hidden')}

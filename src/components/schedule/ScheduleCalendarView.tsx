@@ -153,6 +153,7 @@ export function ScheduleCalendarView({
                   variant="ghost"
                   size="icon"
                   onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                  aria-label="Mês anterior"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -163,6 +164,7 @@ export function ScheduleCalendarView({
                   variant="ghost"
                   size="icon"
                   onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                  aria-label="Próximo mês"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -287,6 +289,7 @@ export function ScheduleCalendarView({
                         size="icon"
                         className="shrink-0 text-destructive hover:text-destructive"
                         onClick={() => cancelMessage(msg.id)}
+                        aria-label="Cancelar mensagem agendada"
                       >
                         <X className="h-4 w-4" />
                       </Button>

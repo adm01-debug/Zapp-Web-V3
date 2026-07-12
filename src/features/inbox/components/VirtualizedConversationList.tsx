@@ -89,6 +89,7 @@ export function VirtualizedConversationList({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 rounded-full text-muted-foreground transition-all hover:bg-primary/10"
+                aria-label="Filtrar conversas"
               >
                 <Filter className="h-3.5 w-3.5" />
               </Button>

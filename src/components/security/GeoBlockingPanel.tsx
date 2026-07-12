@@ -135,7 +135,7 @@ export function GeoBlockingPanel() {
                           <div className={`p-2 rounded-lg ${activeTab === 'whitelist' ? 'bg-success/10' : 'bg-destructive/10'}`}><MapPin className={`w-4 h-4 ${activeTab === 'whitelist' ? 'text-success' : 'text-destructive'}`} /></div>
                           <div><div className="flex items-center gap-2"><span className="font-medium">{country.country_name}</span><Badge variant="outline" className="text-xs">{country.country_code}</Badge></div><p className="text-xs text-muted-foreground">Adicionado {formatDistanceToNow(new Date(country.created_at), { addSuffix: true, locale: ptBR })}</p></div>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setCountryToRemove(country)}><Trash2 className="w-4 h-4" /></Button>
+                        <Button aria-label="Remover país" variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setCountryToRemove(country)}><Trash2 className="w-4 h-4" /></Button>
                       </motion.div>
                     ))}
                   </AnimatePresence>

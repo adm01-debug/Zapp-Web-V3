@@ -7,7 +7,7 @@ const _mockDelete = vi.fn();
 const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: mockFrom },
+  supabase: { from: (...args: unknown[]) => mockFrom(...args) },
 }));
 vi.mock('@/lib/logger');
 

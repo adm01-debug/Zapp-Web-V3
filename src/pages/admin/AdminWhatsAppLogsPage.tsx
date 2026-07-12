@@ -267,14 +267,14 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th className="py-2 pr-3">Quando</th>
-                        <th className="py-2 pr-3">Modo</th>
-                        <th className="py-2 pr-3">Instância</th>
-                        <th className="py-2 pr-3">Direção</th>
-                        <th className="py-2 pr-3">JID</th>
-                        <th className="py-2 pr-3">Status</th>
-                        <th className="py-2 pr-3">HTTP</th>
-                        <th className="py-2 pr-3">Erro</th>
+                        <th scope="col" className="py-2 pr-3">Quando</th>
+                        <th scope="col" className="py-2 pr-3">Modo</th>
+                        <th scope="col" className="py-2 pr-3">Instância</th>
+                        <th scope="col" className="py-2 pr-3">Direção</th>
+                        <th scope="col" className="py-2 pr-3">JID</th>
+                        <th scope="col" className="py-2 pr-3">Status</th>
+                        <th scope="col" className="py-2 pr-3">HTTP</th>
+                        <th scope="col" className="py-2 pr-3">Erro</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -323,9 +323,9 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th className="py-2 pr-3">Quando</th>
-                        <th className="py-2 pr-3">Tipo</th>
-                        <th className="py-2 pr-3">Detalhes</th>
+                        <th scope="col" className="py-2 pr-3">Quando</th>
+                        <th scope="col" className="py-2 pr-3">Tipo</th>
+                        <th scope="col" className="py-2 pr-3">Detalhes</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -367,14 +367,14 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th className="py-2 pr-3">Quando</th>
-                        <th className="py-2 pr-3">Canal</th>
-                        <th className="py-2 pr-3">Instância</th>
-                        <th className="py-2 pr-3">JID</th>
-                        <th className="py-2 pr-3">Código</th>
-                        <th className="py-2 pr-3">HTTP</th>
-                        <th className="py-2 pr-3">Tentativas</th>
-                        <th className="py-2 pr-3">Mensagem</th>
+                        <th scope="col" className="py-2 pr-3">Quando</th>
+                        <th scope="col" className="py-2 pr-3">Canal</th>
+                        <th scope="col" className="py-2 pr-3">Instância</th>
+                        <th scope="col" className="py-2 pr-3">JID</th>
+                        <th scope="col" className="py-2 pr-3">Código</th>
+                        <th scope="col" className="py-2 pr-3">HTTP</th>
+                        <th scope="col" className="py-2 pr-3">Tentativas</th>
+                        <th scope="col" className="py-2 pr-3">Mensagem</th>
                       </tr>
                     </thead>
                     <tbody>

@@ -49,6 +49,7 @@ export function ChatQuickRepliesPopover({ show, replies, onSelect, onClose, sele
                 size="icon"
                 className="w-7 h-7 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors"
                 onClick={onClose}
+                aria-label="Fechar respostas rápidas"
               >
                 <X className="w-4 h-4" />
               </Button>

@@ -227,7 +227,7 @@ export function GroupsView() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-8 h-8" onClick={(e) => e.stopPropagation()}>
+                          <Button aria-label="Opções do grupo" variant="ghost" size="icon" className="w-8 h-8" onClick={(e) => e.stopPropagation()}>
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>

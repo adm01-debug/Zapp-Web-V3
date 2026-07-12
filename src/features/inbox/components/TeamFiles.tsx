@@ -189,6 +189,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
+            aria-label="Filtrar por tipo de arquivo"
             className="h-8 rounded-md border-warning bg-warning/30 px-2 text-[10px] text-warning-foreground outline-none focus:ring-1 focus:ring-amber-200"
           >
             <option value="all">Todos</option>
@@ -243,6 +244,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-warning-foreground hover:bg-warning"
+                        aria-label="Visualizar imagem"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
@@ -286,6 +288,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                   size="icon"
                   className="h-7 w-7 text-warning-foreground hover:bg-warning"
                   asChild
+                  aria-label="Baixar arquivo"
                 >
                   <a
                     href={file.file_url}
@@ -301,6 +304,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                   size="icon"
                   className="h-7 w-7 text-destructive hover:bg-destructive/10"
                   onClick={() => deleteMutation.mutate(file.id)}
+                  aria-label="Excluir arquivo"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

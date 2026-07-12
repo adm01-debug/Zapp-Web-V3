@@ -30,7 +30,7 @@ vi.mock('@/integrations/supabase/client', () => {
   });
   return {
     supabase: {
-      from: mockFrom,
+      from: (...args: unknown[]) => mockFrom(...args),
       functions: { invoke: vi.fn().mockResolvedValue({ data: { success: true }, error: null }) },
     },
   };

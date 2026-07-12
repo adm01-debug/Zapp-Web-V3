@@ -119,7 +119,7 @@ export function TalkXMessagePreview({ messageTemplate, contacts, mediaUrl, media
         <div className="bg-muted/30 rounded-xl p-4 border border-border/30">
           <div className="flex flex-col items-end gap-2">
             {mediaUrl && mediaType === 'image' && (
-              <img src={mediaUrl} alt="Preview" className="rounded-lg max-h-32 w-auto" />
+              <img src={mediaUrl} alt="Pré-visualização da mensagem" className="rounded-lg max-h-32 w-auto" />
             )}
             <div className="bg-primary/10 rounded-xl rounded-tr-sm p-3 text-sm text-foreground max-w-[85%] whitespace-pre-wrap">
               {preview || <span className="text-muted-foreground italic">Digite uma mensagem...</span>}

@@ -84,8 +84,8 @@ describe('Sprint 1 · HIGH-3 · notify_sicoob_on_reply sem service_role_key na G
     expect(def).not.toMatch(/current_setting\(\s*'app\.settings\.service_role_key'/);
   });
 
-  it('usa pg_notify em vez de extensions.http_post inline', () => {
-    expect(def).toMatch(/pg_notify\(\s*'sicoob_bridge_reply'/);
+  it('usa outbox INSERT em vez de extensions.http_post inline', () => {
+    expect(def).toMatch(/INSERT\s+INTO\s+public\.sicoob_reply_outbox/i);
     expect(def).not.toMatch(/extensions\.http_post/);
   });
 });

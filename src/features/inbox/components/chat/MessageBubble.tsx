@@ -367,7 +367,7 @@ export const MessageBubble = memo(function MessageBubble({
                 <div className="group/sticker relative mb-1">
                   <img
                     src={message.mediaUrl}
-                    alt="Sticker"
+                    alt="Figurinha"
                     className="max-h-[160px] max-w-[160px] object-contain drop-shadow-lg"
                     loading="lazy"
                   />

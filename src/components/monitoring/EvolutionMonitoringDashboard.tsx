@@ -131,6 +131,7 @@ export function EvolutionMonitoringDashboard() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                aria-label={notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'}
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"

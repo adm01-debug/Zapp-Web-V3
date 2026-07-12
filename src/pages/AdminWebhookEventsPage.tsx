@@ -549,7 +549,7 @@ export default function AdminWebhookEventsPage() {
                             size="icon"
                             variant="ghost"
                             onClick={() => setSelected(row)}
-                            title="Ver payload"
+                            aria-label="Ver payload"
                             data-testid="webhook-event-details-button"
                           >
                             <Eye className="h-4 w-4" />

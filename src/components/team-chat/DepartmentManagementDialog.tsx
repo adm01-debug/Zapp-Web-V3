@@ -263,6 +263,7 @@ export function DepartmentManagementDialog({
                         </code>
                         <div className="flex gap-2">
                           <Button
+                            aria-label="Copiar código de convite"
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8"
@@ -274,6 +275,7 @@ export function DepartmentManagementDialog({
                             <Copy className="h-4 w-4" />
                           </Button>
                           <Button
+                            aria-label="Excluir convite"
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-destructive"
@@ -313,6 +315,9 @@ export function DepartmentManagementDialog({
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={whatsappMode === 'none'}
                   className={cn(
                     'relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 p-4 transition-all hover:border-primary/50',
                     whatsappMode === 'none'
@@ -320,6 +325,7 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card opacity-60'
                   )}
                   onClick={() => setWhatsappMode('none')}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('none')}
                 >
                   <div
                     className={cn(
@@ -341,6 +347,9 @@ export function DepartmentManagementDialog({
                 </div>
 
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={whatsappMode === 'evolution'}
                   className={cn(
                     'relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 p-4 transition-all hover:border-primary/50',
                     whatsappMode === 'evolution'
@@ -348,6 +357,7 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card'
                   )}
                   onClick={() => setWhatsappMode('evolution')}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('evolution')}
                 >
                   <div
                     className={cn(
@@ -369,6 +379,9 @@ export function DepartmentManagementDialog({
                 </div>
 
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={whatsappMode === 'official'}
                   className={cn(
                     'relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 p-4 transition-all hover:border-primary/50',
                     whatsappMode === 'official'
@@ -376,6 +389,7 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card'
                   )}
                   onClick={() => setWhatsappMode('official')}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('official')}
                 >
                   <div
                     className={cn(

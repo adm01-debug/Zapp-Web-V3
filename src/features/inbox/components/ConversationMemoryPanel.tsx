@@ -190,10 +190,11 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
               value={newItems[key] || ''}
               onChange={(e) => setNewItems((prev) => ({ ...prev, [key]: e.target.value }))}
               placeholder="Adicionar..."
+              aria-label="Adicionar item à memória"
               className="flex-1 rounded border border-border/30 bg-transparent px-2 py-1 text-xs focus:border-primary/50 focus:outline-none"
               onKeyDown={(e) => e.key === 'Enter' && addItem(key)}
             />
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => addItem(key)}>
+            <Button aria-label="Adicionar item" variant="ghost" size="icon" className="h-6 w-6" onClick={() => addItem(key)}>
               <Plus className="h-3 w-3" />
             </Button>
           </div>

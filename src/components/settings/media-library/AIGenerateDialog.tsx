@@ -181,6 +181,7 @@ export function AIGenerateDialog({
           {genPreviewUrl && (
             <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 p-3">
               <Button
+                aria-label="Reproduzir pré-visualização"
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 shrink-0"

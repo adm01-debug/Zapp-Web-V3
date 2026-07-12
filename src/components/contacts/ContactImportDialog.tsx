@@ -216,9 +216,12 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
           {/* Drop zone */}
           {!file && !result && (
             <div
+              role="button"
+              tabIndex={0}
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => fileRef.current?.click()}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && fileRef.current?.click()}
               className="cursor-pointer rounded-lg border-2 border-dashed border-muted p-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5"
             >
               <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
@@ -273,6 +276,7 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
                           {EXPECTED_COLUMNS.map((c) => (
                             <th
                               key={c}
+                              scope="col"
                               className="px-2 py-1 text-left font-medium text-muted-foreground"
                             >
                               {c}
