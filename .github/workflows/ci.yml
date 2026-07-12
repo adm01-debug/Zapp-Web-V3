@@ -114,6 +114,17 @@ jobs:
           fi
           exit 0
 
+      - name: TypeScript check — chat components (blocking)
+        # Gate estrito para os componentes de chat (ChatHeader, ChatInputArea,
+        # helpers e testes). Roda tsc via tsgo escopado a esses arquivos para
+        # evitar o falso-positivo do GAR/postgrest e capturar regressões TS
+        # (TS2322/TS18048/TS2774) imediatamente.
+        run: bunx tsgo --noEmit -p tsconfig.app.json 2>&1 | tee /tmp/tsc.log; \
+          if grep -E "src/(features/inbox/components/chat|lib/react-refs)" /tmp/tsc.log | grep -E "error TS" ; then \
+            echo "::error title=Chat components typecheck::TypeScript errors detected in chat components."; \
+            exit 1; \
+          fi
+
       - name: ts-nocheck drift gate (blocking)
         # Falha o build quando novos arquivos com `// @ts-nocheck` são
         # introduzidos fora do baseline (scripts/ts-nocheck-baseline.txt).
