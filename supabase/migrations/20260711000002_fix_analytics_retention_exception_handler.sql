@@ -20,7 +20,18 @@
 --   5. String de conexão dblink inclui lock_timeout e statement_timeout para que
 --      travamentos de partição disparem exceção que o handler por-partição pode capturar.
 
-CREATE EXTENSION IF NOT EXISTS dblink;
+DO $do$
+DECLARE v_schema text;
+BEGIN
+  SELECT n.nspname INTO v_schema
+  FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace
+  WHERE e.extname = 'dblink';
+  IF NOT FOUND THEN
+    EXECUTE 'CREATE EXTENSION dblink SCHEMA public';
+  ELSIF v_schema <> 'public' THEN
+    EXECUTE 'ALTER EXTENSION dblink SET SCHEMA public';
+  END IF;
+END $do$;
 
 CREATE OR REPLACE FUNCTION ops.fn_analytics_log_retention(p_days int DEFAULT 14)
 RETURNS jsonb
