@@ -1,9 +1,6 @@
 import { dbFrom, dbChannel, dbClient, dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
-import { messagesMap } from '@/integrations/supabase/columnMap';
-import { normalizeMessage } from '@/integrations/supabase/rowNormalizers';
 import { RealtimePostgresChangesPayload, RealtimeChannel } from '@supabase/supabase-js';
-
 
 export interface Message {
   id: string;
@@ -34,17 +31,11 @@ export const messageRepository = {
    * Fallback: if FK select fails, plain select('*') still returns all message fields.
    */
   async fetchMessagesByContact(contactId: string, from = 0, limit = 1000) {
-    const result = await dbFrom('messages')
-      .select(messagesMap.select())
+    return dbFrom('messages')
+      .select('*')
       .eq('contact_id', contactId)
       .order('created_at', { ascending: true })
       .range(from, from + limit - 1);
-
-    if (result.error || !Array.isArray(result.data)) return result;
-    const normalized = (result.data as unknown[])
-      .map((row) => normalizeMessage(row as Parameters<typeof normalizeMessage>[0]))
-      .filter((m): m is NonNullable<ReturnType<typeof normalizeMessage>> => m !== null);
-    return { ...result, data: normalized };
   },
 
   /**
