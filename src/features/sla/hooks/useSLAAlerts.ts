@@ -93,12 +93,17 @@ async function alreadyFiredPersistent(
   severity: AlertSeverity,
 ): Promise<boolean> {
   try {
+    // FIX SLA1 (2026-07-12): sem janela temporal, um alerta que disparou UMA VEZ
+    // para este contato nunca mais disparava — mesmo semanas depois num ciclo novo.
+    // Usamos a mesma janela LOCAL_TTL_MS do layer localStorage (24h).
+    const since = new Date(Date.now() - LOCAL_TTL_MS).toISOString();
     const { data, error } = await supabase
       .from('conversation_events')
       .select('id')
       .eq('contact_id', contactId)
       .eq('event_type', 'sla_alert')
       .contains('metadata', { kind, severity })
+      .gte('created_at', since)
       .limit(1)
       .maybeSingle();
     if (error) return false;
@@ -190,8 +195,6 @@ export function useSLAAlerts(params: SLAAlertParams) {
         }
 
         // Audit (best-effort, fire-and-forget). Also serves as the persistent dedupe record.
-        // If the insert fails (typically RLS/permission), forward the failure to a service-role
-        // edge function so we still capture diagnostic info in `conversation_events`.
         const auditMetadata = {
           kind,
           severity,
@@ -208,7 +211,6 @@ export function useSLAAlerts(params: SLAAlertParams) {
           })
           .then(({ error: insertError }) => {
             if (!insertError) return;
-            // Don't disrupt the user — just record the failure for ops debugging.
             void supabase.functions
               .invoke('sla-alert-log-failure', {
                 body: {

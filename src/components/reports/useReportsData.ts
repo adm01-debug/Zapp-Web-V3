@@ -26,7 +26,9 @@ export function useReportsData() {
   const previousDateRange = useMemo(() => {
     const days = parseInt(period);
     return {
-      from: startOfDay(subDays(new Date(), days * 2)),
+      // FIX R1 (2026-07-12): days*2 gerava janela de só `days` dias (não `days+1`),
+      // inflando tendências ao comparar ex: 8 dias vs 7. Corrigido para days*2+1.
+      from: startOfDay(subDays(new Date(), days * 2 + 1)),
       to: endOfDay(subDays(new Date(), days + 1)),
     };
   }, [period]);
