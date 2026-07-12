@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
+
+const log = getLogger('useGroupsManager');
 import { useGroupActions } from './groups/actions';
 import type { WhatsAppGroup, WhatsAppConnection } from './groups/types';
 
@@ -28,11 +30,18 @@ export function useGroupsManager() {
 
   const fetchConnections = useCallback(async () => {
     const { data, error } = await supabase.from('whatsapp_connections').select('id, name, phone_number, instance_id').order('name', { ascending: true });
-    if (error) log.error('Error fetching connections:', error);
-    else setConnections(data || []);
+    if (error) {
+      toast.error('Erro ao carregar conexões');
+      log.error('Error fetching connections:', error);
+    } else {
+      setConnections(data || []);
+    }
   }, []);
 
-  useEffect(() => { fetchGroups(); fetchConnections(); }, [fetchGroups, fetchConnections]);
+  useEffect(() => {
+    void fetchGroups().catch((err) => log.error('Failed to fetch groups on mount:', err));
+    void fetchConnections().catch((err) => log.error('Failed to fetch connections on mount:', err));
+  }, [fetchGroups, fetchConnections]);
 
   const actions = useGroupActions({ connections, groups, selectedGroups, setGroups, setSelectedGroups, fetchGroups });
 

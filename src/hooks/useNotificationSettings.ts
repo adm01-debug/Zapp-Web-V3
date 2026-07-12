@@ -2,7 +2,9 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useNotificationSettings');
 
 export type SoundTypeOption = 'beep' | 'chime' | 'bell' | 'alert' | 'soft';
 

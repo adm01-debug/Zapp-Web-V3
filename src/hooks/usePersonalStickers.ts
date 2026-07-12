@@ -2,7 +2,10 @@ import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getLogger } from '@/lib/logger';
 import type { StickerItem } from '@/features/inbox';
+
+const log = getLogger('usePersonalStickers');
 
 export function usePersonalStickers() {
   const queryClient = useQueryClient();
@@ -76,7 +79,8 @@ export function usePersonalStickers() {
   });
 
   const incrementUseCount = useCallback((sticker: StickerItem) => {
-    supabase.from('stickers').update({ use_count: sticker.use_count + 1 }).eq('id', sticker.id);
+    void supabase.from('stickers').update({ use_count: sticker.use_count + 1 }).eq('id', sticker.id)
+      .catch((err) => log.error('Failed to increment sticker use count:', err));
   }, []);
 
   return { profile, stickers, isLoading, uploading, fileInputRef, handleUpload, toggleFavorite, deleteSticker, incrementUseCount };
