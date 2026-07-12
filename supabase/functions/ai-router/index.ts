@@ -929,21 +929,6 @@ Responda APENAS em JSON:
       }
     }
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'auto-tag',
-          p_user_id: ctx.userId,
-          p_contact_id: validContactId,
-          p_status_code: 200,
-          p_result_payload: result,
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
     // C.39: Populate result-specific fields into metricsMetadata for consistent logging
@@ -952,8 +937,22 @@ Responda APENAS em JSON:
     metricsMetadata.priority = result.priority;
     metricsMetadata.tag_update_success = tagUpdateResult.success;
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
+    // PERF #5 (Improvement 3): Parallelize fire-and-forget metrics RPC calls
+    const rpcCalls: Promise<any>[] = [];
+    if (requestId) {
+      rpcCalls.push(
+        supabase.rpc('record_processed_request', {
+          p_request_id: requestId,
+          p_action: 'auto-tag',
+          p_user_id: ctx.userId,
+          p_contact_id: validContactId,
+          p_status_code: 200,
+          p_result_payload: result,
+        }).catch(() => {})
+      );
+    }
+    rpcCalls.push(
+      supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-auto-tag',
         p_action: 'classification',
         p_duration_ms: Math.round(durationMs),
@@ -961,7 +960,10 @@ Responda APENAS em JSON:
         p_user_id: ctx.userId,
         p_error_message: null,
         p_metadata: metricsMetadata,
-      }).catch(() => {});
+      }).catch(() => {})
+    );
+    try {
+      await Promise.all(rpcCalls);
     } catch {
       // Metrics not critical
     }
@@ -1364,21 +1366,6 @@ Foque em:
       }
     }
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'conversation-summary',
-          p_user_id: ctx.userId,
-          p_contact_id: validContactId,
-          p_status_code: 200,
-          p_result_payload: analysisData,
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
     // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
@@ -1387,17 +1374,29 @@ Foque em:
     metricsMetadata.analysis_persisted = persistenceResult.success;
 
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-conversation-summary',
-        p_action: 'analysis',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: metricsMetadata,
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'conversation-summary',
+            p_user_id: ctx.userId,
+            p_contact_id: validContactId,
+            p_status_code: 200,
+            p_result_payload: analysisData,
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-conversation-summary',
+          p_action: 'analysis',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { sentiment: analysisData.sentiment, urgency: analysisData.urgency, durationMs });
@@ -1590,21 +1589,6 @@ Regras importantes:
       return { success: false, error: "Empty response from AI", duration_ms: durationMs };
     }
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'enhance-message',
-          p_user_id: ctx.userId,
-          p_contact_id: null,
-          p_status_code: 200,
-          p_result_payload: { tone, original_length: message.length, enhanced_length: enhancedMessage.length },
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
     // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
@@ -1612,17 +1596,29 @@ Regras importantes:
     metricsMetadata.enhanced_length = enhancedMessage.length;
 
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-enhance-message',
-        p_action: 'enhancement',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: metricsMetadata,
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'enhance-message',
+            p_user_id: ctx.userId,
+            p_contact_id: null,
+            p_status_code: 200,
+            p_result_payload: { tone, original_length: message.length, enhanced_length: enhancedMessage.length },
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-enhance-message',
+          p_action: 'enhancement',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { tone, durationMs });
@@ -1811,21 +1807,6 @@ async function handleClassifyEmoji(
       confidence: typeof alt?.confidence === 'number' ? Math.max(0, Math.min(1, alt.confidence)) : 0,
     }));
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'classify-emoji',
-          p_user_id: ctx.userId,
-          p_contact_id: null,
-          p_status_code: 200,
-          p_result_payload: { category: result.category, confidence: result.confidence },
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
     // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
@@ -1833,17 +1814,29 @@ async function handleClassifyEmoji(
     metricsMetadata.confidence = result.confidence;
 
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-classify-emoji',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: metricsMetadata,
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'classify-emoji',
+            p_user_id: ctx.userId,
+            p_contact_id: null,
+            p_status_code: 200,
+            p_result_payload: { category: result.category, confidence: result.confidence },
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-classify-emoji',
+          p_action: 'classification',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { category: result.category, confidence: result.confidence, durationMs });
@@ -2026,21 +2019,6 @@ async function handleClassifySticker(
       confidence: typeof alt?.confidence === 'number' ? Math.max(0, Math.min(1, alt.confidence)) : 0,
     }));
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'classify-sticker',
-          p_user_id: ctx.userId,
-          p_contact_id: null,
-          p_status_code: 200,
-          p_result_payload: { category: result.category, confidence: result.confidence },
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
     // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
@@ -2048,17 +2026,29 @@ async function handleClassifySticker(
     metricsMetadata.confidence = result.confidence;
 
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-classify-sticker',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: metricsMetadata,
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'classify-sticker',
+            p_user_id: ctx.userId,
+            p_contact_id: null,
+            p_status_code: 200,
+            p_result_payload: { category: result.category, confidence: result.confidence },
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-classify-sticker',
+          p_action: 'classification',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { category: result.category, confidence: result.confidence, durationMs });
@@ -2276,35 +2266,32 @@ async function handleChurnAnalysis(
 
       metricsMetadata.analyzed = results.length;
 
-      if (requestId) {
-        try {
-          await supabase.rpc('record_processed_request', {
-            p_request_id: requestId,
-            p_action: 'churn-analysis',
-            p_user_id: ctx.userId,
-            p_contact_id: null,
-            p_status_code: 200,
-            p_result_payload: { analyzed: results.length, highRisk: results.filter((r: any) => r.riskLevel === 'high' || r.riskLevel === 'critical').length },
-          }).catch(() => {});
-        } catch {
-          // Not critical
-        }
-      }
-
       const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
       try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-churn-analysis',
-          p_action: 'analysis',
-          p_duration_ms: Math.round(durationMs),
-          p_status: 'success',
-          p_user_id: ctx.userId,
-          p_error_message: null,
-          p_metadata: metricsMetadata,
-        }).catch(() => {});
+        await Promise.all([
+          ...(requestId ? [
+            supabase.rpc('record_processed_request', {
+              p_request_id: requestId,
+              p_action: 'churn-analysis',
+              p_user_id: ctx.userId,
+              p_contact_id: null,
+              p_status_code: 200,
+              p_result_payload: { analyzed: results.length, highRisk: results.filter((r: any) => r.riskLevel === 'high' || r.riskLevel === 'critical').length },
+            }).catch(() => {})
+          ] : []),
+          supabase.rpc('record_ai_metrics', {
+            p_function_name: 'ai-churn-analysis',
+            p_action: 'analysis',
+            p_duration_ms: Math.round(durationMs),
+            p_status: 'success',
+            p_user_id: ctx.userId,
+            p_error_message: null,
+            p_metadata: metricsMetadata,
+          }).catch(() => {}),
+        ]);
       } catch {
-        // Metrics not critical
+        // RPC calls not critical
       }
 
       log.done(200, { analyzed: results.length, durationMs });
@@ -2712,21 +2699,6 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       }
     }
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'conversation-analysis',
-          p_user_id: ctx.userId,
-          p_contact_id: validContactId,
-          p_status_code: 200,
-          p_result_payload: analysisData,
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
     // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
@@ -2736,17 +2708,29 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
     metricsMetadata.analysis_persisted = persistenceResult.success;
 
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-conversation-analysis',
-        p_action: 'analysis',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: metricsMetadata,
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'conversation-analysis',
+            p_user_id: ctx.userId,
+            p_contact_id: validContactId,
+            p_status_code: 200,
+            p_result_payload: analysisData,
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-conversation-analysis',
+          p_action: 'analysis',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { department: analysisData.department, sentiment: analysisData.sentiment, durationMs });
@@ -2818,23 +2802,16 @@ async function handleSuggestReply(
 
     let knowledgeContext = '';
     try {
-      const { data: articles } = await supabase
+      // PERF #4 (Improvement 3): Parallelize KB fetch with contact queries
+      const kbQuery = supabase
         .from('knowledge_base_articles')
         .select('title, content, category')
         .eq('is_published', true)
         .limit(10);
 
-      if (articles && Array.isArray(articles) && articles.length > 0) {
-        knowledgeContext = `\n\nBASE DE CONHECIMENTO DA EMPRESA (use como referência para suas respostas):\n${
-          articles.map((a: any) =>
-            `[${a.category || 'Geral'}] ${a.title}: ${sanitizeString(a.content, 500)}`
-          ).join('\n---\n')
-        }`;
-      }
-
+      let contactQueriesPromise: Promise<any[] | null> = Promise.resolve(null);
       if (validContactId) {
-        // PERF #3 (Improvement 3): Parallelize independent queries to reduce latency
-        const [notesResult, customFieldsResult] = await Promise.all([
+        contactQueriesPromise = Promise.all([
           supabase
             .from('contact_notes')
             .select('content')
@@ -2847,6 +2824,26 @@ async function handleSuggestReply(
             .eq('contact_id', validContactId)
             .limit(100), // FIX #7 (C.40): Bound custom fields to prevent memory exhaustion
         ]);
+      }
+
+      const [kbResult, contactQueries] = await Promise.all([
+        kbQuery,
+        contactQueriesPromise,
+      ]);
+
+      const { data: articles } = kbResult;
+
+      if (articles && Array.isArray(articles) && articles.length > 0) {
+        knowledgeContext = `\n\nBASE DE CONHECIMENTO DA EMPRESA (use como referência para suas respostas):\n${
+          articles.map((a: any) =>
+            `[${a.category || 'Geral'}] ${a.title}: ${sanitizeString(a.content, 500)}`
+          ).join('\n---\n')
+        }`;
+      }
+
+      if (validContactId && contactQueries) {
+        // PERF #3 (Improvement 3): Parallelize independent queries to reduce latency
+        const [notesResult, customFieldsResult] = contactQueries;
 
         if (notesResult.data && Array.isArray(notesResult.data) && notesResult.data.length > 0) {
           // FIX #7 (C.40): Limit total note context size to prevent prompt explosion
@@ -3035,38 +3032,35 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       log.warn("Parse error, using fallback suggestions");
     }
 
-    if (requestId) {
-      try {
-        await supabase.rpc('record_processed_request', {
-          p_request_id: requestId,
-          p_action: 'suggest-reply',
-          p_user_id: ctx.userId,
-          p_contact_id: validContactId,
-          p_status_code: 200,
-          p_result_payload: { suggestions_count: suggestions.suggestions?.length || 0 },
-        }).catch(() => {});
-      } catch {
-        // Not critical
-      }
-    }
-
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
     // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
     metricsMetadata.suggestions_count = suggestions.suggestions?.length || 0;
 
     try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-suggest-reply',
-        p_action: 'suggestion',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'success',
-        p_user_id: ctx.userId,
-        p_error_message: null,
-        p_metadata: metricsMetadata,
-      }).catch(() => {});
+      await Promise.all([
+        ...(requestId ? [
+          supabase.rpc('record_processed_request', {
+            p_request_id: requestId,
+            p_action: 'suggest-reply',
+            p_user_id: ctx.userId,
+            p_contact_id: validContactId,
+            p_status_code: 200,
+            p_result_payload: { suggestions_count: suggestions.suggestions?.length || 0 },
+          }).catch(() => {})
+        ] : []),
+        supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-suggest-reply',
+          p_action: 'suggestion',
+          p_duration_ms: Math.round(durationMs),
+          p_status: 'success',
+          p_user_id: ctx.userId,
+          p_error_message: null,
+          p_metadata: metricsMetadata,
+        }).catch(() => {}),
+      ]);
     } catch {
-      // Metrics not critical
+      // RPC calls not critical
     }
 
     log.done(200, { suggestions: suggestions.suggestions?.length || 0, durationMs });
@@ -3360,21 +3354,6 @@ async function handleTranscribeAudio(
         name: typeof s?.name === 'string' ? s.name.substring(0, 200) : 'Unknown',
       }));
 
-      if (requestId) {
-        try {
-          await supabase.rpc('record_processed_request', {
-            p_request_id: requestId,
-            p_action: 'transcribe-audio',
-            p_user_id: ctx.userId,
-            p_contact_id: null,
-            p_status_code: 200,
-            p_result_payload: { transcript_length: transcript.length, words_count: words.length, message_id: messageId },
-          }).catch(() => {});
-        } catch {
-          // Not critical
-        }
-      }
-
       const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
       // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
@@ -3384,17 +3363,29 @@ async function handleTranscribeAudio(
       metricsMetadata.speakers_count = speakers.length;
 
       try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-transcribe-audio',
-          p_action: 'transcription',
-          p_duration_ms: Math.round(durationMs),
-          p_status: 'success',
-          p_user_id: ctx.userId,
-          p_error_message: null,
-          p_metadata: metricsMetadata,
-        }).catch(() => {});
+        await Promise.all([
+          ...(requestId ? [
+            supabase.rpc('record_processed_request', {
+              p_request_id: requestId,
+              p_action: 'transcribe-audio',
+              p_user_id: ctx.userId,
+              p_contact_id: null,
+              p_status_code: 200,
+              p_result_payload: { transcript_length: transcript.length, words_count: words.length, message_id: messageId },
+            }).catch(() => {})
+          ] : []),
+          supabase.rpc('record_ai_metrics', {
+            p_function_name: 'ai-transcribe-audio',
+            p_action: 'transcription',
+            p_duration_ms: Math.round(durationMs),
+            p_status: 'success',
+            p_user_id: ctx.userId,
+            p_error_message: null,
+            p_metadata: metricsMetadata,
+          }).catch(() => {}),
+        ]);
       } catch {
-        // Metrics not critical
+        // RPC calls not critical
       }
 
       log.done(200, { transcriptLength: transcript.length, durationMs });
