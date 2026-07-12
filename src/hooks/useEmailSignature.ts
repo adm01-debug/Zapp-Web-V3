@@ -1,3 +1,7 @@
+/**
+ * useEmailSignature.ts — Gerenciamento de assinaturas de email por conta Email
+ */
+
 import { useCallback, useEffect, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';

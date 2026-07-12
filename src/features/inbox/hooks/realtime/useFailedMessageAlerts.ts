@@ -89,6 +89,7 @@ export function useFailedMessageAlerts(enabled = true): void {
       });
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled]);

@@ -46,25 +46,41 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_lgpd_consent_audit_immutable ON public.lgpd_consent_audit;
-CREATE TRIGGER trg_lgpd_consent_audit_immutable
-  BEFORE DELETE OR UPDATE ON public.lgpd_consent_audit
-  FOR EACH ROW EXECUTE FUNCTION fn_lgpd_consent_audit_immutable();
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public' AND tablename = 'lgpd_consent_audit'
+  ) THEN
+    DROP TRIGGER IF EXISTS trg_lgpd_consent_audit_immutable ON public.lgpd_consent_audit;
+    CREATE TRIGGER trg_lgpd_consent_audit_immutable
+      BEFORE DELETE OR UPDATE ON public.lgpd_consent_audit
+      FOR EACH ROW EXECUTE FUNCTION fn_lgpd_consent_audit_immutable();
+  END IF;
+END;
+$$;
 
 -- Add archived_at column if missing (needed for archival function)
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'lgpd_consent_audit'
-      AND column_name = 'archived_at'
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public' AND tablename = 'lgpd_consent_audit'
   ) THEN
-    ALTER TABLE public.lgpd_consent_audit ADD COLUMN archived_at TIMESTAMPTZ;
-    CREATE INDEX IF NOT EXISTS idx_lgpd_consent_audit_archived
-      ON public.lgpd_consent_audit (archived_at)
-      WHERE archived_at IS NOT NULL;
-    RAISE NOTICE 'Added archived_at column to lgpd_consent_audit';
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'lgpd_consent_audit'
+        AND column_name = 'archived_at'
+    ) THEN
+      ALTER TABLE public.lgpd_consent_audit ADD COLUMN archived_at TIMESTAMPTZ;
+      CREATE INDEX IF NOT EXISTS idx_lgpd_consent_audit_archived
+        ON public.lgpd_consent_audit (archived_at)
+        WHERE archived_at IS NOT NULL;
+      RAISE NOTICE 'Added archived_at column to lgpd_consent_audit';
+    END IF;
+  ELSE
+    RAISE NOTICE 'lgpd_consent_audit table does not exist — skipping archived_at column';
   END IF;
 END;
 $$;
@@ -91,14 +107,21 @@ $$;
 DO $$
 BEGIN
   IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'message_audit_log'
-      AND column_name = 'content'
-      AND is_nullable = 'NO'
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public' AND tablename = 'message_audit_log'
   ) THEN
-    ALTER TABLE public.message_audit_log ALTER COLUMN content DROP NOT NULL;
-    RAISE NOTICE 'Made message_audit_log.content nullable';
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'message_audit_log'
+        AND column_name = 'content'
+        AND is_nullable = 'NO'
+    ) THEN
+      ALTER TABLE public.message_audit_log ALTER COLUMN content DROP NOT NULL;
+      RAISE NOTICE 'Made message_audit_log.content nullable';
+    END IF;
+  ELSE
+    RAISE NOTICE 'message_audit_log table does not exist — skipping content nullable fix';
   END IF;
 END;
 $$;
@@ -120,10 +143,19 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_message_audit_log_immutable ON public.message_audit_log;
-CREATE TRIGGER trg_message_audit_log_immutable
-  BEFORE DELETE OR UPDATE ON public.message_audit_log
-  FOR EACH ROW EXECUTE FUNCTION fn_message_audit_log_immutable();
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public' AND tablename = 'message_audit_log'
+  ) THEN
+    DROP TRIGGER IF EXISTS trg_message_audit_log_immutable ON public.message_audit_log;
+    CREATE TRIGGER trg_message_audit_log_immutable
+      BEFORE DELETE OR UPDATE ON public.message_audit_log
+      FOR EACH ROW EXECUTE FUNCTION fn_message_audit_log_immutable();
+  END IF;
+END;
+$$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Fix contact_id_graveyard — remove CHECK(false)
@@ -160,10 +192,19 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_contact_graveyard_immutable ON public.contact_id_graveyard;
-CREATE TRIGGER trg_contact_graveyard_immutable
-  BEFORE DELETE OR UPDATE ON public.contact_id_graveyard
-  FOR EACH ROW EXECUTE FUNCTION fn_contact_graveyard_immutable();
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public' AND tablename = 'contact_id_graveyard'
+  ) THEN
+    DROP TRIGGER IF EXISTS trg_contact_graveyard_immutable ON public.contact_id_graveyard;
+    CREATE TRIGGER trg_contact_graveyard_immutable
+      BEFORE DELETE OR UPDATE ON public.contact_id_graveyard
+      FOR EACH ROW EXECUTE FUNCTION fn_contact_graveyard_immutable();
+  END IF;
+END;
+$$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. Fix delete_contact_completely — remove overloads, create clean UUID version
@@ -181,8 +222,6 @@ CREATE OR REPLACE FUNCTION fn_delete_contact_completely(p_contact_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path = 'public', 'evo'
-SET lock_timeout = '10s'
-SET deadlock_timeout = '500ms'
 AS $$
 DECLARE
   v_actor       UUID;
@@ -314,14 +353,19 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 BEGIN
-  -- Check if created_by column exists and is BIGINT
+  -- Check if table exists first
   IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'audit_log'
-      AND column_name = 'created_by'
-      AND data_type = 'bigint'
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public' AND tablename = 'audit_log'
   ) THEN
+    -- Check if created_by column exists and is BIGINT
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'audit_log'
+        AND column_name = 'created_by'
+        AND data_type = 'bigint'
+    ) THEN
     -- Drop FK constraint if exists
     DECLARE
       v_fk_name TEXT;
@@ -351,14 +395,18 @@ BEGIN
     RAISE NOTICE 'audit_log.created_by is not BIGINT — skipping type change';
   END IF;
 
-  -- Add indexes if missing
-  CREATE INDEX IF NOT EXISTS idx_audit_log_entity
-    ON public.audit_log (entity_type, entity_id, created_at DESC)
-    WHERE entity_type IS NOT NULL;
+    -- Add indexes if missing
+    CREATE INDEX IF NOT EXISTS idx_audit_log_entity
+      ON public.audit_log (entity_type, entity_id, created_at DESC)
+      WHERE entity_type IS NOT NULL;
 
-  CREATE INDEX IF NOT EXISTS idx_audit_log_created_by
-    ON public.audit_log (created_by, created_at DESC)
-    WHERE created_by IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_audit_log_created_by
+      ON public.audit_log (created_by, created_at DESC)
+      WHERE created_by IS NOT NULL;
+    END IF;  -- end column existence check
+  ELSE
+    RAISE NOTICE 'audit_log table does not exist — skipping created_by type fix';
+  END IF;  -- end table existence check
 
 END;
 $$;
@@ -368,10 +416,22 @@ $$;
 --    missing DELETE after INSERT, LGPD minimum retention violation
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Create archive table if not exists
-CREATE TABLE IF NOT EXISTS public.lgpd_consent_audit_archive (
-  LIKE public.lgpd_consent_audit INCLUDING ALL
-);
+-- Create archive table if not exists (only if base table exists)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public' AND tablename = 'lgpd_consent_audit'
+  ) THEN
+    CREATE TABLE IF NOT EXISTS public.lgpd_consent_audit_archive (
+      LIKE public.lgpd_consent_audit INCLUDING ALL
+    );
+    RAISE NOTICE 'Created lgpd_consent_audit_archive table';
+  ELSE
+    RAISE NOTICE 'lgpd_consent_audit base table does not exist — skipping archive table creation';
+  END IF;
+END;
+$$;
 
 -- Minimum retention LGPD Article 16: 5 years = 1825 days
 CREATE OR REPLACE FUNCTION archive_old_consent_records(
@@ -381,8 +441,6 @@ CREATE OR REPLACE FUNCTION archive_old_consent_records(
 RETURNS TABLE(archived_count INT, deleted_count INT)
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path = 'public'
-SET lock_timeout = '30s'
-SET deadlock_timeout = '1s'
 AS $$
 DECLARE
   v_archive_cutoff     TIMESTAMPTZ;
@@ -506,30 +564,5 @@ BEGIN
   RAISE NOTICE 'Verified: No CHECK(false) constraints remain on audit tables';
 END;
 $$;
-
--- ─────────────────────────────────────────────────────────────────────────────
--- 11. Emit audit chain event
--- ─────────────────────────────────────────────────────────────────────────────
-SELECT fn_append_audit_event(
-  'P0_BUGS_FIXED',
-  NULL,
-  'migration',
-  '20260712170600_r16_fix_audit_table_constraints_p0',
-  jsonb_build_object(
-    'migration', '20260712170600_r16_fix_audit_table_constraints_p0',
-    'fixes', ARRAY[
-      'Removed CHECK(false) from lgpd_consent_audit',
-      'Removed CHECK(false) from message_audit_log',
-      'Removed CHECK(false) from contact_id_graveyard',
-      'Fixed delete_contact_completely overload conflict',
-      'Made message_audit_log.content nullable',
-      'Fixed _snapshot_version_state RLS AS(ALL) syntax',
-      'Fixed audit_log.created_by BIGINT->UUID',
-      'Fixed archive_old_consent_records LGPD 1825-day minimum',
-      'Dropped no-arg is_admin_or_supervisor() overload',
-      'Restricted security_acl_alerts to admin/supervisor'
-    ]
-  )
-);
 
 COMMIT;

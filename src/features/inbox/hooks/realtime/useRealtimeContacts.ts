@@ -252,6 +252,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       }
       pendingRef.current = new Map();
       setRealtimeContactsStatus('disconnected');
+      void channel.unsubscribe();
       void externalSupabase.removeChannel(channel);
     };
   }, [enabled, instance, queryClient]);

@@ -114,6 +114,12 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const effectiveFrom = from ?? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
   const effectiveTo = to;
 
+  // Cursor-based pagination: track cursor for each page number to enable efficient navigation
+  // Page 0 always has cursor=null; subsequent pages use last row ID from previous page
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
+
+  const currentPageCursor = pageIndexToCursor.get(page) ?? null;
+
   const queryKey = [
     'failed-messages',
     { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
@@ -122,14 +128,14 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_failed_messages', {
+      const { data, error } = await supabase.rpc('rpc_list_failed_messages_cursor', {
         p_status: status ? [status] : null,
         p_instance: instance,
         p_search: search,
         p_from: effectiveFrom,
         p_to: effectiveTo,
         p_limit: pageSize,
-        p_offset: page * pageSize,
+        p_cursor_id: currentPageCursor,
       });
       if (error) {
         if (isRlsDeniedError(error)) {
@@ -158,6 +164,19 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     refetchInterval: 30_000,
     retry: (count, err) => !isRlsDeniedError(err) && count < 2,
   });
+
+  // Update page history with cursor for next page when current page loads
+  useEffect(() => {
+    if (query.data?.rows && query.data.rows.length > 0) {
+      const lastRow = query.data.rows[query.data.rows.length - 1];
+      const nextPageCursor = lastRow.id;
+      setPageIndexToCursor((prev) => {
+        const updated = new Map(prev);
+        updated.set(page + 1, nextPageCursor);
+        return updated;
+      });
+    }
+  }, [query.data?.rows, page]);
 
   const aggregates = useMemo<FailedMessagesAggregates>(() => {
     const rows = query.data?.rows ?? [];
@@ -206,6 +225,11 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       topInstance: byInstance[0] ?? null,
     };
   }, [query.data]);
+
+  // Reset page history when filters change (start over from page 0)
+  useEffect(() => {
+    setPageIndexToCursor(new Map([[0, null]]));
+  }, [status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo]);
 
   // Realtime
   useEffect(() => {

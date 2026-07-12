@@ -8,6 +8,7 @@ export interface EmailFailure {
 
 export interface EmailHealthInfo {
   status: 'healthy' | 'degraded' | 'error';
+  /** Populated by the edge function when telemetry is persisted via shared storage. */
   source?: string;
   lastValidation: Date | null;
   cacheExpiration: number | null;
@@ -17,8 +18,6 @@ export interface EmailHealthInfo {
     failedCalls: number;
     cacheHits: number;
   };
-  /** Populated by the edge function when telemetry is persisted via shared storage. */
-  source?: string;
 }
 
 export interface EmailHealthFilters {

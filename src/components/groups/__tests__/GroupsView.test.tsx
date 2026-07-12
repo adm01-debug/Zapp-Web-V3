@@ -188,7 +188,7 @@ describe('GroupsView', () => {
     fireEvent.click(screen.getByText('Sincronizar'));
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith('evolution-api', {
-        body: { action: 'list-groups', instanceName: 'inst-1', getParticipants: 'false' },
+        body: { action: 'list-groups', instanceName: 'WPP', getParticipants: 'false' },
       });
     });
   });

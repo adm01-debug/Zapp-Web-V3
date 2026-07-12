@@ -112,7 +112,10 @@ export const useMessageStatus = (contactId?: string) => {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [contactId]);
 
   // Subscribe to in-memory bus (transient + immediate updates)

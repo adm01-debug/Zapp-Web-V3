@@ -36,7 +36,7 @@ export const messageService = {
     if (!contactId) return [];
 
     try {
-      // Fetch normal messages
+      // Fetch regular messages with pagination
       let allData: (Partial<RealtimeMessage> & { isWhisper?: boolean; sender_id?: string })[] = [];
       let from = 0;
       const PAGE_SIZE = 1000;
@@ -58,16 +58,12 @@ export const messageService = {
         }
       }
 
-      // Fetch whispers (internal notes) — only when contactId is a valid UUID.
-      // whisper_messages.contact_id is a uuid column; passing a WhatsApp JID
-      // (phone number, e.g. "551146375517") causes PostgREST to return 400
-      // "invalid input syntax for type uuid". Skip silently when called with
-      // a JID or any non-UUID identifier.
+      // Fetch whispers in parallel if contactId is valid UUID.
+      // whisper_messages.contact_id is a uuid column; WhatsApp JIDs cause 400 error.
+      // Query whispers concurrently rather than sequentially (N+1 mitigation).
+      let whispersData: (Partial<RealtimeMessage> & { isWhisper?: boolean; sender_id?: string })[] = [];
       if (isValidUUID(contactId)) {
-        const { data: whispers, error: whisperErr } = await supabase
-          .from('whisper_messages')
-          .select('*')
-          .eq('contact_id', contactId);
+        const { data: whispers, error: whisperErr } = await messageRepository.fetchWhispersByContact(contactId);
 
         if (whisperErr) {
           log.error('Error fetching whispers:', whisperErr);
@@ -87,6 +83,9 @@ export const messageService = {
           { contactId }
         );
       }
+
+      // Merge all messages (regular + whispers)
+      allData = allData.concat(whispersData);
 
       // Sort all messages by timestamp
       allData.sort((a, b) => {

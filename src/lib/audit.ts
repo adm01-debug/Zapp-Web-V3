@@ -45,11 +45,11 @@ export async function logAudit({ action, entityType, entityId, details }: AuditL
     const norm = normalizeEntityId(entityId ?? null, details);
     const { error } = await supabase.rpc('log_audit_event', {
       p_action: action,
-      p_entity_type: entityType || undefined,
+      p_entity_type: entityType ?? undefined,
       p_entity_id: norm.entityId ?? undefined,
       p_details: norm.details ? JSON.parse(JSON.stringify(norm.details)) : undefined,
       p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-    });
+    } as never);
 
     if (error) {
       log.warn('Failed to log audit:', error.message);

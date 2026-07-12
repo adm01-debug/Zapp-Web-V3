@@ -23,8 +23,6 @@ CREATE OR REPLACE FUNCTION fn_anonymize_contacts_batch_safe(
 RETURNS TABLE (anonymized INT, skipped INT)
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path = 'public', 'evo'
-SET lock_timeout = '15s'
-SET deadlock_timeout = '500ms'
 AS $$
 DECLARE
   v_offset       INT := 0;
@@ -97,8 +95,6 @@ CREATE OR REPLACE FUNCTION backup_campaign_contacts_safe()
 RETURNS TABLE(backed_up INT, old_partitions_cleaned INT)
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path = 'public', '_backups', 'zapp'
-SET lock_timeout = '10s'
-SET deadlock_timeout = '500ms'
 AS $$
 DECLARE
   v_backed_up   INT;
@@ -261,21 +257,5 @@ BEGIN
   RAISE NOTICE 'Verified: update_large_batch_safe is gone';
 END;
 $$;
-
--- ─────────────────────────────────────────────────────────────────────────────
--- 5. Emit audit chain event for this remediation
--- ─────────────────────────────────────────────────────────────────────────────
-SELECT fn_append_audit_event(
-  'INJECTION_VECTOR_CLOSED',
-  NULL,
-  'function',
-  'update_large_batch_safe',
-  jsonb_build_object(
-    'migration', '20260712170500_r16_dynamic_sql_injection_defense',
-    'functions_dropped', ARRAY['update_large_batch_safe', 'safe_execute_query'],
-    'replacement', 'fn_anonymize_contacts_batch_safe',
-    'reason', 'Caller-controlled dynamic SQL execution — injection risk'
-  )
-);
 
 COMMIT;
