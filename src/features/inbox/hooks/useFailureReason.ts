@@ -45,6 +45,7 @@ export function useFailureReason(messageId: string | undefined, enabled: boolean
         .select('attempt_count, final_status, final_http_status, retry_reasons')
         .eq('idempotency_key', `msg:${messageId}`)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(1)
         .maybeSingle<RetryReasonRow>();
 

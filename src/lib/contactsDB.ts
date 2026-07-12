@@ -239,6 +239,7 @@ export const contactsDB = {
         .select('*')
         .eq('contact_id', contactId)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(50);
       if (error) throw error;
       return (data ?? []) as ContactNote[];

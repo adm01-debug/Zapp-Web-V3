@@ -50,6 +50,7 @@ export default function AdminTelemetriaPage() {
         .gte("created_at", from)
         .lte("created_at", to)
         .order("created_at", { ascending: false })
+        .order('id', { ascending: false })
         .limit(500);
 
       if (severityFilter !== "all") {

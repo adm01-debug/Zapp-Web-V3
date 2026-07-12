@@ -57,6 +57,7 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
         `)
           .eq('contact_id', contactId)
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(50)
       );
       if (error) throw error;

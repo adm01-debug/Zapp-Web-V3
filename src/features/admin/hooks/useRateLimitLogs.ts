@@ -35,6 +35,7 @@ export function useRateLimitLogs() {
         .from('rate_limit_logs')
         .select('*')
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(100);
       if (!error && data) return data as RateLimitLog[];
       return [];

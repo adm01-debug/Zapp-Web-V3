@@ -101,6 +101,7 @@ export default function AdminEvolutionApiLogsPage() {
         .select('*')
         .gte('created_at', since)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(500);
 
       if (statusFilter !== 'all') q = q.eq('final_status', statusFilter);

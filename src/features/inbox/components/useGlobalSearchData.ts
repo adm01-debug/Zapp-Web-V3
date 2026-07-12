@@ -138,6 +138,7 @@ export function useGlobalSearchData(open: boolean) {
               `id, content, message_type, created_at, contact_id, contacts:contact_id (id, name, surname)`
             )
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(20);
 
           if (cleanQuery.length >= 2) {
@@ -193,6 +194,7 @@ export function useGlobalSearchData(open: boolean) {
             .not('transcription', 'is', null)
             .ilike('transcription', `%${cleanQuery}%`)
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(15);
           if (dateStart) audioQuery = audioQuery.gte('created_at', dateStart.toISOString());
 

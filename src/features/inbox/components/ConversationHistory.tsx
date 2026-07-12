@@ -95,6 +95,7 @@ export function ConversationHistory({
         .select('id, content, created_at, sender')
         .eq('contact_id', contactId)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(100);
 
       if (fromDate) {

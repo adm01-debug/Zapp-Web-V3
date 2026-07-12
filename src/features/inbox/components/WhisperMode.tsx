@@ -56,6 +56,7 @@ export function WhisperMode({
           .select('*, sender:profiles!whisper_messages_sender_id_fkey(name, avatar_url)')
           .eq('contact_id', contactId)
           .order('created_at', { ascending: true })
+          .order('id', { ascending: true })
           .limit(50)
       );
       if (error) throw error;

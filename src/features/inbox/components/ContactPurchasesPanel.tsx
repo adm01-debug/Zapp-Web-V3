@@ -65,7 +65,8 @@ export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchases
       .from('contact_purchases')
       .select('*')
       .eq('contact_id', contactId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
     if (data) setPurchases(data);
     setLoading(false);
   };

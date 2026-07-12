@@ -59,7 +59,8 @@ export function useAIStats(selectedPeriod: PeriodOption) {
         .from('conversation_analyses')
         .select('sentiment, sentiment_score, created_at')
         .gte('created_at', periodStart.toISOString())
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
       if (error) throw error;
 
       const { data: previousAnalyses } = await supabase
@@ -109,7 +110,8 @@ export function useAIStats(selectedPeriod: PeriodOption) {
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: alertData } = await supabase
         .from('audit_logs').select('*').eq('action', 'sentiment_alert')
-        .gte('created_at', last24h).order('created_at', { ascending: false }).limit(5);
+        .gte('created_at', last24h).order('created_at', { ascending: false }).limit(5)
+        .order('id', { ascending: false });
 
       const activeAlerts: SentimentAlert[] = (alertData || []).map(log => ({
         id: log.id, contactId: log.entity_id, createdAt: log.created_at,

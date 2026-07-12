@@ -68,7 +68,8 @@ async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
     .from('conversation_sla')
     .select('*')
     .gte('created_at', startDate.toISOString())
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true });
 
   if (error) throw error;
 

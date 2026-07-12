@@ -103,6 +103,7 @@ export default function QueueDetails() {
         .select('id, name, phone, avatar_url, assigned_to, created_at')
         .eq('queue_id', id)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(50);
 
       const contacts = contactsData || [];

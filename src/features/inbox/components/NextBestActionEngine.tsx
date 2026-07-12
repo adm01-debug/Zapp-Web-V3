@@ -46,6 +46,7 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
       .select('created_at, sender')
       .eq('contact_id', contactId)
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(1)
       .maybeSingle();
 

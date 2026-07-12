@@ -159,6 +159,7 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
         .select('*')
         .eq('contact_id', contactId!)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(100);
       if (error) throw error;
       const rows = Array.isArray(data) ? data : [];
@@ -185,6 +186,7 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
         .eq('entity_type', 'conversation')
         .eq('entity_id', contactId!)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(50);
       if (error) return [];
       return data ?? [];

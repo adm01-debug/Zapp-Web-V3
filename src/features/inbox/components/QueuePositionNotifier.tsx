@@ -18,6 +18,7 @@ export function QueuePositionNotifier({ contactId, className }: QueuePositionNot
         .select('position, estimated_wait_minutes, queue_id')
         .eq('contact_id', contactId)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(1)
         .maybeSingle();
 

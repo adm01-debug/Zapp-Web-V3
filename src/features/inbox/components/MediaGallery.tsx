@@ -61,7 +61,8 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
         .select('id, media_url, message_type, content, created_at')
         .eq('contact_id', contactId)
         .not('media_url', 'is', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (error) throw error;
       return data || [];
     },

@@ -51,6 +51,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
         .select('*')
         .eq('is_read', false)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(50);
       if (error) {
         log.error('Failed to fetch warroom_alerts', error);

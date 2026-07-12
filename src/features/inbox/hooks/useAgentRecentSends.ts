@@ -38,6 +38,7 @@ export function useAgentRecentSends() {
           q
             .select('idem_key, instance_name, http_status, external_message_id, created_at, path')
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(SENDS_LIMIT)
       );
       if (sendsErr) throw sendsErr;

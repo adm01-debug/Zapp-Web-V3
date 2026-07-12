@@ -83,6 +83,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(100);
 
       if (logs) {

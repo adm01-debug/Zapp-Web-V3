@@ -79,6 +79,7 @@ export function useHmacSelfTest(instance: string, includeNegative: boolean) {
         .eq('source', source)
         .is('resolved_at', null)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(1);
       if (existingError) {
         log.warn('warroom_alerts lookup failed', existingError);

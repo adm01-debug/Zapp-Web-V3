@@ -53,6 +53,8 @@ export function useAutomations({
   const isMounted = useRef(true);
   const loadingRef = useRef(false);
   const evaluatingRef = useRef(false);
+  const needsRerunRef = useRef(false);
+  const evaluatingConvRef = useRef<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -61,9 +63,13 @@ export function useAutomations({
     };
   }, []);
 
-  // Reseta snapshot de tags ao trocar de conversa
+  // Reseta snapshot de tags ao trocar de conversa e libera o mutex do avaliador
+  // anterior para que a nova conversa não fique bloqueada por uma avaliação em voo.
   useEffect(() => {
     prevTagsRef.current = null;
+    evaluatingRef.current = false;
+    needsRerunRef.current = false;
+    evaluatingConvRef.current = null;
   }, [remoteJid, instanceName]);
 
   // Carrega regras ativas (refresh a cada 60s)
@@ -115,8 +121,15 @@ export function useAutomations({
   // Avalia gatilhos para a conversa ativa
   const evaluate = useCallback(async () => {
     if (!remoteJid || !isMounted.current) return;
-    if (evaluatingRef.current) return;
+    const convKey = `${remoteJid}:${instanceName}`;
+    if (evaluatingRef.current) {
+      // Defer rather than drop: the tick that unblocks will rerun for this conv.
+      needsRerunRef.current = true;
+      return;
+    }
     evaluatingRef.current = true;
+    evaluatingConvRef.current = convKey;
+    needsRerunRef.current = false;
 
     try {
       const rules = rulesRef.current;
@@ -332,7 +345,15 @@ export function useAutomations({
     } catch (err) {
       log.error('Error evaluating automations:', err);
     } finally {
-      evaluatingRef.current = false;
+      // Only release the lock if we still own it (conversation didn't change mid-flight).
+      if (evaluatingConvRef.current === convKey) {
+        evaluatingRef.current = false;
+        if (needsRerunRef.current && isMounted.current) {
+          needsRerunRef.current = false;
+          // Defer to next microtask to avoid synchronous recursion.
+          void Promise.resolve().then(() => { void evaluate(); });
+        }
+      }
     }
   }, [remoteJid, instanceName, assignedTo]);
 

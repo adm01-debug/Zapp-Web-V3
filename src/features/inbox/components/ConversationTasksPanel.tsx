@@ -58,7 +58,8 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
       .from('conversation_tasks')
       .select('*')
       .eq('contact_id', contactId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
     if (data) setTasks(data);
     setLoading(false);
   };

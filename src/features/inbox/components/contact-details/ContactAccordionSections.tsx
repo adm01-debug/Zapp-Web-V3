@@ -370,6 +370,7 @@ function SharedMediaAccordionItem({
             .eq('contact_id', contactId)
             .not('media_url', 'is', null)
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(PAGE_SIZE);
           if (error) throw error;
           return data || [];

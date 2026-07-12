@@ -126,6 +126,7 @@ export function useContactEnrichedData(contactId: string) {
         .select('first_response_breached, resolution_breached, first_response_at, resolved_at')
         .eq('contact_id', localId!)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(1)
         .maybeSingle();
 

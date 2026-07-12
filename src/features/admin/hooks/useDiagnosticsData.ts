@@ -58,7 +58,8 @@ async function fetchConnections(): Promise<ConnectionStatus[]> {
   const { data } = await supabase
     .from('whatsapp_connections')
     .select('id, instance_id, status, phone_number, created_at, updated_at')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false });
   return (data || []) as ConnectionStatus[];
 }
 
@@ -87,6 +88,7 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     .eq('sender', 'agent')
     .eq('status', 'failed')
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
     .limit(10);
 
   const recentFailures = [];
@@ -167,6 +169,7 @@ async function fetchErrorLogs(): Promise<ErrorLog[]> {
     .select('id, content, created_at, contact_id')
     .eq('status', 'failed')
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
     .limit(20);
 
   if (failedMsgs) {

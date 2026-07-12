@@ -53,6 +53,7 @@ async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
       `
       )
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(PAGE_SIZE)
   );
 

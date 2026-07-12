@@ -112,6 +112,7 @@ export const useSlaQuery = () =>
         .select('first_message_at, first_response_at')
         .not('first_response_at', 'is', null)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(50);
       if (error) throw error;
       if (!data || data.length === 0) return { avgResponseTime: null };

@@ -68,6 +68,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .select('*')
           .eq('idempotency_key', idempotencyKey)
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase
@@ -76,12 +77,14 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .eq('entity_type', 'message')
           .eq('entity_id', messageId)
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(20),
         supa
           .from('outbound_delivery_audit')
           .select('*')
           .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(10),
       ]);
 

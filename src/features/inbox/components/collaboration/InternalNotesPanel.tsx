@@ -26,6 +26,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
         q.select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
          .eq('contact_id', contactId)
          .order('created_at', { ascending: false })
+         .order('id', { ascending: false })
          .limit(50)
       );
       if (error) throw error;

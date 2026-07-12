@@ -114,6 +114,7 @@ export default function AdminAlertHistoryPage() {
           )
           .gte('created_at', since)
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(500);
         if (statusFilter === 'active') query = query.is('resolved_at', null);
         if (statusFilter === 'resolved') query = query.not('resolved_at', 'is', null);
