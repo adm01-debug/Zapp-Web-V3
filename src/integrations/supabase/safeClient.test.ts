@@ -32,7 +32,8 @@ describe('safeClient Masking', () => {
       normalField: 'visible'
     };
 
-    const masked = safeClient.maskSensitiveData(sensitiveData) as Record<string, { token?: string; apiKey?: string; password?: string; email?: string; user?: Record<string, string>; normalField?: string }>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const masked = safeClient.maskSensitiveData(sensitiveData) as any;
 
     expect(masked.token).toBe('***MASKED***');
     expect(masked.apiKey).toBe('***MASKED***');
@@ -51,6 +52,7 @@ describe('safeClient Masking', () => {
     const data = { authorization: longToken, name: 'John' };
     const result = safeClient.maskSensitiveData(data) as Record<string, string>;
     expect(result.name).toBe('John');
+    expect(result.authorization).toBe('***MASKED***');
   });
 
   it('should handle arrays of objects', () => {

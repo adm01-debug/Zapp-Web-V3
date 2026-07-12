@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
 import { dbFrom } from '@/integrations/datasource/db';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 const log = getLogger('useSendProduct');
 
@@ -74,13 +75,22 @@ export function useSendToContact(onSuccess: () => void) {
     async (contact: ContactResult, message: string, imageUrls: string[]) => {
       setIsSending(true);
       try {
-        const { data: connections } = await supabase
+        const { data: connections, error: connError } = await supabase
           .from('whatsapp_connections')
-          .select('id, name')
+          .select('id, name, instance_id, instance_name')
           .eq('status', 'connected')
           .limit(1);
+        if (connError) {
+          log.error('Failed to fetch WhatsApp connections:', connError);
+          throw connError;
+        }
 
         const connection = connections?.[0];
+        const evoName = connection ? evolutionInstanceName(connection) : null;
+        if (!evoName) {
+          toast.error('Nenhuma conexão WhatsApp ativa com nome de instância válido.');
+          return;
+        }
 
         for (const imgUrl of imageUrls) {
           const { data: dbResult } = await supabase
@@ -99,7 +109,7 @@ export function useSendToContact(onSuccess: () => void) {
           const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
             body: {
               action: 'send-media',
-              instanceName: connection?.name || 'wpp2',
+              instanceName: evoName,
               number: contact.phone,
               mediatype: 'image',
               media: imgUrl,
@@ -131,7 +141,7 @@ export function useSendToContact(onSuccess: () => void) {
         const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
           body: {
             action: 'send-text',
-            instanceName: connection?.name || 'wpp2',
+            instanceName: evoName,
             number: contact.phone,
             text: message,
           },

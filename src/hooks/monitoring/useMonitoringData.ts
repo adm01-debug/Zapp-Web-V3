@@ -76,7 +76,7 @@ export function useMonitoringData(onConnectionsUpdate?: (conns: ConnectionInfo[]
       const since = new Date(now.getTime() - periodMs[period]);
 
       const [connRes, logsRes, msgRes] = await Promise.all([
-        supabase.from('whatsapp_connections').select('id, instance_id, phone_number, status, health_status, health_response_ms, last_health_check, updated_at'),
+        supabase.from('whatsapp_connections').select('id, instance_id, instance_name, phone_number, status, health_status, health_response_ms, last_health_check, updated_at'),
         supabase.from('connection_health_logs').select('*').order('checked_at', { ascending: false }).limit(500),
         dbFrom('messages').select('sender, created_at').gte('created_at', since.toISOString()).order('created_at', { ascending: true }),
       ]);

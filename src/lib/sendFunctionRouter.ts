@@ -30,11 +30,26 @@ export async function resolveSendFunction(
   if (cached && cached.expiresAt > Date.now()) return cached.fn;
 
   try {
-    const { data } = await supabase
+    // Use two sequential exact queries instead of interpolated .or() to avoid
+    // PostgREST filter injection when instanceName contains reserved characters.
+    let { data, error } = await supabase
       .from('whatsapp_connections')
       .select('api_type, status')
-      .eq('instance_id', instanceName)
+      .eq('instance_name', instanceName)
       .maybeSingle();
+
+    if (!data && !error) {
+      ({ data, error } = await supabase
+        .from('whatsapp_connections')
+        .select('api_type, status')
+        .eq('instance_id', instanceName)
+        .maybeSingle());
+    }
+
+    if (error) {
+      // Do not cache on DB error — let next call retry.
+      return 'evolution-api';
+    }
 
     // Roteamento inteligente com fallback:
     // Se a conexão oficial estiver instável (status != 'connected') e houver uma instância Evolution

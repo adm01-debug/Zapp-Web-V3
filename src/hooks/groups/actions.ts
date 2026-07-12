@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
 import type { WhatsAppGroup, WhatsAppConnection } from './types';
 import { dbFrom } from '@/integrations/datasource/db';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 interface UseGroupActionsParams {
   connections: WhatsAppConnection[];
@@ -30,9 +31,11 @@ export function useGroupActions({ connections, groups, selectedGroups, setGroups
 
     for (const conn of connections) {
       if (!conn.instance_id) continue;
+      const evoName = evolutionInstanceName(conn);
+      if (!evoName) { log.warn(`[handleAutoSync] skipping conn ${conn.id} — no routable instance name`); totalErrors++; continue; }
       try {
         const { data, error } = await supabase.functions.invoke('evolution-api', {
-          body: { action: 'list-groups', instanceName: conn.instance_id, getParticipants: 'false' },
+          body: { action: 'list-groups', instanceName: evoName, getParticipants: 'false' },
         });
         if (error) { totalErrors++; continue; }
 
@@ -94,9 +97,11 @@ export function useGroupActions({ connections, groups, selectedGroups, setGroups
     for (const group of groupsToSend) {
       const conn = connections.find(c => c.id === group.whatsapp_connection_id);
       if (!conn?.instance_id) { failed++; continue; }
+      const evoName = evolutionInstanceName(conn);
+      if (!evoName) { log.warn(`[handleBroadcast] skipping group ${group.id} — conn has no routable instance name`); failed++; continue; }
       try {
         const { error } = await supabase.functions.invoke('evolution-api', {
-          body: { action: 'send-text', instanceName: conn.instance_id, number: group.group_id, text: broadcastMessage },
+          body: { action: 'send-text', instanceName: evoName, number: group.group_id, text: broadcastMessage },
         });
         if (error) failed++; else sent++;
         if (groupsToSend.indexOf(group) < groupsToSend.length - 1) await new Promise(r => setTimeout(r, 2000));
