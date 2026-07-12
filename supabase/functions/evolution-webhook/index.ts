@@ -116,8 +116,22 @@ serve(async (req) => {
       );
     }
     rawBody = result.payload ?? '';
+  } else if (STRICT_MODE) {
+    // Fail-closed: sem secret configurado no servidor, um POST anônimo não pode ser
+    // autenticado — rejeita em vez de processar (antes era fail-open, processava
+    // qualquer requisição com service_role). Para dev/local, defina
+    // EVOLUTION_WEBHOOK_STRICT=false explicitamente. Auditoria 2026-07-12.
+    console.error(redactSecrets(`[webhook][${requestId}] rejected: nenhum webhook secret configurado (EVOLUTION_WEBHOOK_SECRETS/SECRET) e STRICT_MODE ativo`));
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, status: 'rejected', error_message: 'webhook_secret_not_configured',
+      duration_ms: Date.now() - startedAt,
+    });
+    return new Response(
+      JSON.stringify({ error: 'unauthorized', reason: 'webhook_secret_not_configured', requestId }),
+      { status: 401, headers: corsHeaders },
+    );
   } else {
-    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped`));
+    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped (STRICT_MODE=false)`));
     rawBody = await req.text();
   }
 

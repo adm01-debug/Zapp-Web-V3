@@ -38,8 +38,11 @@ export function getCorsHeaders(req: Request): Record<string, string> {
       'Vary': 'Origin',
     };
   }
+  // Fail-closed: origem fora da allowlist NÃO recebe Access-Control-Allow-Origin,
+  // então o browser bloqueia a resposta cross-origin. Chamadas servidor-a-servidor
+  // (webhooks) não enviam Origin e são indiferentes a CORS. Antes retornava '*'
+  // (fail-open). Auditoria 2026-07-12.
   return {
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': ALLOWED_HEADERS,
     'Access-Control-Allow-Methods': ALLOWED_METHODS,
     'Vary': 'Origin',
