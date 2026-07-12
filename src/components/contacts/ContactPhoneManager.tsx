@@ -201,7 +201,7 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
 
             <Select
               value={newPhone.type}
-              onValueChange={(v) => setNewPhone((p) => ({ ...p, type: v as PhoneEntry['type'] }))}
+              onValueChange={(v) => setNewPhone((p) => ({ ...p, type: v as PhoneEntry['type']  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}
             >
               <SelectTrigger>
                 <SelectValue />

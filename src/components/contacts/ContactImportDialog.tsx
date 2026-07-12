@@ -151,7 +151,7 @@ export const ContactImportDialog: React.FC<ContactImportDialogProps> = ({
 
       if (fnError) throw fnError;
 
-      const res = data as ImportResult;
+      const res = data as ImportResult; // ignore-audit: narrows Supabase query result to local interface
       setResult(res);
       setProgress(100);
 

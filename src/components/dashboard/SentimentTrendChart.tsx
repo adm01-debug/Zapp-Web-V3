@@ -48,7 +48,7 @@ export function SentimentTrendChart({ data: externalData, isLoading, onRefresh, 
             <Smile className="w-5 h-5 text-primary" />Tendência de Sentimento
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Select value={period} onValueChange={(v) => setPeriod(v as '7' | '14' | '30')}>
+            <Select value={period} onValueChange={(v) => setPeriod(v as '7' | '14' | '30' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
               <SelectTrigger className="w-32"><Calendar className="w-4 h-4 mr-2" /><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="7">7 dias</SelectItem>
