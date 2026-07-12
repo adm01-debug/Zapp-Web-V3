@@ -88,7 +88,9 @@ pip install git-filter-repo
 
 # Remover o valor antigo de todo o histórico
 # Substitua <CHAVE-ANTIGA> pelo valor real da chave comprometida (não versionar aqui)
-git filter-repo --replace-text <(echo "<CHAVE-ANTIGA>==>REDACTED_ROTATED")
+TMPFILE=$(mktemp) && echo "<CHAVE-ANTIGA>==>REDACTED_ROTATED" > "$TMPFILE"
+git filter-repo --replace-text "$TMPFILE"
+rm -f "$TMPFILE"
 
 # Force-push (coordenar com a equipe — reescreve histórico)
 git push --force-with-lease origin main
