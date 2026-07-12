@@ -34,9 +34,10 @@ export function useRolesPageState() {
       role: string;
       profiles: unknown;
     };
-    const { data, error } = await safeClient.from<RoleRow>('user_roles', q =>
+    const { data: rawData, error } = await safeClient.from('user_roles', q =>
       q.select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`).order('role'),
     );
+    const data = (rawData ?? null) as RoleRow[] | null;
 
     if (!error && data) {
       setUsers(
