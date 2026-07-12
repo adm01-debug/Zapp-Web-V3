@@ -54,7 +54,7 @@ export const whatsappConnectionRepository = {
   },
 
   async updateConnection(id: string, updates: TablesUpdate<'whatsapp_connections'>) {
-    const res = await supabase.from(TABLE).update(updates).eq('id', id);
+    const res = await safeFrom(TABLE).update(updates).eq('id', id);
     invalidateWhatsappConnectionsCache();
     return res;
   },
