@@ -285,8 +285,8 @@ export function DepartmentManagementDialog({
                           </Button>
                         </div>
                       </div>
-                    )
-                  )}
+                    </div>
+                  ))}
                   {invitations.length === 0 && (
                     <div className="py-10 text-center text-muted-foreground">
                       Nenhum convite ativo.

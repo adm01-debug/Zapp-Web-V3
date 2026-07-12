@@ -152,7 +152,7 @@ export default function AdminAutomationLogsPage() {
       )
       .subscribe();
     return () => {
-      ch.unsubscribe();
+      supabase.removeChannel(ch);
     };
   }, [page, load]);
 

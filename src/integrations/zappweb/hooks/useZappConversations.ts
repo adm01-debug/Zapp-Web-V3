@@ -64,7 +64,7 @@ export function useZappConversations(opts: Options = {}) {
       )
       .subscribe();
     return () => {
-      ch.unsubscribe();
+      zappSupabase.removeChannel(ch);
     };
   }, [instance, fetchAll]);
 

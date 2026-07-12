@@ -75,21 +75,21 @@ export function useFailedMessageAlerts(enabled = true): void {
               description:
                 'O reprocessador da fila esgotou as tentativas. Verifique o painel de mensagens com falha.',
               duration: 12_000,
-            }
+            },
           );
           log.warn('[dlq-alert] abandoned', {
             id: next.id,
             instance: next.instance_name,
             error_code: next.error_code,
           });
-        }
+        },
       )
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR') log.warn('[dlq-alert] channel error');
       });
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [enabled]);
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { log } from '@/lib/logger';
 import { PeriodFilterSelector, usePeriodFilter } from './ai-tools/PeriodFilterSelector';
@@ -81,7 +81,7 @@ export function ConversationSummary({
   initialSummary,
 }: ConversationSummaryProps) {
   const [summary, setSummary] = useState<SummaryData | null>(
-    (initialSummary as SummaryData) ?? null
+    (initialSummary as unknown as SummaryData) ?? null
   );
   const [isLoading, setIsLoading] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(!!initialSummary);
@@ -118,7 +118,7 @@ export function ConversationSummary({
   }, [analysisPeriod, customDateFrom, customDateTo]);
   useEffect(() => {
     if (initialSummary) {
-      setSummary(initialSummary as SummaryData);
+      setSummary(initialSummary as unknown as SummaryData);
       setHasGenerated(true);
     }
   }, [initialSummary]);
@@ -139,27 +139,14 @@ export function ConversationSummary({
     }
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-conversation-summary', {
-        body: {
-          messages: filteredMessages.map((m) => ({
-            sender: m.sender,
-            content: m.content,
-            created_at: m.created_at,
-          })),
-          contactName,
-          contactId,
-        },
+      const data = await conversationSummary({
+        messages: filteredMessages.map(m => ({ role: m.sender, content: m.content, sender: m.sender })),
+        contactName,
+        contactId,
       });
-      if (error) throw error;
-      setSummary(data);
-      setHasGenerated(true);
-      toast.success('Resumo gerado com sucesso!');
-    } catch (error) {
-      log.error('Error generating summary:', error);
-      toast.error('Erro ao gerar resumo. Tente novamente.');
-    } finally {
-      setIsLoading(false);
-    }
+      setSummary(data as any); setHasGenerated(true); toast.success('Resumo gerado com sucesso!');
+    } catch (error) { log.error('Error generating summary:', error); toast.error('Erro ao gerar resumo. Tente novamente.'); }
+    finally { setIsLoading(false); }
   };
 
   const StatusIcon = summary ? statusConfig[summary.status]?.icon || Clock : Clock;

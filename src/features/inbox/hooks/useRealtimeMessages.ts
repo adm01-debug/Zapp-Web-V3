@@ -55,17 +55,7 @@ export interface RealtimeMessage {
   message_type: string;
   media_url: string | null;
   is_read: boolean | null;
-  status:
-    | 'sending'
-    | 'retrying'
-    | 'sent'
-    | 'delivered'
-    | 'read'
-    | 'played'
-    | 'failed'
-    | 'failed_auth'
-    | 'failed_retries'
-    | null;
+  status: 'sending' | 'retrying' | 'sent' | 'delivered' | 'read' | 'played' | 'failed' | 'failed_auth' | 'failed_retries' | null;
   status_updated_at: string | null;
   created_at: string;
   updated_at: string;
@@ -330,20 +320,13 @@ export function useRealtimeMessages() {
 
     // FATOR X v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
     // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
-    const adaptEvoPayload = (
-      p: RealtimePostgresChangesPayload<Record<string, unknown>>
-    ): RealtimePostgresChangesPayload<RealtimeMessage> => {
-      const map = (r: Record<string, unknown> | undefined) =>
-        r && {
-          ...r,
-          sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
-          is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
-        };
-      return {
-        ...p,
-        new: map(p.new as Record<string, unknown>),
-        old: map(p.old as Record<string, unknown>),
-      } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>;
+    const adaptEvoPayload = (p: RealtimePostgresChangesPayload<Record<string, unknown>>): RealtimePostgresChangesPayload<RealtimeMessage> => {
+      const map = (r: Record<string, unknown> | undefined) => r && ({
+        ...r,
+        sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
+        is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
+      });
+      return { ...p, new: map(p.new as Record<string, unknown>), old: map(p.old as Record<string, unknown>) } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>; // ignore-audit — evo.evolution_messages adapter; mapped shape is structurally RealtimeMessage at runtime
     };
     const channel = dbChannel('messages', channelName)
       .on(
@@ -397,7 +380,7 @@ export function useRealtimeMessages() {
 
     return () => {
       active = false;
-      channel.unsubscribe();
+      void dbRemoveChannel('messages', channel);
     };
   }, [fetchConversations, handleNewMessage, handleMessageUpdate, handleMessageDelete]);
 

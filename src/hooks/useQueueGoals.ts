@@ -64,7 +64,7 @@ export function useQueueGoals() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 

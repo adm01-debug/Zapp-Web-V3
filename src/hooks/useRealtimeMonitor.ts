@@ -27,16 +27,20 @@ export function useRealtimeMonitor(enabled: boolean) {
         () => {
           setLastEventAt(Date.now());
           queryClient.invalidateQueries({ queryKey: ['realtime-monitor', 'connections'] });
-        }
+        },
       )
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'failed_messages' }, () => {
-        setLastEventAt(Date.now());
-        queryClient.invalidateQueries({ queryKey: ['realtime-monitor', 'dispatch-errors'] });
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'failed_messages' },
+        () => {
+          setLastEventAt(Date.now());
+          queryClient.invalidateQueries({ queryKey: ['realtime-monitor', 'dispatch-errors'] });
+        },
+      )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [enabled, queryClient]);
 

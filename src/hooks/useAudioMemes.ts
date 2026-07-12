@@ -100,8 +100,8 @@ export function useAudioMemes(open: boolean) {
         });
 
       return () => {
-        catalogChannel.unsubscribe();
-        favoritesChannel.unsubscribe();
+        supabase.removeChannel(catalogChannel);
+        supabase.removeChannel(favoritesChannel);
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current = null;

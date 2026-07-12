@@ -1,11 +1,12 @@
 // @ts-nocheck
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import {
-  type ConversationWithMessages,
-  type ConversationContact,
-  type RealtimeMessage,
-} from '@/features/inbox';
+import type {
+  ConversationWithMessages,
+  ConversationContact,
+  RealtimeMessage,
+} from './realtime/types';
+import { seedAvatarCache } from './realtime/avatarBatchStore';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -254,7 +255,7 @@ export function useRealtimeInbox() {
       .subscribe();
     return () => {
       cancelled = true;
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [selectedContactId, profile?.id]);
 
@@ -310,7 +311,6 @@ export function useRealtimeInbox() {
               contactAvatar: currentAvatar,
               caption: i === 0 ? content : undefined,
               onProgress: (p) => {
-                const _total = (i / attachments.length) * 100 + p / attachments.length;
                 messageQueue.updateProgress(
                   item.id,
                   p / attachments.length + (i / attachments.length) * 100
@@ -336,8 +336,11 @@ export function useRealtimeInbox() {
       }
 
       clearTimeout(postSendTimerRef.current);
+      // Only refresh the sidebar list — the message list is already updated
+      // via the optimistic message added above; polling handles reconciliation.
+      // Calling refetchSelectedMessages() (= initialFetch) here would collapse
+      // the chat to the last page, discarding any messages loaded via scroll-up.
       postSendTimerRef.current = setTimeout(() => {
-        void refetchSelectedMessages();
         void refetch();
       }, 1500);
       return;

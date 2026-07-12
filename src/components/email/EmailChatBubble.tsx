@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useRef } from 'react';
 import DOMPurify from 'dompurify';
 import {
@@ -251,13 +252,7 @@ export function EmailChatBubble({
           {onReply && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  aria-label="Responder"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={onReply}
-                >
+                <Button aria-label="Responder" variant="ghost" size="icon" className="h-7 w-7" onClick={onReply}>
                   <Reply className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>

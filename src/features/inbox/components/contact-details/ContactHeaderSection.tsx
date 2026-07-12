@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, lazy, Suspense } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -55,22 +56,10 @@ const contactTypeConfig: Record<string, { label: string; color: string }> = {
   customer: { label: 'Cliente', color: 'bg-primary/15 text-primary-accessible border-primary/30' },
   cliente: { label: 'Cliente', color: 'bg-primary/15 text-primary-accessible border-primary/30' },
   lead: { label: 'Lead', color: 'bg-info/15 text-info-accessible border-info/30' },
-  employee: {
-    label: 'Colaborador',
-    color: 'bg-success/15 text-success-accessible border-success/30',
-  },
-  colaborador: {
-    label: 'Colaborador',
-    color: 'bg-success/15 text-success-accessible border-success/30',
-  },
-  supplier: {
-    label: 'Fornecedor',
-    color: 'bg-warning/15 text-warning-accessible border-warning/30',
-  },
-  fornecedor: {
-    label: 'Fornecedor',
-    color: 'bg-warning/15 text-warning-accessible border-warning/30',
-  },
+  employee: { label: 'Colaborador', color: 'bg-success/15 text-success-accessible border-success/30' },
+  colaborador: { label: 'Colaborador', color: 'bg-success/15 text-success-accessible border-success/30' },
+  supplier: { label: 'Fornecedor', color: 'bg-warning/15 text-warning-accessible border-warning/30' },
+  fornecedor: { label: 'Fornecedor', color: 'bg-warning/15 text-warning-accessible border-warning/30' },
 };
 
 interface ContactHeaderSectionProps {

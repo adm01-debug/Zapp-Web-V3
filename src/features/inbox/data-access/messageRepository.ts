@@ -93,6 +93,6 @@ export const messageRepository = {
   },
 
   unsubscribe(channel: RealtimeChannel) {
-    channel.unsubscribe();
+    dbClient('messages').removeChannel(channel);
   },
 };

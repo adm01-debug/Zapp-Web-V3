@@ -6,36 +6,22 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getLogger } from '@/lib/logger';
-import {
-  normalizeSecurityAlert,
-  type NormalizedSecurityAlert as SecurityAlert,
-} from '@/lib/normalizers';
+import { normalizeSecurityAlert, type NormalizedSecurityAlert as SecurityAlert } from '@/lib/normalizers';
 
 const log = getLogger('RateLimitRealtimeAlerts');
 
-const ALERT_CONFIG: Record<
-  string,
-  { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }
-> = {
+const ALERT_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   rate_limit: { icon: Clock, color: 'text-warning', bg: 'bg-warning/10 dark:bg-warning/20/30' },
-  blocked_ip: {
-    icon: Ban,
-    color: 'text-destructive',
-    bg: 'bg-destructive/10 dark:bg-destructive/20/30',
-  },
-  suspicious: {
-    icon: AlertTriangle,
-    color: 'text-warning',
-    bg: 'bg-warning/10 dark:bg-warning/20/30',
-  },
-  default: { icon: Shield, color: 'text-info', bg: 'bg-info/10 dark:bg-info/20/30' },
+  blocked_ip: { icon: Ban, color: 'text-destructive', bg: 'bg-destructive/10 dark:bg-destructive/20/30' },
+  suspicious: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10 dark:bg-warning/20/30' },
+  default: { icon: Shield, color: 'text-info', bg: 'bg-info/10 dark:bg-info/20/30' }
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
   low: 'border-l-blue-500',
   medium: 'border-l-yellow-500',
   high: 'border-l-warning',
-  critical: 'border-l-red-500',
+  critical: 'border-l-red-500'
 };
 
 export function RateLimitRealtimeAlerts() {
@@ -56,10 +42,7 @@ export function RateLimitRealtimeAlerts() {
         log.error('Failed to fetch security_alerts', error);
         return;
       }
-      if (data)
-        setAlerts(
-          data.map((row) => normalizeSecurityAlert(row as unknown as Record<string, unknown>))
-        );
+      if (data) setAlerts(data.map((row) => normalizeSecurityAlert(row as unknown as Record<string, unknown>)));
     };
 
     void fetchAlerts();
@@ -71,10 +54,7 @@ export function RateLimitRealtimeAlerts() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'security_alerts' },
         (payload) => {
-          const newAlert = normalizeSecurityAlert(
-            payload.new as unknown as Record<string, unknown>
-          );
-          setAlerts((prev) => [newAlert, ...prev].slice(0, 10));
+          setAlerts(prev => [payload.new, ...prev].slice(0, 10));
 
           // Play sound for critical alerts
           if (payload.new.severity === 'critical' || payload.new.severity === 'high') {
@@ -84,9 +64,7 @@ export function RateLimitRealtimeAlerts() {
       )
       .subscribe();
 
-    return () => {
-      void channel.unsubscribe();
-    };
+    return () => { void supabase.removeChannel(channel); };
   }, []);
 
   const playAlertSound = () => {
@@ -104,8 +82,8 @@ export function RateLimitRealtimeAlerts() {
   };
 
   const handleDismiss = async (alertId: string) => {
-    setDismissed((prev) => new Set([...prev, alertId]));
-
+    setDismissed(prev => new Set([...prev, alertId]));
+    
     const { error } = await supabase
       .from('security_alerts')
       .update({ is_resolved: true, resolved_at: new Date().toISOString() })
@@ -113,14 +91,14 @@ export function RateLimitRealtimeAlerts() {
     if (error) log.error('Failed to mark security alert as resolved', error);
   };
 
-  const visibleAlerts = alerts.filter((a) => !dismissed.has(a.id));
+  const visibleAlerts = alerts.filter(a => !dismissed.has(a.id));
 
   if (visibleAlerts.length === 0) {
     return null;
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-sm space-y-2">
+    <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm">
       <AnimatePresence mode="popLayout">
         {visibleAlerts.slice(0, 3).map((alert) => {
           const config = ALERT_CONFIG[alert.alert_type] ?? ALERT_CONFIG.default;
@@ -132,36 +110,36 @@ export function RateLimitRealtimeAlerts() {
               initial={{ opacity: 0, x: 100, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 100, scale: 0.9 }}
-              className={`rounded-lg border border-l-4 bg-card p-4 shadow-lg ${SEVERITY_COLORS[alert.severity] ?? SEVERITY_COLORS.medium}`}
+              className={`bg-card border rounded-lg shadow-lg p-4 border-l-4 ${SEVERITY_COLORS[alert.severity] ?? SEVERITY_COLORS.medium}`}
             >
               <div className="flex items-start gap-3">
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full ${config.bg}`}
-                >
-                  <Icon className={`h-4 w-4 ${config.color}`} />
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${config.bg}`}>
+                  <Icon className={`w-4 h-4 ${config.color}`} />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">{alert.title}</p>
+                    <p className="font-medium text-sm">{alert.title}</p>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0"
                       onClick={() => void handleDismiss(alert.id)}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="w-4 h-4" />
                     </Button>
                   </div>
                   {alert.description && (
-                    <p className="mt-1 text-xs text-muted-foreground">{alert.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{alert.description}</p>
                   )}
-                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                    {alert.ip_address && <code className="">{alert.ip_address}</code>}
+                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                    {alert.ip_address && (
+                      <code className="">{alert.ip_address}</code>
+                    )}
                     <span>•</span>
                     <span>
-                      {formatDistanceToNow(new Date(alert.created_at), {
-                        addSuffix: true,
-                        locale: ptBR,
+                      {formatDistanceToNow(new Date(alert.created_at), { 
+                        addSuffix: true, 
+                        locale: ptBR 
                       })}
                     </span>
                   </div>

@@ -55,7 +55,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);
 

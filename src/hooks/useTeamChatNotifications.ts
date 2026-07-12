@@ -182,7 +182,7 @@ export function useTeamChatNotifications(activeConversationId: string | null) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [
     profile,

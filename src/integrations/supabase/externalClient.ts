@@ -32,28 +32,19 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('externalClient');
 
-const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
-  'development' | 'staging' | 'production';
+const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
 
 const getEnvConfig = () => {
   switch (APP_ENV) {
     case 'development':
       return {
-        url:
-          import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_URL ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key:
-          import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_ANON_KEY ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
+        url: import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
+        key: import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
       };
     case 'staging':
       return {
-        url:
-          import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_URL ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key:
-          import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_ANON_KEY ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
+        url: import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
+        key: import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
       };
     default:
       return {
@@ -91,7 +82,7 @@ export let externalSupabase: SupabaseClient<ExtendedDatabase> = isExternalConfig
 
 if (!isExternalConfigured) {
   log.debug(
-    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).'
+    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).',
   );
 }
 
@@ -126,19 +117,13 @@ export function getExternalSupabase(): SupabaseClient<ExtendedDatabase> {
 /**
  * Call an RPC function that exists only in the external (FATOR X) DB schema and
  * therefore is not present in the generated ExtendedDatabase.Functions types.
- * Centralises the type narrowing so callers stay cast-free.
+ * Centralises the single `(client as any).rpc` cast so callers stay cast-free.
  */
 export function callExtRpc(
   client: SupabaseClient<ExtendedDatabase>,
   fn: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<{ data: unknown; error: { message: string } | null }> {
-  interface RpcClient {
-    rpc(
-      name: string,
-      params?: Record<string, unknown>
-    ): Promise<{ data: unknown; error: { message: string } | null }>;
-  }
-  const rpcClient = client as unknown as RpcClient;
-  return rpcClient.rpc(fn, args);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any).rpc(fn, args); // ignore-audit — external DB schema RPCs not in generated types
 }

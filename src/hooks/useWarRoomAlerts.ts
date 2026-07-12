@@ -104,7 +104,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
       .subscribe();
 
     return () => {
-      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, [queryClient, playAlertSound, permission, showNotification]);
 

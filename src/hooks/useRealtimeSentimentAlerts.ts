@@ -1,15 +1,14 @@
 import { useEffect, useCallback } from 'react';
-import {
-  supabase,
-  isSupabaseConfigured,
-  warnSupabaseUnconfigured,
-} from '@/integrations/supabase/client';
+import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { playNotificationSound } from '@/utils/notificationSound';
 import { showBrowserNotification, requestNotificationPermission } from '@/utils/notificationSound';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { getLogger } from '@/lib/logger';
-import { safeParseEvent, sentimentAlertAuditRowSchema } from '@/shared/webhookEventSchemas';
+import {
+  safeParseEvent,
+  sentimentAlertAuditRowSchema,
+} from '@/shared/webhookEventSchemas';
 
 const log = getLogger('SentimentAlerts');
 
@@ -35,17 +34,18 @@ interface SentimentAlertPayload {
 export function useRealtimeSentimentAlerts() {
   const { settings, isQuietHours } = useNotificationSettings();
 
-  const handleNewAlert = useCallback(
-    async (payload: SentimentAlertPayload) => {
-      log.debug('New sentiment alert received', { payload });
+  const handleNewAlert = useCallback(async (payload: SentimentAlertPayload) => {
+    log.debug('New sentiment alert received', { payload });
 
-      const details = payload.details || {};
-      const contactName = details.contact_name || 'Cliente';
-      const sentimentScore = details.sentiment_score || 0;
-      const consecutiveLow = details.consecutive_low || 0;
+    const details = payload.details || {};
+    const contactName = details.contact_name || 'Cliente';
+    const sentimentScore = details.sentiment_score || 0;
+    const consecutiveLow = details.consecutive_low || 0;
 
-      // Show toast notification
-      toast.error(`⚠️ Alerta de Sentimento: ${contactName}`, {
+    // Show toast notification
+    toast.error(
+      `⚠️ Alerta de Sentimento: ${contactName}`,
+      {
         description: `Sentimento negativo (${sentimentScore}%) detectado em ${consecutiveLow} análises consecutivas`,
         duration: 10000,
         action: {
@@ -58,29 +58,28 @@ export function useRealtimeSentimentAlerts() {
             }
           },
         },
-      });
-
-      // Play alert sound if not in quiet hours
-      if (!isQuietHours() && settings.soundEnabled) {
-        try {
-          playNotificationSound('alert');
-        } catch (err) {
-          log.error('Error playing notification sound:', err);
-        }
       }
+    );
 
-      // Show browser notification
-      if (settings.browserNotifications) {
-        await requestNotificationPermission();
-        showBrowserNotification(
-          '⚠️ Alerta de Sentimento Negativo',
-          `${contactName}: Sentimento em ${sentimentScore}% (${consecutiveLow} análises consecutivas)`,
-          '/favicon.ico'
-        );
+    // Play alert sound if not in quiet hours
+    if (!isQuietHours() && settings.soundEnabled) {
+      try {
+        playNotificationSound('alert');
+      } catch (err) {
+        log.error('Error playing notification sound:', err);
       }
-    },
-    [settings, isQuietHours]
-  );
+    }
+
+    // Show browser notification
+    if (settings.browserNotifications) {
+      await requestNotificationPermission();
+      showBrowserNotification(
+        '⚠️ Alerta de Sentimento Negativo',
+        `${contactName}: Sentimento em ${sentimentScore}% (${consecutiveLow} análises consecutivas)`,
+        '/favicon.ico'
+      );
+    }
+  }, [settings, isQuietHours]);
 
   useEffect(() => {
     // Skip realtime entirely when Supabase isn't configured — otherwise the
@@ -118,7 +117,7 @@ export function useRealtimeSentimentAlerts() {
 
     return () => {
       log.debug('Cleaning up subscription');
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [handleNewAlert]);
 

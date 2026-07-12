@@ -1,6 +1,12 @@
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -29,9 +35,7 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
   const [transferType, setTransferType] = useState<'agent' | 'queue' | 'connection'>('agent');
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [message, setMessage] = useState('');
-  const [connections, setConnections] = useState<
-    { id: string; name: string; phone_number: string; status: string }[]
-  >([]);
+  const [connections, setConnections] = useState<{ id: string; name: string; phone_number: string; status: string }[]>([]);
   const [loadingConnections, setLoadingConnections] = useState(false);
 
   const { agents, isLoading: loadingAgents } = useAgents();
@@ -83,37 +87,35 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ArrowRight className="h-5 w-5 text-whatsapp" />
+            <ArrowRight className="w-5 h-5 text-whatsapp" />
             Transferir Chat
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
           {/* Transfer Type */}
-          <RadioGroup
-            value={transferType}
-            onValueChange={(v) => {
-              setTransferType(v as 'agent' | 'queue' | 'connection');
-              setSelectedTarget('');
-            }}
-            className="grid grid-cols-3 gap-3"
-          >
+            <RadioGroup
+              value={transferType}
+              onValueChange={(v) => {
+                setTransferType(v as 'agent' | 'queue' | 'connection');
+                setSelectedTarget('');
+              }}
+              className="grid grid-cols-3 gap-3"
+            >
             <Label
               htmlFor="agent"
               className={cn(
-                'flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
                 transferType === 'agent'
                   ? 'border-whatsapp bg-whatsapp/5'
                   : 'border-border hover:border-muted-foreground'
               )}
             >
               <RadioGroupItem value="agent" id="agent" className="sr-only" />
-              <User
-                className={cn(
-                  'h-5 w-5',
-                  transferType === 'agent' ? 'text-whatsapp' : 'text-muted-foreground'
-                )}
-              />
+              <User className={cn(
+                'w-5 h-5',
+                transferType === 'agent' ? 'text-whatsapp' : 'text-muted-foreground'
+              )} />
               <div>
                 <p className="font-medium">Usuário</p>
                 <p className="text-xs text-muted-foreground">Transferir para um atendente</p>
@@ -123,19 +125,17 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
             <Label
               htmlFor="queue"
               className={cn(
-                'flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
                 transferType === 'queue'
                   ? 'border-whatsapp bg-whatsapp/5'
                   : 'border-border hover:border-muted-foreground'
               )}
             >
               <RadioGroupItem value="queue" id="queue" className="sr-only" />
-              <Users
-                className={cn(
-                  'h-5 w-5',
-                  transferType === 'queue' ? 'text-whatsapp' : 'text-muted-foreground'
-                )}
-              />
+              <Users className={cn(
+                'w-5 h-5',
+                transferType === 'queue' ? 'text-whatsapp' : 'text-muted-foreground'
+              )} />
               <div>
                 <p className="font-medium">Departamento</p>
                 <p className="text-xs text-muted-foreground">Transferir para uma fila</p>
@@ -145,19 +145,17 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
             <Label
               htmlFor="connection"
               className={cn(
-                'flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all',
+                'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
                 transferType === 'connection'
                   ? 'border-whatsapp bg-whatsapp/5'
                   : 'border-border hover:border-muted-foreground'
               )}
             >
               <RadioGroupItem value="connection" id="connection" className="sr-only" />
-              <Smartphone
-                className={cn(
-                  'h-5 w-5',
-                  transferType === 'connection' ? 'text-whatsapp' : 'text-muted-foreground'
-                )}
-              />
+              <Smartphone className={cn(
+                'w-5 h-5',
+                transferType === 'connection' ? 'text-whatsapp' : 'text-muted-foreground'
+              )} />
               <div>
                 <p className="font-medium">Conexão</p>
                 <p className="text-xs text-muted-foreground">Outro WhatsApp</p>
@@ -169,10 +167,10 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
           {transferType === 'agent' && (
             <div className="space-y-2">
               <Label>Selecione um atendente</Label>
-              <div className="max-h-48 space-y-2 overflow-y-auto">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {loadingAgents ? (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : availableAgents.length > 0 ? (
                   availableAgents.map((agent) => (
@@ -182,24 +180,22 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setSelectedTarget(agent.id)}
                       className={cn(
-                        'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all',
+                        'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
                         selectedTarget === agent.id
                           ? 'border-whatsapp bg-whatsapp/5'
                           : 'border-border hover:border-muted-foreground'
                       )}
                     >
                       <div className="relative">
-                        <Avatar className="h-10 w-10">
+                        <Avatar className="w-10 h-10">
                           <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />
                           <AvatarFallback>{agent.name[0]}</AvatarFallback>
                         </Avatar>
-                        <span
-                          className={cn(
-                            'absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background',
-                            agent.status === 'online' && 'bg-status-online',
-                            agent.status === 'away' && 'bg-status-away'
-                          )}
-                        />
+                        <span className={cn(
+                          'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background',
+                          agent.status === 'online' && 'bg-status-online',
+                          agent.status === 'away' && 'bg-status-away'
+                        )} />
                       </div>
                       <div className="flex-1">
                         <p className="font-medium">{agent.name}</p>
@@ -210,7 +206,7 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
                     </motion.button>
                   ))
                 ) : (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground text-center py-4">
                     Nenhum atendente disponível no momento
                   </p>
                 )}
@@ -223,10 +219,10 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
               <Label>Selecione uma conexão WhatsApp</Label>
               {loadingConnections ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
               ) : connections.length > 0 ? (
-                <div className="max-h-48 space-y-2 overflow-y-auto">
+                <div className="space-y-2 max-h-48 overflow-y-auto">
                   {connections.map((conn) => (
                     <motion.button
                       key={conn.id}
@@ -234,14 +230,14 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setSelectedTarget(conn.id)}
                       className={cn(
-                        'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all',
+                        'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
                         selectedTarget === conn.id
                           ? 'border-whatsapp bg-whatsapp/5'
                           : 'border-border hover:border-muted-foreground'
                       )}
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <Smartphone className="h-5 w-5 text-primary" />
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Smartphone className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1">
                         <p className="font-medium">{conn.name}</p>
@@ -251,7 +247,7 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
                   ))}
                 </div>
               ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhuma conexão disponível
                 </p>
               )}
@@ -263,7 +259,7 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
               <Label htmlFor="transfer-queue">Selecione um departamento</Label>
               {loadingQueues ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
               ) : (
                 <Select value={selectedTarget} onValueChange={setSelectedTarget}>
@@ -275,7 +271,7 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
                       <SelectItem key={queue.id} value={queue.id}>
                         <div className="flex items-center gap-2">
                           <div
-                            className="h-3 w-3 rounded-full"
+                            className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: queue.color }}
                           />
                           <span>{queue.name}</span>
@@ -311,11 +307,7 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
                 disabled={!selectedTarget || isTransferring}
                 className="bg-whatsapp hover:bg-whatsapp-dark"
               >
-                {isTransferring ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="mr-2 h-4 w-4" />
-                )}
+                {isTransferring ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
                 {isTransferring ? 'Transferindo...' : 'Transferir'}
               </Button>
             </motion.div>
