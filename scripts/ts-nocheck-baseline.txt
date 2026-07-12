@@ -60,7 +60,6 @@ src/features/inbox/hooks/useChatMediaSending.ts
 src/features/inbox/hooks/useIncomingCallBroadcast.ts
 src/features/inbox/hooks/useMediaUrl.ts
 src/features/inbox/hooks/useMessageReactions.ts
-src/features/inbox/hooks/useMessageSendHistory.ts
 src/features/inbox/hooks/useMessageTemplates.ts
 src/features/inbox/hooks/useNewConversation.ts
 src/features/inbox/services/whatsappStatusService.ts

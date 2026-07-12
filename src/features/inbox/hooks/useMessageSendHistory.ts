@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Carrega o histórico completo de envio de uma mensagem para o painel
  * de debug: linha do tempo de tentativas (retry_metrics.retry_reasons),
@@ -9,6 +8,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface RetryAttempt {
   attempt: number;
@@ -18,6 +18,13 @@ export interface RetryAttempt {
   at?: string;
   /** Latência da tentativa em ms, se disponível */
   duration_ms?: number;
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  createdAt: string;
+  details: unknown;
 }
 
 export interface MessageSendHistory {
@@ -35,15 +42,38 @@ export interface MessageSendHistory {
     createdAt: string;
     rawJson: unknown;
   } | null;
-  auditEntries: Array<{
-    id: string;
-    action: string;
-    createdAt: string;
-    details: unknown;
-  }>;
+  auditEntries: AuditEntry[];
 }
 
 const STALE_MS = 15_000;
+
+/**
+ * `outbound_delivery_audit` ainda não está tipada em `types.ts` (tabela
+ * criada no FATOR X e ainda não regenerada). Definimos aqui o shape
+ * mínimo consumido pelo hook para evitar `any` disperso.
+ */
+interface OutboundAuditRow {
+  id: string;
+  event_type: string | null;
+  status: string | null;
+  latency_ms: number | null;
+  instance_name: string | null;
+  error_message: string | null;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+}
+
+function normalizeRetryReasons(raw: Json | null | undefined): RetryAttempt[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (r): r is RetryAttempt =>
+      typeof r === 'object' &&
+      r !== null &&
+      !Array.isArray(r) &&
+      typeof (r as { attempt?: unknown }).attempt === 'number' &&
+      typeof (r as { reason?: unknown }).reason === 'string'
+  );
+}
 
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageSendHistory>({
@@ -54,12 +84,33 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       if (!messageId) return { metric: null, auditEntries: [] };
 
       const idempotencyKey = `msg:${messageId}`;
-      // Tabelas evolution_retry_metrics/outbound_delivery_audit ainda não estão em types.ts —
-      // usamos cast para `any` até a próxima regeneração dos tipos.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supa = supabase as any;
+
+      // `outbound_delivery_audit` ainda não está em `types.ts`. Cast pontual
+      // via `unknown` mantém o restante do hook fortemente tipado.
+      const outboundQuery = (
+        supabase as unknown as {
+          from: (t: string) => {
+            select: (cols: string) => {
+              or: (f: string) => {
+                order: (
+                  col: string,
+                  opts: { ascending: boolean }
+                ) => {
+                  limit: (n: number) => Promise<{ data: OutboundAuditRow[] | null }>;
+                };
+              };
+            };
+          };
+        }
+      )
+        .from('outbound_delivery_audit')
+        .select('*')
+        .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
-        supa
+        supabase
           .from('evolution_retry_metrics')
           .select('*')
           .eq('idempotency_key', idempotencyKey)
@@ -73,23 +124,17 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .eq('entity_id', messageId)
           .order('created_at', { ascending: false })
           .limit(20),
-        supa
-          .from('outbound_delivery_audit')
-          .select('*')
-          .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
-          .order('created_at', { ascending: false })
-          .limit(10),
+        outboundQuery,
       ]);
 
-      const auditEntries = (auditRes.data ?? []).map((e) => ({
+      const auditEntries: AuditEntry[] = (auditRes.data ?? []).map((e) => ({
         id: e.id,
         action: e.action,
-        createdAt: e.created_at,
+        createdAt: e.created_at ?? new Date(0).toISOString(),
         details: e.details,
       }));
 
-      // Adiciona entradas do outbound_delivery_audit (FATOR X) ao histórico
-      const outboundEntries = (outboundAuditRes.data ?? []).map((e) => ({
+      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map((e) => ({
         id: e.id,
         action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
         createdAt: e.created_at,
@@ -98,7 +143,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           latency: e.latency_ms,
           instance: e.instance_name,
           error_message: e.error_message,
-          ...(typeof e.metadata === 'object' && e.metadata !== null ? e.metadata : {}),
+          ...(e.metadata && typeof e.metadata === 'object' ? e.metadata : {}),
         },
       }));
 
@@ -109,23 +154,19 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       const row = metricRes.data;
       if (!row) return { metric: null, auditEntries: combinedAudit };
 
-      const reasons = Array.isArray(row.retry_reasons)
-        ? (row.retry_reasons as RetryAttempt[])
-        : [];
-
       return {
         metric: {
           id: row.id,
           action: row.action,
-          method: row.method,
-          finalStatus: row.final_status as MessageSendHistory['metric']['finalStatus'],
+          method: row.method ?? 'unknown',
+          finalStatus: row.final_status ?? 'unknown',
           finalHttpStatus: row.final_http_status,
-          attemptCount: row.attempt_count,
+          attemptCount: row.attempt_count ?? 0,
           totalDurationMs: row.total_duration_ms,
           instanceName: row.instance_name,
           idempotencyKey: row.idempotency_key,
-          retryReasons: reasons,
-          createdAt: row.created_at,
+          retryReasons: normalizeRetryReasons(row.retry_reasons),
+          createdAt: row.created_at ?? new Date(0).toISOString(),
           rawJson: row,
         },
         auditEntries: combinedAudit,
