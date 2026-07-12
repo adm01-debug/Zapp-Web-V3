@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 /**
  * useDepartmentsAdmin — Wave 3 batch-4 (2026-07-07)
@@ -18,8 +17,8 @@ export interface Department {
   slug: string;
   description: string | null;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   member_count?: number;
 }
 
@@ -62,7 +61,11 @@ export function useDepartmentsAdmin() {
     }
 
     setDepartments(
-      (data ?? []).map((d) => ({ ...d, member_count: countsFailed ? undefined : (counts[d.id] ?? 0) })),
+      (data ?? []).map((d) => ({
+        ...d,
+        is_active: d.is_active ?? true,
+        member_count: countsFailed ? undefined : (counts[d.id] ?? 0),
+      })),
     );
     setLoading(false);
   }, []);
