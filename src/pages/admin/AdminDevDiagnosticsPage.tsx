@@ -21,7 +21,7 @@ type DiagnosticLog = {
   id: string;
   action: string;
   category: string;
-  details: any;
+  details: Record<string, unknown> | null;
   created_at: string;
 };
 

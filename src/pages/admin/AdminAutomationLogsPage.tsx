@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,12 +42,12 @@ interface ExecutionRow {
   remote_jid: string;
   instance_name: string | null;
   status: 'pending' | 'executed' | 'dismissed' | 'error' | string;
-  trigger_payload: any;
+  trigger_payload: Record<string, unknown> | null;
   suggestion_text: string | null;
   applied_tags: string[] | null;
   recommended_tag: string | null;
   kb_sources: string[] | null;
-  rule_snapshot: any;
+  rule_snapshot: Record<string, unknown> | null;
   channel_id: string | null;
   department_id: string | null;
   error_message: string | null;
@@ -62,7 +62,7 @@ interface RuleLite {
   name: string;
 }
 
-const STATUS_META: Record<string, { label: string; icon: any; variant: any }> = {
+const STATUS_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; variant: string }> = {
   pending: { label: 'Pendente', icon: Clock, variant: 'outline' },
   accepted: { label: 'Aceita', icon: CheckCircle2, variant: 'default' },
   executed: { label: 'Executada', icon: CheckCircle2, variant: 'default' },
@@ -462,7 +462,7 @@ function KV({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
   );
 }
 
-function Pre({ title, data }: { title: string; data: any }) {
+function Pre({ title, data }: { title: string; data: unknown }) {
   return (
     <div>
       <Label className="text-xs">{title}</Label>
