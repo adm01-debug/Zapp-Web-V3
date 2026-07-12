@@ -54,24 +54,23 @@ export function useTeamConversations() {
         }
       }
 
-      const unreadPromises = convIds.map(async (cid) => {
+      // Optimization: Fetch all unread messages in single batch query instead of N+1 per conversation
+      // Only fetch unread messages (created after last_read) for each conversation
+      const { data: unreadMessages } = await supabase
+        .from('team_messages')
+        .select('conversation_id, created_at')
+        .in('conversation_id', convIds)
+        .neq('sender_id', profile.id);
+
+      const unreadMap = new Map<string, number>();
+      convIds.forEach(cid => {
         const lastRead = lastReadMap.get(cid);
-        let query = supabase
-          .from('team_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('conversation_id', cid)
-          .neq('sender_id', profile.id);
-
-        if (lastRead) {
-          query = query.gt('created_at', lastRead);
+        const unreadForConv = (unreadMessages || [])
+          .filter(m => m.conversation_id === cid && (!lastRead || new Date(m.created_at) > new Date(lastRead)))
+          .length;
+        unreadMap.set(cid, unreadForConv);
         }
-
-        const { count } = await query;
-        return { cid, count: count || 0 };
       });
-
-      const unreadResults = await Promise.all(unreadPromises);
-      const unreadMap = new Map(unreadResults.map(r => [r.cid, r.count]));
 
       const enriched: TeamConversation[] = conversations.map(conv => {
         const members = ((allMembers || []).filter(m => m.conversation_id === conv.id)) as unknown as TeamMember[];
