@@ -3095,16 +3095,20 @@ async function handleTranscribeAudio(
 
       let transcriptionResult;
       try {
+        // C.37: Standardize timeout enforcement across all handlers using callAiWithTimeout
         transcriptionResult = await withCircuitBreaker(
-          async () => {
-            const resp = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-              method: 'POST',
-              headers: { 'xi-api-key': ELEVENLABS_API_KEY },
-              body: formData,
-              signal: AbortSignal.timeout(60_000),
-            });
-            return { response: resp, data: null };
-          },
+          () => callAiWithTimeout(
+            async () => {
+              const resp = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+                method: 'POST',
+                headers: { 'xi-api-key': ELEVENLABS_API_KEY },
+                body: formData,
+              });
+              return { response: resp, data: null };
+            },
+            ACTION_TIMEOUTS['transcribe_audio'],
+            { action: 'transcribe_audio', requestId: ctx.requestId }
+          ),
           'elevenlabs-transcription'
         );
       } catch (err) {
