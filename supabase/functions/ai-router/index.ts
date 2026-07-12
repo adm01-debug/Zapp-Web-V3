@@ -920,7 +920,8 @@ async function handleConversationSummary(
         .maybeSingle();
 
       if (contact) {
-        contactContext = `\nContexto: ${contact.name || 'Cliente'}, Empresa: ${contact.company || 'N/A'}, Tags: ${(contact.tags as any)?.join(', ') || 'Nenhuma'}`;
+        // FIX #7 (C.40): Sanitize contact data to prevent oversized context
+        contactContext = `\nContexto: ${sanitizeString(String(contact.name || 'Cliente'), 100)}, Empresa: ${sanitizeString(String(contact.company || 'N/A'), 100)}, Tags: ${sanitizeString((contact.tags as any)?.join(', ') || 'Nenhuma', 100)}`;
       }
 
       const { data: prevAnalyses } = await supabase
@@ -931,7 +932,8 @@ async function handleConversationSummary(
         .limit(3);
 
       if (prevAnalyses && Array.isArray(prevAnalyses) && prevAnalyses.length > 0) {
-        contactContext += `\nHistórico: ${prevAnalyses.map((a: any) => `[${a.sentiment}] ${a.summary}`).join(' | ')}`;
+        const historyStr = prevAnalyses.map((a: any) => `[${a.sentiment}] ${sanitizeString(String(a.summary || ''), 100)}`).join(' | ').slice(0, 500);
+        contactContext += `\nHistórico: ${historyStr}`;
       }
     }
 
@@ -2273,11 +2275,12 @@ async function handleConversationAnalysis(
         .maybeSingle();
 
       if (contact) {
-        contactContext = `\nContexto do cliente: ${contact.name || 'Cliente'}`;
-        if (contact.company) contactContext += `, Empresa: ${contact.company}`;
-        if ((contact.tags as any)?.length) contactContext += `, Tags: ${(contact.tags as any).join(', ')}`;
-        if (contact.contact_type) contactContext += `, Tipo: ${contact.contact_type}`;
-        if (contact.ai_sentiment) contactContext += `, Sentimento anterior: ${contact.ai_sentiment}`;
+        // FIX #7 (C.40): Sanitize contact data to prevent oversized context
+        contactContext = `\nContexto do cliente: ${sanitizeString(String(contact.name || 'Cliente'), 100)}`;
+        if (contact.company) contactContext += `, Empresa: ${sanitizeString(String(contact.company), 100)}`;
+        if ((contact.tags as any)?.length) contactContext += `, Tags: ${sanitizeString((contact.tags as any).join(', '), 100)}`;
+        if (contact.contact_type) contactContext += `, Tipo: ${sanitizeString(String(contact.contact_type), 50)}`;
+        if (contact.ai_sentiment) contactContext += `, Sentimento anterior: ${sanitizeString(String(contact.ai_sentiment), 50)}`;
       }
 
       const { data: prevAnalyses } = await supabase
@@ -2288,7 +2291,8 @@ async function handleConversationAnalysis(
         .limit(3);
 
       if (prevAnalyses && Array.isArray(prevAnalyses) && prevAnalyses.length > 0) {
-        contactContext += `\nAnálises anteriores: ${prevAnalyses.map((a: any) => `[${a.sentiment} ${a.sentiment_score}%] ${sanitizeString(a.summary, 80)}`).join(' | ')}`;
+        const analysisStr = prevAnalyses.map((a: any) => `[${a.sentiment} ${a.sentiment_score}%] ${sanitizeString(a.summary, 80)}`).join(' | ').slice(0, 500);
+        contactContext += `\nAnálises anteriores: ${analysisStr}`;
       }
     }
 
@@ -2705,7 +2709,9 @@ async function handleSuggestReply(
           .limit(5);
 
         if (notes && Array.isArray(notes) && notes.length > 0) {
-          knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notes.map((n: any) => sanitizeString(n.content, 200)).join('\n')}`;
+          // FIX #7 (C.40): Limit total note context size to prevent prompt explosion
+          const notesContent = notes.map((n: any) => sanitizeString(n.content, 200)).join('\n').slice(0, 2000);
+          knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notesContent}`;
         }
 
         const { data: customFields } = await supabase
@@ -2715,7 +2721,9 @@ async function handleSuggestReply(
           .limit(100); // FIX #7 (C.40): Bound custom fields to prevent memory exhaustion
 
         if (customFields && Array.isArray(customFields) && customFields.length > 0) {
-          knowledgeContext += `\n\nDADOS DO CONTATO:\n${customFields.map((f: any) => `${f.field_name}: ${f.field_value}`).join('\n')}`;
+          // FIX #7 (C.40): Sanitize custom field values to prevent oversized context strings
+          const sanitizedFields = customFields.map((f: any) => `${sanitizeString(f.field_name, 100)}: ${sanitizeString(String(f.field_value), 200)}`).join('\n');
+          knowledgeContext += `\n\nDADOS DO CONTATO:\n${sanitizedFields}`;
         }
       }
     } catch (e) {
