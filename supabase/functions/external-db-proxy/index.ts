@@ -311,8 +311,7 @@ function renderPrometheus(): string {
   return lines.join("\n") + "\n";
 }
 
-Deno.serve(async (req) => {
-  const _t0 = Date.now();
+async function handleRequest(req: Request, _t0: number): Promise<Response> {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Métricas Prometheus (sem auth — só contadores agregados, sem PII)
