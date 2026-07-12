@@ -91,9 +91,9 @@ export default function QueueDetails() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (!contactsData || contactsData.length === 0) {
-        setContacts([]);
-      } else {
+      let contactsWithDetails: QueueContact[] = [];
+
+      if (contactsData && contactsData.length > 0) {
         const contactIds = contactsData.map((c) => c.id);
         const assignedToIds = Array.from(
           new Set(contactsData.map((c) => c.assigned_to).filter(Boolean) as string[])
@@ -125,15 +125,15 @@ export default function QueueDetails() {
           ])
         );
 
-        const contactsWithDetails = contactsData.map((contact) => ({
+        contactsWithDetails = contactsData.map((contact) => ({
           ...contact,
           messages_count: countMap.get(contact.id) || 0,
           last_message_at: lastMessageMap.get(contact.id) || null,
           assigned_agent: contact.assigned_to ? agentMap.get(contact.assigned_to) || null : null,
         }));
-
-        setContacts(contactsWithDetails);
       }
+
+      setContacts(contactsWithDetails);
 
       const totalContacts = contactsWithDetails.length;
       const assignedContacts = contactsWithDetails.filter((c) => c.assigned_to).length;
