@@ -143,8 +143,8 @@ export interface Message {
   isWhisper?: boolean;
   /** @internal Flag used for optimistic updates in the UI */
   _optimistic?: boolean;
-  /** Meta-informações brutas (Evolution/WhatsApp API). */
-  media_meta?: Record<string, unknown> | null;
+  /** Meta-informações brutas (Evolution/WhatsApp API). Campos conhecidos são tipados; campos adicionais são aceitos via index. */
+  media_meta?: (Record<string, unknown> & { ptt?: boolean; isPtv?: boolean }) | null;
 }
 
 export interface Conversation {
