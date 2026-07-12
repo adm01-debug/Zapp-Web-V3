@@ -47,7 +47,12 @@ function sanitizeHtml(html: string): string {
   // Força target="_blank" + rel="noopener noreferrer nofollow" em todos os <a>
   // (clientes de email enviam links sem esses attrs; sem isso o link navega in-tab e
   // pode permitir window.opener leak via tabnabbing).
-  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  // CRITICAL: Use a unique hook name to prevent collision with other sanitizeHtml
+  // functions (e.g. src/lib/sanitize.ts). DOMPurify.removeHook() removes by array
+  // position, not by reference; if multiple hooks are active, removeHook pops the
+  // wrong one and leaves orphaned hooks active.
+  const HOOK_NAME = 'afterSanitizeAttributes_emailChat';
+  DOMPurify.addHook(HOOK_NAME, (node) => {
     if (node.tagName === 'A') {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer nofollow');
@@ -60,7 +65,7 @@ function sanitizeHtml(html: string): string {
       FORCE_BODY: true,
     });
   } finally {
-    DOMPurify.removeHook('afterSanitizeAttributes');
+    DOMPurify.removeHook(HOOK_NAME);
   }
 }
 
