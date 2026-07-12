@@ -9,6 +9,48 @@ const corsHeaders = {
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
+/**
+ * Edge Function: Gmail Sync — OAuth Token Refresh & Thread List Retrieval
+ *
+ * Synchronizes Gmail threads for authenticated user, supporting incremental sync via pagination.
+ * Auto-refreshes OAuth tokens (proactive refresh before expiry to prevent failures mid-sync).
+ *
+ * Authentication:
+ * - Requires valid Supabase JWT (Bearer token in Authorization header)
+ * - Verifies user ownership of gmail_accounts row before proceeding (prevents cross-user access)
+ * - Returns 403 if account not found or belongs to different user, 401 if token invalid
+ *
+ * Supported Actions:
+ * - listThreads (default): Query Gmail threads with optional filters, pagination
+ *   • labelIds: array of label IDs (default: ['INBOX'])
+ *   • q: Gmail search query (optional, e.g., "from:sender@example.com before:2024-01-01")
+ *   • maxResults: 1-50, clamped to [1, 50] (default: 20)
+ *   • pageToken: pagination cursor from previous response
+ *   • Fetches first message metadata (Subject, From, Date) + message count + unread status for each thread
+ *   • Returns paginated results with nextPageToken for continuation
+ *
+ * OAuth Token Management:
+ * - getValidToken: Retrieves cached token, auto-refreshes if expiring within next 5 minutes (proactive)
+ * - Caches refreshed tokens to avoid repeated refresh API calls
+ * - Prevents token expiry during multi-thread sync by monitoring expiration
+ *
+ * Batch Processing:
+ * - Fetches thread details in bounded batches of 5 to avoid Gmail API rate limits (quota_user: accountId)
+ * - Each thread fetches: /threads/{id}?format=metadata + headers extraction (Subject, From, Date)
+ * - Gracefully handles partial failures: missing/invalid threads return null, sync continues
+ *
+ * Response Format:
+ * - Success (200): { threads: [...], nextPageToken?, snippet: "..." }
+ * - Errors: { error: "message" } with appropriate HTTP status (400/401/403/500)
+ * - All responses use application/json with CORS headers
+ *
+ * Error Handling:
+ * - Invalid JSON: 400 + "Invalid JSON"
+ * - Missing/invalid accountId: 403 + "Conta não encontrada ou acesso negado"
+ * - Expired/invalid token: 401 + "Token inválido ou conta inexistente"
+ * - Gmail API errors: Logged, returned with error details from Gmail response
+ * - Network timeouts: 10s AbortSignal on all Gmail API calls
+ */
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -288,7 +330,12 @@ serve(async (req) => {
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-/** Run `fn` over `items` with at most `concurrency` items in flight at once. */
+/**
+ * Executes async function over items with bounded concurrency to avoid API rate limits.
+ * Batches items into groups, awaits each group with Promise.allSettled, concatenates results.
+ * Returns all PromiseSettledResult<R> including both fulfillments and rejections (no early stops).
+ * Useful for bounded Gmail API calls (typically concurrency=5 to respect quota).
+ */
 async function batchSettled<T, R>(
   items: T[],
   fn: (item: T) => Promise<R>,
