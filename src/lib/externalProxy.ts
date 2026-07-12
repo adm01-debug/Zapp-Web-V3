@@ -243,6 +243,22 @@ const AUTH_LOCK_MS = 60_000;
 // to rotate the secret without flooding telemetry.
 const CONFIG_LOCK_MS = 5 * 60_000;
 
+// MED-5: Clear the auth lock when Supabase refreshes or reissues a token so
+// a 401 triggered by an expiring token doesn't block 60 s of legitimate calls
+// after the auto-refresh completes. On SIGNED_OUT, trip the lock to prevent
+// pointless proxy calls until the user logs back in.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+    authLockUntil = 0;
+    proxyLog.debug('proxy auth lock cleared', { event });
+  } else if (event === 'SIGNED_OUT') {
+    authLockUntil = Date.now() + AUTH_LOCK_MS;
+    breaker.clear();
+    inflight.clear();
+    proxyLog.info('proxy state cleared on SIGNED_OUT');
+  }
+});
+
 function isAuthLocked(): number {
   const now = Date.now();
   return authLockUntil > now ? authLockUntil - now : 0;
