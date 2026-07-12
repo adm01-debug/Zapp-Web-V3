@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatTokens } from '@/lib/rechartsFormatters';
 import {
   Select,
   SelectContent,
