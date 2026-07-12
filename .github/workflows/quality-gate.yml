@@ -42,6 +42,12 @@ jobs:
           fi
           exit 0
 
+      - name: ts-nocheck SLO gate (blocking — max=0)
+        # MED-6 (2026-07-12): All @ts-nocheck files have been removed.
+        # SLO: 0 files at all times. New occurrences block the PR immediately.
+        # To update baseline after deliberate exception: node scripts/check-ts-nocheck.mjs --update
+        run: node scripts/check-ts-nocheck.mjs --max=0
+
       - name: Refactor guards (ratchets — dead code + data layer)
         # Captura cada exit code separadamente para não mascarar uma falha de
         # check-dead-code quando check-data-layer passa (antes: status=$? só
