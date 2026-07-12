@@ -329,9 +329,14 @@ function prometheusMetrics(): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
-  // Health GET does not require auth; all data-access paths (POST + health=1) do
+  // Health GET does not require auth; all data-access paths (POST, health=1, metrics=1) do.
+  // ?metrics=1 must NOT be in the unauthenticated fast-path — it exposes latency
+  // percentiles, error breakdowns, and table-access patterns.
   const url = new URL(req.url);
-  const isHealthGet = req.method === "GET" && !url.searchParams.get("health") && !url.searchParams.get("check");
+  const isHealthGet = req.method === "GET"
+    && !url.searchParams.get("health")
+    && !url.searchParams.get("check")
+    && !url.searchParams.get("metrics");
 
   if (!isHealthGet) {
     // Decode caller JWT (untrusted, signature not checked) purely for diagnostics.

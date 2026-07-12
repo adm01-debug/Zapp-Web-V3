@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin } from "../_shared/validation.ts";
+import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const BitrixBodySchema = z.object({
   action: z.enum([
@@ -19,6 +20,20 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("bitrix-api");
+
+  // MED-1 (2026-07-12): Require JWT auth — service role for internal callers,
+  // valid user JWT for browser callers. Origin check below remains as
+  // defense-in-depth but is not the primary auth layer.
+  try {
+    const serviceOk = requireServiceRoleOrCron(req);
+    if (serviceOk !== null) {
+      const authed = await requireUser(req);
+      if (authed instanceof Response) return authed;
+    }
+  } catch (err: unknown) {
+    log.error("Auth error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse("Internal server error", 500, req);
+  }
 
   // Bug 2 fix — defense in depth: only accept requests from a trusted Bitrix
   // portal (or local dev). CORS already blocks browser cross-origin; this
