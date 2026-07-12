@@ -429,7 +429,11 @@ export default function AdminWebhookEventsPage() {
               key={type}
               variant={eventType === type ? 'default' : 'outline'}
               className="cursor-pointer"
+              role="button"
+              tabIndex={0}
+              aria-pressed={eventType === type}
               onClick={() => setEventType(eventType === type ? 'all' : (type as EventTypeFilter))}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setEventType(eventType === type ? 'all' : (type as EventTypeFilter))}
             >
               {type} · {count}
             </Badge>

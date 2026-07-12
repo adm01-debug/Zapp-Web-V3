@@ -441,6 +441,8 @@ export const ConversationItem = memo(function ConversationItem({
           data-testid="conversation-item"
           data-density="comfortable"
           onClick={() => onSelect(conversation)}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(conversation)}
+          tabIndex={0}
           aria-selected={isSelected}
           role="option"
           className={cn(

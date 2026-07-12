@@ -117,7 +117,9 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
                     <TableRow
                       key={`${r.created_at}-${i}`}
                       className="cursor-pointer hover:bg-muted/40"
+                      tabIndex={0}
                       onClick={() => handleRowClick(r.event_type, r.instance_name)}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleRowClick(r.event_type, r.instance_name)}
                     >
                       <TableCell className="text-xs">
                         {format(new Date(r.created_at), 'HH:mm:ss', { locale: ptBR })}

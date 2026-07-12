@@ -191,7 +191,9 @@ export default function AdminInstancePausesPage() {
                     <tr
                       key={p.id}
                       className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                      tabIndex={0}
                       onClick={() => setSelected(p)}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelected(p)}
                     >
                       <td className="py-2 pr-4  text-xs">{p.instance_name}</td>
                       <td className="py-2 pr-4">
@@ -251,7 +253,9 @@ export default function AdminInstancePausesPage() {
                       <tr
                         key={p.id}
                         className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                        tabIndex={0}
                         onClick={() => setSelected(p)}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelected(p)}
                       >
                         <td className="py-2 pr-4 text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: ptBR })}
