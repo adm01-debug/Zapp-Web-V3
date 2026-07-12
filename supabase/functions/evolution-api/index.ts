@@ -1027,20 +1027,20 @@ Deno.serve(async (req) => {
     if (action === 'set-chatwoot') {
       const jsonBody = ensureBodyIsRecord(body);
       return await proxy(`/chatwoot/set/${instance}`, 'POST', {
-        enabled: safeGet(jsonBody, 'enabled', true),
-        accountId: safeGet(jsonBody, 'accountId', ''),
-        token: safeGet(jsonBody, 'token', ''),
-        url: safeGet(jsonBody, 'url', ''),
-        signMsg: safeGet(jsonBody, 'signMsg', true),
-        reopenConversation: safeGet(jsonBody, 'reopenConversation', true),
-        conversationPending: safeGet(jsonBody, 'conversationPending', false),
-        nameInbox: safeGet(jsonBody, 'nameInbox', ''),
-        mergeBrazilContacts: safeGet(jsonBody, 'mergeBrazilContacts', true),
-        importContacts: safeGet(jsonBody, 'importContacts', true),
-        importMessages: safeGet(jsonBody, 'importMessages', true),
-        daysLimitImportMessages: safeGet(jsonBody, 'daysLimitImportMessages', 7),
-        signDelimiter: safeGet(jsonBody, 'signDelimiter', ''),
-        autoCreate: safeGet(jsonBody, 'autoCreate', false),
+        enabled: safeGetAny(jsonBody, 'enabled', false) ?? true,
+        accountId: safeGet(jsonBody, 'accountId', false) ?? '',
+        token: safeGet(jsonBody, 'token', false) ?? '',
+        url: safeGet(jsonBody, 'url', false) ?? '',
+        signMsg: safeGetAny(jsonBody, 'signMsg', false) ?? true,
+        reopenConversation: safeGetAny(jsonBody, 'reopenConversation', false) ?? true,
+        conversationPending: safeGetAny(jsonBody, 'conversationPending', false) ?? false,
+        nameInbox: safeGet(jsonBody, 'nameInbox', false) ?? '',
+        mergeBrazilContacts: safeGetAny(jsonBody, 'mergeBrazilContacts', false) ?? true,
+        importContacts: safeGetAny(jsonBody, 'importContacts', false) ?? true,
+        importMessages: safeGetAny(jsonBody, 'importMessages', false) ?? true,
+        daysLimitImportMessages: (safeGetAny(jsonBody, 'daysLimitImportMessages', false) as number | undefined) ?? 7,
+        signDelimiter: safeGet(jsonBody, 'signDelimiter', false) ?? '',
+        autoCreate: safeGetAny(jsonBody, 'autoCreate', false) ?? false,
       });
     }
     if (action === 'get-chatwoot') return await proxy(`/chatwoot/find/${instance}`, 'GET');

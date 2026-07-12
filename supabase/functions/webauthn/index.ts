@@ -143,11 +143,27 @@ Deno.serve(async (req) => {
         const cd = clientData as Record<string, unknown>;
         if (cd.type !== 'webauthn.create') return errorResponse('Invalid client data type', 400, req);
         if (cd.challenge !== challengeData.challenge) return errorResponse('Challenge mismatch', 400, req);
+        if (typeof cd.origin !== 'string' || cd.origin !== origin) {
+          return errorResponse('Origin mismatch or missing', 400, req);
+        }
+        if (cd.crossOrigin === true) return errorResponse('Cross-origin registration not allowed', 400, req);
+
+        let backedUp = false;
+        try {
+          const attestationObjBytes = base64URLDecode(cr.attestationObject as string);
+          if (attestationObjBytes.length > 37) {
+            const flagsByte = attestationObjBytes[32];
+            const BS = (flagsByte & 0x10) !== 0;
+            backedUp = BS;
+          }
+        } catch {
+          return errorResponse('Failed to parse attestation object', 400, req);
+        }
 
         const { error: insertError } = await supabaseAdmin.from('passkey_credentials').insert({
           user_id: userId, credential_id: id, public_key: cr.attestationObject,
           counter: 0, device_type: authenticatorAttachment,
-          backed_up: cr.publicKeyAlgorithm === '-7', transports,
+          backed_up: backedUp, transports,
           friendly_name: friendlyName || 'Passkey',
         });
 
@@ -243,9 +259,28 @@ Deno.serve(async (req) => {
         const cd = clientData as Record<string, unknown>;
         if (cd.type !== 'webauthn.get') return errorResponse('Invalid client data type', 400, req);
         if (cd.challenge !== cdObj.challenge) return errorResponse('Challenge mismatch', 400, req);
+        if (typeof cd.origin !== 'string' || cd.origin !== origin) {
+          return errorResponse('Origin mismatch or missing', 400, req);
+        }
+        if (cd.crossOrigin === true) return errorResponse('Cross-origin authentication not allowed', 400, req);
+
+        if (typeof cr.authenticatorData !== 'string') return errorResponse('Authenticator data missing', 400, req);
+        if (typeof cr.signature !== 'string') return errorResponse('Signature missing', 400, req);
+
+        const authData = base64URLDecode(cr.authenticatorData);
+        if (authData.length < 37) return errorResponse('Invalid authenticator data length', 400, req);
+
+        const counterBytes = authData.slice(33, 37);
+        const counterView = new DataView(counterBytes.buffer, counterBytes.byteOffset, counterBytes.byteLength);
+        const newCounter = counterView.getUint32(0, false);
+        const storedCounter = typeof storedObj.counter === 'number' ? storedObj.counter : 0;
+
+        if (newCounter <= storedCounter) {
+          return errorResponse('Counter regression detected - possible cloned authenticator', 400, req);
+        }
 
         await supabaseAdmin.from('passkey_credentials')
-          .update({ last_used_at: new Date().toISOString(), counter: (typeof storedObj.counter === 'number' ? storedObj.counter : 0) + 1 })
+          .update({ last_used_at: new Date().toISOString(), counter: newCounter })
           .eq('id', storedObj.id);
         await supabaseAdmin.from('webauthn_challenges').delete().eq('user_id', storedObj.user_id).eq('type', 'authentication');
 

@@ -334,9 +334,9 @@ serve(async (req) => {
       const errorP = url.searchParams.get('error');
 
       if (typeof errorP === 'string' && errorP.length > 0) {
-        const errorMsg = errorP.replace(/'/g, "\\'");
+        const errorMsg = JSON.stringify(errorP);
         return new Response(
-          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:'${errorMsg}'},'*');window.close()</script>`,
+          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:${errorMsg}},'*');window.close()</script>`,
           { headers: { 'Content-Type': 'text/html' } }
         );
       }
@@ -349,10 +349,10 @@ serve(async (req) => {
       }
 
       // Retorna o code para o popup processar via exchangeCode
-      const codeEscaped = code.replace(/'/g, "\\'");
+      const codeEscaped = JSON.stringify(code);
       return new Response(
         `<script>
-          window.opener?.postMessage({type:'gmail-oauth-code',code:'${codeEscaped}'},'*');
+          window.opener?.postMessage({type:'gmail-oauth-code',code:${codeEscaped}},'*');
           window.close();
         </script>`,
         { headers: { 'Content-Type': 'text/html' } }

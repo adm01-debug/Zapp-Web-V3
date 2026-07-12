@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
     const useAi = !skipAi && (!template || customPrompt);
 
     if (useAi) {
-      const recent = Array.isArray(body.recentMessages) ? body.recentMessages : [];
+      const recent = Array.isArray(recentMessages) ? recentMessages : [];
       const validMessages = recent
         .filter((m): m is Record<string, unknown> => typeof m === 'object' && m !== null && !Array.isArray(m));
       const history = validMessages

@@ -149,18 +149,23 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
       } else if (action === "update" && table) {
-        const updateValues = (params && typeof params === 'object' && params.values && typeof params.values === 'object' && !Array.isArray(params.values))
+        if (!params || typeof params !== 'object' || !params.match || typeof params.match !== 'object' || Array.isArray(params.match)) {
+          return errorResponse("Update requires params.match object with filter criteria", 400, req);
+        }
+        const matchObj = params.match as Record<string, unknown>;
+        if (Object.keys(matchObj).length === 0) {
+          return errorResponse("Update requires at least one filter criterion in params.match", 400, req);
+        }
+
+        const updateValues = (params.values && typeof params.values === 'object' && !Array.isArray(params.values))
           ? (params.values as Record<string, unknown>)
           : {};
         let query = supabaseAdmin.from(table).update(updateValues);
 
-        if (params && typeof params === 'object' && params.match && typeof params.match === 'object' && !Array.isArray(params.match)) {
-          const matchObj = params.match as Record<string, unknown>;
-          for (const [k, v] of Object.entries(matchObj)) {
-            const kStr = typeof k === 'string' ? k : '';
-            if (kStr) {
-              query = query.eq(kStr, v as string);
-            }
+        for (const [k, v] of Object.entries(matchObj)) {
+          const kStr = typeof k === 'string' ? k : '';
+          if (kStr) {
+            query = query.eq(kStr, v as string);
           }
         }
 
@@ -169,15 +174,20 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = Array.isArray(data) ? data.length : 0;
       } else if (action === "delete" && table) {
+        if (!params || typeof params !== 'object' || !params.match || typeof params.match !== 'object' || Array.isArray(params.match)) {
+          return errorResponse("Delete requires params.match object with filter criteria", 400, req);
+        }
+        const matchObj = params.match as Record<string, unknown>;
+        if (Object.keys(matchObj).length === 0) {
+          return errorResponse("Delete requires at least one filter criterion in params.match", 400, req);
+        }
+
         let query = supabaseAdmin.from(table).delete();
 
-        if (params && typeof params === 'object' && params.match && typeof params.match === 'object' && !Array.isArray(params.match)) {
-          const matchObj = params.match as Record<string, unknown>;
-          for (const [k, v] of Object.entries(matchObj)) {
-            const kStr = typeof k === 'string' ? k : '';
-            if (kStr) {
-              query = query.eq(kStr, v as string);
-            }
+        for (const [k, v] of Object.entries(matchObj)) {
+          const kStr = typeof k === 'string' ? k : '';
+          if (kStr) {
+            query = query.eq(kStr, v as string);
           }
         }
 

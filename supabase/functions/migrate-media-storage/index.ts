@@ -66,12 +66,15 @@ serve(async (req) => {
     const details: string[] = [];
 
     for (const msg of messages) {
+      let messageId = '';
+      let messageType = '';
+
       try {
         if (typeof msg !== 'object' || msg === null || Array.isArray(msg)) continue;
         const msgObj = msg as Record<string, unknown>;
         const mediaUrl = typeof msgObj.media_url === 'string' ? msgObj.media_url : '';
-        const messageType = typeof msgObj.message_type === 'string' ? msgObj.message_type : '';
-        const messageId = typeof msgObj.id === 'string' ? msgObj.id : '';
+        messageType = typeof msgObj.message_type === 'string' ? msgObj.message_type : '';
+        messageId = typeof msgObj.id === 'string' ? msgObj.id : '';
         const externalId = typeof msgObj.external_id === 'string' ? msgObj.external_id : '';
         const connId = typeof msgObj.whatsapp_connection_id === 'string' ? msgObj.whatsapp_connection_id : '';
 

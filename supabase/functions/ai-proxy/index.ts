@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
 
       const providerModel = (provider && typeof provider.model === 'string') ? provider.model : null;
       const providerId = (provider && typeof provider.id === 'string') ? provider.id : undefined;
-      logAiUsage({
+      await logAiUsage({
         functionName: 'ai-proxy', userId, model: providerModel,
         durationMs, status: 'fallback',
         errorMessage: `${providerName}: HTTP error → fallback Lovable AI`,
@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
       log.error("Final provider error", { status: response.status, error: errorMsg });
       const providerModel = (provider && typeof provider.model === 'string') ? provider.model : null;
       const providerId = (provider && typeof provider.id === 'string') ? provider.id : undefined;
-      logAiUsage({
+      await logAiUsage({
         functionName: 'ai-proxy', userId, model: providerModel,
         durationMs, status: 'error',
         errorMessage: `HTTP ${response.status}`,
@@ -289,7 +289,7 @@ Deno.serve(async (req) => {
 
     const providerModel = model || ((provider && typeof provider.model === 'string' && provider.model.length > 0) ? provider.model : null);
     const providerId = (provider && typeof provider.id === 'string') ? provider.id : undefined;
-    logAiUsage({
+    await logAiUsage({
       functionName: 'ai-proxy', userId,
       model: providerModel,
       inputTokens, outputTokens, durationMs,
