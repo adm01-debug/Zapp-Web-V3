@@ -1907,6 +1907,16 @@ async function handleChurnAnalysis(
     let errorMessage: string | null = null;
     let metricsMetadata: Record<string, unknown> = { requestId, contactCount: contactIds.length };
 
+    // C.31: Safe date parsing to prevent NaN in time calculations
+    const getValidTimestamp = (dateStr: unknown): number => {
+      try {
+        const ts = new Date(String(dateStr || '')).getTime();
+        return isNaN(ts) ? Date.now() : ts;
+      } catch {
+        return Date.now();
+      }
+    };
+
     try {
       const validContactIds = contactIds
         .filter((id: unknown) => typeof id === 'string' && isValidUUID(id))
@@ -1980,7 +1990,7 @@ async function handleChurnAnalysis(
 
             const lastMessageAt = lastMsg?.created_at || contact.updated_at;
             const daysSinceLastMessage = Math.floor(
-              (Date.now() - new Date(lastMessageAt).getTime()) / (1000 * 60 * 60 * 24)
+              (Date.now() - getValidTimestamp(lastMessageAt)) / (1000 * 60 * 60 * 24)
             );
 
             let riskScore = 0;
@@ -1991,7 +2001,7 @@ async function handleChurnAnalysis(
             else if (daysSinceLastMessage > 14) riskScore += 10;
 
             const avgMonthly = (totalMsgCount || 0) > 0
-              ? ((totalMsgCount || 0) / Math.max(1, Math.floor((Date.now() - new Date(contact.created_at).getTime()) / (30 * 24 * 60 * 60 * 1000))))
+              ? ((totalMsgCount || 0) / Math.max(1, Math.floor((Date.now() - getValidTimestamp(contact.created_at)) / (30 * 24 * 60 * 60 * 1000))))
               : 0;
 
             if (avgMonthly > 0 && (recentMsgCount || 0) < avgMonthly * 0.3) riskScore += 30;
