@@ -73,7 +73,7 @@ export function AuthEventTrendChart() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
         p_hours: hours,
-        p_instance: filterTrim,
+        p_instance: filterTrim as string | null,
       });
       if (error) throw error;
       return (data ?? []) as TrendRow[];
@@ -86,7 +86,7 @@ export function AuthEventTrendChart() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_summary', {
         p_hours: hours,
-        p_instance: filterTrim,
+        p_instance: filterTrim as string | null,
       });
       if (error) throw error;
       return data as SummaryResp;

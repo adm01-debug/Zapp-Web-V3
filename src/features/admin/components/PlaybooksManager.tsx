@@ -71,7 +71,7 @@ export function PlaybooksManager() {
         .order('category', { ascending: true });
       return (data || []).map((p) => ({
         ...p,
-        steps: Array.isArray(p.steps) ? (p.steps as PlaybookStep[]) : [],
+        steps: Array.isArray(p.steps) ? (p.steps as unknown as PlaybookStep[]) : [],
       }));
     },
   });
@@ -115,7 +115,7 @@ export function PlaybooksManager() {
       name: name.trim(),
       description: description || null,
       category,
-      steps: steps.filter((s) => s.title.trim()) as Json,
+      steps: steps.filter((s) => s.title.trim()) as unknown as Json,
     };
 
     const { error } = selectedPlaybook
