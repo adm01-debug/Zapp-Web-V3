@@ -90,12 +90,12 @@ function markFiredLocal(key: string): void {
 async function alreadyFiredPersistent(
   contactId: string,
   kind: AlertKind,
-  severity: AlertSeverity,
+  severity: AlertSeverity
 ): Promise<boolean> {
   try {
-    // FIX SLA1 (2026-07-12): sem janela temporal, um alerta que disparou UMA VEZ
-    // para este contato nunca mais disparava — mesmo semanas depois num ciclo novo.
-    // Usamos a mesma janela LOCAL_TTL_MS do layer localStorage (24h).
+    // Mesma janela do layer de localStorage (LOCAL_TTL_MS): sem este filtro,
+    // um alerta que já disparou uma vez para este contato nunca mais dispararia,
+    // mesmo semanas depois numa conversa/ciclo de SLA totalmente novo.
     const since = new Date(Date.now() - LOCAL_TTL_MS).toISOString();
     const { data, error } = await supabase
       .from('conversation_events')
@@ -141,8 +141,11 @@ export function useSLAAlerts(params: SLAAlertParams) {
     const fire = async (kind: AlertKind, severity: AlertSeverity, durationMs: number | null) => {
       // Respect per-user preferences. Defaults are all-on, so users without a row keep current behavior.
       const kindEnabled =
-        kind === 'first_response' ? preferences.alert_first_response : 
-        kind === 'delivery_delay' ? true : preferences.alert_resolution;
+        kind === 'first_response'
+          ? preferences.alert_first_response
+          : kind === 'delivery_delay'
+            ? true
+            : preferences.alert_resolution;
       const severityEnabled =
         severity === 'breached' ? preferences.severity_breached : preferences.severity_warning;
       if (!kindEnabled || !severityEnabled) return;
@@ -173,16 +176,22 @@ export function useSLAAlerts(params: SLAAlertParams) {
         markFiredLocal(key);
 
         const isBreach = severity === 'breached';
-        const kindLabel = 
-          kind === 'first_response' ? '1ª resposta' : 
-          kind === 'delivery_delay' ? 'Atraso na leitura' : 'Resolução';
-        
+        const kindLabel =
+          kind === 'first_response'
+            ? '1ª resposta'
+            : kind === 'delivery_delay'
+              ? 'Atraso na leitura'
+              : 'Resolução';
+
         const customMsg = params.customMessage;
-        const title = kind === 'delivery_delay' 
-          ? `Mensagem não lida — ${params.contactName}`
-          : `SLA ${isBreach ? 'violado' : 'em risco'} — ${params.contactName}`;
-        
-        const description = customMsg || `${kindLabel} · ${formatDurationMs(durationMs)} · ${params.ruleName ?? 'regra padrão'}`;
+        const title =
+          kind === 'delivery_delay'
+            ? `Mensagem não lida — ${params.contactName}`
+            : `SLA ${isBreach ? 'violado' : 'em risco'} — ${params.contactName}`;
+
+        const description =
+          customMsg ||
+          `${kindLabel} · ${formatDurationMs(durationMs)} · ${params.ruleName ?? 'regra padrão'}`;
 
         const action = params.onOpenConversation
           ? { label: 'Abrir conversa', onClick: () => params.onOpenConversation?.() }
@@ -195,6 +204,8 @@ export function useSLAAlerts(params: SLAAlertParams) {
         }
 
         // Audit (best-effort, fire-and-forget). Also serves as the persistent dedupe record.
+        // If the insert fails (typically RLS/permission), forward the failure to a service-role
+        // edge function so we still capture diagnostic info in `conversation_events`.
         const auditMetadata = {
           kind,
           severity,
@@ -209,21 +220,28 @@ export function useSLAAlerts(params: SLAAlertParams) {
             event_type: 'sla_alert',
             metadata: auditMetadata,
           })
-          .then(({ error: insertError }) => {
-            if (!insertError) return;
-            void supabase.functions
-              .invoke('sla-alert-log-failure', {
-                body: {
-                  contact_id: contactId,
-                  attempted_event_type: 'sla_alert',
-                  error_code: insertError.code ?? null,
-                  error_message: insertError.message ?? null,
-                  error_details: insertError.details ?? null,
-                  original_metadata: auditMetadata,
-                },
-              })
-              .then(() => undefined, () => undefined);
-          }, () => undefined);
+          .then(
+            ({ error: insertError }) => {
+              if (!insertError) return;
+              // Don't disrupt the user — just record the failure for ops debugging.
+              void supabase.functions
+                .invoke('sla-alert-log-failure', {
+                  body: {
+                    contact_id: contactId,
+                    attempted_event_type: 'sla_alert',
+                    error_code: insertError.code ?? null,
+                    error_message: insertError.message ?? null,
+                    error_details: insertError.details ?? null,
+                    original_metadata: auditMetadata,
+                  },
+                })
+                .then(
+                  () => undefined,
+                  () => undefined
+                );
+            },
+            () => undefined
+          );
 
         // External webhook forwarding (best-effort, fire-and-forget).
         void supabase.functions
@@ -239,7 +257,10 @@ export function useSLAAlerts(params: SLAAlertParams) {
               occurred_at: new Date().toISOString(),
             },
           })
-          .then(() => undefined, () => undefined);
+          .then(
+            () => undefined,
+            () => undefined
+          );
       } finally {
         inflightRef.current.delete(key);
       }
