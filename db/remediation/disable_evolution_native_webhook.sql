@@ -1,0 +1,44 @@
+-- Operator runbook: disable Evolution native webhook for wpp2 (M-1 fix)
+--
+-- CONTEXT
+-- -------
+-- The Evolution pipeline has TWO delivery paths that are both active:
+--   1. Native webhook: Evolution → POST → edge function (evolution-webhook)
+--   2. RabbitMQ consumer: Evolution → RMQ → Python consumer v18 → edge function
+--
+-- The consumer serializes payloads with json.dumps(separators=(",",":")) which
+-- produces a slightly different byte sequence than the native webhook payload.
+-- Because our dedup key is sha256(raw_body), the SAME logical event arrives with
+-- TWO DIFFERENT dedup keys → processed TWICE (dual delivery).
+--
+-- FIX
+-- ---
+-- Disable the native webhook per-instance in the Evolution internal Postgres.
+-- Run this script connected to the Evolution database (NOT the Supabase DB).
+--
+-- STEPS
+-- -----
+-- 1. Connect to Evolution Postgres (credentials in Docker secrets or Portainer env).
+-- 2. Identify the instance ID for wpp2:
+--      SELECT id, "instanceName" FROM "Instance" WHERE "instanceName" ILIKE '%wpp2%';
+-- 3. Disable native webhook:
+--      UPDATE "Webhook"
+--      SET enabled = false
+--      WHERE "instanceId" = '<id from step 2>';
+-- 4. Verify:
+--      SELECT enabled, url FROM "Webhook" WHERE "instanceId" = '<id>';
+-- 5. No restart needed — Evolution reads webhook config dynamically from the DB.
+--
+-- ROLLBACK
+-- --------
+--      UPDATE "Webhook" SET enabled = true WHERE "instanceId" = '<id>';
+--
+-- NOTES
+-- -----
+-- - RABBITMQ_GLOBAL_ENABLED stays false in compose (already correct).
+-- - After disabling, verify RabbitMQ consumer is still receiving by checking
+--   consumer logs: docker service logs evolution_consumer-wpp2 --tail 50 -f
+-- - DLQ should remain empty. Confirm with Supabase query:
+--     SELECT count(*) FROM public.evolution_webhook_dlq WHERE status='pending';
+--
+-- Ref: AUDITORIA_EVO_API_2026-07-12.md finding M-1

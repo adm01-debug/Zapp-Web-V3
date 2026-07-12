@@ -175,6 +175,10 @@ services:
       - RABBITMQ_ENABLED=true
       - RABBITMQ_EXCHANGE_NAME=evolution
       - RABBITMQ_GLOBAL_ENABLED=false
+      # [FIX M-2 2026-07-12] Reconcile to 17 events (was 13 — missing LABELS_EDIT,
+      # LABELS_ASSOCIATION, QRCODE_UPDATED, LOGOUT_INSTANCE). The consumer v18 and the
+      # per-instance API config already handled all 17; the compose was the stale source.
+      # Reprovisioning from the old compose broke QR alerts, logout detection, and label sync.
       - RABBITMQ_EVENTS_MESSAGES_UPSERT=true
       - RABBITMQ_EVENTS_MESSAGES_EDITED=true
       - RABBITMQ_EVENTS_MESSAGES_UPDATE=true
@@ -188,6 +192,15 @@ services:
       - RABBITMQ_EVENTS_GROUP_PARTICIPANTS_UPDATE=true
       - RABBITMQ_EVENTS_CONNECTION_UPDATE=true
       - RABBITMQ_EVENTS_CALL=true
+      - RABBITMQ_EVENTS_LABELS_EDIT=true
+      - RABBITMQ_EVENTS_LABELS_ASSOCIATION=true
+      - RABBITMQ_EVENTS_QRCODE_UPDATED=true
+      - RABBITMQ_EVENTS_LOGOUT_INSTANCE=true
+      # WEBHOOK_GLOBAL_ENABLED stays false: all traffic routed via RabbitMQ consumer.
+      # Per-instance webhook (Evolution "Webhook" table) must also be disabled in
+      # the Evolution Postgres DB to prevent dual delivery:
+      #   UPDATE "Webhook" SET enabled = false WHERE instance_id = '<wpp2_id>';
+      # See db/remediation/disable_evolution_native_webhook.sql for the operator runbook.
       - WEBHOOK_GLOBAL_ENABLED=false
       - WEBHOOK_GLOBAL_URL=
 
