@@ -73,15 +73,34 @@ Deno.serve(async (req: Request) => {
   const jwt = authHeader.replace('Bearer ', '');
 
   // Criar cliente Supabase com JWT do usuário (valida automaticamente)
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+  if (!supabaseUrl || typeof supabaseUrl !== 'string' || supabaseUrl.length === 0) {
+    console.error('[evolution-credentials] SUPABASE_URL not configured');
+    return new Response(
+      JSON.stringify({ error: 'Configuration Error', message: 'Server configuration error' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (!supabaseAnonKey || typeof supabaseAnonKey !== 'string' || supabaseAnonKey.length === 0) {
+    console.error('[evolution-credentials] SUPABASE_ANON_KEY not configured');
+    return new Response(
+      JSON.stringify({ error: 'Configuration Error', message: 'Server configuration error' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
+    supabaseUrl,
+    supabaseAnonKey,
     { global: { headers: { Authorization: `Bearer ${jwt}` } } }
   );
 
   // Verificar autenticidade do JWT
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData || typeof authData !== 'object' || !authData.user) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized', message: 'Invalid JWT' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
@@ -89,9 +108,19 @@ Deno.serve(async (req: Request) => {
   }
 
   // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
+  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  if (!supabaseServiceRoleKey || typeof supabaseServiceRoleKey !== 'string' || supabaseServiceRoleKey.length === 0) {
+    console.error('[evolution-credentials] SUPABASE_SERVICE_ROLE_KEY not configured');
+    return new Response(
+      JSON.stringify({ error: 'Configuration Error', message: 'Server configuration error' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    supabaseUrl,
+    supabaseServiceRoleKey,
   );
 
   const { data: rpcRows, error: rpcError } = await supabaseAdmin.rpc(
@@ -99,13 +128,25 @@ Deno.serve(async (req: Request) => {
     { p_instance: INSTANCE },
   );
 
-  const row = Array.isArray(rpcRows) ? rpcRows[0] : null;
+  let row: Record<string, unknown> | null = null;
 
-  if (rpcError || !row?.api_key || !row?.api_url) {
+  if (Array.isArray(rpcRows) && rpcRows.length > 0) {
+    const firstRow = rpcRows[0];
+    if (firstRow && typeof firstRow === 'object' && !Array.isArray(firstRow)) {
+      row = firstRow as Record<string, unknown>;
+    }
+  }
+
+  const apiKey = (row && typeof row.api_key === 'string' && row.api_key.length > 0) ? row.api_key : null;
+  const apiUrl = (row && typeof row.api_url === 'string' && row.api_url.length > 0) ? row.api_url : null;
+
+  if (rpcError || !apiKey || !apiUrl) {
     // Nunca logar a key; a mensagem do erro RPC é segura (permission/config).
     console.error(
       '[evolution-credentials] RPC fn_edge_get_evolution_credentials falhou:',
-      rpcError?.message ?? 'linha vazia (instância inexistente ou vault sem secret)'
+      rpcError && typeof rpcError === 'object' && 'message' in rpcError
+        ? (rpcError as Record<string, unknown>).message
+        : 'linha vazia (instância inexistente ou vault sem secret)'
     );
     return new Response(
       JSON.stringify({ error: 'Configuration Error', message: 'Evolution API not configured' }),
@@ -113,14 +154,23 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  const instanceName = (row && typeof row.instance_name === 'string' && row.instance_name.length > 0)
+    ? row.instance_name
+    : INSTANCE;
+  const healthStatus = (row && typeof row.health_status === 'string' && row.health_status.length > 0)
+    ? row.health_status
+    : 'unknown';
+  const lastHealthCheck = (row && row.last_health_check) ? row.last_health_check : null;
+  const isActive = (row && typeof row.is_active === 'boolean') ? row.is_active : false;
+
   // Resposta: api_url no body, api_key no header (evita log no DevTools)
   return new Response(
     JSON.stringify({
-      instance_name: row.instance_name ?? INSTANCE,
-      api_url: row.api_url,
-      health_status: row.health_status ?? 'unknown',
-      last_health_check: row.last_health_check ?? null,
-      is_active: row.is_active ?? false,
+      instance_name: instanceName,
+      api_url: apiUrl,
+      health_status: healthStatus,
+      last_health_check: lastHealthCheck,
+      is_active: isActive,
     }),
     {
       status: 200,
@@ -129,7 +179,7 @@ Deno.serve(async (req: Request) => {
         'Access-Control-Allow-Origin': allowOrigin,
         'Access-Control-Expose-Headers': 'X-Evolution-Key',
         // api_key no header para não aparecer no body/log de resposta
-        'X-Evolution-Key': row.api_key,
+        'X-Evolution-Key': apiKey,
         // Cache: 60s (TTL de rotação de key)
         'Cache-Control': 'private, max-age=60',
       },
