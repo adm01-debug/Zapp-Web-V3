@@ -613,12 +613,23 @@ Responda APENAS em JSON:
       return { success: false, error: `AI error: ${response.status}`, duration_ms: durationMs };
     }
 
+    // C.21: Validate AI response structure before using
+    if (!data || typeof data !== 'object' || !Array.isArray(data.choices)) {
+      return { success: false, error: "Invalid AI response structure", duration_ms: performance.now() - startTime };
+    }
+
     const content = (data.choices as any[])?.[0]?.message?.content;
     let result: any = { tags: [], sentiment: 'neutral', priority: 'normal', summary: '' };
 
     try {
       const jsonMatch = content?.match(/\{[\s\S]*\}/);
-      result = jsonMatch ? JSON.parse(jsonMatch[0]) : result;
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        // C.21: Ensure parsed result is an object before using
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          result = parsed;
+        }
+      }
     } catch {
       // Use default
     }
