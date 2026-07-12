@@ -139,11 +139,11 @@ export function ConnectionAuditDialog({
 
                     {log.details && (
                       <div className="mt-2 rounded border bg-card p-2 text-xs text-muted-foreground">
-                        {log.details.cause && (
+                        {log.details.cause ? (
                           <p className="mb-1 font-medium text-destructive">
                             Motivo: {String(log.details.cause)}
                           </p>
-                        )}
+                        ) : null}
                         <pre className="overflow-x-auto whitespace-pre-wrap font-mono">
                           {JSON.stringify(log.details, null, 2)}
                         </pre>
