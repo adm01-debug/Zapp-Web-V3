@@ -35,14 +35,39 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") || "";
-const APP_SECRET = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET") || "";
-const STRICT_MODE_ENV = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_STRICT") || "true";
+const verifyTokenRaw = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN");
+const VERIFY_TOKEN = typeof verifyTokenRaw === 'string' && verifyTokenRaw.length > 0 ? verifyTokenRaw : '';
+
+const appSecretRaw = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET");
+const APP_SECRET = typeof appSecretRaw === 'string' && appSecretRaw.length > 0 ? appSecretRaw : '';
+
+const strictModeEnvRaw = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_STRICT");
+const STRICT_MODE_ENV = typeof strictModeEnvRaw === 'string' && strictModeEnvRaw.length > 0 ? strictModeEnvRaw : 'true';
 const STRICT_MODE = STRICT_MODE_ENV.toLowerCase() !== "false";
-const EXTERNAL_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') || Deno.env.get('EXTERNAL_SUPABASE_URL')) || "";
-const EXTERNAL_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') || Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')) || "";
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') || Deno.env.get('SUPABASE_URL')) || "";
-const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) || "";
+
+const externalUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+const externalUrlDefault = Deno.env.get('EXTERNAL_SUPABASE_URL');
+const EXTERNAL_URL = (typeof externalUrlHosted === 'string' && externalUrlHosted.length > 0)
+  ? externalUrlHosted
+  : (typeof externalUrlDefault === 'string' && externalUrlDefault.length > 0 ? externalUrlDefault : '');
+
+const externalKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY');
+const externalKeyDefault = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+const EXTERNAL_KEY = (typeof externalKeyHosted === 'string' && externalKeyHosted.length > 0)
+  ? externalKeyHosted
+  : (typeof externalKeyDefault === 'string' && externalKeyDefault.length > 0 ? externalKeyDefault : '');
+
+const supabaseUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
+const SUPABASE_URL = (typeof supabaseUrlHosted === 'string' && supabaseUrlHosted.length > 0)
+  ? supabaseUrlHosted
+  : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
+
+const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
+const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const SUPABASE_SERVICE_ROLE_KEY = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
+  ? supabaseServiceKeyHosted
+  : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
 
 // FIX B4: NÃO criar clients em module scope com `!` — se qualquer env var faltar,
 // o `createClient` explode no boot e a função retorna 500 BOOT_ERROR em tudo,
@@ -74,7 +99,8 @@ async function recordPing(
     if (!localClient) return;
     await localClient.from("whatsapp_cloud_webhook_pings").insert({ kind, meta });
   } catch (e) {
-    console.warn(`[whatsapp-cloud-webhook] ping insert failed: ${(e as Error).message}`);
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.warn(`[whatsapp-cloud-webhook] ping insert failed: ${errorMsg}`);
   }
 }
 
@@ -292,7 +318,8 @@ Deno.serve(async (req) => {
             await persistInbound(msg, contact);
             processed++;
           } catch (e) {
-            console.error(`[whatsapp-cloud-webhook][${rid}] persist error:`, e);
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            console.error(`[whatsapp-cloud-webhook][${rid}] persist error:`, errorMsg);
           }
         }
 
@@ -312,7 +339,8 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error(`[whatsapp-cloud-webhook][${rid}] error`, e);
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.error(`[whatsapp-cloud-webhook][${rid}] error`, errorMsg);
     return new Response(
       JSON.stringify({ ok: false, requestId: rid }),
       {
