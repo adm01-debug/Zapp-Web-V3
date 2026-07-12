@@ -31,6 +31,7 @@ export function useLatestAnalysis(contactId: string | null | undefined) {
         .select('id, summary, status, sentiment, sentiment_score, urgency, department, customer_satisfaction, key_points, topics, created_at')
         .eq('contact_id', contactId)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) return null;

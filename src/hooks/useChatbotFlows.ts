@@ -56,7 +56,8 @@ export function useChatbotFlows() {
       const { data, error } = await supabase
         .from('chatbot_flows')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as ChatbotFlow[];
     },

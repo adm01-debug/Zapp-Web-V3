@@ -23,7 +23,8 @@ export function useOmnichannelChannels() {
         .from('channel_connections')
         .select('id, name, channel_type, status')
         .neq('channel_type', 'whatsapp')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (error) throw error;
       return (data ?? []) as OmnichannelChannel[];
     },

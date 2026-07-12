@@ -19,12 +19,13 @@ export function useActionFeedback() {
   const { toast } = useToast();
   const activeToasts = useRef<Map<string, { dismiss: () => void }>>(new Map());
   // Tracks all pending undo timers so concurrent withUndo calls are each cleanly cancelled on unmount.
-  const pendingUndosRef = useRef<Map<ReturnType<typeof setTimeout>, () => void>>(new Map());
+  const pendingUndosRef = useRef<Map<ReturnType<typeof setTimeout>, { resolve: () => void; dismiss: () => void }>>(new Map());
 
   useEffect(() => {
     return () => {
-      pendingUndosRef.current.forEach((resolveWithUndone, timerId) => {
+      pendingUndosRef.current.forEach(({ resolve: resolveWithUndone, dismiss }, timerId) => {
         clearTimeout(timerId);
+        dismiss();
         resolveWithUndone();
       });
       pendingUndosRef.current.clear();
@@ -127,7 +128,7 @@ export function useActionFeedback() {
               toastResult.dismiss();
               onUndo();
               info('Ação desfeita');
-              resolve('undone');
+              resolve('undone' as const);
             },
           },
         });
@@ -144,7 +145,7 @@ export function useActionFeedback() {
             }
           }
         }, undoDuration);
-        pendingUndosRef.current.set(timeoutId, () => resolve('undone' as const));
+        pendingUndosRef.current.set(timeoutId, { resolve: () => resolve('undone' as const), dismiss: () => toastResult.dismiss() });
       });
     },
     [showFeedback, info, error]

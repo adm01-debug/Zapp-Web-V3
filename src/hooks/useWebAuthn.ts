@@ -37,7 +37,8 @@ export function useWebAuthn() {
       .from('passkey_credentials')
       .select('id, credential_id, friendly_name, device_type, created_at, last_used_at')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
     if (error) { log.error('Failed to fetch passkeys:', error); return; }
     setPasskeys(data || []);
   }, [user]);

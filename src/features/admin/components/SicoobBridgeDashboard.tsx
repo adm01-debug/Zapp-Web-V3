@@ -36,6 +36,7 @@ export function SicoobBridgeDashboard() {
           .from('sicoob_contact_mapping')
           .select('*')
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(50);
 
         const mappings = (mappingData || []) as SicoobMapping[];
@@ -48,6 +49,7 @@ export function SicoobBridgeDashboard() {
             .select('id, content, sender, created_at, contact_id, status')
             .in('contact_id', contactIds.slice(0, 20))
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(30);
           recentMessages = (msgData || []) as SicoobMessage[];
         }

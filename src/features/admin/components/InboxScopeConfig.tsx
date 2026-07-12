@@ -74,7 +74,8 @@ export function InboxScopeConfig() {
       const { data, error } = await supabase
         .from('inbox_custom_scopes')
         .select('*')
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
       if (error) throw error;
       return data || [];
     },

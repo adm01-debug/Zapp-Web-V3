@@ -109,6 +109,7 @@ export function useSentimentAlerts() {
         .select('*')
         .eq('action', 'sentiment_alert')
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(limit);
 
       if (error) throw error;

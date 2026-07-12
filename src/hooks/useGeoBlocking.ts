@@ -40,13 +40,15 @@ export function useGeoBlocking() {
       const { data: allowedData } = await supabase
         .from('allowed_countries')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       setAllowedCountries(allowedData || []);
 
       const { data: blockedData } = await supabase
         .from('blocked_countries')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       setBlockedCountries(blockedData || []);
     } catch (error) {
       log.error('Error fetching geo data:', error);

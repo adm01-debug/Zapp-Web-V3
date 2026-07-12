@@ -52,6 +52,7 @@ export function useAutomations({
   const prevTagsRef = useRef<string[] | null>(null);
   const isMounted = useRef(true);
   const loadingRef = useRef(false);
+  const evaluatingRef = useRef(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -114,6 +115,8 @@ export function useAutomations({
   // Avalia gatilhos para a conversa ativa
   const evaluate = useCallback(async () => {
     if (!remoteJid || !isMounted.current) return;
+    if (evaluatingRef.current) return;
+    evaluatingRef.current = true;
 
     try {
       const rules = rulesRef.current;
@@ -328,6 +331,8 @@ export function useAutomations({
       }
     } catch (err) {
       log.error('Error evaluating automations:', err);
+    } finally {
+      evaluatingRef.current = false;
     }
   }, [remoteJid, instanceName, assignedTo]);
 

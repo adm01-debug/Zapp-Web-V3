@@ -12,6 +12,8 @@ export function useEmailHealth() {
   const { toast } = useToast();
   const mountedRef = useRef(true);
   const loadingRef = useRef(false);
+  // Generation counter: only the latest in-flight request commits state, preventing stale overwrites.
+  const generationRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -22,16 +24,19 @@ export function useEmailHealth() {
 
   const loadHealth = useCallback(async (skipIfLoading = false) => {
     if (skipIfLoading && loadingRef.current) return;
+    const gen = ++generationRef.current;
     loadingRef.current = true;
     setIsLoading(true);
     try {
       const data = await emailHealthService.getHealthStatus();
-      if (mountedRef.current) setHealth(data);
+      if (gen === generationRef.current && mountedRef.current) setHealth(data);
     } catch (err) {
       log.error('Email health load error', err);
     } finally {
-      loadingRef.current = false;
-      if (mountedRef.current) setIsLoading(false);
+      if (gen === generationRef.current) {
+        loadingRef.current = false;
+        if (mountedRef.current) setIsLoading(false);
+      }
     }
   }, []);
 

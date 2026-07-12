@@ -87,6 +87,7 @@ export function TrainingMode() {
       .select('*')
       .eq('profile_id', profileId)
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(10);
     if (data) setSessions(data);
   };

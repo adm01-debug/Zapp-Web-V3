@@ -89,6 +89,7 @@ export function useDepartmentManagement(
         .eq('entity_id', initialDepartment.id)
         .eq('entity_type', 'department')
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(100);
       if (error) throw error;
       return (data ?? []).map((l) => ({
@@ -109,7 +110,8 @@ export function useDepartmentManagement(
         .select('id, code, expires_at, status')
         .eq('department_id', initialDepartment.id)
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (error) throw error;
       return (data ?? []).map((inv) => ({
         id: inv.id,

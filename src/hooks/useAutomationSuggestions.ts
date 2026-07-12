@@ -60,6 +60,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         .eq('status', 'pending')
         .not('suggestion_text', 'is', null)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(5)
     );
     if (!mountedRef.current) return;

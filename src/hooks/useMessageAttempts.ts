@@ -61,6 +61,7 @@ export function useMessageAttempts(messageRowId: string | null, opts: { enabled?
             .select(SELECT_COLS)
             .eq('idempotency_key', primaryKey)
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(1)
       );
 
@@ -79,6 +80,7 @@ export function useMessageAttempts(messageRowId: string | null, opts: { enabled?
             .select(SELECT_COLS)
             .eq('payload->>message_id', messageRowId)
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(1)
       );
 

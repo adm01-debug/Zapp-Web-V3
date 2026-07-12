@@ -96,7 +96,8 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
         .in('contact_id', contactIds)
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
 
       if (messagesError) throw messagesError;
 

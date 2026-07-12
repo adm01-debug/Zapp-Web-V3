@@ -14,8 +14,11 @@ export function useTeamConversations() {
     queryFn: async () => {
       if (!profile) return [];
 
-      // Keyset (cursor-based) pagination on (updated_at DESC, id DESC) to avoid
-      // offset skips/duplicates caused by concurrent inserts or updates.
+      // Keyset cursor pagination on (updated_at DESC, id DESC) reduces skips/duplicates.
+      // Because updated_at is mutable, a concurrent write can still move a row past the
+      // cursor (omission) or into an already-fetched range (duplication). We deduplicate
+      // by id after accumulation; omissions are expected to be rare and self-heal on the
+      // next refetch (realtime invalidation + 30s refetchInterval).
       const PAGE = 1000;
       const { data: firstConvPage, error: convErr } = await supabase
         .from('team_conversations')

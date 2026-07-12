@@ -129,6 +129,7 @@ export function useEmail() {
         .select('id, user_id, email, display_name, is_active, token_expiry, watch_expiry')
         .eq('is_active', true)
         .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
     );
 
     if (!mountedRef.current) return;

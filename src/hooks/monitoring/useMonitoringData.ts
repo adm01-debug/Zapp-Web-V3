@@ -77,8 +77,8 @@ export function useMonitoringData(onConnectionsUpdate?: (conns: ConnectionInfo[]
 
       const [connRes, logsRes, msgRes] = await Promise.all([
         supabase.from('whatsapp_connections').select('id, instance_id, phone_number, status, health_status, health_response_ms, last_health_check, updated_at'),
-        supabase.from('connection_health_logs').select('*').order('checked_at', { ascending: false }).limit(500),
-        dbFrom('messages').select('sender, created_at').gte('created_at', since.toISOString()).order('created_at', { ascending: true }),
+        supabase.from('connection_health_logs').select('*').order('checked_at', { ascending: false }).order('id', { ascending: false }).limit(500),
+        dbFrom('messages').select('sender, created_at').gte('created_at', since.toISOString()).order('created_at', { ascending: true }).order('id', { ascending: true }),
       ]);
 
       if (connRes.data) {

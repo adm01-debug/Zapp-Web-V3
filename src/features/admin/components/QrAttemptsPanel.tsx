@@ -50,6 +50,7 @@ export function QrAttemptsPanel() {
         .from('qr_attempts')
         .select('id, connection_id, instance_id, connection_name, status, error_message, connected_at, expired_at, created_at, requested_by')
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(200);
       if (statusFilter !== 'all') q = q.eq('status', statusFilter);
       if (instanceFilter !== 'all') q = q.eq('instance_id', instanceFilter);

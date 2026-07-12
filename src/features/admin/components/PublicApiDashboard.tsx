@@ -40,6 +40,7 @@ export function PublicApiDashboard() {
           .select('id, action, created_at, details, entity_type')
           .eq('entity_type', 'public_api')
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(50);
 
         return {

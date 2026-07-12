@@ -64,7 +64,8 @@ export function useSentimentData(period: string) {
         .select('*')
         .eq('action', 'sentiment_alert')
         .gte('created_at', startDate)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
 
       if (alertError) throw alertError;
 
@@ -81,7 +82,8 @@ export function useSentimentData(period: string) {
         .from('conversation_analyses')
         .select('id, contact_id, sentiment, sentiment_score, created_at, analyzed_by')
         .gte('created_at', startDate)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
 
       if (analysisError) throw analysisError;
       setAnalyses((analysisData || []) as ConversationAnalysis[]);

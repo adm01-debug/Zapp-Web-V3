@@ -22,7 +22,7 @@ export function usePersonalStickers() {
     queryKey: ['personal-stickers', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
-      const { data, error } = await supabase.from('stickers').select('*').eq('owner_id', profile.id).order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('stickers').select('*').eq('owner_id', profile.id).order('created_at', { ascending: false }).order('id', { ascending: false });
       if (error) throw error;
       return (data || []) as StickerItem[];
     },

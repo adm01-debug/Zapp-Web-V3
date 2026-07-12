@@ -50,6 +50,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
         .select('*')
         .gte('created_at', getDateFilter())
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(200);
 
       if (error) throw error;
