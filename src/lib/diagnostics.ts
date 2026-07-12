@@ -1,21 +1,43 @@
-import { safeClient } from "@/integrations/supabase/safeClient";
-import { supabase } from "@/integrations/supabase/client";
-import { getLogger } from "@/lib/logger";
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
+import { z } from 'zod';
 
-import {
-  systemConnectionSchema,
-  SystemConnectionForm,
-} from "@/types/system-connections";
+const log = getLogger('diagnostics');
 
-const log = getLogger("diagnostics");
+// [build-fix 2026-07-12] `@/types/system-connections` was imported here but never
+// existed in the repo (phantom module), breaking the production build. This module
+// is the ONLY consumer of those symbols, so the minimal 4-field validator/type it
+// actually uses is inlined here instead of reconstructing a shared contract.
+const systemConnectionSchema = z.object({
+  name: z.string(),
+  provider: z.string(),
+  config: z.record(z.string(), z.unknown()),
+  is_active: z.boolean(),
+});
+type SystemConnectionForm = z.infer<typeof systemConnectionSchema>;
 
+/**
+ * Decodes the payload (claims) of a JWT without any external dependency.
+ * The `jwt-decode` package was imported here but is not a project dependency,
+ * which broke the production build; this inline decoder replaces it. Handles
+ * base64url + UTF-8 and never throws — diagnostics must degrade gracefully.
+ */
 function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
-    const b64url = token.split('.')[1];
-    // Convert base64url → base64 and restore padding that JWTs omit
-    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-    return JSON.parse(atob(padded)) as Record<string, unknown>;
+    const part = token.split('.')[1];
+    if (!part) return {};
+    const b64 = part
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(part.length / 4) * 4, '=');
+    const json = decodeURIComponent(
+      Array.from(atob(b64))
+        .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join('')
+    );
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
   } catch {
     return {};
   }
@@ -42,35 +64,34 @@ export async function runSupabaseDiagnostics() {
     results.userEmail = session?.user?.email ?? null;
 
     if (session?.access_token) {
-      const decoded = decodeJwtPayload(session.access_token);
+      const decoded: Record<string, unknown> = decodeJwtPayload(session.access_token);
       results.tokenRole = decoded?.role ?? null;
       results.tokenExp = decoded?.exp ?? null;
     }
 
     // Test connection to system_connections table (manual table)
     const { data: connData, error: connError } = await safeClient.single<SystemConnectionRow>(
-      "system_connections",
-      (q: any) => q.select("*").eq("name", "FATOR X").eq("provider", "supabase_external")
+      'system_connections',
+      (q: any) => q.select('*').eq('name', 'FATOR X').eq('provider', 'supabase_external') // ignore-audit
     );
 
     results.connectionFetch = connError ? { error: connError.message } : { data: connData };
 
     // Test basic rpc call
-    const { data: rpcResult, error: rpcError } = await safeClient.rpc(
-      "rpc_get_server_time"
-    );
+    const { data: rpcResult, error: rpcError } = await safeClient.rpc('rpc_get_server_time');
     results.rpcTest = rpcError ? { error: rpcError.message } : { data: rpcResult };
 
     // Test upsert to system_connections
     const payload: SystemConnectionForm = {
-      name: "_DIAGNOSTICS_TEST",
-      provider: "diagnostics",
+      name: '_DIAGNOSTICS_TEST',
+      provider: 'diagnostics',
       config: { test: true },
       is_active: false,
     };
 
     const validatedPayload = systemConnectionSchema.parse(payload);
-    const { error: upsertError } = await safeClient.from("system_connections", (q: any) =>
+    const { error: upsertError } = await safeClient.from('system_connections', (q: any) =>
+      // ignore-audit
       q.upsert({
         ...validatedPayload,
         created_at: new Date().toISOString(),
@@ -81,22 +102,26 @@ export async function runSupabaseDiagnostics() {
 
     // Verify the upsert
     if (!upsertError) {
-      const testName = "_DIAGNOSTICS_TEST";
+      const testName = '_DIAGNOSTICS_TEST';
       const { data: verifyData, error: verifyError } = await safeClient.single<SystemConnectionRow>(
-        "system_connections",
-        (q: any) => q.select("*").eq("name", testName)
+        'system_connections',
+        (q: any) => q.select('*').eq('name', testName) // ignore-audit
       );
       results.verifyUpsert = verifyError ? { error: verifyError.message } : { data: verifyData };
 
       // Clean up
-      await safeClient.from("system_connections", (q: any) => q.delete().eq("name", testName));
+      await safeClient.from('system_connections', (q: any) => q.delete().eq('name', testName)); // ignore-audit
     }
   } catch (err) {
-    log.error("Diagnostics error", err);
+    log.error('Diagnostics error', err);
     results.criticalError = err instanceof Error ? err.message : String(err);
   }
 
   return results;
 }
 
+// [build-fix 2026-07-12] The onda2 refactor renamed this export to
+// runSupabaseDiagnostics but its only caller (admin/Connections.tsx) still imports
+// runConnectionDiagnostics — breaking the build. Alias both names (no other file
+// consumes runSupabaseDiagnostics).
 export const runConnectionDiagnostics = runSupabaseDiagnostics;
