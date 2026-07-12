@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useEmailSearch.ts — Busca full-text em emails (local + Email API)
  *

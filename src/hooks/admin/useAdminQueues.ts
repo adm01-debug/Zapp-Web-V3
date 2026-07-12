@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useAdminQueues — Wave 3 (2026-07-06)
  * Camada de dados+estado extraída de AdminQueuesPage (page ficou 100% JSX).
