@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -12,8 +11,11 @@ const mockDbRpc = vi.hoisted(() => vi.fn()); // intercepts dbRpc calls (search_c
 const mockFrom = vi.hoisted(() => vi.fn()); // tracks getExternalSupabase().from() calls
 
 vi.mock('@/integrations/datasource/db', () => ({
-  dbRpc: (...a: unknown[]) =>
-    (globalThis as Record<string, (...args: unknown[]) => unknown>).__mockDbRpc(...a),
+  dbRpc: (...a: unknown[]) => {
+    const __mockDbRpc = (globalThis as unknown as Record<string, unknown>).__mockDbRpc as
+      ((...args: unknown[]) => unknown) | undefined;
+    return __mockDbRpc?.(...a);
+  },
 }));
 
 vi.mock('@/integrations/supabase/externalClient', () => {
