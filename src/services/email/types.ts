@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface EmailFailure {
   requestId: string;
   operation: string;

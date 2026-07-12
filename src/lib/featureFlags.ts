@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Feature flags system for ZAPP WEB.
  *

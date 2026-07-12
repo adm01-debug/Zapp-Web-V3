@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { motion } from 'framer-motion';

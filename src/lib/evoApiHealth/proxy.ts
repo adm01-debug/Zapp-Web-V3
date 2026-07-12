@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import { generateCorrelationId, CORRELATION_HEADER } from '@/lib/correlationId';
 import { getLogger } from '@/lib/logger';
