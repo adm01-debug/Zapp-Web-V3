@@ -1,11 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface FailurePayload {
   contact_id: string | null;
   attempted_event_type: string; // typically 'sla_alert'
@@ -20,16 +15,16 @@ function isUuid(v: unknown): v is string {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 }
 
-function badRequest(message: string) {
+function badRequest(req: Request, message: string) {
   return new Response(JSON.stringify({ error: message }), {
     status: 400,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   // Require authenticated caller (best effort — protects against anonymous abuse).
@@ -45,7 +40,7 @@ Deno.serve(async (req) => {
   if (authError || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -53,17 +48,17 @@ Deno.serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return badRequest("Invalid JSON");
+    return badRequest(req, "Invalid JSON");
   }
 
-  if (!body || typeof body !== "object") return badRequest("Invalid body");
+  if (!body || typeof body !== "object") return badRequest(req, "Invalid body");
   if (body.contact_id !== null && !isUuid(body.contact_id)) {
-    return badRequest("contact_id must be a uuid or null");
+    return badRequest(req, "contact_id must be a uuid or null");
   }
   if (typeof body.attempted_event_type !== "string" ||
       body.attempted_event_type.length === 0 ||
       body.attempted_event_type.length > 64) {
-    return badRequest("attempted_event_type required (≤64 chars)");
+    return badRequest(req, "attempted_event_type required (≤64 chars)");
   }
 
   // Service-role insert — bypasses RLS so we can ALWAYS record the failure.
@@ -104,13 +99,13 @@ Deno.serve(async (req) => {
       JSON.stringify({ ok: false, error: "Failed to log failure" }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       },
     );
   }
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 });

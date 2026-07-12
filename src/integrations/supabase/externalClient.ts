@@ -26,7 +26,6 @@
  * new code for cleaner dependency inversion and easier testing.
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from './types';
 import type { ExtendedDatabase } from './types-manual';
 import { supabase } from './client';
 import { createLogger } from '@/lib/logger';

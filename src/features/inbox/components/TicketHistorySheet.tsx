@@ -119,7 +119,7 @@ function describeAudit(e: any): UnifiedEvent {
   // de `details`. Retrocompatível com o shape antigo `conversation_audit_logs`.
   const details = (e.details ?? {}) as Record<string, any>;
   const action: string = e.action ?? e.event_type ?? 'audit';
-  const status: string | undefined = details.status ?? e.status;
+  const _status: string | undefined = details.status ?? e.status;
   const errorMessage: string | undefined = details.error_message ?? e.error_message;
   const attemptNumber: number | undefined = details.attempt_number ?? e.attempt_number;
 

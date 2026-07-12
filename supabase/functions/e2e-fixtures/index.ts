@@ -15,13 +15,7 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const E2E_PREFIX = 'e2e-';
 
 type SeedTarget = 'failed_messages' | 'webhook_events';
@@ -37,10 +31,10 @@ interface RequestBody {
   count?: number;
 }
 
-function json(status: number, body: unknown) {
+function json(req: Request, status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
@@ -183,20 +177,20 @@ async function cleanupWebhookEvents(runId: string) {
 // ============================================================
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return json(405, { error: 'method-not-allowed' });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
+  if (req.method !== 'POST') return json(req, 405, { error: 'method-not-allowed' });
 
   const authz = await authorize(req);
-  if (!authz.ok) return json(401, { error: 'unauthorized', reason: authz.reason });
+  if (!authz.ok) return json(req, 401, { error: 'unauthorized', reason: authz.reason });
 
   let raw: unknown;
   try {
     raw = await req.json();
   } catch {
-    return json(400, { error: 'invalid-json' });
+    return json(req, 400, { error: 'invalid-json' });
   }
   const parsed = validateBody(raw);
-  if (!parsed.ok) return json(400, { error: parsed.error });
+  if (!parsed.ok) return json(req, 400, { error: parsed.error });
   const { action, runId, target = 'all', count = 3 } = parsed.body;
 
   try {
@@ -218,9 +212,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json(200, result);
+    return json(req, 200, result);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return json(500, { error: 'fixture-op-failed', message: msg });
+    console.error('[e2e-fixtures] unhandled error:', e instanceof Error ? e.message : e);
+    return json(req, 500, { error: 'fixture-op-failed' });
   }
 });

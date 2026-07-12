@@ -48,7 +48,7 @@ export function EmailChatReplyBar({
   const [cc, setCc] = useState('');
   const [bcc, setBcc] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [showSignaturePicker, setShowSignaturePicker] = useState(false);
+  const [_showSignaturePicker, _setShowSignaturePicker] = useState(false);
   const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

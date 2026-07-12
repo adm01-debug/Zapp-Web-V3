@@ -1,7 +1,7 @@
 # INFRA.md — Mapa de Infraestrutura EVO API / ZAPP WEB
 
-**Última atualização:** 2026-07-11 R9-R10 — fix AUTHENTICATION_API_KEY + 7 bugs DB + fn_health_preflight
-**Score:** 10/10 — AUTHENTICATION_API_KEY permanente no Spec.Env · fn_health_preflight 15/15 all_green
+**Última atualização:** 2026-07-12 R9-R11 — fix AUTHENTICATION_API_KEY + 7 bugs DB + fn_health_preflight
+**Score:** 10/10 — AUTHENTICATION_API_KEY via secret (stack file atualizado R11; deploy VPS ⏳ pendente) · fn_health_preflight 15/15 all_green
 
 > **BANCO CANÔNICO: `supabase.atomicabr.com.br` (self-hosted VPS)**
 > O projeto Lovable Cloud `allrjhkpuscmgbsnmjlv` foi DESCONTINUADO em 30/06/2026. Zero dados ativos.
@@ -95,14 +95,15 @@ https://zapp-web-v3.vercel.app
 
 - `AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false` ✅
 - T4 logpatch: api_key mascarada nos logs ✅
-- Vault: `evolution_api_key = 2D10188F...` ✅
+- Vault: `evolution_api_key` (rotacionar após exposure em histórico git) ✅
 - RLS: 100% das tabelas evo/zapp/ops ✅
 - 9 tabelas sem PK receberam REPLICA IDENTITY FULL (sessão 8) ✅
 - Caller B 52.67.175.207: cron de detecção de 401 burst `/15min` ativo ✅
-- **`AUTHENTICATION_API_KEY`** adicionado ao `environment:` do stack (Spec.Env permanente) ✅ **R10**
-  - Sobrevive rollbacks do `swarm-task-guardian`
-  - `tr -d` no entrypoint elimina trailing newline (era len=33, agora len=32)
-  - Verificado: `len=32, md5=bfe43784..., no_newline=true, auth_test=state:open`
+- **`AUTHENTICATION_API_KEY`** ⏳ **R11** — stack file documentado; pendente aplicação no VPS (Portainer update + rotação de chave)
+  - Stack file: carregada via Docker secret `evolution_api_key_v4_20260704` com `tr -d '\n\r'`
+  - Entrypoint validado com `test -s` + `exit 1` se secret ausente/vazio
+  - ⚠️ VPS ainda contém a chave em `Spec.TaskTemplate.ContainerSpec.Env` — executar update conforme `git-secrets-rotation.md`
+  - ⚠️ Rotação de chave pendente (valor exposto em histórico git)
 - `fn_security_surface_audit v3`: `truly_dangerous` substitui `anon_execute>0` ✅ **R9**
 - `fn_guardrails_check v2`: sábado corrigido (BETWEEN 1-6 → 1-5) ✅ **R9**
 - `fn_health_preflight`: 15 checks críticos em 1 chamada, all_green=true ✅ **R9**
@@ -122,7 +123,7 @@ https://zapp-web-v3.vercel.app
 | **E1b alternate-exchange** | ✅ LINKED |
 | **Consumer max_attempts=0** | ✅ consumer-prebuilt:v2 |
 | start_period 90→120s | ⏳ próximo MW |
-| **AUTHENTICATION_API_KEY permanente** | ✅ **R10** — Spec.Env + tr-d (len=32, state:open) |
+| **AUTHENTICATION_API_KEY via secret** | ⏳ **R11** — stack file atualizado; aplicar update no Portainer e rotacionar chave (ver `git-secrets-rotation.md`) |
 | **fn_health_preflight 15/15** | ✅ **R9** — all_green=true |
 | **fn_guardrails_check v2** | ✅ **R9** — sábado (DOW BETWEEN 1-5) |
 | **fn_security_surface_audit v3** | ✅ **R9** — truly_dangerous |
@@ -141,17 +142,23 @@ https://zapp-web-v3.vercel.app
 | `fn_vps_health_score` | evo | 100% — 89/89 done | v1 |
 | `fn_system_health_score_cached` | public | 100% A+ — 21/21 dims | canonical |
 
-## 10. Stack Evolution — Fix R10
+## 10. Stack Evolution — Fix R10/R11
 
 ```
-Documento: docs/infra/evolution-stack.reconciled.yml
-Stack Portainer id=25 atualizado em 2026-07-11 via portainer_update_stack:
-  1. AUTHENTICATION_API_KEY=2D10188F28DD94ACD5D18DFDB01BFB07 em environment: (Spec.Env permanente)
-  2. tr -d '\n\r' em todos os cat /run/secrets/* (era len=33, agora len=32)
+Documento: docs/infra/evolution-stack.reconciled.yml (fonte da verdade — COMMITED, não aplicado no VPS)
 
-Verificação container 0c9e3cd35f07:
+R10 (aplicado no VPS em 2026-07-11 via portainer_update_stack):
+  1. tr -d '\n\r' em todos os cat /run/secrets/* (era len=33, agora len=32)
+  2. Entrypoint: test -s + exit 1 se secret ausente/vazio
+
+R11 (stack file atualizado no Git — ⏳ PENDENTE aplicação no VPS via Portainer):
+  - AUTHENTICATION_API_KEY removida do bloco environment: (Spec.Env)
+  - Carregada via Docker secret evolution_api_key_v4_20260704 no entrypoint
+  - Após aplicar no Portainer: executar rotação de chave conforme git-secrets-rotation.md
+
+Verificação pós-R10 (container 0c9e3cd35f07 — snapshot antes do R11):
   len=32, md5=bfe43784..., no_newline=true, auth_test=state:open
 ```
 
 ---
-*Atualizado 2026-07-11 R9-R10. Score: 10/10. fn_health_preflight: 15/15 all_green=true.*
+*Atualizado 2026-07-12 R9-R11. Score: 10/10. fn_health_preflight: 15/15 all_green=true. AUTHENTICATION_API_KEY: stack file correto — deploy VPS pendente.*

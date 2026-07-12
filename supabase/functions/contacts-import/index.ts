@@ -6,12 +6,7 @@
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-const JSON_CORS = { ...CORS, 'Content-Type': 'application/json' };
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 
 const VALID_DDDS = new Set([11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99]);
 
@@ -32,11 +27,11 @@ const sanitize = (val: unknown, maxLen = 500): string | null => {
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
     const auth = req.headers.get('Authorization');
-    if (!auth) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_CORS });
+    if (!auth) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const supabase = createClient(
       (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '',
@@ -51,23 +46,23 @@ serve(async (req) => {
     );
 
     const { data: { user }, error: authErr } = await supabase.auth.getUser(auth.replace('Bearer ', ''));
-    if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: JSON_CORS });
+    if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const body = await req.json();
     const rows = body.rows;
     const rawInstanceName = body.workspace_id ?? 'wpp2';
 
-    if (!Array.isArray(rows)) return new Response(JSON.stringify({ error: 'rows must be an array' }), { status: 400, headers: JSON_CORS });
-    if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: JSON_CORS });
-    if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: JSON_CORS });
+    if (!Array.isArray(rows)) return new Response(JSON.stringify({ error: 'rows must be an array' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    if (!rows.length) return new Response(JSON.stringify({ error: 'No rows provided' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    if (rows.length > 50000) return new Response(JSON.stringify({ error: 'Max 50,000 rows per import' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     if (!rows.every((r: unknown) => r !== null && typeof r === 'object' && !Array.isArray(r))) {
-      return new Response(JSON.stringify({ error: 'Each row must be a plain object' }), { status: 400, headers: JSON_CORS });
+      return new Response(JSON.stringify({ error: 'Each row must be a plain object' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // Validate instance name to prevent URL path injection
     const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
     if (!INSTANCE_NAME_RE.test(String(rawInstanceName))) {
-      return new Response(JSON.stringify({ error: 'Invalid workspace_id' }), { status: 400, headers: JSON_CORS });
+      return new Response(JSON.stringify({ error: 'Invalid workspace_id' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
     const instanceName = String(rawInstanceName);
 
@@ -80,12 +75,12 @@ serve(async (req) => {
       .eq('instance_name', instanceName)
       .maybeSingle();
     if (connErr) {
-      return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_CORS });
+      return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
     if (!ownedConn) {
       return new Response(
         JSON.stringify({ error: 'WhatsApp connection not found or not authorized' }),
-        { status: 403, headers: JSON_CORS }
+        { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
 
@@ -134,11 +129,11 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ inserted, updated: 0, skipped, errors: errors.slice(0, 50), total_processed: rows.length, duration_ms: Date.now() - startTime }),
-      { status: 200, headers: JSON_CORS }
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
 
   } catch (err) {
     console.error('[contacts-import] unexpected error', err instanceof Error ? err.message : String(err));
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_CORS });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   }
 });

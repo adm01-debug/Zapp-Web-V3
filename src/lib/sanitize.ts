@@ -100,9 +100,38 @@ export function sanitizeUrl(url: unknown): string {
  */
 export function sanitizeForSearch(input: unknown): string {
   if (!input) return '';
-  return sanitizeText(input)
+  const raw = (typeof input === 'string' ? input : String(input)).slice(0, 200);
+  return sanitizeText(raw)
     .replace(/[%_\\]/g, '\\$&') // escape SQL LIKE special chars
-    .slice(0, 200);              // max 200 chars for search
+    .slice(0, 200);              // safety net after escaping
+}
+
+/**
+ * Sanitize user input for safe interpolation inside PostgREST .or() filter strings.
+ *
+ * PostgREST parses .or() arguments as a comma-separated list of filter expressions.
+ * Without escaping, a user supplying `,phone.eq.admin` as their search term would
+ * inject an extra filter clause, bypassing intended query logic.
+ *
+ * Characters stripped:
+ *   , → separates clauses in .or()
+ *   ( ) → enable grouped sub-filters
+ *   " → string quoting in PostgREST filter syntax
+ *
+ * Characters escaped:
+ *   \ → doubled to \\ so it is literal in SQL LIKE (must be escaped first)
+ *   * % _ → prefixed with \ to suppress LIKE wildcard behaviour
+ */
+export function sanitizePostgrestFilter(input: unknown): string {
+  if (!input) return '';
+  // Truncate raw input BEFORE DOMPurify so it processes at most 100 chars (limits attack surface).
+  // Worst-case expansion after escape chains: 2× → 200 chars; final .slice is a safety net.
+  const raw = (typeof input === 'string' ? input : String(input)).slice(0, 100);
+  return sanitizeText(raw)
+    .replace(/[,"()]/g, '')          // strip PostgREST filter metacharacters
+    .replace(/\\/g, '\\\\')         // escape backslash BEFORE adding other escape sequences
+    .replace(/[*%_]/g, '\\$&')     // escape SQL LIKE wildcards (PostgREST * is alias for %)
+    .slice(0, 200);                  // safety net
 }
 
 /**

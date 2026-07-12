@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useMessages } from '@/features/inbox';
-import type { Database } from '@/integrations/supabase/types';
 import { Conversation } from '@/types/chat';
 import { log } from '@/lib/logger';
 

@@ -5,12 +5,12 @@ import { callOpenAICompatible, withRetry } from "../_shared/ai-providers.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
 const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 interface ChatMessage { role: "user" | "assistant" | "system"; content: string; }
-const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, x-api-key", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const BASE_SYSTEM_PROMPT = `Você é a assistente virtual da Promo Brindes, especializada em brindes personalizados. Personalidade amigável, profissional, prestativa. Pode: orçamentos, info produtos (canetas, chaveiros, camisetas, bonés, canecas), prazos (10-15 dias úteis), pagamento (PIX, boleto, cartão 3x), personalização (silk, bordado, transfer, laser). Transfere humano: reclamações, financeiro complexo, dúvida. Português BR. Mensagens curtas (WhatsApp).`;
 const STOP_WORDS = ["parar bot","desativar bot","sair do bot","falar com humano","humano agora","atendente humano","quero atendente","chamar atendente"];
 
@@ -98,11 +98,11 @@ function getFallback(msg: string): string {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Only POST is supported for chatbot requests
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }
 
   // Internal endpoint — require service role or cron secret
@@ -111,27 +111,27 @@ Deno.serve(async (req: Request) => {
 
   try {
     let body: Record<string, unknown>;
-    try { body = await req.json() as Record<string, unknown>; } catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+    try { body = await req.json() as Record<string, unknown>; } catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }); }
 
     const { remote_jid, message, use_ai = true } = body;
 
     // Validate that remote_jid and message are non-empty strings
     if (typeof remote_jid !== "string" || !remote_jid.trim()) {
-      return new Response(JSON.stringify({ error: "remote_jid deve ser uma string não vazia" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "remote_jid deve ser uma string não vazia" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
     if (typeof message !== "string" || !message.trim()) {
-      return new Response(JSON.stringify({ error: "message deve ser uma string não vazia" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "message deve ser uma string não vazia" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
     if (containsStopWord(message)) {
       const r = "👤 Entendi! Vou transferir você para um atendente humano.";
       await supabase.from("evolution_chatbot_responses").insert({ remote_jid, response_text: r, model_used: "stop_word" }).then(()=>{},()=>{});
-      return new Response(JSON.stringify({ success: true, response: r, needs_human: true, model_used: "stop_word" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, response: r, needs_human: true, model_used: "stop_word" }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
     const rl = await checkRateLimit(remote_jid);
     if (!rl.ok) {
       const r = "💬 Muitas mensagens recentes. Vou transferir para humano.";
-      return new Response(JSON.stringify({ success: true, response: r, needs_human: true, rate_limited: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, response: r, needs_human: true, rate_limited: true }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
     const openAiKey = await getOpenAIKey();
     const anthropicKey = await getAnthropicKey();
@@ -151,9 +151,9 @@ Deno.serve(async (req: Request) => {
     } else { response = getFallback(message); }
     await supabase.from("evolution_chatbot_responses").insert({ remote_jid, response_text: response, model_used: modelUsed }).then(()=>{},()=>{});
     const needsHuman = response.toLowerCase().includes("transferir") || response.toLowerCase().includes("atendente") || message.toLowerCase().includes("reclama");
-    return new Response(JSON.stringify({ success: true, response, needs_human: needsHuman, model_used: modelUsed, rate_limit_remaining: rl.remaining }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, response, needs_human: needsHuman, model_used: modelUsed, rate_limit_remaining: rl.remaining }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[evolution-chatbot] unhandled error:", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }
 });

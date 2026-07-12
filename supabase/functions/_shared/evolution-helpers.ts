@@ -60,6 +60,7 @@ export interface WebhookAuditRow {
   instance?: string | null;
   event_type?: string | null;
   status: 'received' | 'processed' | 'duplicate' | 'error' | 'rejected';
+  status_code?: number | null;
   duration_ms?: number | null;
   error_message?: string | null;
 }

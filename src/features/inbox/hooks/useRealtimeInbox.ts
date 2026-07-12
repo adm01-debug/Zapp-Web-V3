@@ -211,7 +211,7 @@ export function useRealtimeInbox() {
               contactAvatar: currentAvatar,
               caption: i === 0 ? content : undefined,
               onProgress: (p) => {
-                const total = ((i / attachments.length) * 100) + (p / attachments.length);
+                const _total = ((i / attachments.length) * 100) + (p / attachments.length);
                 messageQueue.updateProgress(item.id, p / attachments.length + (i / attachments.length) * 100);
               }
             });

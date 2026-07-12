@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
 
@@ -55,11 +56,12 @@ async function resolveLocalContactId(identifier: string): Promise<string | null>
 
   const phone = jidToPhone(identifier);
   if (!phone) return null;
+  const safePhone = sanitizePostgrestFilter(phone);
 
   // Try exact match first, then trailing-digits fallback for stored numbers with country code variations
   const { data, error } = await dbFrom('contacts')
     .select('id')
-    .or(`phone.eq.${phone},phone.eq.+${phone},phone.ilike.%${phone.slice(-8)}`)
+    .or(`phone.eq.${safePhone},phone.eq.+${safePhone},phone.ilike.%${safePhone.slice(-8)}`)
     .limit(1)
     .maybeSingle();
 

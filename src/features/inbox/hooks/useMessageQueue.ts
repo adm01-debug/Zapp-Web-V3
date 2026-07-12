@@ -116,13 +116,13 @@ export function useMessageQueue(
     localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
   }, [queue]);
 
-  const processQueueForContact = useCallback(
+  const _processQueueForContact = useCallback(
     async (contactId: string) => {
       if (isProcessingRef.current[contactId]) return;
 
       // Tentar pegar o próximo item da fila sem criar um loop infinito de dependência
       // isProcessingRef garante que não rodamos em paralelo para o mesmo contato
-      let nextItem: QueueItem | undefined;
+      let _nextItem: QueueItem | undefined;
 
       // Precisamos de uma forma de ler o estado atual do queue sem depender dele
       // Como estamos dentro de um useCallback que será chamado por um useEffect,
@@ -228,7 +228,7 @@ export function useMessageQueue(
                 analytics?: { track: (event: string, props?: Record<string, unknown>) => void };
               }
             ).analytics;
-            const startTimeStr = new Date(startTime).toISOString();
+            const _startTimeStr = new Date(startTime).toISOString();
             const durationMs = Date.now() - startTime;
 
             // New Monitoring Logs for Dashboard

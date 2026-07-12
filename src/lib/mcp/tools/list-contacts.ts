@@ -28,10 +28,17 @@ export default defineTool({
       return { content: [{ type: 'text', text: 'Não autenticado.' }], isError: true };
     }
     const sb = supabaseForUser(ctx);
+    // Strip PostgREST .or() metacharacters to prevent filter injection (no DOMPurify in Node context)
+    const safeQuery = String(query ?? '')
+      .slice(0, 100)                  // pre-cap before escaping: worst-case 2× expansion → max 200 chars
+      .replace(/[,"()]/g, '')         // strip PostgREST .or() metacharacters
+      .replace(/\\/g, '\\\\')        // escape backslash first (complete encoding)
+      .replace(/[*%_]/g, '\\$&')    // escape SQL LIKE wildcards (* is PostgREST alias for %)
+      .slice(0, 200);                 // safety net
     const { data, error } = await sb
       .from('contacts')
       .select('id, name, phone_number, email, assigned_to, created_at')
-      .or(`name.ilike.%${query}%,phone_number.ilike.%${query}%`)
+      .or(`name.ilike.%${safeQuery}%,phone_number.ilike.%${safeQuery}%`)
       .limit(limit ?? 20);
 
     if (error) {

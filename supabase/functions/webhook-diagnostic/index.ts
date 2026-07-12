@@ -2,14 +2,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -32,7 +28,7 @@ Deno.serve(async (req: Request) => {
       if (typeof rawInstanceName !== 'string' || !INSTANCE_RE.test(rawInstanceName)) {
         return new Response(
           JSON.stringify({ error: 'instanceName contains invalid characters' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         );
       }
     }
@@ -196,13 +192,13 @@ Deno.serve(async (req: Request) => {
     };
 
     return new Response(JSON.stringify(results), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   } catch (err) {
     console.error('[webhook-diagnostic] error:', err instanceof Error ? err.message : String(err));
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });

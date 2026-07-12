@@ -14,10 +14,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Save, Plus, Trash2, Lock, Search, Shield } from "lucide-react";
 import type { AppRole } from "@/features/auth";
-import { useRoutePermissions, ALL_ROLES, type RoutePermission } from '@/hooks/admin/useRoutePermissions';
+import { useRoutePermissions, ALL_ROLES } from '@/hooks/admin/useRoutePermissions';
 
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const ROLE_LABELS: Record<AppRole, string> = {
   dev: "Dev",
   admin: "Admin",
@@ -27,14 +27,14 @@ const ROLE_LABELS: Record<AppRole, string> = {
 };
 
 export default function RoutePermissionsPage() {
-  const { toast } = useToast();
+  const { toast: _toast } = useToast();
   const [filter, setFilter] = useState("");
   const [dirty, setDirty] = useState<Record<string, AppRole[]>>({});
   const [newOpen, setNewOpen] = useState(false);
   const [newPath, setNewPath] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newRoles, setNewRoles] = useState<AppRole[]>([]);
-  const { rows, loading, savingPath, load, saveRow, deleteRow, createRow } = useRoutePermissions();
+  const { rows, loading, savingPath, load: _load, saveRow, deleteRow, createRow } = useRoutePermissions();
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();

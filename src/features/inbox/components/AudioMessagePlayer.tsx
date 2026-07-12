@@ -272,7 +272,7 @@ export function AudioMessagePlayer({
   };
 
   if (!audioUrl && !isLoading) {
-    const isProcessing = transcriptionStatus === 'processing' || isTranscribing;
+    const _isProcessing = transcriptionStatus === 'processing' || isTranscribing;
     return (
       <div
         className={cn(

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
+
 import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';

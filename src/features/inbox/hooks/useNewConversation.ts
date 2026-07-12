@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { toast } from 'sonner';
 import { newRequestId } from '@/lib/withRequestId';
 import { z } from 'zod';
@@ -53,10 +54,10 @@ export function useNewConversation(
     }
     const timeout = setTimeout(async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
-        .or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`)
+        .or(`name.ilike.%${sanitizePostgrestFilter(searchQuery)}%,phone.ilike.%${sanitizePostgrestFilter(searchQuery)}%`)
         .limit(10);
       setContacts(data || []);
       setIsLoading(false);

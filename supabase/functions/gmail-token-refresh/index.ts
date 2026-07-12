@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireServiceRoleOrCron, requireUser } from '../_shared/auth.ts';
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 /**
  * gmail-token-refresh — Renovação automática de tokens Gmail
  *
@@ -17,21 +18,16 @@ import { requireServiceRoleOrCron, requireUser } from '../_shared/auth.ts';
  * Também renova Pub/Sub watch quando watch_expiry < NOW() + 2h
  */
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GMAIL_WATCH_URL  = 'https://gmail.googleapis.com/gmail/v1/users/me/watch';
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
       status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
 
   // Parse body early so we can route auth by action

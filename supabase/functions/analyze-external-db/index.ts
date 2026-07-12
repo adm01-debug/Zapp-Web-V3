@@ -3,11 +3,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 // F10: max concurrent queries per batch — prevents exhausting the external DB connection pool
 const BATCH_SIZE = 8;
 // Global wall-clock timeout: abort if analysis takes > 25s (well within 60s Edge fn limit)
@@ -62,14 +58,14 @@ async function probeTable(
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   // F10: Authentication required — prevents unauthenticated enumeration of external DB
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -78,7 +74,7 @@ Deno.serve(async (req) => {
   const selfKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!selfUrl || !selfKey) {
     return new Response(JSON.stringify({ error: 'Service misconfigured' }), {
-      status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -86,7 +82,7 @@ Deno.serve(async (req) => {
   const { data: { user }, error: authErr } = await self.auth.getUser(authHeader.replace('Bearer ', ''));
   if (authErr || !user) {
     return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -98,7 +94,7 @@ Deno.serve(async (req) => {
   }).maybeSingle();
   if (rateLimitOk === false) {
     return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 2 analyses per minute.' }), {
-      status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 
@@ -111,7 +107,7 @@ Deno.serve(async (req) => {
 
     if (!url || !key) {
       return new Response(JSON.stringify({ error: 'Missing external DB credentials' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -164,13 +160,13 @@ Deno.serve(async (req) => {
       timed_out: timeoutController.signal.aborted,
       timestamp: new Date().toISOString(),
     }, null, 2), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error("[analyze-external-db] Unhandled error", error instanceof Error ? error.message : String(error));
     return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });

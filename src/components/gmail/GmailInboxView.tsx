@@ -55,7 +55,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
     tokenStatus,
     threads,
     activeAccountId,
-    activeAccount,
+    activeAccount: _activeAccount,
     activeLabel,
     isSyncing,
     isLoading,

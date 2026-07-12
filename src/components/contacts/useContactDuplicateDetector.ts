@@ -51,7 +51,7 @@ function normalizePhone(phone: string): string {
 export function useContactDuplicateDetector({
   workspaceId,
   excludeId,
-  debounceMs = 600,
+  debounceMs: _debounceMs = 600,
 }: UseDuplicateDetectorOptions) {
   const [state, setState] = useState<DuplicateState>({
     checking: false,

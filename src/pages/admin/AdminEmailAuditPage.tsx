@@ -178,14 +178,14 @@ export default function AdminEmailAuditPage() {
                       <td className="px-4 py-3">{getStatusBadge(log.status)}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
-                          <span>{new Date(log.requested_at).toLocaleDateString()}</span>
-                          <span className="text-[10px] text-muted-foreground">{new Date(log.requested_at).toLocaleTimeString()}</span>
+                          <span>{new Date(log.scheduled_at).toLocaleDateString()}</span>
+                          <span className="text-[10px] text-muted-foreground">{new Date(log.scheduled_at).toLocaleTimeString()}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <User className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs">{log.requested_by ? 'Admin' : 'Sistema'}</span>
+                          <span className="text-xs">{log.triggered_by ? 'Admin' : 'Sistema'}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">

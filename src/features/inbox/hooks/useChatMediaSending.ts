@@ -188,7 +188,9 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             .eq('image_url', stickerUrl)
             .maybeSingle();
 
-          if (!existing) {
+          if (existingErr) {
+            log.error('[auto-save sticker] Read failed, skipping insert:', existingErr.message);
+          } else if (!existing) {
             const {
               data: { user },
             } = await supabase.auth.getUser();

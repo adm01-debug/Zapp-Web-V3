@@ -364,7 +364,7 @@ describe('notificationRowSchema', () => {
   });
 
   it('rejeita quando campo obrigatório title está ausente', () => {
-    const { title, ...withoutTitle } = base;
+    const { title: _title, ...withoutTitle } = base;
     expect(notificationRowSchema.safeParse(withoutTitle).success).toBe(false);
   });
 });
@@ -388,7 +388,7 @@ describe('conversationEventRowSchema', () => {
   });
 
   it('rejeita event_type ausente', () => {
-    const { event_type, ...bad } = base;
+    const { event_type: _event_type, ...bad } = base;
     expect(conversationEventRowSchema.safeParse(bad).success).toBe(false);
   });
 });
@@ -417,7 +417,7 @@ describe('conversationTransferRowSchema', () => {
   });
 
   it('rejeita ticket_number ausente', () => {
-    const { ticket_number, ...bad } = base;
+    const { ticket_number: _ticket_number, ...bad } = base;
     expect(conversationTransferRowSchema.safeParse(bad).success).toBe(false);
   });
 
@@ -446,7 +446,7 @@ describe('conversationTransferRowSchema', () => {
   });
 
   it('rejeita source_conversation_id ausente (missing)', () => {
-    const { source_conversation_id, ...bad } = base;
+    const { source_conversation_id: _source_conversation_id, ...bad } = base;
     expect(conversationTransferRowSchema.safeParse(bad).success).toBe(false);
   });
 
@@ -496,7 +496,7 @@ describe('conversationEventRowSchema — tightening', () => {
   });
 
   it('rejeita id ausente (missing)', () => {
-    const { id, ...bad } = base;
+    const { id: _id, ...bad } = base;
     expect(conversationEventRowSchema.safeParse(bad).success).toBe(false);
   });
 });

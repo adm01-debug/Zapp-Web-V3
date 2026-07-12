@@ -107,6 +107,7 @@ export const EDGE_FUNCTION_NAMES = [
   'sentiment-alert',
   'sicoob-bridge',
   'sicoob-bridge-reply',
+  'sicoob-outbox-consumer',
   'sla-alert-forward',
   'sla-alert-log-failure',
   'speech-to-text',

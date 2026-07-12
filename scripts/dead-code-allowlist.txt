@@ -15,5 +15,7 @@ src/components/mobile/InAppNotificationProvider.tsx  # registrado como provider 
 src/components/notifications/RealtimeSentimentAlertProvider.tsx  # registrado como provider via AppProviders; não rastreável por análise estática
 src/components/providers/AppProviders.tsx  # top-level provider wrapper importado em main.tsx indiretamente; side-effect mount
 src/components/system/ServiceWorkerUpdateBanner.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática
+src/pages/Login.tsx  # re-export alias para pages/Auth — AppRoutes importa Auth diretamente; compatibilidade de deep-links externos preservada
+src/components/ThemeProvider.tsx  # thin wrapper introduzido pela branch de auditoria; App.tsx usa ThemeInitializer (main); mantido para compatibilidade futura de API
 src/hooks/admin/useAdminAutomations.ts  # Wave 3 hook extraído de AdminAutomationsPage — página ainda não migrada para usar o hook
 src/hooks/admin/useAdminQueues.ts  # Wave 3 hook extraído de AdminQueuesPage — página ainda não migrada para usar o hook

@@ -12,6 +12,7 @@ import { contractErrorResponse } from "../_shared/validation.ts";
 import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import { markEventProcessed } from "../_shared/evolution-helpers.ts";
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface MetaWAMessage {
   from: string;
   id: string;
@@ -27,13 +28,6 @@ interface MetaWAContact {
   wa_id?: string;
   profile?: { name?: string };
 }
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-hub-signature-256",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
 
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
 const APP_SECRET = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET") ?? "";
@@ -121,7 +115,7 @@ Deno.serve(async (req) => {
   const rid = reqId();
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   const url = new URL(req.url);
@@ -134,15 +128,15 @@ Deno.serve(async (req) => {
     if (mode === "subscribe" && token && VERIFY_TOKEN && token === VERIFY_TOKEN) {
       console.log(`[whatsapp-cloud-webhook][${rid}] verification ok`);
       void recordPing("handshake", { rid, mode, source: req.headers.get("user-agent") ?? null });
-      return new Response(challenge ?? "", { status: 200, headers: corsHeaders });
+      return new Response(challenge ?? "", { status: 200, headers: getCorsHeaders(req) });
     }
     console.warn(`[whatsapp-cloud-webhook][${rid}] verification failed mode=${mode}`);
     void recordPing("invalid_token", { rid, mode, hadToken: !!token });
-    return new Response("forbidden", { status: 403, headers: corsHeaders });
+    return new Response("forbidden", { status: 403, headers: getCorsHeaders(req) });
   }
 
   if (req.method !== "POST") {
-    return new Response("method not allowed", { status: 405, headers: corsHeaders });
+    return new Response("method not allowed", { status: 405, headers: getCorsHeaders(req) });
   }
 
   // POST: lê raw body para validar assinatura
@@ -161,7 +155,7 @@ Deno.serve(async (req) => {
       if (STRICT_MODE) {
         return new Response(
           JSON.stringify({ error: "invalid_signature", requestId: rid }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
         );
       }
     }
@@ -174,7 +168,7 @@ Deno.serve(async (req) => {
     void recordPing("invalid_signature", { rid, reason: "no_secret_configured", strict: true });
     return new Response(
       JSON.stringify({ error: "webhook_not_configured", requestId: rid }),
-      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   } else {
     console.warn(
@@ -188,7 +182,7 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(
       JSON.stringify({ error: "invalid_json", requestId: rid }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
@@ -252,7 +246,7 @@ Deno.serve(async (req) => {
     void recordPing("event", { rid, processed, duplicates, ignoredFields });
     return new Response(
       JSON.stringify({ ok: true, processed, duplicates, ignoredFields, requestId: rid }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error(`[whatsapp-cloud-webhook][${rid}] error`, e);
@@ -260,7 +254,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ ok: false, requestId: rid }),
       {
         status: 200, // ack para evitar retry-storm da Meta
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       },
     );
   }

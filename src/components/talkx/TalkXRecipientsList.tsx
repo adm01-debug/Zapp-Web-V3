@@ -2,7 +2,6 @@ import React from 'react';
 import { CheckCircle2, XCircle, Clock, Loader2, SkipForward } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { motion } from 'framer-motion';
 import type { TalkXRecipient } from '@/hooks/useTalkX';

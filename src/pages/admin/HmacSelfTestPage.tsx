@@ -20,11 +20,10 @@ import {
   ShieldCheck, ShieldAlert, FlaskConical, Loader2, RotateCcw,
   ArrowLeft, Clock, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 import { HmacAuditHistoryPanel } from '@/pages/admin-webhook-secret-status/HmacAuditHistoryPanel';
 
-const log = getLogger('HmacSelfTestPage');
+const _log = getLogger('HmacSelfTestPage');
 
 const PHASE_LABEL: Record<Phase, string> = {
   'config': 'Configuração do secret',

@@ -24,6 +24,7 @@
 // fallbacks bem definidos em vez de quebrar.
 import * as hmacModule from '../_shared/hmac-validation.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Adapter de validador HMAC
@@ -166,29 +167,9 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
 }
 
 /**
- * CORS headers — definidos inline (sem dependência de pacote externo) para
- * compatibilidade com qualquer versão do runtime do Supabase Edge Functions.
- *
- * Inclui todos os headers que o `@supabase/supabase-js` envia por padrão
- * (incluindo metadados de plataforma/runtime), além de Methods e Max-Age para
- * evitar preflights repetidos.
+ * CORS headers — fornecidos por `_shared/cors.ts` (getCorsHeaders / handleCorsPreflight).
+ * Origin-aware: retorna o header específico para origens na allowlist ou `*` como fallback.
  */
-const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': [
-    'authorization',
-    'x-client-info',
-    'apikey',
-    'content-type',
-    'x-supabase-client-platform',
-    'x-supabase-client-platform-version',
-    'x-supabase-client-runtime',
-    'x-supabase-client-runtime-version',
-  ].join(', '),
-  'Access-Control-Max-Age': '86400',
-  'Vary': 'Origin',
-};
 
 const DEFAULT_TOLERANCE_SECONDS = 300; // 5 minutos
 const MAX_TOLERANCE_SECONDS = 3600;    // 1 hora (cap defensivo)
@@ -299,7 +280,7 @@ function structuredLog(event: {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   const authError = requireServiceRoleOrCron(req);
@@ -331,7 +312,7 @@ Deno.serve(async (req) => {
         failed_phase: 'config' as Phase,
         error: 'No webhook secret configured (EVOLUTION_WEBHOOK_SECRET / WEBHOOK_SECRET).',
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   }
   structuredLog({
@@ -664,6 +645,6 @@ Deno.serve(async (req) => {
         ? `HMAC + replay protection OK: ${scenarios.length} cenários passaram (janela ${toleranceSec}s).`
         : `Falha em ${failedScenarios.length}/${scenarios.length} cenários (1ª fase com erro: ${firstFailedPhase ?? 'desconhecida'}).`,
     }),
-    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
   );
 });

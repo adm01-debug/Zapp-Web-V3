@@ -106,7 +106,7 @@ serve(async (req) => {
       // Auto-pause: conta invalid_signature na janela e persiste o evento
       recordAuthFailureAndMaybePause(supabase, headerInstance ?? 'unknown', 'invalid_signature', 'webhook', { message: result.error ?? 'invalid_signature' });
       await auditWebhookEvent(supabase, {
-        request_id: requestId, status: 'rejected',
+        request_id: requestId, status: 'rejected', status_code: 401,
         error_message: result.error ?? 'invalid_signature',
         duration_ms: Date.now() - startedAt,
       });
@@ -128,7 +128,7 @@ serve(async (req) => {
     if (!parsed.success) {
       console.warn(`[webhook][${requestId}] contract_violation:`, parsed.error.issues);
       await auditWebhookEvent(supabase, {
-        request_id: requestId, status: 'rejected', error_message: 'contract_violation',
+        request_id: requestId, status: 'rejected', status_code: 422, error_message: 'contract_violation',
         duration_ms: Date.now() - startedAt,
       });
       return contractErrorResponse(
@@ -142,7 +142,7 @@ serve(async (req) => {
     payload = parsed.data as WebhookPayload;
   } catch {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, status: 'rejected', error_message: 'invalid_json',
+      request_id: requestId, status: 'rejected', status_code: 400, error_message: 'invalid_json',
       duration_ms: Date.now() - startedAt,
     });
     return new Response(JSON.stringify({ error: 'invalid_json', requestId }), { status: 400, headers: corsHeaders });
@@ -158,7 +158,7 @@ serve(async (req) => {
   // janela de pausa preferimos isso a continuar processando lixo.
   if (await isInstancePaused(supabase, instance)) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 503,
       error_message: 'instance_paused',
       duration_ms: Date.now() - startedAt,
     });
@@ -175,7 +175,7 @@ serve(async (req) => {
   const __knownInstance = await isKnownInstance(supabase, instance);
   if (__knownInstance === false) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 200,
       error_message: 'unknown_instance',
       duration_ms: Date.now() - startedAt,
     });
@@ -193,7 +193,7 @@ serve(async (req) => {
   const isNew = await markEventProcessed(supabase, eventId, instance, event);
   if (!isNew) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'duplicate',
+      request_id: requestId, instance, event_type: event, status: 'duplicate', status_code: 200,
       duration_ms: Date.now() - startedAt,
     });
     console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
@@ -216,7 +216,7 @@ serve(async (req) => {
   });
   if (!rateLimit.allowed) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 429,
       error_message: 'rate_limit_exceeded',
       duration_ms: Date.now() - startedAt,
     });
@@ -353,7 +353,7 @@ serve(async (req) => {
     if (event === 'messages.edited' || event === 'messages.edit') await handleMessagesEdited(supabase, instance, data, baseData);
 
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'processed',
+      request_id: requestId, instance, event_type: event, status: 'processed', status_code: 200,
       duration_ms: Date.now() - startedAt,
     });
     return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: corsHeaders });
@@ -372,7 +372,7 @@ serve(async (req) => {
       request_id: requestId,
     });
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'error',
+      request_id: requestId, instance, event_type: event, status: 'error', status_code: 200,
       duration_ms: Date.now() - startedAt, error_message: detail.slice(0, 500),
     });
     return new Response(

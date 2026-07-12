@@ -1,13 +1,13 @@
 // Sprint 2 — Consumidor da outbox Sicoob.
 // Invocado por pg_cron a cada 1 min. Drena itens pendentes com backoff exponencial.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { getCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 const MAX_BATCH = 25;
 const MAX_ATTEMPTS = 6; // ~1+2+4+8+16+32 min de backoff
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const sicoobGiftsUrl = Deno.env.get("SICOOB_GIFTS_URL");
     const bridgeSecret = Deno.env.get("SICOOB_GIFTS_BRIDGE_SECRET");
     if (!sicoobGiftsUrl || !bridgeSecret) {
-      return json({ error: "SICOOB_GIFTS_URL/SECRET not configured" }, 500);
+      return json(req, { error: "SICOOB_GIFTS_URL/SECRET not configured" }, 500);
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -34,16 +34,17 @@ Deno.serve(async (req) => {
         .lte("next_attempt_at", new Date().toISOString())
         .order("next_attempt_at", { ascending: true })
         .limit(MAX_BATCH);
-      return await processBatch(pending ?? [], supabase, sicoobGiftsUrl, bridgeSecret);
+      return await processBatch(req, pending ?? [], supabase, sicoobGiftsUrl, bridgeSecret);
     }
 
-    return await processBatch(claimed ?? [], supabase, sicoobGiftsUrl, bridgeSecret);
+    return await processBatch(req, claimed ?? [], supabase, sicoobGiftsUrl, bridgeSecret);
   } catch (e) {
-    return json({ error: e instanceof Error ? e.message : String(e) }, 500);
+    return json(req, { error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
 
 async function processBatch(
+  req: Request,
   items: Array<{ id: string; contact_id: string; message_id: string; agent_id: string | null; content: string; attempts: number }>,
   supabase: ReturnType<typeof createClient>,
   sicoobGiftsUrl: string,
@@ -114,7 +115,7 @@ async function processBatch(
     }
   }
 
-  return json({ ok: true, sent, failed, total: items.length });
+  return json(req, { ok: true, sent, failed, total: items.length });
 }
 
 async function markFailed(
@@ -139,9 +140,9 @@ async function markFailed(
     .eq("id", item.id);
 }
 
-function json(body: unknown, status = 200) {
+function json(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 }

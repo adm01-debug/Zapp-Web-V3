@@ -7,7 +7,7 @@
  * SEGURANÇA:
  * - Requer JWT válido (authenticated)
  * - Lê api_key do Vault Supabase (NUNCA de env var ou config pública)
- * - CORS restrito a origens conhecidas
+ * - CORS restrito a origens conhecidas via _shared/cors.ts
  * - Não loga o valor da key
  *
  * v2 — CAUSA RAIZ CORRIGIDA (auditoria integração full 2026-07-06):
@@ -27,35 +27,12 @@
  * para evitar log inadvertido em DevTools Network.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const ALLOWED_ORIGINS = [
-  'https://zapp-web-v3.vercel.app',
-  'https://zapp-web-v3-juca1.vercel.app',
-  'https://zapp-web-v3-git-main-juca1.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-];
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 
 const INSTANCE = 'wpp2';
 
 Deno.serve(async (req: Request) => {
-  const origin = req.headers.get('origin') || '';
-  const allowOrigin = ALLOWED_ORIGINS.includes(origin)
-    ? origin
-    : ALLOWED_ORIGINS[0];
-
-  // CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': allowOrigin,
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Authorization, Content-Type, apikey',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
-  }
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   if (req.method !== 'GET') {
     return new Response('Method Not Allowed', { status: 405 });
@@ -66,7 +43,7 @@ Deno.serve(async (req: Request) => {
   if (!authHeader?.startsWith('Bearer ')) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized', message: 'JWT Bearer token required' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
+      { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -84,7 +61,7 @@ Deno.serve(async (req: Request) => {
   if (authError || !user) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized', message: 'Invalid JWT' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
+      { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -109,7 +86,7 @@ Deno.serve(async (req: Request) => {
     );
     return new Response(
       JSON.stringify({ error: 'Configuration Error', message: 'Evolution API not configured' }),
-      { status: 503, headers: { 'Content-Type': 'application/json' } }
+      { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   }
 
@@ -125,8 +102,8 @@ Deno.serve(async (req: Request) => {
     {
       status: 200,
       headers: {
+        ...getCorsHeaders(req),
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': allowOrigin,
         'Access-Control-Expose-Headers': 'X-Evolution-Key',
         // api_key no header para não aparecer no body/log de resposta
         'X-Evolution-Key': row.api_key,

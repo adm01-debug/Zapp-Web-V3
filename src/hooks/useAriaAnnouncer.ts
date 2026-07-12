@@ -45,3 +45,8 @@ export function useAriaAnnouncer() {
 
   return { announce };
 }
+
+export function AriaAnnouncer() {
+  useAriaAnnouncer();
+  return null;
+}

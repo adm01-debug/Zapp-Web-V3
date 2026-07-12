@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
 const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -173,23 +174,22 @@ async function processQueue() {
 }
 
 Deno.serve(async (req: Request) => {
-  const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+    if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Internal cron endpoint — require service role or cron secret
   const authErr = requireServiceRoleOrCron(req);
   if (authErr) return authErr;
 
   const bitrixUrl = await getBitrixUrl();
-  if (!bitrixUrl) return new Response(JSON.stringify({ error: "Bitrix24 não configurado", message: "Configure bitrix_webhook_url no Vault ou env BITRIX_WEBHOOK_URL" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!bitrixUrl) return new Response(JSON.stringify({ error: "Bitrix24 não configurado", message: "Configure bitrix_webhook_url no Vault ou env BITRIX_WEBHOOK_URL" }), { status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
 
   try {
     const start = Date.now();
     const result = await processQueue();
     await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "bitrix_sync", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).then(()=>{},()=>{});
-    return new Response(JSON.stringify({ success: true, version: "v3", ...result, duration_ms: Date.now() - start, timestamp: new Date().toISOString() }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, version: "v3", ...result, duration_ms: Date.now() - start, timestamp: new Date().toISOString() }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[evolution-bitrix-sync] unhandled error:", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }
 });

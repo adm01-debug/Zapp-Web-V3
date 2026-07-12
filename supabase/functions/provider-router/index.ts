@@ -5,13 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 type Action = "sendText" | "sendMedia" | "getStatus" | "ping";
 
 interface RouteRequest {
@@ -109,10 +103,10 @@ async function callProvider(
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return handleCorsPreflight(req);
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 405, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -123,20 +117,20 @@ Deno.serve(async (req) => {
   const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !serviceKey) {
     return new Response(JSON.stringify({ error: "missing_env" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
   let body: RouteRequest;
   try { body = await req.json(); } catch {
     return new Response(JSON.stringify({ error: "invalid_json" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
   if (!body.action) {
     return new Response(JSON.stringify({ error: "action_required" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -151,7 +145,7 @@ Deno.serve(async (req) => {
 
   if (!channelRef) {
     return new Response(JSON.stringify({ error: "channel_ref_required" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -163,7 +157,7 @@ Deno.serve(async (req) => {
 
   if (!route) {
     return new Response(JSON.stringify({ error: "no_route_for_channel" }), {
-      status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 404, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -188,7 +182,7 @@ Deno.serve(async (req) => {
 
   if (candidates.length === 0) {
     return new Response(JSON.stringify({ error: "no_active_provider" }), {
-      status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -256,7 +250,7 @@ Deno.serve(async (req) => {
         used_fallback: i > 0,
         latency_ms: result.latencyMs,
         body: result.body,
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
     // Falhou — marca degradação e tenta próximo
@@ -272,5 +266,5 @@ Deno.serve(async (req) => {
     ok: false,
     error: "all_providers_failed",
     last_error: lastError,
-  }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }), { status: 502, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
 });
