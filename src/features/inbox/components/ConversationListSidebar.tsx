@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useRef, useMemo, type RefObject } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { motion } from 'framer-motion';
@@ -109,7 +108,7 @@ export function ConversationListSidebar({
   const [_contactSearch, setContactSearch] = useState('');
 
   const _conversationsWithUnreadCount = useMemo(
-    () => inbox.conversations.filter((c: any) => c.unreadCount > 0).length, // ignore-audit
+    () => inbox.conversations.filter((c) => Number(c['unreadCount'] ?? 0) > 0).length, // ignore-audit
     [inbox.conversations]
   );
 
@@ -134,7 +133,7 @@ export function ConversationListSidebar({
   }, [inbox]);
 
   const sortedFilteredIds = useMemo(
-    () => inboxFilters.filteredConversations.map((c: any) => c.contact.id), // ignore-audit
+    () => inboxFilters.filteredConversations.map((c) => c.contact.id), // ignore-audit
     [inboxFilters.filteredConversations]
   );
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { conversationEventRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
@@ -8,9 +7,16 @@ const log = getLogger('ConversationTimeline');
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  ArrowRight, UserPlus, UserMinus, RotateCcw, XCircle, 
-  AlertTriangle, Clock, Loader2, GitBranch
+import {
+  ArrowRight,
+  UserPlus,
+  UserMinus,
+  RotateCcw,
+  XCircle,
+  AlertTriangle,
+  Clock,
+  Loader2,
+  GitBranch,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
@@ -35,8 +41,16 @@ const EVENT_CONFIG: Record<string, { icon: typeof ArrowRight; label: string; col
   assign: { icon: UserPlus, label: 'Atribuído', color: 'text-success' },
   unassign: { icon: UserMinus, label: 'Desatribuído', color: 'text-warning' },
   transfer: { icon: ArrowRight, label: 'Transferido', color: 'text-primary' },
-  queue_transfer: { icon: GitBranch, label: 'Transferido de fila', color: 'text-accent-foreground' },
-  overload_reassign: { icon: AlertTriangle, label: 'Reatribuição por sobrecarga', color: 'text-warning' },
+  queue_transfer: {
+    icon: GitBranch,
+    label: 'Transferido de fila',
+    color: 'text-accent-foreground',
+  },
+  overload_reassign: {
+    icon: AlertTriangle,
+    label: 'Reatribuição por sobrecarga',
+    color: 'text-warning',
+  },
   absence_reassign: { icon: Clock, label: 'Reatribuição por ausência', color: 'text-destructive' },
   close: { icon: XCircle, label: 'Encerrado', color: 'text-muted-foreground' },
   reopen: { icon: RotateCcw, label: 'Reaberto', color: 'text-success' },
@@ -46,16 +60,18 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['conversation-timeline', contactId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<TimelineEvent>(
-        'conversation_events',
-        q => q.select(`
+      const { data, error } = await safeClient.from<TimelineEvent>('conversation_events', (q) =>
+        q
+          .select(
+            `
           id, event_type, from_agent_id, to_agent_id,
           from_queue_id, to_queue_id, metadata, performed_by, created_at,
           from_agent:profiles!conversation_events_from_agent_id_fkey(name),
           to_agent:profiles!conversation_events_to_agent_id_fkey(name),
           from_queue:queues!conversation_events_from_queue_id_fkey(name),
           to_queue:queues!conversation_events_to_queue_id_fkey(name)
-        `)
+        `
+          )
           .eq('contact_id', contactId)
           .order('created_at', { ascending: false })
           .limit(50)
@@ -80,14 +96,14 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-6">
-        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (events.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground text-center py-4">
+      <p className="py-4 text-center text-xs text-muted-foreground">
         Nenhum evento registrado ainda
       </p>
     );
@@ -96,7 +112,7 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
   return (
     <div className="relative space-y-0">
       {/* Vertical line */}
-      <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border/50" />
+      <div className="absolute bottom-3 left-[11px] top-3 w-px bg-border/50" />
 
       {events.map((event, idx) => {
         const config = EVENT_CONFIG[event.event_type] || EVENT_CONFIG.assign;
@@ -111,22 +127,24 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
             className="relative flex gap-3 py-2"
           >
             {/* Dot */}
-            <div className={`relative z-10 mt-0.5 w-[22px] h-[22px] rounded-full bg-background border-2 border-border flex items-center justify-center shrink-0`}>
-              <Icon className={`w-3 h-3 ${config.color}`} />
+            <div
+              className={`relative z-10 mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-border bg-background`}
+            >
+              <Icon className={`h-3 w-3 ${config.color}`} />
             </div>
 
             {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-medium">
                   {config.label}
                 </Badge>
                 <span className="text-[10px] text-muted-foreground">
-                  {format(new Date(event.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                  {format(new Date(event.created_at), 'dd/MM HH:mm', { locale: ptBR })}
                 </span>
               </div>
 
-              <p className="text-[11px] text-foreground/80 mt-0.5 leading-relaxed">
+              <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/80">
                 {event.event_type === 'transfer' && (
                   <>
                     De <strong>{event.from_agent?.name || '—'}</strong> para{' '}
@@ -134,10 +152,14 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
                   </>
                 )}
                 {event.event_type === 'assign' && (
-                  <>Atribuído a <strong>{event.to_agent?.name || '—'}</strong></>
+                  <>
+                    Atribuído a <strong>{event.to_agent?.name || '—'}</strong>
+                  </>
                 )}
                 {event.event_type === 'unassign' && (
-                  <>Removido de <strong>{event.from_agent?.name || '—'}</strong></>
+                  <>
+                    Removido de <strong>{event.from_agent?.name || '—'}</strong>
+                  </>
                 )}
                 {event.event_type === 'queue_transfer' && (
                   <>
@@ -145,7 +167,8 @@ export function ConversationTimeline({ contactId }: { contactId: string }) {
                     <strong>{event.to_queue?.name || '—'}</strong>
                   </>
                 )}
-                {(event.event_type === 'overload_reassign' || event.event_type === 'absence_reassign') && (
+                {(event.event_type === 'overload_reassign' ||
+                  event.event_type === 'absence_reassign') && (
                   <>
                     De <strong>{event.from_agent?.name || '—'}</strong> para{' '}
                     <strong>{event.to_agent?.name || '—'}</strong>

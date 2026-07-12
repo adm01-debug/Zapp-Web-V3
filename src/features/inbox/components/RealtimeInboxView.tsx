@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
 import { useAuth } from '@/features/auth';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -230,7 +229,7 @@ export function RealtimeInboxView() {
   const lastUnreadRef = useRef(0);
   useEffect(() => {
     const total = (inboxFilters.filteredConversations || []).reduce(
-      (sum: number, c: any) => sum + (c?.unreadCount || 0), // ignore-audit
+      (sum: number, c) => sum + Number(c?.['unreadCount'] ?? 0), // ignore-audit
       0
     );
     if (total > lastUnreadRef.current && lastUnreadRef.current > 0) {
@@ -362,7 +361,9 @@ export function RealtimeInboxView() {
               <MessageSquarePlus className="h-6 w-6" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="left" sideOffset={8}>Nova Conversa</TooltipContent>
+          <TooltipContent side="left" sideOffset={8}>
+            Nova Conversa
+          </TooltipContent>
         </Tooltip>
       )}
 

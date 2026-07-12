@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { useAuth } from './useAuth';
@@ -39,7 +38,9 @@ async function loadPermissionsData(force = false): Promise<CacheShape> {
   inflight = (async () => {
     const [permsResult, rolePermsResult] = await Promise.all([
       supabase.from('permissions').select('*').order('category', { ascending: true }),
-      supabase.from('role_permissions').select('role, permission_id, permissions(id, name, description, category)'),
+      supabase
+        .from('role_permissions')
+        .select('role, permission_id, permissions(id, name, description, category)'),
     ]);
 
     const permissions = (permsResult.data ?? []) as Permission[];
@@ -65,9 +66,16 @@ function invalidatePermissionsCache() {
 }
 
 export function usePermissions() {
-  const { user, permissions: userPermissions, loading: authLoading, refreshPermissions } = useAuth();
+  const {
+    user,
+    permissions: userPermissions,
+    loading: authLoading,
+    refreshPermissions,
+  } = useAuth();
   const [permissions, setPermissions] = useState<Permission[]>(cache?.permissions ?? []);
-  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>(cache?.rolePermissions ?? []);
+  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>(
+    cache?.rolePermissions ?? []
+  );
   const [fetchingAll, setFetchingAll] = useState(false);
   const mountedRef = useMountedRef();
 
@@ -100,27 +108,29 @@ export function usePermissions() {
       if (error) return false;
       return !!data;
     },
-    [user],
+    [user]
   );
 
   const hasPermission = useCallback(
     (permissionName: string): boolean => userPermissions.includes(permissionName),
-    [userPermissions],
+    [userPermissions]
   );
 
   const hasAnyPermission = useCallback(
-    (permissionNames: string[]): boolean => permissionNames.some((p) => userPermissions.includes(p)),
-    [userPermissions],
+    (permissionNames: string[]): boolean =>
+      permissionNames.some((p) => userPermissions.includes(p)),
+    [userPermissions]
   );
 
   const hasAllPermissions = useCallback(
-    (permissionNames: string[]): boolean => permissionNames.every((p) => userPermissions.includes(p)),
-    [userPermissions],
+    (permissionNames: string[]): boolean =>
+      permissionNames.every((p) => userPermissions.includes(p)),
+    [userPermissions]
   );
 
   const addPermissionToRole = useCallback(
     async (role: string, permissionId: string) => {
-      const { error } = await safeClient.from('role_permissions', q =>
+      const { error } = await safeClient.from('role_permissions', (q) =>
         q.insert({ role, permission_id: permissionId })
       );
 
@@ -130,12 +140,12 @@ export function usePermissions() {
       }
       return !error;
     },
-    [refreshPermissions, fetchAllPermissionsData],
+    [refreshPermissions, fetchAllPermissionsData]
   );
 
   const removePermissionFromRole = useCallback(
     async (role: string, permissionId: string) => {
-      const { error } = await safeClient.from('role_permissions', q =>
+      const { error } = await safeClient.from('role_permissions', (q) =>
         q.delete().eq('role', role).eq('permission_id', permissionId)
       );
 
@@ -145,7 +155,7 @@ export function usePermissions() {
       }
       return !error;
     },
-    [refreshPermissions, fetchAllPermissionsData],
+    [refreshPermissions, fetchAllPermissionsData]
   );
 
   return {

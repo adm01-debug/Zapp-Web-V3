@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -57,9 +56,7 @@ import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import type { DegradedConnection } from './DegradedQuickActions';
 
 /** Type guard: distingue WhatsAppConnection (payload completo) de DegradedConnection (payload parcial). */
-function isWhatsAppConnection(
-  c: DegradedConnection | WhatsAppConnection
-): c is WhatsAppConnection {
+function isWhatsAppConnection(c: DegradedConnection | WhatsAppConnection): c is WhatsAppConnection {
   return (
     typeof (c as WhatsAppConnection).phone_number === 'string' &&
     typeof (c as WhatsAppConnection).status === 'string' &&
@@ -76,15 +73,30 @@ export function ConnectionsView() {
   const maskSensitiveData = (obj: unknown) => {
     if (!obj || typeof obj !== 'object') return null;
     const masked = { ...(obj as Record<string, unknown>) }; // ignore-audit: safe cast of unknown to Record after typeof === 'object' guard
-    const sensitiveKeys = ['apikey', 'key', 'token', 'password', 'secret', 'base64', 'qr', 'qrcode', 'authorization', 'session', 'cookie'];
+    const sensitiveKeys = [
+      'apikey',
+      'key',
+      'token',
+      'password',
+      'secret',
+      'base64',
+      'qr',
+      'qrcode',
+      'authorization',
+      'session',
+      'cookie',
+    ];
 
     const maskValue = (o: unknown): unknown => {
       if (typeof o !== 'object' || o === null) return o;
       const record = o as Record<string, unknown>; // ignore-audit: safe cast of unknown to Record after null/object guard
       for (const key in record) {
-        if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+        if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
           if (typeof record[key] === 'string') {
-            record[key] = (record[key] as string).length > 10 ? `${(record[key] as string).substring(0, 4)}...${(record[key] as string).substring((record[key] as string).length - 4)}` : '****';
+            record[key] =
+              (record[key] as string).length > 10
+                ? `${(record[key] as string).substring(0, 4)}...${(record[key] as string).substring((record[key] as string).length - 4)}`
+                : '****';
           } else {
             record[key] = '****';
           }
@@ -245,7 +257,14 @@ export function ConnectionsView() {
                   <Label>Método de conexão</Label>
                   <Select
                     value={newConnection.api_type}
-                    onValueChange={(v) => setNewConnection({ ...newConnection, api_type: v as 'evolution' | 'official'  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */})}
+                    onValueChange={(v) =>
+                      setNewConnection({
+                        ...newConnection,
+                        api_type: v as
+                          | 'evolution'
+                          | 'official' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */,
+                      })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Como deseja conectar?" />

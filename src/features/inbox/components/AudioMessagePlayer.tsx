@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -304,7 +303,9 @@ export function AudioMessagePlayer({
       >
         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
           <Button
-            aria-label={hasError ? 'Tentar novamente' : isPlaying ? 'Pausar áudio' : 'Reproduzir áudio'}
+            aria-label={
+              hasError ? 'Tentar novamente' : isPlaying ? 'Pausar áudio' : 'Reproduzir áudio'
+            }
             variant="ghost"
             size="icon"
             className={cn(

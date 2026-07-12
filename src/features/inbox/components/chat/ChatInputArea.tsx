@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useEffect, useRef } from 'react';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
