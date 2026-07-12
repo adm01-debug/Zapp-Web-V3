@@ -40,10 +40,8 @@ import {
   AiConversationAnalysisSchema, AiSuggestReplySchema, TranscribeAudioSchema,
   parseBody
 } from "../_shared/schemas.ts";
-import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
+import { callAiWithTracking } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
-import { withCircuitBreaker } from "../_shared/circuit-breaker.ts";
-import { callAiWithTimeout } from "../_shared/timeout-wrapper.ts";
 
 // Action-specific timeouts (milliseconds)
 const ACTION_TIMEOUTS: Record<string, number> = {
@@ -85,6 +83,95 @@ interface ActionResult {
   error?: string;
   duration_ms: number;
   metrics?: Record<string, unknown>;
+}
+
+// Circuit breaker state for external APIs
+interface CircuitBreakerState {
+  state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+  failureCount: number;
+  lastFailureTime?: number;
+  successCount: number;
+}
+
+const circuitBreakerStates = new Map<string, CircuitBreakerState>();
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+const CIRCUIT_BREAKER_COOLDOWN_MS = 60_000; // 1 minute
+
+function getCircuitBreakerState(key: string): CircuitBreakerState {
+  if (!circuitBreakerStates.has(key)) {
+    circuitBreakerStates.set(key, {
+      state: 'CLOSED',
+      failureCount: 0,
+      successCount: 0,
+    });
+  }
+  return circuitBreakerStates.get(key)!;
+}
+
+async function withCircuitBreaker<T extends { response: { ok?: boolean; status?: number }; data?: unknown }>(
+  fn: () => Promise<T>,
+  key: string = 'default'
+): Promise<T> {
+  const breaker = getCircuitBreakerState(key);
+
+  // If open, check if cool-down period has passed
+  if (breaker.state === 'OPEN') {
+    const now = Date.now();
+    if (breaker.lastFailureTime && now - breaker.lastFailureTime > CIRCUIT_BREAKER_COOLDOWN_MS) {
+      breaker.state = 'HALF_OPEN';
+      breaker.successCount = 0;
+    } else {
+      throw new Error(`Circuit breaker OPEN for ${key}, retry after ${CIRCUIT_BREAKER_COOLDOWN_MS}ms`);
+    }
+  }
+
+  try {
+    const result = await fn();
+
+    // Success - check if response is ok
+    const isSuccess = result.response?.ok === true || (result.response?.status !== undefined && result.response.status < 400);
+
+    if (isSuccess) {
+      // On success, reset failure count and transition back to CLOSED
+      breaker.failureCount = 0;
+      if (breaker.state === 'HALF_OPEN') {
+        breaker.state = 'CLOSED';
+        breaker.successCount = 0;
+      }
+      return result;
+    } else {
+      // HTTP error response (429, 402, 5xx, etc)
+      breaker.failureCount++;
+      breaker.lastFailureTime = Date.now();
+
+      if (breaker.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
+        breaker.state = 'OPEN';
+        throw new Error(`Circuit breaker opened for ${key} after ${breaker.failureCount} failures`);
+      }
+      return result;
+    }
+  } catch (err) {
+    // Network or other errors
+    breaker.failureCount++;
+    breaker.lastFailureTime = Date.now();
+
+    if (breaker.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
+      breaker.state = 'OPEN';
+    }
+    throw err;
+  }
+}
+
+async function callAiWithTimeout<T>(
+  fn: () => Promise<T>,
+  timeoutMs: number = 30_000,
+): Promise<T> {
+  return Promise.race([
+    fn(),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`API call timeout after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
 }
 
 Deno.serve(async (req) => {
