@@ -33,7 +33,12 @@ interface ExtTag {
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-3-flash-preview";
 
-/** Constrói uma query textual a partir das últimas mensagens do cliente para alimentar a busca FTS na KB. */
+/**
+ * Builds full-text search query from last N customer messages for Knowledge Base lookup.
+ * Extracts last 4 customer-only messages, normalizes to lowercase, strips non-alphanumeric chars,
+ * filters words <3 characters, limits to first 20 terms. Prevents FTS query injection via
+ * character filtering; enables matching KB articles by customer intent.
+ */
 function buildSearchQuery(messages: Array<{ from_me: boolean; content: string }>): string {
   const fromCustomer = messages.filter((m) => !m.from_me).slice(-4);
   const text = fromCustomer.map((m) => m.content).join(" ");
@@ -48,6 +53,12 @@ function buildSearchQuery(messages: Array<{ from_me: boolean; content: string }>
     .trim();
 }
 
+/**
+ * Fetches relevant Knowledge Base articles via FTS search (up to 4 results).
+ * Calls search_knowledge_base RPC with normalized query, extracts category/title/content.
+ * Returns formatted snippet (title + first 600 chars per article) and source titles for citations.
+ * Graceful failure: Network errors, empty results, parse errors → returns empty snippet + sources.
+ */
 async function fetchKnowledgeContext(
   supabase: ReturnType<typeof createClient>,
   query: string,
@@ -86,6 +97,12 @@ async function fetchKnowledgeContext(
   }
 }
 
+/**
+ * Fetches tag catalog from external Supabase (evolution_tags table, up to 60 rows).
+ * Supports dual config: SELFHOSTED_SUPABASE_URL takes precedence; falls back to EXTERNAL_SUPABASE_URL.
+ * Returns empty array if config missing or fetch fails (graceful degradation for tag recommendations).
+ * Used by AI to narrow suggested tags to available taxonomy.
+ */
 async function fetchExternalTags(): Promise<ExtTag[]> {
   const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
   const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
@@ -107,7 +124,13 @@ async function fetchExternalTags(): Promise<ExtTag[]> {
   }
 }
 
-/** Chama o LLM com tool-calling para devolver { reply, recommended_tag }. */
+/**
+ * Calls Lovable AI Gateway with tool-use to generate suggested response + tag recommendation.
+ * Validates tag against allowed list (enum constraint prevents AI tag injection).
+ * Falls back to raw message content if tool parsing fails (graceful degradation).
+ * Handles rate limit (429) and payment (402) errors as exceptions; network timeout = 30s AbortSignal.
+ * Returns { reply: trimmed text, recommended_tag: null if no match or tag not in list }.
+ */
 async function callAi(
   systemPrompt: string,
   userPrompt: string,
@@ -191,6 +214,26 @@ async function callAi(
   return { reply: fallback, recommended_tag: null };
 }
 
+/**
+ * Edge Function: Automation Suggest Reply — AI-Powered Response Generation
+ *
+ * Generates contextual response suggestions for automation rules via LLM (Gemini 3 Flash).
+ * Uses Knowledge Base search + external tag catalog to enrich AI context and guide recommendations.
+ *
+ * Authorization: Service-role or cron-triggered only (internal automation engine).
+ * Request Body: { executionId, ruleId, recentMessages?, contactName?, skipAi? }
+ *
+ * Flow:
+ * 1. Fetch automation rule (template, custom AI prompt)
+ * 2. If skipAi=true or template+!customPrompt: return template directly
+ * 3. Otherwise: build FTS query from recent messages → search KB → fetch tag catalog
+ * 4. Call LLM with system prompt (template or custom) + conversation context
+ * 5. Extract AI suggestion + recommended tag (validated against catalog)
+ * 6. Fallback: return template or LLM content on parse errors
+ *
+ * Response: { suggestion, recommended_tag?, kb_sources? }
+ * Handles rate limits (429), payment errors (402), and graceful fallback to template.
+ */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(req) });
 
