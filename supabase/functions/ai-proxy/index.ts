@@ -42,7 +42,23 @@ async function getProvider(supabase: ReturnType<typeof createClient>, useFor: st
     query = query.contains('use_for', [useFor]).eq('is_default', true);
   }
   const { data } = await query.limit(1).maybeSingle();
-  return data as AiProvider | null;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const provider = data as Record<string, unknown>;
+  // Validate required fields exist
+  if (typeof provider.id !== 'string' || typeof provider.provider_type !== 'string') return null;
+  return {
+    id: provider.id,
+    name: typeof provider.name === 'string' ? provider.name : 'Unknown',
+    provider_type: provider.provider_type,
+    api_endpoint: typeof provider.api_endpoint === 'string' ? provider.api_endpoint : null,
+    api_key_secret_name: typeof provider.api_key_secret_name === 'string' ? provider.api_key_secret_name : null,
+    model: typeof provider.model === 'string' ? provider.model : null,
+    system_prompt: typeof provider.system_prompt === 'string' ? provider.system_prompt : null,
+    config: typeof provider.config === 'object' && provider.config !== null && !Array.isArray(provider.config)
+      ? (provider.config as Record<string, unknown>)
+      : {},
+    is_active: provider.is_active === true,
+  };
 }
 
 function injectSystemPrompt(messages: Array<{ role: string; content: string }>, systemPrompt: string) {
@@ -76,9 +92,12 @@ function dispatchProvider(
       const secretName = provider.api_key_secret_name;
       const apiKey = secretName ? Deno.env.get(secretName) : null;
       if (!apiKey) throw new Error(`Chave de API '${secretName}' não encontrada nos secrets.`);
+      const endpoint = provider.api_endpoint;
+      const model = provider.model || undefined;
+      const config = typeof provider.config === 'object' && provider.config !== null ? provider.config : {};
       return () => callOpenAICompatible({
-        endpoint: provider.api_endpoint!, apiKey, messages: finalMessages,
-        model: provider.model || undefined, tools, toolChoice, stream, config: provider.config || {},
+        endpoint, apiKey, messages: finalMessages,
+        model, tools, toolChoice, stream, config,
       });
     }
     case 'custom_webhook':
@@ -86,8 +105,10 @@ function dispatchProvider(
       if (!provider?.api_endpoint) throw new Error("Endpoint não configurado para este agente/webhook.");
       const secretName2 = provider.api_key_secret_name;
       const apiKey2 = secretName2 ? Deno.env.get(secretName2) : undefined;
+      const endpoint = provider.api_endpoint;
+      const config = typeof provider.config === 'object' && provider.config !== null ? provider.config : {};
       return () => callCustomWebhook({
-        endpoint: provider.api_endpoint!, apiKey: apiKey2, messages: finalMessages, config: provider.config || {},
+        endpoint, apiKey: apiKey2, messages: finalMessages, config,
       });
     }
     default: {
@@ -201,7 +222,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    const data = await response.json();
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+      data = {};
+    }
     const { inputTokens, outputTokens, model } = extractTokenUsage(data);
 
     logAiUsage({
