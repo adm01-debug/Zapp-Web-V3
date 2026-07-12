@@ -206,6 +206,7 @@ export const contactsDB = {
           `apelido.ilike.%${cleaned}%`
       )
       .order('updated_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(limit);
     if (error) throw error;
     return (data ?? []) as ExternalContact[];

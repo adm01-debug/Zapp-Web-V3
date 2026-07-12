@@ -244,7 +244,8 @@ export function useMediaLibrary(type: MediaType) {
         type as 'stickers'
       ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
       .delete()
-      .in('id', ids);
+      .in('id', ids)
+      .limit(ids.length);
     if (error) {
       toast.error('Erro ao excluir itens');
       return;
@@ -269,7 +270,8 @@ export function useMediaLibrary(type: MediaType) {
         type as 'stickers'
       ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
       .update({ category: newCategory })
-      .in('id', ids);
+      .in('id', ids)
+      .limit(ids.length);
     if (error) {
       setItems((prev) =>
         prev.map((i) => {
@@ -301,7 +303,9 @@ export function useMediaLibrary(type: MediaType) {
           type === 'audio_memes'
             ? { audio_url: item.audio_url || '', file_name: item.name || '' }
             : { image_url: item.image_url || '' };
-        const { data } = await supabase.functions.invoke(fnName, { body });
+        const response = await supabase.functions.invoke(fnName, { body });
+        if (response.error) throw response.error;
+        const { data } = response;
         if (data?.category && data.category !== item.category) {
           const { error } = await supabase
             .from(

@@ -95,14 +95,16 @@ export function useEmail() {
   const [hasMore, setHasMore] = useState(false);
   const oauthInFlightRef = useRef(false);
   const mountedRef = useRef(true);
+  const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const closeCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      if (closeCheckIntervalRef.current) clearInterval(closeCheckIntervalRef.current);
     };
   }, []);
-
-  const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Auth gate: confirma sessao antes de qualquer chamada ao DB ─────
   useEffect(() => {
@@ -511,11 +513,10 @@ export function useEmail() {
       // popup.closed===true e tentaria limpar de novo, possivelmente
       // resetando oauthInFlightRef no meio de um exchangeCode ainda em voo).
       let settled = false;
-      let closeCheckInterval: ReturnType<typeof setInterval> | null = null;
 
       const cleanupListeners = () => {
         window.removeEventListener('message', handler);
-        if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
+        if (closeCheckIntervalRef.current !== null) clearInterval(closeCheckIntervalRef.current);
       };
 
       // Escutar callback do popup.
@@ -577,9 +578,9 @@ export function useEmail() {
       // Cross-Origin-Opener-Policy estrita podem bloquear o acesso a
       // popup.closed; nesse caso simplesmente tentamos de novo no próximo
       // tick em vez de derrubar a sessão.
-      closeCheckInterval = setInterval(() => {
+      closeCheckIntervalRef.current = setInterval(() => {
         if (settled) {
-          if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
+          if (closeCheckIntervalRef.current !== null) clearInterval(closeCheckIntervalRef.current);
           return;
         }
         let closed = false;
