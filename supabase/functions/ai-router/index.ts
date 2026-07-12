@@ -253,6 +253,7 @@ function addMetricsToBuffer(entry: MetricsEntry): void {
 /**
  * IMPROVEMENT 12: Track database query performance
  * Detects slow queries and N+1 patterns for optimization
+ * Stores all queries in circular buffer for analysis and alerting
  */
 function trackQueryMetric(metric: QueryMetric): void {
   const isAlert = metric.durationMs > QUERY_SLOW_THRESHOLD_MS;
@@ -263,10 +264,8 @@ function trackQueryMetric(metric: QueryMetric): void {
     queryMetrics.shift();
   }
 
-  // Log alerts for monitoring
-  if (isAlert) {
-    console.warn(`[QUERY_ALERT] Slow query: ${metric.operation} on ${metric.table} took ${metric.durationMs}ms`, metric);
-  }
+  // Alert flag is set for filtering and detection by handler logging
+  // (detectNPlusOnePattern and handler error paths will log these alerts)
 }
 
 /**
