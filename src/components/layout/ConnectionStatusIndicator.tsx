@@ -284,7 +284,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     const result = await reconnectInstance(conn);
     setReconnecting(null);
     if (result.ok) {
-      const displayName = conn.instance_name || conn.name || conn.instance_id;
+      const displayName = evolutionInstanceName(conn) ?? conn.name ?? conn.instance_id;
       toast.success(`Reconectando ${displayName}…`);
       window.dispatchEvent(new CustomEvent('navigate-view', { detail: 'connections' }));
       setOpen(false);
@@ -487,7 +487,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                     />
                     <div className="min-w-0">
                       <p className="truncate text-xs font-medium text-foreground">
-                        {c.instance_name || c.name || c.instance_id}
+                        {evolutionInstanceName(c) ?? c.name ?? c.instance_id}
                       </p>
                       <p className="truncate text-[10px] text-muted-foreground">
                         {c.phone_number || (isOk ? 'Online' : 'Desconectada')}
@@ -535,7 +535,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                   key={`${ev.instance_id}-${ev.at}-${idx}`}
                   className="flex items-center justify-between gap-2 text-[11px]"
                 >
-                  <span className="truncate text-foreground/80">{ev.instance_name || ev.name || ev.instance_id}</span>
+                  <span className="truncate text-foreground/80">{evolutionInstanceName(ev) ?? ev.name ?? ev.instance_id}</span>
                   <span
                     className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
                     title={new Date(ev.at).toLocaleString()}
