@@ -163,14 +163,14 @@ async function executeQuery<T>(
   }
 }
 
-async function executeSingle<T>(
+async function _executeSingle<T>(
   table: string,
   callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
 ): Promise<SafeResponse<T>> {
   return executeQuery<T>('single', table, callback);
 }
 
-async function executeFrom<T>(
+async function _executeFrom<T>(
   table: string,
   callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
 ): Promise<SafeResponse<T[]>> {
@@ -178,7 +178,7 @@ async function executeFrom<T>(
   return result;
 }
 
-async function executeRpc<T = unknown>(
+async function _executeRpc<T = unknown>(
   fn: string,
   params?: Record<string, unknown>,
 ): Promise<SafeResponse<T>> {
@@ -205,7 +205,7 @@ async function executeRpc<T = unknown>(
   }
 }
 
-async function invokeFunction<T = unknown>(
+async function _invokeFunction<T = unknown>(
   fn: string,
   body?: unknown,
 ): Promise<SafeResponse<T>> {
@@ -232,11 +232,11 @@ async function invokeFunction<T = unknown>(
   }
 }
 
-function getTelemetry(): ClientTelemetry {
+function _getTelemetry(): ClientTelemetry {
   return { ...telemetry, recentFailures: [...telemetry.recentFailures] };
 }
 
-function getCacheInfo(): CacheInfo {
+function _getCacheInfo(): CacheInfo {
   return { ...cache };
 }
 
@@ -461,8 +461,8 @@ export const safeClient = {
           exists = isPermissionError || !isNotFound;
         }
       }
-      if (resourceCache.size >= CACHE_MAX_SIZE) pruneResourceCache();
       resourceCache.set(cacheKey, { exists, expires: Date.now() + CACHE_TTL });
+      if (resourceCache.size > CACHE_MAX_SIZE) pruneResourceCache();
       return exists;
     } catch {
       return false;

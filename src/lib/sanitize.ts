@@ -124,10 +124,11 @@ export function sanitizeForSearch(input: unknown): string {
 export function sanitizePostgrestFilter(input: unknown): string {
   if (!input) return '';
   return sanitizeText(input)
+    .slice(0, 100)                   // pre-cap before escaping: worst-case 2× expansion → max 200 chars
     .replace(/[,"()]/g, '')          // strip PostgREST filter metacharacters
     .replace(/\\/g, '\\\\')         // escape backslash BEFORE adding other escape sequences
     .replace(/[*%_]/g, '\\$&')     // escape SQL LIKE wildcards (PostgREST * is alias for %)
-    .slice(0, 200);
+    .slice(0, 200);                  // safety net
 }
 
 /**
