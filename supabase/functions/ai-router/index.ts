@@ -2995,10 +2995,30 @@ async function handleTranscribeAudio(
       }
 
       const transcriptionData = await transcriptionResponse.json();
-      const transcript = transcriptionData.text || '';
-      const words = transcriptionData.words || [];
-      const audioEvents = transcriptionData.audio_events || [];
-      const speakers = transcriptionData.speakers || [];
+      // C.27: Validate and sanitize transcription response fields
+      let transcript = typeof transcriptionData.text === 'string' ? transcriptionData.text : '';
+      transcript = transcript.substring(0, 100000); // Limit transcript length to 100k chars
+
+      // Validate words array items have required fields
+      let words = Array.isArray(transcriptionData.words) ? transcriptionData.words : [];
+      words = words.map((w: any) => ({
+        word: typeof w?.word === 'string' ? w.word.substring(0, 500) : '',
+        confidence: typeof w?.confidence === 'number' ? Math.max(0, Math.min(1, w.confidence)) : 0,
+        start_time: typeof w?.start_time === 'number' ? Math.max(0, w.start_time) : 0,
+        end_time: typeof w?.end_time === 'number' ? Math.max(0, w.end_time) : 0,
+      }));
+
+      let audioEvents = Array.isArray(transcriptionData.audio_events) ? transcriptionData.audio_events : [];
+      audioEvents = audioEvents.map((e: any) => ({
+        type: typeof e?.type === 'string' ? e.type.substring(0, 100) : 'unknown',
+        timestamp: typeof e?.timestamp === 'number' ? Math.max(0, e.timestamp) : 0,
+      }));
+
+      let speakers = Array.isArray(transcriptionData.speakers) ? transcriptionData.speakers : [];
+      speakers = speakers.map((s: any) => ({
+        speaker_id: typeof s?.speaker_id === 'string' ? s.speaker_id.substring(0, 100) : `speaker_${Math.random()}`,
+        name: typeof s?.name === 'string' ? s.name.substring(0, 200) : 'Unknown',
+      }));
 
       if (requestId) {
         try {
