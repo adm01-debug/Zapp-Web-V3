@@ -47,7 +47,7 @@ export function ConnectionTestPanel() {
         body: { mode },
       });
       if (invokeErr) throw invokeErr;
-      setResult(data as TestResult);
+      setResult(data as TestResult); // ignore-audit: supabase.functions.invoke returns unknown
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       toast.error("Falha ao executar teste de conexão");

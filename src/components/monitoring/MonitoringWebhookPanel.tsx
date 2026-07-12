@@ -58,7 +58,7 @@ export function MonitoringWebhookPanel({ connections, webhookTest, webhookConfig
     try {
       const { data, error } = await supabase.functions.invoke('webhook-secret-status');
       if (error) throw error;
-      setSecretStatus(data as SecretStatus);
+      setSecretStatus(data as SecretStatus); // ignore-audit: supabase.functions.invoke returns unknown
     } catch (e) {
       toast.error(`Falha ao verificar segredo do webhook: ${e instanceof Error ? e.message : 'erro'}`);
     } finally {

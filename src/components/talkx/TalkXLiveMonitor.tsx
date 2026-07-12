@@ -41,7 +41,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
         .eq('id', campaignId)
         .single();
       if (error) throw error;
-      return data as TalkXCampaign;
+      return data as TalkXCampaign; // ignore-audit: narrows variables_config from Supabase Json to string[]
     },
     refetchInterval: 3000,
   });

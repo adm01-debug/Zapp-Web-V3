@@ -22,7 +22,7 @@ export function useCampaigns() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Campaign[];
+      return data as Campaign[]; // ignore-audit: Campaign.target_filter narrows Supabase Json to Record<string,unknown>
     },
   });
 

@@ -84,7 +84,7 @@ export function useBusinessHours(connectionId: string) {
         return { ...DEFAULT_AWAY_MESSAGE, whatsapp_connection_id: connectionId };
       }
 
-      return data as AwayMessage;
+      return data as AwayMessage; // ignore-audit: narrows nullable DB fields (content, is_enabled) to non-null
     },
     enabled: !!connectionId,
   });

@@ -37,7 +37,7 @@ export function useScheduledMessages(contactId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ScheduledMessage[];
+      return data as ScheduledMessage[]; // ignore-audit: narrows status from string to 'pending'|'sent'|'failed'|'cancelled'
     },
   });
 

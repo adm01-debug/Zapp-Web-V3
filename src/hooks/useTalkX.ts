@@ -64,7 +64,7 @@ export function useTalkX() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as TalkXCampaign[];
+      return (data ?? []) as TalkXCampaign[]; // ignore-audit: narrows variables_config from Supabase Json to string[]
     },
   });
 
@@ -92,7 +92,7 @@ export function useTalkX() {
         .select()
         .single();
       if (error) throw error;
-      return data as TalkXCampaign;
+      return data as TalkXCampaign; // ignore-audit: narrows variables_config from Supabase Json to string[]
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
@@ -109,7 +109,7 @@ export function useTalkX() {
         .select()
         .single();
       if (error) throw error;
-      return data as TalkXCampaign;
+      return data as TalkXCampaign; // ignore-audit: narrows variables_config from Supabase Json to string[]
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
