@@ -106,6 +106,30 @@ export function sanitizeForSearch(input: unknown): string {
 }
 
 /**
+ * Sanitize user input for safe interpolation inside PostgREST .or() filter strings.
+ *
+ * PostgREST parses .or() arguments as a comma-separated list of filter expressions.
+ * Without escaping, a user supplying `,phone.eq.admin` as their search term would
+ * inject an extra filter clause, bypassing intended query logic.
+ *
+ * Characters removed:
+ *   , → separates clauses in .or()
+ *   ( ) → enable grouped sub-filters
+ *   " → string quoting in PostgREST filter syntax
+ *   \ → escape character
+ *
+ * The escaped % and _ are still required so LIKE wildcards in the user input
+ * do not produce unintended broad matches.
+ */
+export function sanitizePostgrestFilter(input: unknown): string {
+  if (!input) return '';
+  return sanitizeText(input)
+    .replace(/[,"()\\]/g, '')   // strip PostgREST filter metacharacters
+    .replace(/[%_]/g, '\\$&')   // escape SQL LIKE wildcards
+    .slice(0, 200);
+}
+
+/**
  * Truncate text to a maximum length with ellipsis.
  */
 export function truncateText(text: string, maxLength: number, ellipsis = '…'): string {

@@ -28,10 +28,12 @@ export default defineTool({
       return { content: [{ type: 'text', text: 'Não autenticado.' }], isError: true };
     }
     const sb = supabaseForUser(ctx);
+    // Strip PostgREST .or() metacharacters to prevent filter injection (no DOMPurify in Node context)
+    const safeQuery = String(query ?? '').replace(/[,"()\\]/g, '').replace(/[%_]/g, '\\$&').slice(0, 200);
     const { data, error } = await sb
       .from('contacts')
       .select('id, name, phone_number, email, assigned_to, created_at')
-      .or(`name.ilike.%${query}%,phone_number.ilike.%${query}%`)
+      .or(`name.ilike.%${safeQuery}%,phone_number.ilike.%${safeQuery}%`)
       .limit(limit ?? 20);
 
     if (error) {

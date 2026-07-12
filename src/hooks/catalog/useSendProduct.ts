@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
@@ -30,7 +31,7 @@ export function useContactSearch(step: 'configure' | 'selectContact') {
       const { data } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
-        .or(`name.ilike.%${contactSearch}%,phone.ilike.%${contactSearch}%`)
+        .or(`name.ilike.%${sanitizePostgrestFilter(contactSearch)}%,phone.ilike.%${sanitizePostgrestFilter(contactSearch)}%`)
         .limit(15);
       setContactResults(data || []);
       setSearchingContacts(false);
