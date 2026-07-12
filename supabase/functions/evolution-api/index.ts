@@ -115,19 +115,111 @@ Deno.serve(async (req) => {
     return { isMultipart: false, data: _bodyCache! };
   };
 
+  // Safe extraction helpers: validate type at runtime before accessing properties
+  const safeGet = (data: unknown, key: string, isFormData: boolean): string | undefined => {
+    if (isFormData && data instanceof FormData) {
+      const val = data.get(key);
+      return typeof val === 'string' ? val : undefined;
+    }
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      const val = (data as Record<string, unknown>)[key];
+      return typeof val === 'string' ? val : undefined;
+    }
+    return undefined;
+  };
+
+  const safeGetAny = (data: unknown, key: string, isFormData: boolean): unknown => {
+    if (isFormData && data instanceof FormData) {
+      return data.get(key);
+    }
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      return (data as Record<string, unknown>)[key];
+    }
+    return undefined;
+  };
+
+  const buildCreateInstancePayload = (data: unknown, isFormData: boolean) => ({
+    qrcode: (() => {
+      const val = safeGetAny(data, 'qrcode', isFormData);
+      return val === false ? false : true;
+    })(),
+    integration: safeGet(data, 'integration', isFormData) || 'WHATSAPP-BAILEYS',
+    token: safeGet(data, 'token', isFormData) || undefined,
+    number: safeGet(data, 'number', isFormData) || undefined,
+    businessId: safeGet(data, 'businessId', isFormData) || undefined,
+    wabaId: safeGet(data, 'wabaId', isFormData) || undefined,
+    phoneNumberId: safeGet(data, 'phoneNumberId', isFormData) || undefined,
+    webhook: safeGet(data, 'webhook', isFormData) || undefined,
+    chatwoot: safeGet(data, 'chatwoot', isFormData) || undefined,
+    typebot: safeGet(data, 'typebot', isFormData) || undefined,
+    proxy: safeGet(data, 'proxy', isFormData) || undefined,
+  });
+
+  const buildSettingsPayload = (data: unknown, isFormData: boolean) => ({
+    rejectCall: safeGetAny(data, 'rejectCall', isFormData),
+    msgCall: safeGet(data, 'msgCall', isFormData),
+    groupsIgnore: safeGetAny(data, 'groupsIgnore', isFormData),
+    alwaysOnline: safeGetAny(data, 'alwaysOnline', isFormData),
+    readMessages: safeGetAny(data, 'readMessages', isFormData),
+    readStatus: safeGetAny(data, 'readStatus', isFormData),
+    syncFullHistory: safeGetAny(data, 'syncFullHistory', isFormData),
+  });
+
+  const buildWebhookPayload = (data: unknown, isFormData: boolean) => {
+    // Support both nested { webhook: { url, ... } } and flat { url, ... } formats
+    const webhookObj = safeGetAny(data, 'webhook', isFormData);
+    const wb = (typeof webhookObj === 'object' && webhookObj !== null && !Array.isArray(webhookObj))
+      ? (webhookObj as Record<string, unknown>)
+      : {};
+
+    const webhookUrl = safeGet(wb as unknown, 'url', false) || safeGet(data, 'url', isFormData);
+    const webhookEnabled = (wb.enabled as boolean | undefined) ?? (safeGetAny(data, 'enabled', isFormData) as boolean | undefined) ?? true;
+    const webhookByEvents = (wb.webhookByEvents as boolean | undefined) ?? (safeGetAny(data, 'webhookByEvents', isFormData) as boolean | undefined) ?? false;
+    const webhookBase64 = (wb.webhookBase64 as boolean | undefined) ?? (safeGetAny(data, 'webhookBase64', isFormData) as boolean | undefined) ?? true;
+    const webhookEvents = Array.isArray(wb.events) ? wb.events as string[] : (Array.isArray(safeGetAny(data, 'events', isFormData)) ? safeGetAny(data, 'events', isFormData) as string[] : WEBHOOK_EVENTS);
+
+    return { webhook: { enabled: webhookEnabled, url: webhookUrl, webhookByEvents, webhookBase64, events: webhookEvents } };
+  };
+
+  const buildSendTextPayload = (data: unknown, isFormData: boolean) => {
+    const payload: Record<string, unknown> = {
+      number: safeGet(data, 'number', isFormData),
+      text: safeGet(data, 'text', isFormData)
+    };
+    const delay = safeGetAny(data, 'delay', isFormData);
+    if (delay !== undefined) payload.delay = delay;
+    const quoted = safeGetAny(data, 'quoted', isFormData);
+    if (quoted !== undefined) payload.quoted = quoted;
+    const mentionsEveryOne = safeGetAny(data, 'mentionsEveryOne', isFormData);
+    if (mentionsEveryOne !== undefined) payload.mentionsEveryOne = mentionsEveryOne;
+    const mentioned = safeGetAny(data, 'mentioned', isFormData);
+    if (mentioned !== undefined) payload.mentioned = mentioned;
+    const linkPreview = safeGetAny(data, 'linkPreview', isFormData);
+    if (linkPreview !== undefined) payload.linkPreview = linkPreview;
+    return payload;
+  };
+
+  const buildSendMediaPayload = (data: unknown, isFormData: boolean) => ({
+    number: safeGet(data, 'number', isFormData),
+    mediatype: safeGet(data, 'mediaType', isFormData) || safeGet(data, 'mediatype', isFormData),
+    mimetype: safeGet(data, 'mimetype', isFormData),
+    caption: safeGet(data, 'caption', isFormData),
+    media: safeGet(data, 'mediaUrl', isFormData) || safeGet(data, 'media', isFormData),
+    fileName: safeGet(data, 'fileName', isFormData),
+    delay: safeGet(data, 'delay', isFormData),
+  });
+
   const { isMultipart, data: bodyForAction } = await getParsedBody();
-  let action = bodyForAction instanceof FormData 
-    ? (bodyForAction.get('action') as string)
-    : (bodyForAction as Record<string, unknown>).action as string;
-  
+  let action = safeGet(bodyForAction, 'action', isMultipart) || '';
+
   if (!action || action === 'evolution-api') {
     action = pathAction;
   }
-  
+
   const idemKey = (req.headers.get('idempotency-key')
     || req.headers.get('x-idempotency-key')
-    || (!isMultipart && typeof (bodyForAction as Record<string, unknown>).__idemKey === 'string' ? (bodyForAction as Record<string, unknown>).__idemKey : '')
-    || '').trim() || undefined;
+    || (isMultipart ? (bodyForAction instanceof FormData ? bodyForAction.get('__idemKey') : undefined) : safeGet(bodyForAction, '__idemKey', false))
+    || '').toString().trim() || undefined;
 
   const proxy = (path: string, method = 'POST', proxyBody?: unknown) =>
     proxyToEvolution(evolutionApiUrl, evolutionApiKey, corsHeaders, path, method, proxyBody, undefined, idemKey);
@@ -135,11 +227,7 @@ Deno.serve(async (req) => {
   try {
     const { isMultipart, data: body } = await getParsedBody();
     let instance: string | null = null;
-    if (isMultipart) {
-      instance = (body as FormData).get('instanceName') as string || (body as FormData).get('instance') as string;
-    } else {
-      instance = (body as Record<string, unknown>).instanceName as string || (body as Record<string, unknown>).instance as string;
-    }
+    instance = safeGet(body, 'instanceName', isMultipart) || safeGet(body, 'instance', isMultipart) || null;
 
     // Prevent path traversal: instance names must be safe identifiers only
     const INSTANCE_RE = /^[a-zA-Z0-9_-]{1,128}$/;
@@ -209,9 +297,13 @@ Deno.serve(async (req) => {
           resolvedInstanceName: resolved,
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      return await proxy('/instance/create', 'POST', { instanceName: instance, qrcode: (body as Record<string, unknown>).qrcode ?? true, integration: (body as Record<string, unknown>).integration || 'WHATSAPP-BAILEYS', token: (body as Record<string, unknown>).token, number: (body as Record<string, unknown>).number, businessId: (body as Record<string, unknown>).businessId, wabaId: (body as Record<string, unknown>).wabaId, phoneNumberId: (body as Record<string, unknown>).phoneNumberId, webhook: (body as Record<string, unknown>).webhook, chatwoot: (body as Record<string, unknown>).chatwoot, typebot: (body as Record<string, unknown>).typebot, proxy: (body as Record<string, unknown>).proxy });
+      const payload = buildCreateInstancePayload(body, isMultipart);
+      return await proxy('/instance/create', 'POST', { instanceName: instance, ...payload });
     }
-    if (action === 'list-instances') return await proxy(`/instance/fetchInstances${(body as Record<string, unknown>).instanceName ? `?instanceName=${encodeURIComponent(String((body as Record<string, unknown>).instanceName))}` : ''}`, 'GET');
+    if (action === 'list-instances') {
+      const listInstanceName = safeGet(body, 'instanceName', isMultipart);
+      return await proxy(`/instance/fetchInstances${listInstanceName ? `?instanceName=${encodeURIComponent(listInstanceName)}` : ''}`, 'GET');
+    }
 
 
     if (action === 'connect') {
@@ -270,24 +362,12 @@ Deno.serve(async (req) => {
           return buildAuthError(response.status, data, 'connect');
         }
       } else if (missingInstance) {
+        const payload = buildCreateInstancePayload(body, isMultipart);
         const createResponse = await fetch(`${evolutionApiUrl}/instance/create`, {
           method: 'POST',
           headers: { 'apikey': evolutionApiKey, 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(15_000),
-          body: JSON.stringify({
-            instanceName: instance,
-            qrcode: (body as Record<string, unknown>).qrcode ?? true,
-            integration: (body as Record<string, unknown>).integration || 'WHATSAPP-BAILEYS',
-            token: (body as Record<string, unknown>).token,
-            number: (body as Record<string, unknown>).number,
-            businessId: (body as Record<string, unknown>).businessId,
-            wabaId: (body as Record<string, unknown>).wabaId,
-            phoneNumberId: (body as Record<string, unknown>).phoneNumberId,
-            webhook: (body as Record<string, unknown>).webhook,
-            chatwoot: (body as Record<string, unknown>).chatwoot,
-            typebot: (body as Record<string, unknown>).typebot,
-            proxy: (body as Record<string, unknown>).proxy,
-          }),
+          body: JSON.stringify({ instanceName: instance, ...payload }),
         });
         const createData = await createResponse.json();
 
@@ -495,38 +575,31 @@ Deno.serve(async (req) => {
       await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
       return await proxy(`/instance/delete/${instance}`, 'DELETE', body);
     }
-    if (action === 'set-presence') return await proxy(`/instance/setPresence/${instance}`, 'POST', { presence: (body as Record<string, unknown>).presence });
+    if (action === 'set-presence') {
+      const presence = safeGet(body, 'presence', isMultipart);
+      return await proxy(`/instance/setPresence/${instance}`, 'POST', { presence });
+    }
 
-    if (action === 'set-settings') return await proxy(`/settings/set/${instance}`, 'POST', { rejectCall: (body as Record<string, unknown>).rejectCall, msgCall: (body as Record<string, unknown>).msgCall, groupsIgnore: (body as Record<string, unknown>).groupsIgnore, alwaysOnline: (body as Record<string, unknown>).alwaysOnline, readMessages: (body as Record<string, unknown>).readMessages, readStatus: (body as Record<string, unknown>).readStatus, syncFullHistory: (body as Record<string, unknown>).syncFullHistory });
+    if (action === 'set-settings') {
+      const settings = buildSettingsPayload(body, isMultipart);
+      return await proxy(`/settings/set/${instance}`, 'POST', settings);
+    }
     if (action === 'get-settings') return await proxy(`/settings/find/${instance}`, 'GET');
 
     if (action === 'set-webhook') {
-      // Accept both flat body { url, events, ... } and nested { webhook: { url, events, ... } }
-      // The monitoring UI sends nested; direct API callers send flat. Both must work.
-      const wb = (typeof (body as Record<string, unknown>).webhook === 'object' && (body as Record<string, unknown>).webhook !== null)
-        ? (body as Record<string, unknown>).webhook as Record<string, unknown>
-        : {} as Record<string, unknown>;
-      const webhookUrl = (wb.url as string | undefined) || (body as Record<string, unknown>).url as string | undefined;
-      const webhookEnabled = wb.enabled ?? (body as Record<string, unknown>).enabled ?? true;
-      const webhookByEvents = wb.webhookByEvents ?? (body as Record<string, unknown>).webhookByEvents ?? false;
-      const webhookBase64 = wb.webhookBase64 ?? (body as Record<string, unknown>).webhookBase64 ?? true;
-      const webhookEvents = (wb.events as string[] | undefined) || (body as Record<string, unknown>).events as string[] | undefined || WEBHOOK_EVENTS;
-      return await proxy(`/webhook/set/${instance}`, 'POST', {
-        webhook: { enabled: webhookEnabled, url: webhookUrl, webhookByEvents, webhookBase64, events: webhookEvents },
-      });
+      const payload = buildWebhookPayload(body, isMultipart);
+      return await proxy(`/webhook/set/${instance}`, 'POST', payload);
     }
     if (action === 'get-webhook') return await proxy(`/webhook/find/${instance}`, 'GET');
 
     if (action === 'send-text') {
-      const sendTextPayload: Record<string, unknown> = { number: (body as Record<string, unknown>).number, text: (body as Record<string, unknown>).text };
-      if ((body as Record<string, unknown>).delay !== undefined) sendTextPayload.delay = (body as Record<string, unknown>).delay;
-      if ((body as Record<string, unknown>).quoted !== undefined) sendTextPayload.quoted = (body as Record<string, unknown>).quoted;
-      if ((body as Record<string, unknown>).mentionsEveryOne !== undefined) sendTextPayload.mentionsEveryOne = (body as Record<string, unknown>).mentionsEveryOne;
-      if ((body as Record<string, unknown>).mentioned !== undefined) sendTextPayload.mentioned = (body as Record<string, unknown>).mentioned;
-      if ((body as Record<string, unknown>).linkPreview !== undefined) sendTextPayload.linkPreview = (body as Record<string, unknown>).linkPreview;
+      const sendTextPayload = buildSendTextPayload(body, isMultipart);
       return await proxy(`/message/sendText/${instance}`, 'POST', sendTextPayload);
     }
-    if (action === 'send-media') return await proxy(`/message/sendMedia/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, mediatype: (body as Record<string, unknown>).mediaType || (body as Record<string, unknown>).mediatype, mimetype: (body as Record<string, unknown>).mimetype, caption: (body as Record<string, unknown>).caption, media: (body as Record<string, unknown>).mediaUrl || (body as Record<string, unknown>).media, fileName: (body as Record<string, unknown>).fileName, delay: (body as Record<string, unknown>).delay });
+    if (action === 'send-media') {
+      const sendMediaPayload = buildSendMediaPayload(body, isMultipart);
+      return await proxy(`/message/sendMedia/${instance}`, 'POST', sendMediaPayload);
+    }
 
     if (action === 'send-audio') {
       if (isMultipart) {
