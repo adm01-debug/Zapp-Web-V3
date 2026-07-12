@@ -341,11 +341,17 @@ Deno.serve(async (req) => {
     if (requestId) {
       ctx.requestId = requestId;
       try {
-        const dupCheck = await supabase.rpc('check_duplicate_request', {
-          p_request_id: requestId,
-          p_action: action,
-          p_user_id: userId,
-        });
+        // C.17: Add timeout to deduplication RPC to prevent hanging requests
+        const dupCheck = await Promise.race([
+          supabase.rpc('check_duplicate_request', {
+            p_request_id: requestId,
+            p_action: action,
+            p_user_id: userId,
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Dedup check timeout after 5s')), 5_000)
+          ),
+        ]);
 
         if (dupCheck?.data?.length > 0 && (dupCheck.data[0] as any)?.is_duplicate) {
           cachedResult = (dupCheck.data[0] as any)?.cached_result;

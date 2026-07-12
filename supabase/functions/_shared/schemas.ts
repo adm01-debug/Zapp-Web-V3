@@ -133,7 +133,7 @@ export const AiConversationAnalysisSchema = z.object({
 /** ai-enhance-message */
 export const AiEnhanceMessageSchema = z.object({
   message: z.string().min(1).max(10000),
-  tone: z.string().max(50).optional().nullable(),
+  tone: z.enum(['professional', 'casual', 'persuasive', 'empathetic', 'concise', 'detailed']).optional().nullable(),  // C.17: Validate tone against allowed values
   contactName: z.string().max(200).optional().nullable(),
 });
 
