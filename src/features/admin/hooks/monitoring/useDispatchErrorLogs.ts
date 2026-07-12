@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DispatchErrorLogRow {
@@ -51,17 +52,21 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
 
   const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
-  return useQuery<{ rows: DispatchErrorLogRow[]; total: number }>({
+  // Cursor-based pagination: track cursor for each page
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
+  const currentPageCursor = pageIndexToCursor.get(page) ?? null;
+
+  const query = useQuery<{ rows: DispatchErrorLogRow[]; total: number }>({
     queryKey: ['dispatch-error-logs', { hours, instance, agent, errorCode, search, page, pageSize }],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs', {
+      const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs_cursor', {
         p_from: fromIso,
         p_instance: instance,
         p_agent: agent,
         p_error_code: errorCode,
         p_search: search,
         p_limit: pageSize,
-        p_offset: page * pageSize,
+        p_cursor_id: currentPageCursor,
       });
       if (error) throw error;
       const list = (data ?? []) as (DispatchErrorLogRow & { total_count?: number })[];
@@ -72,4 +77,23 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+  // Update page history with cursor for next page when current page loads
+  useEffect(() => {
+    if (query.data?.rows && query.data.rows.length > 0) {
+      const lastRow = query.data.rows[query.data.rows.length - 1];
+      setPageIndexToCursor((prev) => {
+        const updated = new Map(prev);
+        updated.set(page + 1, lastRow.id);
+        return updated;
+      });
+    }
+  }, [query.data?.rows, page]);
+
+  // Reset page history when filters change
+  useEffect(() => {
+    setPageIndexToCursor(new Map([[0, null]]));
+  }, [hours, instance, agent, errorCode, search]);
+
+  return { ...query };
 }

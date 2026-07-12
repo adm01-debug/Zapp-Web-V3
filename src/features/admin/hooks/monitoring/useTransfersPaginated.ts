@@ -6,6 +6,7 @@
  * Erros de RLS (42501/403) viram `deniedReason` em PT-BR sem quebrar a lista.
  */
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 
@@ -40,16 +41,20 @@ export interface TransfersFilters {
 export function useTransfersPaginated(filters: TransfersFilters = {}) {
   const { status = null, priority = null, from = null, to = null, page = 0, pageSize = 50 } = filters;
 
-  return useQuery<{ rows: TransferRow[]; total: number; deniedReason: string | null }>({
+  // Cursor-based pagination: track cursor for each page
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
+  const currentPageCursor = pageIndexToCursor.get(page) ?? null;
+
+  const query = useQuery<{ rows: TransferRow[]; total: number; deniedReason: string | null }>({
     queryKey: ['transfers-paginated', { status, priority, from, to, page, pageSize }],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_transfers_paginated' as never, {
+      const { data, error } = await supabase.rpc('rpc_list_transfers_paginated_cursor' as never, {
         p_status: status,
         p_priority: priority,
         p_from: from,
         p_to: to,
         p_limit: pageSize,
-        p_offset: page * pageSize,
+        p_cursor_id: currentPageCursor,
       } as never);
       if (error) {
         if (isRlsDeniedError(error)) {
@@ -66,4 +71,23 @@ export function useTransfersPaginated(filters: TransfersFilters = {}) {
     refetchInterval: 30_000,
     retry: (count, err) => !isRlsDeniedError(err) && count < 2,
   });
+
+  // Update page history with cursor for next page when current page loads
+  useEffect(() => {
+    if (query.data?.rows && query.data.rows.length > 0) {
+      const lastRow = query.data.rows[query.data.rows.length - 1];
+      setPageIndexToCursor((prev) => {
+        const updated = new Map(prev);
+        updated.set(page + 1, lastRow.id);
+        return updated;
+      });
+    }
+  }, [query.data?.rows, page]);
+
+  // Reset page history when filters change
+  useEffect(() => {
+    setPageIndexToCursor(new Map([[0, null]]));
+  }, [status, priority, from, to]);
+
+  return query;
 }
