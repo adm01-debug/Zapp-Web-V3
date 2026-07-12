@@ -5,7 +5,7 @@ import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
-  sha256Hex, markEventProcessed, auditWebhookEvent,
+  sha256Hex, markEventProcessed, unmarkEventProcessed, auditWebhookEvent,
   routeToDeadLetter, instanceOrFilter,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
@@ -116,23 +116,24 @@ serve(async (req) => {
       );
     }
     rawBody = result.payload ?? '';
+  } else if (STRICT_MODE) {
+    // [A-1 FIX 2026-07-12] Fail-CLOSED: sem nenhum secret configurado, o webhook
+    // ficava público (aceitava qualquer POST). Um deploy sem o secret provisionado
+    // deixava qualquer um injetar eventos/mensagens falsas, criar contatos e
+    // disparar alertas. Em modo estrito (default), rejeitamos com 503 até que o
+    // secret esteja presente — nunca aceitamos tráfego não autenticado.
+    console.error(redactSecrets(`[webhook][${requestId}] NO webhook secret configured and STRICT_MODE=on — refusing (fail-closed)`));
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, status: 'rejected', status_code: 503,
+      error_message: 'webhook_secret_unconfigured',
+      duration_ms: Date.now() - startedAt,
+    });
+    return new Response(
+      JSON.stringify({ error: 'webhook_misconfigured', reason: 'no_secret_configured', requestId }),
+      { status: 503, headers: { ...corsHeaders, 'Retry-After': '120' } },
+    );
   } else {
-    // No secrets configured. In strict mode (default: true), this is a deployment error —
-    // fail closed with 401 to prevent unauthenticated event injection. Set
-    // EVOLUTION_WEBHOOK_STRICT=false only in dev/test environments to allow skipping auth.
-    if (STRICT_MODE) {
-      console.error(`[webhook][${requestId}] REJECTED: EVOLUTION_WEBHOOK_SECRETS not configured and EVOLUTION_WEBHOOK_STRICT=true`);
-      await auditWebhookEvent(supabase, {
-        request_id: requestId, status: 'rejected', status_code: 401,
-        error_message: 'webhook_secrets_not_configured',
-        duration_ms: Date.now() - startedAt,
-      });
-      return new Response(
-        JSON.stringify({ error: 'webhook_unconfigured', hint: 'Set EVOLUTION_WEBHOOK_SECRETS env var', requestId }),
-        { status: 401, headers: corsHeaders },
-      );
-    }
-    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped (EVOLUTION_WEBHOOK_STRICT=false)`));
+    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured and STRICT_MODE=off — signature validation skipped`));
     rawBody = await req.text();
   }
 
@@ -224,21 +225,43 @@ serve(async (req) => {
     "messages.upsert":  600, // 2x default: bursts em grupos grandes
     "groups.upsert":    600, // sincronizacao inicial de grupos
   };
+  const WINDOW_SECONDS = 60; // [FIX 2026-07-12 G3] Match rate-limiter window
   const rateLimit = await checkRateLimit(supabase, {
     instanceId: instance || 'unknown',
     eventType: event,
     limit: EVENT_RATE_LIMITS[event] ?? 300,
+    windowSeconds: WINDOW_SECONDS,
   });
   if (!rateLimit.allowed) {
+    // [C-1 FIX 2026-07-12] Roll back the idempotency mark so this 429'd event stays
+    // re-deliverable. Idempotency is marked BEFORE the rate-limit check (so genuine
+    // retries don't reconsume quota), but without this rollback a burst-throttled
+    // event would be permanently deduped: the consumer's requeue/redelivery would
+    // short-circuit as "duplicate" at markEventProcessed() and the message would be
+    // silently lost — the exact wpp2 data-loss class this pipeline guards against.
+    // [G1 FIX 2026-07-12] Track rollback failures to audit trail for event-loss detection.
+    const rollbackOk = await unmarkEventProcessed(supabase, eventId, instance, event);
+
+    // [G3 FIX 2026-07-12] Calculate Retry-After to next window boundary (not fixed 30s)
+    const now = Date.now();
+    const windowMs = WINDOW_SECONDS * 1000;
+    const bucketStart = Math.floor(now / windowMs) * windowMs;
+    const bucketEnd = bucketStart + windowMs;
+    const retryAfterSeconds = Math.ceil((bucketEnd - now) / 1000);
+
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 429,
-      error_message: 'rate_limit_exceeded',
+      error_message: rollbackOk ? 'rate_limit_exceeded' : 'rate_limit_exceeded_rollback_failed',
       duration_ms: Date.now() - startedAt,
     });
-    console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit})`);
+    if (!rollbackOk) {
+      console.error(`[webhook][${requestId}] CRITICAL: idempotency rollback FAILED for event_id=${eventId.slice(0,48)}… — event will be silently lost on re-delivery`);
+    } else {
+      console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit}) — idempotency rolled back, retry after ${retryAfterSeconds}s`);
+    }
     return new Response(
       JSON.stringify({ error: 'rate_limit_exceeded', instance, requestId }),
-      { status: 429, headers: corsHeaders }
+      { status: 429, headers: { ...corsHeaders, 'Retry-After': String(retryAfterSeconds) } }
     );
   }
 
@@ -256,14 +279,26 @@ serve(async (req) => {
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
           .or(instanceOrFilter(instance));
       }
-      // [FIX 2026-07-06] QR alert: notificar admin via n8n (fire-and-forget, nao bloqueia)
-      const _n8nQrUrl = 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
-      fetch(_n8nQrUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
-        signal: AbortSignal.timeout(4000),
-      }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
+      // [M-6 FIX 2026-07-12] QR alert via n8n (fire-and-forget). URL agora é
+      // sobrescrevível por env (QR_ALERT_WEBHOOK_URL) em vez de fixa/acoplada a
+      // wpp2, com header de auth opcional (QR_ALERT_WEBHOOK_TOKEN) para que a URL
+      // não seja disparável por qualquer um que a conheça. Mantemos o valor atual
+      // como default explícito para NÃO desligar um alerta vivo caso a env não
+      // esteja provisionada.
+      const _n8nQrUrl = Deno.env.get('QR_ALERT_WEBHOOK_URL') ?? 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
+      if (_n8nQrUrl) {
+        const _qrHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        const _qrToken = Deno.env.get('QR_ALERT_WEBHOOK_TOKEN');
+        if (_qrToken) _qrHeaders['x-webhook-token'] = _qrToken;
+        fetch(_n8nQrUrl, {
+          method: 'POST',
+          headers: _qrHeaders,
+          body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
+          signal: AbortSignal.timeout(4000),
+        }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
+      } else {
+        console.warn(`[qr-alert] QR_ALERT_WEBHOOK_URL not set — skipping QR alert for instance=${instance}`);
+      }
     }
 
     if (event === 'messages.upsert') {
