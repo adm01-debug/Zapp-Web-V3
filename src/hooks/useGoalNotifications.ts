@@ -4,7 +4,9 @@ import { useAuth } from '@/features/auth';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { toast } from 'sonner';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useGoalNotifications');
 import { startOfDay, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth } from 'date-fns';
 import type { Json } from '@/integrations/supabase/types';
 import { dbFrom } from '@/integrations/datasource/db';

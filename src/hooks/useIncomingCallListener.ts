@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useIncomingCallListener');
 import type { IncomingCall } from '@/types/incomingCall';
 
 export type { IncomingCall } from '@/types/incomingCall';
