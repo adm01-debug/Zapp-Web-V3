@@ -44,27 +44,28 @@ export function ConnectionsView() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
-  const maskSensitiveData = (obj: any) => {
-    if (!obj) return null;
-    const masked = { ...obj };
+  const maskSensitiveData = (obj: unknown) => {
+    if (!obj || typeof obj !== 'object') return null;
+    const masked = { ...(obj as Record<string, unknown>) };
     const sensitiveKeys = ['apikey', 'key', 'token', 'password', 'secret', 'base64', 'qr', 'qrcode', 'authorization', 'session', 'cookie'];
-    
-    const maskValue = (o: any) => {
+
+    const maskValue = (o: unknown): unknown => {
       if (typeof o !== 'object' || o === null) return o;
-      for (const key in o) {
+      const record = o as Record<string, unknown>;
+      for (const key in record) {
         if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
-          if (typeof o[key] === 'string') {
-            o[key] = o[key].length > 10 ? `${o[key].substring(0, 4)}...${o[key].substring(o[key].length - 4)}` : '****';
+          if (typeof record[key] === 'string') {
+            record[key] = (record[key] as string).length > 10 ? `${(record[key] as string).substring(0, 4)}...${(record[key] as string).substring((record[key] as string).length - 4)}` : '****';
           } else {
-            o[key] = '****';
+            record[key] = '****';
           }
-        } else if (typeof o[key] === 'object') {
-          maskValue(o[key]);
+        } else if (typeof record[key] === 'object') {
+          maskValue(record[key]);
         }
       }
-      return o;
+      return record;
     };
-    
+
     return maskValue(JSON.parse(JSON.stringify(masked))); // Deep clone before masking
   };
   const {

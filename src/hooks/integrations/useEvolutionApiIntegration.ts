@@ -105,7 +105,7 @@ export function useEvolutionApiIntegration() {
         const data = await response.json();
         const instances = Array.isArray(data) ? data : [];
         totalCount = instances.length;
-        onlineCount = instances.filter((i: any) => i.connectionStatus === 'open').length;
+        onlineCount = instances.filter((i: { connectionStatus?: string }) => i.connectionStatus === 'open').length;
         toast.success(`Teste bem-sucedido para ${creds.instance_name || 'nova config'}`);
       } else {
         errorMsg = response.status === 401 ? 'Chave de API inválida' : `Erro HTTP ${response.status}`;
