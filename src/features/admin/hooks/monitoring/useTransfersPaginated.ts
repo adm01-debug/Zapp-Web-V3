@@ -5,6 +5,7 @@
  *
  * Erros de RLS (42501/403) viram `deniedReason` em PT-BR sem quebrar a lista.
  */
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
