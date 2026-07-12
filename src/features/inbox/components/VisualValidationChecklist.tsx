@@ -78,7 +78,7 @@ export function VisualValidationChecklist({ onClose }: { onClose: () => void }) 
             </div>
             <h2 className="text-lg font-bold tracking-tight">Validação Visual</h2>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+          <Button aria-label="Fechar checklist de validação" variant="ghost" size="icon" onClick={onClose} className="rounded-full">
             <X className="w-4 h-4" />
           </Button>
         </div>

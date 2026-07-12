@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useGlobalSettings } from '@/hooks/useGlobalSettings';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -64,21 +64,6 @@ export function IntegrationKeysSection() {
   const [detectedInstances, setDetectedInstances] = useState<any[]>([]);
 
   const { syncAll } = useEvolutionAutoSync();
-
-  // Sync with localStorage for direct mode
-  useEffect(() => {
-    const url = getSetting('evolution_api_url');
-    const token = getSetting('evolution_api_token');
-    if (url && token) {
-      localStorage.setItem(
-        'zapp_evolution_config',
-        JSON.stringify({
-          evolution_api_url: url,
-          evolution_api_key: token,
-        })
-      );
-    }
-  }, [getSetting]);
 
   const toggleVisibility = (key: string) => {
     setVisibleKeys((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -215,6 +200,7 @@ export function IntegrationKeysSection() {
                     className="h-8 bg-muted/30 text-sm"
                   />
                   <Button
+                    aria-label={isVisible ? 'Ocultar chave' : 'Mostrar chave'}
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0"

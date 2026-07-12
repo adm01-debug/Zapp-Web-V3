@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -12,7 +11,7 @@ interface Profile {
   id: string;
   name: string;
   avatar_url: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
 }
 
 interface AddMemberDialogProps {

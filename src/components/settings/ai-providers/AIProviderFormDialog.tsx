@@ -26,7 +26,7 @@ interface AIProviderFormDialogProps {
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+    <p role="alert" className="text-xs text-destructive flex items-center gap-1 mt-1">
       <AlertCircle className="w-3 h-3 shrink-0" />
       {message}
     </p>

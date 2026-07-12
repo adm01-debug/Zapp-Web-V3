@@ -79,6 +79,7 @@ export function MFAVerify({
             id="mfa-code"
             type="text"
             inputMode="numeric"
+            autoComplete="one-time-code"
             maxLength={6}
             placeholder="000000"
             value={code}
@@ -92,6 +93,7 @@ export function MFAVerify({
           />
           {error && (
             <motion.p
+              role="alert"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center text-sm text-destructive"

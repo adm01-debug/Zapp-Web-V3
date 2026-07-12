@@ -195,7 +195,7 @@ export function BusinessHoursDialog({
                                 className="w-28"
                               />
                             </div>
-                            <Button variant="ghost" size="icon" className="ml-auto" onClick={() => copyToAllDays(hour.day_of_week)} title="Copiar para todos os dias">
+                            <Button aria-label="Copiar para todos os dias" variant="ghost" size="icon" className="ml-auto" onClick={() => copyToAllDays(hour.day_of_week)} title="Copiar para todos os dias">
                               <Copy className="w-4 h-4" />
                             </Button>
                           </>

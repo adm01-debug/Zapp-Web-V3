@@ -416,8 +416,9 @@ export default function AdminConnectionsPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label>URL da Instância</Label>
+                      <Label htmlFor="supabase-instance-url">URL da Instância</Label>
                       <Input
+                        id="supabase-instance-url"
                         value={editOpen ? draftUrl : externalUrl}
                         onChange={(e) => setDraftUrl(e.target.value)}
                         readOnly={!editOpen}
@@ -425,8 +426,9 @@ export default function AdminConnectionsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Chave Anon (Public)</Label>
+                      <Label htmlFor="supabase-anon-key">Chave Anon (Public)</Label>
                       <Input
+                        id="supabase-anon-key"
                         type={editOpen ? 'text' : 'password'}
                         value={
                           editOpen
@@ -562,12 +564,12 @@ export default function AdminConnectionsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Webhook URL (Inbound)</Label>
-                    <Input placeholder="https://sua-empresa.bitrix24.com.br/rest/1/abc..." />
+                    <Label htmlFor="bitrix24-webhook-url">Webhook URL (Inbound)</Label>
+                    <Input id="bitrix24-webhook-url" placeholder="https://sua-empresa.bitrix24.com.br/rest/1/abc..." />
                   </div>
                   <div className="space-y-2">
-                    <Label>Access Token / Key</Label>
-                    <Input type="password" placeholder="Digite o token de acesso" />
+                    <Label htmlFor="bitrix24-access-token">Access Token / Key</Label>
+                    <Input id="bitrix24-access-token" type="password" placeholder="Digite o token de acesso" />
                   </div>
                   <Button className="w-full gap-2">
                     <Save className="h-4 w-4" /> Salvar Integração Bitrix
@@ -589,12 +591,12 @@ export default function AdminConnectionsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>URL de Produção</Label>
-                    <Input placeholder="https://n8n.sua-vps.com/webhook/..." />
+                    <Label htmlFor="n8n-production-url">URL de Produção</Label>
+                    <Input id="n8n-production-url" placeholder="https://n8n.sua-vps.com/webhook/..." />
                   </div>
                   <div className="space-y-2">
-                    <Label>Auth Header (API Key)</Label>
-                    <Input type="password" placeholder="Header X-N8N-API-KEY" />
+                    <Label htmlFor="n8n-auth-header">Auth Header (API Key)</Label>
+                    <Input id="n8n-auth-header" type="password" placeholder="Header X-N8N-API-KEY" />
                   </div>
                   <Button className="w-full gap-2" variant="secondary">
                     <Save className="h-4 w-4" /> Conectar n8n
@@ -626,10 +628,10 @@ export default function AdminConnectionsPage() {
                     <table className="w-full text-sm">
                       <thead className="border-b bg-muted/50">
                         <tr>
-                          <th className="px-4 py-3 text-left">Nome do App</th>
-                          <th className="px-4 py-3 text-left">Eventos</th>
-                          <th className="px-4 py-3 text-left">Status</th>
-                          <th className="px-4 py-3 text-right">Ações</th>
+                          <th scope="col" className="px-4 py-3 text-left">Nome do App</th>
+                          <th scope="col" className="px-4 py-3 text-left">Eventos</th>
+                          <th scope="col" className="px-4 py-3 text-left">Status</th>
+                          <th scope="col" className="px-4 py-3 text-right">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -652,10 +654,11 @@ export default function AdminConnectionsPage() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button aria-label="Configurações da conexão" variant="ghost" size="icon" className="h-8 w-8">
                                 <Settings className="h-4 w-4" />
                               </Button>
                               <Button
+                                aria-label="Excluir conexão"
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive"
@@ -709,11 +712,12 @@ export default function AdminConnectionsPage() {
                     </p>
                     <div className="flex items-center gap-2">
                       <Input
+                        aria-label="URL do servidor MCP"
                         readOnly
                         value="https://allrjhkpuscmgbsnmjlv.supabase.co/functions/v1/mcp-server"
                         className="font-mono text-[10px]"
                       />
-                      <Button size="icon" variant="ghost">
+                      <Button aria-label="Abrir URL do servidor MCP" size="icon" variant="ghost">
                         <ExternalLink className="h-4 w-4" />
                       </Button>
                     </div>
@@ -721,13 +725,13 @@ export default function AdminConnectionsPage() {
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <Label>Habilitar Acesso MCP</Label>
-                      <Switch defaultChecked />
+                      <Label htmlFor="mcp-access-enabled">Habilitar Acesso MCP</Label>
+                      <Switch id="mcp-access-enabled" defaultChecked />
                     </div>
                     <div className="space-y-2">
-                      <Label>Token de Segurança MCP</Label>
+                      <Label htmlFor="mcp-security-token">Token de Segurança MCP</Label>
                       <div className="flex gap-2">
-                        <Input type="password" value="sk_mcp_zapp_********************" readOnly />
+                        <Input id="mcp-security-token" type="password" placeholder="Clique em 'Regerar' para criar um token" readOnly />
                         <Button variant="outline">Regerar</Button>
                       </div>
                     </div>

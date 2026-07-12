@@ -126,6 +126,7 @@ export function MessageContextActions({
           variant="ghost"
           size="icon"
           className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+          aria-label="Mais ações da mensagem"
         >
           <MoreVertical className="h-3.5 w-3.5" />
         </Button>

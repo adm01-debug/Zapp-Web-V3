@@ -51,6 +51,7 @@ export function ContactActionButtons({
               size="icon"
               className="h-9 w-9 border-border/30 hover:border-primary/50 hover:bg-primary/10"
               title="Opções de chamada"
+              aria-label="Opções de chamada"
             >
               <Phone className="h-4 w-4 text-primary" />
             </Button>
@@ -84,6 +85,7 @@ export function ContactActionButtons({
               size="icon"
               className="h-9 w-9 border-border/30 hover:border-primary/50 hover:bg-primary/10"
               onClick={() => toast.info('Chamada de vídeo em breve')}
+              aria-label="Chamada de vídeo"
             >
               <Video className="h-4 w-4 text-primary" />
             </Button>
@@ -101,6 +103,7 @@ export function ContactActionButtons({
                 if (contact.email) window.location.hash = '#email-chat';
               }}
               disabled={!contact.email}
+              aria-label={contact.email ? 'Abrir email' : 'Sem email cadastrado'}
             >
               <Mail className="h-4 w-4 text-primary" />
             </Button>
@@ -118,6 +121,7 @@ export function ContactActionButtons({
                 size="icon"
                 className="h-9 w-9 border-border/30 hover:border-muted-foreground/50 hover:bg-muted/20"
                 onClick={onCollapseAll}
+                aria-label="Recolher todas as seções"
               >
                 <ChevronsDownUp className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -133,6 +137,7 @@ export function ContactActionButtons({
               size="icon"
               className="h-9 w-9 border-border/30 hover:bg-muted/30"
               title="Mais ações"
+              aria-label="Mais ações"
             >
               <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
             </Button>

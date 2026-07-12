@@ -401,11 +401,11 @@ export default function AdminEmailStatusPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-4 py-2 text-left font-medium">Request ID</th>
-                    <th className="px-4 py-2 text-left font-medium">Recurso</th>
-                    <th className="px-4 py-2 text-left font-medium">Erro</th>
-                    <th className="px-4 py-2 text-left font-medium">Ações</th>
-                    <th className="px-4 py-2 text-left font-medium">Horário</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Request ID</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Recurso</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Erro</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Ações</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Horário</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -439,7 +439,7 @@ export default function AdminEmailStatusPage() {
                               className="h-8 w-8"
                               onClick={() => handleAction('rpc_test', failure.requestId)}
                               disabled={isRetrying[failure.requestId]}
-                              title="Tentar RPC novamente"
+                              aria-label="Tentar RPC novamente"
                             >
                               <RefreshCcw
                                 className={`h-3 w-3 ${isRetrying[failure.requestId] ? 'animate-spin' : ''}`}
@@ -457,7 +457,7 @@ export default function AdminEmailStatusPage() {
                                   )
                                 }
                                 disabled={isRetrying[failure.requestId]}
-                                title="Marcar como lido"
+                                aria-label="Marcar como lido"
                               >
                                 <CheckCircle2 className="h-3 w-3" />
                               </Button>

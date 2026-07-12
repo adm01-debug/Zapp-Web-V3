@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -230,11 +229,11 @@ export function AuthEventTrendChart() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-4">Instância</th>
-                    <th className="py-2 pr-4 text-right">Total</th>
-                    <th className="py-2 pr-4 text-right">invalid_signature</th>
-                    <th className="py-2 pr-4 text-right">auth_401</th>
-                    <th className="py-2 pr-4 text-right">auth_403</th>
+                    <th scope="col" className="py-2 pr-4">Instância</th>
+                    <th scope="col" className="py-2 pr-4 text-right">Total</th>
+                    <th scope="col" className="py-2 pr-4 text-right">invalid_signature</th>
+                    <th scope="col" className="py-2 pr-4 text-right">auth_401</th>
+                    <th scope="col" className="py-2 pr-4 text-right">auth_403</th>
                   </tr>
                 </thead>
                 <tbody>

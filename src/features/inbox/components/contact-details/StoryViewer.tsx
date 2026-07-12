@@ -144,7 +144,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
           </div>
           <div className="flex items-center gap-1">
             <span className="text-[10px] text-foreground/40 mr-2">{index + 1}/{messages.length}</span>
-            <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 text-foreground/70 hover:text-foreground hover:bg-background/10"><X className="w-4 h-4" /></Button>
+            <Button aria-label="Fechar visualizador de status" variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 text-foreground/70 hover:text-foreground hover:bg-background/10"><X className="w-4 h-4" /></Button>
           </div>
         </div>
 
@@ -164,7 +164,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
             <motion.div key={current.id ?? index} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="w-full h-full flex items-center justify-center px-14">
               {mediaType === 'image' ? (
                 mediaLoading ? (
-                  <div className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" /><p className="text-sm">Carregando imagem...</p></div>
+                  <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" /><p className="text-sm">Carregando imagem...</p></div>
                 ) : resolvedMedia.src ? (
                   <img src={resolvedMedia.src} alt="Status" className="max-w-full max-h-[65vh] object-contain rounded-lg" loading="eager" />
                 ) : (
@@ -172,7 +172,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
                 )
               ) : mediaType === 'video' ? (
                 mediaLoading ? (
-                  <div className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" /><p className="text-sm">Carregando vídeo...</p></div>
+                  <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" /><p className="text-sm">Carregando vídeo...</p></div>
                 ) : resolvedMedia.src ? (
                   <video src={resolvedMedia.src} controls autoPlay className="max-w-full max-h-[65vh] object-contain rounded-lg" />
                 ) : (

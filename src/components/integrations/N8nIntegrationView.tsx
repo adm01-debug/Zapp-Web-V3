@@ -146,7 +146,7 @@ export function N8nIntegrationView() {
                   </div>
                   <div>
                     <Label>Evento Gatilho</Label>
-                    <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={newWorkflow.triggerEvent} onChange={e => setNewWorkflow(p => ({ ...p, triggerEvent: e.target.value }))}>
+                    <select aria-label="Evento gatilho" className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={newWorkflow.triggerEvent} onChange={e => setNewWorkflow(p => ({ ...p, triggerEvent: e.target.value }))}>
                       {triggerEvents.map(te => <option key={te.value} value={te.value}>{te.label}</option>)}
                     </select>
                   </div>
@@ -183,8 +183,8 @@ export function N8nIntegrationView() {
                     <Badge variant="outline" className="text-xs">{triggerEvents.find(t => t.value === wf.triggerEvent)?.label}</Badge>
                     {wf.lastTriggered && <span className="text-xs text-muted-foreground">Último: {new Date(wf.lastTriggered).toLocaleTimeString('pt-BR')}</span>}
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => testWorkflow(wf)}><Play className="w-3 h-3" /></Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeWorkflow(wf.id)}><Trash2 className="w-3 h-3" /></Button>
+                      <Button aria-label="Testar workflow" size="icon" variant="ghost" className="h-7 w-7" onClick={() => testWorkflow(wf)}><Play className="w-3 h-3" /></Button>
+                      <Button aria-label="Remover workflow" size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeWorkflow(wf.id)}><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   </CardContent>
                 </Card>

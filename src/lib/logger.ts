@@ -8,8 +8,12 @@ const isDev = import.meta.env.DEV;
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 // Session-level correlation ID for tracing across the app lifetime
-const sessionId =
-  crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const sessionId: string = (() => {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+})();
 
 // Per-request tag generator — counter-based, for log output only.
 // NOT cryptographically random. For security-grade correlation IDs,
@@ -95,13 +99,6 @@ class Logger {
     };
   }
 
-  /**
-   * @deprecated Use withRequestTag() for log output correlation.
-   * For security-grade IDs, import generateCorrelationId from '@/lib/correlationId'.
-   */
-  withCorrelation(correlationId: string) {
-    return this.withRequestTag(correlationId);
-  }
 }
 
 // Factory function to create module-specific loggers

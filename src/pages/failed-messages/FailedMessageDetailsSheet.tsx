@@ -96,6 +96,7 @@ export function FailedMessageDetailsSheet({ selected, onClose, onViewInChat }: {
                     size="icon"
                     variant="ghost"
                     className="h-6 w-6 absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Copiar mensagem de erro"
                     onClick={() => copy(selected.error_message ?? '')}
                   >
                     <Copy className="h-3 w-3" />

@@ -73,12 +73,20 @@ export function MiniChatPiP({
         >
           {/* Header — always visible */}
           <div
+            tabIndex={0}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? 'Minimizar chat' : 'Expandir chat'}
             className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer bg-card hover:bg-muted/50 transition-colors"
             onClick={() => {
               if (!isExpanded) {
                 onExpand();
               } else {
                 setIsExpanded(false);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                if (!isExpanded) onExpand(); else setIsExpanded(false);
               }
             }}
           >
@@ -113,6 +121,7 @@ export function MiniChatPiP({
                     e.stopPropagation();
                     setIsExpanded(false);
                   }}
+                  aria-label="Minimizar chat"
                 >
                   <Minimize2 className="w-3 h-3" />
                 </Button>
@@ -125,6 +134,7 @@ export function MiniChatPiP({
                   e.stopPropagation();
                   onDismiss();
                 }}
+                aria-label="Fechar chat"
               >
                 <X className="w-3 h-3" />
               </Button>
@@ -168,6 +178,7 @@ export function MiniChatPiP({
                         handleSendReply();
                       }}
                       disabled={!replyText.trim()}
+                      aria-label="Enviar resposta rápida"
                     >
                       <Send className="w-3.5 h-3.5" />
                     </Button>

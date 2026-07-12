@@ -171,8 +171,9 @@ export function TalkXBlacklist() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div>
-                <Label>Buscar contato</Label>
+                <Label htmlFor="blacklist-contact-search">Buscar contato</Label>
                 <Input
+                  id="blacklist-contact-search"
                   value={contactSearch}
                   onChange={(e) => setContactSearch(e.target.value)}
                   placeholder="Nome ou telefone..."
@@ -200,9 +201,9 @@ export function TalkXBlacklist() {
                 </div>
               </div>
               <div>
-                <Label>Motivo</Label>
+                <Label htmlFor="blacklist-reason">Motivo</Label>
                 <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger id="blacklist-reason" className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -308,6 +309,7 @@ export function TalkXBlacklist() {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
+                    aria-label="Remover da lista negra"
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"

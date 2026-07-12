@@ -108,6 +108,7 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
                   size="icon"
                   className="w-8 h-8 text-warning hover:text-warning hover:bg-warning/10"
                   onClick={handleUndo}
+                  aria-label="Desfazer aprimoramento"
                 >
                   <Undo2 className="w-4 h-4" />
                 </Button>

@@ -61,7 +61,7 @@ export function DealCard({ deal, isDragging, onDragStart, onDragEnd, onEdit, onM
       <div className="flex items-start justify-between mb-2">
         <h4 className="text-sm font-medium text-foreground leading-tight">{deal.title}</h4>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100"><MoreHorizontal className="w-3.5 h-3.5" /></Button></DropdownMenuTrigger>
+          <DropdownMenuTrigger asChild><Button aria-label="Opções do deal" variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100"><MoreHorizontal className="w-3.5 h-3.5" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(deal)}><Edit className="w-3.5 h-3.5 mr-2" /> Editar</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onMarkWon(deal)} className="text-success"><Trophy className="w-3.5 h-3.5 mr-2" /> Marcar como ganho</DropdownMenuItem>

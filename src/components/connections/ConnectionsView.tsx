@@ -205,7 +205,7 @@ export function ConnectionsView() {
             )}
             {qrCodeDialog.status === 'error' && (
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-64 h-64 mx-auto bg-destructive/10 rounded-xl flex flex-col items-center justify-center p-4">
-                <AlertCircle className="w-16 h-16 text-destructive mb-4" /><p className="text-sm text-destructive text-center">{qrCodeDialog.errorMessage}</p>
+                <AlertCircle className="w-16 h-16 text-destructive mb-4" /><p role="alert" className="text-sm text-destructive text-center">{qrCodeDialog.errorMessage}</p>
               </motion.div>
             )}
             {qrCodeDialog.status === 'pending' && (

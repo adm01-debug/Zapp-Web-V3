@@ -71,7 +71,7 @@ export function LinkPreview({ url, className, compact = false, showRemove, onRem
   if (metadata.type === 'image' && metadata.image && !imageError) return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn("relative group rounded-xl overflow-hidden", className)}>
       {showRemove && <button onClick={onRemove} className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/50 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/70"><X className="w-4 h-4" /></button>}
-      <a href={url} target="_blank" rel="noopener noreferrer"><img src={metadata.image} alt={metadata.title || 'Image'} onError={() => setImageError(true)} className="max-w-full max-h-64 rounded-xl object-cover hover:scale-[1.02] transition-transform" /></a>
+      <a href={url} target="_blank" rel="noopener noreferrer"><img src={metadata.image} alt={metadata.title || 'Imagem do link'} onError={() => setImageError(true)} className="max-w-full max-h-64 rounded-xl object-cover hover:scale-[1.02] transition-transform" /></a>
     </motion.div>
   );
 

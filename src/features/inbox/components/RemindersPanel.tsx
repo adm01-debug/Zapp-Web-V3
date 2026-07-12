@@ -166,6 +166,7 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
                 size="icon"
                 className="h-6 w-6"
                 onClick={() => dismissReminder(r.id)}
+                aria-label="Dispensar lembrete"
               >
                 <BellOff className="h-3 w-3" />
               </Button>
@@ -174,6 +175,7 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
                 size="icon"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100"
                 onClick={() => deleteReminder(r.id)}
+                aria-label="Excluir lembrete"
               >
                 <Trash2 className="h-3 w-3 text-destructive" />
               </Button>

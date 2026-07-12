@@ -99,7 +99,7 @@ export function SentryIntegrationView() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label>Ambiente</Label>
-              <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={config.environment} onChange={e => setConfig(p => ({ ...p, environment: e.target.value }))}>
+              <select aria-label="Ambiente" className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={config.environment} onChange={e => setConfig(p => ({ ...p, environment: e.target.value }))}>
                 <option value="production">Production</option>
                 <option value="staging">Staging</option>
                 <option value="development">Development</option>

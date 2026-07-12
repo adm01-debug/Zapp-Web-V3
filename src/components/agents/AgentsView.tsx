@@ -203,7 +203,7 @@ export function AgentsView() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-8 h-8 hover:bg-muted/30">
+                          <Button aria-label="Opções do agente" variant="ghost" size="icon" className="w-8 h-8 hover:bg-muted/30">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>

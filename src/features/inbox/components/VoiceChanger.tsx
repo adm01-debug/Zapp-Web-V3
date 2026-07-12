@@ -279,6 +279,7 @@ export const VoiceChanger = memo(function VoiceChanger({
           className="h-8 w-8 text-muted-foreground hover:text-primary"
           disabled={disabled}
           title="Alterar voz com IA"
+          aria-label="Alterar voz com IA"
         >
           <Wand2 className="h-4 w-4" />
         </Button>
@@ -416,6 +417,7 @@ export const VoiceChanger = memo(function VoiceChanger({
                   size="icon"
                   className="h-8 w-8 text-foreground"
                   onClick={togglePlayback}
+                  aria-label={isPlaying ? 'Parar prévia' : 'Ouvir prévia'}
                 >
                   {isPlaying ? (
                     <Square className="h-3.5 w-3.5" />

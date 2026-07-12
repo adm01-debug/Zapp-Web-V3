@@ -131,6 +131,7 @@ export function QueuesComparisonDashboard() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
+            aria-label="Voltar"
             variant="ghost"
             size="icon"
             onClick={() => navigate('/')}
@@ -293,6 +294,7 @@ export function QueuesComparisonDashboard() {
                           </TableCell>
                           <TableCell>
                             <Button
+                              aria-label="Ver detalhes da fila"
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"

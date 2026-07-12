@@ -146,6 +146,7 @@ export default function ForgotPassword() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -154,6 +155,7 @@ export default function ForgotPassword() {
                 />
                 {error && (
                   <motion.p
+                    role="alert"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="text-sm text-destructive"

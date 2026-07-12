@@ -414,6 +414,7 @@ export function InboxScopeConfig() {
                       size="icon"
                       onClick={() => handleDeleteScope(scope.id)}
                       className="h-7 w-7 rounded-lg text-destructive opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
+                      aria-label="Excluir escopo"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

@@ -39,7 +39,7 @@ const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
   if (!msg.media_url) return null;
   switch (msg.media_type) {
     case 'image': case 'sticker': case 'emoji':
-      return <img src={msg.media_url} alt="media" className={cn("rounded-lg max-h-48 object-contain cursor-pointer", msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'w-24 h-24' : 'max-w-full')} onClick={() => window.open(msg.media_url!, '_blank')} />;
+      return <img src={msg.media_url} alt={msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'Figurinha' : 'Imagem da mensagem'} className={cn("rounded-lg max-h-48 object-contain cursor-pointer", msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'w-24 h-24' : 'max-w-full')} onClick={() => window.open(msg.media_url!, '_blank')} />;
     case 'video': return <video src={msg.media_url} controls className="rounded-lg max-h-48 max-w-full" />;
     case 'audio': case 'audio_meme': return <audio src={msg.media_url} controls className="max-w-full" />;
     case 'document': return <a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"><FileText className="w-5 h-5 text-muted-foreground shrink-0" /><span className="text-sm text-foreground underline truncate">{msg.content || 'Documento'}</span></a>;
@@ -185,7 +185,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                 onKeyDown={e => { if (e.key === 'Escape') { s.setShowSearch(false); s.setSearchQuery(''); } }}
                 placeholder="Buscar nas mensagens..." className="h-8 text-sm" />
               {s.searchQuery && <span className="text-xs text-muted-foreground whitespace-nowrap">{s.filteredMessages.length} resultado{s.filteredMessages.length !== 1 ? 's' : ''}</span>}
-              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => { s.setShowSearch(false); s.setSearchQuery(''); }}><X className="w-3.5 h-3.5" /></Button>
+              <Button aria-label="Fechar busca" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => { s.setShowSearch(false); s.setSearchQuery(''); }}><X className="w-3.5 h-3.5" /></Button>
             </div>
           </motion.div>
         )}
@@ -324,7 +324,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                 {isEditing ? (
                                   <div className="space-y-1.5">
                                     <Input value={s.editText} onChange={e => s.setEditText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') s.handleSaveEdit(); if (e.key === 'Escape') s.handleCancelEdit(); }} className="h-7 text-sm bg-background text-foreground" autoFocus />
-                                    <div className="flex gap-1 justify-end"><Button size="icon" variant="ghost" className="h-5 w-5" onClick={s.handleCancelEdit}><X className="w-3 h-3" /></Button><Button size="icon" variant="ghost" className="h-5 w-5" onClick={s.handleSaveEdit}><Check className="w-3 h-3" /></Button></div>
+                                    <div className="flex gap-1 justify-end"><Button aria-label="Cancelar edição" size="icon" variant="ghost" className="h-5 w-5" onClick={s.handleCancelEdit}><X className="w-3 h-3" /></Button><Button aria-label="Salvar edição" size="icon" variant="ghost" className="h-5 w-5" onClick={s.handleSaveEdit}><Check className="w-3 h-3" /></Button></div>
                                   </div>
                                 ) : (
                                   <>
@@ -332,7 +332,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                     {msg.content && (!hasMedia || msg.media_type === 'document') && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words"><MarkdownPreview text={msg.content} className="inline" /></p>}
                                     {msg.content && hasMedia && msg.media_type !== 'document' && !['🎨 Figurinha', '🎵 Áudio meme', '😀 Emoji', '🎤 Mensagem de áudio'].includes(msg.content) && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1">{msg.content}</p>}
                                     <div className={cn("flex items-center gap-1 mt-0.5", isMine ? "justify-end" : "justify-between")}>
-                                      {cleanText && <button onClick={() => isThisTtsPlaying ? s.tts.stop() : s.tts.speak(msg.content, msg.id)} className={cn("opacity-0 group-hover/msg:opacity-100 transition-opacity p-0.5 rounded-full", isMine ? "text-primary-foreground/60 hover:text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{isThisTtsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : isThisTtsPlaying ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}</button>}
+                                      {cleanText && <button onClick={() => isThisTtsPlaying ? s.tts.stop() : s.tts.speak(msg.content, msg.id)} aria-label={isThisTtsPlaying ? 'Parar leitura' : 'Ouvir mensagem'} className={cn("opacity-0 group-hover/msg:opacity-100 transition-opacity p-0.5 rounded-full", isMine ? "text-primary-foreground/60 hover:text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{isThisTtsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : isThisTtsPlaying ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}</button>}
                                       <div className="flex items-center gap-1">
                                         <span className={cn("text-[10px]", isMine ? "text-primary-foreground/60" : "text-muted-foreground")}>{formatTime(msg.created_at)}{msg.is_edited && ' · editado'}</span>
                                         {isMine && <MessageStatus status={msg.status || 'sent'} className={cn("scale-75 origin-right", msg.status === 'read' ? "text-info" : "text-primary-foreground/60")} />}
@@ -402,7 +402,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                 Novas mensagens
               </div>
             )}
-            <Button size="icon" variant="secondary" className="rounded-full shadow-lg h-9 w-9 border border-primary/20" onClick={s.scrollToBottom}>
+            <Button aria-label="Rolar para o final" size="icon" variant="secondary" className="rounded-full shadow-lg h-9 w-9 border border-primary/20" onClick={s.scrollToBottom}>
               <ArrowDown className="w-4 h-4" />
             </Button>
           </motion.div>

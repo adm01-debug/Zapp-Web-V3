@@ -429,12 +429,24 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                 className="hidden"
               />
               <div
+                role="slider"
+                tabIndex={0}
+                aria-label="Posição do áudio"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(playbackProgress)}
                 className="group relative h-3 flex-1 cursor-pointer overflow-hidden rounded-full bg-muted"
                 onClick={(e) => {
                   const audio = audioRef.current;
                   if (!audio || !audio.duration) return;
                   const rect = e.currentTarget.getBoundingClientRect();
                   audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+                }}
+                onKeyDown={(e) => {
+                  const audio = audioRef.current;
+                  if (!audio || !audio.duration) return;
+                  if (e.key === 'ArrowRight') audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+                  if (e.key === 'ArrowLeft') audio.currentTime = Math.max(0, audio.currentTime - 5);
                 }}
               >
                 <div className="absolute inset-0 bg-primary/5 opacity-0 transition-opacity group-hover:opacity-100" />
@@ -479,6 +491,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                         onChange={(e) => setTranscription(e.target.value)}
                         className="min-h-[60px] w-full resize-none border-t border-border/30 bg-transparent pt-2 text-sm font-medium italic leading-relaxed text-foreground/80 outline-none"
                         placeholder="Edite a transcrição aqui..."
+                        aria-label="Editar transcrição de áudio"
                       />
                     </motion.div>
                   )}

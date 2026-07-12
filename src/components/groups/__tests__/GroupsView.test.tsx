@@ -13,7 +13,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
       upsert: vi.fn().mockResolvedValue({ error: null }),
     })),
-    functions: { invoke: mockInvoke },
+    functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
     channel: vi.fn().mockReturnValue({ on: vi.fn().mockReturnThis(), subscribe: vi.fn() }),
     removeChannel: vi.fn(),
     auth: {

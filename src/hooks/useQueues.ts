@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -268,7 +267,7 @@ export function useQueues() {
     // Subscribe to realtime changes — unique channel name per hook instance
     // to avoid "cannot add 'postgres_changes' callbacks after subscribe()" when
     // multiple consumers (e.g. ContactDetails + sidebar) mount in parallel.
-    const channelName = `queues-changes:${Math.random().toString(36).slice(2, 10)}`;
+    const channelName = `queues-changes:${Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('')}`;
     const queuesChannel = supabase
       .channel(channelName)
       // public.queues / public.queue_members são VIEWS (repoint layer) — o realtime

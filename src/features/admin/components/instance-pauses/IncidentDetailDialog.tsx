@@ -232,11 +232,11 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 sticky top-0">
                       <tr className="text-left">
-                        <th className="px-2 py-1.5 font-medium">Quando</th>
-                        <th className="px-2 py-1.5 font-medium">Origem</th>
-                        <th className="px-2 py-1.5 font-medium">Motivo</th>
-                        <th className="px-2 py-1.5 font-medium">HTTP</th>
-                        <th className="px-2 py-1.5 font-medium">Detalhe / Path</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">Quando</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">Origem</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">Motivo</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">HTTP</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">Detalhe / Path</th>
                       </tr>
                     </thead>
                     <tbody>

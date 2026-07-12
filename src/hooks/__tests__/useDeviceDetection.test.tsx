@@ -7,7 +7,7 @@ const mockFunctionsInvoke = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: mockFrom,
+    from: (...args: unknown[]) => mockFrom(...args),
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'token' } } }),
       onAuthStateChange: vi
@@ -15,7 +15,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
       getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
     },
-    functions: { invoke: mockFunctionsInvoke },
+    functions: { invoke: (...args: unknown[]) => mockFunctionsInvoke(...args) },
   },
 }));
 

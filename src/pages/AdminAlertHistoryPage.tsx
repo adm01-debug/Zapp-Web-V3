@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin: Histórico de Alertas.
  * Reads `warroom_alerts` (Lovable Cloud) — already populated by the war-room
@@ -404,7 +403,7 @@ export default function AdminAlertHistoryPage() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          title="Marcar como resolvido"
+                          aria-label="Marcar como resolvido"
                           onClick={() => resolveAlert(row.id)}
                         >
                           <CheckCheck className="h-3.5 w-3.5" />

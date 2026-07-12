@@ -214,7 +214,9 @@ export default function AdminWhatsAppModePage() {
             </div>
             <div className="flex items-center gap-3">
               {(loading || saving) && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span role="status" aria-live="polite" aria-label={saving ? 'Salvando' : 'Carregando'}>
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden="true" />
+                </span>
               )}
               <Switch
                 checked={mode === 'official'}
@@ -269,7 +271,7 @@ export default function AdminWhatsAppModePage() {
               <Label>Callback URL do Webhook</Label>
               <div className="flex gap-2">
                 <Input readOnly value={webhookUrl} className="text-xs" />
-                <Button variant="outline" size="icon" onClick={() => copy(webhookUrl)}>
+                <Button aria-label="Copiar URL do webhook" variant="outline" size="icon" onClick={() => copy(webhookUrl)}>
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
@@ -495,8 +497,8 @@ export default function AdminWhatsAppModePage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {secretsLoading && !secrets && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Verificando secrets…
+            <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Verificando secrets…
             </div>
           )}
 

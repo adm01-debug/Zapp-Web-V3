@@ -81,6 +81,7 @@ export function SoundSelector({
         onClick={handleTest}
         disabled={isTesting}
         className="h-8 w-8"
+        aria-label="Testar notificação"
       >
         <Play className={cn('h-3 w-3', isTesting && 'animate-pulse text-primary')} />
       </Button>

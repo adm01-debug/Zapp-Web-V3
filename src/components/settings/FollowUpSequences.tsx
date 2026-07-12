@@ -112,6 +112,7 @@ export function FollowUpSequences() {
                     <Badge variant="outline">Passo {step.step_order}</Badge>
                     {newSteps.length > 1 && (
                       <Button
+                        aria-label="Remover passo"
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
@@ -208,6 +209,7 @@ export function FollowUpSequences() {
                       {seq.is_active ? 'Ativo' : 'Inativo'}
                     </Badge>
                     <Button
+                      aria-label="Excluir sequência"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"

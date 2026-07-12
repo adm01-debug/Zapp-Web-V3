@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { STORAGE_KEY, DEFAULT_PRESET_ID, PRESETS } from '@/components/settings/theme/presets';
@@ -96,7 +95,7 @@ export const useThemeAudit = () => {
 };
 
 function getElementPath(el: Element): string {
-  const path = [];
+  const path: string[] = [];
   let current: Element | null = el;
   while (current && current !== document.body) {
     let name = current.tagName.toLowerCase();

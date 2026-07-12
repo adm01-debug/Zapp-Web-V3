@@ -51,7 +51,13 @@ export function PersonalStickers({ onSend }: PersonalStickersProps) {
         {isLoading ? (
           <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 text-muted-foreground animate-spin" /></div>
         ) : stickers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:border-primary/30 transition-colors" onClick={() => fileInputRef.current?.click()}>
+          <div
+            role="button"
+            tabIndex={0}
+            className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:border-primary/30 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && fileInputRef.current?.click()}
+          >
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3"><User className="w-7 h-7 text-primary" /></div>
             <p className="text-sm font-medium text-foreground">Adicione suas fotos</p>
             <p className="text-xs text-muted-foreground mt-1 text-center max-w-xs">Clique para enviar fotos pessoais como figurinhas.</p>
@@ -72,8 +78,8 @@ export function PersonalStickers({ onSend }: PersonalStickersProps) {
                         <img src={sticker.image_url} alt={sticker.name || 'Figurinha pessoal'} className="w-full h-full object-cover rounded-lg" loading="lazy" />
                         {sticker.is_favorite && <span className="absolute top-0.5 right-0.5"><Star className="w-2.5 h-2.5 fill-primary text-primary" /></span>}
                         <div className={cn('absolute inset-0 bg-background/70 transition-opacity flex items-center justify-center gap-2', hoveredId === sticker.id ? 'opacity-100' : 'opacity-0')}>
-                          <button onClick={(e) => { e.stopPropagation(); toggleFavorite.mutate(sticker); }} className="p-1.5 rounded-lg bg-background/80 hover:bg-background transition-colors"><Star className={cn('w-4 h-4', sticker.is_favorite ? 'fill-primary text-primary' : 'text-muted-foreground')} /></button>
-                          <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(sticker); }} className="p-1.5 rounded-lg bg-background/80 hover:bg-destructive/10 transition-colors"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); toggleFavorite.mutate(sticker); }} aria-label={sticker.is_favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'} className="p-1.5 rounded-lg bg-background/80 hover:bg-background transition-colors"><Star className={cn('w-4 h-4', sticker.is_favorite ? 'fill-primary text-primary' : 'text-muted-foreground')} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(sticker); }} aria-label="Excluir figurinha" className="p-1.5 rounded-lg bg-background/80 hover:bg-destructive/10 transition-colors"><Trash2 className="w-4 h-4 text-destructive" /></button>
                         </div>
                       </motion.button>
                     </TooltipTrigger>

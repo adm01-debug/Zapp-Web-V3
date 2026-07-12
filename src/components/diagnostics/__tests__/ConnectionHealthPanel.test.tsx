@@ -15,7 +15,7 @@ vi.mock('@/integrations/supabase/client', () => ({
         }),
       }),
     })),
-    functions: { invoke: mockInvoke },
+    functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
     channel: mockChannel.mockReturnValue({ on: vi.fn().mockReturnThis(), subscribe: vi.fn() }),
     removeChannel: mockRemoveChannel,
     auth: {

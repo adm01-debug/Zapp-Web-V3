@@ -331,6 +331,7 @@ export default function AdminAutomationLogsPage() {
                     <Button
                       size="icon"
                       variant="ghost"
+                      aria-label="Ver detalhes do log"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDetail(r);

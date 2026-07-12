@@ -158,8 +158,8 @@ export function AutoTicketClassifier() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Switch checked={autoClassify} onCheckedChange={setAutoClassify} />
-            <Label className="text-sm">Auto-classificar</Label>
+            <Switch id="auto-classify" checked={autoClassify} onCheckedChange={setAutoClassify} />
+            <Label htmlFor="auto-classify" className="text-sm">Auto-classificar</Label>
           </div>
           <Button size="sm" onClick={runBatchClassification} disabled={classifying}>
             {classifying ? (

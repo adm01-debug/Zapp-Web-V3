@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -7,11 +6,11 @@ import { log } from '@/lib/logger';
 export interface QueueGoal {
   id: string;
   queue_id: string;
-  max_waiting_contacts: number;
-  max_avg_wait_minutes: number;
-  min_assignment_rate: number;
-  max_messages_pending: number;
-  alerts_enabled: boolean;
+  max_waiting_contacts: number | null;
+  max_avg_wait_minutes: number | null;
+  min_assignment_rate: number | null;
+  max_messages_pending: number | null;
+  alerts_enabled: boolean | null;
 }
 
 export interface QueueAlert {

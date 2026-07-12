@@ -7,8 +7,8 @@ const mockSignInWithPassword = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
-      getUser: mockGetUser,
-      signInWithPassword: mockSignInWithPassword,
+      getUser: (...args: unknown[]) => mockGetUser(...args),
+      signInWithPassword: (...args: unknown[]) => mockSignInWithPassword(...args),
     },
   },
 }));

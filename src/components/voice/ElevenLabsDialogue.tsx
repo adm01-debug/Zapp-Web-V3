@@ -131,7 +131,7 @@ export function ElevenLabsDialogue() {
                   />
                 </div>
                 {lines.length > 2 && (
-                  <Button size="icon" variant="ghost" className="h-7 w-7 mt-1 text-muted-foreground hover:text-destructive" onClick={() => removeLine(line.id)}>
+                  <Button aria-label="Remover linha" size="icon" variant="ghost" className="h-7 w-7 mt-1 text-muted-foreground hover:text-destructive" onClick={() => removeLine(line.id)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 )}

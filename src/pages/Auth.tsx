@@ -36,7 +36,7 @@ export default function Auth() {
   } = useAuthForm();
 
   return (
-    <div className="relative flex min-h-screen overflow-y-auto overflow-x-hidden bg-background">
+    <main className="relative flex min-h-screen overflow-y-auto overflow-x-hidden bg-background">
       {/* Background decorations */}
       <div className="pointer-events-none absolute inset-0">
         <motion.div
@@ -208,6 +208,7 @@ export default function Auth() {
                       <Input
                         id="login-email"
                         type="email"
+                        autoComplete="email"
                         placeholder="seu@email.com"
                         className="glass border-border/50 pl-10 transition-all focus:border-primary/50 focus:ring-primary/20"
                         value={formData.email}
@@ -217,6 +218,7 @@ export default function Auth() {
                     <AnimatePresence>
                       {errors.email && (
                         <motion.p
+                          role="alert"
                           initial={{ opacity: 0, y: -5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -5 }}
@@ -239,12 +241,14 @@ export default function Auth() {
                     </Label>
                     <PasswordInput
                       id="login-password"
+                      autoComplete="current-password"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     />
                     <AnimatePresence>
                       {errors.password && (
                         <motion.p
+                          role="alert"
                           initial={{ opacity: 0, y: -5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -5 }}
