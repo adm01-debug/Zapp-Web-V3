@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
@@ -10,7 +9,7 @@ import { evolutionInstanceName } from '@/lib/evolutionInstance';
 const log = getLogger('useEvolutionAutoReconnect');
 
 const INITIAL_BACKOFF_MS = 2_000;
-const MAX_BACKOFF_MS     = 60_000;
+const MAX_BACKOFF_MS = 60_000;
 /**
  * ISSUE #3 FIX (2026-07-05): attemptSpecificReconnect already had exponential
  * backoff (2s -> 60s) but NO upper bound on attempt count — it would retry
@@ -27,9 +26,9 @@ const MAX_CONSECUTIVE_RECONNECT_ATTEMPTS = 20; // ~20-30min of backoff before gi
  * On transient 5xx / network: exponential back-off after CIRCUIT_THRESHOLD
  * consecutive failures.  Successful response resets the counter.
  */
-const CIRCUIT_THRESHOLD  = 3;            // consecutive failures to open circuit
-const CIRCUIT_BASE_MS    = 2 * 60_000;  // 2 min — first cool-down window
-const CIRCUIT_MAX_MS     = 10 * 60_000; // 10 min — ceiling
+const CIRCUIT_THRESHOLD = 3; // consecutive failures to open circuit
+const CIRCUIT_BASE_MS = 2 * 60_000; // 2 min — first cool-down window
+const CIRCUIT_MAX_MS = 10 * 60_000; // 10 min — ceiling
 
 /**
  * Shape mínimo do payload Realtime de whatsapp_connections
@@ -55,7 +54,7 @@ function extractHttpStatus(err: unknown): number | undefined {
   if (err == null || typeof err !== 'object') return undefined;
   const e = err as Record<string, unknown>;
   if (typeof e['apiStatus'] === 'number') return e['apiStatus'];
-  if (typeof e['status']    === 'number') return e['status'];
+  if (typeof e['status'] === 'number') return e['status'];
   const ctx = e['context'];
   if (ctx != null && typeof ctx === 'object') {
     const s = (ctx as Record<string, unknown>)['status'];
@@ -86,22 +85,22 @@ function extractHttpStatus(err: unknown): number | undefined {
 export function useEvolutionAutoReconnect(instanceName?: string) {
   const { restartInstance, getInstanceStatus, connectInstance } = useEvolutionApi();
   const queryClient = useQueryClient();
-  const attemptMap       = useRef<Record<string, number>>({});
-  const lastAttemptTime  = useRef<Record<string, number>>({});
+  const attemptMap = useRef<Record<string, number>>({});
+  const lastAttemptTime = useRef<Record<string, number>>({});
 
-  const [status, setStatus]               = useState<string>('unknown');
+  const [status, setStatus] = useState<string>('unknown');
   const [isReconnecting, _setIsReconnecting] = useState(false);
 
   // Ref espelho — evita stale closure em useCallback com deps parciais
   const isReconnectingRef = useRef(false);
-  const backoffRef        = useRef(INITIAL_BACKOFF_MS);
-  const timerRef          = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backoffRef = useRef(INITIAL_BACKOFF_MS);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Consecutive attemptSpecificReconnect failures (resets on success or instanceName change). */
   const reconnectAttemptCountRef = useRef(0);
 
   // ── Circuit-breaker state (§2 status polling) ──────────────────────────────────────
   /** Permanent flag: halts polling forever on 401/403 for this session. */
-  const credentialErrorRef  = useRef(false);
+  const credentialErrorRef = useRef(false);
   /** Counter for consecutive non-credential failures (5xx / network). */
   const consecutiveFailsRef = useRef(0);
   /** Epoch ms: polling is suspended until this timestamp. */
@@ -114,7 +113,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
 
   // Reset circuit-breaker when instanceName changes (new connection context)
   useEffect(() => {
-    credentialErrorRef.current  = false;
+    credentialErrorRef.current = false;
     consecutiveFailsRef.current = 0;
     circuitOpenUntilRef.current = 0;
     reconnectAttemptCountRef.current = 0;
@@ -124,12 +123,12 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
   // ── 1. Global Realtime Monitoring ──────────────────────────────────────────────────
   const performReconnect = useCallback(
     async (connection: WhatsAppConnection) => {
-      const id  = connection.id;
+      const id = connection.id;
       const now = Date.now();
 
-      const intervalMs  = (connection.reconnect_interval_seconds ?? 30) * 1_000;
+      const intervalMs = (connection.reconnect_interval_seconds ?? 30) * 1_000;
       const maxAttempts = connection.max_reconnect_attempts ?? 5;
-      const attempts    = attemptMap.current[id] ?? 0;
+      const attempts = attemptMap.current[id] ?? 0;
 
       if (now - (lastAttemptTime.current[id] ?? 0) < intervalMs) return;
       if (attempts >= maxAttempts) {
@@ -139,20 +138,22 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
 
       const evoInstanceName = evolutionInstanceName(connection);
       if (!evoInstanceName) {
-        log.warn(`Auto-reconnect bloqueado: conexao "${connection.name}" sem instance_name`, { id });
+        log.warn(`Auto-reconnect bloqueado: conexao "${connection.name}" sem instance_name`, {
+          id,
+        });
         return;
       }
 
       log.info(`Auto-reconnecting ${connection.name}`, { attempt: attempts + 1 });
       lastAttemptTime.current[id] = now;
-      attemptMap.current[id]      = attempts + 1;
+      attemptMap.current[id] = attempts + 1;
 
       let attemptStatus: 'success' | 'failed' = 'success';
-      let errorMsg: string | null             = null;
+      let errorMsg: string | null = null;
 
       try {
         await restartInstance(evoInstanceName);
-        await new Promise<void>(r => setTimeout(r, 5_000));
+        await new Promise<void>((r) => setTimeout(r, 5_000));
         await supabase.functions.invoke('connection-health-check', {
           body: { instanceName: evoInstanceName },
         });
@@ -164,7 +165,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
         const httpStatus = extractHttpStatus(err);
         if (httpStatus === 401 || httpStatus === 403) {
           log.error(
-            `Credential error (HTTP ${httpStatus}) for ${connection.name} — aborting reconnect cycle`,
+            `Credential error (HTTP ${httpStatus}) for ${connection.name} — aborting reconnect cycle`
           );
           eventBus.emit('connection:credential-error', {
             instanceName: evoInstanceName,
@@ -176,25 +177,30 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       }
 
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).rpc('fn_log_reconnection_attempt', {
-          p_connection_id:  null,
-          p_instance_name:  evoInstanceName,
-          p_status:         attemptStatus,
-          p_error_message:  errorMsg,
+        const supabaseClient = supabase as unknown as {
+          rpc: (
+            name: string,
+            params: Record<string, unknown>
+          ) => Promise<{ data: unknown; error: unknown }>;
+        };
+        await supabaseClient.rpc('fn_log_reconnection_attempt', {
+          p_connection_id: null,
+          p_instance_name: evoInstanceName,
+          p_status: attemptStatus,
+          p_error_message: errorMsg,
           p_attempt_number: attempts + 1,
-          p_qr_generated:   false,
+          p_qr_generated: false,
           p_metadata: {
             whatsapp_connection_id: id,
-            reconnect_reason:       connection.health_reason,
-            status_before:          connection.status,
+            reconnect_reason: connection.health_reason,
+            status_before: connection.status,
           },
         });
       } catch (rpcErr) {
         log.warn('fn_log_reconnection_attempt RPC falhou (nao-critico)', rpcErr);
       }
     },
-    [restartInstance],
+    [restartInstance]
   );
 
   useEffect(() => {
@@ -204,7 +210,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'whatsapp_connections' },
         (payload) => {
-          const connection    = payload.new as WhatsAppConnection;
+          const connection = payload.new as WhatsAppConnection;
           const oldConnection = payload.old as Pick<WhatsAppConnection, 'status'>;
 
           if (!connection.auto_reconnect_enabled || connection.loop_protection_active) return;
@@ -218,11 +224,13 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
           if ((isDisconnected || isPhantom) && connection.instance_id && wasConnected) {
             void performReconnect(connection);
           }
-        },
+        }
       )
       .subscribe();
 
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [performReconnect]);
 
   // ── 2. Specific Instance Polling ──────────────────────────────────────────────────
@@ -233,7 +241,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     if (reconnectAttemptCountRef.current >= MAX_CONSECUTIVE_RECONNECT_ATTEMPTS) {
       log.error(
         `Giving up on ${instanceName}: ${reconnectAttemptCountRef.current} consecutive ` +
-        `reconnect attempts failed — manual intervention required`,
+          `reconnect attempts failed — manual intervention required`
       );
       eventBus.emit('connection:reconnect-exhausted', {
         instanceName,
@@ -256,7 +264,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
 
     try {
       await connectInstance(instanceName);
-      await new Promise<void>(r => setTimeout(r, 5_000));
+      await new Promise<void>((r) => setTimeout(r, 5_000));
 
       const currentStatus = await getInstanceStatus(instanceName);
       const state: string = currentStatus?.instance?.state ?? currentStatus?.state ?? 'unknown';
@@ -277,7 +285,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
 
       if (httpStatus === 401 || httpStatus === 403) {
         log.error(
-          `Credential error (HTTP ${httpStatus}) for ${instanceName} — stopping retry cycle`,
+          `Credential error (HTTP ${httpStatus}) for ${instanceName} — stopping retry cycle`
         );
         setIsReconnecting(false);
         eventBus.emit('connection:credential-error', {
@@ -291,7 +299,14 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       log.error(`Failed to reconnect instance ${instanceName}:`, err);
       scheduleNextAttempt();
     }
-  }, [instanceName, connectInstance, getInstanceStatus, queryClient, setIsReconnecting, scheduleNextAttempt]);
+  }, [
+    instanceName,
+    connectInstance,
+    getInstanceStatus,
+    queryClient,
+    setIsReconnecting,
+    scheduleNextAttempt,
+  ]);
 
   /**
    * Polling loop (30 s interval).
@@ -343,7 +358,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       if (httpStatus === 401 || httpStatus === 403) {
         log.error(
           `Credential error (HTTP ${httpStatus}) for ${instanceName} — ` +
-          `halting status polling permanently for this session`,
+            `halting status polling permanently for this session`
         );
         credentialErrorRef.current = true;
         setIsReconnecting(false);
@@ -360,12 +375,12 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       const failures = consecutiveFailsRef.current;
 
       if (failures >= CIRCUIT_THRESHOLD) {
-        const exponent  = failures - CIRCUIT_THRESHOLD;
-        const backoffMs = Math.min(CIRCUIT_BASE_MS * (2 ** exponent), CIRCUIT_MAX_MS);
+        const exponent = failures - CIRCUIT_THRESHOLD;
+        const backoffMs = Math.min(CIRCUIT_BASE_MS * 2 ** exponent, CIRCUIT_MAX_MS);
         circuitOpenUntilRef.current = Date.now() + backoffMs;
         log.warn(
           `Circuit breaker opened for ${instanceName}: ` +
-          `${failures} consecutive failure(s), pausing ${Math.round(backoffMs / 1_000)}s`,
+            `${failures} consecutive failure(s), pausing ${Math.round(backoffMs / 1_000)}s`
         );
       }
     }
