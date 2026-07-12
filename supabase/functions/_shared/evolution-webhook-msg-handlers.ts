@@ -116,7 +116,8 @@ export async function handleMessagesUpdate(supabase: SupabaseClient, instance: s
         // The message.upsert handler will create the real row when/if Evolution delivers it.
         const remoteJid = resolveEventJid(entry, baseData);
         // Mask remoteJid to avoid logging phone numbers (PII)
-        const maskedJid = remoteJid ? remoteJid.replace(/(\d{4})\d+(@)/, '$1***$2') : 'unknown';
+        // Mask any 5+-digit run regardless of @ suffix (covers bare phone numbers too)
+        const maskedJid = remoteJid ? remoteJid.replace(/(\d{4})\d+/g, '$1***') : 'unknown';
         console.warn(`[UPDATE][orphan-ack] no message found for external_id=${key.id} instance=${instance} status=${newStatus} remoteJid=${maskedJid}`);
       }
     }

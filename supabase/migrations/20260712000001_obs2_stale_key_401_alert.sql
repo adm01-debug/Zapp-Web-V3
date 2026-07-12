@@ -67,7 +67,7 @@ BEGIN
   SELECT count(*)::int INTO v_count_log
   FROM public.webhook_audit_log
   WHERE status_code = 401
-    AND created_at > now() - interval '15min';
+    AND received_at > now() - interval '15min';  -- webhook_audit_log uses received_at
 
   -- Source 2: evolution_ip_watch — populated by VPS log pipeline (currently 0 rows)
   SELECT count(*)::int INTO v_count_ipwatch

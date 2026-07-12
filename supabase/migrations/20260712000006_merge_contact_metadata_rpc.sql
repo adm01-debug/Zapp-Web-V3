@@ -38,13 +38,16 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.merge_contact_metadata(uuid, jsonb) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.merge_contact_metadata(uuid, jsonb) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.merge_contact_metadata(uuid, jsonb) FROM anon;
+-- service_role must be granted back explicitly after revoking PUBLIC (which service_role
+-- inherits from). Edge functions call this via supabase.rpc() with the service_role key.
+GRANT  EXECUTE ON FUNCTION public.merge_contact_metadata(uuid, jsonb) TO   service_role;
 
 COMMENT ON FUNCTION public.merge_contact_metadata(uuid, jsonb) IS
   'MED-8 (2026-07-12): Atomically merges p_overlay into contacts.metadata '
   'using JSONB || operator (server-side, inside row lock). '
   'Called by evolution-webhook-handlers.ts for chat state updates '
   '(wa_pinned, wa_muted, wa_archived, wa_not_spam). '
-  'Not callable by PUBLIC or authenticated — edge functions only via service_role.';
+  'Not callable by PUBLIC/authenticated/anon — service_role only (edge functions).';
 
 -- ──────────────────────────────────────────────────────────────────────────────
 -- Validate

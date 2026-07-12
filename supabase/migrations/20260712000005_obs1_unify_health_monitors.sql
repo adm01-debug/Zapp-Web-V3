@@ -71,7 +71,7 @@ BEGIN
   -- which reported A+/100 even when the consumer was down and evolution_messages_wpp2
   -- showed a 321-min gap (same table queried by fn_pipeline_health_probe).
   v_max:=v_max+15;
-  SELECT MAX(created_at) INTO vt FROM public.webhook_audit_log;
+  SELECT MAX(received_at) INTO vt FROM public.webhook_audit_log;  -- table uses received_at
   SELECT MAX(created_at) INTO vt2 FROM evo.evolution_webhook_events_v2;
   -- Ingestion-layer gap
   v_hours_silent:=COALESCE(ROUND(EXTRACT(EPOCH FROM(NOW()-GREATEST(vt,vt2)))/3600,1),9999);
@@ -81,7 +81,7 @@ BEGIN
   -- Effective gap: worst of both layers so ingestion freshness cannot mask delivery failure
   v_hours_silent:=GREATEST(v_hours_silent, v_msg_hours_silent);
   SELECT COUNT(*) INTO v_events_1h FROM public.webhook_events_processed WHERE processed_at>NOW()-INTERVAL '1 hour';
-  SELECT COUNT(*) INTO v_audit_1h FROM public.webhook_audit_log WHERE status='processed' AND created_at>NOW()-INTERVAL '1 hour';
+  SELECT COUNT(*) INTO v_audit_1h FROM public.webhook_audit_log WHERE status='processed' AND received_at>NOW()-INTERVAL '1 hour';
   SELECT COUNT(*) FILTER(WHERE created_at>NOW()-INTERVAL '7 days'),COUNT(*) FILTER(WHERE created_at>NOW()-INTERVAL '24 hours') INTO v_msgs_7d,v_msgs_24h FROM evo.evolution_messages WHERE instance_name='wpp2';
   -- audit_1h fallback gated on v_hours_silent<24 so a stalled delivery layer
   -- cannot masquerade as healthy just because ingestion is still processing rows.
