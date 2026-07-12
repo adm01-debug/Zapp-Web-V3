@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { authService, Profile } from '@/features/auth/services/authService';
 import { getLogger } from '@/lib/logger';
 import { AuthContext } from '@/features/auth/context/AuthContext';
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: unknown) {
       log.warn('[Auth] Failed to fetch profile for user:', userId, err);
+      toast.warning('Não foi possível carregar seu perfil. Por favor, recarregue a página.');
     } finally {
       fetchingProfileRef.current = false;
     }
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: unknown) {
       log.warn('[Auth] Failed to fetch roles/permissions for user:', userId, err);
+      toast.warning('Não foi possível carregar suas permissões. Alguns recursos podem estar indisponíveis.');
     } finally {
       fetchingRolesRef.current = false;
       fetchingPermissionsRef.current = false;
@@ -146,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }).catch((err) => {
       log.warn('[Auth] getUser failed, clearing local session', err);
+      toast.error('Erro ao recuperar dados da sessão. Por favor, faça login novamente.');
       try {
         Object.keys(localStorage)
           .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
