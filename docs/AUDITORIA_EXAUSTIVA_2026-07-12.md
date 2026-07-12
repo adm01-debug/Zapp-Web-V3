@@ -78,7 +78,7 @@ Legenda esforço: **P** pequeno · **M** médio · **G** grande. `[DB]` requer a
 14. **[✓FE][P]** `useExternalEvolution.ts:572`: refetch pós-envio descarta mensagens canônicas (chat colapsa p/ 1-2) → merge por união, não substituição.
 15. **[✓FE][P]** `useChatPanelHandlers.ts:65`: anexo sem legenda descartado silenciosamente → permitir envio só-mídia.
 16. **[✓FE][P]** `ContactFormV3.tsx:219` / `ContactMergeDialog.tsx:184`: "Mesclar" crasha (tags/created_at undefined) e merge em 4 writes sem transação → guard + **RPC atômica**. **[DB]**
-17. **[✓FE][P]** `useEmail.ts:462`: `startOAuth` lê `data.authUrl` mas a edge retorna `data.url` → "Conectar Gmail" **sempre falha**.
+17. ✅ **[✓FE][P]** `useEmail.ts:462`: `startOAuth` lia `data.authUrl` mas a edge retorna `data.url` → "Conectar Gmail" sempre falhava. *(corrigido em `1d84f74`)*
 18. **[Edge][M]** `reprocess-failed-messages`: path kebab-case cru vai à Evolution (DLQ nunca entrega) + sem claim/lease (duplicatas) + idempotência ilusória → normalizar path + lease + cache real.
 19. **[Edge][P]** `whatsapp-cloud-webhook:230`: dedupe marcado **antes** de persistir + falha só logada → perde mensagens. Persistir-primeiro + DLQ.
 20. **[Edge][M]** TOCTOU no cache de idempotência (`evolution-api-proxy:77`) + dupla-enfileiração (`enqueue-failed-message`) → chave única atômica.
@@ -93,8 +93,8 @@ Legenda esforço: **P** pequeno · **M** médio · **G** grande. `[DB]` requer a
 26. **[✓FE][M]** `SatisfactionMetrics.tsx` / `DemandForecast` / `QueueDetails`: dashboards exibem `Math.random()`/hardcoded como métricas reais → derivar de dados reais ou marcar como indisponível. **[ARQ]**
 27. **[✓FE][M]** `TrainingMode.tsx:116`: score `Math.random()` persistido no banco como avaliação do agente → algoritmo de score real ou não persistir. **[ARQ]**
 28. **[✓FE][P]** `useLeaderboard`/`useQueuesComparison`: seletor de período é decorativo (query ignora range) → aplicar filtro temporal.
-29. **[✓FE][P]** `useReportsData`: off-by-one na janela de comparação (8 vs 7 dias) infla tendências.
-30. **[✓FE][P]** `useSLAAlerts.ts:96`: dedupe persistente sem janela temporal → alerta dispara **uma vez para sempre**.
+29. ✅ **[✓FE][P]** `useReportsData`: off-by-one na janela de comparação (8 vs 7 dias) inflava tendências. *(corrigido em `1d84f74`)*
+30. ✅ **[✓FE][P]** `useSLAAlerts.ts:96`: dedupe persistente sem janela temporal → alerta disparava uma vez para sempre. *(corrigido em `1d84f74`)*
 
 ### 🟢 Onda 4 — Consolidação de arquitetura (remover ambiguidade)
 
