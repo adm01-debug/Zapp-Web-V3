@@ -50,7 +50,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
 
   // Parsear CSV usando xlsx (carregado sob demanda — ~600KB fora do bundle principal)
   const parseCSV = useCallback(async (file: File): Promise<unknown[]> => {
-    const XLSX = await import('xlsx');
+    const XLSX = await import(/* webpackChunkName: "vendor-xlsx" */ 'xlsx');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -91,7 +91,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
 
   // Parsear Excel (carregado sob demanda — ~600KB fora do bundle principal)
   const parseExcel = useCallback(async (file: File): Promise<unknown[]> => {
-    const XLSX = await import('xlsx');
+    const XLSX = await import(/* webpackChunkName: "vendor-xlsx" */ 'xlsx');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
