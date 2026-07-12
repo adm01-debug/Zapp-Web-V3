@@ -28,7 +28,7 @@ export interface ApplicableSLA {
   matchedLevel: SLAMatchedLevel;
 }
 
-type SLARule = {
+type ActiveSLARule = {
   id: string;
   name: string;
   first_response_minutes: number;
@@ -57,8 +57,8 @@ const SYSTEM_DEFAULT: ApplicableSLA = {
 
 // Shared hook — fetches ALL active SLA rules once; React Query deduplicates
 // across every useApplicableSLA caller in the same render tree.
-export function useSLARules() {
-  return useQuery<SLARule[]>({
+export function useActiveSLARules() {
+  return useQuery<ActiveSLARule[]>({
     queryKey: ['sla-rules-active'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -97,7 +97,7 @@ export function useSLADefaultConfig() {
  * Single-pass: iterates rules once, tracking the best match per level.
  * Hierarchy: contact > company > job_title > contact_type > queue > agent
  */
-function resolveHierarchy(rules: SLARule[], params: ContactSLAParams): ApplicableSLA | null {
+function resolveHierarchy(rules: ActiveSLARule[], params: ContactSLAParams): ApplicableSLA | null {
   let contactMatch: ApplicableSLA | null = null;
   let companyMatch: ApplicableSLA | null = null;
   let jobTitleMatch: ApplicableSLA | null = null;
@@ -105,7 +105,7 @@ function resolveHierarchy(rules: SLARule[], params: ContactSLAParams): Applicabl
   let queueMatch: ApplicableSLA | null = null;
   let agentMatch: ApplicableSLA | null = null;
 
-  const build = (rule: SLARule, level: SLAMatchedLevel): ApplicableSLA => ({
+  const build = (rule: ActiveSLARule, level: SLAMatchedLevel): ApplicableSLA => ({
     firstResponseMinutes: rule.first_response_minutes,
     resolutionMinutes: rule.resolution_minutes,
     ruleName: rule.name,
@@ -169,7 +169,7 @@ function resolveHierarchy(rules: SLARule[], params: ContactSLAParams): Applicabl
 export function useApplicableSLA(params: ContactSLAParams) {
   const enabled = !!params.contactId || !!params.company || !!params.queueId || !!params.agentId;
 
-  const { data: rules, isLoading: rulesLoading, error: rulesError } = useSLARules();
+  const { data: rules, isLoading: rulesLoading, error: rulesError } = useActiveSLARules();
   const { data: defaultConfig, isLoading: configLoading } = useSLADefaultConfig();
 
   return useQuery<ApplicableSLA>({
