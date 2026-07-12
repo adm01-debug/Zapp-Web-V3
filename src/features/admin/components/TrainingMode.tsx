@@ -151,10 +151,12 @@ export function TrainingMode() {
       const lengthBonus = avgLen >= 80 ? 20 : avgLen >= 40 ? 10 : avgLen >= 20 ? 0 : -10;
       const finalScore = Math.min(100, Math.max(40, 70 + lengthBonus));
       setScore(finalScore);
+      // finalScore range: 60–90. Threshold at 70 so all three branches are reachable:
+      // 80–90 → excellent, 70 → good, 60 → needs improvement.
       const fb =
         finalScore >= 80
           ? 'Excelente! Boa empatia e resolução.'
-          : finalScore >= 60
+          : finalScore >= 70
             ? 'Bom, mas poderia ser mais proativo.'
             : 'Precisa melhorar a abordagem e tempo de resposta.';
       setFeedback(fb);
