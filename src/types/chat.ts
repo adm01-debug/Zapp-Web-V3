@@ -2,10 +2,21 @@
 import type { Tables } from '@/integrations/supabase/types';
 // aliases camelCase client-side (mapeados de avatar_url/created_at nos adapters).
 export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'phone' | 'tags'> &
-  Partial<Pick<Tables<'contacts'>, 'nickname' | 'surname' | 'job_title' | 'company' | 'email' | 'contact_type' | 'whatsapp_connection_id'>> & {
-  avatar?: string;
-  createdAt: Date;
-};
+  Partial<
+    Pick<
+      Tables<'contacts'>,
+      | 'nickname'
+      | 'surname'
+      | 'job_title'
+      | 'company'
+      | 'email'
+      | 'contact_type'
+      | 'whatsapp_connection_id'
+    >
+  > & {
+    avatar?: string;
+    createdAt: Date;
+  };
 
 // WhatsApp Interactive Message Types
 export interface InteractiveButton {
@@ -65,12 +76,30 @@ export interface Message {
   id: string;
   conversationId: string;
   content: string;
-  type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'interactive' | 'button_response' | 'location' | 'sticker';
+  type:
+    | 'text'
+    | 'image'
+    | 'audio'
+    | 'video'
+    | 'document'
+    | 'interactive'
+    | 'button_response'
+    | 'location'
+    | 'sticker';
   mediaUrl?: string;
   sender: 'contact' | 'agent';
   agentId?: string;
   timestamp: Date;
-  status: 'sending' | 'retrying' | 'sent' | 'delivered' | 'read' | 'played' | 'failed' | 'failed_auth' | 'failed_retries';
+  status:
+    | 'sending'
+    | 'retrying'
+    | 'sent'
+    | 'delivered'
+    | 'read'
+    | 'played'
+    | 'failed'
+    | 'failed_auth'
+    | 'failed_retries';
   // Interactive message data
   interactive?: InteractiveMessage;
   // Button response data (when user clicks a button)
@@ -115,9 +144,8 @@ export interface Message {
   /** @internal Flag used for optimistic updates in the UI */
   _optimistic?: boolean;
   /** Meta-informações brutas (Evolution/WhatsApp API). */
-  media_meta?: Record<string, unknown> & { ptt?: boolean; isPtv?: boolean } | null;
+  media_meta?: Record<string, unknown> | null;
 }
-
 
 export interface Conversation {
   id: string;

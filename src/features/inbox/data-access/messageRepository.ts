@@ -20,7 +20,7 @@ export interface Message {
   transcription: string | null;
   transcription_status: string | null;
   is_deleted: boolean | null;
-  media_meta: (Record<string, unknown> & { ptt?: boolean; isPtv?: boolean }) | null;
+  media_meta: Record<string, unknown> | null;
   contactAvatar: string | null;
 }
 
