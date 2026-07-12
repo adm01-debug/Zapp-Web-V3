@@ -75,7 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: perms } = await supabase
         .from('role_permissions')
         .select('permissions(name)')
-        .in('role', roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>);
+        .in(
+          'role',
+          roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
+        );
 
       if (perms) {
         const permNames = (perms as Array<{ permissions: { name: string } | null }>)
@@ -216,8 +219,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(profileChannel);
-      supabase.removeChannel(rolesChannel);
+      profileChannel.unsubscribe();
+      rolesChannel.unsubscribe();
     };
   }, [user, profile?.id, fetchRoles, fetchPermissions]);
 

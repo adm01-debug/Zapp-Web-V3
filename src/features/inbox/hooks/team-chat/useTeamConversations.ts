@@ -140,7 +140,7 @@ export function useTeamConversations() {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [profile, queryClient]);
 

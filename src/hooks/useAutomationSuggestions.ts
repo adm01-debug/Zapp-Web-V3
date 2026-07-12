@@ -8,7 +8,6 @@ import { toast } from '@/hooks/use-toast';
 // Resolve at call time so module import never crashes.
 const getClient = () => getExternalSupabase();
 
-
 interface _RawExecRow {
   id: string;
   rule_id: string;
@@ -96,7 +95,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(ch);
+      ch.unsubscribe();
     };
   }, [remoteJid, refresh]);
 

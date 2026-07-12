@@ -20,12 +20,12 @@
  * Deduplicação: mantemos um `Set` de IDs já notificados para evitar repetir
  * o toast em re-entregas do realtime.
  */
-import { useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { getLogger } from "@/lib/logger";
+import { useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { getLogger } from '@/lib/logger';
 
-const log = getLogger("AutomationFailureAlerts");
+const log = getLogger('AutomationFailureAlerts');
 
 interface AutomationExecutionRowMinimal {
   id: string;
@@ -37,24 +37,24 @@ interface AutomationExecutionRowMinimal {
 }
 
 function describeStage(stage: string | null | undefined): string {
-  if (!stage) return "execução";
+  if (!stage) return 'execução';
   switch (stage) {
-    case "apply_tags_or_escalate":
-      return "aplicar tags / escalar SLA";
-    case "suggest_reply_or_autosend":
-      return "sugerir resposta (IA)";
-    case "evaluate_conditions":
-      return "avaliar condições";
-    case "timeout":
-      return "timeout";
+    case 'apply_tags_or_escalate':
+      return 'aplicar tags / escalar SLA';
+    case 'suggest_reply_or_autosend':
+      return 'sugerir resposta (IA)';
+    case 'evaluate_conditions':
+      return 'avaliar condições';
+    case 'timeout':
+      return 'timeout';
     default:
       return stage;
   }
 }
 
 function shortError(msg: string | null | undefined, max = 120): string {
-  if (!msg) return "erro desconhecido";
-  const clean = String(msg).replace(/\s+/g, " ").trim();
+  if (!msg) return 'erro desconhecido';
+  const clean = String(msg).replace(/\s+/g, ' ').trim();
   return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
 }
 
@@ -65,10 +65,10 @@ export function useAutomationFailureAlerts(enabled = true): void {
     if (!enabled) return;
 
     const handle = (row: AutomationExecutionRowMinimal | null, prevStatus?: string | null) => {
-      if (!row || row.status !== "failed") return;
+      if (!row || row.status !== 'failed') return;
       if (seenRef.current.has(row.id)) return;
       // Só notifica na transição → failed (evita re-syncs)
-      if (prevStatus === "failed") {
+      if (prevStatus === 'failed') {
         seenRef.current.add(row.id);
         return;
       }
@@ -77,25 +77,23 @@ export function useAutomationFailureAlerts(enabled = true): void {
       const payload = row.trigger_payload ?? {};
       const ctx = (payload.error_context ?? {}) as Record<string, any>;
       const ruleName =
-        row.rule_snapshot?.name ??
-        (payload.rule_name as string | undefined) ??
-        "Regra sem nome";
+        row.rule_snapshot?.name ?? (payload.rule_name as string | undefined) ?? 'Regra sem nome';
       const stage = describeStage(ctx.stage);
       const errMsg = shortError(payload.error as string | undefined);
-      const tail = row.remote_jid ? ` em ${row.remote_jid.split("@")[0]}` : "";
+      const tail = row.remote_jid ? ` em ${row.remote_jid.split('@')[0]}` : '';
 
       toast.error(`Automação falhou: ${ruleName}${tail}`, {
         description: `Etapa: ${stage}. ${errMsg}`,
         duration: 14_000,
         action: {
-          label: "Ver logs",
+          label: 'Ver logs',
           onClick: () => {
-            window.location.href = "/admin/automations/logs";
+            window.location.href = '/admin/automations/logs';
           },
         },
       });
 
-      log.warn("[automation-alert] failed", {
+      log.warn('[automation-alert] failed', {
         executionId: row.id,
         ruleId: row.rule_id,
         stage: ctx.stage ?? null,
@@ -103,29 +101,29 @@ export function useAutomationFailureAlerts(enabled = true): void {
     };
 
     const channel = supabase
-      .channel("automation_executions_failure_alerts")
+      .channel('automation_executions_failure_alerts')
       .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "zapp", table: "automation_executions" },
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const next = payload.new as AutomationExecutionRowMinimal | null;
           const prev = payload.old as AutomationExecutionRowMinimal | null;
           handle(next, prev?.status ?? null);
-        },
+        }
       )
       .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "zapp", table: "automation_executions" },
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           // Cobre o caso (raro) onde a execução já nasce 'failed'.
           const next = payload.new as AutomationExecutionRowMinimal | null;
           handle(next, null);
-        },
+        }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [enabled]);
 }

@@ -116,7 +116,7 @@ export function AudioMessagePlayer({
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [messageId]);
 
@@ -167,7 +167,7 @@ export function AudioMessagePlayer({
     fetchStatus();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [messageId, onVoiceChange]);
 

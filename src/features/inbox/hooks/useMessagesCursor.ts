@@ -300,7 +300,7 @@ export function useMessagesCursor({
       .subscribe();
 
     return () => {
-      client.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [enabled, remoteJid]);
 

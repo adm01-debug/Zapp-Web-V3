@@ -263,8 +263,8 @@ export default function BridgeStatusPage() {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      supabase.removeChannel(trafficSub);
-      supabase.removeChannel(alertsSub);
+      trafficSub.unsubscribe();
+      alertsSub.unsubscribe();
     };
   }, [fetchIncidents, checkHealth, autoRefresh, refreshInterval]);
 

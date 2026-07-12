@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 
 /**
  * Comprehensive Test Suite for Internal Team Chat
- * 
- * Covers: Security, Data Integrity, UX, Performance, Edge Cases, 
+ *
+ * Covers: Security, Data Integrity, UX, Performance, Edge Cases,
  * Integration, Notifications, Media, Accessibility
- * 
+ *
  * Total: 200+ test scenarios across all modules
  */
 
@@ -123,7 +123,14 @@ describe('Team Chat — Data Integrity', () => {
   describe('Message Operations', () => {
     it('useSendTeamMessage inserts correct fields', () => {
       // Verifies: conversation_id, sender_id, content, reply_to_id, media_url, media_type
-      const requiredFields = ['conversation_id', 'sender_id', 'content', 'reply_to_id', 'media_url', 'media_type'];
+      const requiredFields = [
+        'conversation_id',
+        'sender_id',
+        'content',
+        'reply_to_id',
+        'media_url',
+        'media_type',
+      ];
       expect(requiredFields).toHaveLength(6);
     });
 
@@ -864,12 +871,12 @@ describe('Team Chat — Conversation List', () => {
       expect(true).toBe(true);
     });
 
-    it('Direct chats show other person\'s name', () => {
+    it("Direct chats show other person's name", () => {
       // conv.type === 'direct' && !conv.name → uses other member's profile name
       expect(true).toBe(true);
     });
 
-    it('Direct chats show other person\'s avatar', () => {
+    it("Direct chats show other person's avatar", () => {
       // conv.type === 'direct' && !conv.avatar_url → uses other member's avatar
       expect(true).toBe(true);
     });
@@ -934,7 +941,7 @@ describe('Team Chat — Conversation List', () => {
       expect(true).toBe(true);
     });
 
-    it('GAP: Switching tabs doesn\'t clear group name', () => {
+    it("GAP: Switching tabs doesn't clear group name", () => {
       // Tab change only clears selectedIds
       // groupName persists across tab switches
       expect(true).toBe(true);
@@ -1002,7 +1009,7 @@ describe('Team Chat — Performance Analysis', () => {
     });
 
     it('✓ Channels cleaned up on unmount', () => {
-      // return () => { supabase.removeChannel(channel); }
+      // return () => { channel.unsubscribe(); }
       expect(true).toBe(true);
     });
 
@@ -1378,8 +1385,19 @@ describe('Team Chat — Data Format Validation', () => {
   });
 
   it('TeamMessage has all required fields', () => {
-    const fields = ['id', 'conversation_id', 'sender_id', 'content', 'message_type',
-      'media_url', 'media_type', 'reply_to_id', 'is_edited', 'created_at', 'updated_at'];
+    const fields = [
+      'id',
+      'conversation_id',
+      'sender_id',
+      'content',
+      'message_type',
+      'media_url',
+      'media_type',
+      'reply_to_id',
+      'is_edited',
+      'created_at',
+      'updated_at',
+    ];
     expect(fields).toHaveLength(11);
   });
 
@@ -1525,15 +1543,34 @@ describe('Team Chat — Error Handling', () => {
 describe('Team Chat — Summary', () => {
   it('SUMMARY: Total features implemented', () => {
     const implemented = [
-      'Text messaging', 'Image sharing', 'Video sharing', 'Audio recording',
-      'Document sharing', 'Stickers', 'Audio memes', 'Custom emojis',
-      'Reply-to', 'Message editing', 'Message deletion', 'Mentions',
-      'Markdown formatting', 'Rich text toolbar', 'AI rewrite',
-      'Voice dictation', 'Text-to-audio', 'Conversation search',
-      'Unread count', 'Date separators', 'Scroll-to-bottom',
-      'Direct chats', 'Group chats', 'New conversation dialog',
-      'Differentiated notification sound', 'Browser push notifications',
-      'Quiet hours respect', 'Mute respect',
+      'Text messaging',
+      'Image sharing',
+      'Video sharing',
+      'Audio recording',
+      'Document sharing',
+      'Stickers',
+      'Audio memes',
+      'Custom emojis',
+      'Reply-to',
+      'Message editing',
+      'Message deletion',
+      'Mentions',
+      'Markdown formatting',
+      'Rich text toolbar',
+      'AI rewrite',
+      'Voice dictation',
+      'Text-to-audio',
+      'Conversation search',
+      'Unread count',
+      'Date separators',
+      'Scroll-to-bottom',
+      'Direct chats',
+      'Group chats',
+      'New conversation dialog',
+      'Differentiated notification sound',
+      'Browser push notifications',
+      'Quiet hours respect',
+      'Mute respect',
     ];
     expect(implemented.length).toBeGreaterThanOrEqual(28);
   });

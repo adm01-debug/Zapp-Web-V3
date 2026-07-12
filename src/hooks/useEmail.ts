@@ -632,7 +632,7 @@ export function useEmail() {
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [activeAccountId]);
 

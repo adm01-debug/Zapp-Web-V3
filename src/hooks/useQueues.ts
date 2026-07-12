@@ -271,7 +271,7 @@ export function useQueues() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(queuesChannel);
+      queuesChannel.unsubscribe();
     };
   }, []);
 

@@ -243,7 +243,7 @@ export function useMessages(remoteJid: string | null, instanceName?: string | nu
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [remoteJid, instanceName]);
 

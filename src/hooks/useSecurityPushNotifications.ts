@@ -20,53 +20,57 @@ export function useSecurityPushNotifications() {
   const { user } = useAuth();
   const { isSubscribed, permission, showNotification } = usePushNotifications();
 
-  const sendSecurityNotification = useCallback(async (alert: SecurityAlert) => {
-    if (permission !== 'granted' || !isSubscribed) {
-      log.debug('Push notifications not available, using toast fallback');
-      
-      // Fallback to toast notification
-      const toastType = alert.severity === 'high' || alert.severity === 'critical' 
-        ? 'error' 
-        : alert.severity === 'medium' 
-          ? 'warning' 
-          : 'info';
+  const sendSecurityNotification = useCallback(
+    async (alert: SecurityAlert) => {
+      if (permission !== 'granted' || !isSubscribed) {
+        log.debug('Push notifications not available, using toast fallback');
 
-      if (toastType === 'error') {
-        toast.error(alert.title, { description: alert.description || undefined });
-      } else if (toastType === 'warning') {
-        toast.warning(alert.title, { description: alert.description || undefined });
-      } else {
-        toast.info(alert.title, { description: alert.description || undefined });
+        // Fallback to toast notification
+        const toastType =
+          alert.severity === 'high' || alert.severity === 'critical'
+            ? 'error'
+            : alert.severity === 'medium'
+              ? 'warning'
+              : 'info';
+
+        if (toastType === 'error') {
+          toast.error(alert.title, { description: alert.description || undefined });
+        } else if (toastType === 'warning') {
+          toast.warning(alert.title, { description: alert.description || undefined });
+        } else {
+          toast.info(alert.title, { description: alert.description || undefined });
+        }
+        return;
       }
-      return;
-    }
 
-    // Determine notification urgency
-    const isUrgent = alert.severity === 'high' || alert.severity === 'critical';
+      // Determine notification urgency
+      const isUrgent = alert.severity === 'high' || alert.severity === 'critical';
 
-    // Format the body with details
-    let body = alert.description || 'Alerta de segurança detectado';
-    if (alert.ip_address) {
-      body += ` (IP: ${alert.ip_address})`;
-    }
+      // Format the body with details
+      let body = alert.description || 'Alerta de segurança detectado';
+      if (alert.ip_address) {
+        body += ` (IP: ${alert.ip_address})`;
+      }
 
-    // Show push notification
-    await showNotification({
-      title: `🔐 ${alert.title}`,
-      body,
-      tag: `security-${alert.id}`,
-      requireInteraction: isUrgent,
-      data: {
-        alertId: alert.id,
-        alertType: alert.alert_type,
-        severity: alert.severity,
-        category: 'security',
-      },
-      vibrate: isUrgent ? [300, 100, 300, 100, 300] : [200, 100, 200],
-    });
+      // Show push notification
+      await showNotification({
+        title: `🔐 ${alert.title}`,
+        body,
+        tag: `security-${alert.id}`,
+        requireInteraction: isUrgent,
+        data: {
+          alertId: alert.id,
+          alertType: alert.alert_type,
+          severity: alert.severity,
+          category: 'security',
+        },
+        vibrate: isUrgent ? [300, 100, 300, 100, 300] : [200, 100, 200],
+      });
 
-    log.debug('Security notification sent:', alert.title);
-  }, [permission, isSubscribed, showNotification]);
+      log.debug('Security notification sent:', alert.title);
+    },
+    [permission, isSubscribed, showNotification]
+  );
 
   // Subscribe to realtime security alerts
   useEffect(() => {
@@ -96,7 +100,7 @@ export function useSecurityPushNotifications() {
 
     return () => {
       log.debug('Cleaning up security alerts subscription');
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [user, sendSecurityNotification]);
 

@@ -229,7 +229,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      void channel.unsubscribe();
     };
   }, [performReconnect]);
 

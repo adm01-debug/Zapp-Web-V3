@@ -56,9 +56,7 @@ export function useConnectionsRealtime(
           if (payload.eventType === 'UPDATE') {
             const newConn = payload.new as WhatsAppConnection;
             const oldConn = payload.old as Partial<WhatsAppConnection> | null;
-            setConnections((prev) =>
-              prev.map((conn) => (conn.id === newConn.id ? newConn : conn))
-            );
+            setConnections((prev) => prev.map((conn) => (conn.id === newConn.id ? newConn : conn)));
 
             if (newConn.status === 'connected' && oldConn?.status !== 'connected') {
               announceConnectedRef.current({ id: newConn.id, name: newConn.name });
@@ -67,7 +65,12 @@ export function useConnectionsRealtime(
             const dialog = qrCodeDialogRef.current;
             if (dialog.open && dialog.connectionId === newConn.id) {
               if (newConn.status === 'connected') {
-                setQrCodeDialog((prev) => ({ ...prev, status: 'connected', qrCode: null, expiresAt: null }));
+                setQrCodeDialog((prev) => ({
+                  ...prev,
+                  status: 'connected',
+                  qrCode: null,
+                  expiresAt: null,
+                }));
               } else if (newConn.qr_code) {
                 setQrCodeDialog((prev) => ({
                   ...prev,
@@ -80,14 +83,16 @@ export function useConnectionsRealtime(
           } else if (payload.eventType === 'INSERT') {
             setConnections((prev) => [payload.new as WhatsAppConnection, ...prev]);
           } else if (payload.eventType === 'DELETE') {
-            setConnections((prev) => prev.filter((conn) => conn.id !== (payload.old as { id: string }).id));
+            setConnections((prev) =>
+              prev.filter((conn) => conn.id !== (payload.old as { id: string }).id)
+            );
           }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
     // setState do React tem identidade estável — este efeito roda 1x por mount.
   }, [setConnections, setQrCodeDialog]);
