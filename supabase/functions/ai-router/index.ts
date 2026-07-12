@@ -80,6 +80,34 @@ async function callAiWithTimeout<T>(
 }
 
 // ============================================================================
+// Utility: Performance metrics collection (P2 observability)
+// ============================================================================
+
+interface PerformanceMetrics {
+  action: string;
+  duration_ms: number;
+  ai_api_latency_ms?: number;
+  db_queries?: number;
+  timestamp: number;
+}
+
+const metricsBuffer: PerformanceMetrics[] = [];
+
+function recordMetric(metric: PerformanceMetrics) {
+  metricsBuffer.push(metric);
+  // Keep last 1000 metrics in memory for basic stats
+  if (metricsBuffer.length > 1000) {
+    metricsBuffer.shift();
+  }
+  // Log metrics periodically for monitoring
+  if (metricsBuffer.length % 100 === 0) {
+    const recentMetrics = metricsBuffer.slice(-100);
+    const avgDuration = recentMetrics.reduce((sum, m) => sum + m.duration_ms, 0) / recentMetrics.length;
+    console.log(`[METRICS] Last 100 requests: avg duration ${avgDuration.toFixed(0)}ms for ${metric.action}`);
+  }
+}
+
+// ============================================================================
 // Utility: Circuit breaker for external API failures (P1 resilience)
 // ============================================================================
 
@@ -1200,6 +1228,8 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const log = new Logger("ai-router");
+  const startTime = Date.now();
+  let actionName = 'unknown';
 
   try {
     // P0-FIX-001: Rate limit BEFORE authentication to prevent brute force
@@ -1236,6 +1266,8 @@ Deno.serve(async (req) => {
       return errorResponse("Missing required field: action", 400, req);
     }
 
+    actionName = action; // For metrics recording
+
     const lovableApiKey = requireEnv("LOVABLE_API_KEY");
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabaseKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -1243,32 +1275,52 @@ Deno.serve(async (req) => {
 
     log.info("Routing AI action", { action });
 
+    // P2: Capture result for metrics recording
+    let result: Response;
     switch (action) {
       case 'conversation_summary':
-        return await handleConversationSummary(req, body, log, userId, supabase, lovableApiKey);
+        result = await handleConversationSummary(req, body, log, userId, supabase, lovableApiKey);
+        break;
       case 'enhance_message':
-        return await handleEnhanceMessage(req, body, log, userId, lovableApiKey);
+        result = await handleEnhanceMessage(req, body, log, userId, lovableApiKey);
+        break;
       case 'classify_emoji':
-        return await handleClassifyEmoji(req, body, log, userId, lovableApiKey);
+        result = await handleClassifyEmoji(req, body, log, userId, lovableApiKey);
+        break;
       case 'classify_sticker':
-        return await handleClassifySticker(req, body, log, userId, lovableApiKey);
+        result = await handleClassifySticker(req, body, log, userId, lovableApiKey);
+        break;
       case 'auto_tag':
-        return await handleAutoTag(req, body, log, userId, supabase, lovableApiKey);
+        result = await handleAutoTag(req, body, log, userId, supabase, lovableApiKey);
+        break;
       case 'churn_analysis':
-        return await handleChurnAnalysis(req, body, log, userId, supabase, lovableApiKey);
+        result = await handleChurnAnalysis(req, body, log, userId, supabase, lovableApiKey);
+        break;
       case 'classify_tickets':
-        return errorResponse(`Action 'classify_tickets' not yet implemented`, 501, req);
+        result = errorResponse(`Action 'classify_tickets' not yet implemented`, 501, req);
+        break;
       case 'conversation_analysis':
-        return await handleConversationAnalysis(req, body, log, userId, supabase, lovableApiKey);
+        result = await handleConversationAnalysis(req, body, log, userId, supabase, lovableApiKey);
+        break;
       case 'suggest_reply':
-        return await handleSuggestReply(req, body, log, userId, supabase, lovableApiKey);
+        result = await handleSuggestReply(req, body, log, userId, supabase, lovableApiKey);
+        break;
       case 'transcribe_audio':
-        return await handleTranscribeAudio(req, body, log, userId, lovableApiKey);
+        result = await handleTranscribeAudio(req, body, log, userId, lovableApiKey);
+        break;
       default:
-        return errorResponse(`Unknown action: ${action}`, 400, req);
+        result = errorResponse(`Unknown action: ${action}`, 400, req);
     }
+
+    // Record performance metric
+    const duration = Date.now() - startTime;
+    recordMetric({ action: actionName, duration_ms: duration, timestamp: Date.now() });
+    return result;
   } catch (error) {
     log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    // Record error metric
+    const duration = Date.now() - startTime;
+    recordMetric({ action: actionName, duration_ms: duration, timestamp: Date.now() });
     return errorResponse('Internal server error', 500, req);
   }
 });
