@@ -76,7 +76,7 @@ Legenda esforço: **P** pequeno · **M** médio · **G** grande. `[DB]` requer a
 ### 🟠 Onda 2 — Correção de fluxo (dados/mensagens)
 
 14. **[✓FE][P]** `useExternalEvolution.ts:572`: refetch pós-envio descarta mensagens canônicas (chat colapsa p/ 1-2) → merge por união, não substituição.
-15. **[✓FE][P]** `useChatPanelHandlers.ts:65`: anexo sem legenda descartado silenciosamente → permitir envio só-mídia.
+15. ✅ **[✓FE][P]** `useChatPanelHandlers.ts:65`: anexo sem legenda descartado silenciosamente → corrigido, guard agora permite envio só-mídia. *(corrigido em `d0303baed`)*
 16. 🟡 **[✓FE][P]** `ContactFormV3.tsx:219`: **crash corrigido** (`37e5185`) — busca o contato completo antes de abrir o dialog em vez de forçar cast do projeto raso do detector de duplicados. `ContactMergeDialog.tsx:184` ainda mescla em 4 writes sequenciais sem transação → precisa de **RPC atômica**. **[DB]**
 17. ✅ **[✓FE][P]** `useEmail.ts:462`: `startOAuth` lia `data.authUrl` mas a edge retorna `data.url` → "Conectar Gmail" sempre falhava. *(corrigido em `1d84f74`)*
 18. **[Edge][M]** `reprocess-failed-messages`: path kebab-case cru vai à Evolution (DLQ nunca entrega) + sem claim/lease (duplicatas) + idempotência ilusória → normalizar path + lease + cache real.
