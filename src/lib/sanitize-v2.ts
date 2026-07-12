@@ -13,6 +13,9 @@ const SANITIZE_CONFIG = {
   ALLOWED_ATTR: ['href', 'title', 'target'],
   KEEP_CONTENT: true,
   FORCE_BODY: true,
+  IN_PLACE: false,
+  RETURN_DOM: false,
+  RETURN_DOM_FRAGMENT: false,
   // Use strict attribute validation
   ATTR_FILTER: (tag: string, attr: string, value: string) => {
     if (tag === 'a' && attr === 'href') {
@@ -119,7 +122,8 @@ function decodeHtmlEntities(html: string): string {
  */
 function validateNoControlCharacters(text: string): void {
   // Check for null bytes and control characters (Gap 9.3)
-  if (/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/.test(text)) {
+  // Includes: null, SOH-ETX, EOT-BS, tab, LF, VT, FF, CR, SO-US, DEL
+  if (/[\x00-\x1F\x7F]/.test(text)) {
     throw new Error('Input contains invalid control characters');
   }
 }
@@ -159,9 +163,7 @@ export function sanitizeHtml(
 
     if (typeof html !== 'string') {
       console.error(`[sanitizeHtml] Received non-string: ${typeof html}`);
-      throw new TypeError(
-        `sanitizeHtml() expects string, received ${typeof html}`
-      );
+      throw new TypeError(`sanitizeHtml() expects string, received ${typeof html}`);
     }
 
     if (html.length === 0) {
@@ -188,7 +190,7 @@ export function sanitizeHtml(
     const sanitized = DOMPurify.sanitize(processed, config);
 
     // Post-sanitization validation
-    if (!sanitized || typeof sanitized !== 'string') {
+    if (sanitized === null || sanitized === undefined || typeof sanitized !== 'string') {
       throw new Error('DOMPurify.sanitize() returned invalid result');
     }
 
@@ -198,8 +200,7 @@ export function sanitizeHtml(
       sanitized: html !== sanitized,
     };
   } catch (err) {
-    const errorMsg =
-      err instanceof Error ? err.message : String(err);
+    const errorMsg = err instanceof Error ? err.message : String(err);
     console.error('[sanitizeHtml] Sanitization failed:', errorMsg);
 
     return {
@@ -214,7 +215,7 @@ export function sanitizeHtml(
 /**
  * Safe hook-based sanitization using immutable config.
  * Avoids mutable DOMPurify hook registry.
- * 
+ *
  * @param html - HTML to sanitize
  * @returns Sanitized HTML with tabnabbing prevention applied
  */
@@ -253,10 +254,10 @@ export function sanitizeHtmlWithHooks(html: string): string {
 /**
  * Backward-compatible sanitizeHtml with hook cleanup.
  * For components that require hook-based validation.
- * 
+ *
  * @param html - HTML to sanitize
  * @returns Sanitized HTML
- * 
+ *
  * Uses try/finally to guarantee hook cleanup (Gap 3.1).
  */
 export function sanitizeHtmlWithHookCleanup(html: string): string {
@@ -266,7 +267,7 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
 
   // Generate unique hook ID to prevent collisions (Gap 3.2)
   const hookId = `afterSanitizeAttributes_sanitizeHtml_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   const attributeSanitizer = function (node: Element) {
     // Force safe attributes on all elements
     if (node.tagName === 'A' && node.hasAttribute('target')) {
@@ -277,10 +278,16 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
 
     // Remove dangerous attributes
     const forbiddenAttrs = [
-      'onerror', 'onload', 'onclick', 'onmouseover',
-      'onfocus', 'onblur', 'onchange', 'onsubmit',
+      'onerror',
+      'onload',
+      'onclick',
+      'onmouseover',
+      'onfocus',
+      'onblur',
+      'onchange',
+      'onsubmit',
     ];
-    forbiddenAttrs.forEach(attr => {
+    forbiddenAttrs.forEach((attr) => {
       if (node.hasAttribute(attr)) {
         node.removeAttribute(attr);
       }
@@ -303,4 +310,3 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
     }
   }
 }
-
