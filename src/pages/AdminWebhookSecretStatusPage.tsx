@@ -59,7 +59,7 @@ export default function AdminWebhookSecretStatusPage() {
   const { filters, setFilters } = useUrlFilters();
   // Reuse `agentId` slot for instance — but better: use raw URL via setFilters extension.
   // We'll piggy-back on a custom param via setSearchParams below.
-  const instance = (filters as unknown as { instance?: string | null }).instance ?? null;
+  const instance = (filters as { instance?: string | null }).instance ?? null;
   // useUrlFilters doesn't natively expose `instance`; we use a dedicated query param.
   const selectedInstance = useMemo<string | null>(() => {
     const params = new URLSearchParams(window.location.search);

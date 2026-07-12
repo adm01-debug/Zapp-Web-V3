@@ -44,7 +44,7 @@ function isTransient(err: unknown): boolean {
   if (!err) return false;
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
-    const status = (err as unknown as { status?: number }).status;
+    const status = (err as { status?: number }).status;
     if (typeof status === 'number' && status >= 500) return true;
     return TRANSIENT_PATTERNS.some((p) => msg.includes(p));
   }

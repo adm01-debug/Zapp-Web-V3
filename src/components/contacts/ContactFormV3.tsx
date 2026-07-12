@@ -158,7 +158,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
 
         const result = (data ?? {}) as Record<string, unknown>;
         if (result?.error === 'CONFLICT') {
-          setConflict(result as unknown as ConflictInfo);
+          setConflict(result as ConflictInfo);
           setConflictOpen(true);
           return;
         }
