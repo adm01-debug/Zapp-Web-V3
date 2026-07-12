@@ -36,7 +36,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       const ids = (msgs || []).map((m: any) => m.id);
       if (!ids.length) return [];
       const { data, error } = await safeClient.from<TeamReaction>('team_message_reactions', (q) =>
-        q.select('*').in('message_id', ids)
+        q.select('*').in('message_id', ids).limit(ids.length)
       );
       if (error) throw error;
       return (data || []) as TeamReaction[];

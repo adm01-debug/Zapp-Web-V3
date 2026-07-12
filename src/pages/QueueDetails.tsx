@@ -137,7 +137,8 @@ export default function QueueDetails() {
         const { data: agents, error: agentsError } = await supabase
           .from('profiles')
           .select('id, name, avatar_url')
-          .in('id', assignedToIds);
+          .in('id', assignedToIds)
+          .limit(assignedToIds.length);
         if (agentsError) {
           log.error('Error fetching agent profiles:', agentsError);
           // Non-fatal: contacts will render without assigned-agent names.

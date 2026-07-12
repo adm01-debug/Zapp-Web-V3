@@ -40,7 +40,8 @@ export function AgentPerformancePanel() {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
-        .in('id', profileIds);
+        .in('id', profileIds)
+        .limit(profileIds.length);
 
       const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
 

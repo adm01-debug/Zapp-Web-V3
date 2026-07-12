@@ -58,10 +58,12 @@ export function useMetaCapi() {
   useEffect(() => {
     let cancelled = false;
     const loadConfig = async () => {
+      const keys = ['meta_pixel_id', 'meta_capi_auto_track'];
       const { data } = await supabase
         .from('global_settings')
         .select('key, value')
-        .in('key', ['meta_pixel_id', 'meta_capi_auto_track']);
+        .in('key', keys)
+        .limit(keys.length);
       if (cancelled) return;
       if (data) {
         const pixel = data.find((d) => d.key === 'meta_pixel_id');

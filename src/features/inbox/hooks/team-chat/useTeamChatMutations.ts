@@ -228,6 +228,7 @@ export function useCreateTeamConversation() {
               .from('team_conversations')
               .select('*')
               .in('id', sharedIds)
+              .limit(sharedIds.length)
               .eq('type', 'direct')
               .limit(1)
               .maybeSingle();

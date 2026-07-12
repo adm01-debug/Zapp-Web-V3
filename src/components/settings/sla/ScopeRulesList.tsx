@@ -31,7 +31,8 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
       const { data } = await supabase
         .from('contacts')
         .select('id, name, phone')
-        .in('id', contactIds);
+        .in('id', contactIds)
+        .limit(contactIds.length);
       const map: Record<string, string> = {};
       (data || []).forEach((c) => {
         map[c.id] = `${c.name} (${c.phone})`;
@@ -45,7 +46,7 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
     queryKey: ['sla-queue-names', queueIds],
     queryFn: async () => {
       if (queueIds.length === 0) return {};
-      const { data } = await supabase.from('queues').select('id, name').in('id', queueIds);
+      const { data } = await supabase.from('queues').select('id, name').in('id', queueIds).limit(queueIds.length);
       const map: Record<string, string> = {};
       (data || []).forEach((q) => {
         map[q.id] = q.name;
@@ -59,7 +60,7 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
     queryKey: ['sla-agent-names', agentIds],
     queryFn: async () => {
       if (agentIds.length === 0) return {};
-      const { data } = await supabase.from('profiles').select('id, name').in('id', agentIds);
+      const { data } = await supabase.from('profiles').select('id, name').in('id', agentIds).limit(agentIds.length);
       const map: Record<string, string> = {};
       (data || []).forEach((a) => {
         map[a.id] = a.name;

@@ -42,6 +42,7 @@ export function useLeaderboard() {
         .from('agent_achievements')
         .select('profile_id, achievement_type')
         .in('profile_id', profileIds)
+        .limit(profileIds.length)
         .order('earned_at', { ascending: false });
 
       const achievementsByProfile: Record<string, string[]> = {};

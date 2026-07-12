@@ -23,11 +23,12 @@ export function CrisisRoom() {
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
+      const roleFilter = ['agent', 'admin', 'supervisor'];
       const [unanswered, activeAgents, breachedSLA] = await Promise.all([
         dbFrom('messages').select('id', { count: 'exact', head: true })
           .eq('sender', 'contact').gte('created_at', oneHourAgo.toISOString()),
         supabase.from('profiles').select('id', { count: 'exact', head: true })
-          .eq('is_active', true).in('role', ['agent', 'admin', 'supervisor']),
+          .eq('is_active', true).in('role', roleFilter).limit(roleFilter.length),
         supabase.from('conversation_sla').select('id', { count: 'exact', head: true })
           .eq('first_response_breached', true),
       ]);

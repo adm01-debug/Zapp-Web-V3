@@ -44,10 +44,12 @@ export function SicoobBridgeDashboard() {
 
         let recentMessages: SicoobMessage[] = [];
         if (contactIds.length > 0) {
+          const limitedContactIds = contactIds.slice(0, 20);
           const { data: msgData } = await supabase
             .from('messages')
             .select('id, content, sender, created_at, contact_id, status')
-            .in('contact_id', contactIds.slice(0, 20))
+            .in('contact_id', limitedContactIds)
+            .limit(limitedContactIds.length)
             .order('created_at', { ascending: false })
             .order('id', { ascending: false })
             .limit(30);

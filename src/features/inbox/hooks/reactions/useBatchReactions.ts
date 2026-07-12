@@ -27,7 +27,8 @@ export function useMessagesReactions(messageIds: string[]) {
         const { data, error } = await supabase
           .from('message_reactions')
           .select('*')
-          .in('message_id', messageIds);
+          .in('message_id', messageIds)
+          .limit(messageIds.length);
 
         if (error) throw error;
 

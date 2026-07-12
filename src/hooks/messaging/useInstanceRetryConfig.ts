@@ -55,7 +55,7 @@ export function useInstanceRetryConfig(
 
       if (instanceName !== GLOBAL) {
         const keys = RETRY_CONFIG_FIELDS.map((f) => settingKeyFor(f, instanceName));
-        const { data } = await supabase.from('global_settings').select('key').in('key', keys);
+        const { data } = await supabase.from('global_settings').select('key').in('key', keys).limit(keys.length);
         setHasInstanceOverride((data?.length ?? 0) > 0);
       } else {
         setHasInstanceOverride(false);
@@ -128,7 +128,7 @@ export function useInstanceRetryConfig(
     setIsSaving(true);
     try {
       const keys = RETRY_CONFIG_FIELDS.map((f) => settingKeyFor(f, instanceName));
-      const { error } = await supabase.from('global_settings').delete().in('key', keys);
+      const { error } = await supabase.from('global_settings').delete().in('key', keys).limit(keys.length);
       if (error) throw error;
       invalidateRetryConfigCache(instanceName);
       await load();
@@ -146,7 +146,7 @@ export function useInstanceRetryConfig(
     setIsSaving(true);
     try {
       const keys = RETRY_CONFIG_FIELDS.map((f) => settingKeyFor(f));
-      const { error } = await supabase.from('global_settings').delete().in('key', keys);
+      const { error } = await supabase.from('global_settings').delete().in('key', keys).limit(keys.length);
       if (error) throw error;
       invalidateRetryConfigCache();
       await load();

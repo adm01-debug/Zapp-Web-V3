@@ -56,6 +56,7 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
       const { error } = await dbFrom('messages')
         .update({ is_read: true })
         .in('contact_id', contactIds)
+        .limit(contactIds.length)
         .eq('is_read', false);
       if (error) throw error;
       toast.success(`${contactIds.length} conversa(s) marcada(s) como lida(s)`);
@@ -80,7 +81,7 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
         } else {
           updateData.queue_id = targetId;
         }
-        const { error } = await dbFrom('contacts').update(updateData).in('id', contactIds);
+        const { error } = await dbFrom('contacts').update(updateData).in('id', contactIds).limit(contactIds.length);
         if (error) throw error;
         toast.success(`${contactIds.length} contato(s) transferido(s)`);
         clearSelection();
@@ -102,7 +103,8 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
     const { data: originalContacts } = await supabase
       .from('contacts')
       .select('id, assigned_to')
-      .in('id', contactIds);
+      .in('id', contactIds)
+      .limit(contactIds.length);
 
     try {
       await executeUndoable({
@@ -111,7 +113,8 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
         action: async () => {
           const { error } = await dbFrom('contacts')
             .update({ assigned_to: null })
-            .in('id', contactIds);
+            .in('id', contactIds)
+            .limit(contactIds.length);
           if (error) throw error;
           clearSelection();
           refetch();
