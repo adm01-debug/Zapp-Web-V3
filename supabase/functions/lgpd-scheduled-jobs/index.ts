@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
       }
 
       if (!hashFetchErr && contacts?.length) {
-        // Compute all hashes in memory, then bulk-upsert in parallel batches of 500
+        // Compute all hashes in memory, then bulk-update in parallel batches
         const toUpdate = await Promise.all(contacts.map(async c => ({
           id: c.id,
           dedup_hash: await sha256Hex(
@@ -172,26 +172,33 @@ Deno.serve(async (req) => {
           ),
         })));
 
-        const CHUNK = 500;
-        const chunks: typeof toUpdate[] = [];
-        for (let i = 0; i < toUpdate.length; i += CHUNK) {
-          chunks.push(toUpdate.slice(i, i + CHUNK));
+        // Update with pii_masked_at filter: prevents race condition where Job 1
+        // (anonymize) runs between our SELECT and this UPDATE. If a contact was
+        // anonymized after we selected it, the filter rejects the update and we
+        // don't restore its PII-derived hash.
+        const updateWithFilter = (item: typeof toUpdate[0]) =>
+          supabase
+            .from('evolution_contacts')
+            .update({ dedup_hash: item.dedup_hash })
+            .eq('id', item.id)
+            .is('pii_masked_at', null);
+
+        // Batch updates with concurrency control (10 parallel)
+        const CONCURRENT = 10;
+        const batchResults: Array<PromiseSettledResult<any>> = [];
+        for (let i = 0; i < toUpdate.length; i += CONCURRENT) {
+          const batch = toUpdate.slice(i, i + CONCURRENT);
+          const results = await Promise.allSettled(batch.map(updateWithFilter));
+          batchResults.push(...results);
         }
 
-        const batchResults = await Promise.allSettled(
-          chunks.map(chunk =>
-            supabase.from('evolution_contacts').upsert(chunk, { onConflict: 'id' })
-          )
-        );
-
         let updated = 0;
-        for (let i = 0; i < batchResults.length; i++) {
-          const r = batchResults[i];
+        for (const r of batchResults) {
           if (r.status === 'fulfilled' && !r.value.error) {
-            updated += chunks[i].length;
+            updated += 1;  // count individual updates, not batch chunks
           } else {
             const msg = r.status === 'rejected' ? String(r.reason) : r.value.error?.message;
-            console.error('[lgpd] dedup hash batch error', msg);
+            console.error('[lgpd] dedup hash update error', msg);
           }
         }
 
