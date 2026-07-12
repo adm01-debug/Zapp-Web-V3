@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, ArrowRight, X } from 'lucide-react';
 
@@ -8,11 +8,9 @@ interface DegradedInstance {
   id: string;
   name: string | null;
   instance_name: string | null;
-  instance_id: string | null;
   health_status: string | null;
   health_response_ms: number | null;
   last_health_check: string | null;
-  degraded_at: string | null;
 }
 
 interface Props {
@@ -39,13 +37,8 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
 
   const fetchDegraded = useCallback(async () => {
     const since = new Date(Date.now() - recentWindowMs).toISOString();
-    const { data } = await supabase
-      .from('whatsapp_connections')
-      .select(
-        'id, name, instance_id, instance_name, health_status, health_response_ms, last_health_check, degraded_at'
-      )
-      .eq('health_status', 'degraded')
-      .gte('last_health_check', since);
+    const safeQueries = safeWhatsAppConnectionsQuery(supabase);
+    const { data } = await safeQueries.getDegraded(since);
     if (!mountedRef.current) return;
     setDegraded((data as DegradedInstance[]) ?? []);
   }, [recentWindowMs]);
@@ -90,10 +83,10 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
     }
   };
 
-  const firstDegradedAt = formatDegradedAt(degraded[0]?.degraded_at ?? null);
+  const firstDegradedAt = formatDegradedAt(degraded[0]?.last_health_check ?? null);
   const label =
     degraded.length === 1
-      ? `Conexão "${degraded[0].name || degraded[0].instance_name || degraded[0].instance_id || 'sem nome'}" rebaixada${firstDegradedAt ? ` em ${firstDegradedAt}` : ''}`
+      ? `Conexão "${degraded[0].name || degraded[0].instance_name || 'sem nome'}" rebaixada${firstDegradedAt ? ` em ${firstDegradedAt}` : ''}`
       : `${degraded.length} conexões com desempenho degradado`;
 
   return (
