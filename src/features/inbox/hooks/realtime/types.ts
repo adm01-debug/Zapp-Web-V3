@@ -41,7 +41,17 @@ export interface RealtimeMessage {
   retry_total?: number | null;
   /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
   contactAvatar?: string | null;
-  reactions?: any[] | null;
+  reactions?: MessageReaction[] | null;
+  /** Meta-informações brutas da Evolution/WhatsApp API (ex.: ptt, mime_type). */
+  media_meta?: Record<string, unknown> | null;
+  /** ID de meme de áudio do WhatsApp Business. Presente apenas em mensagens de tipo audio_meme. */
+  audio_meme_id?: string | null;
+}
+
+export interface MessageReaction {
+  user_id: string;
+  emoji: string;
+  created_at?: string;
 }
 
 export interface ConversationContact {

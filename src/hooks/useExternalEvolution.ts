@@ -144,8 +144,8 @@ export function reconcileOptimistic(
         // Telemetria enriquecida para áudio (PTT vs Gravado vs Meme)
         let messageType = m.message_type;
         if (messageType === 'audio') {
-          const isPtt = (m as any).media_meta?.ptt === true;
-          const isMeme = !!(m as any).audio_meme_id;
+          const isPtt = m.media_meta?.['ptt'] === true;
+          const isMeme = !!m.audio_meme_id;
           messageType = isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
         }
 
@@ -184,8 +184,8 @@ export function reconcileOptimistic(
         // Telemetria enriquecida para áudio fallback (PTT vs Gravado vs Meme)
         let messageType = m.message_type;
         if (messageType === 'audio') {
-          const isPtt = (m as any).media_meta?.ptt === true;
-          const isMeme = !!(m as any).audio_meme_id;
+          const isPtt = m.media_meta?.['ptt'] === true;
+          const isMeme = !!m.audio_meme_id;
           messageType = isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
         }
 
