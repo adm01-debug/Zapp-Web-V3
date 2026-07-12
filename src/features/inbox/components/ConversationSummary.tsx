@@ -80,7 +80,7 @@ export function ConversationSummary({
   initialSummary,
 }: ConversationSummaryProps) {
   const [summary, setSummary] = useState<SummaryData | null>(
-    (initialSummary as SummaryData) ?? null
+    (initialSummary as unknown as SummaryData) ?? null
   );
   const [isLoading, setIsLoading] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(!!initialSummary);
@@ -110,7 +110,7 @@ export function ConversationSummary({
   }, [analysisPeriod, customDateFrom, customDateTo]);
   useEffect(() => {
     if (initialSummary) {
-      setSummary(initialSummary as SummaryData);
+      setSummary(initialSummary as unknown as SummaryData);
       setHasGenerated(true);
     }
   }, [initialSummary]);

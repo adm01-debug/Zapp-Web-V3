@@ -6,7 +6,7 @@ import type { MediaRefreshKey } from '@/types/mediaRefresh';
 import { audioPlaybackBus } from '@/features/inbox';
 
 interface UseAudioPlayerOptions {
-  audioUrl: string;
+  audioUrl: string | null;
   messageId: string;
   /** Optional Evolution refresh key — enables `getMediaBase64` fallback when the URL expires (410/403). */
   refreshKey?: MediaRefreshKey;
@@ -95,7 +95,8 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
   );
 
   const resolveAudioUrl = useCallback(
-    async (url: string): Promise<string> => {
+    async (url: string | null): Promise<string> => {
+      if (!url) return '';
       if (url.includes('/storage/v1/')) {
         try {
           const buckets = ['whatsapp-media', 'audio-messages'];

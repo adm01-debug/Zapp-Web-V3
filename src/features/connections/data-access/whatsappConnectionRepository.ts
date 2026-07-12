@@ -29,13 +29,21 @@ export const whatsappConnectionRepository = {
   },
 
   async insertConnection(data: Record<string, unknown>) {
-    const res = await supabase.from('whatsapp_connections').insert(data).select().single();
+    const res = await supabase
+      .from('whatsapp_connections')
+      .insert(data as never)
+      .select()
+      .single();
     invalidateWhatsappConnectionsCache();
     return res;
   },
 
   async logQrAttempt(data: Record<string, unknown>) {
-    return supabase.from('qr_attempts').insert(data).select('id').single();
+    return supabase
+      .from('qr_attempts')
+      .insert(data as never)
+      .select('id')
+      .single();
   },
 
   async updateQrAttempt(id: string, updates: Record<string, unknown>) {

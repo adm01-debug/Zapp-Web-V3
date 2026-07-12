@@ -128,7 +128,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const filteredFiles = files.filter((file) => {
+  const filteredFiles = (files ?? []).filter((file) => {
     const fileName = file.file_name || '';
     const fileType = file.file_type || '';
     const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());

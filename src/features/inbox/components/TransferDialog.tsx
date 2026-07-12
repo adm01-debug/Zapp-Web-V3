@@ -46,7 +46,9 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
       .select('id, name, phone_number, status')
       .eq('status', 'connected')
       .then(({ data }) => {
-        setConnections(data || []);
+        setConnections(
+          (data as { id: string; name: string; phone_number: string; status: string }[]) || []
+        );
         setLoadingConnections(false);
       });
   }, [transferType, open]);
