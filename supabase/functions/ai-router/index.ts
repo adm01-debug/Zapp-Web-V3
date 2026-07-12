@@ -669,9 +669,11 @@ Responda APENAS em JSON:
             tagCount: tagData.length
           });
         } else if (atomicResult && typeof atomicResult === 'object' && 'success' in atomicResult) {
-          tagUpdateResult.success = (atomicResult as any).success === true;
-          if (!(atomicResult as any).success) {
-            tagUpdateResult.error = (atomicResult as any).error || "Unknown error";
+          // C.25: Explicitly validate success is a boolean and error is a string
+          const isSuccess = typeof atomicResult.success === 'boolean' ? atomicResult.success : false;
+          tagUpdateResult.success = isSuccess;
+          if (!isSuccess) {
+            tagUpdateResult.error = (typeof atomicResult.error === 'string' ? atomicResult.error : null) || "Unknown error";
             log.warn("Atomic upsert failed", { error: tagUpdateResult.error, contactId: validContactId });
           }
         }
