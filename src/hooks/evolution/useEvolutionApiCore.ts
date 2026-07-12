@@ -155,7 +155,7 @@ export function useEvolutionApiCore() {
               }) as EvolutionApiError;
               throw apiError;
             }
-            return data as T;
+            return data as T; // ignore-audit: supabase.functions.invoke returns unknown; T is constrained by callers
           } catch (error) {
             const err = error as EvolutionApiError;
             lastError = err;

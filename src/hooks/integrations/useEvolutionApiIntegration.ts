@@ -57,8 +57,8 @@ export function useEvolutionApiIntegration() {
       if (credsRes.error) throw credsRes.error;
       if (logsRes.error) throw logsRes.error;
 
-      setCredentials(credsRes.data as EvolutionInstanceCredential[]);
-      setHealthLogs(logsRes.data as HealthLog[]);
+      setCredentials(credsRes.data as EvolutionInstanceCredential[]); // ignore-audit: narrows nullable DB fields (api_key, api_url, is_active, health_status) to non-null
+      setHealthLogs(logsRes.data as HealthLog[]); // ignore-audit: narrows nullable DB fields (instance_name, status, response_time_ms, etc.) to non-null
     } catch (err) {
       toast.error('Erro ao carregar dados: ' + (err instanceof Error ? err.message : String(err)));
     } finally {

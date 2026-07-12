@@ -56,7 +56,7 @@ async function queryExternal<T = unknown>(params: {
   if (error) throw new Error(error.message);
 
   return {
-    data: (data as T[]) || [],
+    data: (data as T[]) || [], // ignore-audit: data from untyped external DB client requires explicit cast to generic T[]
     meta: {
       record_count: count ?? (Array.isArray(data) ? data.length : null),
       duration_ms: duration,
@@ -127,7 +127,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
       const duration = Math.round(performance.now() - start);
       if (error) throw new Error(error.message);
       return {
-        data: Array.isArray(data) ? (data as T[]) : [data as T],
+        data: Array.isArray(data) ? (data as T[]) : [data as T], // ignore-audit: RPC data from untyped external DB client requires explicit cast to generic T
         meta: {
           record_count: Array.isArray(data) ? data.length : 1,
           duration_ms: duration,

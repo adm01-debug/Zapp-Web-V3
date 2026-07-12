@@ -91,7 +91,7 @@ export function useAutomations({
           .order('name', { ascending: true });
 
         if (error) throw error;
-        if (!cancelled && data) rulesRef.current = data as AutomationRule[];
+        if (!cancelled && data) rulesRef.current = data as AutomationRule[]; // ignore-audit: narrows trigger_config/actions from Supabase Json to Record<string,unknown>
       } catch (err) {
         log.error('Error loading automation rules:', err);
       }
