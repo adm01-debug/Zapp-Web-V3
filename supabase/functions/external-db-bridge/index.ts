@@ -102,10 +102,18 @@ Deno.serve(async (req) => {
     let queryError: string | null = null;
     let recordCount: number | null = null;
 
+    const allowedTablesForWrite = new Set([
+      'contacts', 'messages', 'conversation_templates', 'conversation_logs',
+      'talkx_campaigns', 'talkx_recipients', 'talkx_blacklist',
+      'gmail_accounts', 'gmail_labels', 'gmail_threads', 'gmail_messages',
+      'orders', 'order_items', 'invoices', 'profiles',
+      'organization_settings', 'user_settings', 'audit_logs'
+    ]);
+
     try {
       if (action === "select" && table) {
         const selectStr = (params && typeof params.select === 'string') ? params.select : "*";
-        let query = supabaseAdmin.from(table).select(selectStr, {
+        let query = supabaseUser.from(table).select(selectStr, {
           count: (countMode as "exact" | "planned" | "estimated") || undefined,
         });
 
@@ -143,12 +151,18 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
       } else if (action === "insert" && table) {
+        if (!allowedTablesForWrite.has(table)) {
+          return errorResponse(`Insert not allowed for table: ${table}`, 403, req);
+        }
         const rowsVal = (params && typeof params === 'object' && params.rows) ? params.rows : params;
-        const { data, error } = await supabaseAdmin.from(table).insert(rowsVal).select();
+        const { data, error } = await supabaseUser.from(table).insert(rowsVal).select();
         if (error) throw error;
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
       } else if (action === "update" && table) {
+        if (!allowedTablesForWrite.has(table)) {
+          return errorResponse(`Update not allowed for table: ${table}`, 403, req);
+        }
         if (!params || typeof params !== 'object' || !params.match || typeof params.match !== 'object' || Array.isArray(params.match)) {
           return errorResponse("Update requires params.match object with filter criteria", 400, req);
         }
@@ -160,7 +174,7 @@ Deno.serve(async (req) => {
         const updateValues = (params.values && typeof params.values === 'object' && !Array.isArray(params.values))
           ? (params.values as Record<string, unknown>)
           : {};
-        let query = supabaseAdmin.from(table).update(updateValues);
+        let query = supabaseUser.from(table).update(updateValues);
 
         for (const [k, v] of Object.entries(matchObj)) {
           const kStr = typeof k === 'string' ? k : '';
@@ -174,6 +188,9 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = Array.isArray(data) ? data.length : 0;
       } else if (action === "delete" && table) {
+        if (!allowedTablesForWrite.has(table)) {
+          return errorResponse(`Delete not allowed for table: ${table}`, 403, req);
+        }
         if (!params || typeof params !== 'object' || !params.match || typeof params.match !== 'object' || Array.isArray(params.match)) {
           return errorResponse("Delete requires params.match object with filter criteria", 400, req);
         }
@@ -182,7 +199,7 @@ Deno.serve(async (req) => {
           return errorResponse("Delete requires at least one filter criterion in params.match", 400, req);
         }
 
-        let query = supabaseAdmin.from(table).delete();
+        let query = supabaseUser.from(table).delete();
 
         for (const [k, v] of Object.entries(matchObj)) {
           const kStr = typeof k === 'string' ? k : '';

@@ -107,6 +107,34 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'code e userId obrigatórios' }), { status: 400, headers: jsonHeaders });
       }
 
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        return new Response(JSON.stringify({ error: 'userId deve ser um UUID válido' }), { status: 400, headers: jsonHeaders });
+      }
+
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+      if (!anonKey) {
+        return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 503, headers: jsonHeaders });
+      }
+
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(JSON.stringify({ error: 'Authorization header required for exchangeCode' }), { status: 401, headers: jsonHeaders });
+      }
+
+      const supabaseAuth = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: authData, error: authError } = await supabaseAuth.auth.getUser();
+      if (authError || !authData || typeof authData !== 'object' || !authData.user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders });
+      }
+      const authUserObj = authData as Record<string, unknown>;
+      const authUserProp = authUserObj.user as Record<string, unknown> | null;
+      if (!authUserProp || typeof authUserProp.id !== 'string' || authUserProp.id !== userId) {
+        return new Response(JSON.stringify({ error: 'Cannot register passkey for another user' }), { status: 403, headers: jsonHeaders });
+      }
+
       const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
