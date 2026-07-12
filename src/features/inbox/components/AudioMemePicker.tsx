@@ -22,10 +22,15 @@ import {
   Check,
   ChevronDown,
 } from 'lucide-react';
-import { useAudioMemes, formatDuration, type PendingUpload } from '@/hooks/useAudioMemes';
+import {
+  useAudioMemes,
+  formatDuration,
+  type PendingUpload,
+  type AudioMemeItem,
+} from '@/hooks/useAudioMemes';
 
 interface AudioMemePickerProps {
-  onSendAudioMeme: (meme: any) => void;
+  onSendAudioMeme: (meme: AudioMemeItem) => void;
   disabled?: boolean;
 }
 
@@ -265,7 +270,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
               className="h-7 w-7 text-muted-foreground hover:text-primary"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || !!pendingUpload}
-              title="Adicionar áudio meme"
+              aria-label="Adicionar áudio meme"
             >
               {uploading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -401,7 +406,6 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
                         )
                       }
                     >
-                      ,search:
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

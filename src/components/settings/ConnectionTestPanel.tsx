@@ -117,7 +117,7 @@ export function ConnectionTestPanel() {
                 <span className=" truncate max-w-[260px]" title={result.webhookUrl}>
                   {result.webhookUrl}
                 </span>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={copyWebhook}>
+                <Button aria-label="Copiar webhook" size="icon" variant="ghost" className="h-6 w-6" onClick={copyWebhook}>
                   <Copy className="h-3 w-3" />
                 </Button>
               </div>

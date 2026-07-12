@@ -126,8 +126,12 @@ export function useNewConversation(
       }
       const trace = newRequestId('new-conv');
       const { error: msgError } = await dbFrom('messages').insert({
-        contact_id: contactId, content: messageText.trim(), sender: 'agent',
-        message_type: 'text', status: 'sending', whatsapp_connection_id: selectedConnection || null,
+        contact_id: contactId,
+        content: messageText.trim(),
+        sender: 'agent',
+        message_type: 'text',
+        status: 'sending',
+        whatsapp_connection_id: selectedConnection || null,
         request_id: trace.requestId,
       });
       if (msgError) throw msgError;

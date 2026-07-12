@@ -177,6 +177,7 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="Excluir tarefa"
                   onClick={() => deleteTask(task.id)}
                 >
                   <Trash2 className="h-3 w-3 text-destructive" />

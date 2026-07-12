@@ -170,7 +170,7 @@
   .dark .bg-card\/80, .dark .bg-card\/90, .dark .bg-card\/95, .dark .bg-card\/60, .dark .bg-card\/50, .dark .bg-card\/70,
   .dark .bg-popover\/80, .dark .bg-popover\/90, .dark .bg-popover\/95,
   .dark .bg-muted\/10, .dark .bg-muted\/20, .dark .bg-muted\/30, .dark .bg-muted\/40, .dark .bg-muted\/50, .dark .bg-muted\/60, .dark .bg-muted\/70, .dark .bg-muted\/80, .dark .bg-muted\/90 {
-    background-color: #000000 !important;
+    background-color: hsl(var(--background)) !important;
     opacity: 1 !important;
   }
 
@@ -183,7 +183,7 @@
 
   /* Garante que o fundo da aplicação seja sempre PRETO OLED em Dark Mode */
   .dark body, .dark #root, .dark main {
-    background-color: #000000 !important;
+    background-color: hsl(var(--background)) !important;
   }
 
   /* Neutraliza opacidade em bordas e anéis */

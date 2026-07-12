@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useEffect, useRef } from 'react';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
@@ -267,7 +266,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                   className="group relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted"
                 >
                   {att.preview ? (
-                    <img src={att.preview} alt="Preview" className="h-full w-full object-cover" />
+                    <img src={att.preview} alt="Pré-visualização do anexo" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex flex-col items-center gap-1 p-1 text-muted-foreground">
                       {att.category === 'video' ? (

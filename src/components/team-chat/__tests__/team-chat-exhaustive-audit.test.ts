@@ -374,11 +374,11 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should highlight active search button', () => {
-      expect(headerSrc).toMatch(/showSearch\s*&&\s*"text-primary/);
+      expect(headerSrc).toMatch(/showSearch\s*&&\s*'[^']*text-primary/);
     });
 
     it('should highlight active details button', () => {
-      expect(headerSrc).toMatch(/showDetails\s*&&\s*"text-primary/);
+      expect(headerSrc).toMatch(/showDetails\s*&&\s*'[^']*text-primary/);
     });
   });
 
@@ -589,7 +589,8 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should have proper alt text on media', () => {
-      expect(panelSrc).toContain('alt="media"');
+      // Descriptive Portuguese alt text replaces the generic 'media' value
+      expect(panelSrc).toContain("'Imagem da mensagem'");
     });
 
     it('should use semantic HTML roles', () => {
@@ -615,8 +616,8 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should use larger touch targets on mobile', () => {
-      expect(inputSrc).toContain('w-10 h-10');
-      expect(inputSrc).toContain('w-11 h-11');
+      expect(inputSrc).toContain('h-10 w-10');
+      expect(inputSrc).toContain('h-11 w-11');
     });
 
     it('should use 16px font on mobile to prevent zoom', () => {

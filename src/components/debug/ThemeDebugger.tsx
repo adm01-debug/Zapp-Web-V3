@@ -73,6 +73,7 @@ export function ThemeDebugger() {
         size="icon"
         className="fixed bottom-4 right-4 z-[9999] rounded-full bg-background/80 shadow-lg backdrop-blur"
         onClick={() => setIsOpen(true)}
+        aria-label="Abrir theme debugger"
       >
         <Bug className="h-4 w-4" />
       </Button>
@@ -90,10 +91,10 @@ export function ThemeDebugger() {
           </span>
         </h3>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={refreshTokens}>
+          <Button aria-label="Atualizar tokens" variant="ghost" size="icon" className="h-6 w-6" onClick={refreshTokens}>
             <RefreshCw className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsOpen(false)}>
+          <Button aria-label="Fechar depurador de tema" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsOpen(false)}>
             <X className="h-3 w-3" />
           </Button>
         </div>

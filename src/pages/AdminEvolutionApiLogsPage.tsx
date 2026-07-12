@@ -252,7 +252,7 @@ export default function AdminEvolutionApiLogsPage() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelected(row)}>
+                    <Button aria-label="Ver detalhes do log" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelected(row)}>
                       <Eye className="w-3.5 h-3.5" />
                     </Button>
                   </TableCell>

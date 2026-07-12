@@ -101,8 +101,9 @@ export function ChatSearchFilters({
             <CalendarDays className="w-3.5 h-3.5" />
             <DatePresetLabel preset={datePreset} from={customDateFrom} to={customDateTo} />
             {hasDateFilter && (
-              <span role="button" className="ml-0.5 p-0.5 rounded-full hover:bg-primary-foreground/20"
+              <span role="button" tabIndex={0} aria-label="Remover filtro de data" className="ml-0.5 p-0.5 rounded-full hover:bg-primary-foreground/20"
                 onClick={(e) => { e.stopPropagation(); setDatePreset('all'); setCustomDateFrom(null); setCustomDateTo(null); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setDatePreset('all'); setCustomDateFrom(null); setCustomDateTo(null); } }}
               ><X className="w-3 h-3" /></span>
             )}
           </button>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo, memo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from '@/components/ui/motion';

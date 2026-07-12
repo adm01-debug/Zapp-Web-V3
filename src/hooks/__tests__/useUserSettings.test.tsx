@@ -6,7 +6,7 @@ const mockFrom = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: mockFrom,
+    from: (...args: unknown[]) => mockFrom(...args),
     auth: {
       onAuthStateChange: vi
         .fn()
@@ -69,6 +69,7 @@ describe('useUserSettings', () => {
         eq: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({ data: mockSettings, error: null }),
           maybeSingle: vi.fn().mockResolvedValue({ data: mockSettings, error: null }),
+          limit: vi.fn().mockResolvedValue({ data: [mockSettings], error: null }),
         }),
       }),
       upsert: vi.fn().mockResolvedValue({ error: null }),

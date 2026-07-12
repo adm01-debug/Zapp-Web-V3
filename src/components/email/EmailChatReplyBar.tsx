@@ -101,7 +101,7 @@ export function EmailChatReplyBar({
     });
 
   const handleSend = async () => {
-    const plainText = bodyHtml.replace(/<[^>]*>/g, '').trim();
+    const plainText = DOMPurify.sanitize(bodyHtml, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }).trim();
     if (!plainText && attachments.length === 0) {
       toast.error('Escreva uma resposta ou anexe um arquivo');
       return;
@@ -217,7 +217,7 @@ export function EmailChatReplyBar({
         {/* Textarea */}
         <div className="group/input relative rounded-2xl border border-border/5 bg-background/50 p-4 transition-all duration-300 focus-within:border-primary/20 focus-within:bg-background focus-within:shadow-2xl focus-within:shadow-primary/5">
           <Textarea
-            value={bodyHtml.replace(/<[^>]*>/g, '')}
+            value={DOMPurify.sanitize(bodyHtml, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] })}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Escreva sua resposta comercial..."
             className="scrollbar-thin scrollbar-thumb-primary/10 min-h-[160px] resize-none border-0 bg-transparent px-0 text-[16px] font-medium leading-relaxed selection:bg-primary/20 placeholder:text-muted-foreground/30 focus-visible:ring-0"
@@ -280,6 +280,7 @@ export function EmailChatReplyBar({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  aria-label="Anexar arquivo"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground transition-colors hover:text-primary"
@@ -301,10 +302,8 @@ export function EmailChatReplyBar({
             {/* Template picker */}
             <MessageTemplates
               onSelectTemplate={(content) => {
-                const tmp = document.createElement('div');
-                tmp.innerHTML = bodyHtml;
-                const plainText = tmp.textContent ?? tmp.innerText ?? '';
-                const newContent = plainText ? plainText + '\n\n' + content : content;
+                const el = DOMPurify.sanitize(bodyHtml, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+                const newContent = el ? el + '\n\n' + content : content;
                 setBody(newContent);
               }}
             />

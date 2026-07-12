@@ -105,6 +105,7 @@ export function AISuggestions({ messages, contactName, contactId, onSelectSugges
   return (
     <div className="relative">
       <Button
+        aria-label="Sugestões de IA"
         variant="ghost"
         size="icon"
         onClick={fetchSuggestions}
@@ -134,6 +135,7 @@ export function AISuggestions({ messages, contactName, contactId, onSelectSugges
                 <Badge variant="secondary" className="text-[10px]">KB</Badge>
               </div>
               <Button
+                aria-label="Fechar sugestões"
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"

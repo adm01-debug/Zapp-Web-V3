@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +14,17 @@ import {
 } from '@/lib/failureRootCause';
 
 const log = getLogger('useFailedMessages');
+
+// Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
+const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
+  (
+    supabase as unknown as {
+      rpc: (
+        fn: string,
+        args?: Record<string, unknown>
+      ) => Promise<{ data: T; error: Error | null }>;
+    }
+  ).rpc(fn, args);
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
 
@@ -128,7 +138,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         }
         throw error;
       }
-      const list = (data ?? []) as unknown as RpcRow[];
+      const list = (data ?? []) as _RpcRow[];
       const filtered = list.filter((r) => {
         if (errorCode) {
           const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');
@@ -310,7 +320,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_reason: reason,
       });
       if (error) throw error;
-      const affected = (data as number) ?? 0;
+      const affected = (data as number | null) ?? 0;
       if (affected > 0) await logItemAction('bulk_abandon', ids, reason);
       return affected;
     },
@@ -326,7 +336,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const triggerReprocess = useMutation({
     mutationFn: async () => {
       try {
-        await safeClient.rpc('rpc_dlq_log_reprocess_trigger', { p_source: 'panel' });
+        await _rpc('rpc_dlq_log_reprocess_trigger', { p_source: 'panel' });
       } catch (logErr) {
         log.warn('Failed to log reprocess trigger', {
           error: logErr instanceof Error ? logErr.message : String(logErr),
@@ -347,7 +357,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     onSuccess: async (data) => {
       const processed = data?.processed ?? 0;
       try {
-        await safeClient.rpc('rpc_dlq_log_reprocess_result', {
+        await _rpc('rpc_dlq_log_reprocess_result', {
           p_processed: processed,
           p_succeeded: data?.succeeded ?? 0,
           p_failed: data?.failed ?? 0,
@@ -402,7 +412,7 @@ export function useFailedMessagesStats() {
   return useQuery<DlqStats>({
     queryKey: ['failed-messages-stats'],
     queryFn: async () => {
-      const { data, error } = await safeClient.rpc<DlqStats>('rpc_dlq_stats');
+      const { data, error } = await _rpc<DlqStats>('rpc_dlq_stats');
       if (error) throw error;
       return (data ?? {
         total: 0,

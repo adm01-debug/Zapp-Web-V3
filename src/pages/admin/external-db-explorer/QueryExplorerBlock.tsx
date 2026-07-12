@@ -232,7 +232,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                       value={f.value}
                       onChange={(e) => updateFilter(i, { value: e.target.value })}
                     />
-                    <Button variant="ghost" size="icon" onClick={() => removeFilter(i)}>
+                    <Button aria-label="Remover filtro" variant="ghost" size="icon" onClick={() => removeFilter(i)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -262,6 +262,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                 onChange={(e) => setRpcParamsText(e.target.value)}
                 rows={8}
                 spellCheck={false}
+                aria-label="Parâmetros RPC em JSON"
                 className="w-full  text-xs rounded-md border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-ring"
               />
               {paramsError && <p className="text-xs text-destructive mt-1">{paramsError}</p>}
@@ -317,7 +318,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                   <thead className="bg-muted sticky top-0">
                     <tr>
                       {columns.map((c) => (
-                        <th key={c} className="text-left p-2 font-medium whitespace-nowrap">{c}</th>
+                        <th key={c} scope="col" className="text-left p-2 font-medium whitespace-nowrap">{c}</th>
                       ))}
                     </tr>
                   </thead>

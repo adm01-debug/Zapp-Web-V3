@@ -137,6 +137,7 @@ export function TeamChatInputArea({
                 </p>
               </div>
               <Button
+                aria-label="Cancelar resposta"
                 size="icon"
                 variant="ghost"
                 className="h-5 w-5 shrink-0"
@@ -264,6 +265,7 @@ export function TeamChatInputArea({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  aria-label="Enviar mensagem"
                   onClick={handleSendWithAnimation}
                   disabled={!draft.hasText || draft.isOverLimit || isPending}
                   size="icon"
@@ -286,6 +288,7 @@ export function TeamChatInputArea({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  aria-label={isRecordingAudio ? 'Parar gravação' : 'Gravar áudio'}
                   size="icon"
                   className={cn(
                     'shrink-0 touch-manipulation rounded-full transition-all active:scale-95',

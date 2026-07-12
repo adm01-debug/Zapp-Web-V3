@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin: Histórico de Alertas.
  * Reads `warroom_alerts` (Lovable Cloud) — already populated by the war-room
@@ -20,6 +19,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,23 +107,22 @@ export default function AdminAlertHistoryPage() {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['admin-alert-history', hoursBack, statusFilter, typeFilter, instanceFilter],
     queryFn: async () => {
-      let q = supabase
-        .from('warroom_alerts')
-        .select(
-          'id, alert_type, title, message, source, is_read, resolved_at, resolved_reason, created_at'
-        )
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(500);
-
-      if (statusFilter === 'active') q = q.is('resolved_at', null);
-      if (statusFilter === 'resolved') q = q.not('resolved_at', 'is', null);
-      if (typeFilter !== 'all') q = q.eq('alert_type', typeFilter);
-      if (instanceFilter.trim()) q = q.ilike('source', `%${instanceFilter.trim()}%`);
-
-      const { data, error } = await q;
+      const { data, error } = await safeClient.from<AlertRow>('warroom_alerts', (q) => {
+        let query = q
+          .select(
+            'id, alert_type, title, message, source, is_read, resolved_at, resolved_reason, created_at'
+          )
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(500);
+        if (statusFilter === 'active') query = query.is('resolved_at', null);
+        if (statusFilter === 'resolved') query = query.not('resolved_at', 'is', null);
+        if (typeFilter !== 'all') query = query.eq('alert_type', typeFilter);
+        if (instanceFilter.trim()) query = query.ilike('source', `%${instanceFilter.trim()}%`);
+        return query;
+      });
       if (error) throw error;
-      return (data as AlertRow[]) ?? [];
+      return data ?? [];
     },
     // Realtime é a fonte primária; polling fica como fallback caso a subscription caia.
     refetchInterval: realtimeStatus === 'live' ? 60_000 : 15_000,
@@ -176,14 +175,15 @@ export default function AdminAlertHistoryPage() {
   }, [data]);
 
   async function resolveAlert(id: string) {
-    const { error } = await supabase
-      .from('warroom_alerts')
-      .update({
-        resolved_at: new Date().toISOString(),
-        resolved_reason: 'Resolvido manualmente',
-        is_read: true,
-      })
-      .eq('id', id);
+    const { error } = await safeClient.from('warroom_alerts', (q) =>
+      q
+        .update({
+          resolved_at: new Date().toISOString(),
+          resolved_reason: 'Resolvido manualmente',
+          is_read: true,
+        })
+        .eq('id', id)
+    );
     if (error) {
       toast.error('Falha ao resolver alerta');
       return;
@@ -403,7 +403,7 @@ export default function AdminAlertHistoryPage() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          title="Marcar como resolvido"
+                          aria-label="Marcar como resolvido"
                           onClick={() => resolveAlert(row.id)}
                         >
                           <CheckCheck className="h-3.5 w-3.5" />

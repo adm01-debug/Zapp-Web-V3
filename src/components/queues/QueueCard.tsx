@@ -35,7 +35,7 @@ export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSe
             </div>
           </div>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="w-8 h-8 hover:bg-muted/30"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button aria-label="Opções da fila" variant="ghost" size="icon" className="w-8 h-8 hover:bg-muted/30"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-card border-border/30">
               <DropdownMenuItem className="hover:bg-primary/10" onClick={() => navigate(`/queue/${queue.id}`)}><Eye className="w-4 h-4 mr-2" />Ver Detalhes</DropdownMenuItem>
               <DropdownMenuItem className="hover:bg-primary/10" onClick={() => onSetGoals(queue)}>
@@ -72,7 +72,7 @@ export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSe
                         <AvatarImage src={member.profile?.avatar_url || undefined} />
                         <AvatarFallback className="text-xs bg-primary/10 text-primary">{member.profile?.name?.[0] || '?'}</AvatarFallback>
                       </Avatar>
-                      <button onClick={() => onRemoveMember(queue.id, member.profile_id)} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button onClick={() => onRemoveMember(queue.id, member.profile_id)} aria-label="Remover atendente da fila" className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <UserMinus className="w-2.5 h-2.5" />
                       </button>
                     </div>
@@ -81,7 +81,7 @@ export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSe
                 {activeMembers.length > 4 && <span className="ml-2 text-sm text-muted-foreground">+{activeMembers.length - 4} mais</span>}
               </>
             ) : <span className="text-sm text-muted-foreground">Nenhum atendente</span>}
-            <Button variant="ghost" size="icon" className="ml-auto w-8 h-8 hover:bg-primary/10 hover:text-primary" onClick={() => onAddMember(queue)}><Plus className="w-4 h-4" /></Button>
+            <Button aria-label="Adicionar atendente" variant="ghost" size="icon" className="ml-auto w-8 h-8 hover:bg-primary/10 hover:text-primary" onClick={() => onAddMember(queue)}><Plus className="w-4 h-4" /></Button>
           </div>
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-border/20">

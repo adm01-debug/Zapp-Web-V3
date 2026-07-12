@@ -105,9 +105,10 @@ export function CommandPalette({
         <div className="flex items-center border-b border-border px-4">
           <Search className="h-5 w-5 text-muted-foreground flex-shrink-0" />
           <input ref={inputRef} value={query} onChange={(e) => handleQueryChange(e.target.value)} placeholder={placeholder}
+            aria-label={placeholder}
             className="flex-1 px-4 py-4 text-base bg-transparent border-0 outline-none placeholder:text-muted-foreground"
             autoComplete="off" autoCorrect="off" spellCheck={false} />
-          {query && <button onClick={() => handleQueryChange('')} className="p-1.5 hover:bg-muted rounded-md transition-colors"><X className="h-4 w-4 text-muted-foreground" /></button>}
+          {query && <button onClick={() => handleQueryChange('')} aria-label="Limpar busca" className="p-1.5 hover:bg-muted rounded-md transition-colors"><X className="h-4 w-4 text-muted-foreground" /></button>}
           {isSearching && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin ml-2" />}
         </div>
 

@@ -55,10 +55,10 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
               </Avatar>
             </motion.div>
             <div className="flex gap-2">
-              <Button size="icon" variant="outline" className="rounded-full" onClick={() => onEdit(contact)}>
+              <Button aria-label="Editar contato" size="icon" variant="outline" className="rounded-full" onClick={() => onEdit(contact)}>
                 <Edit3 className="w-4 h-4" />
               </Button>
-              <Button size="icon" variant="outline" className="rounded-full text-destructive hover:bg-destructive/5" onClick={() => onDelete(contact)}>
+              <Button aria-label="Excluir contato" size="icon" variant="outline" className="rounded-full text-destructive hover:bg-destructive/5" onClick={() => onDelete(contact)}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
@@ -173,7 +173,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
                     variant="secondary"
                     className="h-8 w-8 p-0 rounded-full"
                     onClick={() => window.open(`tel:${contact.phone}`)}
-                    title="Ligar"
+                    aria-label="Ligar"
                   >
                     <Phone className="w-4 h-4" />
                   </Button>
@@ -201,7 +201,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
                     variant="secondary"
                     className="h-8 w-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => window.open(`mailto:${contact.email}`)}
-                    title="Enviar e-mail"
+                    aria-label="Enviar e-mail"
                   >
                     <Mail className="w-4 h-4" />
                   </Button>

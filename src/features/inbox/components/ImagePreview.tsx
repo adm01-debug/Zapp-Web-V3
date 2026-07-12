@@ -60,6 +60,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(functi
               e.stopPropagation();
               setIsZoomed(!isZoomed);
             }}
+            aria-label={isZoomed ? 'Diminuir zoom' : 'Ampliar imagem'}
           >
             {isZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
           </Button>
@@ -78,7 +79,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(functi
           </Button>
         </motion.div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="secondary" size="icon" onClick={onClose}>
+          <Button aria-label="Fechar pré-visualização" variant="secondary" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </motion.div>
@@ -115,6 +116,8 @@ export function MessageImage({ src, alt = 'Image', refreshKey }: MessageImagePro
   if (!effectiveSrc && !refresh.isRefreshing && !refresh.failed) {
     return (
       <div
+        role="status"
+        aria-live="polite"
         className="max-w-[280px] rounded-lg border border-border bg-muted/20 p-4 flex flex-col items-center gap-2 text-center"
       >
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" aria-hidden="true" />

@@ -63,7 +63,7 @@ function QueueFileItem({ queuedFile, onRemove, disabled }: { queuedFile: QueuedF
       <div className="flex items-center gap-3">
         <div className="flex-shrink-0">
           {queuedFile.preview ? (
-            <img src={queuedFile.preview} alt="Preview" className="w-12 h-12 object-cover rounded" />
+            <img src={queuedFile.preview} alt="Pré-visualização do arquivo" className="w-12 h-12 object-cover rounded" />
           ) : (
             <div className="w-12 h-12 bg-primary/10 rounded flex items-center justify-center text-primary">
               {getCategoryIcon(queuedFile.validation.category || 'document')}
@@ -85,7 +85,7 @@ function QueueFileItem({ queuedFile, onRemove, disabled }: { queuedFile: QueuedF
           </div>
           {(queuedFile.status === 'uploading' || queuedFile.status === 'sending') && <Progress value={queuedFile.progress} className="h-1 mt-2" />}
         </div>
-        <Button variant="ghost" size="icon" className="flex-shrink-0 h-7 w-7" onClick={onRemove} disabled={disabled}><X className="w-3 h-3" /></Button>
+        <Button aria-label="Remover arquivo" variant="ghost" size="icon" className="flex-shrink-0 h-7 w-7" onClick={onRemove} disabled={disabled}><X className="w-3 h-3" /></Button>
       </div>
     </motion.div>
   );
@@ -148,7 +148,7 @@ export const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(({
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
                     {logic.filePreview.preview && logic.filePreview.file.type !== 'application/pdf' ? (
-                      <img src={logic.filePreview.preview} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+                      <img src={logic.filePreview.preview} alt="Pré-visualização do arquivo" className="w-20 h-20 object-cover rounded-lg" />
                     ) : (
                       <div className="w-20 h-20 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                         {getCategoryIcon(logic.filePreview.validation.category || 'document')}
@@ -164,7 +164,7 @@ export const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(({
                       <Badge variant="destructive" className="mt-2 text-xs"><AlertCircle className="w-3 h-3 mr-1" />Inválido</Badge>
                     )}
                   </div>
-                  <Button variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8" onClick={logic.handleClose} disabled={logic.uploading}><X className="w-4 h-4" /></Button>
+                  <Button aria-label="Fechar upload" variant="ghost" size="icon" className="flex-shrink-0 h-8 w-8" onClick={logic.handleClose} disabled={logic.uploading}><X className="w-4 h-4" /></Button>
                 </div>
                 {!logic.filePreview.validation.valid && (
                   <div className="mt-3 p-3 bg-destructive/10 rounded-lg">

@@ -79,6 +79,7 @@ const ActionBar = memo(function ActionBar({
               className="h-8 w-8 rounded-xl text-muted-foreground hover:bg-muted/30 hover:text-foreground"
               onClick={() => onCopy(text, idx)}
               disabled={rewritingAny}
+              aria-label={copiedIdx === idx ? 'Copiado' : 'Copiar texto'}
             >
               {copiedIdx === idx ? (
                 <Check className="h-4 w-4 text-primary" />
@@ -99,6 +100,7 @@ const ActionBar = memo(function ActionBar({
               className="h-8 w-8 rounded-xl text-muted-foreground hover:bg-muted/30 hover:text-foreground"
               onClick={() => onRewrite(idx)}
               disabled={rewritingAny}
+              aria-label="Reescrever texto"
             >
               <RefreshCw className={cn('h-4 w-4', isRewriting && 'animate-spin')} />
             </Button>
@@ -391,6 +393,7 @@ export function ObjectionDetector({
               className="h-9 w-9 rounded-xl hover:bg-muted/30"
               onClick={() => detector.analyze()}
               disabled={detector.loading}
+              aria-label="Analisar objeções"
             >
               <motion.div
                 animate={detector.loading ? { rotate: 360 } : {}}

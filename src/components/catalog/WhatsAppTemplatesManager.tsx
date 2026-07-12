@@ -100,10 +100,10 @@ export function WhatsAppTemplatesManager() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(template)}><Eye className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(template)}><Edit2 className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicate(template)}><Copy className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(template.id)}><Trash2 className="w-4 h-4" /></Button>
+                            <Button aria-label="Visualizar template" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePreview(template)}><Eye className="w-4 h-4" /></Button>
+                            <Button aria-label="Editar template" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(template)}><Edit2 className="w-4 h-4" /></Button>
+                            <Button aria-label="Duplicar template" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicate(template)}><Copy className="w-4 h-4" /></Button>
+                            <Button aria-label="Excluir template" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(template.id)}><Trash2 className="w-4 h-4" /></Button>
                           </div>
                         </TableCell>
                       </motion.tr>
@@ -125,30 +125,30 @@ export function WhatsAppTemplatesManager() {
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Nome do Template</Label>
-                <Input value={editingTemplate.name || ''} onChange={(e) => setEditingTemplate(prev => ({ ...prev, name: e.target.value }))} placeholder="ex: confirmacao_pedido" />
+                <Label htmlFor="tmpl-name">Nome do Template</Label>
+                <Input id="tmpl-name" value={editingTemplate.name || ''} onChange={(e) => setEditingTemplate(prev => ({ ...prev, name: e.target.value }))} placeholder="ex: confirmacao_pedido" />
                 <p className="text-xs text-muted-foreground">Apenas letras minúsculas e underscores</p>
               </div>
               <div className="space-y-2">
-                <Label>Categoria</Label>
+                <Label htmlFor="tmpl-category">Categoria</Label>
                 <Select value={editingTemplate.category || 'utility'} onValueChange={(value) => setEditingTemplate(prev => ({ ...prev, category: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="tmpl-category"><SelectValue /></SelectTrigger>
                   <SelectContent>{TEMPLATE_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Idioma</Label>
+                <Label htmlFor="tmpl-language">Idioma</Label>
                 <Select value={editingTemplate.language || 'pt_BR'} onValueChange={(value) => setEditingTemplate(prev => ({ ...prev, language: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="tmpl-language"><SelectValue /></SelectTrigger>
                   <SelectContent>{TEMPLATE_LANGUAGES.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label htmlFor="tmpl-status">Status</Label>
                 <Select value={editingTemplate.status || 'draft'} onValueChange={(value) => setEditingTemplate(prev => ({ ...prev, status: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="tmpl-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Rascunho</SelectItem><SelectItem value="pending">Pendente</SelectItem>
                     <SelectItem value="approved">Aprovado</SelectItem><SelectItem value="rejected">Rejeitado</SelectItem>
@@ -156,14 +156,14 @@ export function WhatsAppTemplatesManager() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2"><Label>Cabeçalho (opcional)</Label><Input value={editingTemplate.header_text || ''} onChange={(e) => setEditingTemplate(prev => ({ ...prev, header_text: e.target.value }))} placeholder="Texto do cabeçalho" /></div>
+            <div className="space-y-2"><Label htmlFor="tmpl-header">Cabeçalho (opcional)</Label><Input id="tmpl-header" value={editingTemplate.header_text || ''} onChange={(e) => setEditingTemplate(prev => ({ ...prev, header_text: e.target.value }))} placeholder="Texto do cabeçalho" /></div>
             <div className="space-y-2">
-              <Label>Conteúdo do Template</Label>
-              <Textarea value={editingTemplate.content || ''} onChange={(e) => handleContentChange(e.target.value)} rows={6} placeholder="Olá {{1}}, seu pedido {{2}} foi confirmado!" />
+              <Label htmlFor="tmpl-content">Conteúdo do Template</Label>
+              <Textarea id="tmpl-content" value={editingTemplate.content || ''} onChange={(e) => handleContentChange(e.target.value)} rows={6} placeholder="Olá {{1}}, seu pedido {{2}} foi confirmado!" />
               <div className="flex items-center gap-2 text-xs text-muted-foreground"><Variable className="w-3 h-3" />Use {"{{1}}"}, {"{{2}}"}, etc. para variáveis dinâmicas</div>
               {(editingTemplate.variables?.length || 0) > 0 && <div className="flex gap-1 flex-wrap mt-1">{editingTemplate.variables?.map((v) => <Badge key={v} variant="secondary" className="text-xs">{v}</Badge>)}</div>}
             </div>
-            <div className="space-y-2"><Label>Rodapé (opcional)</Label><Input value={editingTemplate.footer_text || ''} onChange={(e) => setEditingTemplate(prev => ({ ...prev, footer_text: e.target.value }))} placeholder="Texto do rodapé" /></div>
+            <div className="space-y-2"><Label htmlFor="tmpl-footer">Rodapé (opcional)</Label><Input id="tmpl-footer" value={editingTemplate.footer_text || ''} onChange={(e) => setEditingTemplate(prev => ({ ...prev, footer_text: e.target.value }))} placeholder="Texto do rodapé" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>

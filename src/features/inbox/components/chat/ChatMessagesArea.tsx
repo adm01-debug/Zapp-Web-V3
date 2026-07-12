@@ -309,6 +309,7 @@ export const ChatMessagesArea = memo(
                       behavior: 'smooth',
                     })
                   }
+                  aria-label="Rolar para o final"
                 >
                   <ChevronDown className="h-5 w-5" />
                 </Button>

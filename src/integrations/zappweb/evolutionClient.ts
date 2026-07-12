@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Zap Webb — Evolution API Client (ESCRITA / envio)
  *
@@ -27,11 +26,7 @@
  *  - GET  /instance/fetchInstances
  *  - GET  /instance/connectionState/{instance}
  */
-import {
-  supabase,
-  SUPABASE_RESOLVED_URL,
-  SUPABASE_RESOLVED_ANON_KEY,
-} from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { log } from '@/lib/logger';
 
 export interface EvolutionCredentials {
@@ -212,12 +207,14 @@ export async function getEvolutionCredentials(
 
   try {
     // Consulta view SEGURA — sem api_key, sem instance_token (REVOKE aplicado 2026-07-05)
-    const { data } = await supabase
-      .from('evolution_instances_public')
-      .select('instance_name, api_url, is_active')
-      .eq('instance_name', instance)
-      .eq('is_active', true)
-      .maybeSingle();
+    const { data: rows } = await safeClient.from<any>('evolution_instances_public', (q) =>
+      q
+        .select('instance_name, api_url, is_active')
+        .eq('instance_name', instance)
+        .eq('is_active', true)
+        .limit(1)
+    );
+    const data = rows?.[0] ?? null;
 
     if (data?.api_url) {
       const api_url = normalizeUrl(data.api_url);

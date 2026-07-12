@@ -34,7 +34,7 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
     <div className="h-full flex flex-col gap-4 md:gap-6 p-4 md:p-6 overflow-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0"><ArrowLeft className="w-5 h-5" /></Button>
+        <Button aria-label="Voltar" variant="ghost" size="icon" onClick={onClose} className="shrink-0"><ArrowLeft className="w-5 h-5" /></Button>
         <div className="flex-1 min-w-0">
           <h2 className="text-lg md:text-xl font-bold font-display text-foreground truncate">{campaign ? 'Editar Campanha' : 'Nova Campanha Talk X'}</h2>
           <p className="text-xs md:text-sm text-muted-foreground">Configure mensagem, contatos e simulação</p>
@@ -59,7 +59,7 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
               <div>
                 <Label htmlFor="connection">Conexão WhatsApp</Label>
                 <Select value={ed.connectionId} onValueChange={ed.setConnectionId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectTrigger id="connection"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {ed.connections?.map((conn) => <SelectItem key={conn.id} value={conn.id}>{conn.name} ({conn.phone_number || 'Sem número'})</SelectItem>)}
                   </SelectContent>
@@ -134,7 +134,7 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
                   <Label htmlFor="media-url">URL da mídia</Label>
                   <div className="relative">
                     <Input id="media-url" value={ed.mediaUrl} onChange={(e) => ed.setMediaUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" className="pr-8" />
-                    {ed.mediaUrl && <button type="button" onClick={() => ed.setMediaUrl('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>}
+                    {ed.mediaUrl && <button type="button" onClick={() => ed.setMediaUrl('')} aria-label="Limpar URL da mídia" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">A mídia será enviada junto com a mensagem de texto como legenda</p>
                 </div>

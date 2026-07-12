@@ -236,6 +236,7 @@ export function KnowledgeBaseView() {
                             size="icon"
                             className="h-6 w-6"
                             onClick={() => openEdit(article)}
+                            aria-label="Editar artigo"
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
@@ -244,6 +245,7 @@ export function KnowledgeBaseView() {
                             size="icon"
                             className="h-6 w-6 text-destructive"
                             onClick={() => deleteArticle(article.id)}
+                            aria-label="Excluir artigo"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>

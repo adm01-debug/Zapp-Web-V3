@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -84,7 +83,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
     mutationFn: async (data: { contact_id: string; agent_id?: string; rating: number; feedback?: string }) => {
       const { error } = await supabase.from('csat_surveys').insert({
         contact_id: data.contact_id,
-        agent_id: data.agent_id || null,
+        ...(data.agent_id ? { agent_id: data.agent_id } : {}),
         rating: data.rating,
         feedback: data.feedback || null,
         conversation_resolved_at: new Date().toISOString(),

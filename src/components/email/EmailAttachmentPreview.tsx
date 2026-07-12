@@ -100,6 +100,7 @@ export function EmailAttachmentPreview({ attachments, className }: EmailAttachme
               <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                 {canPreview(att) && (
                   <Button
+                    aria-label="Visualizar anexo"
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
@@ -110,6 +111,7 @@ export function EmailAttachmentPreview({ attachments, className }: EmailAttachme
                 )}
                 {att.storage_url && (
                   <Button
+                    aria-label="Baixar anexo"
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"

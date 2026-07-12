@@ -291,6 +291,7 @@ export function DashboardFilters({
       {/* Refresh Button */}
       {onRefresh && (
         <Button
+          aria-label="Atualizar filtros"
           variant="ghost"
           size="icon"
           className="h-9 w-9"

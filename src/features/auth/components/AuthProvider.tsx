@@ -5,7 +5,6 @@ import { authService, Profile } from '../services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '../context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 
 /**
  * Componente central que fornece o estado de autenticação para toda a aplicação.

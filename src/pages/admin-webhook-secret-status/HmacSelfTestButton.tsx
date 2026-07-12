@@ -6,11 +6,19 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +31,16 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('HmacSelfTest');
 
 type Phase =
-  | 'config' | 'parse-body' | 'build-payload' | 'sign' | 'mutate'
-  | 'request' | 'validate' | 'signature-presence' | 'temporal' | 'response';
+  | 'config'
+  | 'parse-body'
+  | 'build-payload'
+  | 'sign'
+  | 'mutate'
+  | 'request'
+  | 'validate'
+  | 'signature-presence'
+  | 'temporal'
+  | 'response';
 
 interface ScenarioReport {
   name: string;
@@ -67,23 +83,24 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
   async function logAudit(
     instanceName: string | null,
     payload: SelfTestResult,
-    fallbackDurationMs: number,
+    fallbackDurationMs: number
   ) {
     try {
-      const { data: userData , error } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      await safeClient.from('hmac_selftest_audit', q => q.insert({
-        instance: instanceName,
-        ok: !!payload.ok,
-        duration_ms: payload.duration_ms ?? fallbackDurationMs,
-        error: payload.error ?? null,
-        message: payload.message ?? null,
-        good_accepted: payload.good?.accepted ?? null,
-        tampered_rejected:
-          payload.tampered ? !payload.tampered.accepted : null,
-        executed_by: uid,
-      }));
+      await safeClient.from('hmac_selftest_audit', (q) =>
+        q.insert({
+          instance: instanceName,
+          ok: !!payload.ok,
+          duration_ms: payload.duration_ms ?? fallbackDurationMs,
+          error: payload.error ?? null,
+          message: payload.message ?? null,
+          good_accepted: payload.good?.accepted ?? null,
+          tampered_rejected: payload.tampered ? !payload.tampered.accepted : null,
+          executed_by: uid,
+        })
+      );
     } catch (err) {
       log.warn('Failed to write audit record', err);
     }
@@ -99,15 +116,20 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
   async function syncAlert(instanceName: string | null, payload: SelfTestResult) {
     const source = `hmac-selftest:${instanceName ?? 'selftest'}`;
     try {
-      const { data: userData , error: userDataErr } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
 
       // Busca alerta ativo (não resolvido) para este source
-      const { data: existing } = await safeClient.from<{ id: string }>(
-        'warroom_alerts',
-        q => q.select('id').eq('source', source).is('resolved_at', null).order('created_at', { ascending: false }).limit(1),
+      const { data: existingRows } = await safeClient.from('warroom_alerts', (q) =>
+        q
+          .select('id')
+          .eq('source', source)
+          .is('resolved_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
       );
+      const existing = existingRows;
 
       const activeAlertId = existing?.[0]?.id ?? null;
 
@@ -117,32 +139,40 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
           const failedScenarios = payload.scenarios?.filter((s) => !s.passed) ?? [];
           const phasePrefix = payload.failed_phase ? `[fase: ${payload.failed_phase}] ` : '';
           const reqSuffix = payload.request_id ? ` (req=${payload.request_id.slice(0, 8)})` : '';
-          const detail = failedScenarios.length > 0
-            ? failedScenarios
-                .map((s) => `${s.name}${s.failed_phase ? `@${s.failed_phase}` : ''}: ${s.reason ?? 'sem detalhe'}`)
-                .join(' | ')
-            : (payload.error ?? payload.message ?? 'Falha no self-test HMAC');
+          const detail =
+            failedScenarios.length > 0
+              ? failedScenarios
+                  .map(
+                    (s) =>
+                      `${s.name}${s.failed_phase ? `@${s.failed_phase}` : ''}: ${s.reason ?? 'sem detalhe'}`
+                  )
+                  .join(' | ')
+              : (payload.error ?? payload.message ?? 'Falha no self-test HMAC');
           const summary = `${phasePrefix}${detail}${reqSuffix}`;
-          await safeClient.from('warroom_alerts', q => q.insert({
-            alert_type: 'error',
-            title: `HMAC self-test falhou (${instanceName ?? 'selftest'})`,
-            message: summary.slice(0, 500),
-            source,
-          }));
+          await safeClient.from('warroom_alerts', (q) =>
+            q.insert({
+              alert_type: 'error',
+              title: `HMAC self-test falhou (${instanceName ?? 'selftest'})`,
+              message: summary.slice(0, 500),
+              source,
+            })
+          );
           toast.warning('Alerta ativo registrado para esta falha de HMAC');
         }
       } else {
         // OK: resolve alertas ativos deste source
         if (activeAlertId) {
-          await safeClient.from('warroom_alerts', q => q
-            .update({
-              resolved_at: new Date().toISOString(),
-              resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
-              dismissed_by: uid,
-              is_read: true,
-            })
-            .eq('source', source)
-            .is('resolved_at', null));
+          await safeClient.from('warroom_alerts', (q) =>
+            q
+              .update({
+                resolved_at: new Date().toISOString(),
+                resolved_reason: 'Auto-resolvido: HMAC self-test voltou a OK',
+                dismissed_by: uid,
+                is_read: true,
+              })
+              .eq('source', source)
+              .is('resolved_at', null)
+          );
           toast.success('Alertas anteriores de HMAC resolvidos automaticamente');
         }
       }
@@ -194,7 +224,11 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
           className="rounded-r-none border-r-0"
           data-testid="hmac-selftest-run"
         >
-          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FlaskConical className="h-4 w-4 mr-2" />}
+          {loading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <FlaskConical className="mr-2 h-4 w-4" />
+          )}
           Testar HMAC
         </Button>
         <DropdownMenu>
@@ -219,7 +253,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
               data-testid="hmac-selftest-toggle-negative"
             >
               Incluir cenários negativos
-              <span className="block text-[10px] text-muted-foreground mt-0.5">
+              <span className="mt-0.5 block text-[10px] text-muted-foreground">
                 wrong-secret, payload-mutated, missing-signature
               </span>
             </DropdownMenuCheckboxItem>
@@ -258,8 +292,8 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
           </DialogHeader>
 
           {loading && (
-            <div className="py-10 flex items-center justify-center text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando…
+            <div role="status" aria-live="polite" className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Executando…
             </div>
           )}
 
@@ -279,43 +313,49 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
                 )}
               </div>
 
-              {result.message && (
-                <p className="text-sm text-muted-foreground">{result.message}</p>
-              )}
-              {result.error && (
-                <p className="text-sm text-destructive">{result.error}</p>
-              )}
+              {result.message && <p className="text-sm text-muted-foreground">{result.message}</p>}
+              {result.error && <p className="text-sm text-destructive">{result.error}</p>}
 
               {result.good && result.tampered && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border p-3">
-                    <div className="text-xs uppercase text-muted-foreground mb-1">
+                    <div className="mb-1 text-xs uppercase text-muted-foreground">
                       Assinatura correta
                     </div>
-                    <Badge variant={result.good.accepted ? 'default' : 'destructive'} className="text-[10px]">
+                    <Badge
+                      variant={result.good.accepted ? 'default' : 'destructive'}
+                      className="text-[10px]"
+                    >
                       {result.good.accepted ? 'aceita' : 'rejeitada'}
                     </Badge>
                     {result.good.error && (
-                      <p className="text-xs text-destructive mt-1">{result.good.error}</p>
+                      <p className="mt-1 text-xs text-destructive">{result.good.error}</p>
                     )}
                   </div>
                   <div className="rounded-lg border p-3">
-                    <div className="text-xs uppercase text-muted-foreground mb-1">
+                    <div className="mb-1 text-xs uppercase text-muted-foreground">
                       Assinatura adulterada
                     </div>
-                    <Badge variant={!result.tampered.accepted ? 'default' : 'destructive'} className="text-[10px]">
+                    <Badge
+                      variant={!result.tampered.accepted ? 'default' : 'destructive'}
+                      className="text-[10px]"
+                    >
                       {result.tampered.accepted ? 'aceita (RUIM)' : 'rejeitada (esperado)'}
                     </Badge>
                     {result.tampered.error && (
-                      <p className="text-xs text-muted-foreground mt-1">{result.tampered.error}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{result.tampered.error}</p>
                     )}
                   </div>
                 </div>
               )}
 
               {typeof result.tolerance_seconds === 'number' && (
-                <div className="text-xs text-muted-foreground" data-testid="hmac-selftest-tolerance">
-                  Janela de tolerância: <code>{result.tolerance_seconds}s</code> (issuedAt ± janela; nonce único)
+                <div
+                  className="text-xs text-muted-foreground"
+                  data-testid="hmac-selftest-tolerance"
+                >
+                  Janela de tolerância: <code>{result.tolerance_seconds}s</code> (issuedAt ± janela;
+                  nonce único)
                 </div>
               )}
 
@@ -332,7 +372,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
                   )}
                   {result.request_id && (
                     <span
-                      className="text-muted-foreground  text-[10px]"
+                      className="text-[10px] text-muted-foreground"
                       data-testid="hmac-selftest-request-id"
                     >
                       req: {result.request_id.slice(0, 8)}…
@@ -342,16 +382,19 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
               )}
 
               {result.scenarios && result.scenarios.length > 0 && (
-                <div className="rounded-lg border overflow-hidden" data-testid="hmac-selftest-scenarios">
+                <div
+                  className="overflow-hidden rounded-lg border"
+                  data-testid="hmac-selftest-scenarios"
+                >
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground">
                       <tr>
-                        <th className="text-left px-2 py-1.5 font-medium">Cenário</th>
-                        <th className="text-left px-2 py-1.5 font-medium">Esperado</th>
-                        <th className="text-left px-2 py-1.5 font-medium">Resultado</th>
-                        <th className="text-left px-2 py-1.5 font-medium">Fase</th>
-                        <th className="text-left px-2 py-1.5 font-medium">Idade</th>
-                        <th className="text-left px-2 py-1.5 font-medium">Detalhe</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Cenário</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Esperado</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Resultado</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Fase</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Idade</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Detalhe</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -382,19 +425,21 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
                           </td>
                           <td className="px-2 py-1.5">
                             {s.failed_phase ? (
-                              <Badge variant="destructive" className="text-[10px]" title={s.reason ?? ''}>
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px]"
+                                title={s.reason ?? ''}
+                              >
                                 {s.failed_phase}
                               </Badge>
                             ) : (
-                              <span className="text-muted-foreground text-[10px]">—</span>
+                              <span className="text-[10px] text-muted-foreground">—</span>
                             )}
                           </td>
                           <td className="px-2 py-1.5 text-muted-foreground">
                             {s.ageSeconds >= 0 ? `+${s.ageSeconds}s` : `${s.ageSeconds}s`}
                           </td>
-                          <td className="px-2 py-1.5 text-muted-foreground">
-                            {s.reason ?? '—'}
-                          </td>
+                          <td className="px-2 py-1.5 text-muted-foreground">{s.reason ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -404,11 +449,11 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
 
               {result.payload_preview && (
                 <div>
-                  <div className="text-xs uppercase text-muted-foreground mb-1">
+                  <div className="mb-1 text-xs uppercase text-muted-foreground">
                     Payload de teste (modelo)
                   </div>
-                  <pre className="text-[11px] bg-muted/40 rounded p-2 overflow-x-auto">
-{JSON.stringify(result.payload_preview, null, 2)}
+                  <pre className="overflow-x-auto rounded bg-muted/40 p-2 text-[11px]">
+                    {JSON.stringify(result.payload_preview, null, 2)}
                   </pre>
                 </div>
               )}

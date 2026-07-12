@@ -81,7 +81,7 @@ export function NotificationSettingsPanel() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="icon" onClick={handleTestSound} disabled={isTestingSound}
+                <Button aria-label="Testar som de notificação" variant="outline" size="icon" onClick={handleTestSound} disabled={isTestingSound}
                   className={cn("transition-all", isTestingSound && "bg-primary/10")}>
                   <Play className={cn("w-4 h-4", isTestingSound && "animate-pulse")} />
                 </Button>

@@ -31,15 +31,15 @@ export function TelemetryTable({ rows, isLoading }: TelemetryTableProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left p-3 font-medium text-muted-foreground">Quando</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Operação</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Tabela/RPC</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Duração</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Records</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Limit</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Offset</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Count</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Severidade</th>
+                  <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Quando</th>
+                  <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Operação</th>
+                  <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Tabela/RPC</th>
+                  <th scope="col" className="text-right p-3 font-medium text-muted-foreground">Duração</th>
+                  <th scope="col" className="text-right p-3 font-medium text-muted-foreground">Records</th>
+                  <th scope="col" className="text-right p-3 font-medium text-muted-foreground">Limit</th>
+                  <th scope="col" className="text-right p-3 font-medium text-muted-foreground">Offset</th>
+                  <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Count</th>
+                  <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Severidade</th>
                 </tr>
               </thead>
               <tbody>

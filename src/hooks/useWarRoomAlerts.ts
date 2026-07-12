@@ -13,8 +13,8 @@ interface WarRoomAlert {
   title: string;
   message: string;
   source: string | null;
-  is_read: boolean;
-  created_at: string;
+  is_read: boolean | null;
+  created_at: string | null;
 }
 
 export function useWarRoomAlerts(soundEnabled = true) {
@@ -76,7 +76,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
         (payload) => {
           const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
           if (!parsed.ok) {
-            log.warn('warroom_alerts INSERT payload rejeitado', parsed.error);
+            log.warn('[useWarRoomAlerts] received malformed realtime payload', payload.new);
             return;
           }
           const alert = parsed.data as WarRoomAlert;

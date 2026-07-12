@@ -601,12 +601,12 @@ export default function AdminWebhookSecretStatusPage() {
               >
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    {prefs.visibleColumns.when && <th className="py-2 pr-4">Quando</th>}
-                    {prefs.visibleColumns.event && <th className="py-2 pr-4">Evento</th>}
-                    {prefs.visibleColumns.instance && <th className="py-2 pr-4">Instância</th>}
-                    {prefs.visibleColumns.signature && <th className="py-2 pr-4">Assinatura</th>}
-                    {prefs.visibleColumns.status && <th className="py-2 pr-4">Status</th>}
-                    {prefs.visibleColumns.action && <th className="py-2 pr-4 text-right">Ação</th>}
+                    {prefs.visibleColumns.when && <th scope="col" className="py-2 pr-4">Quando</th>}
+                    {prefs.visibleColumns.event && <th scope="col" className="py-2 pr-4">Evento</th>}
+                    {prefs.visibleColumns.instance && <th scope="col" className="py-2 pr-4">Instância</th>}
+                    {prefs.visibleColumns.signature && <th scope="col" className="py-2 pr-4">Assinatura</th>}
+                    {prefs.visibleColumns.status && <th scope="col" className="py-2 pr-4">Status</th>}
+                    {prefs.visibleColumns.action && <th scope="col" className="py-2 pr-4 text-right">Ação</th>}
                   </tr>
                 </thead>
                 <tbody>

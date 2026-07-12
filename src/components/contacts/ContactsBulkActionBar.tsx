@@ -92,6 +92,7 @@ export function ContactsBulkActionBar({
           </div>
 
           <Button
+            aria-label="Limpar seleção"
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-full text-background hover:bg-background/10"

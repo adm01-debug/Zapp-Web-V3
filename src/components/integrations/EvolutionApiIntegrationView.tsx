@@ -109,10 +109,11 @@ export function EvolutionApiIntegrationView() {
                           </CardDescription>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7" 
+                          <Button
+                            aria-label="Configurar credencial"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
                             onClick={() => {
                               setFormData({
                                 instance_name: creds.instance_name,
@@ -126,10 +127,11 @@ export function EvolutionApiIntegrationView() {
                           >
                             <Settings2 className="w-3.5 h-3.5" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-destructive" 
+                          <Button
+                            aria-label="Excluir credencial"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
                             onClick={() => handleDelete(creds.id, creds.instance_name)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -234,6 +236,7 @@ export function EvolutionApiIntegrationView() {
                       className="pr-10"
                     />
                     <Button
+                      aria-label={formData.show_key ? 'Ocultar chave' : 'Mostrar chave'}
                       type="button"
                       variant="ghost"
                       size="icon"
@@ -318,11 +321,11 @@ export function EvolutionApiIntegrationView() {
                               </Badge>
                             )}
                             {creds && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 ml-1" 
-                                title="Repetir teste"
+                              <Button
+                                aria-label="Repetir teste de conexão"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 ml-1"
                                 onClick={() => handleTestConnection(creds)}
                                 disabled={testing === creds.id}
                               >

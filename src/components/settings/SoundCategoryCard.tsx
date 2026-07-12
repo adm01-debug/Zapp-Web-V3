@@ -46,7 +46,7 @@ export function SoundCategoryCard({ categoryKey, label, description, icon: Icon,
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" disabled={currentSound === 'none'} onClick={() => onPlayPreview(categoryKey, currentSound)} className="shrink-0">
+              <Button aria-label={isPlaying ? 'Pausar pré-visualização' : 'Reproduzir pré-visualização'} variant="ghost" size="icon" disabled={currentSound === 'none'} onClick={() => onPlayPreview(categoryKey, currentSound)} className="shrink-0">
                 {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
               </Button>
             </div>

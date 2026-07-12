@@ -1,81 +1,85 @@
-/**
- * useFollowUpSequences — Wave 3 tier-2 (2026-07-06)
- * Camada de dados extraída de FollowUpSequences. createMutation recebe
- * (name, steps) como args; resets de formulário via onSuccess no call-site.
- */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/features/auth';
 
 export interface Step {
-  id?: string;
   step_order: number;
   delay_hours: number;
   message_template: string;
   is_active: boolean;
 }
 
-export interface SequenceRow {
+interface FollowUpStep {
+  id: string;
+  step_order: number;
+  delay_hours: number;
+}
+
+interface FollowUpSequence {
   id: string;
   name: string;
   is_active: boolean;
   trigger_event: string;
-  created_at: string;
-  created_by: string | null;
-  followup_steps: Step[];
+  followup_steps: FollowUpStep[];
 }
 
+const QUERY_KEY = ['followup-sequences'];
+
 export function useFollowUpSequences() {
-  const { profile } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: sequences = [], isLoading } = useQuery({
-    queryKey: ['followup-sequences'],
+    queryKey: QUERY_KEY,
     queryFn: async () => {
-      const { data } = await safeClient.from<SequenceRow>('followup_sequences', q =>
-        q.select('*, followup_steps(*)').order('created_at', { ascending: false }),
-      );
-      return data ?? [];
+      const { data, error } = await supabase
+        .from('followup_sequences')
+        .select('id, name, is_active, trigger_event, followup_steps(id, step_order, delay_hours)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as FollowUpSequence[];
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async ({ name, steps }: { name: string; steps: Step[] }) => {
-      const { data: seq, error: seqError } = await supabase
+      const { data: seq, error: seqErr } = await supabase
         .from('followup_sequences')
-        .insert({ name, created_by: profile?.id })
-        .select()
+        .insert({ name, trigger_event: 'conversation_closed', is_active: true })
+        .select('id')
         .single();
-      if (seqError) throw seqError;
+      if (seqErr || !seq) throw seqErr ?? new Error('Failed to create sequence');
 
-      const stepsToInsert = steps.map(s => ({
-        sequence_id: seq.id,
-        step_order: s.step_order,
-        delay_hours: s.delay_hours,
-        message_template: s.message_template,
-        is_active: s.is_active,
-      }));
-
-      const { error: stepsError } = await supabase.from('followup_steps').insert(stepsToInsert);
-      if (stepsError) throw stepsError;
+      if (steps.length > 0) {
+        const { error: stepsErr } = await safeClient.from('followup_steps', (q) =>
+          q.insert(steps.map((s) => ({ ...s, sequence_id: seq.id })))
+        );
+        if (stepsErr) throw stepsErr;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['followup-sequences'] });
-      toast({ title: 'Sequência criada!', description: 'Follow-up automático configurado.' });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      toast({ title: 'Sequência criada' });
     },
-    onError: (e: Error) => {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    onError: () => {
+      toast({ title: 'Erro ao criar sequência', variant: 'destructive' });
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase.from('followup_sequences').update({ is_active: isActive }).eq('id', id);
+      const { error } = await supabase
+        .from('followup_sequences')
+        .update({ is_active: isActive })
+        .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['followup-sequences'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao alterar status', variant: 'destructive' });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -84,8 +88,11 @@ export function useFollowUpSequences() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['followup-sequences'] });
-      toast({ title: 'Sequência removida!' });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      toast({ title: 'Sequência excluída' });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao excluir sequência', variant: 'destructive' });
     },
   });
 

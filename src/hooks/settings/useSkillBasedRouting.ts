@@ -1,60 +1,98 @@
-/**
- * useSkillBasedRouting — Wave 3 (2026-07-06)
- * Camada de dados extraída de SkillBasedRoutingSettings (componente ficou 100% UI).
- * Query keys e semântica preservadas byte-a-byte; resets de formulário ficam no
- * call-site via segundo onSuccess (padrão React Query).
- */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
+
+interface Profile {
+  id: string;
+  name: string;
+}
+
+interface Queue {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface AgentSkill {
+  id: string;
+  skill_name: string;
+  skill_level: number | null;
+}
+
+interface QueueSkillRequirement {
+  id: string;
+  skill_name: string;
+  min_level: number;
+}
 
 export function useSkillBasedRouting(selectedProfile: string, selectedQueue: string) {
   const queryClient = useQueryClient();
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-skills'],
+  const { data: profiles = [] } = useQuery<Profile[]>({
+    queryKey: ['skill-routing-profiles'],
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('id, name').eq('is_active', true);
-      return data || [];
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return (data ?? []) as Profile[];
     },
   });
 
-  const { data: queues = [] } = useQuery({
-    queryKey: ['queues-for-skills'],
+  const { data: queues = [] } = useQuery<Queue[]>({
+    queryKey: ['skill-routing-queues'],
     queryFn: async () => {
-      const { data } = await supabase.from('queues').select('id, name, color').eq('is_active', true);
-      return data || [];
+      const { data, error } = await safeClient.from<Queue>('queues', (q) =>
+        q.select('id, name, color').order('name')
+      );
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
-  const { data: agentSkills = [] } = useQuery({
+  const { data: agentSkills = [] } = useQuery<AgentSkill[]>({
     queryKey: ['agent-skills', selectedProfile],
     queryFn: async () => {
-      if (!selectedProfile) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('agent_skills')
-        .select('*')
+        .select('id, skill_name, skill_level')
         .eq('profile_id', selectedProfile);
-      return data || [];
+      if (error) throw error;
+      return (data ?? []) as AgentSkill[];
     },
     enabled: !!selectedProfile,
   });
 
-  const { data: queueSkills = [] } = useQuery({
-    queryKey: ['queue-skills', selectedQueue],
+  const { data: queueSkills = [] } = useQuery<QueueSkillRequirement[]>({
+    queryKey: ['queue-skill-requirements', selectedQueue],
     queryFn: async () => {
-      if (!selectedQueue) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('queue_skill_requirements')
-        .select('*')
+        .select('id, skill_name, min_level')
         .eq('queue_id', selectedQueue);
-      return data || [];
+      if (error) throw error;
+      return (data ?? []).map((r) => ({
+        id: r.id,
+        skill_name: r.skill_name,
+        min_level: r.min_level ?? 1,
+      })) as QueueSkillRequirement[];
     },
     enabled: !!selectedQueue,
   });
 
   const addSkill = useMutation({
-    mutationFn: async ({ profileId, skillName, level }: { profileId: string; skillName: string; level: number }) => {
+    mutationFn: async ({
+      profileId,
+      skillName,
+      level,
+    }: {
+      profileId: string;
+      skillName: string;
+      level: number;
+    }) => {
       const { error } = await supabase.from('agent_skills').insert({
         profile_id: profileId,
         skill_name: skillName,
@@ -62,9 +100,11 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agent-skills'] });
-      toast({ title: 'Skill adicionada com sucesso!' });
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['agent-skills', variables.profileId] });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao adicionar skill', variant: 'destructive' });
     },
   });
 
@@ -73,11 +113,24 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       const { error } = await supabase.from('agent_skills').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-skills'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['agent-skills'] });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao remover skill', variant: 'destructive' });
+    },
   });
 
   const addQueueRequirement = useMutation({
-    mutationFn: async ({ queueId, skillName, minLevel }: { queueId: string; skillName: string; minLevel: number }) => {
+    mutationFn: async ({
+      queueId,
+      skillName,
+      minLevel,
+    }: {
+      queueId: string;
+      skillName: string;
+      minLevel: number;
+    }) => {
       const { error } = await supabase.from('queue_skill_requirements').insert({
         queue_id: queueId,
         skill_name: skillName,
@@ -85,9 +138,13 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-skills'] });
-      toast({ title: 'Requisito de skill adicionado!' });
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: ['queue-skill-requirements', variables.queueId],
+      });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao adicionar requisito', variant: 'destructive' });
     },
   });
 
@@ -96,8 +153,22 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       const { error } = await supabase.from('queue_skill_requirements').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue-skills'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['queue-skill-requirements'] });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao remover requisito', variant: 'destructive' });
+    },
   });
 
-  return { profiles, queues, agentSkills, queueSkills, addSkill, removeSkill, addQueueRequirement, removeQueueRequirement };
+  return {
+    profiles,
+    queues,
+    agentSkills,
+    queueSkills,
+    addSkill,
+    removeSkill,
+    addQueueRequirement,
+    removeQueueRequirement,
+  };
 }

@@ -205,6 +205,7 @@ export function CallDialog({
               <>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Button
+                    aria-label={isMuted ? 'Ativar microfone' : 'Silenciar microfone'}
                     variant="outline"
                     size="icon"
                     className={cn(
@@ -219,6 +220,7 @@ export function CallDialog({
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Button
+                    aria-label={isSpeakerOn ? 'Desativar alto-falante' : 'Ativar alto-falante'}
                     variant="outline"
                     size="icon"
                     className={cn(
@@ -236,6 +238,7 @@ export function CallDialog({
             {status === 'ringing' && direction === 'inbound' && (
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                 <Button
+                  aria-label="Atender chamada"
                   size="icon"
                   className="w-14 h-14 rounded-full bg-whatsapp hover:bg-whatsapp-dark"
                   onClick={handleAnswer}
@@ -247,6 +250,7 @@ export function CallDialog({
 
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
               <Button
+                aria-label="Encerrar chamada"
                 size="icon"
                 className="w-14 h-14 rounded-full bg-destructive hover:bg-destructive/90"
                 onClick={handleEnd}

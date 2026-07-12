@@ -86,17 +86,17 @@ export function ClientTelemetryPanel() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
-                    <th className="text-left p-3 font-medium text-muted-foreground">Quando</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Trace ID</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Source</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Op</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Target</th>
-                    <th className="text-right p-3 font-medium text-muted-foreground">Duração</th>
-                    <th className="text-right p-3 font-medium text-muted-foreground">Records</th>
-                    <th className="text-right p-3 font-medium text-muted-foreground">Limit</th>
-                    <th className="text-right p-3 font-medium text-muted-foreground">Offset</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Severidade</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Erro</th>
+                    <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Quando</th>
+                    <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Trace ID</th>
+                    <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Source</th>
+                    <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Op</th>
+                    <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Target</th>
+                    <th scope="col" className="text-right p-3 font-medium text-muted-foreground">Duração</th>
+                    <th scope="col" className="text-right p-3 font-medium text-muted-foreground">Records</th>
+                    <th scope="col" className="text-right p-3 font-medium text-muted-foreground">Limit</th>
+                    <th scope="col" className="text-right p-3 font-medium text-muted-foreground">Offset</th>
+                    <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Severidade</th>
+                    <th scope="col" className="text-left p-3 font-medium text-muted-foreground">Erro</th>
                   </tr>
                 </thead>
                 <tbody>
