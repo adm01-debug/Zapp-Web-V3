@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -112,14 +111,14 @@ export default function QueueDetails() {
           : { data: [] },
       ]);
 
-      const countMap = {};
-      const lastMsgMap = {};
+      const countMap: Record<string, number> = {};
+      const lastMsgMap: Record<string, string> = {};
       for (const msg of msgRes.data || []) {
         countMap[msg.contact_id] = (countMap[msg.contact_id] || 0) + 1;
         if (!lastMsgMap[msg.contact_id]) lastMsgMap[msg.contact_id] = msg.created_at;
       }
 
-      const profileMap = {};
+      const profileMap: Record<string, { name: string; avatar_url: string | null }> = {};
       for (const p of profileRes.data || []) {
         profileMap[p.id] = { name: p.name, avatar_url: p.avatar_url };
       }

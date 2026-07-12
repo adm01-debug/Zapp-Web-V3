@@ -163,7 +163,6 @@ src/pages/AdminAlertHistoryPage.tsx
 src/pages/AdminEvolutionApiLogsPage.tsx
 src/pages/AdminSearchInsightsPage.tsx
 src/pages/ChatPopup.tsx
-src/pages/QueueDetails.tsx
 src/pages/admin-search-insights/SearchInsightsTables.tsx
 src/pages/admin-webhook-secret-status/HmacAuditHistoryPanel.tsx
 src/pages/admin-webhook-secret-status/HmacSelfTestButton.tsx
