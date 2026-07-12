@@ -47,13 +47,14 @@ function requireMapping(entity: LogicalEntity): EntityMapping {
 
 export function dbClient(entity: LogicalEntity): SupabaseClient {
   const mapping = requireMapping(entity);
-  const target = (mapping.client as string) === 'external' ? externalSupabase : supabase;
+  const isExternal = mapping.client === 'external';
+  const target = isExternal ? externalSupabase : supabase;
   if (!target) {
     throw new Error(
       `[datasource] Cliente "${mapping.client}" para entidade "${entity}" não está configurado.`,
     );
   }
-  return target as SupabaseClient;
+  return target;
 }
 
 export function dbTable(entity: LogicalEntity): string {
@@ -64,7 +65,8 @@ export function dbTable(entity: LogicalEntity): string {
 export function dbFrom(entity: LogicalEntity): any {
   const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
-  return dbClient(entity).from(mapping.table as never);
+  const client = dbClient(entity);
+  return client.from(mapping.table);
 }
 
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {
@@ -100,7 +102,24 @@ function rpcClient(client: DatasourceClient): SupabaseClient {
   if (!target) {
     throw new Error(`[datasource] cliente "${client}" indisponível para RPC.`);
   }
-  return target as SupabaseClient;
+  return target;
+}
+
+function extractPaginationParams(merged: Record<string, unknown>): { limit: unknown; offset: unknown } {
+  return {
+    limit: merged.p_limit ?? null,
+    offset: merged.p_offset ?? null,
+  };
+}
+
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'unknown error';
+}
+
+function isTimeoutError(err: unknown, message: string): boolean {
+  return (err instanceof Error && err.name === 'TimeoutError') || /timeout/i.test(message);
 }
 
 export async function dbRpc<P extends object, R>(
@@ -109,13 +128,15 @@ export async function dbRpc<P extends object, R>(
 ): Promise<DbRpcResult<R>> {
   validateRpcAccess(def.name, def.client);
   const client = rpcClient(def.client);
-  const merged = { ...(def.defaults ?? {}), ...params };
+  const merged = { ...(def.defaults ?? {}), ...params } as Record<string, unknown>;
   const startedAt = performance.now();
   const correlationId = generateCorrelationId();
   const source = def.client === 'external' ? 'externalSupabase' : 'lovableCloud';
+  const { limit, offset } = extractPaginationParams(merged);
 
   try {
-    const { data, error } = await client.rpc(def.name as never, merged as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (client as any).rpc(def.name, merged);
     const durationMs = Math.round(performance.now() - startedAt);
     const errorMessage = error ? error.message ?? 'rpc error' : undefined;
 
@@ -124,9 +145,9 @@ export async function dbRpc<P extends object, R>(
       source,
       target: def.name,
       durationMs,
-      limit: (merged as Record<string, unknown>).p_limit as number | undefined ?? null,
-      offset: (merged as Record<string, unknown>).p_offset as number | undefined ?? null,
-      filters: merged as Record<string, unknown>,
+      limit,
+      offset,
+      filters: merged,
       recordCount: Array.isArray(data) ? data.length : null,
       errorMessage,
       severity: classifySeverity(durationMs, !!error, false),
@@ -137,17 +158,17 @@ export async function dbRpc<P extends object, R>(
     return { data: (data as R) ?? null, error, correlationId };
   } catch (err) {
     const durationMs = Math.round(performance.now() - startedAt);
-    const message = (err as Error)?.message ?? 'rpc error';
-    const isTimeout = (err as Error)?.name === 'TimeoutError' || /timeout/i.test(message);
+    const message = extractErrorMessage(err);
+    const isTimeout = isTimeoutError(err, message);
 
     recordQueryEvent({
       operation: 'rpc',
       source,
       target: def.name,
       durationMs,
-      limit: (merged as Record<string, unknown>).p_limit as number | undefined ?? null,
-      offset: (merged as Record<string, unknown>).p_offset as number | undefined ?? null,
-      filters: merged as Record<string, unknown>,
+      limit,
+      offset,
+      filters: merged,
       recordCount: null,
       errorMessage: message,
       severity: isTimeout ? 'timeout' : 'error',
