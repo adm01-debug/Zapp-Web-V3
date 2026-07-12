@@ -262,8 +262,8 @@ export const ConversationItem = memo(function ConversationItem({
             <div className="relative mt-0.5 flex-shrink-0">
               <ChannelBadge type={contact?.contact_type} />
               <Avatar className="h-[38px] w-[38px]">
-                <AvatarImage src={avatarUrl} />
-                <AvatarFallback className="bg-primary/10 text-xs font-medium text-primary">
+                <AvatarImage src={avatarUrl} alt={contact?.name || 'Contato'} />
+                <AvatarFallback className="bg-primary text-xs font-medium text-primary-foreground">
                   {(contact?.name && contact.name !== 'Você' ? contact.name : 'C')
                     .split(' ')
                     .map((n: string) => n[0])
@@ -273,7 +273,7 @@ export const ConversationItem = memo(function ConversationItem({
               </Avatar>
               {conversation.assignedTo ? (
                 <Avatar className="absolute -bottom-0.5 -right-0.5 h-4 w-4 ring-1 ring-sidebar">
-                  <AvatarImage src={conversation.assignedTo.avatar} />
+                  <AvatarImage src={conversation.assignedTo.avatar} alt={conversation.assignedTo.name} />
                   <AvatarFallback className="bg-secondary text-[7px] font-bold text-secondary-foreground">
                     {conversation.assignedTo.name[0]}
                   </AvatarFallback>
@@ -307,7 +307,7 @@ export const ConversationItem = memo(function ConversationItem({
                         {companyName && (
                           <span
                             className={cn(
-                              'ml-1.5 text-[12px] font-normal tracking-normal opacity-70',
+                              'ml-1.5 text-[12px] font-normal tracking-normal',
                               isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
                             )}
                           >
@@ -333,7 +333,7 @@ export const ConversationItem = memo(function ConversationItem({
                   <span
                     className={cn(
                       'text-[10px] font-semibold tabular-nums tracking-tight',
-                      isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground/80'
+                      isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
                     )}
                   >
                     {shortRelativeTime(displayDate)}
@@ -345,7 +345,7 @@ export const ConversationItem = memo(function ConversationItem({
                 <span
                   className={cn(
                     'block min-w-0 truncate text-[11px] font-medium',
-                    isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/80'
+                    isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
                   )}
                 >
                   {secondaryLabel}
@@ -387,7 +387,7 @@ export const ConversationItem = memo(function ConversationItem({
                         'h-4.5 px-1.5 text-[9px] font-black uppercase tracking-wider transition-colors',
                         isSelected
                           ? 'border-primary-foreground/20 bg-primary-foreground/20 text-primary-foreground'
-                          : 'border-warning/30 bg-warning/10 text-warning'
+                          : 'border-warning/30 bg-warning/10 text-warning-accessible'
                       )}
                     >
                       {tag}
@@ -441,6 +441,8 @@ export const ConversationItem = memo(function ConversationItem({
           data-testid="conversation-item"
           data-density="comfortable"
           onClick={() => onSelect(conversation)}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(conversation)}
+          tabIndex={0}
           aria-selected={isSelected}
           role="option"
           className={cn(
@@ -488,7 +490,7 @@ export const ConversationItem = memo(function ConversationItem({
                   isSelected ? 'scale-105' : 'group-hover:scale-105'
                 )}
               >
-                <AvatarImage src={avatarUrl} className="object-cover" />
+                <AvatarImage src={avatarUrl} alt={contact?.name || 'Contato'} className="object-cover" />
                 <AvatarFallback
                   className={cn(
                     'text-sm font-semibold tracking-tighter transition-colors duration-200',
@@ -505,7 +507,7 @@ export const ConversationItem = memo(function ConversationItem({
               </Avatar>
               {conversation.assignedTo ? (
                 <Avatar className="absolute -bottom-1 -right-1 h-5 w-5 shadow-sm ring-2 ring-background">
-                  <AvatarImage src={conversation.assignedTo.avatar} />
+                  <AvatarImage src={conversation.assignedTo.avatar} alt={conversation.assignedTo.name} />
                   <AvatarFallback className="bg-secondary text-[8px] font-bold text-secondary-foreground">
                     {conversation.assignedTo.name[0]}
                   </AvatarFallback>
@@ -541,7 +543,7 @@ export const ConversationItem = memo(function ConversationItem({
                         {companyName && (
                           <span
                             className={cn(
-                              'ml-1.5 text-[12px] font-normal tracking-normal opacity-70',
+                              'ml-1.5 text-[12px] font-normal tracking-normal',
                               isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
                             )}
                           >
@@ -567,7 +569,7 @@ export const ConversationItem = memo(function ConversationItem({
                   <span
                     className={cn(
                       'text-[11px] font-semibold tabular-nums tracking-tight',
-                      isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground/80'
+                      isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
                     )}
                   >
                     {shortRelativeTime(displayDate)}
@@ -578,7 +580,7 @@ export const ConversationItem = memo(function ConversationItem({
                 <span
                   className={cn(
                     'block min-w-0 truncate text-[12px] font-medium',
-                    isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/80'
+                    isSelected ? 'text-primary-foreground' : 'text-muted-foreground'
                   )}
                 >
                   {secondaryLabel}
@@ -622,7 +624,7 @@ export const ConversationItem = memo(function ConversationItem({
                         'h-5 px-2 text-[10px] font-black uppercase tracking-wider transition-colors',
                         isSelected
                           ? 'border-primary-foreground/20 bg-primary-foreground/20 text-primary-foreground'
-                          : 'border-warning/30 bg-warning/10 text-warning'
+                          : 'border-warning/30 bg-warning/10 text-warning-accessible'
                       )}
                     >
                       {tag}

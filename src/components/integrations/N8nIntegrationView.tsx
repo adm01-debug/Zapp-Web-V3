@@ -137,12 +137,12 @@ export function N8nIntegrationView() {
               <CardContent className="pt-4 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <Label>Nome</Label>
-                    <Input placeholder="Meu Workflow" value={newWorkflow.name} onChange={e => setNewWorkflow(p => ({ ...p, name: e.target.value }))} />
+                    <Label htmlFor="n8n-workflow-name">Nome</Label>
+                    <Input id="n8n-workflow-name" placeholder="Meu Workflow" value={newWorkflow.name} onChange={e => setNewWorkflow(p => ({ ...p, name: e.target.value }))} />
                   </div>
                   <div>
-                    <Label>Webhook URL</Label>
-                    <Input placeholder="https://n8n.../webhook/..." value={newWorkflow.webhookUrl} onChange={e => setNewWorkflow(p => ({ ...p, webhookUrl: e.target.value }))} />
+                    <Label htmlFor="n8n-webhook-url">Webhook URL</Label>
+                    <Input id="n8n-webhook-url" placeholder="https://n8n.../webhook/..." value={newWorkflow.webhookUrl} onChange={e => setNewWorkflow(p => ({ ...p, webhookUrl: e.target.value }))} />
                   </div>
                   <div>
                     <Label>Evento Gatilho</Label>

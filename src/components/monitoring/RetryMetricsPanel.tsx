@@ -295,7 +295,7 @@ export function RetryMetricsPanel() {
                   const isOpen = expanded.has(row.id);
                   return (
                     <>
-                      <TableRow key={row.id} className="cursor-pointer" onClick={() => toggle(row.id)}>
+                      <TableRow key={row.id} role="button" aria-expanded={isOpen} className="cursor-pointer" onClick={() => toggle(row.id)}>
                         <TableCell className="text-xs text-muted-foreground">
                           <span className="inline-flex items-center gap-1">
                             {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
@@ -468,7 +468,7 @@ function TopReasonsChart({ reasons, previousReasons = [], compareMode = false, w
           >
             <XAxis
               type="number"
-              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ style: { fontSize: '0.75rem' }, fill: 'hsl(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
@@ -499,7 +499,7 @@ function TopReasonsChart({ reasons, previousReasons = [], compareMode = false, w
             />
             {compareMode && (
               <Legend
-                wrapperStyle={{ fontSize: 10, paddingTop: 4 }}
+                wrapperStyle={{ fontSize: '0.75rem', paddingTop: 4 }}
                 iconType="square"
                 formatter={(v) => (v === 'previous' ? 'Período anterior' : 'Período atual')}
               />

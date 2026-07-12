@@ -85,10 +85,10 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
           <img src={msg.media_url!} alt="Imagem da mensagem" className="rounded-lg mb-1 max-h-60 object-cover" />
         )}
         {isMedia && msg.media_type === 'audio' && (
-          <audio controls src={msg.media_url!} className="w-56 my-1" />
+          <><audio controls src={msg.media_url!} className="w-56 my-1" /><p className="sr-only">Transcrição de áudio não disponível.</p></>
         )}
         {isMedia && msg.media_type === 'video' && (
-          <video controls src={msg.media_url!} className="rounded-lg mb-1 max-h-60" />
+          <><video controls src={msg.media_url!} className="rounded-lg mb-1 max-h-60" /><p className="sr-only">Legendas não disponíveis para este vídeo.</p></>
         )}
         {isMedia && msg.media_type === 'document' && (
           <a
@@ -200,7 +200,7 @@ export default function ZappWebbDemoPage() {
                   >
                     <div className="flex items-start gap-2">
                       <Avatar className="w-9 h-9">
-                        <AvatarImage src={c?.profile_picture_url ?? undefined} />
+                        <AvatarImage src={c?.profile_picture_url ?? undefined} alt={name} />
                         <AvatarFallback className="text-[10px]">
                           {name.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -250,7 +250,7 @@ export default function ZappWebbDemoPage() {
             <>
               <div className="border-b bg-card px-4 py-2.5 flex items-center gap-3">
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={contact?.profile_picture_url ?? undefined} />
+                  <AvatarImage src={contact?.profile_picture_url ?? undefined} alt={contact?.full_name || contact?.push_name || ""} />
                   <AvatarFallback className="text-[10px]">
                     {(contact?.full_name || contact?.push_name || 'WA').slice(0, 2)}
                   </AvatarFallback>
@@ -308,7 +308,7 @@ export default function ZappWebbDemoPage() {
               <div className="p-4 space-y-4">
                 <div className="text-center">
                   <Avatar className="w-20 h-20 mx-auto mb-2">
-                    <AvatarImage src={contact.profile_picture_url ?? undefined} />
+                    <AvatarImage src={contact.profile_picture_url ?? undefined} alt={contact.full_name || contact.push_name || ""} />
                     <AvatarFallback>
                       {(contact.full_name || contact.push_name || 'WA').slice(0, 2)}
                     </AvatarFallback>

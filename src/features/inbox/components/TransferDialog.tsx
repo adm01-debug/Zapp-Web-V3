@@ -187,7 +187,7 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
                     >
                       <div className="relative">
                         <Avatar className="w-10 h-10">
-                          <AvatarImage src={agent.avatar_url || undefined} />
+                          <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />
                           <AvatarFallback>{agent.name[0]}</AvatarFallback>
                         </Avatar>
                         <span className={cn(
@@ -255,14 +255,14 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
 
           {transferType === 'queue' && (
             <div className="space-y-2">
-              <Label>Selecione um departamento</Label>
+              <Label htmlFor="transfer-queue">Selecione um departamento</Label>
               {loadingQueues ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
               ) : (
                 <Select value={selectedTarget} onValueChange={setSelectedTarget}>
-                  <SelectTrigger>
+                  <SelectTrigger id="transfer-queue">
                     <SelectValue placeholder="Escolha um departamento" />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,8 +285,9 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
 
           {/* Optional Message */}
           <div className="space-y-2">
-            <Label>Mensagem (opcional)</Label>
+            <Label htmlFor="transfer-message">Mensagem (opcional)</Label>
             <Textarea
+              id="transfer-message"
               placeholder="Deixe uma mensagem para o próximo atendente..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}

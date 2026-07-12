@@ -93,7 +93,7 @@ export function ContactCard({
           <div className="relative">
             <motion.div layoutId={`avatar-${contact.id}`}>
               <Avatar className="w-12 h-12 ring-2 ring-background shadow-md">
-                <AvatarImage src={contact.avatar_url || undefined} />
+                <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
                 <AvatarFallback className={cn('font-bold text-sm', avatarColors.bg, avatarColors.text)}>
                   {getInitials(contact.name)}
                 </AvatarFallback>

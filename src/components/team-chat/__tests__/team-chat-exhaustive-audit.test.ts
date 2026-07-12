@@ -101,7 +101,9 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should render image with click-to-open', () => {
-      expect(panelSrc).toMatch(/onClick.*window\.open.*media_url/);
+      // Image is now wrapped in an accessible <a> link instead of onClick+window.open
+      expect(panelSrc).toMatch(/href=\{msg\.media_url/);
+      expect(panelSrc).toContain('target="_blank"');
     });
 
     it('should render video with controls', () => {

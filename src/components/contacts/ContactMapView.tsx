@@ -111,11 +111,16 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
               transition={{ delay: i * 0.04 }}
             >
               <Card
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-label={region}
                 className={cn(
                   'cursor-pointer transition-all hover:shadow-md border-border/40',
                   isExpanded && 'ring-1 ring-primary/30'
                 )}
                 onClick={() => setExpandedRegion(isExpanded ? null : region)}
+                onKeyDown={(e) => e.key === 'Enter' && setExpandedRegion(isExpanded ? null : region)}
               >
                 <CardContent className="p-3 space-y-2">
                   <div className="flex items-center gap-2">
@@ -157,7 +162,7 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
                                 className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 transition-colors text-left"
                               >
                                 <Avatar className="h-6 w-6">
-                                  <AvatarImage src={c.avatar_url || undefined} />
+                                  <AvatarImage src={c.avatar_url || undefined} alt={c.name} />
                                   <AvatarFallback className={cn(colors.bg, colors.text, 'text-[8px]')}>
                                     {getInitials(c.name)}
                                   </AvatarFallback>

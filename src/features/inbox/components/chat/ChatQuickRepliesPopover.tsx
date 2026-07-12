@@ -87,7 +87,7 @@ export function ChatQuickRepliesPopover({ show, replies, onSelect, onClose, sele
                       </Badge>
                     </div>
                     {isSelected && (
-                      <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest animate-pulse">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest animate-pulse">
                         Enter para enviar
                       </span>
                     )}

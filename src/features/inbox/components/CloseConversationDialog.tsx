@@ -111,9 +111,9 @@ export function CloseConversationDialog({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Motivo do encerramento *</Label>
+            <Label htmlFor="close-reason" className="text-sm font-medium">Motivo do encerramento *</Label>
             <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger>
+              <SelectTrigger id="close-reason">
                 <SelectValue placeholder="Selecione o motivo" />
               </SelectTrigger>
               <SelectContent>
@@ -125,9 +125,9 @@ export function CloseConversationDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Resultado</Label>
+            <Label htmlFor="close-outcome" className="text-sm font-medium">Resultado</Label>
             <Select value={outcome} onValueChange={setOutcome}>
-              <SelectTrigger>
+              <SelectTrigger id="close-outcome">
                 <SelectValue placeholder="Resultado do atendimento" />
               </SelectTrigger>
               <SelectContent>
@@ -139,9 +139,9 @@ export function CloseConversationDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Classificação</Label>
+            <Label htmlFor="close-classification" className="text-sm font-medium">Classificação</Label>
             <Select value={classification} onValueChange={setClassification}>
-              <SelectTrigger>
+              <SelectTrigger id="close-classification">
                 <SelectValue placeholder="Tipo de atendimento" />
               </SelectTrigger>
               <SelectContent>
@@ -153,8 +153,9 @@ export function CloseConversationDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Observações</Label>
+            <Label htmlFor="close-notes" className="text-sm font-medium">Observações</Label>
             <Textarea
+              id="close-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Anotações sobre o atendimento..."

@@ -90,7 +90,7 @@ export function HandoffDialog({
                     )}
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={agent.avatar_url || undefined} />
+                      <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />
                       <AvatarFallback>{agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span className="flex-1 text-left text-sm">{agent.name}</span>

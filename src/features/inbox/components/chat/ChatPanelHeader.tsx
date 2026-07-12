@@ -113,6 +113,7 @@ export function ChatPanelHeader({
           <Avatar className="h-9 w-9 border border-border/50 shadow-sm md:h-11 md:w-11">
             <AvatarImage
               src={avatarUrl || undefined}
+              alt={conversation.contact.name}
               referrerPolicy="no-referrer"
               onError={(e) => {
                 (e.target as HTMLImageElement).removeAttribute('src');
@@ -165,7 +166,7 @@ export function ChatPanelHeader({
             <SLAIndicatorForContact conversation={conversation} />
 
             {sendState === 'retrying' && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning">
+              <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning-accessible">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-warning" />
                 Tentando reenviar…
               </span>

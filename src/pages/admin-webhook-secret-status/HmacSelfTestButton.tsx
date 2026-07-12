@@ -314,7 +314,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
               </div>
 
               {result.message && <p className="text-sm text-muted-foreground">{result.message}</p>}
-              {result.error && <p className="text-sm text-destructive">{result.error}</p>}
+              {result.error && <p role="alert" className="text-sm text-destructive">{result.error}</p>}
 
               {result.good && result.tampered && (
                 <div className="grid grid-cols-2 gap-3">

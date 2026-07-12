@@ -177,7 +177,7 @@ export function AISuggestions({ messages, contactName, contactId, onSelectSugges
                         {suggestion.emoji} {suggestion.text}
                       </p>
                       {suggestion.source && (
-                        <p className="text-[10px] text-primary/70 mt-1 flex items-center gap-1">
+                        <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
                           📚 Fonte: {suggestion.source}
                         </p>
                       )}

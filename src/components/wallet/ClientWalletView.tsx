@@ -39,7 +39,7 @@ export function ClientWalletView() {
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label>Nome da Regra</Label>
-                  <Input placeholder="Ex: Vendas - Principal" value={w.newRule.name} onChange={(e) => w.setNewRule({ ...w.newRule, name: e.target.value })} />
+                  <Input aria-label="Nome da regra de carteira" placeholder="Ex: Vendas - Principal" value={w.newRule.name} onChange={(e) => w.setNewRule({ ...w.newRule, name: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Vendedor</Label>
@@ -61,7 +61,7 @@ export function ClientWalletView() {
                 </div>
                 <div className="space-y-2">
                   <Label>Prioridade</Label>
-                  <Input type="number" placeholder="0" value={w.newRule.priority} onChange={(e) => w.setNewRule({ ...w.newRule, priority: parseInt(e.target.value) || 0 })} />
+                  <Input aria-label="Prioridade da regra" type="number" placeholder="0" value={w.newRule.priority} onChange={(e) => w.setNewRule({ ...w.newRule, priority: parseInt(e.target.value) || 0 })} />
                   <p className="text-xs text-muted-foreground">Maior prioridade = processada primeiro</p>
                 </div>
                 <div className="flex justify-end gap-2 pt-4">

@@ -100,6 +100,18 @@
   .glow-success { box-shadow: var(--shadow-glow-success); }
   .glow-purple { box-shadow: var(--shadow-glow-purple); }
 
+  /* ===== WCAG 1.4.3 — Accessible semantic text colors for light-tinted backgrounds ===== */
+  /* These provide ≥4.5:1 contrast against tinted-white badge backgrounds in light mode     */
+  /* and fall back to the full CSS-variable color in dark mode where it already passes.     */
+  .text-warning-accessible  { color: hsl(32 90% 30%); }  /* ~6.2:1 on white; ~5.5:1 on bg-warning/15 */
+  .dark .text-warning-accessible  { color: hsl(var(--warning)); }
+  .text-success-accessible  { color: hsl(148 55% 27%); } /* ~6.3:1 on white; ~5.7:1 on bg-success/15 */
+  .dark .text-success-accessible  { color: hsl(var(--success)); }
+  .text-info-accessible     { color: hsl(214 100% 35%); } /* ~6.2:1 on white; ~5.7:1 on bg-info/15 */
+  .dark .text-info-accessible     { color: hsl(var(--info)); }
+  .text-primary-accessible  { color: hsl(221 83% 35%); }  /* ~7.2:1 on white; ~5.5:1 on bg-primary/15 */
+  .dark .text-primary-accessible  { color: hsl(var(--primary)); }
+
   /* Legacy compat */
   .glow-purple-pulse { box-shadow: var(--shadow-glow-purple); }
   .glow-purple-pulse-slow { box-shadow: var(--shadow-glow-purple); }

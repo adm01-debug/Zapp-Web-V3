@@ -69,6 +69,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(functi
           <Button
             variant="secondary"
             size="icon"
+            aria-label="Baixar arquivo"
             className={!canDownload ? 'opacity-50 cursor-not-allowed' : ''}
             onClick={(e) => {
               e.stopPropagation();

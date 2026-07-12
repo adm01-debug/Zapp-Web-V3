@@ -93,7 +93,7 @@ export function AddMemberDialog({
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={profile.avatar_url || undefined} />
+                      <AvatarImage src={profile.avatar_url || undefined} alt={profile.name} />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {profile.name[0]}
                       </AvatarFallback>

@@ -145,8 +145,9 @@ export function TemplateEditorDialog({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Título</Label>
+            <Label htmlFor="template-title">Título</Label>
             <Input
+              id="template-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex: Boas-vindas Inicial"
@@ -154,9 +155,9 @@ export function TemplateEditorDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Categoria</Label>
+              <Label htmlFor="template-category">Categoria</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
+                <SelectTrigger id="template-category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -169,12 +170,13 @@ export function TemplateEditorDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Atalho (opcional)</Label>
+              <Label htmlFor="template-shortcut">Atalho (opcional)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   /
                 </span>
                 <Input
+                  id="template-shortcut"
                   value={shortcut}
                   onChange={(e) =>
                     setShortcut(e.target.value.replace(/[^a-z0-9]/gi, '').toLowerCase())
@@ -193,8 +195,9 @@ export function TemplateEditorDialog({
             <VariableInserter onInsert={handleInsertVariable} />
           </div>
           <div className="space-y-2">
-            <Label>Conteúdo</Label>
+            <Label htmlFor="template-content">Conteúdo</Label>
             <Textarea
+              id="template-content"
               ref={textareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}

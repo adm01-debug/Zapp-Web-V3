@@ -23,10 +23,14 @@ export const MediaCard = memo(function MediaCard({ item, isSelected, onSelect, o
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       className={cn(
-        'relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer',
+        'relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-transparent hover:border-primary/50'
       )}
+      role="button"
+      tabIndex={0}
+      aria-label="Visualizar mídia"
       onClick={onPreview}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onPreview()}
     >
       <div
         className={cn(
@@ -35,7 +39,12 @@ export const MediaCard = memo(function MediaCard({ item, isSelected, onSelect, o
             ? 'bg-primary border-primary text-primary-foreground'
             : 'bg-background/80 border-muted-foreground/50 opacity-0 group-hover:opacity-100'
         )}
+        role="checkbox"
+        aria-checked={isSelected}
+        aria-label="Selecionar mídia"
+        tabIndex={0}
         onClick={(e) => { e.stopPropagation(); onSelect(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onSelect(); } }}
       >
         {isSelected && <Check className="w-3 h-3" />}
       </div>

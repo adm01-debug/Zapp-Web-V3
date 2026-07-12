@@ -93,8 +93,8 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
+                  <XAxis dataKey="bucket" tick={{ style: { fontSize: '0.75rem' } }} />
+                  <YAxis tick={{ style: { fontSize: '0.75rem' } }} />
                   <Tooltip />
                   <Area type="monotone" dataKey="processed" stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.3)" />
                   <Area type="monotone" dataKey="errored" stackId="1" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive) / 0.4)" />
@@ -117,7 +117,9 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
                     <TableRow
                       key={`${r.created_at}-${i}`}
                       className="cursor-pointer hover:bg-muted/40"
+                      tabIndex={0}
                       onClick={() => handleRowClick(r.event_type, r.instance_name)}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleRowClick(r.event_type, r.instance_name)}
                     >
                       <TableCell className="text-xs">
                         {format(new Date(r.created_at), 'HH:mm:ss', { locale: ptBR })}

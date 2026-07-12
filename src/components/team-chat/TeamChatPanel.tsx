@@ -39,7 +39,7 @@ const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
   if (!msg.media_url) return null;
   switch (msg.media_type) {
     case 'image': case 'sticker': case 'emoji':
-      return <img src={msg.media_url} alt={msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'Figurinha' : 'Imagem da mensagem'} className={cn("rounded-lg max-h-48 object-contain cursor-pointer", msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'w-24 h-24' : 'max-w-full')} onClick={() => window.open(msg.media_url!, '_blank')} />;
+      return <a href={msg.media_url!} target="_blank" rel="noopener noreferrer"><img src={msg.media_url} alt={msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'Figurinha' : 'Imagem da mensagem'} className={cn("rounded-lg max-h-48 object-contain", msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'w-24 h-24' : 'max-w-full')} /></a>;
     case 'video': return <video src={msg.media_url} controls className="rounded-lg max-h-48 max-w-full" />;
     case 'audio': case 'audio_meme': return <audio src={msg.media_url} controls className="max-w-full" />;
     case 'document': return <a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"><FileText className="w-5 h-5 text-muted-foreground shrink-0" /><span className="text-sm text-foreground underline truncate">{msg.content || 'Documento'}</span></a>;
@@ -308,7 +308,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                           <div 
                             className={cn("flex gap-2 py-0.5 relative", isMine ? "justify-end" : "justify-start")}
                           >
-                            {!isMine && <Avatar className="w-7 h-7 mt-1 shrink-0"><AvatarImage src={msg.sender?.avatar_url || undefined} /><AvatarFallback className="text-[10px] bg-muted">{msg.sender?.name?.charAt(0) || '?'}</AvatarFallback></Avatar>}
+                            {!isMine && <Avatar className="w-7 h-7 mt-1 shrink-0"><AvatarImage src={msg.sender?.avatar_url || undefined} alt={msg.sender?.name || ""} /><AvatarFallback className="text-[10px] bg-muted">{msg.sender?.name?.charAt(0) || '?'}</AvatarFallback></Avatar>}
                             
                             <div className={cn("max-w-[70%] space-y-1 relative")}>
                               <TeamQuickReactionBar 

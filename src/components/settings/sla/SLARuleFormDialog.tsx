@@ -208,13 +208,13 @@ export function SLARuleFormDialog({
               className={cn('mt-1', errors.name && 'border-destructive')}
               aria-invalid={!!errors.name}
             />
-            {errors.name && <p className="mt-1 text-[11px] text-destructive">{errors.name}</p>}
+            {errors.name && <p role="alert" className="mt-1 text-[11px] text-destructive">{errors.name}</p>}
           </div>
 
           <div>
             <Label className="text-xs font-medium">{SCOPE_LABELS[scope]}</Label>
             {renderScopeSelector()}
-            {errors.scope && <p className="mt-1 text-[11px] text-destructive">{errors.scope}</p>}
+            {errors.scope && <p role="alert" className="mt-1 text-[11px] text-destructive">{errors.scope}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -229,7 +229,7 @@ export function SLARuleFormDialog({
                 }
                 className={cn('mt-1', errors.fr && 'border-destructive')}
               />
-              {errors.fr && <p className="mt-1 text-[11px] text-destructive">{errors.fr}</p>}
+              {errors.fr && <p role="alert" className="mt-1 text-[11px] text-destructive">{errors.fr}</p>}
             </div>
             <div>
               <Label className="text-xs font-medium">Resolução (min)</Label>
@@ -242,7 +242,7 @@ export function SLARuleFormDialog({
                 }
                 className={cn('mt-1', errors.res && 'border-destructive')}
               />
-              {errors.res && <p className="mt-1 text-[11px] text-destructive">{errors.res}</p>}
+              {errors.res && <p role="alert" className="mt-1 text-[11px] text-destructive">{errors.res}</p>}
             </div>
           </div>
 

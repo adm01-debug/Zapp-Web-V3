@@ -125,6 +125,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
             <div key={e.id} className="rounded border text-xs">
               <button
                 type="button"
+                aria-expanded={isOpen}
                 onClick={() => setExpanded(isOpen ? null : e.id)}
                 className="flex w-full items-center justify-between p-2 text-left hover:bg-muted/30"
               >

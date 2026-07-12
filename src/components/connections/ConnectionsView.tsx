@@ -133,7 +133,7 @@ export function ConnectionsView() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader><DialogTitle>Conectar WhatsApp</DialogTitle><DialogDescription>Configure os dados da conexão</DialogDescription></DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="space-y-2"><Label>Nome (identificação interna)</Label><Input placeholder="Ex: Vendas, SAC, Financeiro" value={newConnection.name} onChange={(e) => setNewConnection({ ...newConnection, name: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Nome (identificação interna)</Label><Input aria-label="Nome da conexão (identificação interna)" placeholder="Ex: Vendas, SAC, Financeiro" value={newConnection.name} onChange={(e) => setNewConnection({ ...newConnection, name: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Número do celular</Label><PhoneInput value={newConnection.phone_number} onChange={(formatted) => setNewConnection({ ...newConnection, phone_number: formatted })} /></div>
                 <div className="space-y-2">
                   <Label>Método de conexão</Label>

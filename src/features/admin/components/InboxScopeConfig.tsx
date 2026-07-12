@@ -344,16 +344,18 @@ export function InboxScopeConfig() {
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Nome de Exibição</Label>
+                  <Label htmlFor="scope-display-name">Nome de Exibição</Label>
                   <Input
+                    id="scope-display-name"
                     placeholder="Ex: Urgentes"
                     value={newScope.label}
                     onChange={(e) => setNewScope({ ...newScope, label: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Identificador (slug)</Label>
+                  <Label htmlFor="scope-slug">Identificador (slug)</Label>
                   <Input
+                    id="scope-slug"
                     placeholder="Ex: urgent_tickets"
                     value={newScope.name}
                     onChange={(e) => setNewScope({ ...newScope, name: e.target.value })}
@@ -361,8 +363,9 @@ export function InboxScopeConfig() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Descrição</Label>
+                <Label htmlFor="scope-description">Descrição</Label>
                 <Input
+                  id="scope-description"
                   placeholder="O que este escopo filtra?"
                   value={newScope.description}
                   onChange={(e) => setNewScope({ ...newScope, description: e.target.value })}

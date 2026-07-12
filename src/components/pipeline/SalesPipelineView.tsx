@@ -80,14 +80,14 @@ export function SalesPipelineView() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editingDeal ? 'Editar Deal' : 'Novo Deal'}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><Label>Título *</Label><Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Nome do deal" /></div>
-            <div><Label>Valor (R$)</Label><Input type="number" value={formValue} onChange={(e) => setFormValue(e.target.value)} placeholder="0,00" /></div>
-            <div><Label>Etapa</Label><Select value={formStageId} onValueChange={setFormStageId}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{stages.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Contato</Label><Select value={formContactId} onValueChange={setFormContactId}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Responsável</Label><Select value={formAssignedTo} onValueChange={setFormAssignedTo}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Prioridade</Label><Select value={formPriority} onValueChange={setFormPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
-            <div><Label>Data prevista</Label><Input type="date" value={formCloseDate} onChange={(e) => setFormCloseDate(e.target.value)} /></div>
-            <div className="col-span-2"><Label>Observações</Label><Textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} rows={3} /></div>
+            <div className="col-span-2"><Label htmlFor="deal-title">Título *</Label><Input id="deal-title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Nome do deal" /></div>
+            <div><Label htmlFor="deal-value">Valor (R$)</Label><Input id="deal-value" type="number" value={formValue} onChange={(e) => setFormValue(e.target.value)} placeholder="0,00" /></div>
+            <div><Label htmlFor="deal-stage">Etapa</Label><Select value={formStageId} onValueChange={setFormStageId}><SelectTrigger id="deal-stage"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{stages.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label htmlFor="deal-contact">Contato</Label><Select value={formContactId} onValueChange={setFormContactId}><SelectTrigger id="deal-contact"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label htmlFor="deal-assigned">Responsável</Label><Select value={formAssignedTo} onValueChange={setFormAssignedTo}><SelectTrigger id="deal-assigned"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label htmlFor="deal-priority">Prioridade</Label><Select value={formPriority} onValueChange={setFormPriority}><SelectTrigger id="deal-priority"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
+            <div><Label htmlFor="deal-close-date">Data prevista</Label><Input id="deal-close-date" type="date" value={formCloseDate} onChange={(e) => setFormCloseDate(e.target.value)} /></div>
+            <div className="col-span-2"><Label htmlFor="deal-notes">Observações</Label><Textarea id="deal-notes" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} rows={3} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDealDialog(false)}>Cancelar</Button>

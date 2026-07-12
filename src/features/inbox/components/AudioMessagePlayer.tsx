@@ -472,6 +472,7 @@ export function AudioMessagePlayer({
         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
           <Button
             aria-label={transcription ? 'Mostrar/ocultar transcrição' : 'Transcrever áudio'}
+            aria-expanded={transcription ? showTranscription : undefined}
             variant="ghost"
             size="icon"
             className={cn(

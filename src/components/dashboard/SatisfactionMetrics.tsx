@@ -87,7 +87,7 @@ export const SatisfactionMetrics = () => {
               <div className="text-3xl font-bold">{data.totalResponses.toLocaleString()}</div>
               <div className="text-xs text-muted-foreground mt-1">{data.responseRate}% taxa de resposta</div>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-muted/50 rounded-lg p-4 text-center cursor-pointer hover:bg-muted transition-colors" onClick={() => setDetailsOpen(true)}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} role="button" tabIndex={0} aria-label="Ver detalhes do agente com melhor desempenho" className="bg-muted/50 rounded-lg p-4 text-center cursor-pointer hover:bg-muted transition-colors" onClick={() => setDetailsOpen(true)} onKeyDown={(e) => e.key === 'Enter' && setDetailsOpen(true)}>
               <div className="text-sm text-muted-foreground mb-1">Top Agente</div>
               <div className="text-lg font-bold truncate">{data.byAgent[0]?.agentName}</div>
               <div className="text-xs text-success mt-1">{data.byAgent[0]?.csat}% CSAT</div>
@@ -121,7 +121,7 @@ export const SatisfactionMetrics = () => {
             <h4 className="text-sm font-medium mb-3">Evolução</h4>
             <div className="h-[150px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.timeline}><XAxis dataKey="date" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} domain={[0, 100]} /><Tooltip /><Line type="monotone" dataKey="csat" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} /></LineChart>
+                <LineChart data={data.timeline}><XAxis dataKey="date" tick={{ style: { fontSize: '0.75rem' } }} /><YAxis tick={{ style: { fontSize: '0.75rem' } }} domain={[0, 100]} /><Tooltip /><Line type="monotone" dataKey="csat" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} /></LineChart>
               </ResponsiveContainer>
             </div>
           </div>

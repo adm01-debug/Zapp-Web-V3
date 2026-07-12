@@ -68,6 +68,7 @@ export function VideoFullscreen({ url, onClose }: VideoFullscreenProps) {
         onLoadedMetadata={() => { if (videoRef.current) videoRef.current.playbackRate = playbackRate; }}
         className="max-w-[90vw] max-h-[85vh] rounded-lg shadow-2xl"
       />
+      <p className="sr-only">Legendas não disponíveis para conteúdo de vídeo gerado pelos usuários.</p>
     </motion.div>
   );
 }

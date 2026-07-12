@@ -103,7 +103,9 @@ export function InstanceBreakdownTable({ stats, onSelectInstance }: InstanceBrea
                     <tr
                       key={s.instance}
                       className="border-b last:border-0 hover:bg-muted/40 cursor-pointer"
+                      tabIndex={0}
                       onClick={() => onSelectInstance(s.instance)}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectInstance(s.instance)}
                     >
                       <td className="py-2 pr-4  text-xs">{s.instance}</td>
                       <td className="py-2 pr-4 text-right ">

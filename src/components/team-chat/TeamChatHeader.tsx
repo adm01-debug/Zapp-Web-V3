@@ -92,7 +92,7 @@ export function TeamChatHeader({
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <Avatar className="h-9 w-9 shrink-0 md:h-10 md:w-10">
-          <AvatarImage src={conversation.avatar_url || undefined} />
+          <AvatarImage src={conversation.avatar_url || undefined} alt={conversation.name || ""} />
           <AvatarFallback className="bg-primary/10 text-primary">
             {conversation.type === 'department' ? (
               <Building2 className="h-4 w-4" />

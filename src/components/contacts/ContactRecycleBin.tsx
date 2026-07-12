@@ -120,7 +120,7 @@ export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({ workspaceI
       {contacts.length > 3 && (
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar na lixeira..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+          <Input aria-label="Buscar na lixeira" placeholder="Buscar na lixeira..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
         </div>
       )}
 

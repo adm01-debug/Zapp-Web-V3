@@ -126,7 +126,7 @@ export function AgentPerformancePanel() {
 
                   {/* Avatar */}
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={agent.avatar} />
+                    <AvatarImage src={agent.avatar} alt={agent.name} />
                     <AvatarFallback className="text-xs">{agent.name.charAt(0)}</AvatarFallback>
                   </Avatar>
 

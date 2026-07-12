@@ -182,6 +182,7 @@ export const MessageBubble = memo(function MessageBubble({
               <Avatar className="h-[36px] w-[36px] border border-border/10 shadow-sm ring-2 ring-background">
                 <AvatarImage
                   src={avatarUrl || undefined}
+                  alt={senderName}
                   referrerPolicy="no-referrer"
                   onError={(e) => (e.target as HTMLImageElement).removeAttribute('src')}
                 />
@@ -197,7 +198,7 @@ export const MessageBubble = memo(function MessageBubble({
           className={cn('relative max-w-[85%] space-y-0.5 sm:max-w-[70%]', isSent && 'items-end')}
         >
           {!isSent && isFirstInGroup && (
-            <span className="mb-0.5 ml-1 block text-[13px] font-bold tracking-tight text-primary/70">
+            <span className="mb-0.5 ml-1 block text-[13px] font-bold tracking-tight text-primary-accessible">
               {senderName}
             </span>
           )}

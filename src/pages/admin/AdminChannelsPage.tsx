@@ -99,10 +99,11 @@ export default function AdminChannelsPage() {
       <Card>
         <CardContent className="pt-6 flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[220px]">
-            <Label className="text-xs">Buscar</Label>
+            <Label htmlFor="channel-search" className="text-xs">Buscar</Label>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
+                id="channel-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && load()}
@@ -112,9 +113,9 @@ export default function AdminChannelsPage() {
             </div>
           </div>
           <div className="w-[180px]">
-            <Label className="text-xs">Status</Label>
+            <Label htmlFor="channel-status-filter" className="text-xs">Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="channel-status-filter"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="active">Ativos</SelectItem>
@@ -245,17 +246,17 @@ export default function AdminChannelsPage() {
           {editing && (
             <div className="space-y-4 py-4">
               <div>
-                <Label>Nome *</Label>
-                <Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+                <Label htmlFor="ch-name">Nome *</Label>
+                <Input id="ch-name" value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
               </div>
               <div>
-                <Label>Nome de exibição</Label>
-                <Input value={editing.display_name ?? ""} onChange={(e) => setEditing({ ...editing, display_name: e.target.value })} />
+                <Label htmlFor="ch-display-name">Nome de exibição</Label>
+                <Input id="ch-display-name" value={editing.display_name ?? ""} onChange={(e) => setEditing({ ...editing, display_name: e.target.value })} />
               </div>
               <div>
-                <Label>Tipo</Label>
+                <Label htmlFor="ch-type">Tipo</Label>
                 <Select value={editing.channel_type ?? "whatsapp"} onValueChange={(v) => setEditing({ ...editing, channel_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="ch-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CHANNEL_TYPES.map((t) => (
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -265,12 +266,12 @@ export default function AdminChannelsPage() {
               </div>
               {editing.channel_type === "whatsapp" && (
                 <div>
-                  <Label>Conexão WhatsApp</Label>
+                  <Label htmlFor="ch-wpp-conn">Conexão WhatsApp</Label>
                   <Select
                     value={editing.whatsapp_connection_id ?? "none"}
                     onValueChange={(v) => setEditing({ ...editing, whatsapp_connection_id: v === "none" ? null : v })}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="ch-wpp-conn"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">— nenhuma —</SelectItem>
                       {wppConns.map((w) => (
@@ -281,12 +282,12 @@ export default function AdminChannelsPage() {
                 </div>
               )}
               <div>
-                <Label>Fila padrão</Label>
+                <Label htmlFor="ch-default-queue">Fila padrão</Label>
                 <Select
                   value={editing.default_queue_id ?? "none"}
                   onValueChange={(v) => setEditing({ ...editing, default_queue_id: v === "none" ? null : v })}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="ch-default-queue"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sem fila padrão</SelectItem>
                     {queues.map((q) => (
@@ -299,9 +300,9 @@ export default function AdminChannelsPage() {
                 </p>
               </div>
               <div>
-                <Label>Modo de roteamento</Label>
+                <Label htmlFor="ch-routing-mode">Modo de roteamento</Label>
                 <Select value={editing.routing_mode ?? "manual"} onValueChange={(v) => setEditing({ ...editing, routing_mode: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="ch-routing-mode"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ROUTING_MODES.map((m) => (
                       <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -313,20 +314,22 @@ export default function AdminChannelsPage() {
               <div className="rounded-md border p-3 space-y-3 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-sm font-semibold">Sticky agent</Label>
+                    <Label htmlFor="ch-sticky-enabled" className="text-sm font-semibold">Sticky agent</Label>
                     <p className="text-xs text-muted-foreground">
                       Mantém o contato com o último atendente que falou com ele.
                     </p>
                   </div>
                   <Switch
+                    id="ch-sticky-enabled"
                     checked={!!editing.sticky_enabled}
                     onCheckedChange={(v) => setEditing({ ...editing, sticky_enabled: v })}
                   />
                 </div>
                 {editing.sticky_enabled && (
                   <div>
-                    <Label className="text-xs">TTL (horas)</Label>
+                    <Label htmlFor="ch-sticky-ttl" className="text-xs">TTL (horas)</Label>
                     <Input
+                      id="ch-sticky-ttl"
                       type="number"
                       min={1}
                       max={720}
@@ -338,16 +341,16 @@ export default function AdminChannelsPage() {
               </div>
 
               <div>
-                <Label>Cor</Label>
-                <Input type="color" value={editing.color ?? "#3B82F6"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
+                <Label htmlFor="ch-color">Cor</Label>
+                <Input id="ch-color" type="color" value={editing.color ?? "#3B82F6"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
               </div>
               <div>
-                <Label>Descrição</Label>
-                <Textarea value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} rows={2} />
+                <Label htmlFor="ch-description">Descrição</Label>
+                <Textarea id="ch-description" value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} rows={2} />
               </div>
               <div className="flex items-center justify-between">
-                <Label>Padrão para este tipo</Label>
-                <Switch checked={!!editing.is_default} onCheckedChange={(v) => setEditing({ ...editing, is_default: v })} />
+                <Label htmlFor="ch-is-default">Padrão para este tipo</Label>
+                <Switch id="ch-is-default" checked={!!editing.is_default} onCheckedChange={(v) => setEditing({ ...editing, is_default: v })} />
               </div>
             </div>
           )}
@@ -376,8 +379,8 @@ export default function AdminChannelsPage() {
           </AlertDialogHeader>
           {actionDialog?.kind !== "purge" && (
             <div className="py-2">
-              <Label className="text-xs">Motivo (opcional, fica no audit log)</Label>
-              <Textarea value={actionReason} onChange={(e) => setActionReason(e.target.value)} rows={2} placeholder="Ex.: manutenção programada" />
+              <Label htmlFor="action-reason" className="text-xs">Motivo (opcional, fica no audit log)</Label>
+              <Textarea id="action-reason" value={actionReason} onChange={(e) => setActionReason(e.target.value)} rows={2} placeholder="Ex.: manutenção programada" />
             </div>
           )}
           <AlertDialogFooter>

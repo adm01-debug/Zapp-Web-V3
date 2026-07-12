@@ -80,9 +80,10 @@ export const MessageBubble = memo(({
     >
       {!isSent && (
         <Avatar className="w-9 h-9 shrink-0 self-end mb-1 ring-2 ring-background shadow-md border border-border/5 transition-transform group-hover:scale-105">
-          <AvatarImage 
-            src={avatarUrl || undefined} 
-            referrerPolicy="no-referrer" 
+          <AvatarImage
+            src={avatarUrl || undefined}
+            alt={message.senderName || 'Contato'}
+            referrerPolicy="no-referrer"
             className="object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).removeAttribute('src');

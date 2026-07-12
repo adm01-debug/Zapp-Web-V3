@@ -53,7 +53,7 @@ export function ContactListItem({
       <div className="relative shrink-0">
         <motion.div layoutId={`avatar-${contact.id}`}>
           <Avatar className="w-[53px] h-[53px]">
-            <AvatarImage src={contact.avatar_url || undefined} />
+            <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
             <AvatarFallback className={cn('font-semibold text-sm', avatarColors.bg, avatarColors.text)}>
               {getInitials(contact.name)}
             </AvatarFallback>

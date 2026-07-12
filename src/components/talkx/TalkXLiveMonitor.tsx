@@ -251,7 +251,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
         >
           <Card className="border-border/50">
             <CardContent className="flex items-center gap-2 p-3">
-              <svg width="40" height="40" viewBox="0 0 44 44" className="shrink-0">
+              <svg width="40" height="40" viewBox="0 0 44 44" className="shrink-0" aria-hidden="true">
                 <circle
                   cx="22"
                   cy="22"

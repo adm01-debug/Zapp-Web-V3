@@ -86,9 +86,10 @@ export function NewMessageIndicator({
                     }}
                   />
                   <Avatar className="w-12 h-12 ring-2 ring-primary/50">
-                    <AvatarImage 
-                      src={avatarUrl || undefined} 
-                      referrerPolicy="no-referrer" 
+                    <AvatarImage
+                      src={avatarUrl || undefined}
+                      alt={contactName}
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
                         (e.target as HTMLImageElement).removeAttribute('src');
                       }}
