@@ -1,12 +1,12 @@
-// @ts-nocheck
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatTokens } from '@/lib/rechartsFormatters';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface UserUsage { userId: string; calls: number; tokens: number; }
 
 interface AIUsageUsersTabProps {
   userUsage: UserUsage[];
-  profileMap: Map<string, { name?: string; email?: string }>;
+  profileMap: Map<string, { name?: string | null; email?: string | null }>;
 }
 
 export function AIUsageUsersTab({ userUsage, profileMap }: AIUsageUsersTabProps) {
@@ -28,7 +28,7 @@ export function AIUsageUsersTab({ userUsage, profileMap }: AIUsageUsersTabProps)
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis type="number" fontSize={11} className="fill-muted-foreground" />
             <YAxis type="category" dataKey="name" width={120} fontSize={11} className="fill-muted-foreground" />
-            <Tooltip formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'} contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--popover-foreground))' }} />
+            <Tooltip formatter={formatTokens} contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--popover-foreground))' }} />
             <Bar dataKey="tokens" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Tokens" />
           </BarChart>
         </ResponsiveContainer>

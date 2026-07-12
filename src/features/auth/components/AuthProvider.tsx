@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
@@ -70,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: perms } = await supabase
         .from('role_permissions')
         .select('permissions(name)')
-        .in('role', roleNames);
+        .in('role', roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>);
 
       if (perms) {
         const permNames = (perms as Array<{ permissions: { name: string } | null }>)
