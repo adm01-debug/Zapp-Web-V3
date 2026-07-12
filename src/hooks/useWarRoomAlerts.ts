@@ -21,6 +21,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
   const queryClient = useQueryClient();
   const { showNotification, permission } = usePushNotifications();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const slaCheckingRef = useRef(false);
 
   // Initialize alert sound
   useEffect(() => {
@@ -121,6 +122,11 @@ export function useWarRoomAlerts(soundEnabled = true) {
   // SLA breach monitor - checks every 60s and creates alerts
   useEffect(() => {
     const checkSLABreaches = async () => {
+      if (slaCheckingRef.current) return;
+      slaCheckingRef.current = true;
+      try { await checkSLABreachesInner(); } finally { slaCheckingRef.current = false; }
+    };
+    const checkSLABreachesInner = async () => {
       const { data: breaches, error: breachesErr } = await supabase
         .from('conversation_sla')
         .select('id, contact_id, first_response_breached, resolution_breached')

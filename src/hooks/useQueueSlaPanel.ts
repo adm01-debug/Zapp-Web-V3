@@ -34,6 +34,7 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const mountedRef = useRef(true);
+  const fetchingRef = useRef(false);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -42,21 +43,27 @@ export function useQueueSlaPanel(filters: QueueSlaFilters) {
   }, []);
 
   const fetchRows = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     setLoading(true);
     setError(null);
-    const { data, error } = await safeClient.rpc<QueueSlaRow[]>('rpc_queue_sla_panel', {
-      p_skill_name: filters.skill_name,
-      p_channel_type: filters.channel_type,
-      p_sla_status: filters.sla_status,
-    });
-    if (!mountedRef.current) return;
-    if (error) {
-      setError(error.message);
-      setRows([]);
-    } else {
-      setRows(data ?? []);
+    try {
+      const { data, error } = await safeClient.rpc<QueueSlaRow[]>('rpc_queue_sla_panel', {
+        p_skill_name: filters.skill_name,
+        p_channel_type: filters.channel_type,
+        p_sla_status: filters.sla_status,
+      });
+      if (!mountedRef.current) return;
+      if (error) {
+        setError(error.message);
+        setRows([]);
+      } else {
+        setRows(data ?? []);
+      }
+    } finally {
+      fetchingRef.current = false;
+      if (mountedRef.current) setLoading(false);
     }
-    setLoading(false);
   }, [filters.skill_name, filters.channel_type, filters.sla_status]);
 
   useEffect(() => {
