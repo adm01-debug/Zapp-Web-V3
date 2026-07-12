@@ -76,7 +76,7 @@ async function sha256Hex(input: string): Promise<{ algo: 's256' | 'fb1'; hash: s
       }
       return { algo: 's256', hash: hex.slice(0, 32) };
     } catch {
-      /* fall through to fallback */
+      // crypto.subtle unavailable (Node/Jest/non-secure context) — FNV-1a fallback below
     }
   }
   // Deterministic fallback: FNV-1a 32-bit, repeated to widen.
@@ -88,7 +88,12 @@ async function sha256Hex(input: string): Promise<{ algo: 's256' | 'fb1'; hash: s
     }
     return h.toString(16).padStart(8, '0');
   };
-  const hash = (fnv(input, 0x811c9dc5) + fnv(input, 0xdeadbeef) + fnv(input, 0x1b873593) + fnv(input, 0x6a88c5b1)).slice(0, 32);
+  const hash = (
+    fnv(input, 0x811c9dc5) +
+    fnv(input, 0xdeadbeef) +
+    fnv(input, 0x1b873593) +
+    fnv(input, 0x6a88c5b1)
+  ).slice(0, 32);
   return { algo: 'fb1', hash };
 }
 
@@ -111,9 +116,7 @@ export function buildSendIdempotencyKey(messageRowId: string): string {
  *  - A "Reenviar" click that creates a fresh row but for IDENTICAL content
  *    still produces the same key, letting Evolution dedupe on its side.
  */
-export async function buildSendIdempotencyKeyFromFingerprint(
-  fp: SendFingerprint,
-): Promise<string> {
+export async function buildSendIdempotencyKeyFromFingerprint(fp: SendFingerprint): Promise<string> {
   const bucketMs = fp.bucketMs && fp.bucketMs > 0 ? fp.bucketMs : DEFAULT_BUCKET_MS;
   const now = typeof fp.now === 'number' ? fp.now : Date.now();
   const bucket = Math.floor(now / bucketMs);

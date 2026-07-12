@@ -52,7 +52,7 @@ export async function sha256Hex(input: string): Promise<string> {
       return arr.map((b) => b.toString(16).padStart(2, '0')).join('');
     }
   } catch {
-    // fall through
+    // crypto.subtle unavailable (Node/Jest/non-secure context) — djb2 fallback below
   }
   // Deterministic fallback (NOT cryptographic) — repeat djb2 to fill 64 chars
   let out = '';

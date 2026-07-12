@@ -121,8 +121,8 @@ export function recordDedupeEvent(input: {
     if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
       window.dispatchEvent(new CustomEvent('zappweb:dedupe-event', { detail: ev }));
     }
-  } catch {
-    /* no-op */
+  } catch (err) {
+    log.debug('[dedupeMetrics] CustomEvent dispatch failed (non-browser env or CSP)', err);
   }
 
   notify();

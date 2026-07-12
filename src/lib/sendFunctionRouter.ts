@@ -11,7 +11,9 @@
  * hooks, and message senders remain agnostic.
  */
 import { supabase as _sb } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
 const supabase: any = _sb;
+const log = getLogger('sendFunctionRouter');
 
 type FnName = 'evolution-api' | 'whatsapp-cloud-api';
 
@@ -47,7 +49,8 @@ export async function resolveSendFunction(
 
     cache.set(instanceName, { fn, expiresAt: Date.now() + TTL_MS });
     return fn;
-  } catch {
+  } catch (err) {
+    log.warn('[resolveSendFunction] DB lookup failed, falling back to evolution-api', err);
     return 'evolution-api';
   }
 }
