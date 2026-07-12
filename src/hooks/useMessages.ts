@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMessages.ts
  * Messages hook usando evo.evolution_messages via RPC e Realtime.
