@@ -131,10 +131,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
 
         // Enhanced Transcription with Backend Fallback Support
-        const SpeechRecognition =
-          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (SpeechRecognition) {
-          const recognition = new SpeechRecognition();
+        const win = window as Window & { webkitSpeechRecognition?: typeof SpeechRecognition };
+        const SpeechRecognitionImpl = win.SpeechRecognition || win.webkitSpeechRecognition;
+        if (SpeechRecognitionImpl) {
+          const recognition = new SpeechRecognitionImpl();
           recognition.lang = 'pt-BR';
           recognition.continuous = true;
           recognition.interimResults = true;

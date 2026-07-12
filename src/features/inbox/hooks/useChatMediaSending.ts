@@ -7,7 +7,7 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { newRequestId } from '@/lib/withRequestId';
 import { dbFrom } from '@/integrations/datasource/db';
 import type { AudioMemeItem } from '@/hooks/useAudioMemes';
-import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import { evolutionInstanceName, EvolutionInstanceRef } from '@/lib/evolutionInstance';
 
 /**
  * Encapsulates WhatsApp instance resolution and media-message sending
@@ -82,7 +82,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
           .select('instance_id, instance_name')
           .eq('id', connectionId)
           .maybeSingle();
-        const resolved = conn ? evolutionInstanceName(conn as any) : null;
+        const resolved = conn ? evolutionInstanceName(conn as EvolutionInstanceRef) : null;
         if (resolved) {
           setInstanceName(resolved);
           return resolved;
@@ -98,7 +98,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         .limit(1)
         .maybeSingle();
 
-      const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn as any) : null;
+      const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn as EvolutionInstanceRef) : null;
       if (fallbackResolved) {
         setInstanceName(fallbackResolved);
         if (fallbackConn?.id) setWhatsappConnectionId(fallbackConn.id);

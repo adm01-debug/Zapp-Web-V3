@@ -82,11 +82,11 @@ export function useEmailSearch(accountId: string | null) {
 
       try {
         const res = await emailListThreads({ accountId, q, maxResults: 10 });
-        return (((res as any).threads as Record<string, unknown>[]) ?? []).map((t) => ({
-          id: String(t.id ?? ''),
-          thread_id: String(t.id ?? ''),
-          subject: String(t.snippet ?? '').substring(0, 80),
-          snippet: String(t.snippet ?? ''),
+        return (res.data?.threads ?? []).map((t) => ({
+          id: t.id,
+          thread_id: t.id,
+          subject: t.snippet.substring(0, 80),
+          snippet: t.snippet,
           from_email: '',
           from_name: null,
           last_message_at: null,
