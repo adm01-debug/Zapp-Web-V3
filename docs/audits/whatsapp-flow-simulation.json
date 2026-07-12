@@ -3,9 +3,9 @@
     "totals": {
       "scenarios": 693,
       "messages": 13860,
-      "sent": 3212,
-      "failed": 10550,
-      "processed": 34870,
+      "sent": 3186,
+      "failed": 10549,
+      "processed": 34811,
       "stuck_processing": 0,
       "duplicate_sends": 0
     },
@@ -18,8 +18,8 @@
     "byFailure": {
       "none": {
         "runs": 63,
-        "sent": 1112,
-        "failed": 50,
+        "sent": 1086,
+        "failed": 49,
         "avgSuccAtt": 1
       },
       "http_401": {
@@ -99,21 +99,21 @@
         "invalid_payload_ratio": 0.05
       },
       "processed": 19,
-      "sent": 19,
-      "failed": 0,
+      "sent": 18,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 129,
+      "wall_time_ms": 140,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
-        "sent": 19,
-        "failed": 0
+        "sent": 18,
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 1
     },
     {
       "scenario": {
@@ -128,22 +128,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 17,
+      "processed": 18,
       "sent": 17,
-      "failed": 0,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 135,
       "final_status_counts": {
-        "pending": 3,
+        "pending": 2,
         "processing": 0,
         "sent": 17,
-        "failed": 0
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 1
     },
     {
       "scenario": {
@@ -159,18 +159,18 @@
         "invalid_payload_ratio": 0.05
       },
       "processed": 19,
-      "sent": 18,
-      "failed": 1,
+      "sent": 17,
+      "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 145,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
-        "sent": 18,
-        "failed": 1
+        "sent": 17,
+        "failed": 2
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 1
@@ -188,19 +188,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 21,
-      "sent": 18,
-      "failed": 1,
+      "processed": 23,
+      "sent": 17,
+      "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 114,
+      "wall_time_ms": 120,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
-        "sent": 18,
-        "failed": 1
+        "sent": 17,
+        "failed": 2
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 3
@@ -218,22 +218,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
-      "sent": 19,
-      "failed": 0,
+      "processed": 18,
+      "sent": 15,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 139,
+      "wall_time_ms": 122,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 4,
         "processing": 0,
-        "sent": 19,
-        "failed": 0
+        "sent": 15,
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 3
     },
     {
       "scenario": {
@@ -248,19 +248,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 22,
-      "sent": 19,
-      "failed": 1,
+      "processed": 20,
+      "sent": 14,
+      "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 121,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 4,
         "processing": 0,
-        "sent": 19,
-        "failed": 1
+        "sent": 14,
+        "failed": 2
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 3
@@ -278,18 +278,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 22,
-      "sent": 17,
+      "processed": 21,
+      "sent": 16,
       "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 120,
+      "wall_time_ms": 112,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 3,
         "processing": 0,
-        "sent": 17,
+        "sent": 16,
         "failed": 1
       },
       "avg_attempts_success": 1,
@@ -338,22 +338,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 22,
-      "sent": 17,
-      "failed": 1,
+      "processed": 20,
+      "sent": 20,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 122,
+      "wall_time_ms": 37,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 0,
         "processing": 0,
-        "sent": 17,
-        "failed": 1
+        "sent": 20,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 5
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -377,7 +377,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -409,7 +409,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -441,7 +441,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 49,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -473,7 +473,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 130,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -505,7 +505,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 132,
+      "wall_time_ms": 158,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -537,7 +537,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 124,
+      "wall_time_ms": 161,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -569,7 +569,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 217,
+      "wall_time_ms": 222,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -601,7 +601,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 211,
+      "wall_time_ms": 242,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -633,7 +633,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 217,
+      "wall_time_ms": 231,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -665,7 +665,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 37,
+      "wall_time_ms": 53,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -697,7 +697,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 49,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -729,7 +729,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -761,7 +761,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 129,
+      "wall_time_ms": 149,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -793,7 +793,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 131,
+      "wall_time_ms": 149,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -825,7 +825,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 137,
+      "wall_time_ms": 162,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -857,7 +857,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 222,
+      "wall_time_ms": 226,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -889,7 +889,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 220,
+      "wall_time_ms": 221,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -921,7 +921,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 218,
+      "wall_time_ms": 233,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -951,7 +951,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -981,7 +981,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 55,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1011,7 +1011,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1041,7 +1041,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 128,
+      "wall_time_ms": 152,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1071,7 +1071,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 131,
+      "wall_time_ms": 146,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1101,7 +1101,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 141,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1131,7 +1131,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 228,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1161,7 +1161,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 218,
+      "wall_time_ms": 235,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1191,7 +1191,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 218,
+      "wall_time_ms": 216,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1221,7 +1221,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1251,7 +1251,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1281,7 +1281,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1311,7 +1311,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 118,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1341,7 +1341,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 133,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1371,7 +1371,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 143,
+      "wall_time_ms": 148,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1401,7 +1401,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 218,
+      "wall_time_ms": 249,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1431,7 +1431,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 213,
+      "wall_time_ms": 239,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1461,7 +1461,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 215,
+      "wall_time_ms": 226,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1491,7 +1491,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1521,7 +1521,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1551,7 +1551,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 31,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1581,7 +1581,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 124,
+      "wall_time_ms": 137,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1611,7 +1611,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 141,
+      "wall_time_ms": 120,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1641,7 +1641,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 111,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1671,7 +1671,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 211,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1701,7 +1701,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 220,
+      "wall_time_ms": 223,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1731,7 +1731,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 196,
+      "wall_time_ms": 237,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1761,7 +1761,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1791,7 +1791,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1821,7 +1821,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 41,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1851,7 +1851,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 141,
+      "wall_time_ms": 124,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1881,7 +1881,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 125,
+      "wall_time_ms": 133,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1911,7 +1911,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 136,
+      "wall_time_ms": 138,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1941,7 +1941,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 223,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -1971,7 +1971,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 218,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2001,7 +2001,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 218,
+      "wall_time_ms": 210,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2031,7 +2031,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 48,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2061,7 +2061,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2091,7 +2091,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 36,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2121,7 +2121,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 116,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2151,7 +2151,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 130,
+      "wall_time_ms": 133,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2181,7 +2181,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 119,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2211,7 +2211,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 237,
+      "wall_time_ms": 240,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2241,7 +2241,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 228,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2271,7 +2271,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 231,
+      "wall_time_ms": 226,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2301,7 +2301,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 37,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2331,7 +2331,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 50,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2361,7 +2361,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 39,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2391,7 +2391,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 95,
+      "wall_time_ms": 97,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2421,7 +2421,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 93,
+      "wall_time_ms": 78,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2451,7 +2451,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 103,
+      "wall_time_ms": 84,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2481,7 +2481,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 68,
+      "wall_time_ms": 96,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2511,7 +2511,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 92,
+      "wall_time_ms": 88,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2541,7 +2541,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 79,
+      "wall_time_ms": 94,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2573,7 +2573,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 37,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2637,7 +2637,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2669,7 +2669,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 126,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2701,7 +2701,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 132,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2733,7 +2733,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 133,
+      "wall_time_ms": 117,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2765,7 +2765,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 226,
+      "wall_time_ms": 231,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2797,7 +2797,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 219,
+      "wall_time_ms": 208,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2829,7 +2829,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 226,
+      "wall_time_ms": 219,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2861,7 +2861,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2893,7 +2893,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2957,7 +2957,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -2989,7 +2989,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3021,7 +3021,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3053,7 +3053,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3085,7 +3085,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3140,22 +3140,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 16,
-      "sent": 16,
-      "failed": 0,
+      "processed": 19,
+      "sent": 17,
+      "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 123,
+      "wall_time_ms": 119,
       "final_status_counts": {
-        "pending": 4,
+        "pending": 1,
         "processing": 0,
-        "sent": 16,
-        "failed": 0
+        "sent": 17,
+        "failed": 2
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 1
     },
     {
       "scenario": {
@@ -3170,22 +3170,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 20,
-      "sent": 20,
-      "failed": 0,
+      "processed": 19,
+      "sent": 18,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 39,
+      "wall_time_ms": 136,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 1,
         "processing": 0,
-        "sent": 20,
-        "failed": 0
+        "sent": 18,
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 1
     },
     {
       "scenario": {
@@ -3201,18 +3201,18 @@
         "invalid_payload_ratio": 0.05
       },
       "processed": 18,
-      "sent": 16,
-      "failed": 2,
+      "sent": 17,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 131,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 2,
         "processing": 0,
-        "sent": 16,
-        "failed": 2
+        "sent": 17,
+        "failed": 1
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 1
@@ -3237,7 +3237,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3261,21 +3261,21 @@
         "invalid_payload_ratio": 0.05
       },
       "processed": 19,
-      "sent": 16,
-      "failed": 1,
+      "sent": 19,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 122,
+      "wall_time_ms": 130,
       "final_status_counts": {
-        "pending": 3,
+        "pending": 1,
         "processing": 0,
-        "sent": 16,
-        "failed": 1
+        "sent": 19,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 3
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -3290,22 +3290,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
-      "sent": 19,
-      "failed": 0,
+      "processed": 20,
+      "sent": 17,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 134,
+      "wall_time_ms": 133,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 2,
         "processing": 0,
-        "sent": 19,
-        "failed": 0
+        "sent": 17,
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 3
     },
     {
       "scenario": {
@@ -3320,22 +3320,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 18,
-      "failed": 0,
+      "processed": 31,
+      "sent": 16,
+      "failed": 3,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 108,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 1,
         "processing": 0,
-        "sent": 18,
-        "failed": 0
+        "sent": 16,
+        "failed": 3
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 5
     },
     {
       "scenario": {
@@ -3350,22 +3350,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
+      "processed": 24,
       "sent": 19,
-      "failed": 0,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 135,
+      "wall_time_ms": 40,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 0,
         "processing": 0,
         "sent": 19,
-        "failed": 0
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 5
     },
     {
       "scenario": {
@@ -3380,22 +3380,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 20,
-      "sent": 15,
-      "failed": 1,
+      "processed": 17,
+      "sent": 17,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 114,
+      "wall_time_ms": 132,
       "final_status_counts": {
-        "pending": 4,
+        "pending": 3,
         "processing": 0,
-        "sent": 15,
-        "failed": 1
+        "sent": 17,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 5
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -3419,7 +3419,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3451,7 +3451,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3483,7 +3483,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3515,7 +3515,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 128,
+      "wall_time_ms": 137,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3547,7 +3547,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 124,
+      "wall_time_ms": 140,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3579,7 +3579,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 126,
+      "wall_time_ms": 124,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3611,7 +3611,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 223,
+      "wall_time_ms": 216,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3643,7 +3643,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 223,
+      "wall_time_ms": 205,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3675,7 +3675,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 240,
+      "wall_time_ms": 225,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3707,7 +3707,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 52,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3739,7 +3739,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 33,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3771,7 +3771,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3803,7 +3803,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 135,
+      "wall_time_ms": 142,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3835,7 +3835,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 131,
+      "wall_time_ms": 138,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3867,7 +3867,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 132,
+      "wall_time_ms": 133,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3899,7 +3899,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 221,
+      "wall_time_ms": 220,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3931,7 +3931,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 230,
+      "wall_time_ms": 243,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3963,7 +3963,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 219,
+      "wall_time_ms": 224,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -3993,7 +3993,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 55,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4023,7 +4023,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4053,7 +4053,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4083,7 +4083,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 135,
+      "wall_time_ms": 144,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4113,7 +4113,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 147,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4143,7 +4143,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 132,
+      "wall_time_ms": 134,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4173,7 +4173,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 238,
+      "wall_time_ms": 247,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4203,7 +4203,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 233,
+      "wall_time_ms": 208,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4233,7 +4233,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 234,
+      "wall_time_ms": 226,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4263,7 +4263,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 51,
+      "wall_time_ms": 52,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4293,7 +4293,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 51,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4323,7 +4323,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 52,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4353,7 +4353,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 144,
+      "wall_time_ms": 150,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4383,7 +4383,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 141,
+      "wall_time_ms": 148,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4413,7 +4413,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 142,
+      "wall_time_ms": 139,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4443,7 +4443,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 223,
+      "wall_time_ms": 212,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4473,7 +4473,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 214,
+      "wall_time_ms": 202,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4503,7 +4503,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 225,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4533,7 +4533,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 50,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4563,7 +4563,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4593,7 +4593,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 41,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4623,7 +4623,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 130,
+      "wall_time_ms": 120,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4653,7 +4653,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 138,
+      "wall_time_ms": 124,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4713,7 +4713,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 220,
+      "wall_time_ms": 206,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4743,7 +4743,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 244,
+      "wall_time_ms": 227,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4803,7 +4803,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4833,7 +4833,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4863,7 +4863,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 49,
+      "wall_time_ms": 35,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4893,7 +4893,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 138,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4923,7 +4923,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 133,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4953,7 +4953,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 131,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -4983,7 +4983,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 220,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5013,7 +5013,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 227,
+      "wall_time_ms": 209,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5043,7 +5043,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 223,
+      "wall_time_ms": 210,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5073,7 +5073,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5133,7 +5133,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5163,7 +5163,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5193,7 +5193,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 143,
+      "wall_time_ms": 142,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5223,7 +5223,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 139,
+      "wall_time_ms": 134,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5253,7 +5253,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 231,
+      "wall_time_ms": 197,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5283,7 +5283,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 246,
+      "wall_time_ms": 232,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5313,7 +5313,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 214,
+      "wall_time_ms": 201,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5343,7 +5343,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 48,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5373,7 +5373,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 52,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5403,7 +5403,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 54,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5433,7 +5433,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 94,
+      "wall_time_ms": 86,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5463,7 +5463,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 80,
+      "wall_time_ms": 95,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5493,7 +5493,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 89,
+      "wall_time_ms": 90,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5523,7 +5523,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 84,
+      "wall_time_ms": 91,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5553,7 +5553,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 93,
+      "wall_time_ms": 82,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5583,7 +5583,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 96,
+      "wall_time_ms": 93,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5615,7 +5615,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 52,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5679,7 +5679,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5711,7 +5711,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 134,
+      "wall_time_ms": 142,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5743,7 +5743,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 120,
+      "wall_time_ms": 134,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5775,7 +5775,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 136,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5807,7 +5807,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 223,
+      "wall_time_ms": 205,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5839,7 +5839,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 231,
+      "wall_time_ms": 226,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5871,7 +5871,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 233,
+      "wall_time_ms": 224,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5903,7 +5903,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 39,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5935,7 +5935,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -5999,7 +5999,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6095,7 +6095,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6159,7 +6159,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 51,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6182,22 +6182,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 18,
-      "failed": 0,
+      "processed": 19,
+      "sent": 17,
+      "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 126,
+      "wall_time_ms": 121,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 1,
         "processing": 0,
-        "sent": 18,
-        "failed": 0
+        "sent": 17,
+        "failed": 2
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 1
     },
     {
       "scenario": {
@@ -6213,18 +6213,18 @@
         "invalid_payload_ratio": 0.05
       },
       "processed": 19,
-      "sent": 18,
-      "failed": 1,
+      "sent": 17,
+      "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 140,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
-        "sent": 18,
-        "failed": 1
+        "sent": 17,
+        "failed": 2
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 1
@@ -6249,7 +6249,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 139,
+      "wall_time_ms": 140,
       "final_status_counts": {
         "pending": 4,
         "processing": 0,
@@ -6272,22 +6272,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 17,
-      "sent": 17,
-      "failed": 0,
+      "processed": 22,
+      "sent": 19,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 132,
+      "wall_time_ms": 43,
       "final_status_counts": {
-        "pending": 3,
+        "pending": 0,
         "processing": 0,
-        "sent": 17,
-        "failed": 0
+        "sent": 19,
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 3
     },
     {
       "scenario": {
@@ -6302,19 +6302,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 24,
-      "sent": 18,
-      "failed": 2,
+      "processed": 18,
+      "sent": 15,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 41,
+      "wall_time_ms": 117,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 4,
         "processing": 0,
-        "sent": 18,
-        "failed": 2
+        "sent": 15,
+        "failed": 1
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 3
@@ -6332,19 +6332,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 28,
-      "sent": 13,
-      "failed": 5,
+      "processed": 19,
+      "sent": 16,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 125,
+      "wall_time_ms": 122,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 3,
         "processing": 0,
-        "sent": 13,
-        "failed": 5
+        "sent": 16,
+        "failed": 1
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 3
@@ -6362,8 +6362,8 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 21,
-      "sent": 16,
+      "processed": 20,
+      "sent": 15,
       "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
@@ -6371,9 +6371,9 @@
       "invariant_violations": [],
       "wall_time_ms": 109,
       "final_status_counts": {
-        "pending": 3,
+        "pending": 4,
         "processing": 0,
-        "sent": 16,
+        "sent": 15,
         "failed": 1
       },
       "avg_attempts_success": 1,
@@ -6392,22 +6392,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 23,
-      "sent": 18,
-      "failed": 1,
+      "processed": 19,
+      "sent": 19,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 115,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
-        "sent": 18,
-        "failed": 1
+        "sent": 19,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 5
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -6422,22 +6422,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
-      "sent": 19,
-      "failed": 0,
+      "processed": 21,
+      "sent": 16,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 155,
+      "wall_time_ms": 107,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 3,
         "processing": 0,
-        "sent": 19,
-        "failed": 0
+        "sent": 16,
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 5
     },
     {
       "scenario": {
@@ -6461,7 +6461,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6493,7 +6493,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6525,7 +6525,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6557,7 +6557,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 140,
+      "wall_time_ms": 141,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6589,7 +6589,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 143,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6621,7 +6621,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 135,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6653,7 +6653,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 258,
+      "wall_time_ms": 228,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6685,7 +6685,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 250,
+      "wall_time_ms": 253,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6717,7 +6717,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 245,
+      "wall_time_ms": 238,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6749,7 +6749,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6781,7 +6781,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 53,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6813,7 +6813,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6845,7 +6845,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 142,
+      "wall_time_ms": 143,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6877,7 +6877,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 128,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6909,7 +6909,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 136,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6941,7 +6941,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 235,
+      "wall_time_ms": 214,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -6973,7 +6973,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 216,
+      "wall_time_ms": 235,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7005,7 +7005,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 232,
+      "wall_time_ms": 213,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7035,7 +7035,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 48,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7065,7 +7065,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 40,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7095,7 +7095,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 40,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7125,7 +7125,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 130,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7155,7 +7155,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 136,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7185,7 +7185,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 123,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7215,7 +7215,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 222,
+      "wall_time_ms": 216,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7245,7 +7245,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 247,
+      "wall_time_ms": 217,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7305,7 +7305,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7335,7 +7335,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 40,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7365,7 +7365,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7395,7 +7395,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 122,
+      "wall_time_ms": 126,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7425,7 +7425,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 136,
+      "wall_time_ms": 131,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7485,7 +7485,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 208,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7515,7 +7515,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 254,
+      "wall_time_ms": 236,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7545,7 +7545,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 229,
+      "wall_time_ms": 225,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7575,7 +7575,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 52,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7605,7 +7605,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7635,7 +7635,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7665,7 +7665,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 128,
+      "wall_time_ms": 131,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7695,7 +7695,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 135,
+      "wall_time_ms": 142,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7725,7 +7725,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 119,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7755,7 +7755,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 232,
+      "wall_time_ms": 213,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7785,7 +7785,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 211,
+      "wall_time_ms": 223,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7815,7 +7815,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 238,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7845,7 +7845,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7875,7 +7875,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7905,7 +7905,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 50,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7935,7 +7935,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 119,
+      "wall_time_ms": 138,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7965,7 +7965,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 128,
+      "wall_time_ms": 126,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -7995,7 +7995,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 132,
+      "wall_time_ms": 144,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8025,7 +8025,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 232,
+      "wall_time_ms": 219,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8085,7 +8085,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 221,
+      "wall_time_ms": 212,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8115,7 +8115,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8175,7 +8175,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 48,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8205,7 +8205,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 126,
+      "wall_time_ms": 144,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8235,7 +8235,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 124,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8265,7 +8265,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 142,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8295,7 +8295,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 228,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8325,7 +8325,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 225,
+      "wall_time_ms": 235,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8355,7 +8355,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 225,
+      "wall_time_ms": 222,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8385,7 +8385,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 35,
+      "wall_time_ms": 50,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8415,7 +8415,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8445,7 +8445,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8475,7 +8475,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 82,
+      "wall_time_ms": 95,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8505,7 +8505,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 80,
+      "wall_time_ms": 87,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8535,7 +8535,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 77,
+      "wall_time_ms": 91,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8565,7 +8565,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 83,
+      "wall_time_ms": 92,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8595,7 +8595,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 83,
+      "wall_time_ms": 97,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8625,7 +8625,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 83,
+      "wall_time_ms": 89,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8657,7 +8657,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 40,
+      "wall_time_ms": 52,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8689,7 +8689,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8721,7 +8721,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8753,7 +8753,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 124,
+      "wall_time_ms": 139,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8785,7 +8785,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 131,
+      "wall_time_ms": 134,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8817,7 +8817,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 135,
+      "wall_time_ms": 136,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8849,7 +8849,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 223,
+      "wall_time_ms": 220,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8881,7 +8881,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 224,
+      "wall_time_ms": 232,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8913,7 +8913,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 228,
+      "wall_time_ms": 213,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8945,7 +8945,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 36,
+      "wall_time_ms": 50,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -8977,7 +8977,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 50,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9041,7 +9041,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9073,7 +9073,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 39,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9105,7 +9105,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9137,7 +9137,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9169,7 +9169,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9201,7 +9201,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9224,22 +9224,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 17,
-      "sent": 16,
-      "failed": 1,
+      "processed": 18,
+      "sent": 18,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 128,
+      "wall_time_ms": 129,
       "final_status_counts": {
-        "pending": 3,
+        "pending": 2,
         "processing": 0,
-        "sent": 16,
-        "failed": 1
+        "sent": 18,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 1
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -9254,18 +9254,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 20,
-      "sent": 20,
+      "processed": 19,
+      "sent": 19,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 141,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 1,
         "processing": 0,
-        "sent": 20,
+        "sent": 19,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -9284,18 +9284,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
-      "sent": 18,
+      "processed": 18,
+      "sent": 17,
       "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 142,
+      "wall_time_ms": 141,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 2,
         "processing": 0,
-        "sent": 18,
+        "sent": 17,
         "failed": 1
       },
       "avg_attempts_success": 1,
@@ -9314,18 +9314,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 21,
-      "sent": 15,
+      "processed": 22,
+      "sent": 16,
       "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 109,
+      "wall_time_ms": 122,
       "final_status_counts": {
-        "pending": 3,
+        "pending": 2,
         "processing": 0,
-        "sent": 15,
+        "sent": 16,
         "failed": 2
       },
       "avg_attempts_success": 1,
@@ -9344,22 +9344,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
-      "sent": 19,
-      "failed": 0,
+      "processed": 20,
+      "sent": 17,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 136,
+      "wall_time_ms": 126,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 2,
         "processing": 0,
-        "sent": 19,
-        "failed": 0
+        "sent": 17,
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 3
     },
     {
       "scenario": {
@@ -9374,22 +9374,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 22,
-      "sent": 19,
-      "failed": 1,
+      "processed": 16,
+      "sent": 16,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 40,
+      "wall_time_ms": 135,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 4,
         "processing": 0,
-        "sent": 19,
-        "failed": 1
+        "sent": 16,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 3
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -9404,22 +9404,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 23,
-      "sent": 18,
-      "failed": 1,
+      "processed": 17,
+      "sent": 17,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 112,
+      "wall_time_ms": 123,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 3,
         "processing": 0,
-        "sent": 18,
-        "failed": 1
+        "sent": 17,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 5
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -9434,22 +9434,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 23,
-      "sent": 18,
-      "failed": 1,
+      "processed": 16,
+      "sent": 16,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 116,
+      "wall_time_ms": 135,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 4,
         "processing": 0,
-        "sent": 18,
-        "failed": 1
+        "sent": 16,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 5
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -9464,19 +9464,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 31,
-      "sent": 16,
-      "failed": 3,
+      "processed": 23,
+      "sent": 18,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 117,
+      "wall_time_ms": 123,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
-        "sent": 16,
-        "failed": 3
+        "sent": 18,
+        "failed": 1
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 5
@@ -9503,7 +9503,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9535,7 +9535,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9567,7 +9567,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9599,7 +9599,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 133,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9631,7 +9631,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 136,
+      "wall_time_ms": 132,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9663,7 +9663,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 123,
+      "wall_time_ms": 133,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9695,7 +9695,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 230,
+      "wall_time_ms": 212,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9727,7 +9727,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 207,
+      "wall_time_ms": 214,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9759,7 +9759,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 225,
+      "wall_time_ms": 212,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9791,7 +9791,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9823,7 +9823,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9855,7 +9855,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9887,7 +9887,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 136,
+      "wall_time_ms": 132,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9919,7 +9919,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 138,
+      "wall_time_ms": 114,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9951,7 +9951,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 136,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -9983,7 +9983,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 214,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10015,7 +10015,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 238,
+      "wall_time_ms": 220,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10047,7 +10047,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 212,
+      "wall_time_ms": 229,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10077,7 +10077,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10107,7 +10107,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10137,7 +10137,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10167,7 +10167,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 118,
+      "wall_time_ms": 108,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10197,7 +10197,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 141,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10227,7 +10227,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 120,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10257,7 +10257,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 223,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10287,7 +10287,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 213,
+      "wall_time_ms": 209,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10317,7 +10317,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 218,
+      "wall_time_ms": 209,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10347,7 +10347,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10377,7 +10377,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 34,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10437,7 +10437,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 131,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10467,7 +10467,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 140,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10497,7 +10497,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 122,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10527,7 +10527,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 248,
+      "wall_time_ms": 200,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10557,7 +10557,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 229,
+      "wall_time_ms": 208,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10587,7 +10587,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 215,
+      "wall_time_ms": 214,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10617,7 +10617,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10647,7 +10647,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 48,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10677,7 +10677,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 52,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10707,7 +10707,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 133,
+      "wall_time_ms": 139,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10737,7 +10737,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 140,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10767,7 +10767,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 134,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10797,7 +10797,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 216,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10827,7 +10827,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 209,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10857,7 +10857,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 235,
+      "wall_time_ms": 222,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10887,7 +10887,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 49,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10917,7 +10917,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10947,7 +10947,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 34,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -10977,7 +10977,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 126,
+      "wall_time_ms": 131,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11007,7 +11007,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 133,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11037,7 +11037,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 126,
+      "wall_time_ms": 131,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11067,7 +11067,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 230,
+      "wall_time_ms": 227,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11097,7 +11097,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 226,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11127,7 +11127,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 208,
+      "wall_time_ms": 207,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11157,7 +11157,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 39,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11187,7 +11187,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11217,7 +11217,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 49,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11247,7 +11247,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 139,
+      "wall_time_ms": 131,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11277,7 +11277,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 134,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11307,7 +11307,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 141,
+      "wall_time_ms": 123,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11337,7 +11337,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 214,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11367,7 +11367,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 210,
+      "wall_time_ms": 217,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11397,7 +11397,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 218,
+      "wall_time_ms": 226,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11457,7 +11457,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 52,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11487,7 +11487,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 41,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11517,7 +11517,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 95,
+      "wall_time_ms": 87,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11547,7 +11547,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 102,
+      "wall_time_ms": 94,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11577,7 +11577,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 90,
+      "wall_time_ms": 93,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11607,7 +11607,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 100,
+      "wall_time_ms": 78,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11637,7 +11637,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 94,
+      "wall_time_ms": 92,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11667,7 +11667,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 95,
+      "wall_time_ms": 78,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11699,7 +11699,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 50,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11731,7 +11731,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 40,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11763,7 +11763,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11795,7 +11795,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 120,
+      "wall_time_ms": 116,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11827,7 +11827,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 138,
+      "wall_time_ms": 132,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11859,7 +11859,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 131,
+      "wall_time_ms": 139,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11891,7 +11891,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 242,
+      "wall_time_ms": 213,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11923,7 +11923,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 222,
+      "wall_time_ms": 221,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11955,7 +11955,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 211,
+      "wall_time_ms": 206,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -11987,7 +11987,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12019,7 +12019,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12051,7 +12051,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 49,
+      "wall_time_ms": 33,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12083,7 +12083,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12115,7 +12115,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 50,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12147,7 +12147,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 43,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12179,7 +12179,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 37,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12211,7 +12211,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12243,7 +12243,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 52,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12266,19 +12266,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 20,
-      "sent": 19,
-      "failed": 1,
+      "processed": 19,
+      "sent": 15,
+      "failed": 4,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 52,
+      "wall_time_ms": 120,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 1,
         "processing": 0,
-        "sent": 19,
-        "failed": 1
+        "sent": 15,
+        "failed": 4
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 1
@@ -12296,22 +12296,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 18,
-      "failed": 0,
+      "processed": 16,
+      "sent": 15,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 126,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 4,
         "processing": 0,
-        "sent": 18,
-        "failed": 0
+        "sent": 15,
+        "failed": 1
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
+      "avg_attempts_failure": 1
     },
     {
       "scenario": {
@@ -12326,18 +12326,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 17,
-      "sent": 17,
+      "processed": 20,
+      "sent": 20,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 139,
+      "wall_time_ms": 45,
       "final_status_counts": {
-        "pending": 3,
+        "pending": 0,
         "processing": 0,
-        "sent": 17,
+        "sent": 20,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -12356,18 +12356,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 22,
-      "sent": 19,
+      "processed": 19,
+      "sent": 16,
       "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 122,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 3,
         "processing": 0,
-        "sent": 19,
+        "sent": 16,
         "failed": 1
       },
       "avg_attempts_success": 1,
@@ -12386,18 +12386,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 18,
+      "processed": 19,
+      "sent": 19,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 134,
+      "wall_time_ms": 139,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 1,
         "processing": 0,
-        "sent": 18,
+        "sent": 19,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -12416,19 +12416,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 25,
-      "sent": 16,
-      "failed": 3,
+      "processed": 20,
+      "sent": 14,
+      "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 121,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 4,
         "processing": 0,
-        "sent": 16,
-        "failed": 3
+        "sent": 14,
+        "failed": 2
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 3
@@ -12446,22 +12446,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 23,
+      "processed": 18,
       "sent": 18,
-      "failed": 1,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 111,
+      "wall_time_ms": 124,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 2,
         "processing": 0,
         "sent": 18,
-        "failed": 1
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 5
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -12476,22 +12476,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 28,
+      "processed": 18,
       "sent": 18,
-      "failed": 2,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 35,
+      "wall_time_ms": 135,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 2,
         "processing": 0,
         "sent": 18,
-        "failed": 2
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 5
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -12506,18 +12506,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
-      "sent": 19,
+      "processed": 15,
+      "sent": 15,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 143,
+      "wall_time_ms": 133,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 5,
         "processing": 0,
-        "sent": 19,
+        "sent": 15,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -12545,7 +12545,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12577,7 +12577,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12609,7 +12609,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12641,7 +12641,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 130,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12673,7 +12673,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 145,
+      "wall_time_ms": 122,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12705,7 +12705,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 135,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12737,7 +12737,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 201,
+      "wall_time_ms": 212,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12769,7 +12769,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 210,
+      "wall_time_ms": 221,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12801,7 +12801,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 215,
+      "wall_time_ms": 226,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12833,7 +12833,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 52,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12865,7 +12865,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 37,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12897,7 +12897,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12929,7 +12929,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 136,
+      "wall_time_ms": 145,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12961,7 +12961,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 139,
+      "wall_time_ms": 122,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -12993,7 +12993,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 128,
+      "wall_time_ms": 136,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13025,7 +13025,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 226,
+      "wall_time_ms": 214,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13057,7 +13057,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 219,
+      "wall_time_ms": 223,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13089,7 +13089,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 217,
+      "wall_time_ms": 230,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13119,7 +13119,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 54,
+      "wall_time_ms": 50,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13149,7 +13149,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13179,7 +13179,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13209,7 +13209,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 140,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13239,7 +13239,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 134,
+      "wall_time_ms": 126,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13269,7 +13269,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 143,
+      "wall_time_ms": 121,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13299,7 +13299,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 221,
+      "wall_time_ms": 223,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13329,7 +13329,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 236,
+      "wall_time_ms": 210,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13359,7 +13359,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 216,
+      "wall_time_ms": 229,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13389,7 +13389,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 49,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13419,7 +13419,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 51,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13449,7 +13449,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 48,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13479,7 +13479,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 133,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13509,7 +13509,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 140,
+      "wall_time_ms": 134,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13539,7 +13539,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 125,
+      "wall_time_ms": 137,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13569,7 +13569,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 234,
+      "wall_time_ms": 210,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13599,7 +13599,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 226,
+      "wall_time_ms": 223,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13629,7 +13629,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 226,
+      "wall_time_ms": 222,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13659,7 +13659,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13689,7 +13689,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13719,7 +13719,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13779,7 +13779,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 141,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13809,7 +13809,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 138,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13839,7 +13839,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 217,
+      "wall_time_ms": 209,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13869,7 +13869,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 212,
+      "wall_time_ms": 220,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13899,7 +13899,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 210,
+      "wall_time_ms": 227,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13929,7 +13929,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -13959,7 +13959,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14019,7 +14019,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 136,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14049,7 +14049,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 120,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14079,7 +14079,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 130,
+      "wall_time_ms": 132,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14109,7 +14109,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 217,
+      "wall_time_ms": 210,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14139,7 +14139,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 216,
+      "wall_time_ms": 215,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14169,7 +14169,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 221,
+      "wall_time_ms": 214,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14199,7 +14199,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14229,7 +14229,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14289,7 +14289,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 115,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14319,7 +14319,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 122,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14349,7 +14349,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 140,
+      "wall_time_ms": 117,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14379,7 +14379,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 208,
+      "wall_time_ms": 223,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14409,7 +14409,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 226,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14439,7 +14439,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 224,
+      "wall_time_ms": 198,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14469,7 +14469,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14499,7 +14499,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 49,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14529,7 +14529,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 38,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14559,7 +14559,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 86,
+      "wall_time_ms": 85,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14589,7 +14589,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 98,
+      "wall_time_ms": 77,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14619,7 +14619,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 106,
+      "wall_time_ms": 81,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14649,7 +14649,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 86,
+      "wall_time_ms": 74,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14679,7 +14679,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 93,
+      "wall_time_ms": 74,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14709,7 +14709,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 89,
+      "wall_time_ms": 98,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14741,7 +14741,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14773,7 +14773,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14805,7 +14805,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14837,7 +14837,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 127,
+      "wall_time_ms": 141,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14869,7 +14869,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 131,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14901,7 +14901,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 130,
+      "wall_time_ms": 134,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14933,7 +14933,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 215,
+      "wall_time_ms": 221,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14965,7 +14965,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 216,
+      "wall_time_ms": 227,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -14997,7 +14997,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 214,
+      "wall_time_ms": 225,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15029,7 +15029,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 38,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15061,7 +15061,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 41,
+      "wall_time_ms": 44,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15093,7 +15093,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 49,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15125,7 +15125,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 57,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15157,7 +15157,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15189,7 +15189,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15221,7 +15221,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15253,7 +15253,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 52,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15285,7 +15285,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 50,
+      "wall_time_ms": 46,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15308,18 +15308,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 18,
+      "processed": 20,
+      "sent": 20,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 40,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 0,
         "processing": 0,
-        "sent": 18,
+        "sent": 20,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -15338,18 +15338,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 17,
-      "sent": 17,
+      "processed": 19,
+      "sent": 19,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 130,
+      "wall_time_ms": 134,
       "final_status_counts": {
-        "pending": 3,
+        "pending": 1,
         "processing": 0,
-        "sent": 17,
+        "sent": 19,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -15368,18 +15368,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 18,
+      "processed": 19,
+      "sent": 19,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 139,
+      "wall_time_ms": 138,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 1,
         "processing": 0,
-        "sent": 18,
+        "sent": 19,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -15405,7 +15405,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 129,
+      "wall_time_ms": 124,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
@@ -15428,18 +15428,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 18,
+      "processed": 19,
+      "sent": 19,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 139,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 1,
         "processing": 0,
-        "sent": 18,
+        "sent": 19,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -15453,66 +15453,6 @@
         "failure": "none",
         "max_attempts": 3,
         "batch_size": 25,
-        "concurrency": 1,
-        "send_delay_ms": 0,
-        "scheduled_future_ratio": 0.1,
-        "invalid_payload_ratio": 0.05
-      },
-      "processed": 16,
-      "sent": 16,
-      "failed": 0,
-      "stuck_processing": 0,
-      "stuck_pending_over_budget": 0,
-      "duplicate_sends": 0,
-      "invariant_violations": [],
-      "wall_time_ms": 136,
-      "final_status_counts": {
-        "pending": 4,
-        "processing": 0,
-        "sent": 16,
-        "failed": 0
-      },
-      "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
-    },
-    {
-      "scenario": {
-        "id": "S502",
-        "n_messages": 20,
-        "msg_type": "buttons",
-        "failure": "none",
-        "max_attempts": 5,
-        "batch_size": 5,
-        "concurrency": 1,
-        "send_delay_ms": 0,
-        "scheduled_future_ratio": 0.1,
-        "invalid_payload_ratio": 0.05
-      },
-      "processed": 19,
-      "sent": 19,
-      "failed": 0,
-      "stuck_processing": 0,
-      "stuck_pending_over_budget": 0,
-      "duplicate_sends": 0,
-      "invariant_violations": [],
-      "wall_time_ms": 130,
-      "final_status_counts": {
-        "pending": 1,
-        "processing": 0,
-        "sent": 19,
-        "failed": 0
-      },
-      "avg_attempts_success": 1,
-      "avg_attempts_failure": 0
-    },
-    {
-      "scenario": {
-        "id": "S503",
-        "n_messages": 20,
-        "msg_type": "buttons",
-        "failure": "none",
-        "max_attempts": 5,
-        "batch_size": 10,
         "concurrency": 1,
         "send_delay_ms": 0,
         "scheduled_future_ratio": 0.1,
@@ -15537,12 +15477,42 @@
     },
     {
       "scenario": {
-        "id": "S504",
+        "id": "S502",
         "n_messages": 20,
         "msg_type": "buttons",
         "failure": "none",
         "max_attempts": 5,
-        "batch_size": 25,
+        "batch_size": 5,
+        "concurrency": 1,
+        "send_delay_ms": 0,
+        "scheduled_future_ratio": 0.1,
+        "invalid_payload_ratio": 0.05
+      },
+      "processed": 18,
+      "sent": 18,
+      "failed": 0,
+      "stuck_processing": 0,
+      "stuck_pending_over_budget": 0,
+      "duplicate_sends": 0,
+      "invariant_violations": [],
+      "wall_time_ms": 124,
+      "final_status_counts": {
+        "pending": 2,
+        "processing": 0,
+        "sent": 18,
+        "failed": 0
+      },
+      "avg_attempts_success": 1,
+      "avg_attempts_failure": 0
+    },
+    {
+      "scenario": {
+        "id": "S503",
+        "n_messages": 20,
+        "msg_type": "buttons",
+        "failure": "none",
+        "max_attempts": 5,
+        "batch_size": 10,
         "concurrency": 1,
         "send_delay_ms": 0,
         "scheduled_future_ratio": 0.1,
@@ -15555,11 +15525,41 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 141,
+      "wall_time_ms": 136,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
         "sent": 19,
+        "failed": 0
+      },
+      "avg_attempts_success": 1,
+      "avg_attempts_failure": 0
+    },
+    {
+      "scenario": {
+        "id": "S504",
+        "n_messages": 20,
+        "msg_type": "buttons",
+        "failure": "none",
+        "max_attempts": 5,
+        "batch_size": 25,
+        "concurrency": 1,
+        "send_delay_ms": 0,
+        "scheduled_future_ratio": 0.1,
+        "invalid_payload_ratio": 0.05
+      },
+      "processed": 17,
+      "sent": 17,
+      "failed": 0,
+      "stuck_processing": 0,
+      "stuck_pending_over_budget": 0,
+      "duplicate_sends": 0,
+      "invariant_violations": [],
+      "wall_time_ms": 134,
+      "final_status_counts": {
+        "pending": 3,
+        "processing": 0,
+        "sent": 17,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -15619,7 +15619,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 42,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15651,7 +15651,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 52,
+      "wall_time_ms": 51,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15683,7 +15683,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 128,
+      "wall_time_ms": 138,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15715,7 +15715,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 145,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15779,7 +15779,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 220,
+      "wall_time_ms": 221,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15811,7 +15811,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 219,
+      "wall_time_ms": 221,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15843,7 +15843,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 230,
+      "wall_time_ms": 216,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15907,7 +15907,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 51,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15939,7 +15939,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 50,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -15971,7 +15971,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 131,
+      "wall_time_ms": 141,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16003,7 +16003,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 138,
+      "wall_time_ms": 134,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16035,7 +16035,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 124,
+      "wall_time_ms": 125,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16067,7 +16067,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 226,
+      "wall_time_ms": 216,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16099,7 +16099,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 219,
+      "wall_time_ms": 208,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16131,7 +16131,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 214,
+      "wall_time_ms": 231,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16161,7 +16161,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 35,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16191,7 +16191,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 48,
+      "wall_time_ms": 59,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16221,7 +16221,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 52,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16251,7 +16251,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 132,
+      "wall_time_ms": 133,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16281,7 +16281,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 131,
+      "wall_time_ms": 116,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16311,7 +16311,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 135,
+      "wall_time_ms": 131,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16341,7 +16341,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 223,
+      "wall_time_ms": 219,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16371,7 +16371,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 210,
+      "wall_time_ms": 203,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16401,7 +16401,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 213,
+      "wall_time_ms": 229,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16431,7 +16431,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16461,7 +16461,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 52,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16491,7 +16491,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16521,7 +16521,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 125,
+      "wall_time_ms": 139,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16551,7 +16551,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 124,
+      "wall_time_ms": 121,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16581,7 +16581,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16611,7 +16611,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 238,
+      "wall_time_ms": 222,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16641,7 +16641,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 230,
+      "wall_time_ms": 233,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16671,7 +16671,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 215,
+      "wall_time_ms": 218,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16701,7 +16701,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 49,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16731,7 +16731,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16761,7 +16761,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 52,
+      "wall_time_ms": 51,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16791,7 +16791,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 135,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16821,7 +16821,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 135,
+      "wall_time_ms": 120,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16851,7 +16851,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 135,
+      "wall_time_ms": 136,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16881,7 +16881,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 218,
+      "wall_time_ms": 215,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16911,7 +16911,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 213,
+      "wall_time_ms": 217,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16941,7 +16941,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 229,
+      "wall_time_ms": 209,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -16971,7 +16971,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17001,7 +17001,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17031,7 +17031,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17061,7 +17061,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 134,
+      "wall_time_ms": 122,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17091,7 +17091,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 133,
+      "wall_time_ms": 125,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17121,7 +17121,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 136,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17151,7 +17151,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 220,
+      "wall_time_ms": 233,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17181,7 +17181,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 230,
+      "wall_time_ms": 226,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17211,7 +17211,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 237,
+      "wall_time_ms": 210,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17241,7 +17241,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 51,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17271,7 +17271,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 49,
+      "wall_time_ms": 36,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17301,7 +17301,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17331,7 +17331,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 125,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17361,7 +17361,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 126,
+      "wall_time_ms": 131,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17391,7 +17391,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 138,
+      "wall_time_ms": 132,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17421,7 +17421,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 227,
+      "wall_time_ms": 221,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17451,7 +17451,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 215,
+      "wall_time_ms": 202,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17481,7 +17481,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 232,
+      "wall_time_ms": 222,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17511,7 +17511,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 55,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17541,7 +17541,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 38,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17601,7 +17601,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 91,
+      "wall_time_ms": 92,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17631,7 +17631,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 89,
+      "wall_time_ms": 91,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17661,7 +17661,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 81,
+      "wall_time_ms": 86,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17691,7 +17691,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 91,
+      "wall_time_ms": 92,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17721,7 +17721,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 93,
+      "wall_time_ms": 89,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17783,7 +17783,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17815,7 +17815,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 54,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17847,7 +17847,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 49,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17879,7 +17879,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 122,
+      "wall_time_ms": 118,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17911,7 +17911,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 124,
+      "wall_time_ms": 126,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17943,7 +17943,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 132,
+      "wall_time_ms": 125,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -17975,7 +17975,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 221,
+      "wall_time_ms": 217,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18007,7 +18007,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 205,
+      "wall_time_ms": 229,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18039,7 +18039,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 217,
+      "wall_time_ms": 213,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18071,7 +18071,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 49,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18103,7 +18103,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 45,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18167,7 +18167,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 47,
+      "wall_time_ms": 48,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18199,7 +18199,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18231,7 +18231,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18263,7 +18263,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 51,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18295,7 +18295,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 39,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18327,7 +18327,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 40,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18350,19 +18350,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
-      "sent": 17,
-      "failed": 2,
+      "processed": 16,
+      "sent": 15,
+      "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
       "wall_time_ms": 121,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 4,
         "processing": 0,
-        "sent": 17,
-        "failed": 2
+        "sent": 15,
+        "failed": 1
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 1
@@ -18380,18 +18380,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 16,
+      "processed": 16,
+      "sent": 14,
       "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 133,
+      "wall_time_ms": 124,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 4,
         "processing": 0,
-        "sent": 16,
+        "sent": 14,
         "failed": 2
       },
       "avg_attempts_success": 1,
@@ -18410,22 +18410,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 19,
-      "sent": 18,
-      "failed": 1,
+      "processed": 16,
+      "sent": 16,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 137,
+      "wall_time_ms": 135,
       "final_status_counts": {
-        "pending": 1,
+        "pending": 4,
         "processing": 0,
-        "sent": 18,
-        "failed": 1
+        "sent": 16,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 1
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -18447,7 +18447,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 125,
+      "wall_time_ms": 111,
       "final_status_counts": {
         "pending": 1,
         "processing": 0,
@@ -18470,18 +18470,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 20,
-      "sent": 17,
+      "processed": 22,
+      "sent": 19,
       "failed": 1,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 127,
+      "wall_time_ms": 42,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 0,
         "processing": 0,
-        "sent": 17,
+        "sent": 19,
         "failed": 1
       },
       "avg_attempts_success": 1,
@@ -18500,22 +18500,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 24,
-      "sent": 18,
-      "failed": 2,
+      "processed": 17,
+      "sent": 17,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 41,
+      "wall_time_ms": 140,
       "final_status_counts": {
-        "pending": 0,
+        "pending": 3,
         "processing": 0,
-        "sent": 18,
-        "failed": 2
+        "sent": 17,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 3
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -18530,22 +18530,22 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 26,
-      "sent": 16,
-      "failed": 2,
+      "processed": 17,
+      "sent": 17,
+      "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 109,
+      "wall_time_ms": 121,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 3,
         "processing": 0,
-        "sent": 16,
-        "failed": 2
+        "sent": 17,
+        "failed": 0
       },
       "avg_attempts_success": 1,
-      "avg_attempts_failure": 5
+      "avg_attempts_failure": 0
     },
     {
       "scenario": {
@@ -18560,18 +18560,18 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 18,
-      "sent": 18,
+      "processed": 19,
+      "sent": 19,
       "failed": 0,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 143,
+      "wall_time_ms": 135,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 1,
         "processing": 0,
-        "sent": 18,
+        "sent": 19,
         "failed": 0
       },
       "avg_attempts_success": 1,
@@ -18590,19 +18590,19 @@
         "scheduled_future_ratio": 0.1,
         "invalid_payload_ratio": 0.05
       },
-      "processed": 22,
+      "processed": 27,
       "sent": 17,
-      "failed": 1,
+      "failed": 2,
       "stuck_processing": 0,
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 120,
+      "wall_time_ms": 108,
       "final_status_counts": {
-        "pending": 2,
+        "pending": 1,
         "processing": 0,
         "sent": 17,
-        "failed": 1
+        "failed": 2
       },
       "avg_attempts_success": 1,
       "avg_attempts_failure": 5
@@ -18629,7 +18629,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18661,7 +18661,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 50,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18693,7 +18693,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 38,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18725,7 +18725,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 132,
+      "wall_time_ms": 140,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18757,7 +18757,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 140,
+      "wall_time_ms": 132,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18789,7 +18789,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 131,
+      "wall_time_ms": 135,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18821,7 +18821,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 229,
+      "wall_time_ms": 220,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18853,7 +18853,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 219,
+      "wall_time_ms": 223,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18885,7 +18885,7 @@
       "invariant_violations": [
         "no-fast-fail-on-auth-error"
       ],
-      "wall_time_ms": 217,
+      "wall_time_ms": 222,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -18981,7 +18981,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19013,7 +19013,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 130,
+      "wall_time_ms": 139,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19045,7 +19045,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 134,
+      "wall_time_ms": 125,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19077,7 +19077,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 134,
+      "wall_time_ms": 141,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19109,7 +19109,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 206,
+      "wall_time_ms": 225,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19141,7 +19141,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 212,
+      "wall_time_ms": 203,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19173,7 +19173,7 @@
       "invariant_violations": [
         "no-explicit-backoff-on-429"
       ],
-      "wall_time_ms": 227,
+      "wall_time_ms": 217,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19233,7 +19233,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19263,7 +19263,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 51,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19293,7 +19293,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 117,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19323,7 +19323,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 132,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19353,7 +19353,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 130,
+      "wall_time_ms": 139,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19383,7 +19383,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 210,
+      "wall_time_ms": 233,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19413,7 +19413,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 219,
+      "wall_time_ms": 215,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19473,7 +19473,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19503,7 +19503,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19533,7 +19533,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19563,7 +19563,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 129,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19593,7 +19593,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 128,
+      "wall_time_ms": 123,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19623,7 +19623,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 121,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19653,7 +19653,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 214,
+      "wall_time_ms": 215,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19683,7 +19683,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 209,
+      "wall_time_ms": 211,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19713,7 +19713,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 216,
+      "wall_time_ms": 229,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19743,7 +19743,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19773,7 +19773,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19803,7 +19803,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 47,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19863,7 +19863,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 131,
+      "wall_time_ms": 129,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19893,7 +19893,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 145,
+      "wall_time_ms": 125,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19923,7 +19923,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 208,
+      "wall_time_ms": 224,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19953,7 +19953,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 220,
+      "wall_time_ms": 225,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -19983,7 +19983,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 200,
+      "wall_time_ms": 215,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20013,7 +20013,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20043,7 +20043,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 44,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20073,7 +20073,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20103,7 +20103,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 142,
+      "wall_time_ms": 127,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20133,7 +20133,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 128,
+      "wall_time_ms": 132,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20163,7 +20163,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 147,
+      "wall_time_ms": 130,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20193,7 +20193,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 222,
+      "wall_time_ms": 228,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20223,7 +20223,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 221,
+      "wall_time_ms": 239,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20253,7 +20253,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 220,
+      "wall_time_ms": 225,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20283,7 +20283,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 46,
+      "wall_time_ms": 41,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20313,7 +20313,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 36,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20343,7 +20343,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 43,
+      "wall_time_ms": 36,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20373,7 +20373,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 135,
+      "wall_time_ms": 136,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20403,7 +20403,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 134,
+      "wall_time_ms": 142,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20433,7 +20433,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 142,
+      "wall_time_ms": 124,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20463,7 +20463,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 201,
+      "wall_time_ms": 219,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20493,7 +20493,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 231,
+      "wall_time_ms": 229,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20523,7 +20523,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 204,
+      "wall_time_ms": 231,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20553,7 +20553,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 41,
+      "wall_time_ms": 51,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20583,7 +20583,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 42,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20613,7 +20613,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 45,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20643,7 +20643,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 94,
+      "wall_time_ms": 90,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20673,7 +20673,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 91,
+      "wall_time_ms": 92,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20703,7 +20703,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 92,
+      "wall_time_ms": 86,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20733,7 +20733,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 90,
+      "wall_time_ms": 86,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20763,7 +20763,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 91,
+      "wall_time_ms": 96,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20793,7 +20793,7 @@
       "stuck_pending_over_budget": 0,
       "duplicate_sends": 0,
       "invariant_violations": [],
-      "wall_time_ms": 85,
+      "wall_time_ms": 92,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20825,7 +20825,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 50,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20857,7 +20857,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20889,7 +20889,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 50,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20921,7 +20921,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 134,
+      "wall_time_ms": 124,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20953,7 +20953,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 133,
+      "wall_time_ms": 128,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -20985,7 +20985,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 143,
+      "wall_time_ms": 123,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21017,7 +21017,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 222,
+      "wall_time_ms": 225,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21081,7 +21081,7 @@
       "invariant_violations": [
         "no-circuit-breaker-on-config-failure"
       ],
-      "wall_time_ms": 215,
+      "wall_time_ms": 227,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21113,7 +21113,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21145,7 +21145,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 40,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21177,7 +21177,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 46,
+      "wall_time_ms": 45,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21209,7 +21209,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 43,
+      "wall_time_ms": 47,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21273,7 +21273,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 48,
+      "wall_time_ms": 43,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21305,7 +21305,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 54,
+      "wall_time_ms": 42,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21337,7 +21337,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 44,
+      "wall_time_ms": 49,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
@@ -21369,7 +21369,7 @@
       "invariant_violations": [
         "missing-message-id-ack:20"
       ],
-      "wall_time_ms": 51,
+      "wall_time_ms": 37,
       "final_status_counts": {
         "pending": 0,
         "processing": 0,
