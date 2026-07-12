@@ -191,9 +191,8 @@ export function AIUsageDashboard() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v: number | string) =>
-                            String((typeof v === 'number' ? v : Number(v)).toLocaleString()) +
-                            ' tokens'
+                          formatter={(v) =>
+                            String(Number(v ?? 0).toLocaleString()) + ' tokens'
                           }
                         />
                       </PieChart>
