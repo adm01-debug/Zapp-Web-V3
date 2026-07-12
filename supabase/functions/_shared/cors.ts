@@ -6,6 +6,10 @@ const ALLOWED_ORIGINS = [
   'https://atomicabr.com.br',
   'https://lovable.dev',
   'https://supabase.com',
+  // Deployments Vercel do app (produção + alias). Sem estes, o fail-closed
+  // abaixo bloquearia as chamadas do app hospedado. Auditoria 2026-07-12.
+  'https://zapp-web-v3.vercel.app',
+  'https://zapp-web-v3-juca1.vercel.app',
 ];
 const ALLOWED_PATTERNS = [
   /^https?:\/\/localhost(:\d+)?$/,
@@ -14,6 +18,9 @@ const ALLOWED_PATTERNS = [
   /^https:\/\/.*\.supabase\.co$/,
   /^https:\/\/.*\.promobrindes\.com\.br$/,
   /^https:\/\/.*\.atomicabr\.com\.br$/,
+  // Previews Vercel deste projeto (ex.: zapp-web-v3-git-<branch>-juca1.vercel.app).
+  // Escopo restrito ao prefixo do projeto — não permite qualquer *.vercel.app.
+  /^https:\/\/zapp-web-v3-[a-z0-9-]+\.vercel\.app$/,
 ];
 const ALLOWED_HEADERS = [
   'authorization', 'x-client-info', 'apikey', 'content-type',

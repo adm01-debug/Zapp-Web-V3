@@ -247,6 +247,24 @@ const ALLOWED_RPCS = new Set<string>([
   "search_contacts_advanced", "search_knowledge_base", "send_message_v2",
   "soft_delete_contact", "sync_interaction_from_zapp", "update_contact_versioned",
   "update_own_profile", "user_has_permission",
+  // RPCs de saúde/DR/test-suite do painel Evo API Health (admin). Auditoria 2026-07-12.
+  "rpc_pipeline_dashboard", "rpc_dr_health_check", "rpc_run_full_test_suite",
+]);
+
+// RPCs administrativas/operacionais: o proxy executa com service_role e SEM a
+// identidade do chamador, então checagens internas por auth.uid() nas funções
+// não protegem estes RPCs. Exigimos explicitamente papel admin/supervisor do
+// chamador (via is_admin_or_supervisor) antes de proxiar. Todos são acionados
+// apenas por telas admin no frontend. Auditoria 2026-07-12 (revisão cubic/Codex).
+const ADMIN_RPCS = new Set<string>([
+  "rpc_dlq_retry_now", "rpc_dlq_abandon", "rpc_dlq_bulk_abandon",
+  "rpc_dlq_log_item_action", "rpc_dlq_list_audit",
+  "reassign_absent_agents", "reassign_overloaded_agents",
+  "rpc_migrate_whatsapp_integration", "rpc_set_whatsapp_mode",
+  "fn_test_alert_channel",
+  "rpc_pipeline_dashboard", "rpc_dr_health_check", "rpc_run_full_test_suite",
+  "rpc_instance_auth_event_summary", "rpc_instance_auth_event_trend",
+  "rpc_list_dispatch_error_logs",
 ]);
 
 function resolveSchema(schema: string, table: string): string {
@@ -263,6 +281,10 @@ function jsonResponse(payload: Record<string, unknown>, status: number): Respons
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
+  // Identidade do chamador autenticado (preenchida por requireUser). Usada para
+  // gatear RPCs administrativas por papel — o proxy roda com service_role.
+  let callerId: string | null = null;
 
   // Health GET does not require auth; all data-access paths (POST + health=1) do
   const url = new URL(req.url);
@@ -309,6 +331,7 @@ Deno.serve(async (req) => {
       });
       return authed;
     }
+    callerId = authed.user.id;
     console.log("[external-db-proxy] requireUser OK", {
       ...callerInfo,
       user_id: authed.user.id,
@@ -392,6 +415,22 @@ Deno.serve(async (req) => {
     if (!ALLOWED_RPCS.has(rpc)) {
       console.warn("[external-db-proxy] rpc bloqueado (fora do allowlist)", { rpc, cid, rid });
       return jsonResponse({ error: `RPC '${rpc}' não permitido`, cid, rid, data: null }, 403);
+    }
+
+    // RPCs administrativas: o proxy usa service_role sem a identidade do chamador,
+    // então checagens internas por auth.uid() não protegem. Exige papel
+    // admin/supervisor explicitamente antes de proxiar. Auditoria 2026-07-12.
+    if (ADMIN_RPCS.has(rpc)) {
+      if (!callerId) return jsonResponse({ error: "Unauthorized", cid, rid, data: null }, 401);
+      const { data: isPriv, error: roleErr } = await supabase.rpc("is_admin_or_supervisor", { _user_id: callerId });
+      if (roleErr) {
+        console.error("[external-db-proxy] falha na checagem de papel", { rpc, cid, message: roleErr.message });
+        return jsonResponse({ error: "Authorization check failed", cid, rid, data: null }, 500);
+      }
+      if (!isPriv) {
+        console.warn("[external-db-proxy] rpc admin negado (nao admin/supervisor)", { rpc, callerId, cid, rid });
+        return jsonResponse({ error: `RPC '${rpc}' requer admin/supervisor`, cid, rid, data: null }, 403);
+      }
     }
 
     const params = { ...(body.params ?? {}) };
