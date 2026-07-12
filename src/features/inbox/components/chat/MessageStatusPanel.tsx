@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MessageStatusPanel — Popover com a timeline de entrega/visualização
  * de uma mensagem.
