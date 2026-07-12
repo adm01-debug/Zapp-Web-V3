@@ -75,7 +75,7 @@ export function useTeamConversations() {
       const unreadMap = new Map(unreadResults.map(r => [r.cid, r.count]));
 
       const enriched: TeamConversation[] = conversations.map(conv => {
-        const members = ((allMembers || []).filter(m => m.conversation_id === conv.id)) as unknown as TeamMember[];
+        const members = ((allMembers || []).filter(m => m.conversation_id === conv.id)) as TeamMember[];
         const lastMsg = lastMessageMap.get(conv.id) || null;
 
         let displayName = conv.name;

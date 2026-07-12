@@ -79,7 +79,7 @@ export function AuthEventTrendChart() {
         p_instance: filterTrim,
       });
       if (error) throw error;
-      return data as unknown as SummaryResp;
+      return data as SummaryResp;
     },
     refetchInterval: 30_000,
   });
