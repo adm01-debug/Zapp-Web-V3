@@ -43,7 +43,7 @@ interface ContactContentAreaProps {
   onClearSearch?: () => void;
   onClearFilters?: () => void;
   onImport: () => void;
-  getCRMData: (phone: string) => CRMBatchResult | undefined | null;
+  getCRMData: (phone: string) => CRMBatchResult | undefined;
   workspaceId?: string;
   onRefresh?: () => void;
 }

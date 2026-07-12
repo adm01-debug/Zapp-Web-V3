@@ -134,7 +134,7 @@ export function ConnectionAuditDialog({
                           'cause' in log.details &&
                           typeof (log.details as Record<string, unknown>).cause === 'string' && (
                             <p className="mb-1 font-medium text-destructive">
-                              Motivo: {(log.details as Record<string, unknown>).cause}
+                              Motivo: {(log.details as Record<string, unknown>).cause as string}
                             </p>
                           )}
                         <pre className="overflow-x-auto whitespace-pre-wrap font-mono">
