@@ -65,8 +65,8 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
       if (reportRes.error) throw reportRes.error;
 
       if (!mountedRef.current) return;
-      setGroups((groupsRes.data ?? []) as unknown as DuplicateGroup[]);
-      setReport((reportRes.data ?? null) as unknown as DuplicateReport | null);
+      setGroups((groupsRes.data ?? []) as DuplicateGroup[]);
+      setReport((reportRes.data ?? null) as DuplicateReport | null);
       setDone(true);
     } catch (err) {
       if (!mountedRef.current) return;
