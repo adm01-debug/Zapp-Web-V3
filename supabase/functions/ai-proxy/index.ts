@@ -10,6 +10,25 @@ import { callLovableAI, callOpenAICompatible, callCustomWebhook, withRetry } fro
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { requireUser, getBearer } from "../_shared/auth.ts";
 
+const AiToolFunctionSchema = z.object({
+  name: z.string().min(1).max(64),
+  description: z.string().max(1000).optional(),
+  parameters: z.record(z.unknown()).optional(),
+});
+
+const AiToolSchema = z.object({
+  type: z.literal('function'),
+  function: AiToolFunctionSchema,
+});
+
+const AiToolChoiceSchema = z.union([
+  z.enum(['none', 'auto', 'required']),
+  z.object({
+    type: z.literal('function'),
+    function: z.object({ name: z.string().min(1).max(64) }),
+  }),
+]);
+
 const AiProxySchema = z.object({
   messages: z.array(z.object({
     role: z.string().max(50),
@@ -18,8 +37,8 @@ const AiProxySchema = z.object({
   model: z.string().max(100).optional(),
   use_for: z.enum(['copilot', 'analysis', 'summary', 'tagging', 'auto_reply']).default('copilot'),
   provider_id: z.string().uuid().optional(),
-  tools: z.any().optional(),
-  tool_choice: z.any().optional(),
+  tools: z.array(AiToolSchema).max(128).optional(),
+  tool_choice: AiToolChoiceSchema.optional(),
   stream: z.boolean().optional().default(false),
 });
 
