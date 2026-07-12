@@ -6,9 +6,12 @@
 -- search_path before the function runs.
 --
 -- Strategy: iterate pg_proc for all public SECURITY DEFINER functions that
--- have no search_path in their proconfig and ALTER each one.  This is
--- self-maintaining — future functions added without the clause are
--- automatically included on the next migration run.
+-- have no search_path in their proconfig and ALTER each one.
+--
+-- NOTE: This is a ONE-SHOT migration, not self-maintaining.  Functions added
+-- after this migration runs are NOT automatically protected; they must
+-- explicitly include SET search_path in their CREATE OR REPLACE statement.
+-- The CI gate (scripts/check-security-definer.mjs) enforces this going forward.
 DO $$
 DECLARE
   r RECORD;
@@ -38,12 +41,12 @@ BEGIN
     );
     BEGIN
       EXECUTE format(
-        'ALTER FUNCTION %s SET search_path = pg_catalog, public',
+        'ALTER FUNCTION %s SET search_path = pg_catalog, public, pg_temp',
         fn_sig
       );
       RAISE NOTICE 'Fixed search_path on %', fn_sig;
     EXCEPTION WHEN others THEN
-      RAISE WARNING 'Could not fix search_path on %: %', fn_sig, SQLERRM;
+      RAISE EXCEPTION 'Could not fix search_path on %: %', fn_sig, SQLERRM;
     END;
   END LOOP;
 END;

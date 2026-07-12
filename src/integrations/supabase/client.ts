@@ -87,7 +87,7 @@ if (!isSupabaseConfigured) {
   // hardcoded in source control means it has been published and should be rotated.
   // Action: set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY in the deploy env and
   // rotate the self-hosted anon key via `supabase gen secret` after deploy.
-  if (!isValidSupabaseUrl(envUrl) || (!isValidSupabaseKey(envKey) && SUPABASE_URL === SELF_HOSTED_URL)) {
+  if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
     console.warn(
       '[Supabase] ATENÇÃO: usando credenciais hardcoded (fallback). ' +
       'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
