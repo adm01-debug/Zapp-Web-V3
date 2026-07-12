@@ -113,14 +113,12 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       // Atualiza token_expiry local
       setAccounts((prev) =>
         prev.map((a) =>
-          a.id === accountId ? { ...a, token_expiry: (result as any).token_expiry } : a
+          a.id === accountId ? { ...a, token_expiry: result.data?.expiresAt ?? a.token_expiry } : a
         )
       );
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
 
-      log.info(
-        `Token refreshed for account ${accountId}, expires at ${(result as any).token_expiry}`
-      );
+      log.info(`Token refreshed for account ${accountId}, expires at ${result.data?.expiresAt}`);
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));
@@ -165,11 +163,13 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
           const result = await emailRegisterWatch(accountId);
           setAccounts((prev) =>
             prev.map((a) =>
-              a.id === accountId ? { ...a, watch_expiry: (result as any).expiration } : a
+              a.id === accountId
+                ? { ...a, watch_expiry: result.data?.watchExpiry ?? a.watch_expiry }
+                : a
             )
           );
           log.info(
-            `Pub/Sub watch renovado para ${accountId}, expira em ${(result as any).expiration}`
+            `Pub/Sub watch renovado para ${accountId}, expira em ${result.data?.watchExpiry}`
           );
         } catch (err) {
           log.warn(`Não foi possível renovar watch para ${accountId}`, err);

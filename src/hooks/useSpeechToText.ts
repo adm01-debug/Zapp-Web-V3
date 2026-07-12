@@ -19,8 +19,31 @@ interface SpeechToTextReturn {
   toggleListening: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SpeechRecognitionInstance = any;
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly [index: number]: { readonly transcript: string };
+}
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  readonly [index: number]: SpeechRecognitionResult;
+}
+interface SpeechRecognitionEvent {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+interface SpeechRecognitionErrorEvent {
+  readonly error: string;
+}
+interface SpeechRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  start(): void;
+  stop(): void;
+}
 type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
 
 function getSpeechRecognition(): SpeechRecognitionCtor | null {
@@ -37,8 +60,12 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
   const onResultRef = useRef(onResult);
   const onEndRef = useRef(onEnd);
 
-  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
-  useEffect(() => { onEndRef.current = onEnd; }, [onEnd]);
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+  useEffect(() => {
+    onEndRef.current = onEnd;
+  }, [onEnd]);
 
   const Ctor = getSpeechRecognition();
   const isSupported = !!Ctor;
@@ -52,7 +79,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
     recognition.continuous = continuous;
     recognition.interimResults = true;
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
       let interimTranscript = '';
 
@@ -78,7 +105,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
       onEndRef.current?.();
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       log.warn('Speech recognition error:', event.error);
       setIsListening(false);
     };

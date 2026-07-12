@@ -1,5 +1,9 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+
+// Tables that exist in the DB but not in the generated types use this untyped client.
+const dynSupabase = supabase as unknown as SupabaseClient;
 
 export interface EmailRevalidationJob {
   id: string;
@@ -22,10 +26,7 @@ export const emailApi = {
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let query = supabase
-      .from('email_revalidation_jobs' as any)
-      .select('*', { count: 'exact' } as any);
+    let query = dynSupabase.from('email_revalidation_jobs').select('*', { count: 'exact' });
 
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
