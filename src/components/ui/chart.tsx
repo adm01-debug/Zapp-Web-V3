@@ -125,6 +125,7 @@ type ChartTooltipContentProps = React.ComponentProps<'div'> & {
   indicator?: 'line' | 'dot' | 'dashed';
   nameKey?: string;
   labelKey?: string;
+  labelClassName?: string;
 };
 
 const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContentProps
