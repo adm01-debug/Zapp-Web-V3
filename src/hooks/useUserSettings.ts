@@ -105,6 +105,11 @@ export function useUserSettings() {
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
+        if (!safeClient) {
+          log.error('Error in fetchSettings: safeClient is not initialized');
+          setIsLoading(false);
+          return;
+        }
         const { data: rows, error } = await safeClient.from<UserSettings>('user_settings', (q) =>
           q.select('*').eq('user_id', user.id).limit(1)
         );
@@ -178,6 +183,16 @@ export function useUserSettings() {
       toast({
         title: 'Erro',
         description: 'Você precisa estar logado para salvar configurações.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    if (!safeClient) {
+      log.error('Error in saveSettings: safeClient is not initialized');
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Serviço indisponível. Tente novamente.',
         variant: 'destructive',
       });
       return false;
