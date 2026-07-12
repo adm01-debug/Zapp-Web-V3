@@ -10,7 +10,7 @@ export interface TeamConversation {
   members?: TeamMember[];
   last_message?: TeamMessage | null;
   unread_count?: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TeamMember {
