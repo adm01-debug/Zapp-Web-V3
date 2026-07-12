@@ -186,7 +186,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_validate_query_plan_cost(TEXT, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_validate_query_plan_cost(TEXT, TEXT) FROM "public";
 REVOKE ALL ON FUNCTION fn_validate_query_plan_cost(TEXT, TEXT) FROM anon;
 GRANT EXECUTE ON FUNCTION fn_validate_query_plan_cost(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION fn_validate_query_plan_cost(TEXT, TEXT) TO service_role;
@@ -234,7 +234,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_apply_query_resource_limits(TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_apply_query_resource_limits(TEXT) FROM "public";
 REVOKE ALL ON FUNCTION fn_apply_query_resource_limits(TEXT) FROM anon;
 GRANT EXECUTE ON FUNCTION fn_apply_query_resource_limits(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION fn_apply_query_resource_limits(TEXT) TO service_role;
@@ -300,7 +300,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_log_query_violation(UUID, TEXT, TEXT, NUMERIC, NUMERIC, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_log_query_violation(UUID, TEXT, TEXT, NUMERIC, NUMERIC, TEXT) FROM "public";
 REVOKE ALL ON FUNCTION fn_log_query_violation(UUID, TEXT, TEXT, NUMERIC, NUMERIC, TEXT) FROM anon;
 GRANT EXECUTE ON FUNCTION fn_log_query_violation(UUID, TEXT, TEXT, NUMERIC, NUMERIC, TEXT) TO service_role;
 
@@ -321,7 +321,7 @@ WHERE qcv.detected_at > now() - INTERVAL '7 days'
 GROUP BY qcv.complexity_class, qcv.violation_type
 ORDER BY violation_count DESC;
 
-REVOKE ALL ON VIEW public.v_query_complexity_summary FROM PUBLIC;
+REVOKE ALL ON VIEW public.v_query_complexity_summary FROM "public";
 REVOKE ALL ON VIEW public.v_query_complexity_summary FROM anon;
 GRANT SELECT ON VIEW public.v_query_complexity_summary TO service_role;
 
@@ -363,20 +363,4 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 9. Record Improvement Completion in Audit Chain
 -- ─────────────────────────────────────────────────────────────────────────────
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_2',
-  NULL,
-  'migration',
-  '20260712171100_r17_query_complexity_and_resource_limits',
-  jsonb_build_object(
-    'improvement', 'Query Complexity & Resource Limits Protection',
-    'reason', 'Prevent resource exhaustion DoS, query complexity bombs, database crash',
-    'coverage', 'Statement timeout (5-300s), work_mem (64MB-2GB), plan cost limits',
-    'classes', ARRAY['authenticated', 'agent', 'api', 'admin', 'batch']::TEXT[],
-    'protections', ARRAY['plan cost validation', 'recursive CTE safety check', 'violation audit', 'alert generation']::TEXT[],
-    'mitigated_scenarios', '[''Query Complexity Bomb'', ''Resource Exhaustion'', ''Recursive CTE DoS'', ''Memory Exhaustion'']',
-    'status', 'IMPROVEMENT_2_COMPLETE'
-  )
-);
-
 COMMIT;

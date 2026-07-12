@@ -190,7 +190,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_execute_retention_policy(BIGINT, INT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_execute_retention_policy(BIGINT, INT) FROM "public";
 REVOKE ALL ON FUNCTION fn_execute_retention_policy(BIGINT, INT) FROM anon;
 GRANT EXECUTE ON FUNCTION fn_execute_retention_policy(BIGINT, INT) TO service_role;
 
@@ -225,7 +225,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_execute_all_retention_policies() FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_execute_all_retention_policies() FROM "public";
 REVOKE ALL ON FUNCTION fn_execute_all_retention_policies() FROM anon;
 GRANT EXECUTE ON FUNCTION fn_execute_all_retention_policies() TO service_role;
 
@@ -292,7 +292,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_verify_retention_compliance() FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_verify_retention_compliance() FROM "public";
 REVOKE ALL ON FUNCTION fn_verify_retention_compliance() FROM anon;
 GRANT EXECUTE ON FUNCTION fn_verify_retention_compliance() TO service_role;
 GRANT EXECUTE ON FUNCTION fn_verify_retention_compliance() TO authenticated;
@@ -300,20 +300,4 @@ GRANT EXECUTE ON FUNCTION fn_verify_retention_compliance() TO authenticated;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 7. Record Improvement Completion in Audit Chain
 -- ─────────────────────────────────────────────────────────────────────────────
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_1',
-  NULL,
-  'migration',
-  '20260712171000_r17_automated_data_retention_and_expiration',
-  jsonb_build_object(
-    'improvement', 'Automated Data Retention & Expiration Policies',
-    'reason', 'LGPD compliance, audit log bloat prevention, storage cost control',
-    'coverage', 'All security audit tables: auth failures (7d), sessions (30d), rate limits (2d), audit chain (1y)',
-    'automation', 'pg_cron scheduled daily at 02:00 UTC',
-    'compliance', 'LGPD Article 17 (erasure right) + Article 5 (storage limitation)',
-    'mitigated_scenarios', '[''Data Retention Violation'', ''Audit Log Unbounded Growth'', ''LGPD Erasure Failure'']',
-    'status', 'IMPROVEMENT_1_COMPLETE'
-  )
-);
-
 COMMIT;

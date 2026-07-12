@@ -146,7 +146,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_trigger_security_alert(BIGINT, TEXT, JSONB, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_trigger_security_alert(BIGINT, TEXT, JSONB, UUID) FROM "public";
 GRANT EXECUTE ON FUNCTION fn_trigger_security_alert(BIGINT, TEXT, JSONB, UUID) TO service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -171,7 +171,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_acknowledge_alert_incident(BIGINT, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_acknowledge_alert_incident(BIGINT, UUID) FROM "public";
 GRANT EXECUTE ON FUNCTION fn_acknowledge_alert_incident(BIGINT, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION fn_acknowledge_alert_incident(BIGINT, UUID) TO service_role;
 
@@ -197,7 +197,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_resolve_alert_incident(BIGINT, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_resolve_alert_incident(BIGINT, UUID) FROM "public";
 GRANT EXECUTE ON FUNCTION fn_resolve_alert_incident(BIGINT, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION fn_resolve_alert_incident(BIGINT, UUID) TO service_role;
 
@@ -227,7 +227,7 @@ ORDER BY
   END,
   sai.triggered_at DESC;
 
-REVOKE ALL ON VIEW public.v_active_security_alerts FROM PUBLIC;
+REVOKE ALL ON VIEW public.v_active_security_alerts FROM "public";
 REVOKE ALL ON VIEW public.v_active_security_alerts FROM anon;
 GRANT SELECT ON VIEW public.v_active_security_alerts TO authenticated;
 GRANT SELECT ON VIEW public.v_active_security_alerts TO service_role;
@@ -253,27 +253,10 @@ ORDER BY
     ELSE 4
   END;
 
-REVOKE ALL ON VIEW public.v_alert_incident_summary FROM PUBLIC;
+REVOKE ALL ON VIEW public.v_alert_incident_summary FROM "public";
 REVOKE ALL ON VIEW public.v_alert_incident_summary FROM anon;
 GRANT SELECT ON VIEW public.v_alert_incident_summary TO authenticated;
 GRANT SELECT ON VIEW public.v_alert_incident_summary TO service_role;
 
 -- Record completion
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_9',
-  NULL,
-  'migration',
-  '20260712171800_r17_security_event_alerting_and_siem_integration',
-  jsonb_build_object(
-    'improvement', 'Security Event Alerting & SIEM Integration',
-    'reason', 'Enable real-time threat detection and incident response',
-    'alert_rules', 8,
-    'severities', ARRAY['critical', 'high', 'medium', 'low']::TEXT[],
-    'features', ARRAY['alert rules engine', 'incident tracking', 'webhook dispatch', 'severity classification', 'dashboard views', 'acknowledgment & resolution']::TEXT[],
-    'sample_rules', ARRAY['account_lockout (high)', 'privilege_escalation (critical)', 'rate_limit_abuse (high)', 'rls_bypass_attempt (critical)']::TEXT[],
-    'mitigated_scenarios', '[''Undetected Attack in Progress'', ''Delayed Incident Response'', ''Privilege Escalation Blindness'']',
-    'status', 'IMPROVEMENT_9_COMPLETE'
-  )
-);
-
 COMMIT;

@@ -137,19 +137,4 @@ CREATE TABLE IF NOT EXISTS public.allowed_ssl_certificates (
 );
 
 -- Record completion
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_5',
-  NULL,
-  'migration',
-  '20260712171400_r17_connection_security_and_pooling_limits',
-  jsonb_build_object(
-    'improvement', 'Connection Security & Pooling Limits',
-    'reason', 'Prevent connection exhaustion DoS, enforce session timeouts',
-    'limits', ARRAY['authenticated (50)', 'agent (10)', 'service_role (100)', 'anon (5)']::TEXT[],
-    'timeouts', ARRAY['authenticated (300s)', 'agent (600s)', 'service_role (1800s)', 'anon (60s)']::TEXT[],
-    'mitigated_scenarios', '[''Connection Pool Exhaustion'', ''Abandoned Connection Leaks'', ''Session Hijacking via Idle Sessions'']',
-    'status', 'IMPROVEMENT_5_COMPLETE'
-  )
-);
-
 COMMIT;

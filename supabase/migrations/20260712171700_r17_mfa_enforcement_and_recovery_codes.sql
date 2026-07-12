@@ -131,7 +131,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_generate_recovery_codes(UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_generate_recovery_codes(UUID) FROM "public";
 GRANT EXECUTE ON FUNCTION fn_generate_recovery_codes(UUID) TO service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_validate_recovery_code(UUID, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_validate_recovery_code(UUID, TEXT) FROM "public";
 GRANT EXECUTE ON FUNCTION fn_validate_recovery_code(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION fn_validate_recovery_code(UUID, TEXT) TO service_role;
 
@@ -244,26 +244,10 @@ SELECT
 FROM public.mfa_policies mp
 ORDER BY mp.user_id, mp.is_primary DESC, mp.enrolled_at DESC;
 
-REVOKE ALL ON VIEW public.v_mfa_enrollment_status FROM PUBLIC;
+REVOKE ALL ON VIEW public.v_mfa_enrollment_status FROM "public";
 REVOKE ALL ON VIEW public.v_mfa_enrollment_status FROM anon;
 GRANT SELECT ON VIEW public.v_mfa_enrollment_status TO authenticated;
 GRANT SELECT ON VIEW public.v_mfa_enrollment_status TO service_role;
 
 -- Record completion
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_8',
-  NULL,
-  'migration',
-  '20260712171700_r17_mfa_enforcement_and_recovery_codes',
-  jsonb_build_object(
-    'improvement', 'MFA Enforcement & Recovery Codes',
-    'reason', 'Prevent account takeover via credential compromise',
-    'mfa_types', ARRAY['totp', 'webauthn', 'sms']::TEXT[],
-    'enforcement', ARRAY['admin: 2 methods (7-day grace)', 'user: 1 method (30-day grace)']::TEXT[],
-    'features', ARRAY['recovery code generation', 'code validation & tracking', 'MFA challenge/response', 'compliance monitoring', 'per-method audit']::TEXT[],
-    'mitigated_scenarios', '[''Account Takeover via Phishing'', ''Credential Compromise'', ''Session Hijacking'']',
-    'status', 'IMPROVEMENT_8_COMPLETE'
-  )
-);
-
 COMMIT;

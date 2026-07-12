@@ -149,18 +149,4 @@ CREATE TABLE IF NOT EXISTS public.backup_key_escrow (
 );
 
 -- Record completion
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_6',
-  NULL,
-  'migration',
-  '20260712171500_r17_backup_integrity_verification_and_encryption',
-  jsonb_build_object(
-    'improvement', 'Backup Integrity Verification & Encryption',
-    'reason', 'Verify backups before disaster, detect corruption early',
-    'capabilities', ARRAY['SHA-256 hash validation', 'encryption key escrow', 'automated restore testing', 'integrity registry']::TEXT[],
-    'mitigated_scenarios', '[''Corrupted Backup Discovery at Restore Time'', ''Encrypted Backup with Lost Key'', ''Ransomware Backup Corruption'']',
-    'status', 'IMPROVEMENT_6_COMPLETE'
-  )
-);
-
 COMMIT;

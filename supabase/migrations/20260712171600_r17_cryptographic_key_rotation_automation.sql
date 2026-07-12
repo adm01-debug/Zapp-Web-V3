@@ -171,7 +171,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_rotate_key(TEXT, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_rotate_key(TEXT, UUID) FROM "public";
 REVOKE ALL ON FUNCTION fn_rotate_key(TEXT, UUID) FROM anon;
 GRANT EXECUTE ON FUNCTION fn_rotate_key(TEXT, UUID) TO service_role;
 
@@ -230,24 +230,9 @@ FROM public.key_rotation_policies krp
 LEFT JOIN public.encryption_key_refs ekr ON ekr.key_purpose = krp.key_purpose AND ekr.is_active = true
 ORDER BY krp.next_rotation_due;
 
-REVOKE ALL ON VIEW public.v_key_rotation_status FROM PUBLIC;
+REVOKE ALL ON VIEW public.v_key_rotation_status FROM "public";
 REVOKE ALL ON VIEW public.v_key_rotation_status FROM anon;
 GRANT SELECT ON VIEW public.v_key_rotation_status TO service_role;
 
 -- Record completion
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_7',
-  NULL,
-  'migration',
-  '20260712171600_r17_cryptographic_key_rotation_automation',
-  jsonb_build_object(
-    'improvement', 'Cryptographic Key Rotation Automation',
-    'reason', 'Limit key compromise impact, enable re-encryption workflows',
-    'policies', ARRAY['pii_encryption (90d)', 'audit_hmac (180d)', 'backup_encryption (180d)', 'token_signing (30d)']::TEXT[],
-    'capabilities', ARRAY['automated rotation scheduling', 'rotation history audit', 'key versioning', 'overdue detection']::TEXT[],
-    'mitigated_scenarios', '[''Indefinite Key Compromise'', ''Stale Encryption Keys'', ''Re-encryption Failure'']',
-    'status', 'IMPROVEMENT_7_COMPLETE'
-  )
-);
-
 COMMIT;

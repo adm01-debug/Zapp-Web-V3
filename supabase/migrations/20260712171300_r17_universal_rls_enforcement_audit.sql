@@ -129,18 +129,4 @@ FROM fn_audit_rls_status()
 GROUP BY schema_name
 ORDER BY compliance_percentage;
 
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_4',
-  NULL,
-  'migration',
-  '20260712171300_r17_universal_rls_enforcement_audit',
-  jsonb_build_object(
-    'improvement', 'Universal Row-Level Security Enforcement Audit',
-    'reason', 'Prevent cross-workspace data leakage, RLS bypass attacks',
-    'capabilities', ARRAY['RLS status audit', 'cross-workspace query detection', 'policy enforcement', 'compliance monitoring']::TEXT[],
-    'mitigated_scenarios', '[''Cross-Workspace Data Leakage'', ''RLS Bypass via Policy Gap'', ''Workspace Isolation Failure'']',
-    'status', 'IMPROVEMENT_4_COMPLETE'
-  )
-);
-
 COMMIT;

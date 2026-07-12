@@ -267,7 +267,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_check_endpoint_rate_limit(UUID, TEXT, INET) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_check_endpoint_rate_limit(UUID, TEXT, INET) FROM "public";
 REVOKE ALL ON FUNCTION fn_check_endpoint_rate_limit(UUID, TEXT, INET) FROM anon;
 GRANT EXECUTE ON FUNCTION fn_check_endpoint_rate_limit(UUID, TEXT, INET) TO authenticated;
 GRANT EXECUTE ON FUNCTION fn_check_endpoint_rate_limit(UUID, TEXT, INET) TO service_role;
@@ -307,7 +307,7 @@ WHERE rlv.violation_at > now() - INTERVAL '24 hours'
 GROUP BY rlv.endpoint_pattern
 ORDER BY violation_count DESC;
 
-REVOKE ALL ON VIEW public.v_rate_limit_violations_summary FROM PUBLIC;
+REVOKE ALL ON VIEW public.v_rate_limit_violations_summary FROM "public";
 REVOKE ALL ON VIEW public.v_rate_limit_violations_summary FROM anon;
 GRANT SELECT ON VIEW public.v_rate_limit_violations_summary TO service_role;
 
@@ -346,20 +346,4 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 9. Record Improvement Completion in Audit Chain
 -- ─────────────────────────────────────────────────────────────────────────────
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_3',
-  NULL,
-  'migration',
-  '20260712171200_r17_api_rate_limiting_enforcement_matrix',
-  jsonb_build_object(
-    'improvement', 'API Rate Limiting Enforcement Matrix',
-    'reason', 'Prevent brute force via alternative endpoints, API abuse detection',
-    'endpoints_configured', 13,
-    'rate_tiers', ARRAY['auth (5-2 req/300-3600s)', 'contacts (10-100 req/60s)', 'messages (20-50 req/60s)', 'admin (200 req/60s)', 'batch (5 req/3600s)']::TEXT[],
-    'features', ARRAY['per-endpoint configuration', 'distributed counters', 'burst allowance', 'adaptive thresholds', 'violation audit', 'trusted whitelist']::TEXT[],
-    'mitigated_scenarios', '[''Brute Force via Alternative Endpoints'', ''API Abuse via Distributed Attackers'', ''Credential Stuffing'']',
-    'status', 'IMPROVEMENT_3_COMPLETE'
-  )
-);
-
 COMMIT;

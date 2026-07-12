@@ -170,7 +170,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_record_threat_event(UUID, TEXT, JSONB, INET) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_record_threat_event(UUID, TEXT, JSONB, INET) FROM "public";
 GRANT EXECUTE ON FUNCTION fn_record_threat_event(UUID, TEXT, JSONB, INET) TO service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -217,7 +217,7 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION fn_learn_baseline(UUID, TEXT, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION fn_learn_baseline(UUID, TEXT, NUMERIC) FROM "public";
 GRANT EXECUTE ON FUNCTION fn_learn_baseline(UUID, TEXT, NUMERIC) TO service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ WHERE detected_at > now() - INTERVAL '7 days'
 GROUP BY threat_type
 ORDER BY avg_threat_score DESC;
 
-REVOKE ALL ON VIEW public.v_threat_intelligence_summary FROM PUBLIC;
+REVOKE ALL ON VIEW public.v_threat_intelligence_summary FROM "public";
 REVOKE ALL ON VIEW public.v_threat_intelligence_summary FROM anon;
 GRANT SELECT ON VIEW public.v_threat_intelligence_summary TO authenticated;
 GRANT SELECT ON VIEW public.v_threat_intelligence_summary TO service_role;
@@ -298,26 +298,10 @@ WHERE detected_at > now() - INTERVAL '30 days' AND threat_score >= 70
 GROUP BY user_id
 ORDER BY max_threat_score DESC;
 
-REVOKE ALL ON VIEW public.v_high_risk_users FROM PUBLIC;
+REVOKE ALL ON VIEW public.v_high_risk_users FROM "public";
 REVOKE ALL ON VIEW public.v_high_risk_users FROM anon;
 GRANT SELECT ON VIEW public.v_high_risk_users TO authenticated;
 GRANT SELECT ON VIEW public.v_high_risk_users TO service_role;
 
 -- Record completion
-SELECT fn_append_audit_event(
-  'ROUND_17_IMPROVEMENT_10',
-  NULL,
-  'migration',
-  '20260712171900_r17_anomaly_detection_and_threat_intelligence',
-  jsonb_build_object(
-    'improvement', 'Anomaly Detection & Threat Intelligence',
-    'reason', 'Detect novel attack patterns and insider threats proactively',
-    'threat_types', ARRAY['credential_stuffing', 'data_exfiltration', 'privilege_escalation_chain', 'geographic_impossibility', 'after_hours_activity']::TEXT[],
-    'capabilities', ARRAY['baseline learning', 'z-score anomaly detection', 'threat scoring', 'correlation rules', 'high-risk user identification', 'threat intelligence aggregation']::TEXT[],
-    'features', ARRAY['anomaly_detection_baselines (Welford algorithm)', 'threat_intelligence_events', 'threat_correlation_rules (5 rules)', 'fn_calculate_threat_score', 'fn_detect_anomaly', 'dashboard views']::TEXT[],
-    'mitigated_scenarios', '[''Novel Attack Pattern'', ''Insider Threat'', ''Zero-Day Exploitation'']',
-    'status', 'IMPROVEMENT_10_COMPLETE'
-  )
-);
-
 COMMIT;
