@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { log } from '@/lib/logger';
 import { PeriodFilterSelector, usePeriodFilter } from './ai-tools/PeriodFilterSelector';
@@ -80,7 +80,7 @@ export function ConversationSummary({
   initialSummary,
 }: ConversationSummaryProps) {
   const [summary, setSummary] = useState<SummaryData | null>(
-    (initialSummary as unknown as SummaryData) ?? null
+    (initialSummary as SummaryData) ?? null
   );
   const [isLoading, setIsLoading] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(!!initialSummary);
@@ -117,7 +117,7 @@ export function ConversationSummary({
   }, [analysisPeriod, customDateFrom, customDateTo]);
   useEffect(() => {
     if (initialSummary) {
-      setSummary(initialSummary as unknown as SummaryData);
+      setSummary(initialSummary as SummaryData);
       setHasGenerated(true);
     }
   }, [initialSummary]);
@@ -150,18 +150,14 @@ export function ConversationSummary({
         },
       });
       if (error) throw error;
-      if (mountedRef.current) {
-        setSummary(data);
-        setHasGenerated(true);
-        toast.success('Resumo gerado com sucesso!');
-      }
+      setSummary(data);
+      setHasGenerated(true);
+      toast.success('Resumo gerado com sucesso!');
     } catch (error) {
-      if (mountedRef.current) {
-        log.error('Error generating summary:', error);
-        toast.error('Erro ao gerar resumo. Tente novamente.');
-      }
+      log.error('Error generating summary:', error);
+      toast.error('Erro ao gerar resumo. Tente novamente.');
     } finally {
-      if (mountedRef.current) setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
