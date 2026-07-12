@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
 // Mocking dependencies
-const mockHasPermission = vi.fn();
+const mockHasPermission = vi.hoisted(() => vi.fn());
 
 vi.mock('@/features/auth', () => ({
   usePermissions: () => ({

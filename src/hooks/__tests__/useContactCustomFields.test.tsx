@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const _mockSelect = vi.fn();
-const _mockUpsert = vi.fn();
-const _mockDelete = vi.fn();
-const mockFrom = vi.fn();
+const _mockSelect = vi.hoisted(() => vi.fn());
+const _mockUpsert = vi.hoisted(() => vi.fn());
+const _mockDelete = vi.hoisted(() => vi.fn());
+const mockFrom = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: { from: (...args: unknown[]) => mockFrom(...args) },

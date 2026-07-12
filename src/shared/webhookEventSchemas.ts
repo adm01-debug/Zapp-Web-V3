@@ -1,20 +1,37 @@
 import { z } from 'zod';
 
-// ─── Error codes ───────────────────────────────────────────────────────────────
+// ─── Contract error codes ─────────────────────────────────────────────────────
 
 export enum ContractErrorCode {
   INVALID_PAYLOAD = 'INVALID_PAYLOAD',
   INVALID_EVENT_SHAPE = 'INVALID_EVENT_SHAPE',
 }
 
-// ─── safeParseEvent ────────────────────────────────────────────────────────────
+// ─── Realtime envelope ────────────────────────────────────────────────────────
 
-interface ParseError {
-  code: ContractErrorCode;
-  details: Array<{ path: string; message: string }>;
+export const realtimeEnvelopeSchema = z.object({
+  schema: z.string().optional(),
+  table: z.string(),
+  eventType: z.enum(['INSERT', 'UPDATE', 'DELETE']),
+  new: z.record(z.unknown()).nullable().optional(),
+  old: z.record(z.unknown()).nullable().optional(),
+});
+
+export function realtimeEnvelopeFor<T>(rowSchema: z.ZodType<T>) {
+  return z.object({
+    schema: z.string().optional(),
+    table: z.string(),
+    eventType: z.enum(['INSERT', 'UPDATE', 'DELETE']),
+    new: rowSchema.nullable().optional(),
+    old: z.record(z.unknown()).nullable().optional(),
+  });
 }
-type ParseOk<T> = { ok: true; data: T };
-type ParseFail = { ok: false; error: ParseError };
+
+// ─── safeParseEvent ───────────────────────────────────────────────────────────
+
+type ParseError = { code: ContractErrorCode; details: { path: string; message: string }[] };
+type ParseOk<T> = { ok: true; data: T; error?: never };
+type ParseFail = { ok: false; data?: never; error: ParseError };
 type ParseResult<T> = ParseOk<T> | ParseFail;
 
 export function safeParseEvent<T>(
@@ -26,66 +43,55 @@ export function safeParseEvent<T>(
   if (result.success) {
     return { ok: true, data: result.data };
   }
-  const details = result.error.issues.map((issue) => ({
-    path: issue.path.join('.'),
-    message: issue.message,
-  }));
-  return { ok: false, error: { code, details } };
+  return {
+    ok: false,
+    error: {
+      code,
+      details: result.error.issues.map((e) => ({
+        path: e.path.join('.'),
+        message: e.message,
+      })),
+    },
+  };
 }
 
-// ─── Realtime envelope ─────────────────────────────────────────────────────────
-
-export const realtimeEnvelopeSchema = z.object({
-  schema: z.string(),
-  table: z.string(),
-  eventType: z.enum(['INSERT', 'UPDATE', 'DELETE']),
-  new: z.record(z.unknown()).nullable().optional(),
-  old: z.record(z.unknown()).nullable().optional(),
-});
-
-export function realtimeEnvelopeFor<T>(rowSchema: z.ZodType<T>) {
-  return realtimeEnvelopeSchema.extend({
-    new: rowSchema.nullable(),
-  });
-}
-
-// ─── Row schemas ───────────────────────────────────────────────────────────────
+// ─── Core message/contact row schemas ────────────────────────────────────────
 
 export const messageRowSchema = z
   .object({
     id: z.string().uuid(),
-    contact_id: z.string().nullable(),
-    content: z.string().nullable(),
-    sender: z.string().nullable(),
-    status: z.string().nullable(),
-    channel_type: z.string().nullable(),
-    external_id: z.string().nullable(),
-    media_url: z.string().nullable(),
-    media_type: z.string().nullable(),
-    created_at: z.string().nullable(),
-    agent_id: z.string().nullable(),
+    contact_id: z.string().nullable().optional(),
+    content: z.string().nullable().optional(),
+    sender: z.string().nullable().optional(),
+    status: z.string().nullable().optional(),
+    channel_type: z.string().nullable().optional(),
+    external_id: z.string().nullable().optional(),
+    media_url: z.string().nullable().optional(),
+    media_type: z.string().nullable().optional(),
+    created_at: z.string().nullable().optional(),
+    agent_id: z.string().nullable().optional(),
   })
   .passthrough();
 
 export const contactRowSchema = z.object({
   id: z.string().uuid(),
-  remote_jid: z.string().nullable(),
-  phone: z.string().nullable(),
-  push_name: z.string().nullable(),
-  assigned_to: z.string().nullable(),
-  queue_id: z.string().nullable(),
-  contact_type: z.string().nullable(),
-  updated_at: z.string().nullable(),
+  remote_jid: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  push_name: z.string().nullable().optional(),
+  assigned_to: z.string().nullable().optional(),
+  queue_id: z.string().nullable().optional(),
+  contact_type: z.string().nullable().optional(),
+  updated_at: z.string().nullable().optional(),
 });
 
 export const failedMessageRowSchema = z.object({
   id: z.string().uuid(),
-  instance_name: z.string().nullable(),
-  message_id: z.string().nullable(),
-  error_message: z.string().nullable(),
-  retry_count: z.number().int().nullable(),
-  status: z.string().nullable(),
-  created_at: z.string().nullable(),
+  instance_name: z.string().nullable().optional(),
+  message_id: z.string().nullable().optional(),
+  error_message: z.string().nullable().optional(),
+  retry_count: z.number().nullable().optional(),
+  status: z.string().nullable().optional(),
+  created_at: z.string().nullable().optional(),
 });
 
 export const notificationRowSchema = z.object({
@@ -94,51 +100,55 @@ export const notificationRowSchema = z.object({
   title: z.string(),
   message: z.string(),
   type: z.string(),
-  is_read: z.boolean().nullable(),
-  metadata: z.unknown().nullable(),
+  is_read: z.boolean().nullable().optional(),
+  metadata: z.record(z.unknown()).nullable().optional(),
   created_at: z.string(),
-  read_at: z.string().nullable(),
+  read_at: z.string().nullable().optional(),
 });
+
+// ─── Conversation row schemas ─────────────────────────────────────────────────
 
 export const conversationEventRowSchema = z.object({
-  id: z.string().uuid(),
-  contact_id: z.string().uuid(),
+  id: z.string(),
   event_type: z.string().min(1),
-  from_agent_id: z.string().uuid().nullable(),
-  to_agent_id: z.string().uuid().nullable(),
-  from_queue_id: z.string().uuid().nullable(),
-  to_queue_id: z.string().uuid().nullable(),
-  metadata: z.unknown().nullable(),
-  performed_by: z.string().uuid().nullable(),
+  contact_id: z.string().optional(),
+  from_agent_id: z.string().uuid().nullable().optional(),
+  to_agent_id: z.string().uuid().nullable().optional(),
+  from_queue_id: z.string().uuid().nullable().optional(),
+  to_queue_id: z.string().uuid().nullable().optional(),
+  performed_by: z.string().uuid().nullable().optional(),
+  metadata: z.record(z.unknown()).nullable().optional(),
   created_at: z.string(),
-});
-
-export const conversationSlaRowSchema = z.object({
-  id: z.string().uuid(),
-  contact_id: z.string().uuid().nullable(),
-  first_message_at: z.string(),
-  first_response_at: z.string().nullable(),
-  resolved_at: z.string().nullable(),
-  first_response_breached: z.boolean().nullable(),
-  resolution_breached: z.boolean().nullable(),
+  status: z.string().optional(),
+  error_message: z.string().optional(),
 });
 
 export const conversationTransferRowSchema = z.object({
   id: z.string().uuid(),
   source_conversation_id: z.string().uuid(),
-  from_agent_id: z.string().nullable(),
-  to_agent_id: z.string().nullable(),
-  from_queue_id: z.string().nullable(),
-  to_queue_id: z.string().nullable(),
-  status: z.enum(['pending', 'completed', 'failed', 'cancelled']),
-  transfer_type: z.enum(['queue', 'agent', 'auto']),
-  priority: z.number().int().nullable(),
+  from_agent_id: z.string().nullable().optional(),
+  to_agent_id: z.string().nullable().optional(),
+  from_queue_id: z.string().nullable().optional(),
+  to_queue_id: z.string().nullable().optional(),
+  status: z.enum(['pending', 'completed', 'failed', 'cancelled', 'accepted', 'rejected']),
+  transfer_type: z.enum(['agent', 'queue', 'department', 'direct']),
+  priority: z.number().int().nullable().optional(),
   ticket_number: z.string(),
+  contact_id: z.string().nullable().optional(),
+  remote_jid: z.string().nullable().optional(),
+  contact_name: z.string().nullable().optional(),
+  metadata: z.record(z.unknown()).nullable().optional(),
+  created_at: z.string().nullable().optional(),
+});
+
+export const conversationSlaRowSchema = z.object({
+  id: z.string().uuid(),
   contact_id: z.string().nullable(),
-  remote_jid: z.string().nullable(),
-  contact_name: z.string().nullable(),
-  metadata: z.unknown().nullable(),
-  created_at: z.string().nullable(),
+  first_response_breached: z.boolean().nullable(),
+  resolution_breached: z.boolean().nullable(),
+  first_message_at: z.string(),
+  first_response_at: z.string().nullable(),
+  resolved_at: z.string().nullable(),
 });
 
 export const teamMessageRowSchema = z.object({
@@ -147,64 +157,86 @@ export const teamMessageRowSchema = z.object({
   sender_id: z.string().uuid(),
   content: z.string(),
   message_type: z.string(),
-  reply_to_id: z.string().nullable(),
-  is_edited: z.boolean().nullable(),
-  media_url: z.string().nullable(),
-  media_type: z.string().nullable(),
+  reply_to_id: z.string().nullable().optional(),
+  is_edited: z.boolean().nullable().optional(),
+  media_url: z.string().nullable().optional(),
+  media_type: z.string().nullable().optional(),
   status: z.enum(['sent', 'delivered', 'read', 'failed']),
   created_at: z.string(),
-  updated_at: z.string(),
+  updated_at: z.string().nullable().optional(),
 });
 
+// ─── WarRoom / SLA / Evolution rows ──────────────────────────────────────────
+
 export const warRoomAlertRowSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
   alert_type: z.enum(['info', 'warning', 'critical', 'sla_breach']),
   title: z.string(),
   message: z.string(),
-  source: z.string().nullable(),
-  is_read: z.boolean().nullable(),
-  created_at: z.string().nullable(),
+  source: z.string().nullable().optional(),
+  is_read: z.boolean().nullable().optional(),
+  created_at: z.string().nullable().optional(),
 });
 
 export const evolutionMessageRowSchema = z.object({
   id: z.string(),
-  message_id: z.string(),
+  message_id: z.string().nullable().optional(),
   remote_jid: z.string(),
-  instance_name: z.string(),
   from_me: z.boolean(),
   message_type: z.string(),
-  content: z.string().nullable(),
-  media_url: z.string().nullable(),
-  status: z.string().nullable(),
+  content: z.string().nullable().optional(),
+  media_url: z.string().nullable().optional(),
+  media_mimetype: z.string().nullable().optional(),
+  media_type: z.string().nullable().optional(),
+  media_filename: z.string().nullable().optional(),
+  caption: z.string().nullable().optional(),
+  quoted_message_id: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  push_name: z.string().nullable().optional(),
+  contact_id: z.string().nullable().optional(),
+  conversation_id: z.string().nullable().optional(),
   created_at: z.string(),
-  deleted_at: z.string().nullable(),
-  contact_id: z.string().nullable(),
-  conversation_id: z.string().nullable(),
+  deleted_at: z.string().nullable().optional(),
+  edited_at: z.string().nullable().optional(),
+  instance_name: z.string(),
+  transcription_status: z.string().nullable().optional(),
+  transcription: z.string().nullable().optional(),
 });
 
 export const sentimentAlertAuditRowSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
   action: z.literal('sentiment_alert'),
-  entity_id: z.string().nullable(),
-  entity_type: z.string().nullable(),
-  user_id: z.string().nullable(),
-  details: z.record(z.unknown()).nullable(),
-  created_at: z.string(),
-});
-
-export const teamMessageNotificationRowSchema = z.object({
-  id: z.string().uuid(),
-  conversation_id: z.string().uuid(),
-  sender_id: z.string().uuid(),
-  content: z.string(),
-  media_type: z
-    .enum(['image', 'audio', 'video', 'document', 'sticker'])
+  entity_id: z.string().nullable().optional(),
+  entity_type: z.string().nullable().optional(),
+  user_id: z.string().nullable().optional(),
+  details: z
+    .object({
+      type: z.string().optional(),
+      contact_id: z.string().optional(),
+      contact_name: z.string().optional(),
+      contact_phone: z.string().nullable().optional(),
+      sentiment_score: z.number().optional(),
+      consecutive_low: z.number().optional(),
+      agent_name: z.string().optional(),
+      message: z.string().optional(),
+    })
     .nullable()
     .optional(),
   created_at: z.string(),
 });
 
-// ─── Evolution webhook ─────────────────────────────────────────────────────────
+export const teamMessageNotificationRowSchema = z.object({
+  id: z.string(),
+  conversation_id: z.string().uuid(),
+  sender_id: z.string().uuid(),
+  content: z.string(),
+  media_type: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+
+// ─── Webhook payload schemas ──────────────────────────────────────────────────
+
+const jidRegex = /^[^@]+@(s\.whatsapp\.net|g\.us|newsletter|lid)$/;
 
 export const evolutionMessageUpsertSchema = z.object({
   event: z.literal('messages.upsert'),
@@ -212,7 +244,7 @@ export const evolutionMessageUpsertSchema = z.object({
   data: z.object({
     key: z.object({
       id: z.string().min(1),
-      remoteJid: z.string().regex(/^[^@]+@[^@]+$/, 'invalid JID'),
+      remoteJid: z.string().regex(jidRegex),
       fromMe: z.boolean().default(false),
     }),
     pushName: z.string().nullable().optional(),
@@ -222,40 +254,38 @@ export const evolutionMessageUpsertSchema = z.object({
   }),
 });
 
-// ─── WhatsApp Cloud webhook ────────────────────────────────────────────────────
-
-const waStatusSchema = z
-  .object({
-    id: z.string(),
-    status: z.enum(['sent', 'delivered', 'read', 'failed']),
-    timestamp: z.string(),
-  })
-  .passthrough();
-
-const waChangeValueSchema = z
-  .object({
-    statuses: z.array(waStatusSchema).optional(),
-  })
-  .passthrough();
-
-const waChangeSchema = z.object({
-  field: z.string(),
-  value: waChangeValueSchema,
-});
-
-const waEntrySchema = z.object({
-  id: z.string(),
-  changes: z.array(waChangeSchema),
-});
-
 export const whatsappCloudWebhookSchema = z.object({
   object: z.string(),
-  entry: z.array(waEntrySchema).min(1),
+  entry: z
+    .array(
+      z.object({
+        id: z.string(),
+        changes: z
+          .array(
+            z.object({
+              field: z.string(),
+              value: z
+                .object({
+                  statuses: z
+                    .array(
+                      z.object({
+                        id: z.string(),
+                        status: z.enum(['sent', 'delivered', 'read', 'failed']),
+                        timestamp: z.string(),
+                      }),
+                    )
+                    .optional(),
+                })
+                .optional(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .min(1),
 });
-
-// ─── Gmail push ────────────────────────────────────────────────────────────────
 
 export const gmailPushSchema = z.object({
   emailAddress: z.string().email(),
-  historyId: z.union([z.number(), z.string()]),
+  historyId: z.union([z.string(), z.number()]),
 });

@@ -210,14 +210,16 @@ export async function sendExternalAudio(
   });
 
   if (convId) {
-    void safeClient.from('conversation_audit_logs', (q) =>
-      q.insert({
-        conversation_id: convId,
-        event_type: 'send_attempt',
-        status: 'starting',
-        metadata: { messageType: 'audio', isPtt: opts.isPtt ?? true },
-      })
-    );
+    void safeClient
+      .from('audit_logs', (q) =>
+        q.insert({
+          entity_type: 'conversation',
+          entity_id: convId,
+          action: 'send_attempt',
+          details: { status: 'starting', messageType: 'audio', isPtt: opts.isPtt ?? true },
+        })
+      )
+      .catch((err: unknown) => log.warn('[audit] audio send_attempt log failed', err));
   }
 
   const formData = new FormData();
@@ -298,14 +300,16 @@ export async function sendExternalAudio(
   optimistic.status = 'sent';
 
   if (convId) {
-    void safeClient.from('conversation_audit_logs', (q) =>
-      q.insert({
-        conversation_id: convId,
-        event_type: 'delivered',
-        status: 'success',
-        metadata: { external_id: externalId },
-      })
-    );
+    void safeClient
+      .from('audit_logs', (q) =>
+        q.insert({
+          entity_type: 'conversation',
+          entity_id: convId,
+          action: 'delivered',
+          details: { status: 'success', external_id: externalId },
+        })
+      )
+      .catch((err: unknown) => log.warn('[audit] audio delivered log failed', err));
   }
 
   return { optimistic, externalId };

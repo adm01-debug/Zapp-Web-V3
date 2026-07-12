@@ -193,7 +193,7 @@ export function TeamChatInputArea({
                 size="icon"
                 className={cn(
                   'shrink-0 touch-manipulation text-muted-foreground hover:bg-muted hover:text-foreground',
-                  isMobile ? 'h-10 w-10' : 'h-9 w-9'
+                  isMobile ? 'w-10 h-10' : 'w-9 h-9'
                 )}
                 aria-label="Mais opções"
               >
@@ -271,7 +271,7 @@ export function TeamChatInputArea({
                   size="icon"
                   className={cn(
                     'shrink-0 touch-manipulation rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-40',
-                    isMobile ? 'h-11 w-11' : 'h-10 w-10',
+                    isMobile ? 'w-11 h-11' : 'w-10 h-10',
                     sendAnimation && 'motion-safe:animate-pulse'
                   )}
                 >
@@ -292,7 +292,7 @@ export function TeamChatInputArea({
                   size="icon"
                   className={cn(
                     'shrink-0 touch-manipulation rounded-full transition-all active:scale-95',
-                    isMobile ? 'h-11 w-11' : 'h-10 w-10',
+                    isMobile ? 'w-11 h-11' : 'w-10 h-10',
                     isRecordingAudio
                       ? 'bg-destructive text-destructive-foreground shadow-lg shadow-destructive/30'
                       : 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90'

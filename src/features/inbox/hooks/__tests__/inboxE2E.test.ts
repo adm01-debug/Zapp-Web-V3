@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import type { ConversationWithMessages } from '@/features/inbox';
 
-const mockHasPermission = vi.fn();
+const mockHasPermission = vi.hoisted(() => vi.fn());
 const mockProfile = { id: 'coord-1', department: 'Sales' };
 
 vi.mock('@/features/auth', () => ({

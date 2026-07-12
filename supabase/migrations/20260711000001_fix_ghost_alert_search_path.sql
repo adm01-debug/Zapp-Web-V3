@@ -1,13 +1,13 @@
--- S5-3 (sessão 5, 2026-07-04): alerta imediato para mensagens de instância DESCONHECIDA.
--- Contexto: o incidente S5-1 (linha principal re-pareada numa instância fantasma cujo nome era
--- o UUID da wpp2) publicou messages.upsert rejeitados como 'unknown_instance', mas o KPI de
--- ghost events do zapp-health-guard só alerta acima de 20 eventos/hora — o vazamento de baixa
--- frequência passou despercebido por ~20 min. Esta função alerta com QUALQUER messages.upsert
--- de instância fora do registry nos últimos 15 min (anti-flap: 1 alerta/hora).
--- Instâncias de QA ficam registradas com status='test' e são excluídas.
--- Aplicado em produção 2026-07-04 ~11:05 UTC. Cron pg_cron jobid 97:
---   SELECT cron.schedule('alert-ghost-message-events', '*/5 * * * *',
---     'SELECT zapp.fn_alert_ghost_message_events()');
+-- GAP-01 (sessão 6, 2026-07-11): corrige ordem do search_path em fn_alert_ghost_message_events.
+-- ANTES: SET search_path = zapp, public, evo, pg_catalog
+-- DEPOIS: SET search_path = pg_catalog, zapp, public, evo
+--
+-- Motivação: com pg_catalog no FIM, uma função pg_catalog.now() ou pg_catalog.format()
+-- poderia ser shadowed por uma função homônima em 'zapp' ou 'public'.
+-- Mover pg_catalog para o INÍCIO garante que built-ins do sistema sempre resolvam antes
+-- de qualquer função user-defined, eliminando o risco de shadow-injection.
+-- Todas as referências a tabelas já são schema-qualified (zapp.instance_registry,
+-- evo.evolution_alerts, public.webhook_audit_log), então a reordenação não quebra nada.
 
 CREATE OR REPLACE FUNCTION zapp.fn_alert_ghost_message_events()
 RETURNS int
@@ -52,5 +52,12 @@ BEGIN
   RETURN v_n;
 END $$;
 
+-- Travar privilégios explicitamente: SECURITY DEFINER + INSERT em evo.evolution_alerts
+-- não pode ficar exposta via PUBLIC. auto-contido para não depender de
+-- infra/migrations/20260711_security_revoke_anon_secdef.sql.
+REVOKE ALL ON FUNCTION zapp.fn_alert_ghost_message_events() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION zapp.fn_alert_ghost_message_events()
+  TO postgres, supabase_admin;
+
 COMMENT ON FUNCTION zapp.fn_alert_ghost_message_events() IS
-  'S5-3 (2026-07-04): alerta critico imediato quando messages.upsert de instancia fora do registry e rejeitado (unknown_instance). O KPI de volume (>20/h) nao pega vazamento de baixa frequencia — foi assim que o S5-1 passou despercebido.';
+  'S5-3 (2026-07-04): alerta critico imediato quando messages.upsert de instancia fora do registry e rejeitado (unknown_instance). O KPI de volume (>20/h) nao pega vazamento de baixa frequencia — foi assim que o S5-1 passou despercebido. search_path corrigido (pg_catalog first) em 2026-07-11. REVOKE PUBLIC adicionado (GAP Copilot review 2026-07-12).';

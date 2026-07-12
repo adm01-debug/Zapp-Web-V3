@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock supabase
-const mockRpc = vi.fn();
-const mockFrom = vi.fn();
-const mockSelect = vi.fn();
-const mockInsert = vi.fn();
-const mockDelete = vi.fn();
-const mockUpdate = vi.fn();
-const mockEq = vi.fn();
-const mockOrder = vi.fn();
-const mockLimit = vi.fn();
-const mockMaybeSingle = vi.fn();
+const mockRpc = vi.hoisted(() => vi.fn());
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockSelect = vi.hoisted(() => vi.fn());
+const mockInsert = vi.hoisted(() => vi.fn());
+const mockDelete = vi.hoisted(() => vi.fn());
+const mockUpdate = vi.hoisted(() => vi.fn());
+const mockEq = vi.hoisted(() => vi.fn());
+const mockOrder = vi.hoisted(() => vi.fn());
+const mockLimit = vi.hoisted(() => vi.fn());
+const mockMaybeSingle = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
