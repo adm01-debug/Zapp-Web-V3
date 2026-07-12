@@ -16,7 +16,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.get-mapbox-token]
-verify_jwt = false
+verify_jwt = true
 
 [functions.whatsapp-webhook]
 verify_jwt = false
@@ -58,7 +58,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.evolution-sync]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-enhance-message]
 verify_jwt = true
