@@ -79,7 +79,8 @@ async function fetchAvatarBatch(jids: string[]): Promise<Record<string, string |
     if (client) {
       try {
         // RPC exists in external self-hosted DB, not in local generated types
-        const { data, error } = await (client.rpc as (name: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>)(RPC_NAME, { p_jids: jids });
+        const rpc = client.rpc as unknown as (name: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+        const { data, error } = await rpc(RPC_NAME, { p_jids: jids });
         if (error) {
           log.warn('Direct RPC failed, falling back to proxy', { error: error.message });
         } else {
