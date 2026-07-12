@@ -124,8 +124,8 @@ export function sanitizeForSearch(input: unknown): string {
 export function sanitizePostgrestFilter(input: unknown): string {
   if (!input) return '';
   return sanitizeText(input)
-    .replace(/[,"()\\]/g, '')   // strip PostgREST filter metacharacters
-    .replace(/[%_]/g, '\\$&')   // escape SQL LIKE wildcards
+    .replace(/[,"()\\]/g, '')       // strip PostgREST filter metacharacters
+    .replace(/[*%_]/g, '\\$&')     // escape SQL LIKE wildcards (PostgREST * is alias for %)
     .slice(0, 200);
 }
 

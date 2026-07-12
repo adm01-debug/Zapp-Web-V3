@@ -249,7 +249,9 @@ export const safeClient = {
       else if (telemetry.recentFailures.length > 0) status = 'degraded';
 
       // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
-      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)(
+      // Destructure { error } so PostgREST logical errors (e.g. 403) are not silently discarded
+      type RpcResult = { data: unknown; error: { message: string } | null };
+      const { error: rpcErr } = await (supabase.rpc as unknown as (name: string, params?: unknown) => Promise<RpcResult>)(
         'rpc_update_email_health_state',
         {
           p_status: status,
@@ -261,8 +263,11 @@ export const safeClient = {
           },
         }
       );
+      if (rpcErr) {
+        _log.warn('Erro ao sincronizar estado de saúde', { error: rpcErr.message });
+      }
     } catch (err) {
-      _log.warn('Erro ao sincronizar estado de saúde', {
+      _log.warn('Erro ao sincronizar estado de saúde (exceção)', {
         error: err instanceof Error ? err.message : String(err),
       });
     } finally {
@@ -352,7 +357,8 @@ export const safeClient = {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
-      await (supabase.rpc as (name: string, params?: unknown) => Promise<unknown>)(
+      type RpcResult = { data: unknown; error: { message: string } | null };
+      const { error: rpcErr } = await (supabase.rpc as unknown as (name: string, params?: unknown) => Promise<RpcResult>)(
         'rpc_log_email_health',
         {
           p_status: 'error',
@@ -363,8 +369,11 @@ export const safeClient = {
           p_is_failure: true,
         }
       );
+      if (rpcErr) {
+        _log.warn('Falha ao persistir log de saúde', { error: rpcErr.message });
+      }
     } catch (dbErr) {
-      _log.warn('Falha ao persistir log de saúde', {
+      _log.warn('Falha ao persistir log de saúde (exceção)', {
         error: dbErr instanceof Error ? dbErr.message : String(dbErr),
       });
     } finally {
