@@ -43,7 +43,7 @@ const childVariants = {
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.25, ease: easeSmooth as unknown as [number, number, number, number] },
+    transition: { duration: 0.25, ease: easeSmooth as unknown as [number, number, number, number] }, // ignore-audit — framer-motion easing type is string | number[] but easeSmooth is a named function reference
   },
 };
 

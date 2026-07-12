@@ -153,10 +153,9 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       setLoading(false);
       return;
     }
-    // ignore-audit — Supabase select returns PostgrestSingleResponse with generic Row; casting to narrow shape with only selected columns
     const { data, error } = (await supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, instance_name, name, phone_number, status')) as unknown as {
+      .select('id, instance_id, instance_name, name, phone_number, status')) as unknown as { // ignore-audit — Supabase select returns PostgrestSingleResponse with generic Row; casting to selected-columns shape
       data: Array<{
         id: string;
         instance_id: string | null;

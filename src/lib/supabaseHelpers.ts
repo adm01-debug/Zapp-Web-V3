@@ -15,5 +15,5 @@ type DynamicClient = { from: (table: string) => any }; // ignore-audit — retur
  * Use this instead of `(supabase as any).from(tableName)`.
  */
 export function fromTable(tableName: string) {
-  return (supabase as unknown as DynamicClient).from(tableName);
+  return (supabase as unknown as DynamicClient).from(tableName); // ignore-audit — dynamic table name; DynamicClient erases the typed DB schema to allow string arg
 }
