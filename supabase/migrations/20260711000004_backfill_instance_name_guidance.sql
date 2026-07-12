@@ -4,10 +4,13 @@
 -- CONTEXTO: o campo instance_name pode estar NULL em linhas históricas inseridas
 -- antes que o campo fosse adicionado, ou em linhas onde a sincronização com a
 -- Evolution API não ocorreu. Sem esse campo preenchido:
---   • ConnectionStatusIndicator.tsx mostra "null" no toast de desconexão
+--   • ConnectionStatusIndicator.tsx cai para name/instance_id no toast de desconexão
+--     (TS-06/TS-07 já corrigiram o display de "null" literal, mas o fallback é inferior)
 --   • fn_alert_ghost_message_events não consegue correlacionar eventos com instâncias
---   • A constraint GAP-06 (NOT VALID) nunca passará de VALIDATE se houver NULLs
---     que deveriam ser nomes válidos
+--   • NOTA: a constraint chk_instance_name_format (NOT VALID, em 20260711000003)
+--     permite NULL explicitamente (instance_name IS NULL OR <regex>), então VALIDATE
+--     não falha por causa de NULLs. O backfill é RECOMENDADO para completude
+--     operacional; VALIDATE só pegará nomes com formato inválido em linhas já preenchidas
 --
 -- ESTE ARQUIVO NÃO EXECUTA O BACKFILL AUTOMATICAMENTE porque instance_name é
 -- um dado operacional que só pode ser corretamente derivado da Evolution API ou
@@ -66,6 +69,14 @@ AS $$
   ORDER BY created_at DESC;
 $$;
 
+-- SECURITY DEFINER retorna phone_number/status — não pode ficar executável via PUBLIC
+-- (bypass de RLS/controle de acesso). Migration auto-contida.
+ALTER FUNCTION ops.fn_diagnose_missing_instance_names() OWNER TO supabase_admin;
+REVOKE ALL ON FUNCTION ops.fn_diagnose_missing_instance_names() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION ops.fn_diagnose_missing_instance_names()
+  TO postgres, supabase_admin;
+
 COMMENT ON FUNCTION ops.fn_diagnose_missing_instance_names() IS
   'GAP-04 (2026-07-11): lista conexoes sem instance_name para backfill manual. '
-  'Dropar apos backfill completo e VALIDATE CONSTRAINT chk_instance_name_format.';
+  'Dropar apos backfill completo e VALIDATE CONSTRAINT chk_instance_name_format. '
+  'REVOKE PUBLIC adicionado (Copilot review 2026-07-12).';

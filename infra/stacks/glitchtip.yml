@@ -72,8 +72,10 @@ services:
       - /bin/sh
       - -c
       - |
-        export DATABASE_URL=$(cat /run/secrets/glitchtip_database_url_v1)
-        export SECRET_KEY=$(cat /run/secrets/glitchtip_secret_key_v1)
+        set -e
+        DATABASE_URL="$(cat /run/secrets/glitchtip_database_url_v1)"
+        SECRET_KEY="$(cat /run/secrets/glitchtip_secret_key_v1)"
+        export DATABASE_URL SECRET_KEY
         exec "$0" "$@"
     environment:
       REDIS_URL: redis://glitchtip-valkey:6379/0
@@ -112,8 +114,10 @@ services:
       - /bin/sh
       - -c
       - |
-        export DATABASE_URL=$(cat /run/secrets/glitchtip_database_url_v1)
-        export SECRET_KEY=$(cat /run/secrets/glitchtip_secret_key_v1)
+        set -e
+        DATABASE_URL="$(cat /run/secrets/glitchtip_database_url_v1)"
+        SECRET_KEY="$(cat /run/secrets/glitchtip_secret_key_v1)"
+        export DATABASE_URL SECRET_KEY
         exec ./bin/run-celery-with-beat.sh
     environment:
       REDIS_URL: redis://glitchtip-valkey:6379/0

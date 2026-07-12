@@ -52,5 +52,12 @@ BEGIN
   RETURN v_n;
 END $$;
 
+-- Travar privilégios explicitamente: SECURITY DEFINER + INSERT em evo.evolution_alerts
+-- não pode ficar exposta via PUBLIC. auto-contido para não depender de
+-- infra/migrations/20260711_security_revoke_anon_secdef.sql.
+REVOKE ALL ON FUNCTION zapp.fn_alert_ghost_message_events() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION zapp.fn_alert_ghost_message_events()
+  TO postgres, supabase_admin;
+
 COMMENT ON FUNCTION zapp.fn_alert_ghost_message_events() IS
-  'S5-3 (2026-07-04): alerta critico imediato quando messages.upsert de instancia fora do registry e rejeitado (unknown_instance). O KPI de volume (>20/h) nao pega vazamento de baixa frequencia — foi assim que o S5-1 passou despercebido. search_path corrigido (pg_catalog first) em 2026-07-11.';
+  'S5-3 (2026-07-04): alerta critico imediato quando messages.upsert de instancia fora do registry e rejeitado (unknown_instance). O KPI de volume (>20/h) nao pega vazamento de baixa frequencia — foi assim que o S5-1 passou despercebido. search_path corrigido (pg_catalog first) em 2026-07-11. REVOKE PUBLIC adicionado (GAP Copilot review 2026-07-12).';

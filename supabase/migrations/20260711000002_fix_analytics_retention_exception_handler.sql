@@ -65,5 +65,11 @@ END $$;
 
 ALTER FUNCTION ops.fn_analytics_log_retention(int) OWNER TO supabase_admin;
 
+-- SECURITY DEFINER + dblink/VACUUM em _analytics: não pode ficar executável via PUBLIC.
+-- REVOKE explícito aqui torna a migration auto-contida (não depende de script externo).
+REVOKE ALL ON FUNCTION ops.fn_analytics_log_retention(int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION ops.fn_analytics_log_retention(int)
+  TO postgres, supabase_admin;
+
 COMMENT ON FUNCTION ops.fn_analytics_log_retention(int) IS
   'S4-4 (2026-07-04): retencao de 14 dias nos logs do Logflare (_supabase/_analytics). Antes desta correcao o _supabase tinha 35 GB (76% do disco do host); apos rewrite-swap ficou com 709 MB. Roda diario via pg_cron (dblink local peer, sem senha). search_path corrigido (pg_catalog first) e exception handler por-particao adicionado em 2026-07-11 (GAP-02).';

@@ -43,12 +43,17 @@ jobs:
           exit 0
 
       - name: Refactor guards (ratchets — dead code + data layer)
+        # Captura cada exit code separadamente para não mascarar uma falha de
+        # check-dead-code quando check-data-layer passa (antes: status=$? só
+        # capturava o ÚLTIMO script, então dead-code falhando + data-layer OK
+        # resultava em status=0 e o warning nunca disparava).
         run: |
           set +e
           node scripts/check-dead-code.mjs
+          status_dead=$?
           node scripts/check-data-layer.mjs
-          status=$?
-          if [ "$status" -ne 0 ]; then
+          status_data=$?
+          if [ "$status_dead" -ne 0 ] || [ "$status_data" -ne 0 ]; then
             echo "::warning title=Refactor debt::Dead-code or data-layer ratchet flagged violations. Advisory — tracked as follow-up cleanup debt."
           fi
           exit 0
