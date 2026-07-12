@@ -63,6 +63,26 @@ export function parseJwtPayloadUnsafe(token: string): Record<string, unknown> | 
   }
 }
 
+/**
+ * Check if JWT token has expired.
+ * Returns: { expired: boolean, expiresIn: number (seconds), exp: number | null }
+ * Includes 30-second grace period to tolerate clock skew.
+ */
+export function isTokenExpired(
+  payload: Record<string, unknown> | null
+): { expired: boolean; expiresIn: number; exp: number | null } {
+  if (!payload || typeof payload.exp !== 'number') {
+    return { expired: true, expiresIn: -1, exp: null };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const grace = 30; // 30 seconds for clock skew tolerance
+  const expiresIn = payload.exp - now;
+  const expired = expiresIn < grace;
+
+  return { expired, expiresIn, exp: payload.exp };
+}
+
 function readSupabaseUrl(name: string): string | null {
   const raw = Deno.env.get(name)?.trim();
   if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
@@ -84,10 +104,22 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
   const token = getBearer(req);
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
 
-  const tokenPayload = parseJwtPayloadUnsafe(token) as { role?: string; sub?: string; iss?: string } | null;
+  const tokenPayload = parseJwtPayloadUnsafe(token) as { role?: string; sub?: string; iss?: string; exp?: number } | null;
 
   if (!tokenPayload?.sub || tokenPayload.role === 'anon') {
     return errorResponse("Unauthorized: user session required", 401, req);
+  }
+
+  // Check token expiry BEFORE attempting authentication
+  const expiryCheck = isTokenExpired(tokenPayload);
+  if (expiryCheck.expired) {
+    const expiresAt = expiryCheck.exp ? new Date(expiryCheck.exp * 1000).toISOString() : 'unknown';
+    console.warn('[auth] token expired', { sub: tokenPayload.sub, expiresAt, expiresIn: expiryCheck.expiresIn });
+    return errorResponse(
+      `Unauthorized: token expired (expired at ${expiresAt}). Please login again.`,
+      401,
+      req
+    );
   }
 
   const selfUrl = readSupabaseUrl("SELFHOSTED_SUPABASE_URL") ?? readSupabaseUrl("EXTERNAL_SUPABASE_URL");
@@ -146,6 +178,7 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
 }
 
 export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser | Response> {
+  // requireUser already validates token expiry, so no need to check again here
   const authed = await requireUser(req);
   if (authed instanceof Response) return authed;
 
