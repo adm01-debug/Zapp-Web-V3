@@ -74,14 +74,24 @@ export function useAIUsageDashboard() {
     queryKey: ['ai-usage-logs', timeFilter],
     queryFn: async () => {
       const since = getTimeRange(timeFilter).toISOString();
-      const { data, error } = await supabase
-        .from('ai_usage_logs')
-        .select('*')
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      return (data || []) as UsageLog[];
+      const PAGE = 1000;
+      const all: UsageLog[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('ai_usage_logs')
+          .select('*')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...(data as UsageLog[]));
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
     },
     refetchInterval: 30_000,
   });

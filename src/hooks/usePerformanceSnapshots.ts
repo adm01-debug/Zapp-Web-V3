@@ -67,6 +67,7 @@ export function usePerformanceSnapshots() {
         .select('*')
         .gte('created_at', since)
         .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
         .limit(500);
 
       if (error) throw error;

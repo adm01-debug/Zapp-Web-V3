@@ -15,14 +15,24 @@ export function useAgentPendingCounts() {
   const query = useQuery({
     queryKey: ['agent-pending-counts'],
     queryFn: async () => {
-      const { data, error } = await dbFrom('messages')
-        .select('agent_id, status, sender')
-        .in('status', ['pending', 'failed'])
-        .eq('sender', 'me')
-        .not('agent_id', 'is', null)
-        .limit(2000);
-      if (error) throw error;
-      return (data ?? []) as Array<{ agent_id: string | null; status: string | null; sender: string }>;
+      const PAGE = 1000;
+      const all: Array<{ agent_id: string | null; status: string | null; sender: string }> = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await dbFrom('messages')
+          .select('agent_id, status, sender')
+          .in('status', ['pending', 'failed'])
+          .eq('sender', 'me')
+          .not('agent_id', 'is', null)
+          .order('id', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...(data as typeof all));
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
     },
     staleTime: 15_000,
     refetchInterval: 30_000,
