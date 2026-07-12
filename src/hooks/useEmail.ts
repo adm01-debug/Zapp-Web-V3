@@ -324,7 +324,11 @@ export function useEmail() {
           body: { action: 'renewWatch', accountId: id },
         });
 
-        if (!fnErr && data?.success) {
+        if (fnErr) {
+          log.warn('Watch renewal: function invocation error (best-effort)', fnErr);
+        } else if (!data?.success) {
+          log.warn('Watch renewal: unsuccessful response (best-effort)', data);
+        } else {
           await checkTokenStatus();
         }
       } catch (err) {

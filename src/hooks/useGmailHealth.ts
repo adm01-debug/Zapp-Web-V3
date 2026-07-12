@@ -20,8 +20,8 @@ export function useEmailHealth() {
     };
   }, []);
 
-  const loadHealth = useCallback(async () => {
-    if (loadingRef.current) return;
+  const loadHealth = useCallback(async (skipIfLoading = false) => {
+    if (skipIfLoading && loadingRef.current) return;
     loadingRef.current = true;
     setIsLoading(true);
     try {
@@ -54,7 +54,7 @@ export function useEmailHealth() {
 
   useEffect(() => {
     void loadHealth();
-    const interval = setInterval(loadHealth, 30000); // 30s
+    const interval = setInterval(() => void loadHealth(true), 30000); // background polls skip if in-flight
     return () => clearInterval(interval);
   }, [loadHealth]);
 

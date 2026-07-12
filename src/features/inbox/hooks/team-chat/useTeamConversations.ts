@@ -14,31 +14,37 @@ export function useTeamConversations() {
     queryFn: async () => {
       if (!profile) return [];
 
-      // Fetch all conversations the user can see via RLS, paginating to avoid
-      // the PostgREST max_rows silent truncation.
+      // Keyset (cursor-based) pagination on (updated_at DESC, id DESC) to avoid
+      // offset skips/duplicates caused by concurrent inserts or updates.
       const PAGE = 1000;
       const { data: firstConvPage, error: convErr } = await supabase
         .from('team_conversations')
         .select('*')
         .order('updated_at', { ascending: false })
         .order('id', { ascending: false })
-        .range(0, PAGE - 1);
+        .limit(PAGE);
       if (convErr) throw convErr;
-      const conversations = firstConvPage ?? [];
-      let convFrom = PAGE;
-      while (firstConvPage && firstConvPage.length === PAGE) {
+      const conversations = [...(firstConvPage ?? [])];
+      let lastPage = firstConvPage ?? [];
+      while (lastPage.length === PAGE) {
+        const cursor = lastPage[lastPage.length - 1];
         const { data: page, error } = await supabase
           .from('team_conversations')
           .select('*')
           .order('updated_at', { ascending: false })
           .order('id', { ascending: false })
-          .range(convFrom, convFrom + PAGE - 1);
+          .or(`updated_at.lt.${cursor.updated_at},and(updated_at.eq.${cursor.updated_at},id.lt.${cursor.id})`)
+          .limit(PAGE);
         if (error) throw error;
         if (!page || page.length === 0) break;
         conversations.push(...page);
-        if (page.length < PAGE) break;
-        convFrom += PAGE;
+        lastPage = page;
       }
+      // Dedup by id as a safety net against any residual boundary overlap.
+      const seen = new Set<string>();
+      const deduped = conversations.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
+      conversations.length = 0;
+      conversations.push(...deduped);
 
       if (!conversations.length) return [];
 

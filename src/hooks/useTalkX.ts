@@ -65,7 +65,8 @@ export function useTalkX() {
       const { data, error } = await supabase
         .from('talkx_campaigns')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as TalkXCampaign[];
     },
