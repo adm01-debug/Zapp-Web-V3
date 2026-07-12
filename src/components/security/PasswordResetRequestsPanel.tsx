@@ -61,7 +61,7 @@ export function PasswordResetRequestsPanel() {
         (q) => q.select('*').order('created_at', { ascending: false })
       );
       if (error) throw error;
-      setRequests((data || []) as unknown as ResetRequest[]);
+      setRequests((data || []) as ResetRequest[]);
     } catch (error) {
       log.error('Error fetching requests:', error);
       toast.error('Erro ao carregar solicitações');

@@ -76,7 +76,7 @@ export function useAdminQueues() {
     ]);
     if (!mountedRef.current) return;
     setQueues(q.data ?? []);
-    setMembers((m.data ?? []) as unknown as QueueMember[]);
+    setMembers((m.data ?? []) as QueueMember[]);
     setSkills((s.data ?? []) as QueueSkill[]);
     setProfiles((p.data ?? []) as Profile[]);
     setDepartments((d.data ?? []) as Department[]);

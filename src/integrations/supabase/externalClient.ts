@@ -113,3 +113,17 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
 export function getExternalSupabase(): SupabaseClient<ExtendedDatabase> {
   return externalSupabase;
 }
+
+/**
+ * Call an RPC function that exists only in the external (FATOR X) DB schema and
+ * therefore is not present in the generated ExtendedDatabase.Functions types.
+ * Centralises the single `(client as any).rpc` cast so callers stay cast-free.
+ */
+export function callExtRpc(
+  client: SupabaseClient<ExtendedDatabase>,
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<{ data: unknown; error: { message: string } | null }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any).rpc(fn, args);
+}

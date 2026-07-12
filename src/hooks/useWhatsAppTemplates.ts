@@ -66,7 +66,7 @@ export function useWhatsAppTemplates() {
       const { data, error } = await supabase
         .from('whatsapp_templates').select('*').order('updated_at', { ascending: false });
       if (error) throw error;
-      setTemplates((data || []) as unknown as WhatsAppTemplate[]);
+      setTemplates((data || []) as WhatsAppTemplate[]);
     } catch (err) {
       log.error('Error fetching templates:', err);
       toast.error('Erro ao carregar templates');

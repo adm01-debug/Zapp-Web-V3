@@ -22,7 +22,7 @@ export function useAIProviders() {
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: true });
       if (error) throw error;
-      return (data || []) as unknown as AIProvider[];
+      return (data || []) as AIProvider[];
     },
   });
 

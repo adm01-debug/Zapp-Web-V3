@@ -17,6 +17,13 @@ interface OfficialApiConfigDialogProps {
   instanceId: string | null;
 }
 
+interface SafeCredentialView {
+  phone_number_id: string | null;
+  waba_id: string | null;
+  has_access_token: boolean | null;
+  has_app_secret: boolean | null;
+}
+
 interface CredentialsForm {
   phone_number_id: string;
   waba_id: string;
@@ -52,25 +59,20 @@ export function OfficialApiConfigDialog({
     setLoading(true);
     (async () => {
       try {
-        const { data } = await (supabase as unknown as {
-          from: (t: string) => {
-            select: (c: string) => {
-              eq: (col: string, v: string) => {
-                maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
-              };
-            };
-          };
-        })
+        // View not in generated types — cast only the data result, not the client
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await (supabase as any)
           .from('whatsapp_official_credentials_safe')
           .select('phone_number_id, waba_id, has_access_token, has_app_secret')
           .eq('connection_id', connectionId)
           .maybeSingle();
+        const data = res.data as SafeCredentialView | null;
         if (cancelled) return;
         if (data) {
           setForm({
             ...EMPTY,
-            phone_number_id: (data.phone_number_id as string) ?? '',
-            waba_id: (data.waba_id as string) ?? '',
+            phone_number_id: data.phone_number_id ?? '',
+            waba_id: data.waba_id ?? '',
           });
           setHasAccessToken(Boolean(data.has_access_token));
           setHasAppSecret(Boolean(data.has_app_secret));
@@ -107,13 +109,11 @@ export function OfficialApiConfigDialog({
     };
     if (form.access_token) payload.access_token = form.access_token;
     if (form.app_secret) payload.app_secret = form.app_secret;
-    const { error } = await (supabase as unknown as {
-      from: (t: string) => {
-        upsert: (v: Record<string, unknown>, o: { onConflict: string }) => Promise<{ error: { message: string } | null }>;
-      };
-    })
+    // Table not in generated types — cast only the result
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
       .from('whatsapp_official_credentials')
-      .upsert(payload, { onConflict: 'connection_id' });
+      .upsert(payload, { onConflict: 'connection_id' }) as { error: { message: string } | null };
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });

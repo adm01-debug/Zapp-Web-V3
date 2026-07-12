@@ -26,7 +26,7 @@ export function useZappContactSearch() {
         `push_name.ilike.%${safe}%,full_name.ilike.%${safe}%,phone_number.ilike.%${safe}%`,
       )
       .limit(20);
-    setResults((data ?? []) as unknown as EvolutionContact[]);
+    setResults((data ?? []) as EvolutionContact[]);
     setLoading(false);
   }, []);
 

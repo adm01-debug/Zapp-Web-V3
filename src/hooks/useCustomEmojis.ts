@@ -38,7 +38,7 @@ export function useCustomEmojis(open: boolean) {
       .select('*')
       .order('use_count', { ascending: false })
       .limit(500);
-    if (!error && data) setEmojis(data as unknown as CustomEmoji[]);
+    if (!error && data) setEmojis(data as CustomEmoji[]);
     setLoading(false);
   }, []);
 

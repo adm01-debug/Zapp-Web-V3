@@ -324,7 +324,8 @@ export const safeClient = {
       // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
       // Destructure { error } so PostgREST logical errors (e.g. 403) are not silently discarded
       type RpcResult = { data: unknown; error: { message: string } | null };
-      const { error: rpcErr } = await (supabase.rpc as unknown as (name: string, params?: unknown) => Promise<RpcResult>)(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = (await (supabase as any).rpc(
         'rpc_update_email_health_state',
         {
           p_status: status,
@@ -335,7 +336,7 @@ export const safeClient = {
             last_validation: lastValidation?.toISOString(),
           },
         }
-      );
+      )) as RpcResult;
       if (rpcErr) {
         _log.warn('Erro ao sincronizar estado de saúde', { error: rpcErr.message });
       }
@@ -431,7 +432,8 @@ export const safeClient = {
     _healthLogInProgress = true;
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
-      const { error: rpcErr } = await (supabase.rpc as unknown as (name: string, params?: unknown) => Promise<RpcResult>)(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = (await (supabase as any).rpc(
         'rpc_log_email_health',
         {
           p_status: 'error',
@@ -441,7 +443,7 @@ export const safeClient = {
           p_error_message: error,
           p_is_failure: true,
         }
-      );
+      )) as RpcResult;
       if (rpcErr) {
         _log.warn('Falha ao persistir log de saúde', { error: rpcErr.message });
       }

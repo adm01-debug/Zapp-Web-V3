@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { getExternalSupabase } from '@/integrations/supabase/externalClient';
+import { getExternalSupabase, callExtRpc } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
 // Resolve at call time so module import never crashes.
 const getClient = () => getExternalSupabase();
 
-type ExtRpc = (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
 
 interface _RawExecRow {
   id: string;
@@ -133,7 +132,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       try {
         const client = getClient();
         if (!client) return false;
-        await (client as unknown as { rpc: ExtRpc }).rpc('rpc_upsert_contact', {
+        await callExtRpc(client, 'rpc_upsert_contact', {
           p_remote_jid: sugg.remote_jid,
           p_instance: sugg.instance_name,
           p_tags: [sugg.recommended_tag],

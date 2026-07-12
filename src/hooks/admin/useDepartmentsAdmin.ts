@@ -5,8 +5,10 @@
  * para a view resetar dialog/form (paridade de comportamento).
  */
 import { useCallback, useEffect, useState } from 'react';
+import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+const log = getLogger('useDepartmentsAdmin');
 
 export interface Department {
   id: string;
@@ -47,7 +49,7 @@ export function useDepartmentsAdmin() {
         .select('department_id')
         .in('department_id', ids);
       if (profilesByDeptErr) {
-        console.warn('[useDepartmentsAdmin] member-count fetch failed:', profilesByDeptErr.message);
+        log.warn('member-count fetch failed:', profilesByDeptErr.message);
         countsFailed = true;
       } else {
         counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {

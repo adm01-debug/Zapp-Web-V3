@@ -34,7 +34,7 @@ export function AIProviderHealthPanel() {
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data || []) as unknown as UsageLog[];
+      return (data || []) as UsageLog[];
     },
     refetchInterval: 30000,
   });
