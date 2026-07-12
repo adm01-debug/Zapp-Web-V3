@@ -44,7 +44,7 @@ docker secret ls | grep evolution_api_key
 # Criar arquivo protegido no host para armazenar a chave antiga
 OLD_KEY_FILE=$(mktemp)
 chmod 600 "$OLD_KEY_FILE"
-trap 'rm -f "$OLD_KEY_FILE"' EXIT  # garante cleanup mesmo em SIGINT/erro
+trap 'rm -f "$OLD_KEY_FILE"; exit 1' INT HUP TERM EXIT  # cleanup em sinal ou exit normal
 
 # Capturar a chave diretamente do container ainda rodando com o secret antigo
 docker exec $(docker ps -qf name=evolution_evolution) \
@@ -141,11 +141,19 @@ pip install git-filter-repo
 
 # Remover o valor antigo de todo o histórico
 # Substitua <CHAVE-ANTIGA> pelo valor real da chave comprometida (não versionar aqui)
-# Nota: NÃO use trap … EXIT aqui — em shells POSIX um segundo trap sobrescreve o anterior.
-# Step 2b já registrou o trap de limpeza de $OLD_KEY_FILE; este bloco usa cleanup explícito.
+#
+# IMPORTANTE: git-filter-repo recusa reescrever checkouts existentes por padrão ("Refusing to
+# destructively overwrite repo history since this does not look like a fresh clone").
+# Opção A (recomendada): clone em diretório temporário limpo:
+#   git clone --no-local /caminho/para/zapp-web-v3 /tmp/zapp-fresh && cd /tmp/zapp-fresh
+# Opção B (avançado): use --force se já estiver no clone correto e souber o que está fazendo.
+#
+# Nota: NÃO use trap … EXIT aqui — o trap de $OLD_KEY_FILE já está registrado no Step 2b.
+# Este bloco usa cleanup explícito para evitar sobreescrever o trap anterior.
 TMPFILE=$(mktemp)
 echo "<CHAVE-ANTIGA>==>REDACTED_ROTATED" > "$TMPFILE"
 git filter-repo --replace-text "$TMPFILE" && rm -f "$TMPFILE" || { rm -f "$TMPFILE"; exit 1; }
+# Se usar Opção A, execute o force-push a partir do clone temporário e depois remova-o.
 
 # Force-push (coordenar com a equipe — reescreve histórico)
 git push --force-with-lease origin main

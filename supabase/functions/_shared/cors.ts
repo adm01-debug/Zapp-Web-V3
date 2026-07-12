@@ -24,27 +24,26 @@ const ALLOWED_HEADERS = [
 ].join(', ');
 const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 
-function isOriginAllowed(o: string): boolean {
-  if (!o) return false;
-  if (ALLOWED_ORIGINS.includes(o)) return true;
-  return ALLOWED_PATTERNS.some((p) => p.test(o));
-}
-
 export function getCorsHeaders(req: Request): Record<string, string> {
   const requestOrigin = req.headers.get('Origin') ?? '';
   // Use value from static array (not user input) to avoid reflected-origin taint path.
   const exactMatch = ALLOWED_ORIGINS.find((allowed) => allowed === requestOrigin);
   // Pattern-matched origins (localhost, dev previews) echo the validated requestOrigin back.
-  // Unrecognized origins get 'null' so browsers block the cross-origin request.
+  // For unrecognized origins: omit ACAO entirely. Never send 'null' — sandboxed iframes and
+  // file:// pages serialize their origin as the literal string "null", so ACAO: null would
+  // inadvertently grant them access.
   const patternMatch = !exactMatch && ALLOWED_PATTERNS.some((p) => p.test(requestOrigin));
-  const acao = exactMatch ?? (patternMatch ? requestOrigin : 'null');
-  return {
-    'Access-Control-Allow-Origin': acao,
+  const allowedOrigin: string | null = exactMatch ?? (patternMatch ? requestOrigin : null);
+  const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': ALLOWED_HEADERS,
     'Access-Control-Allow-Methods': ALLOWED_METHODS,
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
   };
+  if (allowedOrigin !== null) {
+    headers['Access-Control-Allow-Origin'] = allowedOrigin;
+  }
+  return headers;
 }
 
 export function handleCorsPreflight(req: Request): Response {
