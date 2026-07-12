@@ -214,8 +214,31 @@ interface MetricsEntry {
   timestamp: number;
 }
 
+/**
+ * IMPROVEMENT 12: Query Performance Tracking
+ * Monitors database query performance to detect N+1 patterns and slow queries.
+ *
+ * TRACKING:
+ * - Query duration (ms)
+ * - Operation type (select, update, insert, delete)
+ * - Table involved
+ * - Alerts if query > 2s or pattern detected
+ */
+interface QueryMetric {
+  table: string;
+  operation: string; // 'select' | 'update' | 'insert' | 'delete'
+  durationMs: number;
+  rowsAffected?: number;
+  timestamp: number;
+  isAlert?: boolean; // True if exceeds threshold
+}
+
 const metricsBuffer: MetricsEntry[] = [];
 let metricsBufferIndex = 0; // Write position for circular buffer
+
+const queryMetrics: QueryMetric[] = []; // IMPROVEMENT 12: Track queries
+const QUERY_SLOW_THRESHOLD_MS = 2000; // Alert if query > 2 seconds
+const QUERY_METRICS_WINDOW_SIZE = 1000; // Keep last 1000 queries
 
 function addMetricsToBuffer(entry: MetricsEntry): void {
   if (metricsBuffer.length < MAX_METRICS_BUFFER_SIZE) {
@@ -224,6 +247,42 @@ function addMetricsToBuffer(entry: MetricsEntry): void {
     // Circular: overwrite oldest entry
     metricsBuffer[metricsBufferIndex] = entry;
     metricsBufferIndex = (metricsBufferIndex + 1) % MAX_METRICS_BUFFER_SIZE;
+  }
+}
+
+/**
+ * IMPROVEMENT 12: Track database query performance
+ * Detects slow queries and N+1 patterns for optimization
+ */
+function trackQueryMetric(metric: QueryMetric): void {
+  const isAlert = metric.durationMs > QUERY_SLOW_THRESHOLD_MS;
+  queryMetrics.push({ ...metric, isAlert });
+
+  // Keep window size bounded
+  if (queryMetrics.length > QUERY_METRICS_WINDOW_SIZE) {
+    queryMetrics.shift();
+  }
+
+  // Log alerts for monitoring
+  if (isAlert) {
+    console.warn(`[QUERY_ALERT] Slow query: ${metric.operation} on ${metric.table} took ${metric.durationMs}ms`, metric);
+  }
+}
+
+/**
+ * IMPROVEMENT 12: Detect N+1 query pattern
+ * Warns if same table is queried multiple times in short window
+ */
+function detectNPlusOnePattern(tableName: string, log: Logger): void {
+  const recentQueries = queryMetrics.filter(q =>
+    q.table === tableName && (Date.now() - q.timestamp) < 5000 // Last 5 seconds
+  );
+
+  if (recentQueries.length > 3) {
+    log.warn(`[N+1_ALERT] Potential N+1 pattern detected on ${tableName}`, {
+      queryCount: recentQueries.length,
+      operations: recentQueries.map(q => `${q.operation}(${q.durationMs}ms)`).join(', '),
+    });
   }
 }
 
