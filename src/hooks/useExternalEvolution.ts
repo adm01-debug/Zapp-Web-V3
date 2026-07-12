@@ -477,7 +477,7 @@ export function useExternalConversations(enabled = true) {
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>
-              queryExternalProxy<any>({
+              queryExternalProxy<unknown>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',
                 params: {
@@ -620,9 +620,12 @@ export function useExternalMessages(remoteJid: string | null) {
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens
         const currentAvatar =
-          (queryClient.getQueryData(['contact', remoteJid]) as any)?.avatar_url ||
-          (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as any)
-            ?.avatar_url;
+          queryClient.getQueryData<{ avatar_url?: string }>(['contact', remoteJid])?.avatar_url ||
+          queryClient.getQueryData<{ avatar_url?: string }>([
+            'external-evolution',
+            'contact',
+            remoteJid,
+          ])?.avatar_url;
 
         // Propaga o avatar para todas as mensagens (canônicas e otimistas remanescentes)
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
@@ -671,9 +674,12 @@ export function useExternalMessages(remoteJid: string | null) {
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens poladas
         const currentAvatar =
-          (queryClient.getQueryData(['contact', remoteJid]) as any)?.avatar_url ||
-          (queryClient.getQueryData(['external-evolution', 'contact', remoteJid]) as any)
-            ?.avatar_url;
+          queryClient.getQueryData<{ avatar_url?: string }>(['contact', remoteJid])?.avatar_url ||
+          queryClient.getQueryData<{ avatar_url?: string }>([
+            'external-evolution',
+            'contact',
+            remoteJid,
+          ])?.avatar_url;
 
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
         return [...filteredPrev, ...additionsWithAvatar];

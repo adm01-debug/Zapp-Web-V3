@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const log = getLogger('EmailWebhookMonitor');
 import { Mail, RefreshCw, CheckCircle, AlertCircle, Clock, Wifi, WifiOff } from 'lucide-react';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+
+const dynSupabase = supabase as unknown as SupabaseClient;
 
 interface EmailAccount {
   id: string;
@@ -34,17 +36,17 @@ export function EmailWebhookMonitor() {
       // (the panel renders an empty state rather than surfacing an error).
       try {
         const { data: emailAccounts } = await safeClient.rpc('get_own_email_accounts');
-        const accounts = (emailAccounts || []).map((a: any) => ({ // ignore-audit
+        const accounts = (emailAccounts || []).map((a: Record<string, unknown>) => ({
           ...a,
           history_id: null,
         })) as EmailAccount[];
 
-        const { count: totalThreads } = await supabase
-          .from('email_threads' as Parameters<typeof supabase.from>[0])
+        const { count: totalThreads } = await dynSupabase
+          .from('email_threads')
           .select('*', { count: 'exact', head: true });
 
-        const { count: unreadThreads } = await supabase
-          .from('email_threads' as Parameters<typeof supabase.from>[0])
+        const { count: unreadThreads } = await dynSupabase
+          .from('email_threads')
           .select('*', { count: 'exact', head: true })
           .eq('is_unread', true);
 
