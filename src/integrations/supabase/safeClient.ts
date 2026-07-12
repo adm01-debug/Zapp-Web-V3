@@ -1,9 +1,11 @@
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
+import { getConnectionPool } from './connectionPool';
 import { PostgrestError } from '@supabase/supabase-js';
 
 const supabase = _supabase;
 const _log = getLogger('safeClient');
+const connectionPool = getConnectionPool();
 
 export interface SafeResponse<T> {
   data: T | null;
@@ -134,12 +136,24 @@ export const safeClient = {
   ): Promise<SafeResponse<T[]>> {
     const requestId = crypto.randomUUID();
     stats.totalCalls++;
+    const { connectionId, allowed } = connectionPool.registerConnection();
+
+    if (!allowed) {
+      this.log(requestId, 'warn', 'Connection pool at capacity', { table });
+      await this.recordFailure(requestId, 'from', table, 'Connection pool exhausted');
+      stats.failedCalls++;
+      return { data: [] as T[], error: new Error('Limite de conexões atingido'), requestId };
+    }
+
     try {
+      connectionPool.markUsed(connectionId);
+
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {
           this.log(requestId, 'warn', `Tabela ${table} não encontrada no schema.`, { table });
           await this.recordFailure(requestId, 'from', table, `Tabela ${table} não encontrada`);
+          connectionPool.closeConnection(connectionId);
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
@@ -149,9 +163,15 @@ export const safeClient = {
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
+        connectionPool.markError(
+          connectionId,
+          error instanceof Error ? error : new Error(String(error))
+        );
         stats.failedCalls++;
+        connectionPool.closeConnection(connectionId);
         return { data: [] as T[], error: this.formatError(error), requestId };
       }
+      connectionPool.closeConnection(connectionId);
       return { data: (Array.isArray(data) ? data : []) as T[], error: null, requestId };
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico ao consultar tabela ${table}`, err);
@@ -161,7 +181,9 @@ export const safeClient = {
         table,
         err instanceof Error ? err.message : String(err)
       );
+      connectionPool.markError(connectionId, err instanceof Error ? err : new Error(String(err)));
       stats.failedCalls++;
+      connectionPool.closeConnection(connectionId);
       return {
         data: [] as T[],
         error: err instanceof Error ? err : new Error(String(err)),
@@ -177,12 +199,24 @@ export const safeClient = {
   ): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
     stats.totalCalls++;
+    const { connectionId, allowed } = connectionPool.registerConnection();
+
+    if (!allowed) {
+      this.log(requestId, 'warn', 'Connection pool at capacity', { table });
+      await this.recordFailure(requestId, 'single', table, 'Connection pool exhausted');
+      stats.failedCalls++;
+      return { data: null, error: new Error('Limite de conexões atingido'), requestId };
+    }
+
     try {
+      connectionPool.markUsed(connectionId);
+
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {
           this.log(requestId, 'warn', `Tabela ${table} não encontrada para single()`, { table });
           await this.recordFailure(requestId, 'single', table, `Tabela ${table} não encontrada`);
+          connectionPool.closeConnection(connectionId);
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
@@ -192,9 +226,15 @@ export const safeClient = {
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
+        connectionPool.markError(
+          connectionId,
+          error instanceof Error ? error : new Error(String(error))
+        );
         stats.failedCalls++;
+        connectionPool.closeConnection(connectionId);
         return { data: null, error: this.formatError(error), requestId };
       }
+      connectionPool.closeConnection(connectionId);
       return { data: data as T, error: null, requestId };
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico single ${table}`, err);
@@ -204,7 +244,9 @@ export const safeClient = {
         table,
         err instanceof Error ? err.message : String(err)
       );
+      connectionPool.markError(connectionId, err instanceof Error ? err : new Error(String(err)));
       stats.failedCalls++;
+      connectionPool.closeConnection(connectionId);
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
@@ -212,12 +254,24 @@ export const safeClient = {
   async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
     stats.totalCalls++;
+    const { connectionId, allowed } = connectionPool.registerConnection();
+
+    if (!allowed) {
+      this.log(requestId, 'warn', 'Connection pool at capacity', { function: name });
+      await this.recordFailure(requestId, 'rpc', name, 'Connection pool exhausted');
+      stats.failedCalls++;
+      return { data: null, error: new Error('Limite de conexões atingido'), requestId };
+    }
+
     try {
+      connectionPool.markUsed(connectionId);
+
       if (name.startsWith('rpc_email_')) {
         const exists = await this.validateResource(name, 'function');
         if (!exists) {
           this.log(requestId, 'warn', `RPC ${name} não encontrada no schema.`, { function: name });
           await this.recordFailure(requestId, 'rpc', name, `Função ${name} não encontrada`);
+          connectionPool.closeConnection(connectionId);
           return { data: null, error: new Error(`Função ${name} não disponível`), requestId };
         }
       }
@@ -226,9 +280,15 @@ export const safeClient = {
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
+        connectionPool.markError(
+          connectionId,
+          error instanceof Error ? error : new Error(String(error))
+        );
         stats.failedCalls++;
+        connectionPool.closeConnection(connectionId);
         return { data: null, error: this.formatError(error), requestId };
       }
+      connectionPool.closeConnection(connectionId);
       if (data === undefined || data === null) return { data: null, error: null, requestId };
       return { data: data as T, error: null, requestId };
     } catch (err) {
@@ -239,7 +299,9 @@ export const safeClient = {
         name,
         err instanceof Error ? err.message : String(err)
       );
+      connectionPool.markError(connectionId, err instanceof Error ? err : new Error(String(err)));
       stats.failedCalls++;
+      connectionPool.closeConnection(connectionId);
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
@@ -495,5 +557,29 @@ export const safeClient = {
       return new Error(msg);
     }
     return new Error(String(error));
+  },
+
+  /**
+   * Get connection pool metrics for monitoring.
+   */
+  getPoolMetrics() {
+    return connectionPool.getMetrics();
+  },
+
+  /**
+   * Get detailed connection diagnostics.
+   */
+  getPoolDiagnostics() {
+    return {
+      metrics: connectionPool.getMetrics(),
+      connections: connectionPool.getConnectionDetails(),
+    };
+  },
+
+  /**
+   * Clear connection pool (for testing/debugging only).
+   */
+  clearPool() {
+    connectionPool.shutdown();
   },
 };
