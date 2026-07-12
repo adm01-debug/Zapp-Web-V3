@@ -88,7 +88,8 @@ export async function loadRetryConfig(instanceName?: string): Promise<RetryConfi
       const { data, error } = await supabase
         .from('global_settings')
         .select('key, value')
-        .in('key', allKeys);
+        .in('key', allKeys)
+        .limit(allKeys.length);
       if (error) throw error;
 
       const map = new Map<string, string | null>();

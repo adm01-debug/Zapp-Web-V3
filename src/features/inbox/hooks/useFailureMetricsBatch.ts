@@ -96,7 +96,8 @@ export function useFailureMetricsBatch(
         const { data, error } = await supabase
           .from('evolution_retry_metrics')
           .select('idempotency_key, final_http_status, retry_reasons')
-          .in('idempotency_key', slice);
+          .in('idempotency_key', slice)
+          .limit(slice.length);
         if (error) continue;
 
         for (const row of (data || []) as MetricRow[]) {
