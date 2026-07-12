@@ -6,10 +6,12 @@
  * - contacts.cargo: blocked by RLS, so we extract from search_contacts_advanced RPC
  */
 import { useQuery } from '@tanstack/react-query';
+import { getLogger } from '@/lib/logger';
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
-import { log } from '@/lib/logger';
+
+const log = getLogger('useExternalCargos');
 
 export function useExternalCargos() {
   return useQuery<string[]>({

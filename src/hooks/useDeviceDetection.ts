@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
-import { log } from '@/lib/logger';
+
+const log = getLogger('useDeviceDetection');
 
 interface UserDevice {
   id: string;

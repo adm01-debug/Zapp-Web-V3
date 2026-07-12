@@ -6,10 +6,12 @@
  * Direct queries to 'companies' table are blocked by RLS for anon role.
  */
 import { useQuery } from '@tanstack/react-query';
+import { getLogger } from '@/lib/logger';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
-import { log } from '@/lib/logger';
+
+const log = getLogger('useExternalEmpresas');
 
 export function useExternalEmpresas() {
   return useQuery<string[]>({

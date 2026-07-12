@@ -6,11 +6,13 @@
  * RFM, interactions history, social media, stakeholder map, etc.
  */
 import { useQuery } from '@tanstack/react-query';
+import { getLogger } from '@/lib/logger';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbGet } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
-import { log } from '@/lib/logger';
+
+const log = getLogger('useExternalContact360');
 
 function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9]/g, '');

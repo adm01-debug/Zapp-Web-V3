@@ -10,10 +10,12 @@
  * Returns a Map<phone, CRMBatchResult> for O(1) lookup per conversation item.
  */
 import { useQuery } from '@tanstack/react-query';
+import { getLogger } from '@/lib/logger';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
-import { log } from '@/lib/logger';
+
+const log = getLogger('useExternalContact360Batch');
 
 export interface CRMBatchResult {
   company_name: string | null;
