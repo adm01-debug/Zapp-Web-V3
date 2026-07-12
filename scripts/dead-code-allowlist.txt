@@ -17,4 +17,3 @@ src/components/providers/AppProviders.tsx  # top-level provider wrapper importad
 src/components/system/ServiceWorkerUpdateBanner.tsx  # side-effect import em App.tsx via dynamic pattern; não rastreável por análise estática
 src/hooks/admin/useAdminAutomations.ts  # Wave 3 hook extraído de AdminAutomationsPage — página ainda não migrada para usar o hook
 src/hooks/admin/useAdminQueues.ts  # Wave 3 hook extraído de AdminQueuesPage — página ainda não migrada para usar o hook
-src/pages/Login.tsx  # re-export alias para pages/Auth — compatibilidade de import/build (consumers externos que importam Login direto); deep-link /login requer rota em AppRoutes (ver Navigate /login→/auth adicionado)
