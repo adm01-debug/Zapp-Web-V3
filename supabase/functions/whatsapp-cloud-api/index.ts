@@ -92,7 +92,7 @@ async function persistOutbound(
       p_metadata: metadata ?? { source: 'whatsapp_cloud_api' },
     } as Record<string, unknown>);
   } catch (e) {
-    console.error('[whatsapp-cloud-api] rpc_insert_message failed', e);
+    console.error('[whatsapp-cloud-api] rpc_insert_message failed', e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -292,9 +292,10 @@ Deno.serve(async (req) => {
     raw: data,
   }, 200, req);
   } catch (error: unknown) {
-    console.error("[whatsapp-cloud-api] Global Error:", error);
-    if (error instanceof Error && 'status' in error) {
-      return errorResponse(error.message, (error as { status: number }).status, req);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[whatsapp-cloud-api] Global Error:", errorMsg);
+    if (error instanceof Error && 'status' in error && typeof (error as Record<string, unknown>).status === 'number') {
+      return errorResponse(errorMsg, (error as Record<string, unknown>).status as number, req);
     }
     return errorResponse('Internal server error', 500, req);
   }
