@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +8,17 @@ import { newRequestId } from '@/lib/withRequestId';
 import { dbFrom } from '@/integrations/datasource/db';
 import type { AudioMemeItem } from '@/hooks/useAudioMemes';
 import { evolutionInstanceName, EvolutionInstanceRef } from '@/lib/evolutionInstance';
+
+/** Shape returned by Evolution API send-* actions (partial). */
+interface EvolutionSendResult {
+  key?: { id?: string | null } | null;
+}
+
+/** Update payload for the messages table (typed subset). */
+interface MessageStatusUpdate {
+  status: string;
+  external_id?: string;
+}
 
 /**
  * Encapsulates WhatsApp instance resolution and media-message sending
@@ -36,7 +46,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   /** Update message status with error logging and 1 retry */
   const updateMessageStatus = useCallback(
     async (messageId: string, status: string, externalId?: string | null) => {
-      const payload: any = { status }; // ignore-audit
+      const payload: MessageStatusUpdate = { status };
       if (externalId) payload.external_id = externalId;
 
       try {
@@ -80,10 +90,13 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         setWhatsappConnectionId(connectionId);
         const { data: conn } = await supabase
           .from('whatsapp_connections')
-          .select('instance_id, instance_name')
+          .select('instance_id, name')
           .eq('id', connectionId)
           .maybeSingle();
-        const resolved = conn ? evolutionInstanceName(conn as EvolutionInstanceRef) : null;
+        const ref: EvolutionInstanceRef | null = conn
+          ? { instance_id: conn.instance_id, instance_name: conn.name }
+          : null;
+        const resolved = ref ? evolutionInstanceName(ref) : null;
         if (resolved) {
           setInstanceName(resolved);
           return resolved;
@@ -94,12 +107,15 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
       const { data: fallbackConn } = await supabase
         .from('whatsapp_connections')
-        .select('id, instance_id, instance_name')
+        .select('id, instance_id, name')
         .eq('status', 'connected')
         .limit(1)
         .maybeSingle();
 
-      const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn as EvolutionInstanceRef) : null;
+      const fallbackRef: EvolutionInstanceRef | null = fallbackConn
+        ? { instance_id: fallbackConn.instance_id, instance_name: fallbackConn.name }
+        : null;
+      const fallbackResolved = fallbackRef ? evolutionInstanceName(fallbackRef) : null;
       if (fallbackResolved) {
         setInstanceName(fallbackResolved);
         if (fallbackConn?.id) setWhatsappConnectionId(fallbackConn.id);
