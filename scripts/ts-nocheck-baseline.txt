@@ -25,6 +25,7 @@ src/features/admin/components/TrainingMode.tsx
 src/features/admin/components/alerts/AlertInstanceDetailDialog.tsx
 src/features/admin/components/instance-pauses/AuthEventTrendChart.tsx
 src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts
+src/features/admin/hooks/monitoring/useFailedMessages.ts
 src/features/admin/hooks/useAIStats.ts
 src/features/admin/hooks/useAdminData.ts
 src/features/admin/hooks/useDiagnosticsData.ts
