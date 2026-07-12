@@ -8,7 +8,7 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const MAX_BATCH = 25;
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req); // sets Access-Control-Allow-Origin
 
   try {
     // Accept internal (service role / cron) or admin/supervisor user JWTs.
