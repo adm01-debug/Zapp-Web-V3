@@ -439,6 +439,11 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          {/* Compat redirects: /login e /chat-popup (sem :contactId) existiam antes
+              da migração para AppRoutes. Deep-links externos e bookmarks continuam
+              funcionando após a refatoração do App.tsx. */}
+          <Route path="/login" element={<Navigate to="/auth" replace />} />
+          <Route path="/chat-popup" element={<Navigate to="/" replace />} />
           <Route
             path="/connections"
             element={<Navigate to="/?view=connections&tab=connections" replace />}

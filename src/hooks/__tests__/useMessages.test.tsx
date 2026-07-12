@@ -8,9 +8,9 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 // hook fetches via dbList(RPC.listMessagesLite). This version mocks the correct
 // data layer and drives every effect to a deterministic, settled state.
 
-const dbList = vi.fn();
-const dbRpc  = vi.fn();
-const dbFrom = vi.fn();
+const dbList = vi.hoisted(() => vi.fn());
+const dbRpc = vi.hoisted(() => vi.fn());
+const dbFrom = vi.hoisted(() => vi.fn());
 const dbTable = vi.fn((t: string) => t);
 
 const realtimeChannel = {
@@ -18,7 +18,7 @@ const realtimeChannel = {
   subscribe: vi.fn().mockReturnThis(),
 };
 const supabaseChannel = vi.fn(() => realtimeChannel);
-const removeChannel = vi.fn();
+const removeChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/datasource/db', () => ({
   dbList: (...a: unknown[]) => dbList(...a),

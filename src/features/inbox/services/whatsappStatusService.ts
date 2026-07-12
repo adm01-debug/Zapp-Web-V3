@@ -4,6 +4,7 @@ import {
   WhatsAppPresenceInfo,
   ContactConnectionInfo,
 } from '../data-access/whatsappStatusRepository';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 const normalizeDigits = (value?: string | null) => (value ?? '').replace(/\D/g, '');
 
@@ -92,7 +93,7 @@ export const whatsappStatusService = {
 
     return {
       contactName: contact?.name ?? null,
-      instanceName: connection?.instance_id ?? null,
+      instanceName: connection ? (evolutionInstanceName(connection) ?? null) : null,
     };
   },
 

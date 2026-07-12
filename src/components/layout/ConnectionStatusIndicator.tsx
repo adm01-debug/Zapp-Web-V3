@@ -53,6 +53,8 @@ interface ConnectionRow {
 
 interface DisconnectEvent {
   instance_id: string;
+  instance_name: string | null;
+  name?: string | null;
   at: number; // epoch ms
 }
 
@@ -181,15 +183,17 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     setLoading(false);
 
     // Detect new disconnections → single toast per instance + record history
-    const currentDisconnected = new Set(
-      rows.filter((r) => r.status !== 'connected').map((r) => r.instance_id)
-    );
+    const disconnectedRows = rows.filter((r) => r.status !== 'connected');
+    const currentDisconnected = new Set(disconnectedRows.map((r) => r.instance_id));
+    const rowByInstanceId = new Map(rows.map((r) => [r.instance_id, r]));
     if (initializedRef.current) {
       const newlyDown: DisconnectEvent[] = [];
       currentDisconnected.forEach((id) => {
         if (!prevDisconnectedRef.current.has(id)) {
-          newlyDown.push({ instance_id: id, at: Date.now() });
-          toast.warning(`Conexão "${id}" caiu`, {
+          const row = rowByInstanceId.get(id);
+          const displayName = (row ? evolutionInstanceName(row) : null) ?? row?.name ?? id;
+          newlyDown.push({ instance_id: id, instance_name: row?.instance_name ?? null, name: row?.name ?? null, at: Date.now() });
+          toast.warning(`Conexão "${displayName}" caiu`, {
             description: 'Mensagens podem não ser entregues. Clique no indicador para reconectar.',
             duration: 6000,
           });
@@ -280,7 +284,8 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     const result = await reconnectInstance(conn);
     setReconnecting(null);
     if (result.ok) {
-      toast.success(`Reconectando ${conn.instance_id}…`);
+      const displayName = evolutionInstanceName(conn) ?? conn.name ?? conn.instance_id;
+      toast.success(`Reconectando ${displayName}…`);
       window.dispatchEvent(new CustomEvent('navigate-view', { detail: 'connections' }));
       setOpen(false);
     } else if (!result.skipped && !result.authError) {
@@ -482,7 +487,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                     />
                     <div className="min-w-0">
                       <p className="truncate text-xs font-medium text-foreground">
-                        {c.instance_id}
+                        {evolutionInstanceName(c) ?? c.name ?? c.instance_id}
                       </p>
                       <p className="truncate text-[10px] text-muted-foreground">
                         {c.phone_number || (isOk ? 'Online' : 'Desconectada')}
@@ -530,7 +535,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                   key={`${ev.instance_id}-${ev.at}-${idx}`}
                   className="flex items-center justify-between gap-2 text-[11px]"
                 >
-                  <span className="truncate text-foreground/80">{ev.instance_id}</span>
+                  <span className="truncate text-foreground/80">{evolutionInstanceName(ev) ?? ev.name ?? ev.instance_id}</span>
                   <span
                     className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
                     title={new Date(ev.at).toLocaleString()}

@@ -124,9 +124,9 @@ function describeAudit(e: any): UnifiedEvent {
   const attemptNumber: number | undefined = details.attempt_number ?? e.attempt_number;
 
   let label = 'Evento de Outbound';
-  let detail = e.status;
+  let detail = status;
 
-  if (e.event_type === 'send_attempt') {
+  if (action === 'send_attempt') {
     label = 'Tentativa de Envio';
     detail = `Tentativa #${attemptNumber || 1}`;
   } else if (action === 'delivered') {
@@ -140,7 +140,7 @@ function describeAudit(e: any): UnifiedEvent {
   return {
     id: e.id,
     source: 'audit',
-    type: e.event_type,
+    type: action,
     at: e.created_at,
     label,
     detail,
@@ -191,12 +191,13 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     },
   });
 
-  const { data: profiles = [] } = useQuery<Array<{ id: string; name: string }>>({
+  type TeamProfile = { id: string; name: string };
+  const { data: profiles = [] } = useQuery<TeamProfile[]>({
     queryKey: ['team-profiles-names'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_team_profiles');
       if (error) throw error;
-      return (data ?? []).map((p: { id: string; name: string }) => ({ id: p.id, name: p.name }));
+      return (data ?? []).map((p: TeamProfile) => ({ id: p.id, name: p.name }));
     },
     staleTime: 60_000,
   });

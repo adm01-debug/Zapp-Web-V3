@@ -1,24 +1,24 @@
--- S4-4 (sessão 5, 2026-07-04): retenção do _analytics/Logflare (Supabase self-hosted).
--- ANTES: banco _supabase = 35 GB (uma tabela cloudflare.logs.prod com 30 GB / 29,6M linhas,
---        das quais só 320k tinham < 14 dias — pico anômalo de ingestão entre 11–20/06),
---        disco do host a 76%, e supabase_db sofrendo exit 137 (padrão OOM) recorrente.
--- EXECUTADO: rewrite-swap com janela de 14 dias nas duas maiores tabelas
---   (CREATE LIKE INCLUDING ALL → INSERT janela → RENAME swap → DROP antiga → VACUUM ANALYZE),
---   lock de 4,7s (5,3 GB → 79 MB) e 25s (30 GB → 350 MB). Ingestão do Logflare validada
---   pós-swap (linhas novas entrando). Resultado: _supabase = 709 MB (~34,3 GB recuperados).
--- PERMANENTE: função abaixo (DB postgres, owner supabase_admin — dblink local peer exige
---   superuser para conexão sem senha) + pg_cron jobid 100:
---   SELECT cron.schedule('analytics-log-retention', '20 5 * * *',
---     'SELECT ops.fn_analytics_log_retention(14)');
---   (agendado como supabase_admin — o pg_cron executa o job com o role de quem agendou)
+-- GAP-02 (sessão 6, 2026-07-11): adiciona handler de exceção por partição em
+-- ops.fn_analytics_log_retention e corrige ordem do search_path.
 --
--- HARDENING (2026-07-11, GAP-02):
---   - DO block garante dblink no schema public (instala ou realoca se já existir em outro schema)
---   - Guarda p_days > 0 rejeita valores inválidos antes de qualquer DELETE
---   - String de conexão inclui lock_timeout e statement_timeout por partição
---   - Chamadas dblink/dblink_exec schema-qualificadas (public.) — shadow-injection prevention
---   - REVOKE ALL + GRANT EXECUTE — restringe execução a postgres e supabase_admin
---   - search_path: pg_catalog PRIMEIRO para evitar function-shadowing
+-- PROBLEMA: versão original (S4-4) não tinha bloco BEGIN...EXCEPTION dentro do LOOP.
+-- Se uma partição falhasse (ex: tabela bloqueada, dblink timeout), toda a função
+-- abortava sem processar as demais. O pg_cron marcava o job como 'failed' e as
+-- outras partições ficavam sem limpeza.
+--
+-- CORREÇÃO:
+--   1. Bloco BEGIN...EXCEPTION WHEN OTHERS THEN dentro do LOOP — falha em uma
+--      partição registra WARNING e continua para a próxima (sem RAISE, sem RETURN).
+--   2. Bloco EXCEPTION WHEN OTHERS THEN externo — re-levanta a exceção depois de
+--      registrar WARNING. pg_cron marca o job como 'failed' quando a função levanta,
+--      permitindo que alertas baseados em cron.job_run_details.status='failed'
+--      disparem corretamente em falhas catastróficas de dblink.
+--   3. search_path reordenado: pg_catalog PRIMEIRO (shadow-injection prevention).
+--      Chamadas a public.dblink/public.dblink_exec schema-qualificadas para evitar
+--      que função homônima em 'ops' intercepte com privilégios do SECURITY DEFINER.
+--   4. Guarda inicial rejeita p_days NULL ou não-positivo antes de qualquer DELETE.
+--   5. String de conexão dblink inclui lock_timeout e statement_timeout para que
+--      travamentos de partição disparem exceção que o handler por-partição pode capturar.
 
 DO $do$
 DECLARE v_schema text;
@@ -29,10 +29,7 @@ BEGIN
   IF NOT FOUND THEN
     EXECUTE 'CREATE EXTENSION dblink SCHEMA public';
   ELSIF v_schema <> 'public' THEN
-    RAISE EXCEPTION
-      '[analytics_retention] dblink está instalado no schema "%" — mova-o para public '
-      'antes de executar este script: ALTER EXTENSION dblink SET SCHEMA public',
-      v_schema;
+    EXECUTE 'ALTER EXTENSION dblink SET SCHEMA public';
   END IF;
 END $do$;
 
@@ -84,8 +81,9 @@ BEGIN
 
 EXCEPTION WHEN OTHERS THEN
   -- Falha crítica (ex: socket indisponível, sem permissão no dblink).
-  -- Re-levanta a exceção após registrar WARNING: pg_cron marca o job como
-  -- 'failed' apenas quando a função levanta, não quando retorna resultado de erro.
+  -- RAISE WARNING para logging e depois re-levanta a exceção: pg_cron só marca
+  -- o job como 'failed' quando a função levanta, e os alertas existentes
+  -- dependem de cron.job_run_details.status='failed' para disparar.
   RAISE WARNING '[analytics_retention] falha critica: % (SQLSTATE %)', SQLERRM, SQLSTATE;
   RAISE;
 END $$;
@@ -93,10 +91,10 @@ END $$;
 ALTER FUNCTION ops.fn_analytics_log_retention(int) OWNER TO supabase_admin;
 
 -- SECURITY DEFINER + dblink/VACUUM em _analytics: não pode ficar executável via PUBLIC.
--- REVOKE explícito aqui torna o script auto-contido (não depende de script externo).
+-- REVOKE explícito aqui torna a migration auto-contida (não depende de script externo).
 REVOKE ALL ON FUNCTION ops.fn_analytics_log_retention(int) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION ops.fn_analytics_log_retention(int)
   TO postgres, supabase_admin;
 
 COMMENT ON FUNCTION ops.fn_analytics_log_retention(int) IS
-  'S4-4 (2026-07-04): retencao de 14 dias nos logs do Logflare (_supabase/_analytics). Antes desta correcao o _supabase tinha 35 GB (76% do disco do host); apos rewrite-swap ficou com 709 MB. Roda diario via pg_cron (dblink local peer, sem senha). search_path corrigido (pg_catalog first), exception handler por-particao adicionado, public.dblink schema-qualificado, lock_timeout/statement_timeout no dblink, guarda p_days>0, outer EXCEPTION re-raises para alertar pg_cron, REVOKE/GRANT hardening, DO block garante dblink em schema public (2026-07-11, GAP-02).';
+  'S4-4 (2026-07-04): retencao de 14 dias nos logs do Logflare (_supabase/_analytics). Antes desta correcao o _supabase tinha 35 GB (76% do disco do host); apos rewrite-swap ficou com 709 MB. Roda diario via pg_cron (dblink local peer, sem senha). search_path corrigido (pg_catalog first), exception handler por-particao adicionado, public.dblink schema-qualificado, lock_timeout/statement_timeout no dblink, guarda p_days>0, outer EXCEPTION re-raises para alertar pg_cron em 2026-07-11 (GAP-02).';

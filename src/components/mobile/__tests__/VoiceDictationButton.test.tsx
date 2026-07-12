@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { VoiceDictationButton } from '@/components/mobile/VoiceDictationButton';
 
 // Mock useSpeechToText
-const mockToggleListening = vi.fn();
+const mockToggleListening = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useSpeechToText', () => ({
   useSpeechToText: vi.fn(() => ({
     isListening: false,

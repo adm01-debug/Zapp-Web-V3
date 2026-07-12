@@ -5,8 +5,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 // Mock Setup
 // ═══════════════════════════════════════════════════════════
 
-const mockFrom = vi.fn();
-const mockStorage = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockStorage = vi.hoisted(() => vi.fn());
 const mockFunctions = { invoke: vi.fn() };
 const mockAuth = { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }) };
 

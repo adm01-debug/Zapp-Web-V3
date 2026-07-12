@@ -33,7 +33,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-const toastFn = vi.fn();
+const toastFn = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/use-toast', () => ({ toast: (...a: unknown[]) => toastFn(...a) }));
 vi.mock('@/features/auth', () => ({ useAuth: () => ({ user: { id: 'u-1' } }) }));
 vi.mock('@/hooks/useNotificationSettings', () => ({

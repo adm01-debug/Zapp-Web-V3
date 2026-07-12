@@ -71,7 +71,7 @@ export const whatsappStatusRepository = {
   async getWhatsAppConnection(id: string) {
     return supabase
       .from('whatsapp_connections')
-      .select('instance_id')
+      .select('instance_id, instance_name')
       .eq('id', id)
       .maybeSingle();
   },

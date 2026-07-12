@@ -11,6 +11,7 @@ import { CrossTabDedupePanel } from './CrossTabDedupePanel';
 import { DLQPanel } from './DLQPanel';
 import { DLQAuditHistory } from './DLQAuditHistory';
 import type { ConnectionInfo, WebhookTestResult, WebhookConfig } from './hooks/useEvolutionMonitoring';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 interface SecretStatus {
   configured: boolean;
@@ -140,8 +141,8 @@ export function MonitoringWebhookPanel({ connections, webhookTest, webhookConfig
       {!webhookConfig && connections.length > 0 && (
         <div className="flex gap-2">
           {connections.map(conn => (
-            <Button key={conn.id} variant="outline" size="sm" onClick={() => onCheckConfig(conn.instance_id)}>
-              <Shield className="w-3.5 h-3.5 mr-1.5" />Carregar config ({conn.instance_id})
+            <Button key={conn.id} variant="outline" size="sm" onClick={() => { const n = evolutionInstanceName(conn); if (!n) { toast.error('Conexão sem nome de instância roteável. Reconecte via QR.'); return; } onCheckConfig(n); }}>
+              <Shield className="w-3.5 h-3.5 mr-1.5" />Carregar config ({conn.instance_name || conn.instance_id})
             </Button>
           ))}
         </div>
@@ -160,10 +161,10 @@ export function MonitoringWebhookPanel({ connections, webhookTest, webhookConfig
             {connections.map(conn => (
               <div key={conn.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                 <div>
-                  <span className="font-medium text-sm">{conn.instance_id}</span>
+                  <span className="font-medium text-sm">{conn.instance_name || conn.instance_id}</span>
                   <p className="text-[10px] text-muted-foreground">Testa pipeline completo</p>
                 </div>
-                <Button size="sm" onClick={() => onTest(conn.instance_id)} disabled={webhookTest.status === 'testing'}>
+                <Button size="sm" onClick={() => { const n = evolutionInstanceName(conn); if (!n) { toast.error('Conexão sem nome de instância roteável. Reconecte via QR.'); return; } onTest(n); }} disabled={webhookTest.status === 'testing'}>
                   {webhookTest.status === 'testing'
                     ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Testando...</>
                     : <><PlayCircle className="w-3.5 h-3.5 mr-1" />Testar E2E</>
@@ -254,10 +255,10 @@ export function MonitoringWebhookPanel({ connections, webhookTest, webhookConfig
             )}
 
             {connections.map(conn => (
-              <Button key={conn.id} className="w-full" onClick={() => onReconfigure(conn.instance_id)} disabled={reconfiguring} variant="default">
+              <Button key={conn.id} className="w-full" onClick={() => { const n = evolutionInstanceName(conn); if (!n) { toast.error('Conexão sem nome de instância roteável. Reconecte via QR.'); return; } onReconfigure(n); }} disabled={reconfiguring} variant="default">
                 {reconfiguring
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Reconfigurando...</>
-                  : <><Radio className="w-4 h-4 mr-2" />Reconfigurar ({conn.instance_id})</>
+                  : <><Radio className="w-4 h-4 mr-2" />Reconfigurar ({conn.instance_name || conn.instance_id})</>
                 }
               </Button>
             ))}

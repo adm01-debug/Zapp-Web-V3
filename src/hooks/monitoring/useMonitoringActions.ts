@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { WebhookTestResult, WebhookConfig, DiagnosticResult } from '@/components/monitoring/hooks/types';
+import { isUuidLike } from '@/lib/evolutionInstance';
 
 export function useMonitoringActions(fetchData: () => Promise<void>) {
   const [refreshing, setRefreshing] = useState(false);
@@ -71,6 +72,10 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
   }, []);
 
   const checkWebhookConfig = useCallback(async (instanceId: string) => {
+    if (isUuidLike(instanceId)) {
+      toast.error('Nome de instância inválido (UUID detectado).');
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('evolution-api/get-webhook', {
         method: 'POST',
@@ -91,6 +96,10 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
 
   const reconfigureWebhook = useCallback(
     async (instanceId: string) => {
+      if (isUuidLike(instanceId)) {
+        toast.error('Nome de instância inválido (UUID detectado).');
+        return;
+      }
       setReconfiguring(true);
       try {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;

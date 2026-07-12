@@ -9,8 +9,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const showNotificationMock = vi.fn();
-const mockFrom = vi.fn();
+const showNotificationMock = vi.hoisted(() => vi.fn());
+const mockFrom = vi.hoisted(() => vi.fn());
 type RealtimeHandler = (payload: { new: unknown }) => void;
 let capturedHandler: RealtimeHandler | null = null;
 

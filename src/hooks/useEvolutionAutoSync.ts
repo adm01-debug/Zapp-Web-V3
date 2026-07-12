@@ -75,6 +75,7 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
           name,
           phone_number: phone,
           instance_id: instanceName,
+          instance_name: instanceName,
           status,
           is_default: false,
           api_type: 'evolution',

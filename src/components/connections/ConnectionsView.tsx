@@ -37,6 +37,7 @@ import { IdempotencyMissBanner } from './IdempotencyMissBanner';
 import { useConnectionsManager } from '@/features/connections';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 export function ConnectionsView() {
   const [search, setSearch] = useState('');
@@ -104,13 +105,14 @@ export function ConnectionsView() {
     }
   }, [connections, loading, handleShowQrCode]);
 
-  const handleSyncHistory = async (connection: { id: string; instance_id?: string | null }) => {
-    if (!connection.instance_id) return;
+  const handleSyncHistory = async (connection: { id: string; instance_id?: string | null; instance_name?: string | null }) => {
+    const evoName = evolutionInstanceName(connection);
+    if (!evoName) { toast({ title: 'Conexão sem nome de instância', description: 'Configure um nome válido antes de sincronizar.', variant: 'destructive' }); return; }
     setSyncingHistory(connection.id);
     toast({ title: 'Sincronizando histórico...', description: 'Isso pode levar alguns minutos.' });
     try {
       const { data, error } = await supabase.functions.invoke('evolution-sync', {
-        body: { action: 'sync-all-messages', instanceName: connection.instance_id },
+        body: { action: 'sync-all-messages', instanceName: evoName },
       });
       if (error) throw error;
       toast({ title: 'Sincronização concluída!', description: `${data?.totalSynced || 0} mensagens sincronizadas de ${data?.totalContacts || 0} contatos.` });
@@ -207,26 +209,6 @@ export function ConnectionsView() {
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-64 h-64 mx-auto bg-destructive/10 rounded-xl flex flex-col items-center justify-center p-4">
                 <AlertCircle className="w-16 h-16 text-destructive mb-4" /><p role="alert" className="text-sm text-destructive text-center">{qrCodeDialog.errorMessage}</p>
               </motion.div>
-            )}
-            {qrCodeDialog.status === 'pending' && (
-              <>
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <p>1. Abra o <strong>WhatsApp</strong> no celular deste número</p><p>2. Toque em <strong>Configurações</strong> (⚙️)</p>
-                  <p>3. Toque em <strong>Aparelhos conectados</strong></p><p>4. Toque em <strong>Conectar aparelho</strong></p><p>5. Aponte a câmera para o QR Code acima</p>
-                </div>
-                <div className="flex flex-col items-center justify-center gap-2 text-xs text-primary/80">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span className="font-medium">Aguardando leitura do QR Code...</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground" data-testid="reconnect-step-label">Etapa 2 de 3: Conectando dispositivo via WhatsApp Web</p>
-                  <p className="text-[10px] text-muted-foreground italic">Mantenha o celular próximo e conectado à internet</p>
-                </div>
-                {qrCodeDialog.expiresAt && <QrCountdown expiresAt={qrCodeDialog.expiresAt} />}
-                {qrCodeDialog.ttlSeconds != null && qrCodeDialog.ttlSource && (
-                  <QrTtlBadge ttlSeconds={qrCodeDialog.ttlSeconds} source={qrCodeDialog.ttlSource} />
-                )}
-              </>
             )}
             {(qrCodeDialog.status === 'pending' || qrCodeDialog.status === 'error' || qrCodeDialog.status === 'loading') && (
               <RefreshQrButton
@@ -353,7 +335,7 @@ export function ConnectionsView() {
 
       <BusinessHoursDialog open={businessHoursDialog.open} onOpenChange={(open) => setBusinessHoursDialog(prev => ({ ...prev, open }))} connectionId={businessHoursDialog.connectionId} connectionName={businessHoursDialog.connectionName} />
       <ConnectionQueuesDialog open={queuesDialog.open} onOpenChange={(open) => setQueuesDialog(prev => ({ ...prev, open }))} connectionId={queuesDialog.connectionId} connectionName={queuesDialog.connectionName} />
-      <InstanceSettingsDialog open={settingsDialog.open} onOpenChange={(open) => setSettingsDialog(prev => ({ ...prev, open }))} instanceName={settingsDialog.instanceName} connectionName={settingsDialog.connectionName} connectionId={connections.find(c => c.instance_id === settingsDialog.instanceName)?.id} />
+      <InstanceSettingsDialog open={settingsDialog.open} onOpenChange={(open) => setSettingsDialog(prev => ({ ...prev, open }))} instanceName={settingsDialog.instanceName} connectionName={settingsDialog.connectionName} connectionId={connections.find(c => c.instance_name === settingsDialog.instanceName || c.instance_id === settingsDialog.instanceName)?.id} />
       <IntegrationsPanel open={integrationsDialog.open} onOpenChange={(open) => setIntegrationsDialog(prev => ({ ...prev, open }))} instanceName={integrationsDialog.instanceName} connectionName={integrationsDialog.connectionName} />
       <NumberReputationMonitor />
     </div>
