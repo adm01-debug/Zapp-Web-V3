@@ -21,7 +21,7 @@ interface UseChatPanelHandlersOptions {
   editMessageApi: (
     instance: string,
     params: { number: string; messageId: string; text: string }
-  ) => Promise<any>;
+  ) => Promise<unknown>;
   applySignature: (text: string) => string;
   handleTypingStart: () => void;
   handleTypingStop: () => void;
