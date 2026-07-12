@@ -44,20 +44,17 @@ interface EmailChatBubbleProps {
 }
 
 function sanitizeHtml(html: string): string {
-  // Força target="_blank" + rel="noopener noreferrer nofollow" em todos os <a>
-  // (clientes de email enviam links sem esses attrs; sem isso o link navega in-tab e
-  // pode permitir window.opener leak via tabnabbing).
-  // CRITICAL: Use a unique hook name to prevent collision with other sanitizeHtml
-  // functions (e.g. src/lib/sanitize.ts). DOMPurify.removeHook() removes by array
-  // position, not by reference; if multiple hooks are active, removeHook pops the
-  // wrong one and leaves orphaned hooks active.
-  const HOOK_NAME = 'afterSanitizeAttributes_emailChat';
-  DOMPurify.addHook(HOOK_NAME, (node) => {
+  // DOMPurify.sanitize() is synchronous in the browser, so the addHook/removeHook
+  // pair is safe: the hook fires inside sanitize(), finally removes it before the
+  // next caller can add its own. Use the correct DOMPurify entry point name
+  // 'afterSanitizeAttributes' (not a custom string) so the hook actually fires.
+  const forceLinksSecure = (node: Element) => {
     if (node.tagName === 'A') {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer nofollow');
     }
-  });
+  };
+  DOMPurify.addHook('afterSanitizeAttributes', forceLinksSecure);
   try {
     return DOMPurify.sanitize(html, {
       FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
@@ -65,7 +62,7 @@ function sanitizeHtml(html: string): string {
       FORCE_BODY: true,
     });
   } finally {
-    DOMPurify.removeHook(HOOK_NAME);
+    DOMPurify.removeHook('afterSanitizeAttributes');
   }
 }
 
