@@ -80,6 +80,74 @@ async function callAiWithTimeout<T>(
 }
 
 // ============================================================================
+// Utility: Circuit breaker for external API failures (P1 resilience)
+// ============================================================================
+
+interface CircuitBreakerState {
+  failureCount: number;
+  lastFailureTime: number;
+  state: 'closed' | 'open' | 'half-open';
+  successCount: number;
+}
+
+const circuitBreakerStates = new Map<string, CircuitBreakerState>();
+
+async function withCircuitBreaker<T>(
+  action: string,
+  fn: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  const key = `cb:${action}`;
+  let state = circuitBreakerStates.get(key) ?? {
+    failureCount: 0,
+    lastFailureTime: 0,
+    state: 'closed' as const,
+    successCount: 0,
+  };
+
+  // Check if circuit should reset (half-open)
+  const timeSinceFailure = Date.now() - state.lastFailureTime;
+  if (state.state === 'open' && timeSinceFailure > 30_000) {
+    state.state = 'half-open';
+    state.successCount = 0;
+  }
+
+  // Open circuit if too many failures (>5 in 60 seconds)
+  if (state.state === 'closed' && state.failureCount > 5) {
+    state.state = 'open';
+  }
+
+  // If circuit is open, return fallback
+  if (state.state === 'open') {
+    return fallback;
+  }
+
+  try {
+    const result = await fn();
+    // Success: reset on closed, increment on half-open
+    if (state.state === 'half-open') {
+      state.successCount++;
+      if (state.successCount >= 2) {
+        state.state = 'closed';
+        state.failureCount = 0;
+      }
+    } else {
+      state.failureCount = Math.max(0, state.failureCount - 1);
+    }
+    circuitBreakerStates.set(key, state);
+    return result;
+  } catch (e) {
+    state.failureCount++;
+    state.lastFailureTime = Date.now();
+    if (state.state === 'half-open') {
+      state.state = 'open'; // Reopen after failed retry
+    }
+    circuitBreakerStates.set(key, state);
+    return fallback;
+  }
+}
+
+// ============================================================================
 // Handlers for each AI action
 // ============================================================================
 
@@ -490,17 +558,25 @@ async function handleAutoTag(
 
   log.info("Classifying conversation", { contactId: validContactId, msgCount: conversationMessages.length });
 
-  const { response, data } = await callAiWithTimeout(
-    () => callAiWithTracking({
-      functionName: 'ai-router',
-      userId,
-      apiKey: lovableApiKey,
-      body: {
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um classificador avançado de conversas de atendimento ao cliente. Analise a conversa e retorne classificação completa.
+  // P1 Resilience: Circuit breaker prevents cascading failures when AI API is degraded
+  const fallbackResponse = {
+    ok: false,
+    status: 503,
+  };
+
+  const { response, data } = await withCircuitBreaker(
+    'auto_tag',
+    () => callAiWithTimeout(
+      () => callAiWithTracking({
+        functionName: 'ai-router',
+        userId,
+        apiKey: lovableApiKey,
+        body: {
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            {
+              role: "system",
+              content: `Você é um classificador avançado de conversas de atendimento ao cliente. Analise a conversa e retorne classificação completa.
 
 Categorias possíveis: suporte_tecnico, vendas, financeiro, reclamacao, elogio, duvida, urgente, cancelamento, troca, entrega, pagamento, produto, servico, feedback, agendamento, orcamento
 
@@ -519,18 +595,28 @@ Responda APENAS em JSON:
   "requires_immediate_attention": false,
   "escalation_reason": null
 }`
-          },
-          { role: "user", content: conversationText }
-        ],
-        temperature: 0.3,
-      },
-    }),
-    30_000
+            },
+            { role: "user", content: conversationText }
+          ],
+          temperature: 0.3,
+        },
+      }),
+      30_000
+    ),
+    fallbackResponse as any,
   );
 
   if (!response.ok || !data) {
     if (response.status === 429) return errorResponse("Rate limit exceeded", 429, req);
     if (response.status === 402) return errorResponse("Payment required", 402, req);
+    if (response.status === 503) {
+      log.warn("AI service temporarily unavailable (circuit breaker open), using fallback");
+      return jsonResponse(
+        { tags: [], sentiment: 'neutral', priority: 'normal', summary: 'Fallback: Service temporarily unavailable' },
+        200,
+        req
+      );
+    }
     throw new Error(`AI error: ${response.status}`);
   }
 
