@@ -16,6 +16,7 @@ import {
 export const emailMappers = {
   /**
    * Mapeia uma linha da tabela 'email_accounts'
+   * watch_expiry defaults to null if not present — it's populated later via ensureWatch() after Pub/Sub setup
    */
   account: (data: any): EmailAccount => ({
     id:            data.id,
@@ -25,7 +26,7 @@ export const emailMappers = {
     picture_url:   data.picture_url,
     is_active:     data.is_active ?? true,
     token_expiry:  data.token_expiry,
-    watch_expiry:  data.watch_expiry,
+    watch_expiry:  data.watch_expiry ?? null,
     created_at:    data.created_at,
   }),
 

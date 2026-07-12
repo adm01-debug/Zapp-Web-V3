@@ -10,12 +10,20 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import { EmailAccount } from '@/types/gmail';
 import { emailRefreshToken, emailRevokeAccount, emailRegisterWatch } from './gmail/gmailApi';
+import { getLogger } from '@/lib/logger';
 
+/**
+ * Raw shape of email_accounts table as returned by Supabase query.
+ * Maps database columns to aliased names in SELECT:
+ *   email_address → email (via email:email_address)
+ *   token_expires_at → token_expiry (via token_expiry:token_expires_at)
+ */
 interface EmailAccountRow {
   id: string;
   user_id: string;
@@ -23,11 +31,9 @@ interface EmailAccountRow {
   display_name: string | null;
   picture_url: string | null;
   token_expiry: string | null;
-  is_active: boolean;
-  created_at: string;
+  is_active: boolean | null;
+  created_at: string | null;
 }
-import { toast } from 'sonner';
-import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useEmailOAuthFlow');
 
@@ -60,7 +66,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   // ── Carrega contas ──────────────────────────────────────────────────
 
   const loadAccounts = useCallback(async () => {
-    const { data, error } = await safeClient.from<Record<string, unknown>>('email_accounts', (q) =>
+    const { data, error } = await safeClient.from<EmailAccountRow>('email_accounts', (q) =>
       q
         .select(
           'id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at'
