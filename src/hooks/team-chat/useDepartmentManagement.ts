@@ -48,9 +48,12 @@ export function useDepartmentManagement(
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) setCurrentUser({ id: data.user.id });
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (data?.user) setCurrentUser({ id: data.user.id });
+      })
+      .catch((err) => log.warn('[DeptMgmt] getUser failed:', err));
   }, []);
 
   // Load department whatsapp settings when view opens
@@ -67,7 +70,8 @@ export function useDepartmentManagement(
           setWhatsappApiKey(data.whatsapp_api_key || '');
           setWhatsappInstanceId(data.whatsapp_instance_id || '');
         }
-      });
+      })
+      .catch((err) => log.warn('[DeptMgmt] load whatsapp settings failed:', err));
   }, [open, view, initialDepartment.id]);
 
   const { data: allProfiles = [], isLoading: loadingProfiles } = useQuery<Profile[]>({
