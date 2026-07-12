@@ -168,7 +168,7 @@ export function DepartmentManagementDialog({
                           >
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9">
-                                <AvatarImage src={p.avatar_url || undefined} alt={p.name || ""} />
+                                <AvatarImage src={p.avatar_url || undefined} alt={p.name || ''} />
                                 <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <div>
@@ -204,7 +204,7 @@ export function DepartmentManagementDialog({
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                              <AvatarImage src={p.avatar_url || undefined} alt={p.name || ""} />
+                              <AvatarImage src={p.avatar_url || undefined} alt={p.name || ''} />
                               <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
@@ -255,42 +255,44 @@ export function DepartmentManagementDialog({
               </div>
               <ScrollArea className="flex-1">
                 <div className="space-y-3">
-                  {invitations.map((inv: any) => (
-                    <div key={inv.id} className="space-y-3 rounded-xl border bg-card p-4">
-                      <div className="flex items-center justify-between">
-                        <code className="rounded bg-muted px-2 py-1 text-sm font-bold">
-                          {inv.code}
-                        </code>
-                        <div className="flex gap-2">
-                          <Button
-                            aria-label="Copiar código de convite"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              navigator.clipboard.writeText(inv.code);
-                              toast({ title: 'Código copiado' });
-                            }}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            aria-label="Excluir convite"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => deleteInviteMutation.mutate(inv.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                  {invitations.map(
+                    (inv: { id: string; code: string; expires_at: string; uses: number }) => (
+                      <div key={inv.id} className="space-y-3 rounded-xl border bg-card p-4">
+                        <div className="flex items-center justify-between">
+                          <code className="rounded bg-muted px-2 py-1 text-sm font-bold">
+                            {inv.code}
+                          </code>
+                          <div className="flex gap-2">
+                            <Button
+                              aria-label="Copiar código de convite"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                navigator.clipboard.writeText(inv.code);
+                                toast({ title: 'Código copiado' });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              aria-label="Excluir convite"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => deleteInviteMutation.mutate(inv.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Expira em: {format(new Date(inv.expires_at), 'dd/MM/yy')}</span>
+                          <span>Usos: {inv.uses}</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Expira em: {format(new Date(inv.expires_at), 'dd/MM/yy')}</span>
-                        <span>Usos: {inv.uses}</span>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                   {invitations.length === 0 && (
                     <div className="py-10 text-center text-muted-foreground">
                       Nenhum convite ativo.
@@ -357,7 +359,9 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card'
                   )}
                   onClick={() => setWhatsappMode('evolution')}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('evolution')}
+                  onKeyDown={(e) =>
+                    (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('evolution')
+                  }
                 >
                   <div
                     className={cn(
@@ -389,7 +393,9 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card'
                   )}
                   onClick={() => setWhatsappMode('official')}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('official')}
+                  onKeyDown={(e) =>
+                    (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('official')
+                  }
                 >
                   <div
                     className={cn(

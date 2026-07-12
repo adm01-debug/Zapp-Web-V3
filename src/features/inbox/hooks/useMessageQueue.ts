@@ -27,7 +27,7 @@ export interface QueueItem {
   attachments?: File[];
   onProgress?: (p: number) => void;
   status: 'pending' | 'sending' | 'failed' | 'confirmed';
-  error?: any;
+  error?: unknown;
   retryCount: number;
   progress?: number;
   externalId?: string;

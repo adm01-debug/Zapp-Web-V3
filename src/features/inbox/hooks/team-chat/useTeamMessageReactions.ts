@@ -33,7 +33,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         .from('team_messages')
         .select('id')
         .eq('conversation_id', conversationId);
-      const ids = (msgs || []).map((m: any) => m.id);
+      const ids = (msgs || []).map((m: { id: string }) => m.id);
       if (!ids.length) return [];
       const { data, error } = await safeClient.from<TeamReaction>('team_message_reactions', (q) =>
         q.select('*').in('message_id', ids)
@@ -108,11 +108,12 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
     },
-    onError: (err: any, variables, context) => {
+    onError: (err: unknown, variables, context) => {
       if (context?.previousReactions) {
         queryClient.setQueryData(['team-reactions', conversationId], context.previousReactions);
       }
-      const status = err?.status || err?.code;
+      const e = err as { status?: number; code?: string };
+      const status = e?.status || e?.code;
       const message = status === 401 ? 'Não autorizado' : 'Erro interno no servidor';
       toast({
         title: 'Erro ao reagir',

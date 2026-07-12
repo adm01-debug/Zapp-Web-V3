@@ -3,7 +3,14 @@ import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -19,7 +26,7 @@ interface AuditLog {
   resource: string;
   action: string;
   status: string;
-  details: any;
+  details: Record<string, unknown>;
   created_at: string;
   profiles?: {
     name: string;
@@ -34,10 +41,11 @@ export default function AdminSecurityLogsPage() {
   useEffect(() => {
     let mounted = true;
     const fetchLogs = async () => {
-      const { data, error } = await safeClient.from<AuditLog>('security_audit_logs', q =>
-        q.select(`*, profiles:user_id (name, email)`)
-         .order('created_at', { ascending: false })
-         .limit(50)
+      const { data, error } = await safeClient.from<AuditLog>('security_audit_logs', (q) =>
+        q
+          .select(`*, profiles:user_id (name, email)`)
+          .order('created_at', { ascending: false })
+          .limit(50)
       );
 
       if (!mounted) return;
@@ -72,20 +80,28 @@ export default function AdminSecurityLogsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'denied':
-        return <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" /> Negado</Badge>;
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> Negado
+          </Badge>
+        );
       case 'allowed':
-        return <Badge variant="success" className="gap-1">Permitido</Badge>;
+        return (
+          <Badge variant="success" className="gap-1">
+            Permitido
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="container mx-auto space-y-8 py-8">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Shield className="w-8 h-8 text-primary" />
+          <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+            <Shield className="h-8 w-8 text-primary" />
             Auditoria de Segurança
           </h1>
           <p className="text-muted-foreground">
@@ -101,7 +117,9 @@ export default function AdminSecurityLogsPage() {
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{logs.filter(l => l.status === 'denied').length}</div>
+            <div className="text-2xl font-bold">
+              {logs.filter((l) => l.status === 'denied').length}
+            </div>
           </CardContent>
         </Card>
         {/* Adicionar mais cards conforme necessário */}
@@ -134,7 +152,7 @@ export default function AdminSecurityLogsPage() {
               <TableBody>
                 {logs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                       Nenhum log de segurança encontrado.
                     </TableCell>
                   </TableRow>
@@ -142,12 +160,14 @@ export default function AdminSecurityLogsPage() {
                   logs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="whitespace-nowrap">
-                        {format(new Date(log.created_at), "dd/MM HH:mm:ss", { locale: ptBR })}
+                        {format(new Date(log.created_at), 'dd/MM HH:mm:ss', { locale: ptBR })}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-medium">{log.profiles?.name || 'Sistema'}</span>
-                          <span className="text-xs text-muted-foreground">{log.profiles?.email || 'N/A'}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {log.profiles?.email || 'N/A'}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -159,7 +179,7 @@ export default function AdminSecurityLogsPage() {
                       <TableCell>{log.action}</TableCell>
                       <TableCell>{getStatusBadge(log.status)}</TableCell>
                       <TableCell>
-                        <pre className="text-[10px] bg-muted p-1 rounded max-w-[150px] overflow-hidden truncate">
+                        <pre className="max-w-[150px] overflow-hidden truncate rounded bg-muted p-1 text-[10px]">
                           {JSON.stringify(log.details)}
                         </pre>
                       </TableCell>
