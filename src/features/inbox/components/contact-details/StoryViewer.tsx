@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
-import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import type { WhatsAppStatusMessage } from '@/features/inbox';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -9,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatRelativeTime } from '@/lib/formatters';
 
-const DEFAULT_INSTANCE_NAME = ACTIVE_WHATSAPP_INSTANCE;
+const DEFAULT_INSTANCE_NAME = 'wpp2';
 
 const getMediaType = (msg: WhatsAppStatusMessage): 'image' | 'video' | 'text' => {
   if (msg.message?.imageMessage) return 'image';
@@ -66,19 +65,14 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
   const [mediaLoading, setMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open) setIndex(initialIndex);
-  }, [open, initialIndex]);
+  useEffect(() => { if (open) setIndex(initialIndex); }, [open, initialIndex]);
 
   // Clamp index when messages list shrinks (e.g. refresh returns fewer items)
   useEffect(() => {
-    if (messages.length > 0) setIndex((i) => Math.min(i, messages.length - 1));
+    if (messages.length > 0) setIndex(i => Math.min(i, messages.length - 1));
   }, [messages.length]);
 
-  const goNext = useCallback(
-    () => setIndex((i) => Math.min(i + 1, messages.length - 1)),
-    [messages.length]
-  );
+  const goNext = useCallback(() => setIndex((i) => Math.min(i + 1, messages.length - 1)), [messages.length]);
   const goPrev = useCallback(() => setIndex((i) => Math.max(i - 1, 0)), []);
 
   useEffect(() => {
@@ -99,39 +93,24 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
     const mediaType = getMediaType(current);
     setResolvedMedia({ src: null, mimetype: null });
     setMediaError(null);
-    if (mediaType === 'text') {
-      setMediaLoading(false);
-      return;
-    }
+    if (mediaType === 'text') { setMediaLoading(false); return; }
 
     let cancelled = false;
     const loadMedia = async () => {
       setMediaLoading(true);
       try {
-        const response = (await getMediaBase64(
-          DEFAULT_INSTANCE_NAME,
-          current,
-          mediaType === 'video'
-        )) as { base64?: string; mimetype?: string } | null;
+        const response = await getMediaBase64(DEFAULT_INSTANCE_NAME, current, mediaType === 'video') as { base64?: string; mimetype?: string } | null;
         if (cancelled) return;
         const src = toDataUrl(response?.base64 ?? null, response?.mimetype ?? null);
-        if (!src) {
-          setMediaError('Não foi possível carregar a mídia deste status.');
-          setResolvedMedia({ src: null, mimetype: response?.mimetype ?? null });
-          return;
-        }
+        if (!src) { setMediaError('Não foi possível carregar a mídia deste status.'); setResolvedMedia({ src: null, mimetype: response?.mimetype ?? null }); return; }
         setResolvedMedia({ src, mimetype: response?.mimetype ?? null });
       } catch (error) {
         if (cancelled) return;
         setMediaError(error instanceof Error ? error.message : 'Erro ao carregar mídia');
-      } finally {
-        if (!cancelled) setMediaLoading(false);
-      }
+      } finally { if (!cancelled) setMediaLoading(false); }
     };
     loadMedia();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [open, index, messages, getMediaBase64]);
 
   if (!open || !messages.length) return null;
@@ -144,23 +123,18 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="w-[95vw] max-w-2xl gap-0 overflow-hidden border-border/20 bg-background/95 p-0 [&>button]:hidden">
+      <DialogContent className="max-w-2xl w-[95vw] p-0 gap-0 bg-background/95 border-border/20 overflow-hidden [&>button]:hidden">
         <div className="flex gap-0.5 px-3 pt-3">
           {messages.map((_, i) => (
-            <div key={i} className="h-[3px] flex-1 overflow-hidden rounded-full bg-background/20">
-              <div
-                className={cn(
-                  'h-full rounded-full transition-all duration-300',
-                  i < index ? 'w-full bg-background' : i === index ? 'w-full bg-primary' : 'w-0'
-                )}
-              />
+            <div key={i} className="flex-1 h-[3px] rounded-full overflow-hidden bg-background/20">
+              <div className={cn('h-full rounded-full transition-all duration-300', i < index ? 'bg-background w-full' : i === index ? 'bg-primary w-full' : 'w-0')} />
             </div>
           ))}
         </div>
 
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
               {(pushName || '?')[0]?.toUpperCase()}
             </div>
             <div>
@@ -169,102 +143,44 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <span className="mr-2 text-[10px] text-foreground/40">
-              {index + 1}/{messages.length}
-            </span>
-            <Button
-              aria-label="Fechar visualizador de status"
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8 text-foreground/70 hover:bg-background/10 hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <span className="text-[10px] text-foreground/40 mr-2">{index + 1}/{messages.length}</span>
+            <Button aria-label="Fechar visualizador de status" variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 text-foreground/70 hover:text-foreground hover:bg-background/10"><X className="w-4 h-4" /></Button>
           </div>
         </div>
 
-        <div className="relative flex max-h-[70vh] min-h-[50vh] items-center justify-center">
+        <div className="relative flex items-center justify-center min-h-[50vh] max-h-[70vh]">
           {index > 0 && (
-            <button
-              onClick={goPrev}
-              className="absolute left-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 text-muted-foreground backdrop-blur transition-all hover:bg-muted/80 hover:text-foreground"
-            >
-              <ChevronLeft className="h-5 w-5" />
+            <button onClick={goPrev} className="absolute left-2 z-10 w-10 h-10 rounded-full bg-muted/60 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all">
+              <ChevronLeft className="w-5 h-5" />
             </button>
           )}
           {index < messages.length - 1 && (
-            <button
-              onClick={goNext}
-              className="absolute right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 text-muted-foreground backdrop-blur transition-all hover:bg-muted/80 hover:text-foreground"
-            >
-              <ChevronRight className="h-5 w-5" />
+            <button onClick={goNext} className="absolute right-2 z-10 w-10 h-10 rounded-full bg-muted/60 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all">
+              <ChevronRight className="w-5 h-5" />
             </button>
           )}
 
           <AnimatePresence mode="wait">
-            <motion.div
-              key={current.id ?? index}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="flex h-full w-full items-center justify-center px-14"
-            >
+            <motion.div key={current.id ?? index} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="w-full h-full flex items-center justify-center px-14">
               {mediaType === 'image' ? (
                 mediaLoading ? (
-                  <div
-                    role="status"
-                    aria-live="polite"
-                    className="flex flex-col items-center gap-3 text-foreground/70"
-                  >
-                    <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
-                    <p className="text-sm">Carregando imagem...</p>
-                  </div>
+                  <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" /><p className="text-sm">Carregando imagem...</p></div>
                 ) : resolvedMedia.src ? (
-                  <img
-                    src={resolvedMedia.src}
-                    alt="Status"
-                    className="max-h-[65vh] max-w-full rounded-lg object-contain"
-                    loading="eager"
-                  />
+                  <img src={resolvedMedia.src} alt={textContent ? `Status de ${pushName || 'Contato'}: ${textContent}` : `Status de ${pushName || 'Contato'}`} className="max-w-full max-h-[65vh] object-contain rounded-lg" loading="eager" />
                 ) : (
-                  <div className="space-y-2 text-center text-foreground/70">
-                    <ImageIcon className="mx-auto h-8 w-8" />
-                    <p className="text-sm">{mediaError || 'Imagem indisponível'}</p>
-                  </div>
+                  <div className="text-center text-foreground/70 space-y-2"><ImageIcon className="w-8 h-8 mx-auto" /><p className="text-sm">{mediaError || 'Imagem indisponível'}</p></div>
                 )
               ) : mediaType === 'video' ? (
                 mediaLoading ? (
-                  <div
-                    role="status"
-                    aria-live="polite"
-                    className="flex flex-col items-center gap-3 text-foreground/70"
-                  >
-                    <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
-                    <p className="text-sm">Carregando vídeo...</p>
-                  </div>
+                  <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" /><p className="text-sm">Carregando vídeo...</p></div>
                 ) : resolvedMedia.src ? (
-                  <video
-                    src={resolvedMedia.src}
-                    controls
-                    autoPlay
-                    className="max-h-[65vh] max-w-full rounded-lg object-contain"
-                  />
+                  <><video src={resolvedMedia.src} controls autoPlay className="max-w-full max-h-[65vh] object-contain rounded-lg" /><p className="sr-only">Legendas não disponíveis para este vídeo.</p></>
                 ) : (
-                  <div className="space-y-2 text-center text-foreground/70">
-                    <Video className="mx-auto h-8 w-8" />
-                    <p className="text-sm">{mediaError || 'Vídeo indisponível'}</p>
-                  </div>
+                  <div className="text-center text-foreground/70 space-y-2"><Video className="w-8 h-8 mx-auto" /><p className="text-sm">{mediaError || 'Vídeo indisponível'}</p></div>
                 )
               ) : (
-                <div
-                  className="flex w-full max-w-md items-center justify-center rounded-2xl p-8 text-center"
-                  style={{ backgroundColor: bgColor || 'hsl(var(--primary) / 0.15)' }}
-                >
-                  <p className="whitespace-pre-wrap break-words text-lg font-medium leading-relaxed text-foreground">
-                    {textContent || 'Status'}
-                  </p>
+                <div className="w-full max-w-md p-8 rounded-2xl flex items-center justify-center text-center" style={{ backgroundColor: bgColor || 'hsl(var(--primary) / 0.15)' }}>
+                  <p className="text-lg font-medium text-foreground leading-relaxed whitespace-pre-wrap break-words">{textContent || 'Status'}</p>
                 </div>
               )}
             </motion.div>
@@ -272,10 +188,8 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
         </div>
 
         {mediaType !== 'text' && textContent && (
-          <div className="bg-gradient-to-t from-black/80 to-transparent px-6 py-4">
-            <p className="whitespace-pre-wrap break-words text-center text-sm text-foreground/90">
-              {textContent}
-            </p>
+          <div className="px-6 py-4 bg-gradient-to-t from-black/80 to-transparent">
+            <p className="text-sm text-foreground/90 whitespace-pre-wrap break-words text-center">{textContent}</p>
           </div>
         )}
         {(mediaType === 'text' || !textContent) && <div className="h-4" />}

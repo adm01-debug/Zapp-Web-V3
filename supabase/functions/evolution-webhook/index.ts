@@ -134,7 +134,6 @@ serve(async (req) => {
     );
   } else {
     console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured and STRICT_MODE=off — signature validation skipped`));
-
     rawBody = await req.text();
   }
 

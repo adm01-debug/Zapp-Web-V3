@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
-import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
 // Resolve at call time so module import never crashes the inbox.
@@ -20,6 +19,30 @@ interface SlaEscalate {
   reason?: string | null;
 }
 
+// Minimal shapes for rows returned by the external (FATOR X) RPCs.
+// These functions exist only in the external DB schema and are not in ExtendedDatabase.Functions.
+interface ExternalMessage {
+  message_timestamp: string;
+  created_at: string;
+  from_me: boolean;
+  content: unknown;
+}
+
+interface ExternalContact {
+  tags?: unknown[];
+}
+
+// Typed shim for external RPC calls not present in ExtendedDatabase.Functions.
+// Usage: (client as unknown as { rpc: ExtRpc }).rpc(fn, args) — preserves `this` binding.
+type ExtRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+// Handles Supabase/PostgREST errors (plain objects with .message) and standard Errors.
+const toErrMsg = (e: unknown): string => {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null && 'message' in e) return String((e as { message: unknown }).message);
+  return String(e);
+};
+
 interface AutomationRule {
   id: string;
   name: string;
@@ -30,11 +53,6 @@ interface AutomationRule {
   priority: number;
 }
 
-interface MsgRow {
-  created_at: string;
-  from_me: boolean;
-  content: string;
-}
 
 interface UseAutomationsArgs {
   remoteJid: string | null;
@@ -46,7 +64,7 @@ const POLL_MS = 20_000;
 
 export function useAutomations({
   remoteJid,
-  instanceName = ACTIVE_WHATSAPP_INSTANCE,
+  instanceName = 'wpp2',
   assignedTo = null,
 }: UseAutomationsArgs) {
   const rulesRef = useRef<AutomationRule[]>([]);
@@ -112,9 +130,8 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...msgs].sort(
-        (a: any, b: any) =>
-          // ignore-audit
+      const sorted = [...(msgs as ExternalMessage[])].sort(
+        (a, b) =>
           new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
@@ -128,11 +145,11 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        const { data: contact } = await (client as any).rpc('rpc_get_contact', {
+        const { data: contact } = await (client as unknown as { rpc: ExtRpc }).rpc('rpc_get_contact', {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
-        const c = (Array.isArray(contact) ? contact[0] : contact) as { tags?: unknown[] } | null;
+        const c = (Array.isArray(contact) ? contact[0] : contact) as ExternalContact | null;
         currentTags = Array.isArray(c?.tags) ? c.tags.map((t: unknown) => String(t)) : [];
         if (prevTagsRef.current !== null) {
           const prev = prevTagsRef.current;
@@ -233,7 +250,7 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            await (client as any).rpc('rpc_upsert_contact', {
+            await (client as unknown as { rpc: ExtRpc }).rpc('rpc_upsert_contact', {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
@@ -251,12 +268,11 @@ export function useAutomations({
                 })
                 .eq('id', execId)
             );
-          } catch (e: any) {
-            // ignore-audit
+          } catch (e: unknown) {
             log.warn('[automation] apply_tags/escalate failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: toErrMsg(e),
               p_context: { stage: 'apply_tags_or_escalate', tags: allTags },
             });
           }
@@ -285,7 +301,7 @@ export function useAutomations({
               );
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
-                await (client as any).rpc('rpc_insert_message', {
+                await (client as unknown as { rpc: ExtRpc }).rpc('rpc_insert_message', {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
@@ -298,12 +314,11 @@ export function useAutomations({
                 );
               }
             }
-          } catch (e: any) {
-            // ignore-audit
+          } catch (e: unknown) {
             log.warn('[automation] suggest_reply failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: toErrMsg(e),
               p_context: { stage: 'suggest_reply_or_autosend' },
             });
           }

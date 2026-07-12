@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { toast } from 'sonner';
 import { newRequestId } from '@/lib/withRequestId';
 import { z } from 'zod';
@@ -9,6 +9,7 @@ import {
   mapValidationIssuesToContractError,
 } from '@/shared/criticalPayloadSchemas';
 import { dbFrom } from '@/integrations/datasource/db';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 interface ContactResult {
   id: string;
@@ -32,24 +33,18 @@ export function useNewConversation(
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [mode, setMode] = useState<'search' | 'new'>('search');
-  const [connections, setConnections] = useState<{ id: string; name: string }[]>([]);
+  const [connections, setConnections] = useState<{ id: string; name: string; instance_id: string | null; instance_name: string | null }[]>([]);
   const [selectedConnection, setSelectedConnection] = useState('');
 
   useEffect(() => {
     if (!open) return;
-    supabase
-      .from('whatsapp_connections')
-      .select('id, name')
-      .eq('status', 'connected')
-      .then(
-        ({ data }) => {
-          if (data && data.length > 0) {
-            setConnections(data);
-            setSelectedConnection(data[0].id);
-          }
-        },
-        () => {}
-      );
+    supabase.from('whatsapp_connections').select('id, name, instance_id, instance_name').eq('status', 'connected')
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setConnections(data);
+          setSelectedConnection(data[0].id);
+        }
+      }, () => {});
   }, [open]);
 
   useEffect(() => {
@@ -59,10 +54,10 @@ export function useNewConversation(
     }
     const timeout = setTimeout(async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
-        .or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`)
+        .or(`name.ilike.%${sanitizePostgrestFilter(searchQuery)}%,phone.ilike.%${sanitizePostgrestFilter(searchQuery)}%`)
         .limit(10);
       setContacts(data || []);
       setIsLoading(false);
@@ -122,8 +117,11 @@ export function useNewConversation(
         contactId = newContact.id;
         await supabase.functions.invoke('batch-fetch-avatars');
       }
-      if (!contactId) {
-        toast.error('Selecione um contato');
+      if (!contactId) { toast.error('Selecione um contato'); setIsSending(false); return; }
+      const _conn = connections.find(c => c.id === selectedConnection);
+      const _evoName = _conn ? evolutionInstanceName(_conn) : null;
+      if (!_evoName) {
+        toast.error('Conexão WhatsApp sem nome de instância válido. Reconecte a instância e tente novamente.');
         setIsSending(false);
         return;
       }
@@ -139,8 +137,7 @@ export function useNewConversation(
       });
       if (msgError) throw msgError;
       const rawSendPayload = {
-        instanceName:
-          connections.find((c) => c.id === selectedConnection)?.name || ACTIVE_WHATSAPP_INSTANCE,
+        instanceName: _evoName,
         number: selectedContact?.phone || newPhone,
         text: messageText.trim(),
       };
