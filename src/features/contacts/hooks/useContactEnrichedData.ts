@@ -96,6 +96,7 @@ export function useContactEnrichedData(contactId: string) {
       return data as EnrichedContactData;
     },
     enabled: !!localId,
+    staleTime: 3 * 60 * 1000, // 3min — coordinate with mutation invalidation
   });
 
   // Fetch AI conversation tags
@@ -115,6 +116,7 @@ export function useContactEnrichedData(contactId: string) {
       return data as AIConversationTag[];
     },
     enabled: !!localId,
+    staleTime: 5 * 60 * 1000, // 5min — matches parent query staleTime
   });
 
   // Fetch SLA info
@@ -136,6 +138,7 @@ export function useContactEnrichedData(contactId: string) {
       return data as SLAInfo | null;
     },
     enabled: !!localId,
+    staleTime: 2 * 60 * 1000, // 2min — SLA is more volatile, refresh more frequently
   });
 
   return { enrichedData, aiTags, slaInfo };
