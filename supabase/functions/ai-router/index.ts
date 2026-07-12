@@ -785,9 +785,11 @@ async function validateRequestSignature(
       return { valid: false, error: 'Signature timestamp in future' };
     }
 
-    // Get signing secret from environment
-    const signingSecret = (globalThis as any).AI_ROUTER_SIGNING_SECRET || '';
-    if (!signingSecret) {
+    // Get signing secret from environment (optional, signing disabled if not configured)
+    let signingSecret = '';
+    try {
+      signingSecret = requireEnv("AI_ROUTER_SIGNING_SECRET");
+    } catch {
       // Signing is optional if secret not configured
       log.info("Request signing disabled (no AI_ROUTER_SIGNING_SECRET)");
       return { valid: true };
