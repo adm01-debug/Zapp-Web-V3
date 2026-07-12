@@ -9,6 +9,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ELEVENLABS_VOICES, type ElevenLabsVoice } from './VoiceSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('VoiceChanger');
 
 interface VoiceChangerProps {
   audioBlob?: Blob;
@@ -252,7 +255,7 @@ export const VoiceChanger = memo(function VoiceChanger({
         toast.success('Áudio com voz alterada pronto para envio!');
       })
       .catch((err) => {
-        console.error('[VoiceChanger] Failed to fetch converted audio:', err);
+        log.error('[VoiceChanger] Failed to fetch converted audio:', err);
         toast.error('Erro ao carregar áudio convertido — tente novamente');
         setConvertedAudioUrl(null);
         setOpen(true);

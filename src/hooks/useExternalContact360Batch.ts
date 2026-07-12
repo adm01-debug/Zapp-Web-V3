@@ -1,12 +1,12 @@
 /**
  * useExternalContact360Batch
- * 
+ *
  * Batch version of useExternalContact360. Instead of N individual RPC calls
  * (one per conversation), this hook takes an array of phones and calls a single
  * RPC `get_companies_by_phones_batch` that returns a map of phone → company data.
- * 
+ *
  * Designed for ConversationList where we need CRM data for 20-50+ items at once.
- * 
+ *
  * Returns a Map<phone, CRMBatchResult> for O(1) lookup per conversation item.
  */
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { log } from '@/lib/logger';
+import { cleanPhone } from '@/lib/formatters';
 
 export interface CRMBatchResult {
   company_name: string | null;
@@ -26,13 +27,9 @@ export interface CRMBatchResult {
   rfm_score: number | null;
 }
 
-function cleanPhone(phone: string): string {
-  return phone.replace(/[^0-9]/g, '');
-}
-
 export function useExternalContact360Batch(phones: string[]) {
   // Deduplicate and clean phones
-  const cleanedPhones = [...new Set(phones.map(cleanPhone).filter(p => p.length >= 8))];
+  const cleanedPhones = [...new Set(phones.map(cleanPhone).filter((p) => p.length >= 8))];
   // Create a stable key from sorted phones
   const queryKey = cleanedPhones.sort().join(',');
 

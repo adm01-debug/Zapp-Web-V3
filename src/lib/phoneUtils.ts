@@ -94,7 +94,9 @@ export function validatePhone(phone: unknown): PhoneValidationDetailed {
 
   const digitsOnly = raw.replace(/\D/g, '');
   const startsWithPlus = raw.startsWith('+');
-  const isInternational = startsWithPlus ? !raw.startsWith('+55') : (digitsOnly.length > 11 && !digitsOnly.startsWith('55'));
+  const isInternational = startsWithPlus
+    ? !raw.startsWith('+55')
+    : digitsOnly.length > 11 && !digitsOnly.startsWith('55');
 
   if (isInternational) {
     return {
@@ -122,11 +124,11 @@ export function validatePhone(phone: unknown): PhoneValidationDetailed {
  */
 export type PhoneType = 'mobile' | 'landline' | 'international';
 export interface PhoneValidationDetailed {
-  valid:       boolean;
-  error?:      string;
+  valid: boolean;
+  error?: string;
   normalized?: string;
-  formatted?:  string;
-  type?:       PhoneType;
+  formatted?: string;
+  type?: PhoneType;
 }
 
 export function validatePhoneDetailed(phone: unknown): PhoneValidationDetailed {
@@ -158,7 +160,9 @@ export function formatPhoneForDisplay(phone: unknown): string {
   if (!phone) return '';
   const raw = String(phone);
   const digitsOnly = raw.replace(/\D/g, '');
-  const isInternational = raw.startsWith('+') ? !raw.startsWith('+55') : (digitsOnly.length > 11 && !digitsOnly.startsWith('55'));
+  const isInternational = raw.startsWith('+')
+    ? !raw.startsWith('+55')
+    : digitsOnly.length > 11 && !digitsOnly.startsWith('55');
   if (isInternational) return raw;
 
   const normalized = normalizePhone(phone) ?? digitsOnly;
@@ -206,8 +210,8 @@ export function phonesMatch(a: unknown, b: unknown): boolean {
   if (na === nb) return true;
 
   // Check 9th digit variants
-  const shorter  = na.length < nb.length ? na : nb;
-  const longer   = na.length < nb.length ? nb : na;
+  const shorter = na.length < nb.length ? na : nb;
+  const longer = na.length < nb.length ? nb : na;
 
   if (shorter.length === 10 && longer.length === 11) {
     // shorter may be longer without the 9th digit
@@ -255,8 +259,6 @@ export function phoneVariants(phone: unknown): string[] {
 
   return [...new Set(variants)];
 }
-
-export const formatBRPhone = formatPhoneForDisplay;
 
 export function isWhatsAppJID(value: unknown): boolean {
   if (!value) return false;

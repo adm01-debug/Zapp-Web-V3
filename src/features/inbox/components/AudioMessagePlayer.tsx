@@ -148,7 +148,7 @@ export function AudioMessagePlayer({
               .then((r) => r.blob())
               .then((blob) => onVoiceChange(messageId, blob))
               .catch((err) =>
-                console.error('[AudioMessagePlayer] Failed to fetch converted audio:', err)
+                log.error('[AudioMessagePlayer] Failed to fetch converted audio:', err)
               );
           }
         }

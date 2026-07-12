@@ -1,6 +1,6 @@
 /**
  * useExternalContact360
- * 
+ *
  * Hook that calls get_contact_360_by_phone on the external CRM database
  * to enrich a zapp-web contact with full 360° data: company, customer profile,
  * RFM, interactions history, social media, stakeholder map, etc.
@@ -11,10 +11,7 @@ import { dbGet } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
 import { log } from '@/lib/logger';
-
-function cleanPhone(phone: string): string {
-  return phone.replace(/[^0-9]/g, '');
-}
+import { cleanPhone } from '@/lib/formatters';
 
 export function useExternalContact360(phone: string | undefined) {
   const cleanedPhone = phone ? cleanPhone(phone) : '';
@@ -37,7 +34,7 @@ export function useExternalContact360(phone: string | undefined) {
     },
     enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 10, // 10 min cache
-    gcTime: 1000 * 60 * 30,    // 30 min gc
+    gcTime: 1000 * 60 * 30, // 30 min gc
     retry: 1,
   });
 }
