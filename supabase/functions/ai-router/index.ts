@@ -3429,6 +3429,13 @@ async function handleTranscribeAudio(
           errorMessage: errorMessage || errMsg,
           metadata: metricsMetadata,
         }, supabase);
+      } catch {
+        // Metrics logging not critical
+      } finally {
+        // CRITICAL GAP H.7: Always decrement concurrent upload counter to prevent resource leak
+        activeTranscodeCount--;
+        if (activeTranscodeCount < 0) activeTranscodeCount = 0; // Safety check
+      }
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrMsg = (errorMessage || errMsg).includes('database') || (errorMessage || errMsg).includes('ECONNREFUSED') || (errorMessage || errMsg).includes('ENOTFOUND')
