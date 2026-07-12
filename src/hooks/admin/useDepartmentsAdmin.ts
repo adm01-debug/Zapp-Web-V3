@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 /**
  * useDepartmentsAdmin — Wave 3 batch-4 (2026-07-07)
@@ -62,7 +61,11 @@ export function useDepartmentsAdmin() {
     }
 
     setDepartments(
-      (data ?? []).map((d) => ({ ...d, member_count: countsFailed ? undefined : (counts[d.id] ?? 0) })),
+      (data ?? []).map((d) => ({
+        ...d,
+        is_active: d.is_active ?? true,
+        member_count: countsFailed ? undefined : (counts[d.id] ?? 0),
+      })),
     );
     setLoading(false);
   }, []);
