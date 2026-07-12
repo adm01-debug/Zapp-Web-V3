@@ -55,7 +55,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     record('Auth Check', 'pass', { user: session.user.email });
 
     // Passo 2: Buscar Configuração Atual no Banco
-    const { data: configRows, error: fetchError } = await safeClient.from<any>(
+    const { data: configRows, error: fetchError } = await safeClient.from<SystemConnectionRow>(
       'system_connections',
       (q) => q.select('*').eq('name', 'FATOR X').eq('provider', 'supabase_external').limit(1)
     );
@@ -70,9 +70,8 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
       return diagnostics;
     }
 
-    const configData = currentConfigs as any;
-    const externalUrl = configData.config?.url;
-    const externalKey = configData.config?.anon_key;
+    const externalUrl = currentConfigs.config?.url;
+    const externalKey = currentConfigs.config?.anon_key;
 
     if (!externalUrl || !externalKey) {
       record('Config Validation', 'fail', 'URL ou Anon Key ausentes na configuração do banco.');
@@ -97,7 +96,9 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
         });
       }
     } catch (e: unknown) {
-      record('External Connectivity', 'fail', { error: e instanceof Error ? e.message : String(e) });
+      record('External Connectivity', 'fail', {
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
 
     // Passo 4: Testar Escrita/Leitura no system_connections (Verificar RLS)
@@ -143,7 +144,8 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
         record('Cleanup', 'pass', 'Registro de teste removido.');
       }
     }
-  } catch (e: any) { // ignore-audit
+  } catch (e: any) {
+    // ignore-audit
     record('Global Error', 'fail', { message: e.message });
   }
 
