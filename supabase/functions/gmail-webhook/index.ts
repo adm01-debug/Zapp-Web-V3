@@ -283,7 +283,7 @@ serve(async (req) => {
           labels: labelIds, is_read: isRead,
         }, { onConflict: 'account_id,message_id' });
 
-        if (!insertErr) processed.push(msgId);
+        if (!insertErr || (typeof insertErr !== 'object')) processed.push(msgId);
       }
 
       await supabase.from('email_watch_history').upsert({
@@ -519,12 +519,12 @@ async function fetchAndPersistMessage(
     // qualifies. Blanket 401 classification causes persistent retry loops for account-level
     // auth failures where the token stays valid but the API keeps rejecting the request.
     const isTransient =
-      msg.error.code === 429 ||                        // standard rate-limit header
-      msg.error.code >= 500 ||                         // server errors
+      errorCode === 429 ||                              // standard rate-limit header
+      errorCode >= 500 ||                               // server errors
       reason === 'ratelimitexceeded' ||
       reason === 'userratelimitexceeded' ||
       reason === 'quotaexceeded' ||
-      status === 'unauthenticated' ||                  // token expired — specific renewable failure
+      status === 'unauthenticated' ||                   // token expired — specific renewable failure
       status === 'resource_exhausted';
 
     if (isTransient) {
