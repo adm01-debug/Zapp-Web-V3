@@ -4,6 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
+import { log } from '@/lib/logger';
+import type { TeamMessage } from './teamChatTypes';
+
+interface TeamMessagePage {
+  messages: TeamMessage[];
+  [key: string]: unknown;
+}
+
+interface TeamMessageCache {
+  pages: TeamMessagePage[];
+  pageParams?: unknown[];
+  [key: string]: unknown;
+}
 
 export function useUpdateTeamMessageStatus() {
   const queryClient = useQueryClient();
@@ -26,11 +39,11 @@ export function useUpdateTeamMessageStatus() {
     onSuccess: (data) => {
       queryClient.setQueriesData(
         { queryKey: ['team-messages', data.conversationId] },
-        (oldData: any) => { // ignore-audit
-          if (!oldData || !oldData.pages) return oldData;
-          const newPages = oldData.pages.map((page: any) => ({ // ignore-audit
+        (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
+          if (!oldData?.pages) return oldData;
+          const newPages = oldData.pages.map((page) => ({
             ...page,
-            messages: page.messages.map((m: any) => // ignore-audit
+            messages: page.messages.map((m) =>
               m.id === data.messageId ? { ...m, status: data.status } : m
             ),
           }));
@@ -73,21 +86,20 @@ export function useSendTeamMessage() {
         .select()
         .single();
       if (error) throw error;
-      await supabase
+      const { error: touchErr } = await supabase
         .from('team_conversations')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', conversationId);
+      if (touchErr) log.warn('[useSendTeamMessage] touch updated_at failed', touchErr);
       return data;
     },
     onSuccess: (data, vars) => {
-      // Manual cache update for new messages
       queryClient.setQueriesData(
         { queryKey: ['team-messages', vars.conversationId] },
-        (oldData: any) => { // ignore-audit
-          if (!oldData || !oldData.pages) return oldData;
+        (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
+          if (!oldData?.pages) return oldData;
           const newPages = [...oldData.pages];
           if (newPages.length > 0) {
-            // Add sender info manually if it's our own message
             const msgWithSender = {
               ...data,
               sender: {
@@ -129,11 +141,11 @@ export function useDeleteTeamMessage() {
     onSuccess: (data, vars) => {
       queryClient.setQueriesData(
         { queryKey: ['team-messages', data.conversationId] },
-        (oldData: any) => { // ignore-audit
-          if (!oldData || !oldData.pages) return oldData;
-          const newPages = oldData.pages.map((page: any) => ({ // ignore-audit
+        (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
+          if (!oldData?.pages) return oldData;
+          const newPages = oldData.pages.map((page) => ({
             ...page,
-            messages: page.messages.filter((m: any) => m.id !== vars.messageId), // ignore-audit
+            messages: page.messages.filter((m) => m.id !== vars.messageId),
           }));
           return { ...oldData, pages: newPages };
         }
@@ -168,11 +180,11 @@ export function useEditTeamMessage() {
     onSuccess: (data, vars) => {
       queryClient.setQueriesData(
         { queryKey: ['team-messages', vars.conversationId] },
-        (oldData: any) => { // ignore-audit
-          if (!oldData || !oldData.pages) return oldData;
-          const newPages = oldData.pages.map((page: any) => ({ // ignore-audit
+        (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
+          if (!oldData?.pages) return oldData;
+          const newPages = oldData.pages.map((page) => ({
             ...page,
-            messages: page.messages.map((m: any) => // ignore-audit
+            messages: page.messages.map((m) =>
               m.id === vars.messageId ? { ...m, content: vars.content, is_edited: true } : m
             ),
           }));
@@ -313,7 +325,7 @@ export function useTransferTeamConversation() {
     }: {
       conversationId: string;
       departmentId: string;
-      metadata?: any; // ignore-audit
+      metadata?: Record<string, unknown>;
     }) => {
       const { data: rows, error } = await safeClient.from('team_conversations', (q) =>
         q
