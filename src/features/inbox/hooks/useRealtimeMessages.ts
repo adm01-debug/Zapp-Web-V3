@@ -46,32 +46,8 @@ export interface NewMessageNotification {
   timestamp: Date;
 }
 
-export interface RealtimeMessage {
-  id: string;
-  contact_id: string | null;
-  agent_id: string | null;
-  content: string;
-  sender: string;
-  message_type: string;
-  media_url: string | null;
-  is_read: boolean | null;
-  status: 'sending' | 'retrying' | 'sent' | 'delivered' | 'read' | 'played' | 'failed' | 'failed_auth' | 'failed_retries' | null;
-  status_updated_at: string | null;
-  created_at: string;
-  updated_at: string;
-  external_id: string | null;
-  whatsapp_connection_id: string | null;
-  transcription: string | null;
-  transcription_status: string | null;
-  is_deleted: boolean | null;
-  /** Timestamp do soft delete (protocolMessage REVOKE). Null = mensagem viva. */
-  deleted_at?: string | null;
-  retry_attempt?: number | null;
-  retry_total?: number | null;
-  /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
-  contactAvatar?: string | null;
-  reactions?: Record<string, unknown>[] | null;
-}
+export type { RealtimeMessage } from './realtime/types';
+
 
 export interface ConversationContact {
   id: string;
