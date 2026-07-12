@@ -34,11 +34,17 @@ export const messageRepository = {
    * Fallback: if FK select fails, plain select('*') still returns all message fields.
    */
   async fetchMessagesByContact(contactId: string, from = 0, limit = 1000) {
-    return dbFrom('messages')
-      .select('*')
+    const result = await dbFrom('messages')
+      .select(messagesMap.select())
       .eq('contact_id', contactId)
       .order('created_at', { ascending: true })
       .range(from, from + limit - 1);
+
+    if (result.error || !Array.isArray(result.data)) return result;
+    const normalized = (result.data as unknown[])
+      .map((row) => normalizeMessage(row as Parameters<typeof normalizeMessage>[0]))
+      .filter((m): m is NonNullable<ReturnType<typeof normalizeMessage>> => m !== null);
+    return { ...result, data: normalized };
   },
 
   /**
