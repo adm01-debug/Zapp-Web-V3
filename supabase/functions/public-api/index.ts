@@ -24,17 +24,28 @@ Deno.serve(async (req) => {
 
     // Validate API token
     const apiKey = req.headers.get('x-api-key');
-    if (!apiKey) {
+    if (!apiKey || typeof apiKey !== 'string' || apiKey.length === 0) {
       return errorResponse('Missing x-api-key header', 401, req);
     }
 
-    const { data: setting } = await supabase
+    const { data: setting, error: settingError } = await supabase
       .from('global_settings')
       .select('value')
       .eq('key', 'api_token')
       .single();
 
-    if (!setting?.value || setting.value !== apiKey) {
+    if (settingError) {
+      log.error('Failed to fetch API token setting', { error: settingError.message });
+      return errorResponse('Internal server error', 500, req);
+    }
+
+    if (!setting || typeof setting !== 'object' || Array.isArray(setting)) {
+      return errorResponse('Invalid API token', 403, req);
+    }
+
+    const settingObj = setting as Record<string, unknown>;
+    const storedToken = typeof settingObj.value === 'string' ? settingObj.value : '';
+    if (!storedToken || storedToken !== apiKey) {
       log.warn('Invalid API token attempt');
       return errorResponse('Invalid API token', 403, req);
     }
@@ -43,15 +54,24 @@ Deno.serve(async (req) => {
       return errorResponse('Method not allowed', 405, req);
     }
 
-    const raw = await req.json().catch(() => null);
-    if (!raw) return errorResponse('Invalid JSON body', 400, req);
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return errorResponse('Invalid JSON body', 400, req);
+    }
 
-    const { action } = raw as { action?: string };
+    if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody)) {
+      return errorResponse('Invalid JSON body', 400, req);
+    }
+
+    const body = rawBody as Record<string, unknown>;
+    const action = typeof body.action === 'string' ? body.action : '';
     if (action !== 'send') {
       return errorResponse('Unknown action. Supported: send', 400, req);
     }
 
-    const parsed = publicApiSendSchema.safeParse(raw);
+    const parsed = publicApiSendSchema.safeParse(body);
     if (!parsed.success) {
       const mapped = mapValidationIssuesToContractError(parsed.error.issues);
       return contractErrorResponse(
@@ -67,7 +87,7 @@ Deno.serve(async (req) => {
     const phone = number.replace(/\D/g, '');
 
     // Find connection
-    let connection;
+    let connection: Record<string, unknown> | null = null;
     if (connectionId) {
       const { data } = await supabase
         .from('whatsapp_connections')
@@ -75,7 +95,9 @@ Deno.serve(async (req) => {
         .eq('id', connectionId)
         .eq('status', 'connected')
         .single();
-      connection = data;
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        connection = data as Record<string, unknown>;
+      }
     } else {
       const { data } = await supabase
         .from('whatsapp_connections')
@@ -83,7 +105,9 @@ Deno.serve(async (req) => {
         .eq('is_default', true)
         .eq('status', 'connected')
         .single();
-      connection = data;
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        connection = data as Record<string, unknown>;
+      }
     }
 
     if (!connection) {
@@ -91,19 +115,28 @@ Deno.serve(async (req) => {
     }
 
     // Find or create contact
-    let { data: contact } = await supabase
+    let contact: Record<string, unknown> | null = null;
+    const { data: existingContact } = await supabase
       .from('contacts')
       .select('id')
       .eq('phone', phone)
       .single();
 
-    if (!contact) {
+    if (existingContact && typeof existingContact === 'object' && !Array.isArray(existingContact)) {
+      contact = existingContact as Record<string, unknown>;
+    } else {
+      const connectionId = typeof connection.id === 'string' ? connection.id : null;
+      if (!connectionId) {
+        return errorResponse('Invalid connection ID', 500, req);
+      }
       const { data: newContact } = await supabase
         .from('contacts')
-        .insert({ name: phone, phone, whatsapp_connection_id: connection.id })
+        .insert({ name: phone, phone, whatsapp_connection_id: connectionId })
         .select('id')
         .single();
-      contact = newContact;
+      if (newContact && typeof newContact === 'object' && !Array.isArray(newContact)) {
+        contact = newContact as Record<string, unknown>;
+      }
     }
 
     if (!contact) {
@@ -111,15 +144,21 @@ Deno.serve(async (req) => {
     }
 
     // Insert message — stamp request_id for end-to-end tracing.
+    const contactId = typeof contact.id === 'string' ? contact.id : null;
+    const connectionIdForMsg = typeof connection.id === 'string' ? connection.id : null;
+    if (!contactId || !connectionIdForMsg) {
+      return errorResponse('Invalid contact or connection ID', 500, req);
+    }
+
     const { data: msg, error: msgError } = await supabase
       .from('messages')
       .insert({
-        contact_id: contact.id,
+        contact_id: contactId,
         content: message,
         sender: 'agent',
         message_type: 'text',
         status: 'sending',
-        whatsapp_connection_id: connection.id,
+        whatsapp_connection_id: connectionIdForMsg,
         request_id: requestId,
       })
       .select()
@@ -130,17 +169,28 @@ Deno.serve(async (req) => {
       return errorResponse('Failed to save message', 500, req);
     }
 
+    if (!msg || typeof msg !== 'object' || Array.isArray(msg)) {
+      return errorResponse('Failed to save message', 500, req);
+    }
+    const msgObj = msg as Record<string, unknown>;
+
     // Send via evolution-api edge function (centralized proxy).
     // Routing through invoke avoids duplicating CORS/retry/error normalization
     // and gives us a uniform contract for instanceName forwarding.
+    const msgId = typeof msgObj.id === 'string' ? msgObj.id : null;
+    if (!msgId) {
+      return errorResponse('Invalid message ID', 500, req);
+    }
+
     try {
-      if (connection.instance_id) {
+      const instanceId = typeof connection.instance_id === 'string' ? connection.instance_id : null;
+      if (instanceId) {
         const { data: invokeData, error: invokeError } = await supabase.functions.invoke(
           'evolution-api',
           {
             body: {
               action: 'send-text',
-              instanceName: connection.instance_id,
+              instanceName: instanceId,
               number: phone,
               text: message,
             },
@@ -149,24 +199,27 @@ Deno.serve(async (req) => {
 
         if (invokeError) {
           log.error('evolution-api invoke error', { error: invokeError.message });
-          await supabase.from('messages').update({ status: 'failed' }).eq('id', msg.id);
+          await supabase.from('messages').update({ status: 'failed' }).eq('id', msgId);
         } else {
-          const externalId = extractEvolutionMessageId(invokeData);
-          if (externalId) {
-            await supabase
-              .from('messages')
-              .update({ external_id: externalId, status: 'sent' })
-              .eq('id', msg.id);
+          if (invokeData && typeof invokeData === 'object' && !Array.isArray(invokeData)) {
+            const externalId = extractEvolutionMessageId(invokeData as Record<string, unknown>);
+            if (externalId && typeof externalId === 'string' && externalId.length > 0) {
+              await supabase
+                .from('messages')
+                .update({ external_id: externalId, status: 'sent' })
+                .eq('id', msgId);
+            }
           }
         }
       }
     } catch (sendErr) {
       log.error('Evolution API send error', { error: String(sendErr) });
-      await supabase.from('messages').update({ status: 'failed' }).eq('id', msg.id);
+      await supabase.from('messages').update({ status: 'failed' }).eq('id', msgId);
     }
 
-    log.done(200, { messageId: msg.id, requestId });
-    return jsonResponse({ success: true, messageId: msg.id, contactId: contact.id, requestId }, 200, req);
+    const responseContactId = typeof contact.id === 'string' ? contact.id : null;
+    log.done(200, { messageId: msgId, requestId });
+    return jsonResponse({ success: true, messageId: msgId, contactId: responseContactId, requestId }, 200, req);
   } catch (err) {
     log.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     return errorResponse('Internal server error', 500, req);
