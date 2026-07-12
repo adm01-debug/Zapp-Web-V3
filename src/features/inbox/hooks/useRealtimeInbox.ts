@@ -253,8 +253,10 @@ export function useRealtimeInbox() {
     setDeliveryAlert(null);
     
     if (USE_EXTERNAL_DB) {
-      void supabase.functions.invoke('evolution-api', {
+      supabase.functions.invoke('evolution-api', {
         body: { action: 'read-messages', instanceName: 'wpp2', remoteJid: contactId }
+      }).catch(err => {
+        log.error('Failed to mark messages as read via evolution-api:', err);
       });
     } else {
       markAsRead(contactId);
