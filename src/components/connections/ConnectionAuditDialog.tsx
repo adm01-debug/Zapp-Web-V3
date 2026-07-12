@@ -51,7 +51,16 @@ export function ConnectionAuditDialog({
         .limit(50);
 
       if (error) throw error;
-      setLogs(data || []);
+      const normalized: AuditLog[] = (data ?? []).map((row) => ({
+        id: row.id,
+        action: row.action,
+        created_at: row.created_at,
+        details:
+          row.details && typeof row.details === 'object' && !Array.isArray(row.details)
+            ? (row.details as Record<string, unknown>)
+            : {},
+      }));
+      setLogs(normalized);
     } catch (err) {
       log.error('Failed to fetch connection audit logs', err);
     } finally {
