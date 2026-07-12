@@ -150,7 +150,7 @@ async function withCircuitBreaker<T extends { response: { ok?: boolean; status?:
   // If open, check if exponential backoff cool-down period has passed (D.9)
   if (breaker.state === 'OPEN') {
     const now = Date.now();
-    // Exponential backoff: 60s * 2^cycleCount, capped at 10 minutes
+    // Exponential backoff: 90s * 2^cycleCount, capped at 10 minutes
     const exponentialCooldown = Math.min(
       CIRCUIT_BREAKER_COOLDOWN_MS * Math.pow(2, breaker.cycleCount),
       600_000 // 10 minute cap
