@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Zap Webb — Evolution API Client (ESCRITA / envio)
  *
@@ -212,12 +211,14 @@ export async function getEvolutionCredentials(
 
   try {
     // Consulta view SEGURA — sem api_key, sem instance_token (REVOKE aplicado 2026-07-05)
-    const { data: rows } = await safeClient.from<EvolutionInstancePublicRow>('evolution_instances_public', (q) =>
-      q
-        .select('instance_name, api_url, is_active')
-        .eq('instance_name', instance)
-        .eq('is_active', true)
-        .limit(1)
+    const { data: rows } = await safeClient.from<EvolutionInstancePublicRow>(
+      'evolution_instances_public',
+      (q) =>
+        q
+          .select('instance_name, api_url, is_active')
+          .eq('instance_name', instance)
+          .eq('is_active', true)
+          .limit(1)
     );
     const data = rows?.[0] ?? null;
 

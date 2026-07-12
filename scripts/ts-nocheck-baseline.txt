@@ -1,17 +1,1 @@
-src/__tests__/inbox-crud.test.tsx
-src/__tests__/security-and-performance.test.ts
-src/adapters/evolutionAdapter.ts
-src/integrations/zappweb/evolutionClient.ts
-src/integrations/zappweb/hooks/useZappMessages.ts
-src/lib/diagnostics.ts
-src/lib/evoApiHealth/proxy.ts
-src/lib/evolutionDiagnostics.ts
-src/lib/failedMessagesEnqueue.ts
-src/lib/featureFlags.ts
-src/lib/sanitize.ts
-src/lib/sendFunctionRouter.ts
-src/services/email/emailApi.ts
-src/services/email/emailHealthService.ts
-src/services/email/types.ts
-src/utils/emailMappers.ts
 supabase/functions/connection-health-check/index.ts
