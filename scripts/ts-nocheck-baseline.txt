@@ -6,10 +6,8 @@ src/components/alerts/DegradedConnectionsBanner.tsx
 src/components/campaigns/CampaignsView.tsx
 src/components/chatbot/ChatbotExecutionsDashboard.tsx
 src/components/compliance/LGPDComplianceView.tsx
-src/components/connections/ConnectionAuditDialog.tsx
 src/components/connections/ConnectionsView.tsx
 src/components/connections/InstanceSettingsDialog.tsx
-src/components/contacts/AuditLogPanel.tsx
 src/components/contacts/ContactContentArea.tsx
 src/components/contacts/__tests__/ExternalDataIntegration.test.tsx
 src/components/contacts/useContactDuplicateDetector.ts

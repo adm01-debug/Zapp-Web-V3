@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
@@ -16,7 +15,7 @@ interface AuditLog {
   id: string;
   action: string;
   created_at: string;
-  details: Record<string, unknown> | null;
+  details: Record<string, unknown>;
 }
 
 interface ConnectionAuditDialogProps {
@@ -145,7 +144,9 @@ export function ConnectionAuditDialog({
                         {(() => {
                           const raw = log.details.cause;
                           const cause: string | number | boolean | null =
-                            typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean'
+                            typeof raw === 'string' ||
+                            typeof raw === 'number' ||
+                            typeof raw === 'boolean'
                               ? raw
                               : raw == null
                                 ? null

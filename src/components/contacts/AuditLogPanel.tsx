@@ -1,9 +1,3 @@
-// @ts-nocheck
-/**
- * AuditLogPanel.tsx — v2.0
- * LGPD Art.37 audit history using contact_audit_log table.
- * Adapts to actual schema: field_name/old_value/new_value columns.
- */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { Badge } from '@/components/ui/badge';
