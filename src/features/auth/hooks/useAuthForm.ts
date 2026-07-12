@@ -195,8 +195,14 @@ export function useAuthForm() {
         options: { shouldCreateUser: false },
       });
       if (error) {
-        toast({ title: 'Autenticado com Passkey!', description: 'Redirecionando...' });
+        toast({
+          title: 'Erro ao autenticar com Passkey',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
       }
+      toast({ title: 'Autenticado com Passkey!', description: 'Redirecionando...' });
       navigate(nextPath, { replace: true });
     }
   };

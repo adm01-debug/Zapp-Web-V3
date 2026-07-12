@@ -142,7 +142,7 @@ export function useRealtimeInbox() {
       // para a coluna `id` (UUID) — isso causa 400 no PostgREST.
       const raw = String(selectedContactId);
       const isJid = raw.includes('@');
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
+      const isUuid = isValidUUID(raw);
       const phone = isJid
         ? raw.split('@')[0].replace(/\D/g, '')
         : !isUuid
