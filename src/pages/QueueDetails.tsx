@@ -72,6 +72,10 @@ export default function QueueDetails() {
     if (!id) return;
     try {
       setLoading(true);
+      // Clear stale data from the previously-viewed queue immediately so that
+      // partial state (new header + old contacts) is never visible during load.
+      setContacts([]);
+      setMetrics(null);
       const { data: queueData, error: queueError } = await supabase
         .from('queues')
         .select('*')
@@ -95,18 +99,24 @@ export default function QueueDetails() {
       const contacts = contactsData || [];
       const contactIds = contacts.map(c => c.id);
 
-      // Batch all message data in a single query instead of N+1 round-trips
+      // Server-side aggregation via RPC avoids materialising all message rows
+      // client-side and correctly counts histories exceeding PostgREST max_rows.
       const lastMessageMap = new Map<string, string>();
       const countMap = new Map<string, number>();
       if (contactIds.length > 0) {
-        const { data: allMessages, error: msgsError } = await dbFrom('messages')
-          .select('contact_id, created_at')
-          .in('contact_id', contactIds)
-          .order('created_at', { ascending: false });
-        if (msgsError) throw msgsError;
-        for (const msg of (allMessages || []) as Array<{ contact_id: string; created_at: string }>) {
-          if (!lastMessageMap.has(msg.contact_id)) lastMessageMap.set(msg.contact_id, msg.created_at);
-          countMap.set(msg.contact_id, (countMap.get(msg.contact_id) ?? 0) + 1);
+        const { data: msgStats, error: msgsError } = await supabase.rpc(
+          'get_contact_message_stats',
+          { contact_ids: contactIds },
+        );
+        if (msgsError) {
+          log.error('Error fetching message stats for contacts:', msgsError);
+          // Non-fatal: continue with empty maps so contacts still render
+          // without stale data from a previously-viewed queue.
+        } else {
+          for (const row of (msgStats || []) as Array<{ contact_id: string; message_count: number; last_message_at: string | null }>) {
+            countMap.set(row.contact_id, row.message_count);
+            if (row.last_message_at) lastMessageMap.set(row.contact_id, row.last_message_at);
+          }
         }
       }
 
@@ -118,7 +128,10 @@ export default function QueueDetails() {
           .from('profiles')
           .select('id, name, avatar_url')
           .in('id', assignedToIds);
-        if (agentsError) throw agentsError;
+        if (agentsError) {
+          log.error('Error fetching agent profiles:', agentsError);
+          // Non-fatal: contacts will render without assigned-agent names.
+        }
         for (const a of (agents || []) as Array<{ id: string; name: string; avatar_url: string | null }>) {
           agentMap.set(a.id, { name: a.name, avatar_url: a.avatar_url });
         }
