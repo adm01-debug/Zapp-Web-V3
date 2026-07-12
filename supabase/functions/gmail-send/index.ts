@@ -211,7 +211,13 @@ serve(async (req) => {
         signal: AbortSignal.timeout(10_000),
       });
       if (!trashRes.ok) {
-        console.error('[gmail-send] trash failed', await trashRes.text().catch(() => ''));
+        let errorMsg = '';
+        try {
+          errorMsg = await trashRes.text();
+        } catch {
+          errorMsg = '';
+        }
+        console.error('[gmail-send] trash failed', errorMsg);
         return json({ error: 'Failed to trash message in Gmail' }, 502);
       }
 
@@ -254,10 +260,12 @@ serve(async (req) => {
       }
       const dataObj = data as Record<string, unknown>;
       if (dataObj.error) {
-        console.error('[gmail-send] modify labels error', dataObj.error);
+        const errorMsg = typeof dataObj.error === 'string' ? dataObj.error : JSON.stringify(dataObj.error);
+        console.error('[gmail-send] modify labels error', errorMsg);
         return json({ error: 'Failed to modify labels' }, 400);
       }
-      return json({ labelIds: dataObj.labelIds });
+      const labelIds = Array.isArray(dataObj.labelIds) ? dataObj.labelIds : [];
+      return json({ labelIds });
     }
 
     // ── saveDraft — Salvar rascunho ───────────────────────────────────
@@ -335,7 +343,8 @@ serve(async (req) => {
     return json({ error: `Ação desconhecida: ${action}` }, 400);
 
   } catch (err) {
-    console.error('[gmail-send]', err instanceof Error ? err.message : String(err));
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('[gmail-send]', errorMsg);
     return json({ error: 'Internal server error' }, 500);
   }
 });
@@ -400,7 +409,8 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
 
   const tokensObj = tokens as Record<string, unknown>;
   if (tokensObj.error) {
-    console.error('[gmail-send] token refresh error:', tokensObj.error);
+    const errorMsg = typeof tokensObj.error === 'string' ? tokensObj.error : JSON.stringify(tokensObj.error);
+    console.error('[gmail-send] token refresh error:', errorMsg);
     await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
     return null;
   }
