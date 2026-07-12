@@ -66,13 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: perms } = await safeClient.from<{ permissions: { name: string } | null }>(
-        'role_permissions',
-        q => q.select('permissions(name)').in('role', roleNames)
-      );
+      const { data: perms } = await supabase
+        .from('role_permissions')
+        .select('permissions(name)')
+        .in('role', roleNames);
 
       if (perms) {
-        const permNames = perms
+        const permNames = (perms as Array<{ permissions: { name: string } | null }>)
           .map((p) => p.permissions?.name)
           .filter((n): n is string => typeof n === 'string');
         setPermissions([...new Set(permNames)]);
