@@ -68,12 +68,14 @@ export function useLeaderboard() {
           is_active: boolean | null;
         } | null;
       };
-      const { data: stats, error } = await safeClient.from<AgentStatRow>('agent_stats', (q) =>
-        q
+      const { data: rawStats, error } = await (safeClient.from as unknown as (t: string, cb: (q: unknown) => unknown) => Promise<{ data: unknown; error: Error | null }>)(
+        'agent_stats',
+        (q) => (q as { select: (s: string) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => unknown } } })
           .select('*, profiles:profile_id (id, name, avatar_url, is_active)')
           .order('xp', { ascending: false })
-          .limit(10)
+          .limit(10),
       );
+      const stats = (rawStats ?? null) as AgentStatRow[] | null;
 
       if (error) throw error;
       if (!stats || stats.length === 0) {
