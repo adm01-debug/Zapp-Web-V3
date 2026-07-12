@@ -25,6 +25,7 @@ export function useObjectionDetector(
   const [error, setError] = useState<string | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const lastCallRef = useRef(0);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const normalized = useMemo(
     () => allMessages.map((m) => ({ ...m, created_at: m.created_at || m.timestamp })),
@@ -180,7 +181,8 @@ Se não houver objeções, retorne []`,
     navigator.clipboard.writeText(text);
     setCopiedIdx(idx);
     toast.success('Copiado!');
-    setTimeout(() => setCopiedIdx(null), 2000);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => { setCopiedIdx(null); copyTimerRef.current = null; }, 2000);
   }, []);
 
   const resetAnalysis = useCallback(() => {

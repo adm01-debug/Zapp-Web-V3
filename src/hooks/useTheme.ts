@@ -45,6 +45,7 @@ let themeState: ThemeSnapshot = {
 
 const listeners = new Set<(snapshot: ThemeSnapshot) => void>();
 let transitionTimeout: number | null = null;
+let docTransitionTimeout: number | null = null;
 let systemListenerAttached = false;
 
 const notify = () => {
@@ -163,7 +164,11 @@ export function useTheme(): UseThemeReturn {
     // Add transition class for smooth theme switching
     document.documentElement.classList.add('theme-transitioning');
     updateThemeState(nextTheme);
-    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
+    if (docTransitionTimeout) window.clearTimeout(docTransitionTimeout);
+    docTransitionTimeout = window.setTimeout(() => {
+      document.documentElement.classList.remove('theme-transitioning');
+      docTransitionTimeout = null;
+    }, 350);
   }, []);
 
   const toggleTheme = useCallback(() => {
