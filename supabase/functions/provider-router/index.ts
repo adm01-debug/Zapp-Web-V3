@@ -119,8 +119,18 @@ Deno.serve(async (req) => {
   const authed = await requireAdminOrSupervisor(req);
   if (authed instanceof Response) return authed;
 
-  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
-  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+  const urlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+  const urlDefault = Deno.env.get('SUPABASE_URL');
+  const url = (typeof urlHosted === 'string' && urlHosted.length > 0)
+    ? urlHosted
+    : (typeof urlDefault === 'string' && urlDefault.length > 0 ? urlDefault : '');
+
+  const serviceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
+  const serviceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const serviceKey = (typeof serviceKeyHosted === 'string' && serviceKeyHosted.length > 0)
+    ? serviceKeyHosted
+    : (typeof serviceKeyDefault === 'string' && serviceKeyDefault.length > 0 ? serviceKeyDefault : '');
+
   if (!url || !serviceKey) {
     return new Response(JSON.stringify({ error: "missing_env" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -216,14 +226,20 @@ Deno.serve(async (req) => {
       .is("ended_at", null)
       .maybeSingle();
 
-    let sessionId = sessionRow?.id as string | undefined;
+    let sessionId: string | undefined;
+    if (sessionRow && typeof sessionRow === 'object' && typeof sessionRow.id === 'string') {
+      sessionId = sessionRow.id;
+    }
+
     if (!sessionId) {
       const { data: newSession } = await admin
         .from("provider_sessions")
         .insert({ provider_id: provider.id, ...channelRef, status: "connecting" })
         .select("id")
         .single();
-      sessionId = newSession?.id;
+      if (newSession && typeof newSession === 'object' && typeof newSession.id === 'string') {
+        sessionId = newSession.id;
+      }
     }
 
     const result = await callProvider(provider, body.action, body.payload ?? {});
@@ -246,19 +262,27 @@ Deno.serve(async (req) => {
       }).eq("id", sessionId!);
 
       const previousCurrent = current;
-      if (previousCurrent !== provider.id) {
-        await admin.from("channel_provider_routes").update({
-          current_provider_id: provider.id,
-          switched_reason: i === 0 ? "primary_recovered" : `fallback_to_${provider.name}: ${lastError ?? "n/a"}`,
-        }).eq("id", typedRoute.id);
+      const providerId = typeof provider.id === 'string' ? provider.id : '';
+      const providerName = typeof provider.name === 'string' ? provider.name : 'unknown';
+
+      if (previousCurrent !== providerId && providerId) {
+        const routeId = typeof typedRoute.id === 'string' ? typedRoute.id : '';
+        if (routeId) {
+          await admin.from("channel_provider_routes").update({
+            current_provider_id: providerId,
+            switched_reason: i === 0 ? "primary_recovered" : `fallback_to_${providerName}: ${lastError ?? "n/a"}`,
+          }).eq("id", routeId);
+        }
       }
 
-      await admin.from("provider_configs").update({
-        status: "online",
-        last_ping_at: new Date().toISOString(),
-        last_ping_latency_ms: result.latencyMs,
-        last_error: null,
-      }).eq("id", provider.id);
+      if (providerId) {
+        await admin.from("provider_configs").update({
+          status: "online",
+          last_ping_at: new Date().toISOString(),
+          last_ping_latency_ms: result.latencyMs,
+          last_error: null,
+        }).eq("id", providerId);
+      }
 
       return new Response(JSON.stringify({
         ok: true,
@@ -272,11 +296,14 @@ Deno.serve(async (req) => {
 
     // Falhou — marca degradação e tenta próximo
     lastError = result.error ?? `HTTP ${result.status}`;
-    await admin.from("provider_configs").update({
-      status: i === candidates.length - 1 ? "offline" : "degraded",
-      last_error: lastError,
-      last_ping_at: new Date().toISOString(),
-    }).eq("id", provider.id);
+    const failedProviderId = typeof provider.id === 'string' ? provider.id : '';
+    if (failedProviderId) {
+      await admin.from("provider_configs").update({
+        status: i === candidates.length - 1 ? "offline" : "degraded",
+        last_error: lastError,
+        last_ping_at: new Date().toISOString(),
+      }).eq("id", failedProviderId);
+    }
   }
 
   return new Response(JSON.stringify({
