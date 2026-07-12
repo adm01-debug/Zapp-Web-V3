@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP, contractErrorResponse } from "../_shared/validation.ts";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { extractEvolutionMessageId } from "../_shared/evolution-message-id.ts";
 import { createCriticalPayloadSchemas, mapValidationIssuesToContractError } from "../_shared/criticalPayloadSchemas.ts";
 
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
       .eq('key', 'api_token')
       .single();
 
-    if (!setting?.value || setting.value !== apiKey) {
+    if (!setting?.value || !timingSafeStringEqual(setting.value, apiKey)) {
       log.warn('Invalid API token attempt');
       return errorResponse('Invalid API token', 403, req);
     }
@@ -90,11 +91,12 @@ Deno.serve(async (req) => {
       return errorResponse('No active WhatsApp connection found', 404, req);
     }
 
-    // Find or create contact
+    // Find or create contact — scoped to the specific connection for tenant isolation.
     let { data: contact } = await supabase
       .from('contacts')
       .select('id')
       .eq('phone', phone)
+      .eq('whatsapp_connection_id', connection.id)
       .single();
 
     if (!contact) {

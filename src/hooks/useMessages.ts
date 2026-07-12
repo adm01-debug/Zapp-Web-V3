@@ -169,7 +169,7 @@ export function useMessages(
     if (!remoteJid) return;
 
     const channel = supabase
-      .channel(`evo-messages:${remoteJid}`)
+      .channel(`evo-messages:${instanceName ?? 'default'}:${remoteJid}`)
       // INSERT — nova mensagem
       .on('postgres_changes', {
         event:  'INSERT',

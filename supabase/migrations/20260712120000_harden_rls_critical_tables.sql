@@ -15,6 +15,15 @@
 -- queries public.user_roles — the authoritative RBAC table.  Inline profiles.role checks
 -- are intentionally avoided here to prevent role-split bypasses (profiles.role ≠ user_roles).
 --
+-- is_admin_or_supervisor() body (see 02_schema_full.sql):
+--   SELECT EXISTS (
+--     SELECT 1 FROM public.user_roles
+--     WHERE user_id = _user_id AND role IN ('admin', 'supervisor')
+--   )
+-- The app_role enum has exactly three values: 'admin', 'supervisor', 'agent'.
+-- There is NO 'dev' or 'manager' role in the system — this function is strictly
+-- limited to admin and supervisor only.
+--
 -- This migration DOES NOT add org_id tenant isolation (single-company deployment).
 -- All policies scope within a single Supabase project / company.
 

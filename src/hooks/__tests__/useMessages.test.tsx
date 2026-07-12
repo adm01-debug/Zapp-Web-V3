@@ -95,7 +95,7 @@ describe('useMessages', () => {
   it('subscribes to a realtime channel scoped to the remoteJid', async () => {
     const { result } = renderHook(() => useMessages('jid1'));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(supabaseChannel).toHaveBeenCalledWith('evo-messages:jid1');
+    expect(supabaseChannel).toHaveBeenCalledWith('evo-messages:default:jid1');
     expect(realtimeChannel.subscribe).toHaveBeenCalled();
   });
 
