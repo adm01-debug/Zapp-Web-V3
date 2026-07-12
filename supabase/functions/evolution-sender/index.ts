@@ -354,7 +354,7 @@ Deno.serve(async (request: Request) => {
       },
     }).then(() => {}, () => {});
     return new Response(JSON.stringify({
-      success: true, version: "v6", ...result, timestamp: new Date().toISOString(),
+      success: true, version: "v7", ...result, timestamp: new Date().toISOString(),
     }), { status: 200, headers: { ...getCorsHeaders(request), "Content-Type": "application/json" } });
   } catch (error) {
     console.error("evolution-sender v6 error:", error);
