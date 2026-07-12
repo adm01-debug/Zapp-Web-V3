@@ -1569,6 +1569,11 @@ async function handleClassifyEmoji(
     }
     if (typeof result.description !== 'string') result.description = 'Unknown emoji';
     if (!Array.isArray(result.alternatives)) result.alternatives = [];
+    // C.29: Validate alternatives array items have required fields with correct types
+    result.alternatives = result.alternatives.map((alt: any) => ({
+      category: typeof alt?.category === 'string' ? alt.category : 'other',
+      confidence: typeof alt?.confidence === 'number' ? Math.max(0, Math.min(1, alt.confidence)) : 0,
+    }));
 
     if (requestId) {
       try {
@@ -1764,6 +1769,11 @@ async function handleClassifySticker(
     }
     if (typeof result.description !== 'string') result.description = 'Unknown sticker';
     if (!Array.isArray(result.alternatives)) result.alternatives = [];
+    // C.29: Validate alternatives array items have required fields with correct types
+    result.alternatives = result.alternatives.map((alt: any) => ({
+      category: typeof alt?.category === 'string' ? alt.category : 'other',
+      confidence: typeof alt?.confidence === 'number' ? Math.max(0, Math.min(1, alt.confidence)) : 0,
+    }));
 
     if (requestId) {
       try {
