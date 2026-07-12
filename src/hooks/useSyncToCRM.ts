@@ -1,13 +1,13 @@
 /**
  * useSyncToCRM
- * 
+ *
  * Syncs completed conversations from zapp-web back to the external CRM.
  * Calls sync_interaction_from_zapp RPC which:
  * - Finds the contact by phone
  * - Creates an interaction record
  * - Recalculates relationship_score
  * - Deduplicates by zapp_conversation_id
- * 
+ *
  * Usage: call syncConversation() when a conversation is resolved/closed.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { log } from '@/lib/logger';
+import { cleanPhone } from '@/lib/formatters';
 
 interface SyncParams {
   phone: string;
@@ -70,8 +71,8 @@ export function useSyncToCRM() {
     onSuccess: (result, params) => {
       if (result?.synced) {
         // Invalidate the 360° cache for this phone so it refreshes
-        const cleanPhone = params.phone.replace(/[^0-9]/g, '');
-        queryClient.invalidateQueries({ queryKey: ['external-contact-360', cleanPhone] });
+        const clean = cleanPhone(params.phone);
+        queryClient.invalidateQueries({ queryKey: ['external-contact-360', clean] });
         queryClient.invalidateQueries({ queryKey: ['external-contact-360-batch'] });
         log.info('CRM sync success:', result);
       }

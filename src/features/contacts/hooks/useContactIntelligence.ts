@@ -1,6 +1,6 @@
 /**
  * useContactIntelligence
- * 
+ *
  * Calls get_contact_intelligence_by_phone on the external CRM.
  * Returns unified intelligence: briefing, triggers, rapport,
  * best times, churn risk, DISC tips, and last interactions.
@@ -10,6 +10,7 @@ import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbGet } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { log } from '@/lib/logger';
+import { cleanPhone } from '@/lib/formatters';
 
 export interface ContactBriefing {
   contact_name: string | null;
@@ -86,11 +87,13 @@ export interface ContactIntelligenceData {
   best_times: BestTime[];
   churn: ChurnData | null;
   disc_tips: DISCTips | null;
-  last_interactions: { channel: string; assunto: string; resumo: string | null; sentiment: string; data: string }[];
-}
-
-function cleanPhone(phone: string): string {
-  return phone.replace(/[^0-9]/g, '');
+  last_interactions: {
+    channel: string;
+    assunto: string;
+    resumo: string | null;
+    sentiment: string;
+    data: string;
+  }[];
 }
 
 export function useContactIntelligence(phone: string | undefined) {
