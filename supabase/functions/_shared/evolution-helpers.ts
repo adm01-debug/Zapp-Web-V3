@@ -55,6 +55,40 @@ export async function markEventProcessed(supabase: any, eventId: string, instanc
   return true;
 }
 
+// Rolls back a prior markEventProcessed() so the event can be re-delivered and
+// reprocessed later. Used ONLY on the rate-limit (429) path: idempotency is marked
+// BEFORE the rate-limit check (so genuine retries don't reconsume quota), but a 429
+// must NOT leave the event permanently deduped — otherwise the consumer's re-delivery
+// is short-circuited as "duplicate" and the message is silently lost. Fail-safe:
+// never throws; a failed rollback is logged but does not change the 429 response.
+// deno-lint-ignore no-explicit-any
+export async function unmarkEventProcessed(supabase: any, eventId: string): Promise<void> {
+  try {
+    const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
+    if (error) console.error(`[idempotency] rollback failed for ${eventId.slice(0, 48)}…: ${error.message ?? error.code}`);
+  } catch (e) {
+    console.error(`[idempotency] rollback exception for ${eventId.slice(0, 48)}…: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+// Deep-redacts producer secrets from a webhook payload before it is persisted to
+// the DLQ / reprocess queue. Evolution ships `apikey` (and echoes `sender`) inside
+// every webhook body; writing the raw payload to a Postgres table leaks the
+// instance's admin key at rest (readable via admin dashboards, exports, backups).
+// Returns a defensive deep copy with the sensitive keys stripped; the original is
+// left untouched so live processing keeps whatever it needs.
+const __SECRET_KEYS = new Set(['apikey', 'api_key', 'authorization', 'token', 'access_token', 'sender']);
+export function scrubWebhookSecrets(value: unknown, depth = 0): unknown {
+  if (depth > 12 || value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((v) => scrubWebhookSecrets(v, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (__SECRET_KEYS.has(k.toLowerCase())) { out[k] = '[REDACTED]'; continue; }
+    out[k] = scrubWebhookSecrets(v, depth + 1);
+  }
+  return out;
+}
+
 export interface WebhookAuditRow {
   request_id: string;
   instance?: string | null;
@@ -372,7 +406,8 @@ export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): 
     const { error } = await supabase.from('evolution_webhook_dlq').insert({
       event_type: input.event_type || 'unknown',
       instance_name: input.instance || 'unknown',
-      payload: input.payload ?? null,
+      // [A-2 2026-07-12] scrub producer secrets (apikey/sender/token) before persisting.
+      payload: input.payload == null ? null : scrubWebhookSecrets(input.payload),
       error_message: (input.error_message || 'unknown_error').slice(0, 2000),
       error_stack: input.error_stack ? String(input.error_stack).slice(0, 8000) : null,
       status: 'pending',
