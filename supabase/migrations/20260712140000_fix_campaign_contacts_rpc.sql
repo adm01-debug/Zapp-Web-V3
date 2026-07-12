@@ -36,8 +36,14 @@ LOCK TABLE public.campaign_contacts IN SHARE ROW EXCLUSIVE MODE;
 CREATE TABLE IF NOT EXISTS public._backup_campaign_contacts_20260712
   (LIKE public.campaign_contacts INCLUDING ALL);
 ALTER TABLE public._backup_campaign_contacts_20260712 ENABLE ROW LEVEL SECURITY;
+-- Guard: skip if the backup table already has rows so a partial-run retry does
+-- not violate the primary/unique keys cloned from campaign_contacts by LIKE…ALL,
+-- and so the original point-in-time snapshot is preserved unchanged.
 INSERT INTO public._backup_campaign_contacts_20260712
-  SELECT * FROM public.campaign_contacts;
+  SELECT * FROM public.campaign_contacts
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public._backup_campaign_contacts_20260712
+  );
 
 -- ── 3. De-duplicate existing rows ───────────────────────────────────────────
 -- Keep the oldest copy (min ctid) of each (campaign_id, contact_id) pair and
