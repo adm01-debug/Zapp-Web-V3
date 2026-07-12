@@ -63,6 +63,14 @@ export function useScheduledMessages(contactId?: string) {
       mediaUrl?: string;
       connectionId?: string;
     }) => {
+      // Guard: calendar view only shows -30 days … +12 months. Reject scheduling
+      // beyond that horizon so messages never silently disappear from the calendar.
+      const calendarHorizon = new Date();
+      calendarHorizon.setFullYear(calendarHorizon.getFullYear() + 1);
+      if (data.scheduledAt > calendarHorizon) {
+        throw new Error('Não é possível agendar mensagens com mais de 12 meses de antecedência.');
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')

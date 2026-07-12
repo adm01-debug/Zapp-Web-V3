@@ -185,6 +185,12 @@ export function useAutomations({
         // a stale in-flight evaluation must not overwrite the new conversation's tags.
         if (myGen === evalGenRef.current) {
           prevTagsRef.current = currentTags;
+        } else {
+          // Stale: the tag deltas we computed read from a different conversation's
+          // snapshot. Abort now so no automations fire with cross-conversation data.
+          // The outer finally block still runs but does NOT release the lock because
+          // myGen !== evalGenRef.current — the newer evaluation still owns it.
+          return;
         }
       } catch (e) {
         log.warn('[automation] tag snapshot failed', e);

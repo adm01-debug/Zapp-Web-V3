@@ -68,11 +68,14 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
     try {
       setLoading(true);
 
-      // Get contacts in this queue — capped at 2 000 for in-browser aggregation;
-      // analytics on queues larger than this will be approximate but avoids OOM.
+      // Get contacts in this queue created within the selected dateRange — scoping
+      // to the period prevents the cap from silently excluding historical contacts
+      // when there are >2 000 newer contacts in the queue.
       const { data: contacts, error: contactsError } = await dbFrom('contacts')
         .select('id, assigned_to, created_at')
         .eq('queue_id', queueId)
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
         .limit(2_000);
@@ -95,15 +98,16 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
       }
 
       // Fetch messages for these contacts in the date range — hard cap at 10 000
-      // to prevent memory exhaustion on high-volume queues; analytics will be
-      // approximate for bursts above this threshold.
+      // to prevent memory exhaustion on high-volume queues. Descending order ensures
+      // the cap drops the *oldest* records instead of the newest, so recent activity
+      // (last hours/days) is always represented in the analytics charts.
       const { data: messages, error: messagesError } = await dbFrom('messages')
         .select('id, contact_id, created_at, sender, agent_id')
         .in('contact_id', contactIds)
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(10_000);
 
       if (messagesError) throw messagesError;
@@ -241,12 +245,12 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
     const agentIds = Object.keys(agentMessages);
     if (agentIds.length === 0) return [];
 
-    // Fetch agent profiles — agentIds is naturally small (unique agents in sample)
+    // Fetch agent profiles — no limit needed: agentIds is bounded by unique agents
+    // in the already-capped message sample, so the set is naturally small.
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('id, name')
-      .in('id', agentIds)
-      .limit(50);
+      .in('id', agentIds);
 
     if (error || !profiles) return [];
 
