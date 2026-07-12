@@ -40,7 +40,7 @@ type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
 
 function getSpeechRecognition(): SpeechRecognitionCtor | null {
   if (typeof window === 'undefined') return null;
-  const w = window as unknown as Record<string, unknown>;
+  const w = window as unknown as Record<string, unknown>; // ignore-audit — accessing vendor-prefixed SpeechRecognition/webkitSpeechRecognition not in standard lib
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as SpeechRecognitionCtor | null;
 }
 

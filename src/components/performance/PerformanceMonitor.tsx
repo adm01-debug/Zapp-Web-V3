@@ -35,13 +35,13 @@ export function PerformanceMonitor() {
     const fcp = perf.getEntriesByName('first-contentful-paint')[0];
     const fcpValue = fcp ? Math.round(fcp.startTime) : 0;
 
-    const memInfo = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+    const memInfo = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory; // ignore-audit — performance.memory is a Chrome-only extension not in standard lib
     const memoryUsed = memInfo ? Math.round(memInfo.usedJSHeapSize / 1048576) : 0;
     const memoryTotal = memInfo ? Math.round(memInfo.totalJSHeapSize / 1048576) : 256;
     const memoryPercent = memInfo ? Math.round((memInfo.usedJSHeapSize / memInfo.totalJSHeapSize) * 100) : 0;
 
     const domNodes = document.querySelectorAll('*').length;
-    const conn = (navigator as unknown as { connection?: { effectiveType: string; rtt: number } }).connection;
+    const conn = (navigator as unknown as { connection?: { effectiveType: string; rtt: number } }).connection; // ignore-audit — navigator.connection (Network Information API) not yet in standard lib
     const networkType = conn?.effectiveType || '4g';
     const rtt = conn?.rtt || 0;
 

@@ -18,7 +18,7 @@ const log = getLogger('useFailedMessages');
 type _SupaRpc = { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }> };
 // Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
 const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
-  (supabase as unknown as _SupaRpc).rpc(fn, args) as Promise<{ data: T; error: Error | null }>;
+  (supabase as unknown as _SupaRpc).rpc(fn, args) as Promise<{ data: T; error: Error | null }>; // ignore-audit — DLQ RPCs not yet in generated Supabase types
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
 

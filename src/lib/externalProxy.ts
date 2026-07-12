@@ -360,7 +360,7 @@ export async function queryExternalProxy<T = unknown>(
     // beyond their natural lifetime.
     const cleanup = () => {
       const cur = inflight.get(dedupeKey);
-      if (cur && cur.promise === (exec as unknown as Promise<ProxyResponse<unknown>>)) {
+      if (cur && cur.promise === (exec as unknown as Promise<ProxyResponse<unknown>>)) { // ignore-audit — exec is the same promise reference; TS generic mismatch only
         inflight.delete(dedupeKey);
       }
     };

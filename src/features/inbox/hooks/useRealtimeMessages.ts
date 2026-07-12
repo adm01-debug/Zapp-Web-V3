@@ -268,7 +268,7 @@ export function useRealtimeMessages() {
         sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
         is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
       });
-      return { ...p, new: map(p.new as Record<string, unknown>), old: map(p.old as Record<string, unknown>) } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>;
+      return { ...p, new: map(p.new as Record<string, unknown>), old: map(p.old as Record<string, unknown>) } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>; // ignore-audit — evo.evolution_messages adapter; mapped shape is structurally RealtimeMessage at runtime
     };
     const channel = dbChannel('messages', channelName)
       .on('postgres_changes', { 

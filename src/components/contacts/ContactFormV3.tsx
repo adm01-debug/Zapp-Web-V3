@@ -216,7 +216,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
               <Button
                 variant="link"
                 size="sm"
-                onClick={() => { setMergeTarget(duplicates[0] as unknown as ContactForMerge); setMergeOpen(true); }}
+                onClick={() => { setMergeTarget(duplicates[0] as unknown as ContactForMerge); setMergeOpen(true); }} // ignore-audit — PotentialDuplicate lacks company/tags/channel; merge dialog handles missing fields with fallbacks
                 className="ml-2 text-warning-foreground underline p-0 h-auto"
               >
                 <GitMerge className="h-3.5 w-3.5 mr-1" />

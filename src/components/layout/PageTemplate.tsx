@@ -32,7 +32,7 @@ const pageVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: easeSmooth as unknown as [number, number, number, number],
+      ease: easeSmooth as unknown as [number, number, number, number], // ignore-audit — framer-motion easing type is string | number[] but easeSmooth is a named function reference
       staggerChildren: 0.06,
     },
   },

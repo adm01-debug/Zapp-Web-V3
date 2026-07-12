@@ -11,7 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // This hook is intentionally generic — it works with arbitrary table/rpc names
 // supplied at runtime, so we use an untyped client to avoid requiring compile-time
 // table name literals that SupabaseClient<Database> enforces.
-const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient;
+const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient; // ignore-audit — dynamic table names require untyped client; see comment above
 import type {
   ExternalDBFilter,
   ExternalDBOrder,

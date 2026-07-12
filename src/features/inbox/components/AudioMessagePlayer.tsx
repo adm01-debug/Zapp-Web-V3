@@ -348,7 +348,7 @@ export function AudioMessagePlayer({
                   clientX:
                     e.currentTarget.getBoundingClientRect().left +
                     e.currentTarget.clientWidth * (progress / 100),
-                } as unknown as React.MouseEvent<HTMLDivElement>);
+                });
               }
               if (e.key === 'ArrowRight') {
                 e.preventDefault();

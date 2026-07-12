@@ -63,7 +63,7 @@ export function dbTable(entity: LogicalEntity): string {
 export function dbFrom(entity: LogicalEntity): ReturnType<SupabaseClient['from']> {
   const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
-  return dbClient(entity).from(mapping.table as unknown as Parameters<SupabaseClient['from']>[0]);
+  return dbClient(entity).from(mapping.table as unknown as Parameters<SupabaseClient['from']>[0]); // ignore-audit — LogicalEntity table name is dynamic; SupabaseClient<Database>['from'] enforces literal union
 }
 
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {
@@ -114,7 +114,7 @@ export async function dbRpc<P extends object, R>(
   const source = def.client === 'external' ? 'externalSupabase' : 'lovableCloud';
 
   try {
-    const { data, error } = await client.rpc(def.name as unknown as Parameters<SupabaseClient['rpc']>[0], merged as Record<string, unknown>);
+    const { data, error } = await client.rpc(def.name as unknown as Parameters<SupabaseClient['rpc']>[0], merged as Record<string, unknown>); // ignore-audit — RPC name is dynamic from catalog; SupabaseClient<Database>['rpc'] enforces literal union
     const durationMs = Math.round(performance.now() - startedAt);
     const errorMessage = error ? error.message ?? 'rpc error' : undefined;
 

@@ -127,7 +127,7 @@ function snapshot(): TelemetrySnapshot {
 
 function publishToWindow() {
   if (typeof window === 'undefined') return;
-  (window as unknown as { __queryTelemetry?: TelemetrySnapshot }).__queryTelemetry = snapshot();
+  (window as unknown as { __queryTelemetry?: TelemetrySnapshot }).__queryTelemetry = snapshot(); // ignore-audit — window debug property not in standard lib
 }
 
 function logEvent(ev: QueryEvent) {

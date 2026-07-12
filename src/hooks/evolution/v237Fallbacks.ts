@@ -68,7 +68,7 @@ function ensureExternal() {
 
 /** Call an RPC function not present in the generated external-client types. */
 function callExternalRpc(client: ReturnType<typeof ensureExternal>, fn: string, args: Record<string, unknown>) {
-  return (client as unknown as { rpc: typeof client.rpc }).rpc(fn, args);
+  return (client as unknown as { rpc: typeof client.rpc }).rpc(fn, args); // ignore-audit — rpc not in generated types for evolution client; shape is identical at runtime
 }
 
 export async function fallbackFindChats(instanceName: string, limit = 200): Promise<unknown[]> {

@@ -178,7 +178,7 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
 
   const pick = useCallback((field: keyof FieldResolution): string => {
     const src = resolution[field] === 'primary' ? primaryContact : secondaryContact;
-    return sanitizeText(((src as unknown as Record<string, unknown>)[field] as string) ?? '');
+    return sanitizeText((src[field as keyof ContactForMerge] as string) ?? '');
   }, [resolution, primaryContact, secondaryContact]);
 
   const handleMerge = async () => {
