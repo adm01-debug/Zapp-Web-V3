@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { fromTable } from '@/lib/supabaseHelpers';
 import { whatsapp } from '@/lib/whatsappAdapter';
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -75,8 +76,8 @@ export default function BridgeStatusPage() {
   const [lovableDb, setLovableDb] = useState<boolean | null>(null);
   const [externalDb, setExternalDb] = useState<boolean | null>(null);
   const [whatsappTransport, setWhatsappTransport] = useState<string>('...');
-  const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
-  const [incidents, setIncidents] = useState<any[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<AlertRow[]>([]);
+  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [instanceCount, _setInstanceCount] = useState<number>(0);
   const [recentTraffic, setRecentTraffic] = useState<{ count: number; last_at: string | null }>({
     count: 0,
@@ -103,7 +104,7 @@ export default function BridgeStatusPage() {
     } catch (e: unknown) {
       toast({
         title: 'Erro no Diagnóstico',
-        description: e.message,
+        description: e instanceof Error ? e.message : 'Erro desconhecido',
         variant: 'destructive',
       });
     } finally {
@@ -117,9 +118,8 @@ export default function BridgeStatusPage() {
 
     try {
       // 1. Check Lovable DB (Internal)
-      const { error: internalError } = await safeClient.from<{ id: string }>(
-        'profiles',
-        q => q.select('id').limit(1)
+      const { error: internalError } = await safeClient.from<{ id: string }>('profiles', (q) =>
+        q.select('id').limit(1)
       );
       if (mountedRef.current) setLovableDb(!internalError);
 
@@ -144,8 +144,7 @@ export default function BridgeStatusPage() {
       // count uses count:'exact'+head:true (no row transfer, accurate count from PG),
       // last_at uses safeClient for error handling and the most-recent timestamp.
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count: msgCount, data: lastMsg } = await supabase
-        .from('provider_message_log' as any)
+      const { count: msgCount, data: lastMsg } = await fromTable('provider_message_log')
         .select('received_at', { count: 'exact' })
         .gt('received_at', fiveMinsAgo)
         .order('received_at', { ascending: false })
@@ -184,7 +183,8 @@ export default function BridgeStatusPage() {
       setStatus('offline');
       toast({
         title: 'Erro na verificação',
-        description: error.message || 'Não foi possível validar todos os serviços.',
+        description:
+          error instanceof Error ? error.message : 'Não foi possível validar todos os serviços.',
         variant: 'destructive',
       });
     } finally {
@@ -210,7 +210,7 @@ export default function BridgeStatusPage() {
     const trafficSub = supabase
       .channel('traffic-changes')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' },
         () => {
           setRecentTraffic((prev) => ({
@@ -225,7 +225,7 @@ export default function BridgeStatusPage() {
     const alertsSub = supabase
       .channel('health-incidents')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'system_health_incidents' },
         () => {
           void fetchIncidents();

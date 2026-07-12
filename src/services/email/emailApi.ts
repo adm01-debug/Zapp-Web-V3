@@ -1,5 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { fromTable } from '@/lib/supabaseHelpers';
 
 export interface EmailRevalidationJob {
   id: string;
@@ -22,10 +22,7 @@ export const emailApi = {
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let query = supabase
-      .from('email_revalidation_jobs' as any)
-      .select('*', { count: 'exact' } as any);
+    let query = fromTable('email_revalidation_jobs').select('*', { count: 'exact' });
 
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
@@ -41,7 +38,7 @@ export const emailApi = {
       .order('requested_at', { ascending: false })
       .range(from, to);
 
-    return { data: data as unknown as EmailRevalidationJob[] | null, count, error };
+    return { data: data as EmailRevalidationJob[] | null, count, error };
   },
   getHealthSummary: async () => {
     const { data: rows, error } = await safeClient.from<EmailHealthSummary>(
