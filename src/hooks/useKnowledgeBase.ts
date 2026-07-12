@@ -53,24 +53,45 @@ export function useKnowledgeBase() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [articlesRes, filesRes] = await Promise.all([
-        supabase
+      const PAGE = 1000;
+
+      const allArticles: Article[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
           .from('knowledge_base_articles')
           .select('*')
           .order('updated_at', { ascending: false })
-          .limit(200),
-        supabase.from('knowledge_base_files').select('*').order('created_at', { ascending: false }).limit(500),
-      ]);
-      if (articlesRes.error) {
-        toast({ title: 'Erro ao carregar artigos', description: articlesRes.error.message, variant: 'destructive' });
-      } else if (articlesRes.data) {
-        setArticles(articlesRes.data.map((a) => ({ ...a, tags: a.tags || [] })));
+          .range(from, from + PAGE - 1);
+        if (error) {
+          toast({ title: 'Erro ao carregar artigos', description: error.message, variant: 'destructive' });
+          break;
+        }
+        if (!data || data.length === 0) break;
+        allArticles.push(...data.map((a) => ({ ...a, tags: a.tags || [] })));
+        if (data.length < PAGE) break;
+        from += PAGE;
       }
-      if (filesRes.error) {
-        toast({ title: 'Erro ao carregar arquivos', description: filesRes.error.message, variant: 'destructive' });
-      } else if (filesRes.data) {
-        setFiles(filesRes.data);
+      setArticles(allArticles);
+
+      const allFiles: KBFile[] = [];
+      from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('knowledge_base_files')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) {
+          toast({ title: 'Erro ao carregar arquivos', description: error.message, variant: 'destructive' });
+          break;
+        }
+        if (!data || data.length === 0) break;
+        allFiles.push(...data);
+        if (data.length < PAGE) break;
+        from += PAGE;
       }
+      setFiles(allFiles);
     } finally {
       setLoading(false);
     }

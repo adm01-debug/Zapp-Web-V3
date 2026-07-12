@@ -17,13 +17,22 @@ export function useCampaigns() {
   const campaignsQuery = useQuery({
     queryKey: ['campaigns'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data as Campaign[];
+      const PAGE = 1000;
+      const all: Campaign[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('campaigns')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...(data as Campaign[]));
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
     },
   });
 

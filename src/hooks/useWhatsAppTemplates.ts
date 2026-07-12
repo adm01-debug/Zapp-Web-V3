@@ -63,10 +63,22 @@ export function useWhatsAppTemplates() {
   const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('whatsapp_templates').select('*').order('updated_at', { ascending: false }).limit(200);
-      if (error) throw error;
-      setTemplates((data || []) as unknown as WhatsAppTemplate[]);
+      const PAGE = 1000;
+      const all: WhatsAppTemplate[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('whatsapp_templates')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...(data as unknown as WhatsAppTemplate[]));
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      setTemplates(all);
     } catch (err) {
       log.error('Error fetching templates:', err);
       toast.error('Erro ao carregar templates');

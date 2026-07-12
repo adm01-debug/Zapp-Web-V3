@@ -14,15 +14,31 @@ export function useTeamConversations() {
     queryFn: async () => {
       if (!profile) return [];
 
-      // Fetch conversations directly - RLS will filter to what the user can see
-      const { data: conversations, error: convErr } = await supabase
+      // Fetch all conversations the user can see via RLS, paginating to avoid
+      // the PostgREST max_rows silent truncation.
+      const PAGE = 1000;
+      const { data: firstConvPage, error: convErr } = await supabase
         .from('team_conversations')
         .select('*')
         .order('updated_at', { ascending: false })
-        .limit(100);
-
+        .range(0, PAGE - 1);
       if (convErr) throw convErr;
-      if (!conversations?.length) return [];
+      const conversations = firstConvPage ?? [];
+      let convFrom = PAGE;
+      while (firstConvPage && firstConvPage.length === PAGE) {
+        const { data: page, error } = await supabase
+          .from('team_conversations')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .range(convFrom, convFrom + PAGE - 1);
+        if (error) throw error;
+        if (!page || page.length === 0) break;
+        conversations.push(...page);
+        if (page.length < PAGE) break;
+        convFrom += PAGE;
+      }
+
+      if (!conversations.length) return [];
 
       const convIds = conversations.map(c => c.id);
 
@@ -42,12 +58,12 @@ export function useTeamConversations() {
       const lastReadMap = new Map(membershipsResult.data?.map(m => [m.conversation_id, m.last_read_at]) || []);
       const allMembers = membersResult.data || [];
 
-      const { data: recentMessages } = await supabase
-        .from('team_messages')
-        .select('id, conversation_id, content, sender_id, created_at')
-        .in('conversation_id', convIds)
-        .order('created_at', { ascending: false })
-        .limit(convIds.length * 2);
+      // Use DISTINCT ON RPC to guarantee exactly one (the most recent) message
+      // per conversation regardless of how active any individual conversation is.
+      const { data: recentMessages } = await supabase.rpc(
+        'get_last_team_messages',
+        { conversation_ids: convIds },
+      );
 
       const lastMessageMap = new Map<string, { id: string; conversation_id: string; content: string; sender_id: string; created_at: string }>();
       for (const msg of recentMessages || []) {
