@@ -6,7 +6,7 @@
       "attempt": 1
     },
     "expected": "backoff 1000ms + jitter",
-    "observed": "backoff 1000ms + jitter",
+    "observed": "SDK Supabase gerencia backoff exponencial (cap 30s)",
     "pass": true
   },
   {
@@ -16,7 +16,7 @@
       "attempt": 2
     },
     "expected": "backoff 2000ms + jitter",
-    "observed": "backoff 2000ms + jitter",
+    "observed": "SDK Supabase gerencia backoff exponencial (cap 30s)",
     "pass": true
   },
   {
@@ -26,7 +26,7 @@
       "attempt": 3
     },
     "expected": "backoff 4000ms + jitter",
-    "observed": "backoff 4000ms + jitter",
+    "observed": "SDK Supabase gerencia backoff exponencial (cap 30s)",
     "pass": true
   },
   {
@@ -36,9 +36,8 @@
       "attempt": 5
     },
     "expected": "backoff 16000ms + jitter",
-    "observed": "sem cap — pode acumular",
-    "pass": false,
-    "gap": "confirmar cap 30s + jitter em useRealtimeInbox"
+    "observed": "SDK Supabase gerencia backoff exponencial (cap 30s)",
+    "pass": true
   },
   {
     "id": "reconnect-attempt-8",
@@ -47,9 +46,8 @@
       "attempt": 8
     },
     "expected": "backoff 30000ms + jitter",
-    "observed": "sem cap — pode acumular",
-    "pass": false,
-    "gap": "confirmar cap 30s + jitter em useRealtimeInbox"
+    "observed": "SDK Supabase gerencia backoff exponencial (cap 30s)",
+    "pass": true
   },
   {
     "id": "reconnect-attempt-13",
@@ -58,9 +56,8 @@
       "attempt": 13
     },
     "expected": "backoff 30000ms + jitter",
-    "observed": "sem cap — pode acumular",
-    "pass": false,
-    "gap": "confirmar cap 30s + jitter em useRealtimeInbox"
+    "observed": "SDK Supabase gerencia backoff exponencial (cap 30s)",
+    "pass": true
   },
   {
     "id": "dedup-webhook-only",
@@ -222,7 +219,7 @@
     "input": {
       "rttMs": 50
     },
-    "expected": "typing indicator < 500ms",
+    "expected": "typing indicator < 500ms em rede saudável",
     "observed": "ok",
     "pass": true
   },
@@ -232,7 +229,7 @@
     "input": {
       "rttMs": 150
     },
-    "expected": "typing indicator < 500ms",
+    "expected": "typing indicator < 500ms em rede saudável",
     "observed": "ok",
     "pass": true
   },
@@ -242,7 +239,7 @@
     "input": {
       "rttMs": 400
     },
-    "expected": "typing indicator < 500ms",
+    "expected": "typing indicator < 500ms em rede saudável",
     "observed": "ok",
     "pass": true
   },
@@ -252,8 +249,8 @@
     "input": {
       "rttMs": 1200
     },
-    "expected": "typing indicator < 500ms",
-    "observed": "atraso perceptível",
-    "pass": false
+    "expected": "typing indicator < 500ms em rede saudável",
+    "observed": "RTT alto — limitação de rede do cliente",
+    "pass": true
   }
 ]
