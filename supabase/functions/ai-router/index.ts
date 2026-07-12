@@ -2688,7 +2688,14 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (parsed && parsed.suggestions && Array.isArray(parsed.suggestions)) {
-          suggestions = parsed;
+          // C.26: Validate suggestion items have required fields with correct types
+          const validatedSuggestions = parsed.suggestions.map((s: any) => ({
+            type: typeof s?.type === 'string' ? s.type : 'direct',
+            text: typeof s?.text === 'string' ? s.text : 'Unable to generate suggestion',
+            emoji: typeof s?.emoji === 'string' ? s.emoji : '💬',
+            source: s?.source || null,
+          }));
+          suggestions = { suggestions: validatedSuggestions };
         }
       }
     } catch {
