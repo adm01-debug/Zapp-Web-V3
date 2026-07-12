@@ -117,8 +117,15 @@ serve(async (req) => {
     }
     rawBody = result.payload ?? '';
   } else {
-    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped`));
-    rawBody = await req.text();
+    // [FIX A-1 2026-07-12] Fail-closed: no unsigned webhooks accepted when no secret is configured.
+    // This endpoint has verify_jwt=false, making it publicly reachable — without a secret it is a
+    // fully open ingest endpoint (data injection, spam, DoS). Operators must provision
+    // EVOLUTION_WEBHOOK_SECRET(S) or WEBHOOK_SECRET before the webhook accepts traffic.
+    console.error(`[webhook][${requestId}] SECURITY no WEBHOOK_SECRET configured — rejecting (fail-closed)`);
+    return new Response(
+      JSON.stringify({ error: 'webhook_misconfigured', hint: 'Set EVOLUTION_WEBHOOK_SECRET(S) to enable this webhook.', requestId }),
+      { status: 503, headers: corsHeaders },
+    );
   }
 
   let payload: WebhookPayload;
@@ -186,23 +193,13 @@ serve(async (req) => {
     );
   }
 
-  // [ORDER 2026-07-04] Idempotency ANTES do rate-limit: retries duplicados do Evolution nao consomem quota.
-  // Dedup by hash of (instance + event + body); se ja vimos este event_id, short-circuit 200.
-  const bodyHash = await sha256Hex(rawBody);
-  const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
-  const isNew = await markEventProcessed(supabase, eventId, instance, event);
-  if (!isNew) {
-    await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'duplicate', status_code: 200,
-      duration_ms: Date.now() - startedAt,
-    });
-    console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
-    return new Response(JSON.stringify({ success: true, duplicate: true, requestId }), { status: 200, headers: corsHeaders });
-  }
-
-  // Rate Limit guard: conta apenas eventos UNICOS (idempotency ja filtrou retries)
-  // [FIX 2026-07-06] Limites por event-type: eventos de sync de alto volume recebiam 429
-  // em bursts normais (sync grupos, atualizacao em massa de contatos). Default 300/min mantido.
+  // [FIX C-1 2026-07-12] Rate-limit BEFORE idempotency.
+  // Previous order (idempotency → rate-limit) caused silent event loss: markEventProcessed ran
+  // first, then a 429 was returned; on retry, markEventProcessed saw the record → returned false
+  // → short-circuit 200 "duplicate" WITHOUT actually processing the message.
+  // New order: if rate-limited return 429 immediately (event is NOT marked processed) so Evolution
+  // can safely retry once the window clears. Retries now count against rate-limit quota, but event
+  // safety takes priority over quota accuracy.
   const EVENT_RATE_LIMITS: Record<string, number> = {
     "chats.update":    2000, // sync de chat: gerado por toda mensagem recebida
     "contacts.update": 1000, // importacao/sync de contatos em massa
@@ -225,6 +222,21 @@ serve(async (req) => {
       JSON.stringify({ error: 'rate_limit_exceeded', instance, requestId }),
       { status: 429, headers: corsHeaders }
     );
+  }
+
+  // Idempotency (after rate-limit): dedup by hash of (instance + event + body).
+  // Only events that cleared the rate-limit gate are marked processed; a prior 429 leaves
+  // no dedup record, so Evolution retries reach here cleanly after the window resets.
+  const bodyHash = await sha256Hex(rawBody);
+  const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
+  const isNew = await markEventProcessed(supabase, eventId, instance, event);
+  if (!isNew) {
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, instance, event_type: event, status: 'duplicate', status_code: 200,
+      duration_ms: Date.now() - startedAt,
+    });
+    console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
+    return new Response(JSON.stringify({ success: true, duplicate: true, requestId }), { status: 200, headers: corsHeaders });
   }
 
   console.log(`[webhook][${requestId}] received raw=${payload.event} norm=${event} instance=${instance}`);

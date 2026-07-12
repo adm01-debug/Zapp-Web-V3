@@ -65,6 +65,23 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  // [FIX C-2 2026-07-12] Restrict key exposure to admin role only.
+  // This endpoint returns the Evolution master API key (AUTHENTICATION_API_KEY) which grants
+  // full administrative control over all instances (create/delete, read all conversations,
+  // send to any number). Any authenticated user could previously read it via DevTools.
+  // Now only users with role='admin' can retrieve it; agents/supervisors get 403.
+  const { data: isAdmin, error: roleErr } = await supabase.rpc('has_role', {
+    _user_id: user.id,
+    _role: 'admin',
+  });
+  if (roleErr || !isAdmin) {
+    console.warn(`[evolution-credentials] access denied for user=${user.id} (not admin)`);
+    return new Response(
+      JSON.stringify({ error: 'Forbidden', message: 'Admin role required to access Evolution credentials' }),
+      { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+    );
+  }
+
   // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,

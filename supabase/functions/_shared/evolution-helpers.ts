@@ -359,6 +359,22 @@ export interface DeadLetterInput {
   request_id?: string | null;
 }
 
+// [FIX A-2 2026-07-12] Remove fields that must never be persisted in DLQ/audit tables.
+// Evolution webhook payloads carry `apikey` (per-instance key) and `sender` (phone JID).
+// Storing these in DLQ rows exposes them in dashboards, exports, and database backups.
+const _SENSITIVE_DLQ_KEYS = new Set(['apikey', 'api_key', 'sender']);
+function scrubSensitiveFields(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(scrubSensitiveFields);
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([k]) => !_SENSITIVE_DLQ_KEYS.has(k))
+        .map(([k, v]) => [k, scrubSensitiveFields(v)])
+    );
+  }
+  return value;
+}
+
 /**
  * Roteia um evento com falha de handler para a DLQ `evolution_webhook_dlq`
  * (via camada public.*). Colunas mapeadas 1:1 ao schema evo.evolution_webhook_dlq
@@ -372,7 +388,7 @@ export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): 
     const { error } = await supabase.from('evolution_webhook_dlq').insert({
       event_type: input.event_type || 'unknown',
       instance_name: input.instance || 'unknown',
-      payload: input.payload ?? null,
+      payload: scrubSensitiveFields(input.payload ?? null),
       error_message: (input.error_message || 'unknown_error').slice(0, 2000),
       error_stack: input.error_stack ? String(input.error_stack).slice(0, 8000) : null,
       status: 'pending',
