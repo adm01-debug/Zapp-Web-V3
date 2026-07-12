@@ -46,7 +46,7 @@ export interface NewMessageNotification {
   timestamp: Date;
 }
 
-export type { RealtimeMessage, MessageReaction } from './realtime/types';
+export type { RealtimeMessage } from './realtime/types';
 
 
 export interface ConversationContact {
