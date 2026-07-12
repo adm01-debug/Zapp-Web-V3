@@ -9,9 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ALL_ROOT_CAUSES, getRootCauseMeta, type RootCause } from '@/lib/failureRootCause';
-import { type DlqStats, type FailedMessageStatus } from '@/features/admin/hooks/monitoring/useFailedMessages';
-import { type useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
+import { ALL_ROOT_CAUSES, getRootCauseMeta } from '@/lib/failureRootCause';
 
 export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) { // ignore-audit
   const { api } = ui;
