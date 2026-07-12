@@ -30,12 +30,14 @@ export function useChannelRoutingRules() {
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ['channel-routing-rules'],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<RoutingRule>('channel_routing_rules', q =>
-        q.select('*, queue:queues(name), channel_connection:channel_connections_safe(name)')
+      const { data, error } = await (safeClient.from as unknown as (t: string, cb: (q: unknown) => unknown) => Promise<{ data: unknown; error: Error | null }>)(
+        'channel_routing_rules',
+        (q) => (q as { select: (s: string) => { order: (c: string, o: { ascending: boolean }) => unknown } })
+          .select('*, queue:queues(name), channel_connection:channel_connections_safe(name)')
           .order('priority', { ascending: true }),
       );
       if (error) throw error;
-      return data ?? [];
+      return ((data ?? []) as RoutingRule[]);
     },
   });
 
