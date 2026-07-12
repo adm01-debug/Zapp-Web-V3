@@ -1,5 +1,5 @@
-// @ts-nocheck
-import { RealtimeMessage, ConversationContact, ConversationWithMessages } from '@/features/inbox';
+import type { RealtimeMessage, ConversationContact, ConversationWithMessages } from '@/features/inbox';
+
 
 export function normalizeMessage(message: RealtimeMessage): RealtimeMessage {
   return {
