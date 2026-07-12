@@ -22,6 +22,18 @@ interface ProxyResponse<T> {
 class ExternalDbProxyClient {
   private cachedSession: { token: string; expires: number } | null = null;
 
+  constructor() {
+    // [FIX MED-5 2026-07-12] Invalidate the 30s session cache whenever the auth state
+    // changes. Without this, a TOKEN_REFRESHED or SIGNED_OUT event left the old token in
+    // cache → every proxy call in the first 30s after refresh received a 401 from the edge
+    // function (old access_token, new JWT secret on the server).
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
+        this.cachedSession = null;
+      }
+    });
+  }
+
   private async getAuthHeader(): Promise<string> {
     const now = Date.now();
 
@@ -109,8 +121,8 @@ class ExternalDbProxyClient {
         data: (okResult?.data ?? null) as T | null,
         schema_unavailable: !!okResult?.schema_unavailable,
       };
-    } catch (error: any) {
-      const errorMsg = error?.message ?? String(error);
+    } catch (error: unknown) { // ignore-audit
+      const errorMsg = (error instanceof Error ? error.message : null) ?? String(error);
       const isTransient =
         errorMsg.includes('PGRST106') ||
         errorMsg.includes('Invalid schema') ||
