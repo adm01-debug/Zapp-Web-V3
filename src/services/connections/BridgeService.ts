@@ -1,5 +1,7 @@
 import { externalSupabase } from '@/integrations/supabase/externalClient';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('BridgeService');
 import { HealthRow, BridgeStatus } from '@/components/connections/types';
 
 /**

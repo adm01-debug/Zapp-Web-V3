@@ -2,7 +2,9 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('ErrorBoundary');
 import { recordQueryEvent, type Severity } from '@/lib/clientTelemetry';
 import { isChunkLoadError, triggerChunkReload } from '@/lib/lazyWithRetry';
 

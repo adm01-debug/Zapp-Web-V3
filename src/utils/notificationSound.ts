@@ -1,5 +1,7 @@
 // Notification sound utilities
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('notificationSound');
 
 let audioContext: AudioContext | null = null;
 

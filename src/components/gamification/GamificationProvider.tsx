@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { AchievementToast, AchievementType } from './AchievementToast';
 import { useAgentGamification, ACHIEVEMENT_TYPES, calculateLevel } from '@/features/admin';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('GamificationProvider');
 
 interface Achievement {
   type: AchievementType;

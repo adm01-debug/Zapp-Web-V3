@@ -6,7 +6,9 @@
  * Renderiza um par ✓ (recebida) ou ✓✓ azul (lida pelo agente).
  */
 import { memo, useEffect, useRef } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('MessageReadStatus');
 import { cn } from '@/lib/utils';
 import { MessageStatusIcon } from './messageUtils';
 import { MessageStatusPanel } from './MessageStatusPanel';

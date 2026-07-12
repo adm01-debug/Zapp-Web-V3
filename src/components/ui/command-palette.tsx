@@ -6,7 +6,9 @@ import { Dialog, DialogContent } from './dialog';
 import { Badge } from './badge';
 import { ScrollArea } from './scroll-area';
 import { useDebounce } from '@/hooks/useDebounce';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('command-palette');
 import {
   CommandItem, CommandGroup, CommandCategory,
   defaultNavigationCommands, defaultActionCommands,

@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useGlobalSearchData');
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useDebounce } from '@/hooks/useDebounce';

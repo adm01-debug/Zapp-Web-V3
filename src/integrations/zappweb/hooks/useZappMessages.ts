@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { zappSupabase, ZAPPWEB_INSTANCE } from '../supabaseClient';
 import type { EvolutionMessage } from '../types';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useZappMessages');
 
 interface Options {
   remoteJid: string | null;

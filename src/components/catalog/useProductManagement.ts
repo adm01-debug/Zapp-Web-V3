@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useProductManagement');
 import { Product } from './ProductCard';
 import { toast } from '@/hooks/use-toast';
 import { z } from 'zod';

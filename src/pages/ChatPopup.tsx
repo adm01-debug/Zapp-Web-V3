@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMessages } from '@/features/inbox';
 import type { Database } from '@/integrations/supabase/types';
 import { Conversation, Message } from '@/types/chat';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('ChatPopup');
 
 type ContactRow = Database['public']['Tables']['contacts']['Row'];
 import { Skeleton } from '@/components/ui/skeleton';

@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('GlobalSearch');
 import { useGlobalSearchData, type SearchResult } from './useGlobalSearchData';
 import { GlobalSearchFilters } from './search/GlobalSearchFilters';
 import { GlobalSearchResults } from './search/GlobalSearchResults';

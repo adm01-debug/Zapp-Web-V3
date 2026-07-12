@@ -1,4 +1,6 @@
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('notificationSounds');
 import { SOUND_CONFIGS } from './soundConfigs';
 import type { SoundType, NotificationType } from './soundConfigs';
 

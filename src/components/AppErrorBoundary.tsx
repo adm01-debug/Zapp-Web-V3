@@ -1,5 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('AppErrorBoundary');
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, ShieldAlert } from 'lucide-react';

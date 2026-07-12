@@ -28,7 +28,9 @@ import { SLATimelineSection } from './SLATimelineSection';
 import { DeliveryStatsPanel } from '@/features/inbox/components/DeliveryStatsPanel';
 
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('ContactAccordionSections');
 import type { EnrichedContactData, AIConversationTag, SLAInfo } from '@/hooks/useContactEnrichedData';
 import { dbFrom } from '@/integrations/datasource/db';
 

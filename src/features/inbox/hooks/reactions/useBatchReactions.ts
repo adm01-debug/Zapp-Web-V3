@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useBatchReactions');
 import type { MessageReaction } from './types';
 
 /**

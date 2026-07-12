@@ -1,7 +1,9 @@
 
 import { dbInsert } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('messageQueue');
 import { eventBus } from '@/lib/eventBus';
 
 export interface QueuedMessage {

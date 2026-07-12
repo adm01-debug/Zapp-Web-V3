@@ -1,7 +1,9 @@
 import { supabase as _sb } from '@/integrations/supabase/client';
 const supabase: any = _sb;
 import { loadFeatureFlags } from './featureFlags';
-import { log } from './logger';
+import { getLogger } from './logger';
+
+const log = getLogger('healthCheck');
 
 export interface HealthStatus {
   service: string;

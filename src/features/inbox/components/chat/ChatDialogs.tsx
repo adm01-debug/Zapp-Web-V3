@@ -1,5 +1,7 @@
 import { Suspense, lazy } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('ChatDialogs');
 import { toast } from '@/hooks/use-toast';
 import { Conversation, Message, InteractiveMessage, LocationMessage } from '@/types/chat';
 import { ExternalProduct } from '@/hooks/useExternalCatalog';

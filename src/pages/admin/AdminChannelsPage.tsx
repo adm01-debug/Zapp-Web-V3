@@ -24,7 +24,8 @@ import {
   Instagram, Send, Mail, Globe, Search, Facebook,
 } from "lucide-react";
 import { EvolutionFallbackStatusCard } from "@/features/admin";
-import { log } from "@/lib/logger";
+import { getLogger } from "@/lib/logger";
+const log = getLogger("AdminChannelsPage");
 
 const CHANNEL_TYPES = [
   { value: "whatsapp", label: "WhatsApp", icon: MessageSquare },

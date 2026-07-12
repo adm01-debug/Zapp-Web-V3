@@ -9,7 +9,9 @@
 
 import { supabase as _sb } from '@/integrations/supabase/client';
 const supabase: any = _sb;
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('featureFlags');
 
 type FeatureFlag =
   | 'ai_agents'

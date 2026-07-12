@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('RealtimeTranscription');
 
 interface RealtimeTranscriptionProps {
   onTranscript?: (text: string, isFinal: boolean) => void;

@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useScheduledMediaUpload');
 
 interface UploadResult {
   mediaUrl: string | undefined;

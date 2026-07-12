@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useWhatsAppStatus');
 import { whatsappStatusService } from '@/features/inbox/services/whatsappStatusService';
 import type { WhatsAppStatusMessage, WhatsAppPresenceInfo } from '@/features/inbox/data-access/whatsappStatusRepository';
 

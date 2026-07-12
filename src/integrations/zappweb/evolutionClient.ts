@@ -15,7 +15,9 @@
  *  - GET  /instance/connectionState/{instance}
  */
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('evolutionClient');
 
 export interface EvolutionCredentials {
   api_url: string;
