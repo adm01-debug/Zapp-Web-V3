@@ -711,7 +711,9 @@ Responda APENAS em JSON:
         }
       }
 
-      if (result.requires_immediate_attention && result.priority === 'urgent') {
+      // C.28: Validate requires_immediate_attention is a boolean before using in conditional
+      const requiresAttention = result.requires_immediate_attention === true;
+      if (requiresAttention && result.priority === 'urgent') {
         try {
           const { data: admins } = await supabase
             .from('user_roles')
