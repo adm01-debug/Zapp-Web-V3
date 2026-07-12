@@ -36,9 +36,21 @@ export function sanitizeHtml(html: unknown): string {
   if (!html) return '';
   const str = typeof html === 'string' ? html : String(html);
   return DOMPurify.sanitize(str, {
-    ALLOWED_TAGS:  RICH_ALLOWED_TAGS,
-    ALLOWED_ATTR:  RICH_ALLOWED_ATTR,
-    FORBID_ATTR:   ['onerror','onload','onclick','onmouseover','onfocus','onblur','onchange','onsubmit','style','href','src'],
+    ALLOWED_TAGS: RICH_ALLOWED_TAGS,
+    ALLOWED_ATTR: RICH_ALLOWED_ATTR,
+    FORBID_ATTR: [
+      'onerror',
+      'onload',
+      'onclick',
+      'onmouseover',
+      'onfocus',
+      'onblur',
+      'onchange',
+      'onsubmit',
+      'style',
+      'href',
+      'src',
+    ],
   }).trim();
 }
 
@@ -51,10 +63,24 @@ export function sanitizeContactFields<T extends Record<string, unknown>>(contact
 
   // Plain text fields (evolution_contacts schema)
   const textFields = [
-    'full_name', 'push_name', 'phone_number', 'email', 'company', 'role_title',
-    'assigned_to', 'lead_status', 'instance_name', 'remote_jid',
+    'full_name',
+    'push_name',
+    'phone_number',
+    'email',
+    'company',
+    'role_title',
+    'assigned_to',
+    'lead_status',
+    'instance_name',
+    'remote_jid',
     // Generic aliases (for compatibility)
-    'name', 'phone', 'address', 'city', 'state', 'country', 'channel',
+    'name',
+    'phone',
+    'address',
+    'city',
+    'state',
+    'country',
+    'channel',
   ];
 
   // Rich HTML fields (only notes)
@@ -102,7 +128,18 @@ export function sanitizeForSearch(input: unknown): string {
   if (!input) return '';
   return sanitizeText(input)
     .replace(/[%_\\]/g, '\\$&') // escape SQL LIKE special chars
-    .slice(0, 200);              // max 200 chars for search
+    .slice(0, 200); // max 200 chars for search
+}
+
+/**
+ * Sanitize a value for use in a PostgREST filter (e.g. ilike).
+ * Strips XSS but does NOT escape LIKE wildcards — use this when the
+ * caller supplies explicit % wildcards in the query string directly.
+ * Use sanitizeForSearch() instead when building the wildcard internally.
+ */
+export function sanitizePostgrestFilter(input: unknown): string {
+  if (!input) return '';
+  return sanitizeText(input).slice(0, 200);
 }
 
 /**
