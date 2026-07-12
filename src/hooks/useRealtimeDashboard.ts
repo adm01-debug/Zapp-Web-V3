@@ -182,7 +182,7 @@ export function useRealtimeDashboard() {
     const refreshInterval = setInterval(fetchInitialData, 5 * 60 * 1000);
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
       clearInterval(metricsInterval);
       clearInterval(refreshInterval);
     };

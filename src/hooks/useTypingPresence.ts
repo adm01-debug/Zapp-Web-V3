@@ -163,7 +163,6 @@ export function useTypingPresence({
         clearTimeout(contactTypingTimeoutRef.current);
       }
       channel.unsubscribe();
-      supabase.removeChannel(channel);
     };
   }, [conversationId, currentUserId, remoteJid]);
 

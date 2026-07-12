@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -60,8 +59,14 @@ export function useKnowledgeBase() {
         .order('updated_at', { ascending: false }),
       supabase.from('knowledge_base_files').select('*').order('created_at', { ascending: false }),
     ]);
-    if (articlesRes.data) setArticles(articlesRes.data.map((a) => ({ ...a, tags: a.tags || [] })));
-    if (filesRes.data) setFiles(filesRes.data);
+    if (articlesRes.data)
+      setArticles(
+        articlesRes.data.map(
+          (a: Record<string, unknown>) =>
+            ({ ...a, tags: (a.tags as string[] | null) || [] }) as Article
+        )
+      );
+    if (filesRes.data) setFiles(filesRes.data as KBFile[]);
     setLoading(false);
   }, []);
 
@@ -82,14 +87,22 @@ export function useKnowledgeBase() {
           .update(payload)
           .eq('id', editingId);
         if (error) {
-          toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+          const errMsg =
+            typeof error === 'object' && error !== null && 'message' in error
+              ? String((error as { message: unknown }).message)
+              : 'Erro desconhecido';
+          toast({ title: 'Erro', description: errMsg, variant: 'destructive' });
           return false;
         }
         toast({ title: 'Artigo atualizado!' });
       } else {
         const { error } = await supabase.from('knowledge_base_articles').insert(payload);
         if (error) {
-          toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+          const errMsg =
+            typeof error === 'object' && error !== null && 'message' in error
+              ? String((error as { message: unknown }).message)
+              : 'Erro desconhecido';
+          toast({ title: 'Erro', description: errMsg, variant: 'destructive' });
           return false;
         }
         toast({ title: 'Artigo criado!' });
@@ -116,9 +129,13 @@ export function useKnowledgeBase() {
         .from('whatsapp-media')
         .upload(fileName, file);
       if (uploadError) {
+        const errMsg =
+          typeof uploadError === 'object' && uploadError !== null && 'message' in uploadError
+            ? String((uploadError as { message: unknown }).message)
+            : 'Erro desconhecido';
         toast({
           title: 'Erro no upload',
-          description: uploadError.message,
+          description: errMsg,
           variant: 'destructive',
         });
         return;
@@ -126,14 +143,12 @@ export function useKnowledgeBase() {
       const { data: signedData } = await supabase.storage
         .from('whatsapp-media')
         .createSignedUrl(fileName, 86400);
-      await supabase
-        .from('knowledge_base_files')
-        .insert({
-          file_name: file.name,
-          file_url: signedData?.signedUrl || '',
-          file_type: file.type,
-          file_size: file.size,
-        });
+      await supabase.from('knowledge_base_files').insert({
+        file_name: file.name,
+        file_url: signedData?.signedUrl || '',
+        file_type: file.type,
+        file_size: file.size,
+      });
       toast({ title: 'Arquivo enviado!', description: file.name });
       void fetchData();
     },
