@@ -59,7 +59,7 @@ async function loadStickers(): Promise<{ id: string; name: string; image_url: st
     .limit(200);
   if (error) throw new Error(`Falha ao carregar stickers: ${error.message}`);
   const rows = (data ?? [])
-    .filter((s): s is { id: string; name: string | null; image_url: string } => !!s.image_url)
+    .filter((s) => !!s.image_url)
     .map((s) => ({ id: s.id, name: s.name ?? 'sticker', image_url: s.image_url }));
   if (rows.length === 0) throw new Error('Nenhum sticker disponível na biblioteca');
   stickersCache = rows;
