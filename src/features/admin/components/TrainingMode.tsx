@@ -107,7 +107,7 @@ export function TrainingMode() {
         profile_id: profileId,
         scenario_name: s.name,
         scenario_type: s.type,
-        messages: [firstMsg] as unknown as Json,
+        messages: [firstMsg] as Json,
         status: 'in_progress',
       })
       .select('id')
@@ -135,7 +135,7 @@ export function TrainingMode() {
     await supabase
       .from('training_sessions')
       .update({
-        messages: newMessages as unknown as Json,
+        messages: newMessages as Json,
       })
       .eq('id', activeSession);
 
