@@ -34,9 +34,13 @@ export function useRolesPageState() {
       role: string;
       profiles: unknown;
     };
-    const { data, error } = await safeClient.from<RoleRow>('user_roles', q =>
-      q.select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`).order('role'),
+    const { data, error } = await (safeClient.from as unknown as (t: string, cb: (q: unknown) => unknown) => Promise<{ data: unknown; error: Error | null }>)(
+      'user_roles',
+      (q) => (q as { select: (s: string) => { order: (c: string) => unknown } })
+        .select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`)
+        .order('role'),
     );
+    const rows = (data ?? null) as RoleRow[] | null;
 
     if (!error && data) {
       setUsers(
