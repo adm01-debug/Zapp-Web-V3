@@ -6,7 +6,7 @@ Objetivo: parar de usar o backend Lovable Cloud (`uqysyzndkfiwfztbqvsl.supabase.
 
 1. **Workspace Settings → Build Secrets** — adicionar duas variáveis (nomes exatos, com prefixo `VITE_`):
    - `VITE_SUPABASE_URL` = https://supabase.atomicabr.com.br
-   - `VITE_SUPABASE_PUBLISHABLE_KEY` = <REDACTED-service_role-JWT>
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = a chave **anon/publishable** (role `anon`) do self-hosted — **NUNCA** `service_role`. Variáveis `VITE_*` vão para o bundle público e esse valor é usado como chave do client (`src/integrations/supabase/client.ts`); um `service_role` aqui exporia bypass total de RLS. Obtenha via secret manager.
 
    Isso sobrescreve o `.env` auto-gerenciado em tempo de build sem eu precisar editar o arquivo (que é imutável). É o único caminho para o client oficial (`src/integrations/supabase/client.ts`, auto-gerado) apontar para o self-hosted sem refactor de 300+ imports.
 
