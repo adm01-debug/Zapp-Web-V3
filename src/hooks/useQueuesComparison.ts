@@ -69,6 +69,7 @@ export function useQueuesComparison(dateRange: DateRange) {
         const { data: messagesData, error: messagesError } = await dbFrom('messages')
           .select('contact_id')
           .in('contact_id', contactIds)
+          .limit(contactIds.length)
           .gte('created_at', dateRange.from.toISOString())
           .lte('created_at', dateRange.to.toISOString());
 

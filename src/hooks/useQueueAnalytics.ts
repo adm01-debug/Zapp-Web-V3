@@ -245,12 +245,12 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
     const agentIds = Object.keys(agentMessages);
     if (agentIds.length === 0) return [];
 
-    // Fetch agent profiles — no limit needed: agentIds is bounded by unique agents
-    // in the already-capped message sample, so the set is naturally small.
+    // Fetch agent profiles — limit to agentIds length to prevent silent row truncation.
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('id, name')
-      .in('id', agentIds);
+      .in('id', agentIds)
+      .limit(agentIds.length);
 
     if (error || !profiles) return [];
 

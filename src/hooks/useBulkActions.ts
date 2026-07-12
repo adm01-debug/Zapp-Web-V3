@@ -118,8 +118,9 @@ export function useBulkActions<T extends { id: string }>(
           const ids = actionItems.map((i) => i.id);
           const { error } = await fromTable(tableName)
             .delete()
-            .in('id', ids);
-          
+            .in('id', ids)
+            .limit(ids.length);
+
           if (error) throw error;
           toast.success(`${ids.length} item(s) excluído(s)`);
         },
@@ -132,8 +133,9 @@ export function useBulkActions<T extends { id: string }>(
           const ids = actionItems.map((i) => i.id);
           const { error } = await fromTable(tableName)
             .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<string, unknown>)
-            .in('id', ids);
-          
+            .in('id', ids)
+            .limit(ids.length);
+
           if (error) throw error;
           toast.success(`${ids.length} item(s) arquivado(s)`);
         },
