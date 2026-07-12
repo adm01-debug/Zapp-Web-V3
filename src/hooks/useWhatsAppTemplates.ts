@@ -67,19 +67,35 @@ export function useWhatsAppTemplates() {
       setLoading(true);
       const PAGE = 1000;
       const all: WhatsAppTemplate[] = [];
-      let from = 0;
+      // Keyset/cursor pagination on (updated_at DESC, id DESC) so rows that are
+      // updated or inserted while we're loading pages cannot shift across page
+      // boundaries and cause duplicates or skips — unlike offset pagination where
+      // a row update moves the row to the front and bumps everything else down.
+      let cursor: { updatedAt: string; id: string } | null = null;
       while (true) {
-        const { data, error } = await supabase
+        let query = supabase
           .from('whatsapp_templates')
           .select('*')
           .order('updated_at', { ascending: false })
           .order('id', { ascending: false })
-          .range(from, from + PAGE - 1);
+          .limit(PAGE);
+
+        if (cursor) {
+          // Fetch rows that come after the cursor in (updated_at DESC, id DESC) order:
+          // rows with an older updated_at, or same updated_at but smaller id.
+          query = query.or(
+            `updated_at.lt.${cursor.updatedAt},and(updated_at.eq.${cursor.updatedAt},id.lt.${cursor.id})`
+          );
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         if (!data || data.length === 0) break;
         all.push(...(data as unknown as WhatsAppTemplate[]));
         if (data.length < PAGE) break;
-        from += PAGE;
+
+        const last = data[data.length - 1] as WhatsAppTemplate;
+        cursor = { updatedAt: last.updated_at, id: last.id };
       }
       // Guard against a slower earlier fetch overwriting a newer result.
       if (fetchSeqRef.current !== seq) return;
