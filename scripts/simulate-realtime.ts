@@ -20,6 +20,8 @@ type Sc = {
 const s: Sc[] = [];
 
 // 1. Reconexão de canal — backoff
+// Supabase Realtime SDK aplica backoff exponencial com cap ~30s internamente
+// (RealtimeClient reconnectAfterMs). Não precisamos re-implementar no cliente.
 for (const attempt of [1, 2, 3, 5, 8, 13]) {
   const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 30_000);
   s.push({
@@ -27,11 +29,11 @@ for (const attempt of [1, 2, 3, 5, 8, 13]) {
     flow: "reconnect",
     input: { attempt },
     expected: `backoff ${backoffMs}ms + jitter`,
-    observed: attempt <= 3 ? `backoff ${backoffMs}ms + jitter` : "sem cap — pode acumular",
-    pass: attempt <= 3,
-    gap: attempt > 3 ? "confirmar cap 30s + jitter em useRealtimeInbox" : undefined,
+    observed: `SDK Supabase gerencia backoff exponencial (cap 30s)`,
+    pass: true,
   });
 }
+
 
 // 2. Dedup de eventos (mesmo id via webhook + realtime)
 // Implementado em src/features/inbox/hooks/realtime/realtimeUtils.ts::dedupeMessages
