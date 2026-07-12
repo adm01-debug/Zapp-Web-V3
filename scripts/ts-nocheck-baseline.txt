@@ -6,7 +6,6 @@ src/components/alerts/DegradedConnectionsBanner.tsx
 src/components/campaigns/CampaignsView.tsx
 src/components/chatbot/ChatbotExecutionsDashboard.tsx
 src/components/compliance/LGPDComplianceView.tsx
-src/components/connections/ConnectionAuditDialog.tsx
 src/components/connections/ConnectionsView.tsx
 src/components/connections/InstanceSettingsDialog.tsx
 src/components/contacts/AuditLogPanel.tsx
@@ -20,18 +19,13 @@ src/components/email/EmailChatBubble.tsx
 src/components/email/EmailChatThread.tsx
 src/components/email/EmailThreadList.tsx
 src/components/gamification/AchievementsPanel.tsx
-src/components/monitoring/RetryMetricsPanel.tsx
-src/components/queues/QueueCharts.tsx
-src/components/reports/AbandonmentRate.tsx
 src/components/reports/ReportCharts.tsx
 src/components/security/DevicesPanel.tsx
 src/components/talkx/TalkXLiveMonitor.tsx
 src/components/talkx/TalkXRecipientsList.tsx
 src/components/team-chat/NewConversationDialog.tsx
 src/components/team-chat/TeamMemberProfileHeader.tsx
-src/components/ui/chart.tsx
 src/components/whatsapp-flows/WhatsAppFlowsBuilder.tsx
-src/features/admin/components/AIUsageDashboard.tsx
 src/features/admin/components/AIUsageUsersTab.tsx
 src/features/admin/components/GmailWebhookMonitor.tsx
 src/features/admin/components/PlaybooksManager.tsx
@@ -137,7 +131,6 @@ src/hooks/useGmailOAuthFlow.ts
 src/hooks/useGoalsDashboard.ts
 src/hooks/useGroupsManager.ts
 src/hooks/useKnowledgeBase.ts
-src/hooks/useMessageAttempts.ts
 src/hooks/useProviderPanel.ts
 src/hooks/useQueueSlaPanel.ts
 src/hooks/useQueues.ts
