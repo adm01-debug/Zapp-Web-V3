@@ -29,7 +29,7 @@ export function useAutomations() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data || []) as unknown as AutomationRow[];
+      return (data || []) as AutomationRow[];
     },
   });
 
@@ -45,7 +45,7 @@ export function useAutomations() {
           actions: automation.actions || [],
           is_active: automation.is_active ?? true,
           created_by: automation.created_by,
-        } as unknown as TablesInsert<'automations'>)
+        } as TablesInsert<'automations'>)
         .select()
         .single();
       if (error) throw error;
@@ -59,7 +59,7 @@ export function useAutomations() {
     mutationFn: async ({ id, ...updates }: Partial<AutomationRow> & { id: string }) => {
       const { error } = await supabase
         .from('automations')
-        .update(updates as unknown as TablesUpdate<'automations'>)
+        .update(updates as TablesUpdate<'automations'>)
         .eq('id', id);
       if (error) throw error;
     },

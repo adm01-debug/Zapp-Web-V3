@@ -58,7 +58,7 @@ export default function AdminTelemetriaPage() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data as unknown as TelemetryRow[]) || [];
+      return (data as TelemetryRow[]) || [];
     },
     refetchInterval: 30000,
     staleTime: 10000,

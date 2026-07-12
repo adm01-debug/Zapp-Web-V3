@@ -83,7 +83,7 @@ export default function QueueDetails() {
         .from('queue_members')
         .select('id, profile_id, profile:profiles(name, avatar_url, is_active)')
         .eq('queue_id', id);
-      setMembers(membersData as unknown as QueueMember[]);
+      setMembers(membersData as QueueMember[]);
 
       const { data: contactsData } = await dbFrom('contacts')
         .select('id, name, phone, avatar_url, assigned_to, created_at')
