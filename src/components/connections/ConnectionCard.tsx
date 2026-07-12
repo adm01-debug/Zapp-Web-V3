@@ -1,6 +1,4 @@
 import { useState } from 'react';
-
-const RESTART_SETTLE_MS = 4000;
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +56,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { WhatsAppConnection } from '@/features/connections';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+
+const RESTART_SETTLE_MS = 4000;
 
 /** Human-friendly status — no jargon. */
 const statusConfig: Record<
