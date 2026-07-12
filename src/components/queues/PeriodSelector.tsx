@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -6,11 +5,7 @@ import { CalendarIcon, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +31,7 @@ const periodLabels: Record<PeriodOption, string> = {
   '7d': 'Últimos 7 dias',
   '14d': 'Últimos 14 dias',
   '30d': 'Últimos 30 dias',
-  'custom': 'Personalizado',
+  custom: 'Personalizado',
 };
 
 export function PeriodSelector({ value, dateRange, onChange }: PeriodSelectorProps) {
@@ -56,7 +51,7 @@ export function PeriodSelector({ value, dateRange, onChange }: PeriodSelectorPro
     const days = period === '7d' ? 7 : period === '14d' ? 14 : 30;
     const from = new Date(now);
     from.setDate(from.getDate() - days + 1);
-    
+
     onChange(period, { from, to: now });
   };
 
@@ -67,43 +62,44 @@ export function PeriodSelector({ value, dateRange, onChange }: PeriodSelectorPro
     }
   };
 
-  const displayLabel = value === 'custom' 
-    ? `${format(dateRange.from, 'dd/MM', { locale: ptBR })} - ${format(dateRange.to, 'dd/MM', { locale: ptBR })}`
-    : periodLabels[value];
+  const displayLabel =
+    value === 'custom'
+      ? `${format(dateRange.from, 'dd/MM', { locale: ptBR })} - ${format(dateRange.to, 'dd/MM', { locale: ptBR })}`
+      : periodLabels[value];
 
   return (
     <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="bg-muted/20 border-border/30 hover:bg-muted/40">
-            <CalendarIcon className="w-4 h-4 mr-2" />
+          <Button variant="outline" className="border-border/30 bg-muted/20 hover:bg-muted/40">
+            <CalendarIcon className="mr-2 h-4 w-4" />
             {displayLabel}
-            <ChevronDown className="w-4 h-4 ml-2" />
+            <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-card border-border/30">
-          <DropdownMenuItem 
+        <DropdownMenuContent align="end" className="border-border/30 bg-card">
+          <DropdownMenuItem
             onClick={() => handlePeriodChange('7d')}
-            className={cn("cursor-pointer", value === '7d' && "bg-primary/10")}
+            className={cn('cursor-pointer', value === '7d' && 'bg-primary/10')}
           >
             Últimos 7 dias
           </DropdownMenuItem>
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => handlePeriodChange('14d')}
-            className={cn("cursor-pointer", value === '14d' && "bg-primary/10")}
+            className={cn('cursor-pointer', value === '14d' && 'bg-primary/10')}
           >
             Últimos 14 dias
           </DropdownMenuItem>
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => handlePeriodChange('30d')}
-            className={cn("cursor-pointer", value === '30d' && "bg-primary/10")}
+            className={cn('cursor-pointer', value === '30d' && 'bg-primary/10')}
           >
             Últimos 30 dias
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => handlePeriodChange('custom')}
-            className={cn("cursor-pointer", value === 'custom' && "bg-primary/10")}
+            className={cn('cursor-pointer', value === 'custom' && 'bg-primary/10')}
           >
             Período personalizado...
           </DropdownMenuItem>
@@ -115,10 +111,10 @@ export function PeriodSelector({ value, dateRange, onChange }: PeriodSelectorPro
         <PopoverTrigger asChild>
           <span className="hidden" />
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-4 bg-card border-border/30" align="end">
+        <PopoverContent className="w-auto border-border/30 bg-card p-4" align="end">
           <div className="space-y-4">
             <div className="text-sm font-medium text-foreground">Selecione o período</div>
-            
+
             <div className="flex gap-4">
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Data inicial</label>
@@ -127,22 +123,22 @@ export function PeriodSelector({ value, dateRange, onChange }: PeriodSelectorPro
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[140px] justify-start text-left font-normal bg-muted/20 border-border/30",
-                        !tempRange.from && "text-muted-foreground"
+                        'w-[140px] justify-start border-border/30 bg-muted/20 text-left font-normal',
+                        !tempRange.from && 'text-muted-foreground'
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {tempRange.from ? format(tempRange.from, "dd/MM/yyyy") : "Início"}
+                      {tempRange.from ? format(tempRange.from, 'dd/MM/yyyy') : 'Início'}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-card border-border/30" align="start">
+                  <PopoverContent className="w-auto border-border/30 bg-card p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={tempRange.from}
-                      onSelect={(date) => setTempRange(prev => ({ ...prev, from: date }))}
+                      onSelect={(date) => setTempRange((prev) => ({ ...prev, from: date }))}
                       disabled={(date) => date > new Date()}
                       initialFocus
-                      className="p-3 pointer-events-auto"
+                      className="pointer-events-auto p-3"
                     />
                   </PopoverContent>
                 </Popover>
@@ -155,22 +151,26 @@ export function PeriodSelector({ value, dateRange, onChange }: PeriodSelectorPro
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-[140px] justify-start text-left font-normal bg-muted/20 border-border/30",
-                        !tempRange.to && "text-muted-foreground"
+                        'w-[140px] justify-start border-border/30 bg-muted/20 text-left font-normal',
+                        !tempRange.to && 'text-muted-foreground'
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {tempRange.to ? format(tempRange.to, "dd/MM/yyyy") : "Fim"}
+                      {tempRange.to ? format(tempRange.to, 'dd/MM/yyyy') : 'Fim'}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-card border-border/30" align="start">
+                  <PopoverContent className="w-auto border-border/30 bg-card p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={tempRange.to}
-                      onSelect={(date) => setTempRange(prev => ({ ...prev, to: date }))}
-                      disabled={(date) => date > new Date() || (tempRange.from && date < tempRange.from)}
+                      onSelect={(date) => setTempRange((prev) => ({ ...prev, to: date }))}
+                      disabled={(date) => {
+                        if (date > new Date()) return true;
+                        if (tempRange.from && date < tempRange.from) return true;
+                        return false;
+                      }}
                       initialFocus
-                      className="p-3 pointer-events-auto"
+                      className="pointer-events-auto p-3"
                     />
                   </PopoverContent>
                 </Popover>
@@ -178,14 +178,10 @@ export function PeriodSelector({ value, dateRange, onChange }: PeriodSelectorPro
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setIsCustomOpen(false)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setIsCustomOpen(false)}>
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 size="sm"
                 onClick={handleCustomApply}
                 disabled={!tempRange.from || !tempRange.to}
