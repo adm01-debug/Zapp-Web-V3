@@ -169,12 +169,17 @@ async function withCircuitBreaker<T extends { response: { ok?: boolean; status?:
 async function callAiWithTimeout<T>(
   fn: () => Promise<T>,
   timeoutMs: number = 30_000,
+  context?: { action?: string; requestId?: string }
 ): Promise<T> {
   return Promise.race([
     fn(),
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`API call timeout after ${timeoutMs}ms`)), timeoutMs)
-    ),
+    new Promise<T>((_, reject) => {
+      const errorParts = [`API call timeout after ${timeoutMs}ms`];
+      if (context?.action) errorParts.push(`action: ${context.action}`);
+      if (context?.requestId) errorParts.push(`request_id: ${context.requestId}`);
+      const errorMsg = errorParts.join(' | ');
+      setTimeout(() => reject(new Error(errorMsg)), timeoutMs);
+    }),
   ]);
 }
 
@@ -439,7 +444,8 @@ Responda APENAS em JSON:
               temperature: 0.3,
             },
           }),
-          ACTION_TIMEOUTS['auto_tag']
+          ACTION_TIMEOUTS['auto_tag'],
+          { action: 'auto_tag', requestId: ctx.requestId }
         ),
         'lovable-auto-tag'
       );
@@ -832,7 +838,8 @@ Foque em:
               tool_choice: { type: "function", function: { name: "generate_analysis" } }
             },
           }),
-          ACTION_TIMEOUTS['conversation_summary']
+          ACTION_TIMEOUTS['conversation_summary'],
+          { action: 'conversation_summary', requestId: ctx.requestId }
         ),
         'lovable-conversation-summary'
       );
@@ -1160,7 +1167,8 @@ Regras importantes:
               ],
             },
           }),
-          ACTION_TIMEOUTS['enhance_message']
+          ACTION_TIMEOUTS['enhance_message'],
+          { action: 'enhance_message', requestId: ctx.requestId }
         ),
         'lovable-enhance-message'
       );
@@ -1339,7 +1347,8 @@ async function handleClassifyEmoji(
               temperature: 0.2,
             },
           }),
-          ACTION_TIMEOUTS['classify_emoji']
+          ACTION_TIMEOUTS['classify_emoji'],
+          { action: 'classify_emoji', requestId: ctx.requestId }
         ),
         'lovable-classify-emoji'
       );
@@ -1528,7 +1537,8 @@ async function handleClassifySticker(
               temperature: 0.2,
             },
           }),
-          ACTION_TIMEOUTS['classify_sticker']
+          ACTION_TIMEOUTS['classify_sticker'],
+          { action: 'classify_sticker', requestId: ctx.requestId }
         ),
         'lovable-classify-sticker'
       );
@@ -2055,7 +2065,8 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
               tool_choice: { type: "function", function: { name: "analyze_conversation" } }
             },
           }),
-          ACTION_TIMEOUTS['conversation_analysis']
+          ACTION_TIMEOUTS['conversation_analysis'],
+          { action: 'conversation_analysis', requestId: ctx.requestId }
         ),
         'lovable-conversation-analysis'
       );
@@ -2411,7 +2422,8 @@ Responda APENAS em formato JSON com a seguinte estrutura:
               temperature: 0.7,
             },
           }),
-          ACTION_TIMEOUTS['suggest_reply']
+          ACTION_TIMEOUTS['suggest_reply'],
+          { action: 'suggest_reply', requestId: ctx.requestId }
         ),
         'lovable-suggest-reply'
       );
