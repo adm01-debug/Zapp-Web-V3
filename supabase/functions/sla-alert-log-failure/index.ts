@@ -15,7 +15,7 @@ function isUuid(v: unknown): v is string {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 }
 
-function badRequest(message: string) {
+function badRequest(req: Request, message: string) {
   return new Response(JSON.stringify({ error: message }), {
     status: 400,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -48,17 +48,17 @@ Deno.serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return badRequest("Invalid JSON");
+    return badRequest(req, "Invalid JSON");
   }
 
-  if (!body || typeof body !== "object") return badRequest("Invalid body");
+  if (!body || typeof body !== "object") return badRequest(req, "Invalid body");
   if (body.contact_id !== null && !isUuid(body.contact_id)) {
-    return badRequest("contact_id must be a uuid or null");
+    return badRequest(req, "contact_id must be a uuid or null");
   }
   if (typeof body.attempted_event_type !== "string" ||
       body.attempted_event_type.length === 0 ||
       body.attempted_event_type.length > 64) {
-    return badRequest("attempted_event_type required (≤64 chars)");
+    return badRequest(req, "attempted_event_type required (≤64 chars)");
   }
 
   // Service-role insert — bypasses RLS so we can ALWAYS record the failure.

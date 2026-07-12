@@ -210,7 +210,7 @@ function resolveSchema(schema: string, table: string): string {
   return schema;
 }
 
-function jsonResponse(payload: Record<string, unknown>, status: number): Response {
+function jsonResponse(req: Request, payload: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(payload), {
     status,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
   }
 
   if (bootError || !supabase) {
-    return jsonResponse({
+    return jsonResponse(req, {
       error: `external-db-proxy não configurado: ${bootError ?? "sem cliente"}`,
       hint: "Configure SELFHOSTED_SUPABASE_URL e SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY (ou aliases EXTERNAL_*) no runtime das Edge Functions.",
       data: [],
@@ -306,7 +306,7 @@ Deno.serve(async (req) => {
         }
       }));
       const allOk = checks.every((c) => c.ok);
-      return jsonResponse({
+      return jsonResponse(req, {
         ok: allOk,
         fn: "external-db-proxy",
         version: "1.10-issuer-fastpath",
@@ -320,11 +320,11 @@ Deno.serve(async (req) => {
         ts: Date.now(),
       }, allOk ? 200 : 503);
     }
-    return jsonResponse({ ok: true, fn: "external-db-proxy", version: "1.10-issuer-fastpath", target: targetName, env_set: ENV_SET, ts: Date.now() }, 200);
+    return jsonResponse(req, { ok: true, fn: "external-db-proxy", version: "1.10-issuer-fastpath", target: targetName, env_set: ENV_SET, ts: Date.now() }, 200);
   }
 
   if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+    return jsonResponse(req, { error: "Method not allowed" }, 405);
   }
 
   const cid = req.headers.get("x-correlation-id") || crypto.randomUUID();
@@ -335,7 +335,7 @@ Deno.serve(async (req) => {
   try {
     body = await req.json() as RequestBody;
   } catch {
-    return jsonResponse({ error: "Invalid JSON body", cid, rid }, 400);
+    return jsonResponse(req, { error: "Invalid JSON body", cid, rid }, 400);
   }
 
   const requestedSchema = String(body.schema ?? "public");
@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
   const action = typeof body.action === "string" ? body.action : rpc ? "rpc" : table ? "select" : null;
 
   if (action === "rpc" && rpc) {
-    if (!isSafeIdent(rpc)) return jsonResponse({ error: "Invalid rpc identifier", cid, rid }, 400);
+    if (!isSafeIdent(rpc)) return jsonResponse(req, { error: "Invalid rpc identifier", cid, rid }, 400);
 
     const params = { ...(body.params ?? {}) };
     delete params.__cid;
@@ -353,12 +353,12 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.rpc(rpc, params);
       if (error) {
         console.error('[external-db-proxy] rpc error', { rpc, cid, code: error.code, message: error.message });
-        return jsonResponse({ error: "Database operation failed", cid, rid, data: null }, 500);
+        return jsonResponse(req, { error: "Database operation failed", cid, rid, data: null }, 500);
       }
-      return jsonResponse({ ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
+      return jsonResponse(req, { ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
     } catch (error) {
       console.error('[external-db-proxy] rpc exception', { rpc, cid, message: error instanceof Error ? error.message : String(error) });
-      return jsonResponse({ error: "Database operation failed", cid, rid, data: null }, 500);
+      return jsonResponse(req, { error: "Database operation failed", cid, rid, data: null }, 500);
     }
   }
 
@@ -370,17 +370,17 @@ Deno.serve(async (req) => {
   const orderBy = body.order_by ? String(body.order_by) : body.order?.column ? String(body.order.column) : null;
   const orderAsc = body.order_asc !== undefined ? Boolean(body.order_asc) : Boolean(body.order?.ascending);
 
-  if (!isSafeIdent(requestedSchema)) return jsonResponse({ error: "Invalid schema", cid, rid }, 400);
-  if (!isSafeIdent(table)) return jsonResponse({ error: "Invalid table", cid, rid }, 400);
+  if (!isSafeIdent(requestedSchema)) return jsonResponse(req, { error: "Invalid schema", cid, rid }, 400);
+  if (!isSafeIdent(table)) return jsonResponse(req, { error: "Invalid table", cid, rid }, 400);
 
   const schema = resolveSchema(requestedSchema, table);
   if (!ALLOWED_SCHEMAS.includes(schema)) {
-    return jsonResponse({ schema_unavailable: true, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 200);
+    return jsonResponse(req, { schema_unavailable: true, cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 200);
   }
 
   const allowedTables = SCHEMA_TABLE_WHITELIST[schema] || [];
   if (allowedTables.length > 0 && !allowedTables.includes(table)) {
-    return jsonResponse({ error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }, 403);
+    return jsonResponse(req, { error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }, 403);
   }
 
 
@@ -415,7 +415,7 @@ Deno.serve(async (req) => {
       const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
       if (missing) {
         console.warn("[external-db-proxy] missing_table", { schema, table, cid });
-        return jsonResponse({
+        return jsonResponse(req, {
           error: `Tabela '${schema}.${table}' não encontrada no destino (${targetName}).`,
           hint: "Verifique se a migration foi aplicada no self-hosted e se o schema 'evo' está exposto na Data API (config.toml → [api].schemas).",
           missing_table: true,
@@ -440,19 +440,19 @@ Deno.serve(async (req) => {
           key_ref: KEY_REF,
           message: err.message,
         });
-        return jsonResponse({
+        return jsonResponse(req, {
           error: "Self-hosted rejeitou a service_role key (assinatura inválida).",
           hint: `A chave em '${KEY_SOURCE}' (role=${KEY_ROLE}, iss=${KEY_ISS}, ref=${KEY_REF}) não corresponde ao JWT_SECRET de ${EXTERNAL_URL}. Copie a service_role key EXATA do painel do self-hosted (Settings → API) e atualize o secret.`,
           cid, rid, data: [], count: 0, latency_ms: Date.now() - start,
         }, 502);
       }
       console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
-      return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
+      return jsonResponse(req, { error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
     }
 
 
 
-    return jsonResponse({
+    return jsonResponse(req, {
       ok: true,
       cid,
       rid,
@@ -466,6 +466,6 @@ Deno.serve(async (req) => {
     }, 200);
   } catch (error) {
     console.error('[external-db-proxy] query exception', { schema, table, message: error instanceof Error ? error.message : String(error), cid });
-    return jsonResponse({ error: "Database operation failed", cid, rid, data: [], count: 0 }, 500);
+    return jsonResponse(req, { error: "Database operation failed", cid, rid, data: [], count: 0 }, 500);
   }
 });

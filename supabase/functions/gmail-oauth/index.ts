@@ -2,7 +2,6 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-const jsonHeaders = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_AUTH_URL  = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -20,6 +19,7 @@ const GMAIL_SCOPES = [
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
+  const jsonHeaders = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
 
   const supabase = createClient(
     (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,

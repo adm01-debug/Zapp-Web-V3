@@ -33,7 +33,7 @@ interface RequestBody {
   remotePhone?: string; // bare digits, e.g. 5511999990000
 }
 
-function json(status: number, body: unknown) {
+function json(req: Request, status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -350,30 +350,30 @@ function safeJson(text: string) {
 // ------------------------------------------------------------------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
-  if (req.method !== "POST") return json(405, { error: "method-not-allowed" });
+  if (req.method !== "POST") return json(req, 405, { error: "method-not-allowed" });
 
   const authz = await authorize(req);
-  if (!authz.ok) return json(401, { error: "unauthorized", reason: authz.reason });
+  if (!authz.ok) return json(req, 401, { error: "unauthorized", reason: authz.reason });
 
   let raw: unknown;
-  try { raw = await req.json(); } catch { return json(400, { error: "invalid-json" }); }
+  try { raw = await req.json(); } catch { return json(req, 400, { error: "invalid-json" }); }
   const parsed = validateBody(raw);
-  if (!parsed.ok) return json(400, { error: parsed.error });
+  if (!parsed.ok) return json(req, 400, { error: parsed.error });
   const body = parsed.body;
 
   try {
     switch (body.action) {
       case "seed-cloud-creds":
-        return json(200, await seedCloudCreds(body.runId));
+        return json(req, 200, await seedCloudCreds(body.runId));
       case "send-evolution":
-        return json(200, await sendEvolution(body.runId, body));
+        return json(req, 200, await sendEvolution(body.runId, body));
       case "send-cloud":
-        return json(200, await sendCloud(body.runId, body));
+        return json(req, 200, await sendCloud(body.runId, body));
       case "cleanup":
-        return json(200, await cleanup(body.runId));
+        return json(req, 200, await cleanup(body.runId));
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return json(500, { error: "fixture-op-failed", message: msg });
+    return json(req, 500, { error: "fixture-op-failed", message: msg });
   }
 });
