@@ -15,14 +15,6 @@ interface DiagResult {
   steps: DiagStep[];
 }
 
-interface SystemConnectionRow {
-  id?: string;
-  name?: string;
-  provider?: string;
-  config?: { url?: string; anon_key?: string; [key: string]: unknown };
-  is_active?: boolean;
-  created_by?: string;
-}
 
 /**
  * Rotina de Verificação Automatizada: Fluxo de Conexão

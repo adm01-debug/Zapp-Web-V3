@@ -57,13 +57,13 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     setLoading(true);
 
     if (activeTab === 'users') {
-      const { data: profiles, error } = await supabase
+      const { data: profiles, error: _error } = await supabase
         .from('profiles')
         .select('*')
         .order('name')
         .limit(1000);
 
-      const { data: roles, error: rolesErr } = await supabase
+      const { data: roles, error: _rolesErr } = await supabase
         .from('user_roles')
         .select('*')
         .limit(1000);
@@ -79,7 +79,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         setUsers(usersWithRoles);
       }
     } else if (activeTab === 'audit') {
-      const { data: logs, error: logsErr } = await supabase
+      const { data: logs, error: _logsErr } = await supabase
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })

@@ -59,7 +59,7 @@ export function useNewConversation(
     }
     const timeout = setTimeout(async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
         .or(`name.ilike.%${sanitizePostgrestFilter(searchQuery)}%,phone.ilike.%${sanitizePostgrestFilter(searchQuery)}%`)

@@ -57,7 +57,7 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
   const { profileId } = useConversationActions();
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [showCompactHeader, setShowCompactHeader] = useState(false);
+  const [_showCompactHeader, setShowCompactHeader] = useState(false);
   const [accordionValue, setAccordionValue] = useState<string[]>(getStoredAccordionState);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 

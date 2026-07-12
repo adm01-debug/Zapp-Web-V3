@@ -42,7 +42,7 @@ function slugify(input: string): string {
 }
 
 export default function DepartmentsPage() {
-  const { departments, loading, saving, save, removeDepartment } = useDepartmentsAdmin();
+  const { departments, loading, saving, save: _save, removeDepartment } = useDepartmentsAdmin();
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Department | null>(null);

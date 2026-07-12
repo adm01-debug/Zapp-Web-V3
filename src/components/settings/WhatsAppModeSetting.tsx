@@ -35,7 +35,7 @@ export function WhatsAppModeSetting() {
   const [migrating, setMigrating] = useState(false);
 
   const loadProfile = useCallback(async () => {
-    const { data, error } = await safeClient.rpc<IntegrationProfile>(
+    const { data, error: _error } = await safeClient.rpc<IntegrationProfile>(
       'rpc_get_active_integration_profile'
     );
     if (data) setProfile(data as IntegrationProfile);

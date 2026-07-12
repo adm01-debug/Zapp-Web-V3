@@ -87,7 +87,7 @@ describe('conversation_transfers — pipeline safeParseEvent → notificação',
   it('descarta payload sem source_conversation_id (missing)', () => {
     const notify = vi.fn();
     const handler = makeHandler(conversationTransferRowSchema, notify);
-    const { source_conversation_id, ...bad } = validTransfer;
+    const { source_conversation_id: _source_conversation_id, ...bad } = validTransfer;
     handler({ new: bad });
     expect(notify).not.toHaveBeenCalled();
   });
@@ -169,7 +169,7 @@ describe('conversation_events — pipeline safeParseEvent → notificação', ()
   it('descarta payload sem id (missing)', () => {
     const notify = vi.fn();
     const handler = makeHandler(conversationEventRowSchema, notify);
-    const { id, ...bad } = validEvent;
+    const { id: _id, ...bad } = validEvent;
     handler({ new: bad });
     expect(notify).not.toHaveBeenCalled();
   });
@@ -177,7 +177,7 @@ describe('conversation_events — pipeline safeParseEvent → notificação', ()
   it('descarta payload sem event_type (missing)', () => {
     const notify = vi.fn();
     const handler = makeHandler(conversationEventRowSchema, notify);
-    const { event_type, ...bad } = validEvent;
+    const { event_type: _event_type, ...bad } = validEvent;
     handler({ new: bad });
     expect(notify).not.toHaveBeenCalled();
   });

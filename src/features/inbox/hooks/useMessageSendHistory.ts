@@ -54,7 +54,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
 
       // Se for um ID otimista (FATOR X), não temos métricas persistidas ainda.
       // Tentamos extrair o ID real se disponível.
-      const isOptimistic = messageId.startsWith('optimistic:');
+      const _isOptimistic = messageId.startsWith('optimistic:');
 
       const idempotencyKey = `msg:${messageId}`;
       // Tabelas evolution_retry_metrics/outbound_delivery_audit ainda não estão em types.ts —

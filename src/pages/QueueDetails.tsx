@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';

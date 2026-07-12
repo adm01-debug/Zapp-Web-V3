@@ -41,7 +41,7 @@ export function useDepartmentsAdmin() {
     const ids = (data ?? []).map((d) => d.id);
     let counts: Record<string, number> = {};
     if (ids.length) {
-      const { data: profilesByDept , error: profilesByDeptErr } = await supabase
+      const { data: profilesByDept , error: _profilesByDeptErr } = await supabase
         .from('profiles')
         .select('department_id')
         .in('department_id', ids);

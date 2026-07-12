@@ -49,20 +49,6 @@ const log = getLogger('AdminBridgeStatusPage');
 
 type BridgeStatus = 'online' | 'degraded' | 'offline' | 'loading';
 
-interface IncidentRow {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  started_at: string;
-  resolved_at: string | null;
-}
-
-interface AlertRow {
-  id: string;
-  title: string;
-  alert_type: string;
-}
 
 export default function BridgeStatusPage() {
   const { toast } = useToast();

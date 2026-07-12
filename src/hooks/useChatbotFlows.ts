@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Database, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 type ChatbotFlowInsert = TablesInsert<'chatbot_flows'>;
 type ChatbotFlowUpdate = TablesUpdate<'chatbot_flows'>;

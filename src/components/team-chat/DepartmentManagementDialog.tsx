@@ -48,14 +48,14 @@ export function DepartmentManagementDialog({
   const [view, setView] = useState<'members' | 'audit' | 'invites' | 'whatsapp'>('members');
 
   const {
-    currentUser,
+    currentUser: _currentUser,
     department,
     allProfiles,
-    loadingProfiles,
+    loadingProfiles: _loadingProfiles,
     auditLogs,
-    loadingAudit,
+    loadingAudit: _loadingAudit,
     invitations,
-    loadingInvites,
+    loadingInvites: _loadingInvites,
     createInviteMutation,
     deleteInviteMutation,
     updateWhatsappMutation,

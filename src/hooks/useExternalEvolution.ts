@@ -410,7 +410,7 @@ const CACHE_TTL = 300_000; // 5 minutes
 // Enrichment `tags` may arrive as a JSON array string, a plain comma-separated
 // string, or malformed data. Never let a single bad value throw and take down
 // the whole conversation-list query (it re-runs every 5s poll).
-function safeParseTags(raw: string): string[] {
+function _safeParseTags(raw: string): string[] {
   const trimmed = raw.trim();
   if (!trimmed) return [];
   if (trimmed.startsWith('[')) {

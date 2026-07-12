@@ -22,17 +22,6 @@ type Contact = Pick<
   | 'updated_at'
 >;
 
-interface SearchFilters {
-  searchTerm: string;
-  contactType: string | null;
-  company: string | null;
-  jobTitle: string | null;
-  tag: string | null;
-  dateFrom: string | null;
-  sortField: string;
-  sortDirection: string;
-}
-
 const PAGE_SIZE = 50;
 
 function parseSortOption(sortBy: string): { field: string; direction: string } {

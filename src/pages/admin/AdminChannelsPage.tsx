@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useAdminChannels, type ServiceChannel, type ChannelStatus } from '@/hooks/admin/useAdminChannels';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,13 +17,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Pause, Play, PowerOff, Eraser, MessageSquare,
   Instagram, Send, Mail, Globe, Search, Facebook,
 } from "lucide-react";
 import { EvolutionFallbackStatusCard } from "@/features/admin";
-import { log } from "@/lib/logger";
 
 const CHANNEL_TYPES = [
   { value: "whatsapp", label: "WhatsApp", icon: MessageSquare },
@@ -61,7 +59,6 @@ function emptyChannel(): Partial<ServiceChannel> {
 }
 
 export default function AdminChannelsPage() {
-  const { toast } = useToast();
   const [editing, setEditing] = useState<Partial<ServiceChannel> | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -71,7 +68,7 @@ export default function AdminChannelsPage() {
   >(null);
   const [actionReason, setActionReason] = useState("");
 
-  const { channels, filteredChannels, queues, wppConns, loading, load, save, runAction, reactivate } = useAdminChannels(statusFilter, search);
+  const { filteredChannels, queues, wppConns, loading, load, save, runAction, reactivate } = useAdminChannels(statusFilter, search);
 
   const channelIcon = (type: string) => {
     const found = CHANNEL_TYPES.find((t) => t.value === type);

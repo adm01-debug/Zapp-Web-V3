@@ -37,7 +37,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     const [partyMode, setPartyMode] = useState(false);
     const [matrixMode, setMatrixMode] = useState(false);
     const [shakeCount, setShakeCount] = useState(0);
-    const { celebrate, celebrating } = useCelebration();
+    const { celebrate, celebrating: _celebrating } = useCelebration();
 
     // Konami Code Detection
     useEffect(() => {

@@ -91,7 +91,7 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   // Conflict resolution state
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflict, setConflict] = useState<ConflictInfo | null>(null);
-  const [pendingData, setPendingData] = useState<Record<string, unknown> | null>(null);
+  const [_pendingData, setPendingData] = useState<Record<string, unknown> | null>(null);
 
   // Reset form when contact changes (use contact.id to avoid infinite re-render loop — #310)
   useEffect(() => {

@@ -4,7 +4,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Eye, EyeOff, Send, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Eye, Send, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';

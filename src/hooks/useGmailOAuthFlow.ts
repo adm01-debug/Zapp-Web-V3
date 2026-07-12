@@ -16,16 +16,6 @@ import { emailMappers } from '@/utils/emailMappers';
 import { EmailAccount } from '@/types/gmail';
 import { emailRefreshToken, emailRevokeAccount, emailRegisterWatch } from './gmail/gmailApi';
 
-interface EmailAccountRow {
-  id: string;
-  user_id: string;
-  email: string;
-  display_name: string | null;
-  picture_url: string | null;
-  token_expiry: string | null;
-  is_active: boolean;
-  created_at: string;
-}
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 

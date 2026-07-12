@@ -29,17 +29,6 @@ interface TeamFilesProps {
   contactId: string;
 }
 
-interface WhisperFile {
-  id: string;
-  contact_id: string;
-  file_name: string;
-  file_url: string;
-  file_size: number | null;
-  file_type: string | null;
-  sender_id: string | null;
-  created_at: string;
-}
-
 export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);

@@ -82,7 +82,7 @@ if (!isSupabaseConfigured) {
     '[Supabase] URL ou chave inválida — verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'
   );
 } else if (import.meta.env.DEV) {
-  console.info(
+  console.warn(
     `[Supabase] Conectado: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
   );
 }

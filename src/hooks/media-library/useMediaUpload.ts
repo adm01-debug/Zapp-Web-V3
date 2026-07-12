@@ -80,7 +80,7 @@ export function useMediaUpload(type: MediaType, onComplete: () => void) {
               type === 'audio_memes'
                 ? { audio_url: urlData.publicUrl, file_name: file.name }
                 : { image_url: urlData.publicUrl };
-            const { data: classifyData, error } = await supabase.functions.invoke(fnName, { body });
+            const { data: classifyData, error: _error } = await supabase.functions.invoke(fnName, { body });
             if (classifyData?.category) aiCategory = classifyData.category;
           } catch (err) {
             log.error('Unexpected error in useMediaUpload:', err);

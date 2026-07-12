@@ -29,11 +29,6 @@ interface AutomationRule {
   priority: number;
 }
 
-interface MsgRow {
-  created_at: string;
-  from_me: boolean;
-  content: string;
-}
 
 interface UseAutomationsArgs {
   remoteJid: string | null;
