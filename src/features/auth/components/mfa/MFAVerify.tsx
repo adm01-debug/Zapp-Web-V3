@@ -79,6 +79,7 @@ export function MFAVerify({
             id="mfa-code"
             type="text"
             inputMode="numeric"
+            autoComplete="one-time-code"
             maxLength={6}
             placeholder="000000"
             value={code}

@@ -146,6 +146,7 @@ export default function ForgotPassword() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

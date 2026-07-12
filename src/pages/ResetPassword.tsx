@@ -162,6 +162,7 @@ export default function ResetPassword() {
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
@@ -169,6 +170,7 @@ export default function ResetPassword() {
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
@@ -183,6 +185,7 @@ export default function ResetPassword() {
                 <Input
                   id="confirmPassword"
                   type="password"
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={loading}
