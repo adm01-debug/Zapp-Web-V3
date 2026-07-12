@@ -33,9 +33,9 @@ export function useClientWallet() {
       const agentIds = [...new Set(rulesData.map(r => r.agent_id))];
       const connectionIds = [...new Set(rulesData.map(r => r.whatsapp_connection_id).filter(Boolean))];
       
-      const { data: agentsData } = await supabase.from('profiles').select('id, name').in('id', agentIds);
+      const { data: agentsData } = await supabase.from('profiles').select('id, name').in('id', agentIds).limit(agentIds.length);
       const { data: connectionsData } = connectionIds.length > 0
-        ? await supabase.from('whatsapp_connections').select('id, name, phone_number').in('id', connectionIds)
+        ? await supabase.from('whatsapp_connections').select('id, name, phone_number').in('id', connectionIds).limit(connectionIds.length)
         : { data: [] };
 
       setRules(rulesData.map(rule => ({
