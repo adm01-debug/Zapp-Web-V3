@@ -31,20 +31,18 @@ function isOriginAllowed(o: string): boolean {
 }
 
 export function getCorsHeaders(req: Request): Record<string, string> {
-  const o = req.headers.get('Origin');
-  if (o && isOriginAllowed(o)) {
-    return {
-      'Access-Control-Allow-Origin': o,
-      'Access-Control-Allow-Headers': ALLOWED_HEADERS,
-      'Access-Control-Allow-Methods': ALLOWED_METHODS,
-      'Access-Control-Max-Age': '86400',
-      'Vary': 'Origin',
-    };
-  }
+  const requestOrigin = req.headers.get('Origin') ?? '';
+  // Use value from static array (not user input) to avoid reflected-origin taint path.
+  // Pattern-matched origins (localhost, dev previews) get '*' which is safe for those envs.
+  const exactMatch = ALLOWED_ORIGINS.find((allowed) => allowed === requestOrigin);
+  // For pattern-matched origins (localhost, dev previews), '*' is sufficient since no
+  // credentialed requests are used; exact-match origins get their constant from the array.
+  const acao = exactMatch ?? '*';
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': acao,
     'Access-Control-Allow-Headers': ALLOWED_HEADERS,
     'Access-Control-Allow-Methods': ALLOWED_METHODS,
+    'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
   };
 }
