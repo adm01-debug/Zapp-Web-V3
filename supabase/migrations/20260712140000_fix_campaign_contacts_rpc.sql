@@ -104,7 +104,7 @@ CREATE OR REPLACE FUNCTION public.add_contacts_to_campaign(
 ) RETURNS void
   LANGUAGE plpgsql
   SECURITY DEFINER
-  SET search_path = pg_catalog, public, pg_temp
+  SET search_path = pg_catalog, public
 AS $$
 BEGIN
   -- P0 guard: only admins and supervisors may add contacts to a campaign.
