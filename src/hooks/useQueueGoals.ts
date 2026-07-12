@@ -72,7 +72,8 @@ export function useQueueGoals() {
 
       const goalsMap: Record<string, QueueGoal> = {};
       data?.forEach(goal => {
-        goalsMap[goal.queue_id] = goal;
+        const normalized = normalizeQueueGoal(goal as unknown as Record<string, unknown>);
+        goalsMap[normalized.queue_id] = normalized;
       });
 
       setGoals(goalsMap);
