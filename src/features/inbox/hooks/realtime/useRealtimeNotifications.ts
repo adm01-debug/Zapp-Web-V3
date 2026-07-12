@@ -5,11 +5,7 @@ import {
   requestNotificationPermission,
 } from '@/utils/notificationSound';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
-import type {
-  ConversationContact,
-  RealtimeMessage,
-  NewMessageNotification,
-} from '../useRealtimeMessages';
+import type { ConversationContact, RealtimeMessage, NewMessageNotification } from './types';
 
 export function useRealtimeNotifications() {
   const [newMessageNotification, setNewMessageNotification] =
