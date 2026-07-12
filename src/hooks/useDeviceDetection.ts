@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
@@ -34,6 +34,13 @@ export function useDeviceDetection() {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Generate device fingerprint
   const generateFingerprint = useCallback(() => {
@@ -44,7 +51,7 @@ export function useDeviceDetection() {
       ctx.font = '14px Arial';
       ctx.fillText('fingerprint', 2, 2);
     }
-    
+
     const components = [
       navigator.userAgent,
       navigator.language,
@@ -56,10 +63,13 @@ export function useDeviceDetection() {
     ];
 
     // Simple hash function
-    const hash = components.join('|').split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
+    const hash = components
+      .join('|')
+      .split('')
+      .reduce((a, b) => {
+        a = (a << 5) - a + b.charCodeAt(0);
+        return a & a;
+      }, 0);
 
     return Math.abs(hash).toString(36);
   }, []);
@@ -99,7 +109,9 @@ export function useDeviceDetection() {
       const fingerprint = generateFingerprint();
       const { browser, os, deviceName } = getBrowserInfo();
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.access_token) return;
 
       const response = await supabase.functions.invoke('detect-new-device', {
@@ -111,14 +123,16 @@ export function useDeviceDetection() {
         },
       });
 
-      if (response.data) {
+      if (response.data && mountedRef.current) {
         setCurrentDeviceId(response.data.device_id);
         log.debug('Device check result:', response.data);
       }
     } catch (error) {
-      log.error('Error checking device:', error);
+      if (mountedRef.current) {
+        log.error('Error checking device:', error);
+      }
     }
-  }, [user, generateFingerprint, getBrowserInfo]);
+  }, [user, generateFingerprint, getBrowserInfo, mountedRef]);
 
   // Fetch user devices
   const fetchDevices = useCallback(async () => {
@@ -131,11 +145,13 @@ export function useDeviceDetection() {
         .order('last_seen_at', { ascending: false });
 
       if (error) throw error;
-      setDevices(data || []);
+      if (mountedRef.current) setDevices(data || []);
     } catch (error) {
-      log.error('Error fetching devices:', error);
+      if (mountedRef.current) {
+        log.error('Error fetching devices:', error);
+      }
     }
-  }, [user]);
+  }, [user, mountedRef]);
 
   // Fetch user sessions
   const fetchSessions = useCallback(async () => {
@@ -149,64 +165,78 @@ export function useDeviceDetection() {
         .order('last_activity_at', { ascending: false });
 
       if (error) throw error;
-      setSessions(data || []);
+      if (mountedRef.current) setSessions(data || []);
     } catch (error) {
-      log.error('Error fetching sessions:', error);
+      if (mountedRef.current) {
+        log.error('Error fetching sessions:', error);
+      }
     }
-  }, [user]);
+  }, [user, mountedRef]);
 
   // Trust a device
-  const trustDevice = useCallback(async (deviceId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_devices')
-        .update({ is_trusted: true })
-        .eq('id', deviceId);
+  const trustDevice = useCallback(
+    async (deviceId: string) => {
+      try {
+        const { error } = await supabase
+          .from('user_devices')
+          .update({ is_trusted: true })
+          .eq('id', deviceId);
 
-      if (error) throw error;
-      await fetchDevices();
-    } catch (error) {
-      log.error('Error trusting device:', error);
-    }
-  }, [fetchDevices]);
+        if (error) throw error;
+        await fetchDevices();
+      } catch (error) {
+        if (mountedRef.current) {
+          log.error('Error trusting device:', error);
+        }
+      }
+    },
+    [fetchDevices, mountedRef]
+  );
 
   // Remove a device
-  const removeDevice = useCallback(async (deviceId: string) => {
-    try {
-      // First, end all sessions for this device
-      await supabase
-        .from('user_sessions')
-        .update({ is_active: false, ended_at: new Date().toISOString() })
-        .eq('device_id', deviceId);
+  const removeDevice = useCallback(
+    async (deviceId: string) => {
+      try {
+        // First, end all sessions for this device
+        await supabase
+          .from('user_sessions')
+          .update({ is_active: false, ended_at: new Date().toISOString() })
+          .eq('device_id', deviceId);
 
-      // Then remove the device
-      const { error } = await supabase
-        .from('user_devices')
-        .delete()
-        .eq('id', deviceId);
+        // Then remove the device
+        const { error } = await supabase.from('user_devices').delete().eq('id', deviceId);
 
-      if (error) throw error;
-      await fetchDevices();
-      await fetchSessions();
-    } catch (error) {
-      log.error('Error removing device:', error);
-    }
-  }, [fetchDevices, fetchSessions]);
+        if (error) throw error;
+        await fetchDevices();
+        await fetchSessions();
+      } catch (error) {
+        if (mountedRef.current) {
+          log.error('Error removing device:', error);
+        }
+      }
+    },
+    [fetchDevices, fetchSessions, mountedRef]
+  );
 
   // End a session
-  const endSession = useCallback(async (sessionId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .update({ is_active: false, ended_at: new Date().toISOString() })
-        .eq('id', sessionId);
+  const endSession = useCallback(
+    async (sessionId: string) => {
+      try {
+        const { error } = await supabase
+          .from('user_sessions')
+          .update({ is_active: false, ended_at: new Date().toISOString() })
+          .eq('id', sessionId);
 
-      if (error) throw error;
-      await fetchSessions();
-    } catch (error) {
-      log.error('Error ending session:', error);
-    }
-  }, [fetchSessions]);
+        if (error) throw error;
+        await fetchSessions();
+      } catch (error) {
+        if (mountedRef.current) {
+          log.error('Error ending session:', error);
+        }
+      }
+    },
+    [fetchSessions, mountedRef]
+  );
 
   // End all other sessions
   const endAllOtherSessions = useCallback(async () => {
@@ -222,18 +252,21 @@ export function useDeviceDetection() {
       if (error) throw error;
       await fetchSessions();
     } catch (error) {
-      log.error('Error ending sessions:', error);
+      if (mountedRef.current) {
+        log.error('Error ending sessions:', error);
+      }
     }
-  }, [currentDeviceId, fetchSessions]);
+  }, [currentDeviceId, fetchSessions, mountedRef]);
 
   // Initial load
   useEffect(() => {
     if (user) {
       setLoading(true);
-      Promise.all([checkDevice(), fetchDevices(), fetchSessions()])
-        .finally(() => setLoading(false));
+      Promise.all([checkDevice(), fetchDevices(), fetchSessions()]).finally(() => {
+        if (mountedRef.current) setLoading(false);
+      });
     }
-  }, [user, checkDevice, fetchDevices, fetchSessions]);
+  }, [user, checkDevice, fetchDevices, fetchSessions, mountedRef]);
 
   return {
     devices,
