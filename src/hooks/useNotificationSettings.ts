@@ -97,7 +97,7 @@ export const useNotificationSettings = () => {
         return DEFAULT_SETTINGS;
       }
 
-      return data ? mapDbToSettings(data as Record<string, unknown>) : DEFAULT_SETTINGS;
+      return data ? mapDbToSettings(data as Record<string, unknown>) : DEFAULT_SETTINGS; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 min — deduplicate across all consumers

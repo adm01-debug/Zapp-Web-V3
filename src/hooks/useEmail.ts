@@ -55,10 +55,10 @@ const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-')
 const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({
     ...row,
-    thread_id: row.id,
-    email_thread_id: row.gmail_thread_id != null ? String(row.gmail_thread_id) : null,
-    account_id: row.gmail_account_id,
-    unread_count: row.is_unread ? Math.max(row.message_count ?? 1, 1) : 0,
+    thread_id: row['id'],
+    email_thread_id: row['gmail_thread_id'] != null ? String(row['gmail_thread_id']) : null,
+    account_id: row['gmail_account_id'],
+    unread_count: row['is_unread'] ? Math.max(Number(row['message_count'] ?? 1), 1) : 0,
   });
 
 /**

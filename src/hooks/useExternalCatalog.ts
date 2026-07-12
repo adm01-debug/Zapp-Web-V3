@@ -90,7 +90,7 @@ async function invokeAction<T = unknown>(action: string, params: Record<string, 
   if (hasField(data, 'error') && typeof data.error === 'string') {
     throw new Error(data.error);
   }
-  return data as T;
+  return data as T; // ignore-audit: narrows Supabase query result to local interface
 }
 
 /** Ensures a product object always exposes a typed `variants` array. */
