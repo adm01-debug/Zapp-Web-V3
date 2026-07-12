@@ -41,17 +41,24 @@ export function usePersonalStickers() {
       });
       if (validFiles.length === 0) return;
 
-      // Upload all files in parallel instead of sequentially
-      const uploadResults = await Promise.all(
-        validFiles.map(async (file) => {
-          const ext = file.name.split('.').pop() || 'png';
-          const path = `pessoal/${profile.id}/${crypto.randomUUID()}.${ext}`;
-          const { error: uploadError } = await supabase.storage.from('stickers').upload(path, file, { contentType: file.type });
-          if (uploadError) { toast.error(`Erro ao enviar ${file.name}: ${uploadError.message}`); return null; }
-          const { data: urlData } = supabase.storage.from('stickers').getPublicUrl(path);
-          return { name: file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '), image_url: urlData.publicUrl, category: 'pessoal', owner_id: profile.id, uploaded_by: profile.id };
-        })
-      );
+      // Upload in chunks of 3 to avoid overwhelming the storage connection pool
+      // when a user selects many files at once.
+      const CHUNK = 3;
+      const uploadResults: (ReturnType<typeof Object.assign> | null)[] = [];
+      for (let i = 0; i < validFiles.length; i += CHUNK) {
+        const chunk = validFiles.slice(i, i + CHUNK);
+        const chunkResults = await Promise.all(
+          chunk.map(async (file) => {
+            const ext = file.name.split('.').pop() || 'png';
+            const path = `pessoal/${profile.id}/${crypto.randomUUID()}.${ext}`;
+            const { error: uploadError } = await supabase.storage.from('stickers').upload(path, file, { contentType: file.type });
+            if (uploadError) { toast.error(`Erro ao enviar ${file.name}: ${uploadError.message}`); return null; }
+            const { data: urlData } = supabase.storage.from('stickers').getPublicUrl(path);
+            return { name: file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '), image_url: urlData.publicUrl, category: 'pessoal', owner_id: profile.id, uploaded_by: profile.id };
+          })
+        );
+        uploadResults.push(...chunkResults);
+      }
 
       // Batch insert all successful uploads in a single DB call
       const toInsert = uploadResults.filter((r): r is NonNullable<typeof r> => r !== null);

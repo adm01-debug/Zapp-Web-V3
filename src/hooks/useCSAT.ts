@@ -43,12 +43,14 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   const surveysQuery = useQuery({
     queryKey: ['csat-surveys', period],
     queryFn: async () => {
+      // Fetch only the most recent 200 rows for display purposes — full stats
+      // come from the server-side RPC below which aggregates without any row cap.
       const { data, error } = await supabase
         .from('csat_surveys')
         .select('*')
         .gte('created_at', getDateFilter())
         .order('created_at', { ascending: false })
-        .limit(1000);
+        .limit(200);
 
       if (error) throw error;
       return data as CSATSurvey[];
@@ -58,26 +60,29 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   const statsQuery = useQuery({
     queryKey: ['csat-stats', period],
     queryFn: async () => {
-      const surveys = surveysQuery.data || [];
-      if (surveys.length === 0) {
+      // Server-side aggregation via RPC: correct totals even when survey count
+      // exceeds what PostgREST would return row-by-row.
+      const { data, error } = await supabase.rpc('get_csat_stats', {
+        start_date: getDateFilter(),
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || !row.total) {
         return { average: 0, total: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, trend: 0 } as CSATStats;
       }
-
-      const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-      let sum = 0;
-      surveys.forEach(s => {
-        distribution[s.rating] = (distribution[s.rating] || 0) + 1;
-        sum += s.rating;
-      });
-
       return {
-        average: sum / surveys.length,
-        total: surveys.length,
-        distribution,
+        average: Number(row.average ?? 0),
+        total: Number(row.total),
+        distribution: {
+          1: Number(row.rating_1),
+          2: Number(row.rating_2),
+          3: Number(row.rating_3),
+          4: Number(row.rating_4),
+          5: Number(row.rating_5),
+        },
         trend: 0,
       } as CSATStats;
     },
-    enabled: !!surveysQuery.data,
   });
 
   const submitSurvey = useMutation({

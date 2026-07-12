@@ -69,15 +69,25 @@ export function useAutomations({
     let cancelled = false;
     const load = async () => {
       try {
-        const { data, error } = await supabase
-          .from('automations')
-          .select('id,name,trigger_type,trigger_config,actions,is_active')
-          .eq('is_active', true)
-          .order('name', { ascending: true })
-          .limit(100);
-
-        if (error) throw error;
-        if (!cancelled && data) rulesRef.current = data as AutomationRule[];
+        // Paginate to guarantee ALL active rules are loaded — a fixed .limit()
+        // would silently drop any rules beyond the cap, causing them to never fire.
+        const PAGE = 1000;
+        const allRules: AutomationRule[] = [];
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from('automations')
+            .select('id,name,trigger_type,trigger_config,actions,is_active')
+            .eq('is_active', true)
+            .order('name', { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          allRules.push(...(data as AutomationRule[]));
+          if (data.length < PAGE) break;
+          from += PAGE;
+        }
+        if (!cancelled) rulesRef.current = allRules;
       } catch (err) {
         log.error('Error loading automation rules:', err);
       }
