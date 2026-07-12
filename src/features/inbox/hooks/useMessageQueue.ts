@@ -93,12 +93,27 @@ export function useMessageQueue(
     if (savedQueue) {
       try {
         const parsed = JSON.parse(savedQueue) as QueueItem[];
-        const restored = parsed.map((item) => ({
-          ...item,
-          status: item.status === 'sending' ? 'pending' : item.status,
-          progress: item.status === 'sending' ? 0 : item.progress,
-          attachments: undefined,
-        }));
+        const restored = parsed.map((item) => {
+          // FIX Q1 (2026-07-12): Attachments (File/Blob) não sobrevivem ao
+          // localStorage. Para 'audio'/'attachment', resgatar como 'pending'
+          // faz o processador reenviar o rótulo de exibição como mensagem real.
+          // Marcamos como 'failed' para o usuário regravar/reanexar.
+          const lostMedia =
+            (item.type === 'audio' || item.type === 'attachment') && item.status !== 'confirmed';
+          return {
+            ...item,
+            status: lostMedia
+              ? ('failed' as const)
+              : item.status === 'sending'
+                ? ('pending' as const)
+                : item.status,
+            progress: item.status === 'sending' ? 0 : item.progress,
+            error: lostMedia
+              ? 'Anexo perdido ao recarregar a página — reenvie manualmente.'
+              : item.error,
+            attachments: undefined,
+          };
+        });
         setQueue(restored);
         log.info('Restored message queue from localStorage');
       } catch (e) {

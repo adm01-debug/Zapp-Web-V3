@@ -97,7 +97,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const handleSend = useCallback(
     async (attachments?: File[]) => {
       const currentInput = inputValueRef.current;
-      if (!currentInput.trim() || isSendingRef.current) return;
+      const hasAttachments = !!attachments && attachments.length > 0;
+      // FIX C1 (2026-07-12): legenda é opcional para mídia — bloquear aqui
+      // descartava silenciosamente qualquer anexo enviado sem texto.
+      if ((!currentInput.trim() && !hasAttachments) || isSendingRef.current) return;
 
       const currentEditing = editingMessageRef.current;
       if (currentEditing) {
