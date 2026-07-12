@@ -204,18 +204,76 @@ Deno.serve(async (req) => {
       );
     }
 
-    const aiData = await response.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    let aiData: unknown;
+    try {
+      aiData = await response.json();
+    } catch {
+      return jsonResponse(
+        { action: 'answer', response: 'Erro ao processar resposta da IA.', data: {} },
+        200,
+        req
+      );
+    }
+
+    if (typeof aiData !== 'object' || aiData === null || Array.isArray(aiData)) {
+      return jsonResponse(
+        { action: 'answer', response: 'Resposta inválida da IA.', data: {} },
+        200,
+        req
+      );
+    }
+
+    const aiDataObj = aiData as Record<string, unknown>;
+    const choices = Array.isArray(aiDataObj.choices) ? aiDataObj.choices : [];
+
+    let toolCall: Record<string, unknown> | null = null;
+    if (choices.length > 0 && typeof choices[0] === 'object' && choices[0] !== null && !Array.isArray(choices[0])) {
+      const choice = choices[0] as Record<string, unknown>;
+      const message = typeof choice.message === 'object' && choice.message !== null && !Array.isArray(choice.message)
+        ? (choice.message as Record<string, unknown>)
+        : null;
+      const toolCalls = message && Array.isArray(message.tool_calls) ? message.tool_calls : [];
+      if (toolCalls.length > 0 && typeof toolCalls[0] === 'object' && toolCalls[0] !== null) {
+        toolCall = toolCalls[0] as Record<string, unknown>;
+      }
+    }
 
     let rawResult: Record<string, unknown>;
-    if (toolCall?.function?.arguments) {
-      try { rawResult = JSON.parse(toolCall.function.arguments); } catch {
+    if (toolCall && typeof toolCall.function === 'object' && toolCall.function !== null && !Array.isArray(toolCall.function)) {
+      const func = toolCall.function as Record<string, unknown>;
+      const args = typeof func.arguments === 'string' ? func.arguments : '';
+      if (args) {
+        try {
+          const parsed = JSON.parse(args);
+          rawResult = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)
+            : { action: 'answer', response: 'Desculpe, não entendi o comando.' };
+        } catch {
+          rawResult = { action: 'answer', response: 'Desculpe, não entendi o comando.' };
+        }
+      } else {
         rawResult = { action: 'answer', response: 'Desculpe, não entendi o comando.' };
       }
     } else {
-      const content = aiData.choices?.[0]?.message?.content || '';
-      try { rawResult = JSON.parse(content); } catch {
-        rawResult = { action: 'answer', response: content || 'Desculpe, não entendi.' };
+      const content = (typeof aiDataObj.choices !== 'undefined' && Array.isArray(aiDataObj.choices) && aiDataObj.choices.length > 0
+        && typeof aiDataObj.choices[0] === 'object' && aiDataObj.choices[0] !== null && !Array.isArray(aiDataObj.choices[0]))
+        ? (aiDataObj.choices[0] as Record<string, unknown>)
+        : null;
+      const message = content && typeof content.message === 'object' && content.message !== null && !Array.isArray(content.message)
+        ? (content.message as Record<string, unknown>)
+        : null;
+      const contentStr = message && typeof message.content === 'string' ? message.content : '';
+      if (contentStr) {
+        try {
+          const parsed = JSON.parse(contentStr);
+          rawResult = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+            ? (parsed as Record<string, unknown>)
+            : { action: 'answer', response: contentStr };
+        } catch {
+          rawResult = { action: 'answer', response: contentStr || 'Desculpe, não entendi.' };
+        }
+      } else {
+        rawResult = { action: 'answer', response: 'Desculpe, não entendi.' };
       }
     }
 

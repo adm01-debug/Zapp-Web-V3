@@ -49,7 +49,7 @@ async function invoke<T>(action: string, payload: Record<string, unknown> = {}):
   });
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-  return data as T;
+  return data as T; // ignore-audit: narrows Supabase query result to local interface
 }
 
 const reasonIcon = {
@@ -76,19 +76,25 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
 
   const eventsQuery = useQuery({
     queryKey: ['incident-events', pause?.id, sinceMin],
-    queryFn: () => invoke<{ items: AuthEvent[] }>('recent_events', {
-      instance: pause!.instance_name,
-      since_minutes: sinceMin,
-      limit: 50,
-    }),
+    queryFn: () => {
+      if (!pause) return Promise.resolve({ items: [] as AuthEvent[] });
+      return invoke<{ items: AuthEvent[] }>('recent_events', {
+        instance: pause.instance_name,
+        since_minutes: sinceMin,
+        limit: 50,
+      });
+    },
     enabled: open,
   });
 
   const markMut = useMutation({
-    mutationFn: () => invoke<{ pause: IncidentPause }>('mark_investigated', {
-      pause_id: pause!.id,
-      notes: notes.trim() || null,
-    }),
+    mutationFn: () => {
+      if (!pause) return Promise.reject(new Error('No active pause'));
+      return invoke<{ pause: IncidentPause }>('mark_investigated', {
+        pause_id: pause.id,
+        notes: notes.trim() || null,
+      });
+    },
     onSuccess: () => {
       toast.success('Incidente marcado como investigado');
       qc.invalidateQueries({ queryKey: ['instance-pauses'] });

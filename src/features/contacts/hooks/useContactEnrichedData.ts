@@ -95,7 +95,7 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching enriched contact data:', error);
         return null;
       }
-      return data as EnrichedContactData;
+      return data as EnrichedContactData; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!localId,
   });
@@ -114,7 +114,7 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching AI tags:', error);
         return [];
       }
-      return data as AIConversationTag[];
+      return data as AIConversationTag[]; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!localId,
   });
@@ -135,7 +135,7 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching SLA info:', error);
         return null;
       }
-      return data as SLAInfo | null;
+      return data as SLAInfo | null; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!localId,
   });

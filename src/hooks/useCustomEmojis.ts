@@ -41,7 +41,7 @@ export function useCustomEmojis(open: boolean) {
       .order('use_count', { ascending: false })
       .limit(500);
     if (!mountedRef.current) return;
-    if (!error && data) setEmojis(data as CustomEmoji[]);
+    if (!error && data) setEmojis(data as CustomEmoji[]); // ignore-audit: narrows nullable DB fields (category, is_favorite, use_count) to non-null
     setLoading(false);
   }, [mountedRef]);
 

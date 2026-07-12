@@ -16,10 +16,10 @@ import {
 
 const log = getLogger('useFailedMessages');
 
+type _SupaRpc = { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }> };
 // Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
-
 const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
-  (supabase as any).rpc(fn, args) as Promise<{ data: T; error: Error | null }>;
+  (supabase as unknown as _SupaRpc).rpc(fn, args) as Promise<{ data: T; error: Error | null }>; // ignore-audit — DLQ RPCs not yet in generated Supabase types
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
 
@@ -243,7 +243,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const { data, error } = await supabase.rpc('rpc_dlq_retry_now', { p_id: id });
       if (error) throw error;
       if (data === true) await logItemAction('retry', [id]);
-      return data as boolean;
+      return data as boolean; // ignore-audit: RPC returns unknown; boolean is the documented return type
     },
     onSuccess: (ok) => {
       if (ok) toast.success('Item marcado para reprocesso imediato.');
@@ -263,7 +263,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const { data, error } = await supabase.rpc('rpc_dlq_abandon', { p_id: id, p_reason: reason });
       if (error) throw error;
       if (data === true) await logItemAction('abandon', [id], reason);
-      return data as boolean;
+      return data as boolean; // ignore-audit: RPC returns unknown; boolean is the documented return type
     },
     onSuccess: (ok) => {
       if (ok) toast.success('Item abandonado.');
@@ -310,7 +310,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_reason: reason,
       });
       if (error) throw error;
-      const affected = (data as number | null) ?? 0;
+      const affected = (data as number | null) ?? 0; // ignore-audit: RPC returns unknown; number is the documented return type
       if (affected > 0) await logItemAction('bulk_abandon', ids, reason);
       return affected;
     },

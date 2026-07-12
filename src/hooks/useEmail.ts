@@ -55,10 +55,10 @@ const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-')
 const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({
     ...row,
-    thread_id: row.id,
-    email_thread_id: row.gmail_thread_id != null ? String(row.gmail_thread_id) : null,
-    account_id: row.gmail_account_id,
-    unread_count: row.is_unread ? Math.max(row.message_count ?? 1, 1) : 0,
+    thread_id: row['id'],
+    email_thread_id: row['gmail_thread_id'] != null ? String(row['gmail_thread_id']) : null,
+    account_id: row['gmail_account_id'],
+    unread_count: row['is_unread'] ? Math.max(Number(row['message_count'] ?? 1), 1) : 0,
   });
 
 /**
@@ -153,8 +153,8 @@ export function useEmail() {
       ) {
         log.warn('Email schema unavailable — using mock accounts');
         setAccounts(GMAIL_MOCKS.accounts);
-        if (GMAIL_MOCKS.accounts.length > 0 && !activeAccountId) {
-          setActiveAccountId(GMAIL_MOCKS.accounts[0].id);
+        if (GMAIL_MOCKS.accounts.length > 0) {
+          setActiveAccountId((prev) => prev || GMAIL_MOCKS.accounts[0].id);
         }
         setSchemaStatus({ ok: false, lastChecked: new Date() });
       } else {
@@ -165,12 +165,12 @@ export function useEmail() {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
       const accs = emailMappers.accounts(Array.isArray(data) ? data : []);
       setAccounts(accs);
-      if (accs.length > 0 && !activeAccountId) {
-        setActiveAccountId(accs[0].id);
+      if (accs.length > 0) {
+        setActiveAccountId((prev) => prev || accs[0].id);
       }
     }
     setIsLoading(false);
-  }, [activeAccountId]);
+  }, []);
 
   // ── Verificar status dos tokens ────────────────────────────────────
   const checkTokenStatus = useCallback(async () => {

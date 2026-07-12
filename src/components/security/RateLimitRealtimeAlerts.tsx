@@ -70,7 +70,7 @@ export function RateLimitRealtimeAlerts() {
     // Subscribe to new alerts
     const channel = supabase
       .channel('security-alerts')
-      .on(
+      .on<SecurityAlert>(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'security_alerts' },
         (payload) => {
@@ -80,7 +80,7 @@ export function RateLimitRealtimeAlerts() {
           setAlerts((prev) => [newAlert, ...prev].slice(0, 10));
 
           // Play sound for critical alerts
-          if (newAlert.severity === 'critical' || newAlert.severity === 'high') {
+          if (payload.new.severity === 'critical' || payload.new.severity === 'high') {
             playAlertSound();
           }
         }

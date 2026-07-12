@@ -41,7 +41,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
       if (conversation.type === 'direct' && otherMemberId) {
         const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').eq('id', otherMemberId).single();
         if (error) throw error;
-        return data as MemberProfile;
+        return data as MemberProfile; // ignore-audit: MemberProfile maps a subset of profiles columns; select explicitly lists them
       }
       return null;
     },

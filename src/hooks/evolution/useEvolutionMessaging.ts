@@ -10,18 +10,8 @@ import type {
 } from '../evolutionApi.types';
 
 export function useEvolutionMessaging(
-  callApi: (
-    action: string,
-    body?: object,
-    methodOrOptions?: HttpMethod | CallApiOptions
-  ) => Promise<unknown>,
-  withToast: (
-    action: string,
-    body: object | undefined,
-    successMsg: string,
-    errorMsg: string,
-    methodOrOptions?: HttpMethod | CallApiOptions
-  ) => Promise<unknown>
+  callApi: (action: string, body?: object, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>,
+  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>
 ) {
   // ============================================================
   // SEND MESSAGES

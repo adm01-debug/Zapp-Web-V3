@@ -95,7 +95,7 @@ export function AuditLogDashboard() {
     const { data, error } = await query;
     if (!mountedRef.current) return;
     if (!error && data) {
-      setLogs(data as AuditLog[]);
+      setLogs(data as AuditLog[]); // ignore-audit: narrows details from Supabase Json to Record<string,unknown>
 
       const today = new Date().toISOString().split('T')[0];
       const todayLogs = data.filter((l) => l.created_at.startsWith(today));

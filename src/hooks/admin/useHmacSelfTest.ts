@@ -148,7 +148,7 @@ export function useHmacSelfTest(instance: string, includeNegative: boolean) {
         body: { instance, include_negative: includeNegative },
       });
       if (error) throw error;
-      const r = data as SelfTestResult;
+      const r = data as SelfTestResult; // ignore-audit: narrows Supabase query result to local interface
       setResult(r);
       setLastRunAt(new Date());
       if (r.ok) toast.success('HMAC OK — secret válido');

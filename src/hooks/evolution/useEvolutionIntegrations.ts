@@ -18,13 +18,7 @@ import {
 
 export function useEvolutionIntegrations(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
-  withToast: (
-    action: string,
-    body: object | undefined,
-    successMsg: string,
-    errorMsg: string,
-    method?: HttpMethod
-  ) => Promise<unknown>
+  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
 ) {
   // Profile
   // v2.3.7 has a regression on `fetch-profile`; if the endpoint 404s we

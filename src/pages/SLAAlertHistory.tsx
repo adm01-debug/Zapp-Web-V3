@@ -168,7 +168,7 @@ export default function SLAAlertHistory() {
               <ToggleGroup
                 type="single"
                 value={severity}
-                onValueChange={(v) => v && setSeverity(v as SeverityFilter)}
+                onValueChange={(v) => v && setSeverity(v as SeverityFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
                 size="sm"
                 variant="outline"
                 aria-label="Filtrar por severidade"

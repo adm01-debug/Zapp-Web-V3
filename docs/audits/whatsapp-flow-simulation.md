@@ -1,15 +1,15 @@
 # Simulação do Fluxo WhatsApp Multi-Atendimento
 
-Execução: 2026-07-12T19:51:52.249Z
+Execução: 2026-07-12T21:02:41.493Z
 Cenários: **693** · Mensagens simuladas: **13860**
 
 ## KPIs agregados
 
 | Métrica | Valor |
 |---|---|
-| Sent | 3177 (22.9%) |
-| Failed | 10550 |
-| Processed | 34821 |
+| Sent | 3182 (23.0%) |
+| Failed | 10546 |
+| Processed | 34808 |
 | Orphan processing | 0 |
 | Double sends | 0 |
 
@@ -26,7 +26,7 @@ Cenários: **693** · Mensagens simuladas: **13860**
 
 | Falha | Runs | Sent | Failed | Avg attempts (sucesso) |
 |---|---|---|---|---|
-| `none` | 63 | 1077 | 50 | 1 |
+| `none` | 63 | 1082 | 46 | 1 |
 | `http_401` | 63 | 0 | 1260 | 0 |
 | `http_429` | 63 | 0 | 1260 | 0 |
 | `http_500` | 63 | 0 | 1260 | 0 |

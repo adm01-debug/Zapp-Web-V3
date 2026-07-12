@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Loader2, ShieldCheck, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from '@/hooks/use-toast';
 
 interface OfficialApiConfigDialogProps {
@@ -59,14 +60,12 @@ export function OfficialApiConfigDialog({
     setLoading(true);
     (async () => {
       try {
-        // View not in generated types — cast only the data result, not the client
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const res = await (supabase as any)
-          .from('whatsapp_official_credentials_safe')
+        // View not in generated types — use fromTable helper for dynamic table access
+        const res = await fromTable('whatsapp_official_credentials_safe')
           .select('phone_number_id, waba_id, has_access_token, has_app_secret')
           .eq('connection_id', connectionId)
           .maybeSingle();
-        const data = res.data as SafeCredentialView | null;
+        const data = res.data as SafeCredentialView | null; // ignore-audit: narrows Supabase query result to local interface
         if (cancelled) return;
         if (data) {
           setForm({
@@ -109,10 +108,8 @@ export function OfficialApiConfigDialog({
     };
     if (form.access_token) payload.access_token = form.access_token;
     if (form.app_secret) payload.app_secret = form.app_secret;
-    // Table not in generated types — cast only the result
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
-      .from('whatsapp_official_credentials')
+    // Table not in generated types — use fromTable helper for dynamic table access
+    const { error } = await fromTable('whatsapp_official_credentials')
       .upsert(payload, { onConflict: 'connection_id' }) as { error: { message: string } | null };
     setSaving(false);
     if (error) {

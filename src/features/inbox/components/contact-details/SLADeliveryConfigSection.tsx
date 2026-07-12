@@ -65,8 +65,8 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
       toast.success('Configurações de SLA salvas');
       queryClient.invalidateQueries({ queryKey: ['sla-delivery-config', contactId] });
     },
-    onError: (err: unknown) => {
-      toast.error(`Erro ao salvar: ${err instanceof Error ? err.message : String(err)}`);
+    onError: (err: Error) => {
+      toast.error(`Erro ao salvar: ${err.message}`);
     },
   });
 

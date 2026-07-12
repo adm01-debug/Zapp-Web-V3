@@ -232,7 +232,7 @@ export async function crossTabDedupe<T>(
     if (!replay) {
       recordDedupeEvent({ key, outcome: 'follower-replay', durationMs: Date.now() - startedAt, ok: true });
       closeTestChannel();
-      return undefined as T;
+      return undefined as T; // ignore-audit: intentional undefined return as T — follower path with no replay; caller expects possible undefined
     }
     const outcome = await awaitBroadcast<T>(key, ttlMs, channel);
     if ('value' in outcome) {

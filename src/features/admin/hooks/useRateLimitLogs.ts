@@ -36,7 +36,7 @@ export function useRateLimitLogs() {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
-      if (!error && data) return data as RateLimitLog[];
+      if (!error && data) return data as RateLimitLog[]; // ignore-audit: narrows Supabase query result to local interface
       return [];
     },
   });
@@ -45,13 +45,12 @@ export function useRateLimitLogs() {
   useEffect(() => {
     const channel = supabase
       .channel('rate-limit-logs')
-      .on(
+      .on<RateLimitLog>(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'rate_limit_logs' },
         (payload) => {
-          const newLog = payload.new as RateLimitLog;
           queryClient.setQueryData<RateLimitLog[]>(QUERY_KEY, (prev) =>
-            [newLog, ...(prev ?? [])].slice(0, 100)
+            [payload.new, ...(prev ?? [])].slice(0, 100)
           );
         }
       )

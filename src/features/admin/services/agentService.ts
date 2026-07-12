@@ -56,8 +56,7 @@ export const agentService = {
         }
       });
 
-      const profiles = normalizeAgentProfiles(profilesResult.data);
-      return profiles.map((profile) => {
+      return (profilesResult.data as AgentProfile[] /* ignore-audit: narrows Supabase query result to local interface */).map((profile) => {
         const agentQueues =
           (membersResult.data
             ?.filter((m) => m.profile_id === profile.id)

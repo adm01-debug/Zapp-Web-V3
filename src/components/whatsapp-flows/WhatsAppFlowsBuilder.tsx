@@ -111,7 +111,7 @@ export function WhatsAppFlowsBuilder() {
     const { error: insertError } = await supabase.from('whatsapp_flows').insert({
       name: formName,
       description: formDescription || null,
-      screens: defaultScreens as Json,
+      screens: defaultScreens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
     });
     if (insertError) {
       toast({ title: 'Erro', description: insertError.message, variant: 'destructive' });
@@ -136,7 +136,7 @@ export function WhatsAppFlowsBuilder() {
     setSelectedFlow({ ...selectedFlow, screens });
     await supabase
       .from('whatsapp_flows')
-      .update({ screens: screens as Json })
+      .update({ screens: screens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */ })
       .eq('id', selectedFlow.id);
   };
 

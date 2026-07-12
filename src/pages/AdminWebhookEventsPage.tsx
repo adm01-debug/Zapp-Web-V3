@@ -243,7 +243,7 @@ export default function AdminWebhookEventsPage() {
           <ToggleGroup
             type="single"
             value={viewMode}
-            onValueChange={(v) => v && setViewMode(v as 'events' | 'calls')}
+            onValueChange={(v) => v && setViewMode(v as 'events' | 'calls' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
             size="sm"
           >
             <ToggleGroupItem value="events" aria-label="Lista de eventos">
@@ -302,7 +302,7 @@ export default function AdminWebhookEventsPage() {
           </FilterField>
 
           <FilterField label="Tipo de evento">
-            <Select value={eventType} onValueChange={(v) => setEventType(v as EventTypeFilter)}>
+            <Select value={eventType} onValueChange={(v) => setEventType(v as EventTypeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
               <SelectTrigger className="w-[220px]" data-testid="filter-webhook-event-type">
                 <SelectValue />
               </SelectTrigger>
@@ -335,7 +335,7 @@ export default function AdminWebhookEventsPage() {
           <FilterField label="Tipo de mensagem">
             <Select
               value={messageType}
-              onValueChange={(v) => setMessageType(v as MessageTypeFilter)}
+              onValueChange={(v) => setMessageType(v as MessageTypeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
             >
               <SelectTrigger className="w-[200px]" data-testid="filter-webhook-message-type">
                 <SelectValue />
@@ -351,7 +351,7 @@ export default function AdminWebhookEventsPage() {
           </FilterField>
 
           <FilterField label="Status">
-            <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+            <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
               <SelectTrigger className="w-[160px]" data-testid="filter-webhook-status">
                 <SelectValue />
               </SelectTrigger>

@@ -41,7 +41,7 @@ export function useNPSSurveys() {
 
       if (error) throw error;
       if (!mountedRef.current) return;
-      setSurveys((data as NPSSurvey[]) || []);
+      setSurveys((data as NPSSurvey[]) || []); // ignore-audit: narrows survey_type from string to 'periodic'|'post_resolution'|'manual'
     } catch (err) {
       log.error('Error fetching NPS surveys:', err);
     } finally {

@@ -14,7 +14,7 @@
 const isDev =
   typeof import.meta !== 'undefined' &&
   // Vite injects this; also true in `bun run dev`
-  (import.meta as unknown as { env?: { DEV?: boolean; MODE?: string } }).env?.DEV === true;
+  (import.meta as unknown as { env?: { DEV?: boolean; MODE?: string } }).env?.DEV === true; // ignore-audit — Vite injects import.meta.env but it's not in TS lib
 
 type Bind = {
   event?: string;
@@ -144,7 +144,7 @@ export function wrapMessagesHandler<T>(
 ): (payload: T) => void {
   return (payload: T) => {
     try {
-      const p = payload as unknown as AnyPayload;
+      const p = payload as unknown as AnyPayload; // ignore-audit — generic T not constrained to AnyPayload; shape is always compatible at runtime
       const evt = String(p?.eventType ?? '?');
       const rowId =
         (p?.new && (p.new as { id?: string | number }).id) ??

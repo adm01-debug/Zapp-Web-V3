@@ -3,13 +3,7 @@ import type { HttpMethod } from './useEvolutionApiCore';
 
 export function useEvolutionGroups(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
-  withToast: (
-    action: string,
-    body: object | undefined,
-    successMsg: string,
-    errorMsg: string,
-    method?: HttpMethod
-  ) => Promise<unknown>
+  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
 ) {
   const createGroup = useCallback(
     (instanceName: string, subject: string, description: string, participants: string[]) =>

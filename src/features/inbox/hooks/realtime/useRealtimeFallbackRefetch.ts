@@ -61,7 +61,7 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
     void queryClient.invalidateQueries({ queryKey: ['contact'] });
     // Tag the reason on the window for ad-hoc debugging.
     try {
-      (window as unknown as { __lastRealtimeFallback?: string }).__lastRealtimeFallback =
+      (window as unknown as { __lastRealtimeFallback?: string }).__lastRealtimeFallback = // ignore-audit — window debug tag for devtools inspection
         `${new Date().toISOString()} :: ${reason}`;
     } catch {
       /* noop */

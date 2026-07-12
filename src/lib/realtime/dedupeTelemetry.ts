@@ -180,7 +180,7 @@ export function recordDedupeEvent(
 
   if (typeof window !== 'undefined') {
     try {
-      (window as unknown as { __dedupeTelemetry?: DedupeTelemetrySnapshot }).__dedupeTelemetry =
+      (window as unknown as { __dedupeTelemetry?: DedupeTelemetrySnapshot }).__dedupeTelemetry = // ignore-audit — window debug property for devtools inspection
         getDedupeTelemetrySnapshot();
     } catch {
       /* noop */
@@ -216,7 +216,7 @@ export function resetDedupeTelemetry(): void {
   state.recentEvents = [];
   if (typeof window !== 'undefined') {
     try {
-      (window as unknown as { __dedupeTelemetry?: DedupeTelemetrySnapshot }).__dedupeTelemetry =
+      (window as unknown as { __dedupeTelemetry?: DedupeTelemetrySnapshot }).__dedupeTelemetry = // ignore-audit — window debug property for devtools inspection
         getDedupeTelemetrySnapshot();
     } catch {
       /* noop */

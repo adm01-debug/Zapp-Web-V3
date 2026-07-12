@@ -38,6 +38,14 @@ import { ptBR } from 'date-fns/locale';
 
 const log = getLogger('InstanceSettingsDialog');
 
+interface ReconnectionLog {
+  id: string;
+  result: 'success' | string;
+  created_at: string;
+  attempt_number: number;
+  error_message: string | null;
+}
+
 interface InstanceSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -108,24 +116,6 @@ export function InstanceSettingsDialog({
     readMessages: false,
     readStatus: false,
     syncFullHistory: false,
-  });
-  const [profile, setProfile] = useState({ name: '', status: '', pictureUrl: '' });
-  const [privacy, setPrivacy] = useState<Record<string, string>>({
-    readreceipts: 'all',
-    profile: 'all',
-    status: 'contacts',
-    online: 'all',
-    last: 'contacts',
-    groupadd: 'contacts',
-  });
-  const [labels, setLabels] = useState<{ id: string; name: string; color: string }[]>([]);
-
-  // Reconnection & Audit state
-  const [reconnectConfig, setReconnectConfig] = useState({
-    enabled: true,
-    interval: 30,
-    maxAttempts: 5,
-    loopProtection: false,
   });
   const [auditLogs, setAuditLogs] = useState<ReconnectionLog[]>([]);
   const [loadingTab, setLoadingTab] = useState('');

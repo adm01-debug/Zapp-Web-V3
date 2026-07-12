@@ -35,9 +35,12 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const candidateFiles = files
-        ?.filter(f => new Date(f.created_at) < oneDayAgo)
-        .map(f => f.name) || [];
+      const fileArray = Array.isArray(files) ? files : [];
+      const candidateFiles = fileArray
+        .filter((f): f is { created_at: string; name: string } =>
+          typeof f === 'object' && f !== null && typeof f.created_at === 'string' && typeof f.name === 'string' && new Date(f.created_at) < oneDayAgo
+        )
+        .map(f => f.name);
 
       // F11 security fix: only delete files with no active reference in evolution_messages.
       // Query by storage path suffix (not full URL) so custom domains, CDN rewrites, and URL encoding
@@ -65,18 +68,23 @@ Deno.serve(async (req) => {
             break;
           }
 
-          for (const row of refRows ?? []) {
-            if (row.media_url) {
-              const parts = (row.media_url as string).split(bucketPathSegment);
-              if (parts.length > 1) {
-                // Take only the first path segment (filename) to ignore query strings
-                const fileName = parts[parts.length - 1].split('?')[0].split('#')[0];
-                if (candidateSet.has(fileName)) referencedNames.add(fileName);
+          const refRowArray = Array.isArray(refRows) ? refRows : [];
+          for (const row of refRowArray) {
+            if (typeof row === 'object' && row !== null) {
+              const rowObj = row as Record<string, unknown>;
+              const mediaUrl = rowObj.media_url;
+              if (typeof mediaUrl === 'string') {
+                const parts = mediaUrl.split(bucketPathSegment);
+                if (parts.length > 1) {
+                  // Take only the first path segment (filename) to ignore query strings
+                  const fileName = parts[parts.length - 1].split('?')[0].split('#')[0];
+                  if (candidateSet.has(fileName)) referencedNames.add(fileName);
+                }
               }
             }
           }
 
-          if (!refRows || refRows.length < PAGE_SIZE) break;
+          if (refRowArray.length < PAGE_SIZE) break;
           page++;
         }
 
@@ -97,12 +105,13 @@ Deno.serve(async (req) => {
           log.error(`Erro ao deletar arquivos de ${bucketName}`, { error: deleteError.message });
           results[bucketName] = { error: "delete_failed" };
         } else {
-          results[bucketName] = { deleted: data?.length || 0 };
+          const deletedCount = Array.isArray(data) ? data.length : 0;
+          results[bucketName] = { deleted: deletedCount };
 
           // Log to audit table
           await supabase.from("storage_cleanup_logs").insert({
             bucket_id: bucketName,
-            files_deleted: data?.length || 0,
+            files_deleted: deletedCount,
             status: "success"
           });
         }

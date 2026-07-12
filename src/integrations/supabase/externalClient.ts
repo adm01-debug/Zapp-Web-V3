@@ -125,5 +125,5 @@ export function callExtRpc(
   args: Record<string, unknown>,
 ): Promise<{ data: unknown; error: { message: string } | null }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (client as any).rpc(fn, args);
+  return (client as any).rpc(fn, args); // ignore-audit — external DB schema RPCs not in generated types
 }
