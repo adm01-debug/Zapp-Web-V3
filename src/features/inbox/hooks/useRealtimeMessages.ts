@@ -32,6 +32,87 @@ export type {
 } from './realtime/types';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
+const log = getLogger('RealtimeMessages');
+const SEEDED_CONTACT_LIMIT = 500;
+const RECENT_MESSAGES_LIMIT = 1000;
+const CONTACT_FETCH_CHUNK_SIZE = 200;
+
+export interface NewMessageNotification {
+  id: string;
+  contactId: string;
+  contactName: string;
+  contactAvatar: string | null;
+  message: string;
+  timestamp: Date;
+}
+
+export interface RealtimeMessage {
+  id: string;
+  contact_id: string | null;
+  agent_id: string | null;
+  content: string;
+  sender: string;
+  message_type: string;
+  media_url: string | null;
+  is_read: boolean | null;
+  status:
+    | 'sending'
+    | 'retrying'
+    | 'sent'
+    | 'delivered'
+    | 'read'
+    | 'played'
+    | 'failed'
+    | 'failed_auth'
+    | 'failed_retries'
+    | null;
+  status_updated_at: string | null;
+  created_at: string;
+  updated_at: string;
+  external_id: string | null;
+  whatsapp_connection_id: string | null;
+  transcription: string | null;
+  transcription_status: string | null;
+  is_deleted: boolean | null;
+  /** Timestamp do soft delete (protocolMessage REVOKE). Null = mensagem viva. */
+  deleted_at?: string | null;
+  retry_attempt?: number | null;
+  retry_total?: number | null;
+  /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
+  contactAvatar?: string | null;
+  reactions?: any[] | null;
+}
+
+export interface ConversationContact {
+  id: string;
+  name: string;
+  surname: string | null;
+  nickname: string | null;
+  phone: string;
+  email: string | null;
+  avatar_url: string | null;
+  tags: string[] | null;
+  company: string | null;
+  job_title: string | null;
+  assigned_to: string | null;
+  queue_id: string | null;
+  created_at: string;
+  updated_at: string;
+  whatsapp_connection_id: string | null;
+  contact_type: string | null;
+  group_category: string | null;
+  ai_sentiment: string | null;
+  channel_type: string | null;
+  channel_connection_id: string | null;
+}
+
+export interface ConversationWithMessages {
+  contact: ConversationContact;
+  messages: RealtimeMessage[];
+  unreadCount: number;
+  lastMessage: RealtimeMessage | null;
+}
+
 export type ConversationSendState = 'idle' | 'retrying' | 'failed';
 
 export function useRealtimeMessages() {
@@ -316,7 +397,7 @@ export function useRealtimeMessages() {
 
     return () => {
       active = false;
-      void dbRemoveChannel('messages', channel);
+      channel.unsubscribe();
     };
   }, [fetchConversations, handleNewMessage, handleMessageUpdate, handleMessageDelete]);
 

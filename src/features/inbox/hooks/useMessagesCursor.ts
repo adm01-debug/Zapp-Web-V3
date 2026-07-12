@@ -55,7 +55,7 @@ function dedupeAndSort(rows: EvolutionMessageLite[]): EvolutionMessageLite[] {
   const seen = new Map<string, EvolutionMessageLite>();
   for (const r of rows) seen.set(r.id, r);
   return Array.from(seen.values()).sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 }
 
@@ -78,9 +78,12 @@ export function useMessagesCursor({
   // Lock current contact identity so async callbacks ignore stale results.
   const remoteJidRef = useRef<string | null>(remoteJid);
 
-  useEffect(() => () => {
-    abortRef.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    []
+  );
 
   // Compute flat sorted messages from pages, deduped.
   const messages = useMemo(() => dedupeAndSort(pages.flat()), [pages]);
@@ -96,8 +99,15 @@ export function useMessagesCursor({
       // NOTE: usa `externalSupabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
       // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `dbRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ext = externalSupabase as any;
+      interface ExternalSupabaseClient {
+        rpc(
+          name: string,
+          params?: Record<string, unknown>
+        ): {
+          abortSignal?(signal: AbortSignal): { data: unknown; error: unknown };
+        };
+      }
+      const ext = externalSupabase as ExternalSupabaseClient;
       const builder = ext.rpc('rpc_list_messages_lite', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
@@ -121,10 +131,10 @@ export function useMessagesCursor({
       const rows = ((data || []) as EvolutionMessageLite[]).filter((m) => !!m && !!m.id);
       // RPC retorna DESC por created_at; convertemos para ASC.
       return [...rows].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
     },
-    [remoteJid, instanceName, pageSize],
+    [remoteJid, instanceName, pageSize]
   );
 
   // First-page load (also used by refetch).
@@ -213,9 +223,20 @@ export function useMessagesCursor({
     if (!enabled || !remoteJid || !externalSupabase) return;
 
     // externalSupabase is loosely typed (no Database generic), so the
-    // postgres_changes overload is not visible. Cast to any for dynamic access.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = externalSupabase as any;
+    // postgres_changes overload is not visible. Define minimal interface for dynamic access.
+    interface RealtimeClient {
+      channel(name: string): RealtimeChannel;
+      removeChannel(channel: RealtimeChannel): void;
+    }
+    interface RealtimeChannel {
+      on(
+        event: string,
+        config: Record<string, unknown>,
+        callback: (payload: Record<string, unknown>) => void
+      ): RealtimeChannel;
+      subscribe(): void;
+    }
+    const client = externalSupabase as RealtimeClient;
 
     const channel = client
       .channel(`evolution_messages:${remoteJid}`)
@@ -241,7 +262,7 @@ export function useMessagesCursor({
             const last = prev[prev.length - 1];
             return [...prev.slice(0, -1), [...last, m]];
           });
-        },
+        }
       )
       .on(
         'postgres_changes',
@@ -257,9 +278,9 @@ export function useMessagesCursor({
           if (!raw || !raw.id) return;
           const m = toEvolutionMessageLite(raw);
           setPages((prev) =>
-            prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x))),
+            prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x)))
           );
-        },
+        }
       )
       .on(
         'postgres_changes',
@@ -274,17 +295,19 @@ export function useMessagesCursor({
           const id = payload.old?.id;
           if (!id) return;
           setPages((prev) => prev.map((page) => page.filter((x) => x.id !== id)));
-        },
+        }
       )
       .subscribe();
 
     return () => {
-      client.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [enabled, remoteJid]);
 
   const addMessage = useCallback((input: EvolutionMessageLite | EvolutionMessage) => {
-    const isFull = 'payload' in (input as Record<string, unknown>) || 'raw_data' in (input as Record<string, unknown>);
+    const isFull =
+      'payload' in (input as Record<string, unknown>) ||
+      'raw_data' in (input as Record<string, unknown>);
     const m: EvolutionMessageLite = isFull
       ? toEvolutionMessageLite(input as Partial<EvolutionMessage> & { id: string })
       : (input as EvolutionMessageLite);
@@ -298,7 +321,7 @@ export function useMessagesCursor({
 
   const updateMessage = useCallback((id: string, updates: Partial<EvolutionMessageLite>) => {
     setPages((prev) =>
-      prev.map((page) => page.map((x) => (x.id === id ? { ...x, ...updates } : x))),
+      prev.map((page) => page.map((x) => (x.id === id ? { ...x, ...updates } : x)))
     );
   }, []);
 
