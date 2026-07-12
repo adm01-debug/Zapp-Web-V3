@@ -10,7 +10,7 @@ interface ChannelsTabProps {
   channels?: AlertChannel[];
   onTest: (id: number) => void;
   isTesting: boolean;
-  testResult?: any;
+  testResult?: unknown;
 }
 
 export const ChannelsTab = React.memo(({ channels, onTest, isTesting, testResult }: ChannelsTabProps) => {

@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { mirrorExternalSignIn, mirrorExternalSignOut } from '@/integrations/supabase/externalSessionBridge';
 import { Session } from '@supabase/supabase-js';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 export interface Profile {
   id: string;
@@ -53,7 +54,7 @@ export const authService = {
     return await supabase.auth.signOut();
   },
 
-  async getProfile(userId: string): Promise<{ data: Profile | null; error: any }> {
+  async getProfile(userId: string): Promise<{ data: Profile | null; error: PostgrestError | null }> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
