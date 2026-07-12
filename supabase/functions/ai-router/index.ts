@@ -101,11 +101,16 @@ const ACTION_RATE_LIMITS: Record<string, number> = {
  * Clearing requestId ensures ctx object is ready for garbage collection and
  * prevents sensitive request identifiers from accumulating in memory.
  */
+/**
+ * IMPROVEMENT 7: Correlation ID for distributed tracing
+ * Enables tracking requests across multiple services (ai-router → handlers → AI Gateway → External APIs)
+ */
 interface RequestContext {
   userId: string;
   ip: string;
   action: string;
   requestId?: string; // Scoped to current request; cleared before response
+  correlationId: string; // IMPROVEMENT 7: Unique ID for tracing across services
   startTime: number;
 }
 
@@ -525,6 +530,16 @@ function sanitizeErrorMessage(errorMsg: string): string {
   return errorMsg.length > 200 ? errorMsg.substring(0, 200) : errorMsg;
 }
 
+/**
+ * IMPROVEMENT 7: Add correlationId to response headers for distributed tracing
+ * Wraps response with X-Correlation-ID header to enable request tracking
+ */
+function addCorrelationIdHeader(response: Response, correlationId: string): Response {
+  const headers = new Headers(response.headers);
+  headers.set('X-Correlation-ID', correlationId);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -533,6 +548,11 @@ Deno.serve(async (req) => {
   const log = new Logger("ai-router");
 
   try {
+    // ━━━ PHASE 0: Correlation ID Setup (IMPROVEMENT 7) ━━━
+    // Extract from X-Correlation-ID header or generate new UUID
+    const providedCorrelationId = req.headers.get('X-Correlation-ID') || req.headers.get('x-correlation-id');
+    const correlationId = providedCorrelationId || crypto.randomUUID?.() || `trace_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
     // ━━━ PHASE 1: Authentication & Basic Validation ━━━
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
@@ -541,7 +561,7 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     let action = "";
 
-    ctx = { userId, ip, action: "", startTime: performance.now() };
+    ctx = { userId, ip, action: "", startTime: performance.now(), correlationId };
 
     // C.15: Validate request body size to prevent DoS
     const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
@@ -658,17 +678,19 @@ Deno.serve(async (req) => {
 
         if (lockResult.acquired === true) {
           // Lock acquired, continue to handler
-          log.info("Idempotency lock acquired", { action, requestId });
+          log.info("Idempotency lock acquired", { action, requestId, correlationId: ctx.correlationId });
         } else if (lockResult.result !== undefined && lockResult.result !== null) {
           // Duplicate found and result is ready
           cachedResult = lockResult.result;
           const durationMs = performance.now() - ctx.startTime;
-          log.info("Deduplication hit (distributed lock)", { action, requestId, durationMs });
+          log.info("Deduplication hit (distributed lock)", { action, requestId, durationMs, correlationId: ctx.correlationId });
           ctx.requestId = "";
-          return jsonResponse({ ...(cachedResult as Record<string, unknown>), _cached: true }, 200, req);
+          // IMPROVEMENT 7: Add correlationId to dedup response
+          const dedupResponse = jsonResponse({ ...(cachedResult as Record<string, unknown>), _cached: true }, 200, req);
+          return addCorrelationIdHeader(dedupResponse, ctx.correlationId);
         } else {
           // Duplicate timeout or no result yet, proceed anyway (graceful degradation)
-          log.warn("Idempotency lock: duplicate timeout or unavailable, proceeding with processing", { action, requestId });
+          log.warn("Idempotency lock: duplicate timeout or unavailable, proceeding with processing", { action, requestId, correlationId: ctx.correlationId });
         }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -749,7 +771,9 @@ Deno.serve(async (req) => {
       ctx.requestId = "";
     }
 
-    return jsonResponse(result.data, 200, req);
+    // IMPROVEMENT 7: Add correlationId to response headers
+    const response = jsonResponse(result.data, 200, req);
+    return addCorrelationIdHeader(response, ctx.correlationId);
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const durationMs = ctx ? performance.now() - ctx.startTime : 0;
@@ -759,6 +783,7 @@ Deno.serve(async (req) => {
       error: errorMsg,
       duration: durationMs,
       userId: ctx?.userId,
+      correlationId: ctx?.correlationId, // IMPROVEMENT 7: Include in error logging
     });
 
     // FIX #9: Clear requestId state even on error to prevent state accumulation
@@ -766,7 +791,9 @@ Deno.serve(async (req) => {
       ctx.requestId = "";
     }
 
-    return errorResponse("Internal server error", 500, req);
+    // IMPROVEMENT 7: Add correlationId to error response
+    const errorResp = errorResponse("Internal server error", 500, req);
+    return ctx ? addCorrelationIdHeader(errorResp, ctx.correlationId) : errorResp;
   }
 });
 
