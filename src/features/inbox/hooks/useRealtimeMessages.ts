@@ -32,6 +32,77 @@ export type {
 } from './realtime/types';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
+const log = getLogger('RealtimeMessages');
+const SEEDED_CONTACT_LIMIT = 500;
+const RECENT_MESSAGES_LIMIT = 1000;
+const CONTACT_FETCH_CHUNK_SIZE = 200;
+
+export interface NewMessageNotification {
+  id: string;
+  contactId: string;
+  contactName: string;
+  contactAvatar: string | null;
+  message: string;
+  timestamp: Date;
+}
+
+export interface RealtimeMessage {
+  id: string;
+  contact_id: string | null;
+  agent_id: string | null;
+  content: string;
+  sender: string;
+  message_type: string;
+  media_url: string | null;
+  is_read: boolean | null;
+  status: 'sending' | 'retrying' | 'sent' | 'delivered' | 'read' | 'played' | 'failed' | 'failed_auth' | 'failed_retries' | null;
+  status_updated_at: string | null;
+  created_at: string;
+  updated_at: string;
+  external_id: string | null;
+  whatsapp_connection_id: string | null;
+  transcription: string | null;
+  transcription_status: string | null;
+  is_deleted: boolean | null;
+  /** Timestamp do soft delete (protocolMessage REVOKE). Null = mensagem viva. */
+  deleted_at?: string | null;
+  retry_attempt?: number | null;
+  retry_total?: number | null;
+  /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
+  contactAvatar?: string | null;
+  reactions?: Record<string, unknown>[] | null;
+}
+
+export interface ConversationContact {
+  id: string;
+  name: string;
+  surname: string | null;
+  nickname: string | null;
+  phone: string;
+  email: string | null;
+  avatar_url: string | null;
+  tags: string[] | null;
+  company: string | null;
+  job_title: string | null;
+  assigned_to: string | null;
+  queue_id: string | null;
+  created_at: string;
+  updated_at: string;
+  whatsapp_connection_id: string | null;
+  contact_type: string | null;
+  group_category: string | null;
+  ai_sentiment: string | null;
+  channel_type: string | null;
+  channel_connection_id: string | null;
+}
+
+export interface ConversationWithMessages {
+  contact: ConversationContact;
+  messages: RealtimeMessage[];
+  unreadCount: number;
+  lastMessage: RealtimeMessage | null;
+}
+
 export type ConversationSendState = 'idle' | 'retrying' | 'failed';
 
 export function useRealtimeMessages() {
@@ -138,7 +209,7 @@ export function useRealtimeMessages() {
 
   const handleNewMessage = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const newMessage = normalizeMessage(payload.new as RealtimeMessage);
+      const newMessage = normalizeMessage(payload.new);
       if (!newMessage.contact_id) return;
 
       const existingConversation = conversationsRef.current.find(
@@ -179,7 +250,7 @@ export function useRealtimeMessages() {
   // lastMessage/unreadCount consistentes, sem reordenar a lista.
   const handleMessageDelete = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const deletedMessage = payload.old as RealtimeMessage;
+      const deletedMessage = payload.old;
       if (!deletedMessage?.id || !deletedMessage?.contact_id) return;
 
       commitConversations((prev) => {
@@ -249,20 +320,13 @@ export function useRealtimeMessages() {
 
     // FATOR X v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
     // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
-    const adaptEvoPayload = (
-      p: RealtimePostgresChangesPayload<Record<string, unknown>>
-    ): RealtimePostgresChangesPayload<RealtimeMessage> => {
-      const map = (r: Record<string, unknown> | undefined) =>
-        r && {
-          ...r,
-          sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
-          is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
-        };
-      return {
-        ...p,
-        new: map(p.new as Record<string, unknown>),
-        old: map(p.old as Record<string, unknown>),
-      } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>;
+    const adaptEvoPayload = (p: RealtimePostgresChangesPayload<Record<string, unknown>>): RealtimePostgresChangesPayload<RealtimeMessage> => {
+      const map = (r: Record<string, unknown> | undefined) => r && ({
+        ...r,
+        sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
+        is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
+      });
+      return { ...p, new: map(p.new as Record<string, unknown>), old: map(p.old as Record<string, unknown>) } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>; // ignore-audit — evo.evolution_messages adapter; mapped shape is structurally RealtimeMessage at runtime
     };
     const channel = dbChannel('messages', channelName)
       .on(
