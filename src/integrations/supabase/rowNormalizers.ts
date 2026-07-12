@@ -10,6 +10,7 @@ import {
   columnMap,
   type WhatsAppConnectionCanonical,
   type ContactCanonical,
+  type MessageCanonical,
 } from './columnMap';
 
 // Re-exporta os normalizadores de profile já consolidados em features/admin,
