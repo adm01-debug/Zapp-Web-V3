@@ -164,7 +164,7 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
 
           if (result?.error === 'CONFLICT') {
             setPendingData(data);
-            setConflict(result as unknown as ConflictInfo);
+            setConflict(result as ConflictInfo);
             setConflictOpen(true);
             return;
           }
