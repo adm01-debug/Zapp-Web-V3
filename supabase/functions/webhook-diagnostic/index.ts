@@ -7,6 +7,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Edge Function: WhatsApp Webhook Configuration Diagnostic & Auto-Fix
+ *
+ * Diagnoses webhook health across Evolution API instances by checking:
+ * - Connection state (open/disconnected) via /instance/connectionState
+ * - Webhook configuration (URL, events, enabled status) via /webhook/find
+ * - Message flow health (incoming/outgoing traffic last hour)
+ * - Auto-fix capability to restore webhook configuration to canonical state
+ *
+ * Security: Requires admin/supervisor role; validates instanceName regex to prevent path traversal.
+ * Severity Scoring: Composite health score (0-100) based on connection + webhook + traffic health.
+ * Actions: 'full-diagnostic' (default) or 'auto-fix' to restore webhook configuration atomically.
+ */
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });

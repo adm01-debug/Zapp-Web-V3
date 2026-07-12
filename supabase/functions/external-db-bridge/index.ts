@@ -20,6 +20,13 @@ interface TelemetryPayload {
 const SLOW_QUERY_THRESHOLD_MS = 3000;
 const VERY_SLOW_QUERY_THRESHOLD_MS = 8000;
 
+/**
+ * Classifies query performance severity based on execution duration and error status.
+ * Used for telemetry to prioritize slow/failing queries for optimization.
+ * @param durationMs - Query execution time in milliseconds
+ * @param hasError - Whether the query encountered an error
+ * @returns Severity classification: 'error', 'very_slow' (8s+), 'slow' (3s+), or 'ok'
+ */
 function classifySeverity(durationMs: number, hasError: boolean): string {
   if (hasError) return "error";
   if (durationMs >= VERY_SLOW_QUERY_THRESHOLD_MS) return "very_slow";
@@ -27,6 +34,13 @@ function classifySeverity(durationMs: number, hasError: boolean): string {
   return "ok";
 }
 
+/**
+ * Asynchronously emits database query telemetry to Supabase.
+ * Fire-and-forget pattern: silently swallows errors to prevent blocking operations.
+ * Telemetry helps identify performance bottlenecks, slow queries, and error patterns.
+ * @param supabaseAdmin - Supabase admin client (service role key)
+ * @param payload - Telemetry metrics (operation, duration, severity, etc.)
+ */
 async function emitTelemetry(supabaseAdmin: ReturnType<typeof createClient>, payload: TelemetryPayload): Promise<void> {
   try {
     await supabaseAdmin.from("query_telemetry").insert({
@@ -47,6 +61,25 @@ async function emitTelemetry(supabaseAdmin: ReturnType<typeof createClient>, pay
   }
 }
 
+/**
+ * Edge Function: External Database Bridge
+ *
+ * Proxies SELECT, INSERT, UPDATE, DELETE, and RPC operations to Supabase database
+ * with comprehensive validation, RLS enforcement, and telemetry.
+ * Implements table whitelist for write operations to prevent unauthorized modifications.
+ * Uses user-scoped client (RLS) for security and service-role admin for admin-only RPCs.
+ *
+ * Security:
+ * - Bearer token required for all requests
+ * - User authentication via Supabase.auth.getUser()
+ * - Write operations whitelisted to safe tables only
+ * - RLS policies enforced via user-scoped client
+ *
+ * Features:
+ * - Query timing & severity classification for performance monitoring
+ * - Fire-and-forget telemetry to prevent request blocking
+ * - Graceful error handling with structured responses
+ */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;

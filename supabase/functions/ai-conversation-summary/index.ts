@@ -4,6 +4,17 @@ import { AiConversationSummarySchema, parseBody } from "../_shared/schemas.ts";
 import { callAiWithTracking } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
 
+/**
+ * Edge Function: AI Conversation Summary Generator
+ *
+ * Generates AI-powered summaries and analyses of customer/contact conversations.
+ * Extracts conversation context (contact info, historical analyses), sends to AI API,
+ * and persists results to Supabase database. Implements rate limiting, user authentication,
+ * and dual-tier JSON parsing to handle AI response variations gracefully.
+ *
+ * Security: Uses RLS-enforced callerClient for writes to prevent cross-tenant data access.
+ * Error Handling: Protected JSON parsing with regex fallback prevents production crashes.
+ */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -138,6 +149,15 @@ Foque em:
 
     const toolCall = (data.choices as Array<{message: {tool_calls?: Array<{function: {arguments: string}}>; content?: string}}>)?.[0]?.message?.tool_calls?.[0];
 
+    /**
+     * Parse AI tool call arguments or fallback to unstructured content.
+     * Implements two-tier JSON parsing with regex-based recovery:
+     * 1. Direct parse of tool_call.function.arguments (fast path)
+     * 2. Regex extraction + parse for malformed but recoverable JSON (safety net)
+     * Each parse attempt is wrapped in try-catch to prevent silent failures.
+     * Falls back to default analysis structure if both parsing attempts fail.
+     * This prevents production crashes when AI returns incomplete or slightly malformed JSON.
+     */
     let analysisData;
     if (toolCall?.function?.arguments) {
       try {

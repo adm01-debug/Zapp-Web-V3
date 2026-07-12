@@ -2,6 +2,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { WebAuthnActionSchema, parseBody } from "../_shared/schemas.ts";
 
+/**
+ * Encodes an ArrayBuffer as base64url (RFC 4648 Section 5) without padding.
+ * Required for WebAuthn challenges and credential IDs which use base64url format.
+ * @param buffer - Binary data to encode
+ * @returns Base64url-encoded string (no padding)
+ */
 function base64URLEncode(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let str = '';
@@ -9,6 +15,12 @@ function base64URLEncode(buffer: ArrayBuffer): string {
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
+/**
+ * Decodes a base64url string (RFC 4648 Section 5) to Uint8Array.
+ * Inverse of base64URLEncode; handles padding variations from WebAuthn responses.
+ * @param str - Base64url-encoded string
+ * @returns Decoded binary data
+ */
 function base64URLDecode(str: string): Uint8Array {
   const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
   const padding = '='.repeat((4 - base64.length % 4) % 4);
@@ -18,16 +30,45 @@ function base64URLDecode(str: string): Uint8Array {
   return bytes;
 }
 
+/**
+ * Generates a cryptographically random 32-byte challenge for WebAuthn ceremonies.
+ * Used for both registration and authentication to prevent replay attacks.
+ * @returns Base64url-encoded 256-bit random challenge
+ */
 function generateChallenge(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   return base64URLEncode(array.buffer);
 }
 
+/**
+ * Extracts the Relying Party ID (hostname) from an origin URL.
+ * Used for WebAuthn credential validation: credentials bound to their origin's hostname.
+ * @param origin - Full origin URL (e.g., 'https://example.com:8080')
+ * @returns Hostname only (e.g., 'example.com'), or 'localhost' on parse error
+ */
 function getRpId(origin: string): string {
   try { return new URL(origin).hostname; } catch { return 'localhost'; }
 }
 
+/**
+ * Edge Function: WebAuthn Credential Management (FIDO2/U2F)
+ *
+ * Handles passwordless authentication via WebAuthn protocol.
+ * Supports registration (create) and authentication (verify) ceremonies with full validation.
+ *
+ * Security controls:
+ * - Origin validation: credentials tied to exact origin, prevents cross-origin attacks
+ * - Counter regression detection: detects and rejects cloned authenticators
+ * - Challenge replay prevention: random per-request challenges
+ * - Cross-origin rejection: raises error if authenticator response origin != request origin
+ *
+ * Flow:
+ * - register_start: Create registration challenge + options for device
+ * - register_finish: Verify attestation + store credential
+ * - authenticate_start: Create authentication challenge
+ * - authenticate_finish: Verify assertion + validate counter
+ */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;

@@ -7,6 +7,14 @@ const corsHeaders = {
 };
 const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
+/**
+ * Escapes special characters in JSON strings to prevent HTML/script injection attacks.
+ * Converts <, >, ", and ' to their Unicode escape sequences (<, >, ", ')
+ * to ensure safe interpolation into inline <script> tags without breaking out of the string context.
+ * This prevents reflected XSS vulnerabilities when OAuth parameters are embedded in scripts.
+ * @param value - The value to stringify and escape for HTML context
+ * @returns HTML-safe JSON string with special characters escaped as Unicode sequences
+ */
 function escapeJsonForHtml(value: unknown): string {
   const json = JSON.stringify(value);
   return json
@@ -30,6 +38,13 @@ const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/userinfo.profile',
 ].join(' ');
 
+/**
+ * OAuth callback handler for Google Gmail authentication flow.
+ * Handles the authorization code and error parameters returned from Google OAuth consent screen.
+ * Validates UUID identifiers, enforces HTTPS for OAuth parameters, and securely passes
+ * auth tokens and errors to frontend via HTML-escaped inline scripts.
+ * Implements security controls: UUID validation, HTTPS enforcement, XSS prevention via Unicode escaping.
+ */
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 

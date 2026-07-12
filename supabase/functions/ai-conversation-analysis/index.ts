@@ -4,6 +4,17 @@ import { AiConversationAnalysisSchema, parseBody } from "../_shared/schemas.ts";
 import { callAiWithTracking } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
 
+/**
+ * Edge Function: Comprehensive AI Conversation Analysis
+ *
+ * Performs deep analysis of customer/contact conversations across multiple business departments.
+ * Evaluates sentiment, urgency, satisfaction, agent performance, churn risk, and business opportunities.
+ * Aggregates contact context (history, metadata) for richer AI analysis and persists findings to database.
+ *
+ * Security: RLS-enforced queries prevent cross-tenant data access; service role bypasses for admin context only.
+ * Error Handling: Two-tier JSON parsing with regex fallback ensures graceful degradation on malformed AI responses.
+ * Persistence: Atomically updates both conversation_analyses table and contacts record (ai_sentiment, ai_priority).
+ */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -156,6 +167,15 @@ Responda em português brasileiro.`;
 
     const toolCall = (data.choices as Array<{message: {tool_calls?: Array<{function: {arguments: string}}>; content?: string}}>)?.[0]?.message?.tool_calls?.[0];
 
+    /**
+     * Parse AI-generated conversation analysis from tool call or unstructured content.
+     * Three-tier parsing strategy ensures resilience to AI response variations:
+     * 1. Direct JSON.parse of tool_call.function.arguments (primary path)
+     * 2. Regex extraction + JSON.parse for wrapped/malformed JSON (recovery path)
+     * 3. Unstructured content fallback with sensible defaults (graceful degradation)
+     * Each parse is wrapped in try-catch to prevent crashes. Falls back to default
+     * analysis structure if all parsing attempts fail, enabling service continuity.
+     */
     let analysisData;
     if (toolCall?.function?.arguments) {
       try {
