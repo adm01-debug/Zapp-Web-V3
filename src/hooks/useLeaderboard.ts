@@ -68,12 +68,13 @@ export function useLeaderboard() {
           is_active: boolean | null;
         } | null;
       };
-      const { data: stats, error } = await safeClient.from<AgentStatRow>('agent_stats', (q) =>
+      const { data: rawStats, error } = await safeClient.from('agent_stats', (q) =>
         q
           .select('*, profiles:profile_id (id, name, avatar_url, is_active)')
           .order('xp', { ascending: false })
           .limit(10)
       );
+      const stats = (rawStats ?? null) as AgentStatRow[] | null;
 
       if (error) throw error;
       if (!stats || stats.length === 0) {
