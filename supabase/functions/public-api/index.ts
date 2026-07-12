@@ -35,7 +35,8 @@ Deno.serve(async (req) => {
       .single();
 
     if (settingError) {
-      log.error('Failed to fetch API token setting', { error: settingError.message });
+      const errorMsg = settingError instanceof Error ? settingError.message : String(settingError);
+      log.error('Failed to fetch API token setting', { error: errorMsg });
       return errorResponse('Internal server error', 500, req);
     }
 
@@ -165,7 +166,8 @@ Deno.serve(async (req) => {
       .single();
 
     if (msgError) {
-      log.error('Failed to save message', { error: msgError.message });
+      const errorMsg = msgError instanceof Error ? msgError.message : String(msgError);
+      log.error('Failed to save message', { error: errorMsg });
       return errorResponse('Failed to save message', 500, req);
     }
 
@@ -198,7 +200,8 @@ Deno.serve(async (req) => {
         );
 
         if (invokeError) {
-          log.error('evolution-api invoke error', { error: invokeError.message });
+          const errorMsg = invokeError instanceof Error ? invokeError.message : String(invokeError);
+          log.error('evolution-api invoke error', { error: errorMsg });
           await supabase.from('messages').update({ status: 'failed' }).eq('id', msgId);
         } else {
           if (invokeData && typeof invokeData === 'object' && !Array.isArray(invokeData)) {
