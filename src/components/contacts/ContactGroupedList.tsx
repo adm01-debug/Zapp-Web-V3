@@ -32,8 +32,9 @@ export function ContactGroupedList({
     const map = new Map<string, Contact[]>();
     contacts.forEach((c) => {
       const key = c.company?.trim() || 'Sem empresa';
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(c);
+      const group = map.get(key);
+      if (group) group.push(c);
+      else map.set(key, [c]);
     });
     return Array.from(map.entries()).sort((a, b) => {
       if (a[0] === 'Sem empresa') return 1;

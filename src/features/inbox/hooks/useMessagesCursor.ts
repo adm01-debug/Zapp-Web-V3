@@ -97,7 +97,7 @@ export function useMessagesCursor({
       // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `dbRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ext = externalSupabase as any;
+      const ext = externalSupabase as any; // ignore-audit — .abortSignal() not in generated external types
       const builder = ext.rpc('rpc_list_messages_lite', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
@@ -215,7 +215,7 @@ export function useMessagesCursor({
     // externalSupabase is loosely typed (no Database generic), so the
     // postgres_changes overload is not visible. Cast to any for dynamic access.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = externalSupabase as any;
+    const client = externalSupabase as any; // ignore-audit — postgres_changes API not in external client types
 
     const channel = client
       .channel(`evolution_messages:${remoteJid}`)

@@ -35,15 +35,38 @@ const SCOPES = [
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-  );
+  const supabaseUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+  const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
+  const supabaseUrl = (typeof supabaseUrlHosted === 'string' && supabaseUrlHosted.length > 0)
+    ? supabaseUrlHosted
+    : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
 
-  const clientId     = Deno.env.get('MICROSOFT_CLIENT_ID');
-  const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET');
-  const redirectUri  = Deno.env.get('MICROSOFT_REDIRECT_URI') ??
-    `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/outlook-oauth`;
+  const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKey = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
+    ? supabaseServiceKeyHosted
+    : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    const json = (data: unknown, status = 200) =>
+      new Response(JSON.stringify(data), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    return json({ error: 'Server configuration error' }, 503);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const clientIdRaw = Deno.env.get('MICROSOFT_CLIENT_ID');
+  const clientSecretRaw = Deno.env.get('MICROSOFT_CLIENT_SECRET');
+  const clientId = typeof clientIdRaw === 'string' && clientIdRaw.length > 0 ? clientIdRaw : '';
+  const clientSecret = typeof clientSecretRaw === 'string' && clientSecretRaw.length > 0 ? clientSecretRaw : '';
+
+  const redirectUriRaw = Deno.env.get('MICROSOFT_REDIRECT_URI');
+  const redirectUri = (typeof redirectUriRaw === 'string' && redirectUriRaw.length > 0)
+    ? redirectUriRaw
+    : `${supabaseUrl}/functions/v1/outlook-oauth`;
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
@@ -52,8 +75,18 @@ serve(async (req) => {
     });
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const { action } = body;
+    let bodyRaw: unknown;
+    try {
+      bodyRaw = await req.json();
+    } catch {
+      bodyRaw = {};
+    }
+
+    if (!bodyRaw || typeof bodyRaw !== 'object' || Array.isArray(bodyRaw)) {
+      bodyRaw = {};
+    }
+    const body = bodyRaw as Record<string, unknown>;
+    const action = typeof body.action === 'string' ? body.action : '';
 
     // ── getAuthUrl — gera URL de autorização OAuth2 ────────────────────
     if (action === 'getAuthUrl') {
@@ -78,7 +111,8 @@ serve(async (req) => {
 
     // ── exchangeCode — troca code por access_token + refresh_token ─────
     if (action === 'exchangeCode') {
-      const { code, userId } = body;
+      const code = typeof body.code === 'string' ? body.code : '';
+      const userId = typeof body.userId === 'string' ? body.userId : '';
       if (!code || !userId) return json({ error: 'code e userId obrigatórios' }, 400);
       if (!clientId || !clientSecret) return json({ error: 'Credenciais Microsoft não configuradas' }, 500);
 
@@ -101,25 +135,54 @@ serve(async (req) => {
         return json({ error: `Token exchange failed: ${err}` }, 400);
       }
 
-      const tokens = await tokenRes.json();
+      let tokensRaw: unknown;
+      try {
+        tokensRaw = await tokenRes.json();
+      } catch {
+        return json({ error: 'Invalid token response' }, 400);
+      }
+
+      if (!tokensRaw || typeof tokensRaw !== 'object' || Array.isArray(tokensRaw)) {
+        return json({ error: 'Invalid token response' }, 400);
+      }
+      const tokens = tokensRaw as Record<string, unknown>;
+
+      const accessToken = typeof tokens.access_token === 'string' ? tokens.access_token : '';
+      if (!accessToken) {
+        return json({ error: 'No access token received' }, 400);
+      }
 
       // Buscar informações do usuário via Graph API
       const profileRes = await fetch(`${GRAPH_BASE}/me?$select=mail,displayName,userPrincipalName`, {
-        headers: { Authorization: `Bearer ${tokens.access_token}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.timeout(10_000),
       });
 
-      const profile = profileRes.ok ? await profileRes.json() : {};
-      const email   = profile.mail ?? profile.userPrincipalName ?? '';
+      let profile: Record<string, unknown> = {};
+      if (profileRes.ok) {
+        try {
+          const profileData = await profileRes.json();
+          if (profileData && typeof profileData === 'object' && !Array.isArray(profileData)) {
+            profile = profileData as Record<string, unknown>;
+          }
+        } catch {
+          // Profile fetch failed, continue with empty profile
+        }
+      }
+      const email = (typeof profile.mail === 'string' ? profile.mail : null) ||
+                    (typeof profile.userPrincipalName === 'string' ? profile.userPrincipalName : '');
 
       // Salvar credenciais na tabela imap_smtp_accounts
+      const refreshToken = typeof tokens.refresh_token === 'string' ? tokens.refresh_token : null;
+      const expiresIn = typeof tokens.expires_in === 'number' ? tokens.expires_in : 3600;
+
       const { data, error } = await supabase
         .from('imap_smtp_accounts')
         .upsert({
           user_id:      userId,
           email,
           provider:     'outlook',
-          imap_host:    'outlook.office365.com', // IMAP não usado com Graph API
+          imap_host:    'outlook.office365.com',
           imap_port:    993,
           imap_use_ssl: true,
           smtp_host:    'smtp-mail.outlook.com',
@@ -127,9 +190,9 @@ serve(async (req) => {
           smtp_use_tls: true,
           username:     email,
           password_encrypted: JSON.stringify({
-            access_token:  tokens.access_token,
-            refresh_token: tokens.refresh_token,
-            expires_in:    tokens.expires_in,
+            access_token:  accessToken,
+            refresh_token: refreshToken,
+            expires_in:    expiresIn,
             acquired_at:   Date.now(),
             provider_type: 'microsoft_graph',
           }),
@@ -138,28 +201,74 @@ serve(async (req) => {
         .select('id, email')
         .single();
 
-      if (error) { console.error('[outlook-oauth] upsert error', error.message); return json({ error: 'Internal server error' }, 500); }
-      return json({ success: true, accountId: data.id, email: data.email, displayName: profile.displayName });
+      if (error) {
+        const errMsg = typeof error === 'object' && error !== null && 'message' in error && typeof (error as Record<string, unknown>).message === 'string'
+          ? (error as Record<string, unknown>).message
+          : 'Internal server error';
+        console.error('[outlook-oauth] upsert error', errMsg);
+        return json({ error: 'Internal server error' }, 500);
+      }
+
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        return json({ error: 'Failed to create account' }, 500);
+      }
+      const accountData = data as Record<string, unknown>;
+      const accountId = typeof accountData.id === 'string' ? accountData.id : null;
+      const accountEmail = typeof accountData.email === 'string' ? accountData.email : null;
+      const displayName = typeof profile.displayName === 'string' ? profile.displayName : '';
+
+      if (!accountId || !accountEmail) {
+        return json({ error: 'Invalid account response' }, 500);
+      }
+
+      return json({ success: true, accountId, email: accountEmail, displayName });
     }
 
     // ── syncInbox — sincroniza inbox via Graph API ─────────────────────
     if (action === 'syncInbox') {
-      const { accountId, pageSize = 50, nextLink } = body;
+      const accountId = typeof body.accountId === 'string' ? body.accountId : '';
+      const pageSize = typeof body.pageSize === 'number' ? Math.max(1, Math.min(body.pageSize, 500)) : 50;
+      const nextLink = typeof body.nextLink === 'string' ? body.nextLink : '';
       if (!accountId) return json({ error: 'accountId obrigatório' }, 400);
 
-      const { data: account } = await supabase
+      const { data: accountData } = await supabase
         .from('imap_smtp_accounts')
         .select('email, password_encrypted')
         .eq('id', accountId)
         .single();
 
-      if (!account) return json({ error: 'Conta não encontrada' }, 404);
+      if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
+        return json({ error: 'Conta não encontrada' }, 404);
+      }
+      const account = accountData as Record<string, unknown>;
+      const passwordEncrypted = typeof account.password_encrypted === 'string' ? account.password_encrypted : '';
 
-      const creds = JSON.parse(account.password_encrypted);
-      const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
+      if (!passwordEncrypted) {
+        return json({ error: 'Credentials not found' }, 404);
+      }
+
+      let creds: Record<string, unknown>;
+      try {
+        const credsRaw = JSON.parse(passwordEncrypted);
+        if (!credsRaw || typeof credsRaw !== 'object' || Array.isArray(credsRaw)) {
+          return json({ error: 'Invalid credentials format' }, 400);
+        }
+        creds = credsRaw as Record<string, unknown>;
+      } catch {
+        return json({ error: 'Invalid credentials format' }, 400);
+      }
+
+      if (!clientId || !clientSecret) {
+        return json({ error: 'Microsoft credentials not configured' }, 500);
+      }
+
+      const accessToken = await refreshTokenIfNeeded(creds, clientId, clientSecret);
+      if (!accessToken) {
+        return json({ error: 'Failed to get access token' }, 401);
+      }
 
       // Buscar mensagens via Graph API
-      const url = nextLink ?? `${GRAPH_BASE}/me/mailFolders/inbox/messages?$top=${pageSize}&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,isRead,hasAttachments,conversationId`;
+      const url = nextLink || `${GRAPH_BASE}/me/mailFolders/inbox/messages?$top=${pageSize}&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,isRead,hasAttachments,conversationId`;
 
       const msgsRes = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -167,43 +276,96 @@ serve(async (req) => {
       });
 
       if (!msgsRes.ok) return json({ error: 'Falha ao buscar mensagens' }, 502);
-      const msgsData = await msgsRes.json();
+
+      let msgsDataRaw: unknown;
+      try {
+        msgsDataRaw = await msgsRes.json();
+      } catch {
+        return json({ error: 'Invalid response from Microsoft Graph' }, 502);
+      }
+
+      if (!msgsDataRaw || typeof msgsDataRaw !== 'object' || Array.isArray(msgsDataRaw)) {
+        return json({ error: 'Invalid response from Microsoft Graph' }, 502);
+      }
+      const msgsData = msgsDataRaw as Record<string, unknown>;
 
       return json({
-        messages: msgsData.value ?? [],
-        nextLink: msgsData['@odata.nextLink'] ?? null,
-        total:    msgsData['@odata.count'] ?? null,
+        messages: Array.isArray(msgsData.value) ? msgsData.value : [],
+        nextLink: typeof msgsData['@odata.nextLink'] === 'string' ? msgsData['@odata.nextLink'] : null,
+        total:    typeof msgsData['@odata.count'] === 'number' ? msgsData['@odata.count'] : null,
       });
     }
 
     // ── sendMessage — envia email via Graph API ───────────────────────
     if (action === 'sendMessage') {
-      const { accountId, to, cc, bcc, subject, bodyHtml, attachments } = body;
+      const accountId = typeof body.accountId === 'string' ? body.accountId : '';
+      const to = body.to;
+      const cc = body.cc;
+      const bcc = body.bcc;
+      const subject = typeof body.subject === 'string' ? body.subject : '';
+      const bodyHtml = typeof body.bodyHtml === 'string' ? body.bodyHtml : '';
+      const attachments = Array.isArray(body.attachments) ? body.attachments : [];
+
       if (!accountId || !to || !subject) return json({ error: 'accountId, to e subject obrigatórios' }, 400);
 
-      const { data: account } = await supabase
+      const { data: accountData } = await supabase
         .from('imap_smtp_accounts')
         .select('email, password_encrypted')
         .eq('id', accountId)
         .single();
 
-      if (!account) return json({ error: 'Conta não encontrada' }, 404);
+      if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
+        return json({ error: 'Conta não encontrada' }, 404);
+      }
+      const account = accountData as Record<string, unknown>;
+      const passwordEncrypted = typeof account.password_encrypted === 'string' ? account.password_encrypted : '';
 
-      const creds = JSON.parse(account.password_encrypted);
-      const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
+      if (!passwordEncrypted) {
+        return json({ error: 'Credentials not found' }, 404);
+      }
+
+      let creds: Record<string, unknown>;
+      try {
+        const credsRaw = JSON.parse(passwordEncrypted);
+        if (!credsRaw || typeof credsRaw !== 'object' || Array.isArray(credsRaw)) {
+          return json({ error: 'Invalid credentials format' }, 400);
+        }
+        creds = credsRaw as Record<string, unknown>;
+      } catch {
+        return json({ error: 'Invalid credentials format' }, 400);
+      }
+
+      if (!clientId || !clientSecret) {
+        return json({ error: 'Microsoft credentials not configured' }, 500);
+      }
+
+      const accessToken = await refreshTokenIfNeeded(creds, clientId, clientSecret);
+      if (!accessToken) {
+        return json({ error: 'Failed to get access token' }, 401);
+      }
+
+      const validatedAttachments = attachments.map((a: unknown) => {
+        if (!a || typeof a !== 'object' || Array.isArray(a)) return null;
+        const att = a as Record<string, unknown>;
+        return {
+          name: typeof att.name === 'string' ? att.name : 'file',
+          contentType: typeof att.contentType === 'string' ? att.contentType : 'application/octet-stream',
+          content: typeof att.content === 'string' ? att.content : '',
+        };
+      }).filter((a) => a && typeof a.content === 'string' && a.content.length > 0);
 
       const message = {
         subject,
-        body: { contentType: 'HTML', content: bodyHtml ?? '' },
+        body: { contentType: 'HTML', content: bodyHtml },
         toRecipients: toAddresses(to),
         ccRecipients: toAddresses(cc),
         bccRecipients: toAddresses(bcc),
-        attachments: attachments?.map((a: { name: string; contentType: string; content: string }) => ({
+        attachments: validatedAttachments.map((a) => ({
           '@odata.type': '#microsoft.graph.fileAttachment',
           name: a.name,
           contentType: a.contentType,
           contentBytes: a.content,
-        })) ?? [],
+        })),
       };
 
       const sendRes = await fetch(`${GRAPH_BASE}/me/sendMail`, {
@@ -217,8 +379,14 @@ serve(async (req) => {
       });
 
       if (!sendRes.ok) {
-        const err = await sendRes.text();
-        return json({ error: `Envio falhou: ${err}` }, 502);
+        let err = '';
+        try {
+          err = await sendRes.text();
+        } catch {
+          err = `HTTP ${sendRes.status}`;
+        }
+        const errorMsg = typeof err === 'string' ? err.slice(0, 200) : String(err).slice(0, 200);
+        return json({ error: `Envio falhou: ${errorMsg}` }, 502);
       }
 
       return json({ success: true });
@@ -226,19 +394,46 @@ serve(async (req) => {
 
     // ── markAsRead — marca mensagem como lida ──────────────────────────
     if (action === 'markAsRead') {
-      const { accountId, messageId, isRead = true } = body;
+      const accountId = typeof body.accountId === 'string' ? body.accountId : '';
+      const messageId = typeof body.messageId === 'string' ? body.messageId : '';
+      const isRead = typeof body.isRead === 'boolean' ? body.isRead : true;
       if (!accountId || !messageId) return json({ error: 'accountId e messageId obrigatórios' }, 400);
 
-      const { data: account } = await supabase
+      const { data: accountData } = await supabase
         .from('imap_smtp_accounts')
         .select('password_encrypted')
         .eq('id', accountId)
         .single();
 
-      if (!account) return json({ error: 'Conta não encontrada' }, 404);
+      if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
+        return json({ error: 'Conta não encontrada' }, 404);
+      }
+      const account = accountData as Record<string, unknown>;
+      const passwordEncrypted = typeof account.password_encrypted === 'string' ? account.password_encrypted : '';
 
-      const creds = JSON.parse(account.password_encrypted);
-      const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
+      if (!passwordEncrypted) {
+        return json({ error: 'Credentials not found' }, 404);
+      }
+
+      let creds: Record<string, unknown>;
+      try {
+        const credsRaw = JSON.parse(passwordEncrypted);
+        if (!credsRaw || typeof credsRaw !== 'object' || Array.isArray(credsRaw)) {
+          return json({ error: 'Invalid credentials format' }, 400);
+        }
+        creds = credsRaw as Record<string, unknown>;
+      } catch {
+        return json({ error: 'Invalid credentials format' }, 400);
+      }
+
+      if (!clientId || !clientSecret) {
+        return json({ error: 'Microsoft credentials not configured' }, 500);
+      }
+
+      const accessToken = await refreshTokenIfNeeded(creds, clientId, clientSecret);
+      if (!accessToken) {
+        return json({ error: 'Failed to get access token' }, 401);
+      }
 
       await fetch(`${GRAPH_BASE}/me/messages/${messageId}`, {
         method: 'PATCH',
@@ -255,19 +450,45 @@ serve(async (req) => {
 
     // ── getMessageBody — busca corpo completo de uma mensagem ──────────
     if (action === 'getMessageBody') {
-      const { accountId, messageId } = body;
+      const accountId = typeof body.accountId === 'string' ? body.accountId : '';
+      const messageId = typeof body.messageId === 'string' ? body.messageId : '';
       if (!accountId || !messageId) return json({ error: 'accountId e messageId obrigatórios' }, 400);
 
-      const { data: account } = await supabase
+      const { data: accountData } = await supabase
         .from('imap_smtp_accounts')
         .select('password_encrypted')
         .eq('id', accountId)
         .single();
 
-      if (!account) return json({ error: 'Conta não encontrada' }, 404);
+      if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
+        return json({ error: 'Conta não encontrada' }, 404);
+      }
+      const account = accountData as Record<string, unknown>;
+      const passwordEncrypted = typeof account.password_encrypted === 'string' ? account.password_encrypted : '';
 
-      const creds = JSON.parse(account.password_encrypted);
-      const accessToken = await refreshTokenIfNeeded(creds, clientId!, clientSecret!);
+      if (!passwordEncrypted) {
+        return json({ error: 'Credentials not found' }, 404);
+      }
+
+      let creds: Record<string, unknown>;
+      try {
+        const credsRaw = JSON.parse(passwordEncrypted);
+        if (!credsRaw || typeof credsRaw !== 'object' || Array.isArray(credsRaw)) {
+          return json({ error: 'Invalid credentials format' }, 400);
+        }
+        creds = credsRaw as Record<string, unknown>;
+      } catch {
+        return json({ error: 'Invalid credentials format' }, 400);
+      }
+
+      if (!clientId || !clientSecret) {
+        return json({ error: 'Microsoft credentials not configured' }, 500);
+      }
+
+      const accessToken = await refreshTokenIfNeeded(creds, clientId, clientSecret);
+      if (!accessToken) {
+        return json({ error: 'Failed to get access token' }, 401);
+      }
 
       const msgRes = await fetch(`${GRAPH_BASE}/me/messages/${messageId}?$select=id,subject,body,from,toRecipients,ccRecipients,receivedDateTime,isRead`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -275,8 +496,19 @@ serve(async (req) => {
       });
 
       if (!msgRes.ok) return json({ error: 'Mensagem não encontrada' }, 404);
-      const msg = await msgRes.json();
-      return json({ message: msg });
+
+      let msgRaw: unknown;
+      try {
+        msgRaw = await msgRes.json();
+      } catch {
+        return json({ error: 'Invalid message response' }, 502);
+      }
+
+      if (!msgRaw || typeof msgRaw !== 'object' || Array.isArray(msgRaw)) {
+        return json({ error: 'Invalid message response' }, 502);
+      }
+
+      return json({ message: msgRaw });
     }
 
     // ── listProviderSupport ────────────────────────────────────────────
@@ -305,19 +537,29 @@ serve(async (req) => {
 function toAddresses(emails?: string | string[]): Array<{ emailAddress: { address: string } }> {
   if (!emails) return [];
   const list = Array.isArray(emails) ? emails : [emails];
-  return list.filter(Boolean).map(e => ({ emailAddress: { address: e } }));
+  return list
+    .filter((e): e is string => typeof e === 'string' && e.length > 0)
+    .map(e => ({ emailAddress: { address: e } }));
 }
 
 async function refreshTokenIfNeeded(
-  creds: { access_token: string; refresh_token?: string; expires_in: number; acquired_at: number },
+  creds: Record<string, unknown>,
   clientId: string,
   clientSecret: string,
 ): Promise<string> {
-  const expiryMs = (creds.acquired_at ?? 0) + (creds.expires_in ?? 3600) * 1000;
-  const isExpiring = Date.now() > expiryMs - 300_000; // Refresh 5min antes
+  const accessToken = typeof creds.access_token === 'string' && creds.access_token.length > 0 ? creds.access_token : '';
+  const refreshToken = typeof creds.refresh_token === 'string' && creds.refresh_token.length > 0 ? creds.refresh_token : '';
+  const acquiredAt = typeof creds.acquired_at === 'number' && Number.isFinite(creds.acquired_at) ? creds.acquired_at : 0;
+  const expiresIn = typeof creds.expires_in === 'number' && Number.isFinite(creds.expires_in) ? creds.expires_in : 3600;
 
-  if (!isExpiring) return creds.access_token;
-  if (!creds.refresh_token) return creds.access_token;
+  if (!accessToken) return '';
+
+  const expiryMs = acquiredAt + expiresIn * 1000;
+  const nowMs = Date.now();
+  const isExpiring = Number.isFinite(nowMs) && Number.isFinite(expiryMs) ? nowMs > expiryMs - 300_000 : false; // Refresh 5min antes
+
+  if (!isExpiring) return accessToken;
+  if (!refreshToken) return accessToken;
 
   const res = await fetch(`${AUTH_BASE}/token`, {
     method: 'POST',
@@ -325,14 +567,26 @@ async function refreshTokenIfNeeded(
     body: new URLSearchParams({
       client_id:    clientId,
       client_secret: clientSecret,
-      refresh_token: creds.refresh_token,
+      refresh_token: refreshToken,
       grant_type:   'refresh_token',
       scope:        SCOPES,
     }),
     signal: AbortSignal.timeout(10_000),
   });
 
-  if (!res.ok) return creds.access_token;
-  const tokens = await res.json();
-  return tokens.access_token ?? creds.access_token;
+  if (!res.ok) return accessToken;
+
+  let tokensRaw: unknown;
+  try {
+    tokensRaw = await res.json();
+  } catch {
+    return accessToken;
+  }
+
+  if (!tokensRaw || typeof tokensRaw !== 'object' || Array.isArray(tokensRaw)) {
+    return accessToken;
+  }
+  const tokens = tokensRaw as Record<string, unknown>;
+  const newAccessToken = typeof tokens.access_token === 'string' && tokens.access_token.length > 0 ? tokens.access_token : '';
+  return newAccessToken || accessToken;
 }

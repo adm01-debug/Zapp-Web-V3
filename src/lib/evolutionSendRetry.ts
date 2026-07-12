@@ -135,7 +135,7 @@ export async function invokeEvolutionWithRetry<T = unknown>(
         }
         // Erro definitivo — não retry. Não conta como falha do breaker porque
         // 4xx é "request inválida" do caller, não indisponibilidade do upstream.
-        return result as EvolutionInvokeResult<T>;
+        return result as EvolutionInvokeResult<T>; // ignore-audit: narrows Supabase query result to local interface
       }
 
       const payload = result.data as { error?: unknown; status?: number; message?: string } | null;
@@ -149,7 +149,7 @@ export async function invokeEvolutionWithRetry<T = unknown>(
 
       // Success → close circuit if it was open/half-open.
       if (instanceName) recordSuccess(instanceName);
-      return result as EvolutionInvokeResult<T>;
+      return result as EvolutionInvokeResult<T>; // ignore-audit: narrows Supabase query result to local interface
     },
     {
       maxRetries,

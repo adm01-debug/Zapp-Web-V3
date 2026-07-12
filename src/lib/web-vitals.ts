@@ -8,7 +8,7 @@ import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 
 const log = getLogger('WebVitals');
 
-interface WebVitalMetric {
+export interface WebVitalMetric {
   name: string;
   value: number;
   rating: 'good' | 'needs-improvement' | 'poor';

@@ -21,7 +21,7 @@ const MMD_PATH = resolve(__dirname, 'fixtures/TRILHA_MENSAGENS_NAVEGAVEL.mmd');
 // Ao alterar consumidores realtime de 'messages', atualize AMBOS: diagrama e esta lista.
 const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/hooks/useRealtimeMessages.ts',
-  'src/hooks/useMessages.ts',
+  'src/features/inbox/data-access/messageRepository.ts',
   'src/features/inbox/hooks/useMessageStatus.ts',
   'src/hooks/useTranscriptionNotifications.ts',
   'src/hooks/useRealtimeDashboard.ts',
@@ -31,7 +31,8 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/components/chat/ChatMessagesArea.tsx',
 ];
 
-const UPDATE_HINT = 'Atualize src/test/fixtures/TRILHA_MENSAGENS_NAVEGAVEL.mmd (e a cópia em /mnt/documents/).';
+const UPDATE_HINT =
+  'Atualize src/test/fixtures/TRILHA_MENSAGENS_NAVEGAVEL.mmd (e a cópia em /mnt/documents/).';
 
 function readMmd(): string {
   return readFileSync(MMD_PATH, 'utf8');
@@ -47,13 +48,22 @@ function extractClickPaths(mmd: string): Array<{ node: string; path: string }> {
 
 function walk(dir: string, acc: string[] = []): string[] {
   let entries: string[] = [];
-  try { entries = readdirSync(dir); } catch { return acc; }
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return acc;
+  }
   for (const name of entries) {
     const full = join(dir, name);
     let st;
-    try { st = statSync(full); } catch { continue; }
+    try {
+      st = statSync(full);
+    } catch {
+      continue;
+    }
     if (st.isDirectory()) {
-      if (name === 'node_modules' || name === '__tests__' || name === 'test' || name === 'fixtures') continue;
+      if (name === 'node_modules' || name === '__tests__' || name === 'test' || name === 'fixtures')
+        continue;
       walk(full, acc);
     } else if (st.isFile()) {
       if (/\.(test|spec)\.(ts|tsx)$/.test(name)) continue;
@@ -66,7 +76,8 @@ function walk(dir: string, acc: string[] = []): string[] {
 // Aceita literal `table: 'messages'|'evolution_messages'` e helper `table: dbTable(...)`,
 // independentemente de o channel vir de `supabase.channel(...)` ou `dbChannel(...)`.
 // 'evolution_messages' é o nome da tabela no schema 'evo' (FATOR X v6.2).
-const MESSAGES_CHANNEL_RE = /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:messages|evolution_messages)['"]/;
+const MESSAGES_CHANNEL_RE =
+  /(?:supabase\s*\.channel|dbChannel)\([\s\S]*?table:\s*(?:dbTable\(\s*)?['"](?:messages|evolution_messages)['"]/;
 
 function findMessagesListeners(): string[] {
   const srcDir = join(REPO_ROOT, 'src');
@@ -74,7 +85,11 @@ function findMessagesListeners(): string[] {
   const hits: string[] = [];
   for (const f of files) {
     let content: string;
-    try { content = readFileSync(f, 'utf8'); } catch { continue; }
+    try {
+      content = readFileSync(f, 'utf8');
+    } catch {
+      continue;
+    }
     if (MESSAGES_CHANNEL_RE.test(content)) {
       hits.push(f.substring(REPO_ROOT.length + 1).replace(/\\/g, '/'));
     }
@@ -108,8 +123,8 @@ describe('Diagrama TRILHA_MENSAGENS_NAVEGAVEL — validador de fan-out realtime'
     if (orphans.length > 0) {
       throw new Error(
         `Arquivo(s) escutam table:'messages' mas NAO estao no diagrama:\n` +
-        orphans.map((p) => `  - ${p}`).join('\n') +
-        `\n${UPDATE_HINT}`
+          orphans.map((p) => `  - ${p}`).join('\n') +
+          `\n${UPDATE_HINT}`
       );
     }
   });
@@ -120,8 +135,8 @@ describe('Diagrama TRILHA_MENSAGENS_NAVEGAVEL — validador de fan-out realtime'
     if (phantoms.length > 0) {
       throw new Error(
         `Consumidor(es) listado(s) no diagrama nao escutam mais table:'messages':\n` +
-        phantoms.map((p) => `  - ${p}`).join('\n') +
-        `\n${UPDATE_HINT}`
+          phantoms.map((p) => `  - ${p}`).join('\n') +
+          `\n${UPDATE_HINT}`
       );
     }
   });

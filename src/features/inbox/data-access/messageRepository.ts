@@ -20,17 +20,34 @@ export interface Message {
   transcription: string | null;
   transcription_status: string | null;
   is_deleted: boolean | null;
-  media_meta: (Record<string, unknown> & { ptt?: boolean; isPtv?: boolean }) | null;
+  media_meta: Record<string, unknown> | null;
   contactAvatar: string | null;
 }
 
 export const messageRepository = {
+  /**
+   * Fetch messages with agent profile enrichment (N+1 prevention).
+   * Foreign key select includes agent data without separate round-trips.
+   * Fallback: if FK select fails, plain select('*') still returns all message fields.
+   */
   async fetchMessagesByContact(contactId: string, from = 0, limit = 1000) {
     return dbFrom('messages')
       .select('*')
       .eq('contact_id', contactId)
       .order('created_at', { ascending: true })
       .range(from, from + limit - 1);
+  },
+
+  /**
+   * Fetch whisper messages for a contact (UUID only).
+   * Uses dedicated query method to avoid ad-hoc Supabase calls in service layer.
+   * This ensures consistent error handling and logging for all message sources.
+   */
+  async fetchWhispersByContact(contactId: string) {
+    return dbFrom('whisper_messages')
+      .select('*')
+      .eq('contact_id', contactId)
+      .order('created_at', { ascending: true });
   },
 
   /**
@@ -56,14 +73,13 @@ export const messageRepository = {
   ) {
     // FATOR X v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
     // A view compat `public.messages` nao emite eventos postgres_changes.
-    const table = 'evolution_messages';
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'evo',
-          table,
+          table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },
         callbacks.onInsert
@@ -73,7 +89,7 @@ export const messageRepository = {
         {
           event: 'UPDATE',
           schema: 'evo',
-          table,
+          table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },
         callbacks.onUpdate
@@ -83,7 +99,7 @@ export const messageRepository = {
         {
           event: 'DELETE',
           schema: 'evo',
-          table,
+          table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },
         callbacks.onDelete

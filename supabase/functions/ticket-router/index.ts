@@ -48,9 +48,9 @@ Deno.serve(async (req) => {
     const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!url || !serviceKey) return err500("missing_env");
 
-    let body: RouteRequest;
+    let rawBody: unknown;
     try {
-      body = await req.json();
+      rawBody = await req.json();
     } catch {
       return new Response(JSON.stringify({ error: "invalid_json" }), {
         status: 400,
@@ -58,7 +58,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!body.contact_id || typeof body.contact_id !== "string") {
+    if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
+      return new Response(JSON.stringify({ error: "invalid_json" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = rawBody as Record<string, unknown>;
+    const contactId = typeof body.contact_id === 'string' ? body.contact_id : '';
+    const channelConnectionId = typeof body.channel_connection_id === 'string' ? body.channel_connection_id : null;
+    const queueId = typeof body.queue_id === 'string' ? body.queue_id : null;
+    const apply = body.apply === true;
+
+    if (!contactId) {
       return new Response(
         JSON.stringify({ error: "contact_id_required" }),
         {
@@ -76,9 +89,9 @@ Deno.serve(async (req) => {
     const { data: resolved, error: resolveErr } = await admin.rpc(
       "fn_resolve_agent_for_routing",
       {
-        p_contact_id: body.contact_id,
-        p_channel_connection_id: body.channel_connection_id ?? null,
-        p_queue_id: body.queue_id ?? null,
+        p_contact_id: contactId,
+        p_channel_connection_id: channelConnectionId,
+        p_queue_id: queueId,
       },
     );
 
@@ -87,17 +100,35 @@ Deno.serve(async (req) => {
       return err500("resolve_failed");
     }
 
-    const result = resolved as RouteResponse;
+    if (typeof resolved !== 'object' || resolved === null || Array.isArray(resolved)) {
+      console.error("[ticket-router] invalid rpc response type");
+      return err500("resolve_invalid");
+    }
+
+    const resolvedObj = resolved as Record<string, unknown>;
+    const agentProfileId = typeof resolvedObj.agent_profile_id === 'string' ? resolvedObj.agent_profile_id : null;
+    const resultQueueId = typeof resolvedObj.queue_id === 'string' ? resolvedObj.queue_id : null;
+    const strategy = (typeof resolvedObj.strategy === 'string' && ['sticky', 'round_robin', 'unassigned'].includes(resolvedObj.strategy))
+      ? resolvedObj.strategy
+      : 'unassigned';
+    const reason = typeof resolvedObj.reason === 'string' ? resolvedObj.reason : undefined;
+
+    const result: RouteResponse = {
+      agent_profile_id: agentProfileId,
+      queue_id: resultQueueId,
+      strategy: strategy as "sticky" | "round_robin" | "unassigned",
+      reason,
+    };
 
     // 2) Aplicar (opcional)
-    if (body.apply && result.agent_profile_id) {
+    if (apply && agentProfileId) {
       const { error: updErr } = await admin
         .from("contacts")
         .update({
-          assigned_to: result.agent_profile_id,
-          queue_id: result.queue_id,
+          assigned_to: agentProfileId,
+          queue_id: resultQueueId,
         })
-        .eq("id", body.contact_id);
+        .eq("id", contactId);
 
       if (updErr) {
         console.error("[ticket-router] update contact error", updErr);
@@ -107,10 +138,10 @@ Deno.serve(async (req) => {
       const { error: stickyErr } = await admin.rpc(
         "fn_register_sticky_assignment",
         {
-          p_contact_id: body.contact_id,
-          p_agent_profile_id: result.agent_profile_id,
-          p_channel_connection_id: body.channel_connection_id ?? null,
-          p_queue_id: result.queue_id,
+          p_contact_id: contactId,
+          p_agent_profile_id: agentProfileId,
+          p_channel_connection_id: channelConnectionId,
+          p_queue_id: resultQueueId,
         },
       );
 

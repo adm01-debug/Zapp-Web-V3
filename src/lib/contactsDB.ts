@@ -127,7 +127,7 @@ export const contactsDB = {
       .is('deleted_at', null)
       .maybeSingle();
     if (error) throw error;
-    return data as ExternalContact | null;
+    return data as ExternalContact | null; // ignore-audit: narrows Supabase query result to local interface
   },
 
   /** Find contact by phone number (cleaned digits only) */
@@ -143,7 +143,7 @@ export const contactsDB = {
       .limit(1)
       .maybeSingle();
     if (error) throw error;
-    return data as ExternalContact | null;
+    return data as ExternalContact | null; // ignore-audit: narrows Supabase query result to local interface
   },
 
   /** Find contact by phone via contact_phones table */
@@ -175,7 +175,7 @@ export const contactsDB = {
       .select()
       .single();
     if (error) throw error;
-    return data as ExternalContact;
+    return data as ExternalContact; // ignore-audit: narrows Supabase query result to local interface
   },
 
   /** Update avatar URL */
@@ -256,7 +256,7 @@ export const contactsDB = {
         .select()
         .single();
       if (error) throw error;
-      return data as ContactNote;
+      return data as ContactNote; // ignore-audit: narrows Supabase query result to local interface
     },
 
     async update(noteId: string, content: string): Promise<void> {

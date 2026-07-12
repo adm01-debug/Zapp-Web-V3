@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 export interface QueueGoal {
   id: string;
@@ -25,10 +26,14 @@ function normalizeQueueGoal(row: Record<string, unknown>): QueueGoal {
   return {
     id: String(row.id ?? ''),
     queue_id: String(row.queue_id ?? ''),
-    max_waiting_contacts: (row.max_waiting_contacts as number | null) ?? DEFAULT_GOAL_VALUES.max_waiting_contacts,
-    max_avg_wait_minutes: (row.max_avg_wait_minutes as number | null) ?? DEFAULT_GOAL_VALUES.max_avg_wait_minutes,
-    min_assignment_rate: (row.min_assignment_rate as number | null) ?? DEFAULT_GOAL_VALUES.min_assignment_rate,
-    max_messages_pending: (row.max_messages_pending as number | null) ?? DEFAULT_GOAL_VALUES.max_messages_pending,
+    max_waiting_contacts:
+      (row.max_waiting_contacts as number | null) ?? DEFAULT_GOAL_VALUES.max_waiting_contacts,
+    max_avg_wait_minutes:
+      (row.max_avg_wait_minutes as number | null) ?? DEFAULT_GOAL_VALUES.max_avg_wait_minutes,
+    min_assignment_rate:
+      (row.min_assignment_rate as number | null) ?? DEFAULT_GOAL_VALUES.min_assignment_rate,
+    max_messages_pending:
+      (row.max_messages_pending as number | null) ?? DEFAULT_GOAL_VALUES.max_messages_pending,
     alerts_enabled: (row.alerts_enabled as boolean | null) ?? DEFAULT_GOAL_VALUES.alerts_enabled,
   };
 }
@@ -48,6 +53,7 @@ export function useQueueGoals() {
   const [goals, setGoals] = useState<Record<string, QueueGoal>>({});
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     void fetchGoals();
@@ -64,14 +70,13 @@ export function useQueueGoals() {
 
   const fetchGoals = async () => {
     try {
-      const { data, error } = await supabase
-        .from('queue_goals')
-        .select('*');
+      const { data, error } = await supabase.from('queue_goals').select('*');
 
+      if (!mountedRef.current) return;
       if (error) throw error;
 
       const goalsMap: Record<string, QueueGoal> = {};
-      data?.forEach(goal => {
+      data?.forEach((goal) => {
         const normalized = normalizeQueueGoal(goal as unknown as Record<string, unknown>);
         goalsMap[normalized.queue_id] = normalized;
       });
@@ -80,7 +85,7 @@ export function useQueueGoals() {
     } catch (error) {
       log.error('Error fetching queue goals:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
@@ -96,12 +101,10 @@ export function useQueueGoals() {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('queue_goals')
-          .insert({
-            queue_id: queueId,
-            ...goalData,
-          });
+        const { error } = await supabase.from('queue_goals').insert({
+          queue_id: queueId,
+          ...goalData,
+        });
 
         if (error) throw error;
       }

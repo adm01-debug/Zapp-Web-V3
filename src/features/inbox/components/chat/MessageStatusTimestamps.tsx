@@ -48,7 +48,7 @@ function fmtFull(value: string | Date | null | undefined): string | null {
   });
 }
 
-function resolveStages(message: Props['message']): Record<Stage, string | null> {
+function resolveStages(message: Props['message']): Record<Stage, string | Date | null> {
   const isOutbound = message.sender === 'agent';
   const status = String(message.status ?? '').toLowerCase();
 
@@ -57,9 +57,9 @@ function resolveStages(message: Props['message']): Record<Stage, string | null> 
     const reachedDelivered = DELIVERED_LIKE.has(status);
     const reachedRead = READ_LIKE.has(status) || !!message.contact_read_at;
     return {
-      sent: reachedSent ? (message.timestamp as unknown as string) ?? null : null,
+      sent: reachedSent ? message.timestamp ?? null : null,
       delivered: reachedDelivered
-        ? message.status_updated_at ?? (message.timestamp as unknown as string) ?? null
+        ? message.status_updated_at ?? message.timestamp ?? null
         : null,
       read: reachedRead
         ? message.contact_read_at ?? message.status_updated_at ?? null
@@ -69,8 +69,8 @@ function resolveStages(message: Props['message']): Record<Stage, string | null> 
 
   // inbound
   return {
-    sent: (message.timestamp as unknown as string) ?? null,
-    delivered: message.created_at ?? (message.timestamp as unknown as string) ?? null,
+    sent: message.timestamp ?? null,
+    delivered: message.created_at ?? message.timestamp ?? null,
     read: message.contact_read_at ?? null,
   };
 }

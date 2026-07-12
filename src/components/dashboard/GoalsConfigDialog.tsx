@@ -15,14 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import {
-  Settings,
-  MessageSquare,
-  Users,
-  CheckCircle2,
-  Save,
-  RotateCcw,
-} from 'lucide-react';
+import { Settings, MessageSquare, Users, CheckCircle2, Save, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/features/auth';
 
 interface GoalsConfigDialogProps {
@@ -40,16 +33,47 @@ interface GoalConfig {
 }
 
 const DEFAULT_GOALS: GoalConfig[] = [
-  { goal_type: 'messages_sent', daily_target: 50, weekly_target: 250, monthly_target: 1000, is_active: true },
-  { goal_type: 'contacts_handled', daily_target: 10, weekly_target: 50, monthly_target: 200, is_active: true },
-  { goal_type: 'resolution_rate', daily_target: 80, weekly_target: 80, monthly_target: 85, is_active: true },
+  {
+    goal_type: 'messages_sent',
+    daily_target: 50,
+    weekly_target: 250,
+    monthly_target: 1000,
+    is_active: true,
+  },
+  {
+    goal_type: 'contacts_handled',
+    daily_target: 10,
+    weekly_target: 50,
+    monthly_target: 200,
+    is_active: true,
+  },
+  {
+    goal_type: 'resolution_rate',
+    daily_target: 80,
+    weekly_target: 80,
+    monthly_target: 85,
+    is_active: true,
+  },
 ];
 
-const GOAL_LABELS: Record<string, { label: string; icon: React.ElementType; description: string }> = {
-  messages_sent: { label: 'Mensagens Enviadas', icon: MessageSquare, description: 'Meta de mensagens enviadas' },
-  contacts_handled: { label: 'Contatos Atendidos', icon: Users, description: 'Meta de novos contatos atendidos' },
-  resolution_rate: { label: 'Taxa de Resolução', icon: CheckCircle2, description: 'Meta percentual de resolução' },
-};
+const GOAL_LABELS: Record<string, { label: string; icon: React.ElementType; description: string }> =
+  {
+    messages_sent: {
+      label: 'Mensagens Enviadas',
+      icon: MessageSquare,
+      description: 'Meta de mensagens enviadas',
+    },
+    contacts_handled: {
+      label: 'Contatos Atendidos',
+      icon: Users,
+      description: 'Meta de novos contatos atendidos',
+    },
+    resolution_rate: {
+      label: 'Taxa de Resolução',
+      icon: CheckCircle2,
+      description: 'Meta percentual de resolução',
+    },
+  };
 
 export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps) {
   const { user } = useAuth();
@@ -90,8 +114,8 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
   // Update local state when existing goals are fetched
   useEffect(() => {
     if (existingGoals && existingGoals.length > 0) {
-      const mergedGoals = DEFAULT_GOALS.map(defaultGoal => {
-        const existing = existingGoals.find(g => g.goal_type === defaultGoal.goal_type);
+      const mergedGoals = DEFAULT_GOALS.map((defaultGoal) => {
+        const existing = existingGoals.find((g) => g.goal_type === defaultGoal.goal_type);
         if (existing) {
           return {
             id: existing.id,
@@ -115,34 +139,21 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     mutationFn: async (goalsToSave: GoalConfig[]) => {
       if (!profile?.id) throw new Error('Profile not found');
 
-      for (const goal of goalsToSave) {
-        if (goal.id) {
-          // Update existing
-          const { error } = await supabase
-            .from('goals_configurations')
-            .update({
-              daily_target: goal.daily_target,
-              weekly_target: goal.weekly_target,
-              monthly_target: goal.monthly_target,
-              is_active: goal.is_active,
-            })
-            .eq('id', goal.id);
-          if (error) throw error;
-        } else {
-          // Insert new
-          const { error } = await supabase
-            .from('goals_configurations')
-            .insert({
-              profile_id: profile.id,
-              goal_type: goal.goal_type,
-              daily_target: goal.daily_target,
-              weekly_target: goal.weekly_target,
-              monthly_target: goal.monthly_target,
-              is_active: goal.is_active,
-            });
-          if (error) throw error;
-        }
-      }
+      // Single upsert for all goals — unique constraint (profile_id, goal_type)
+      // means existing rows update and new rows insert in one round-trip.
+      const rows = goalsToSave.map((goal) => ({
+        ...(goal.id ? { id: goal.id } : {}),
+        profile_id: profile.id,
+        goal_type: goal.goal_type,
+        daily_target: goal.daily_target,
+        weekly_target: goal.weekly_target,
+        monthly_target: goal.monthly_target,
+        is_active: goal.is_active,
+      }));
+      const { error } = await supabase
+        .from('goals_configurations')
+        .upsert(rows, { onConflict: 'profile_id,goal_type' });
+      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Metas salvas com sucesso!');
@@ -156,9 +167,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
   });
 
   const handleGoalChange = (goalType: string, field: keyof GoalConfig, value: number | boolean) => {
-    setGoals(prev => prev.map(g => 
-      g.goal_type === goalType ? { ...g, [field]: value } : g
-    ));
+    setGoals((prev) => prev.map((g) => (g.goal_type === goalType ? { ...g, [field]: value } : g)));
   };
 
   const handleReset = () => {
@@ -172,10 +181,10 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-primary" />
+            <Settings className="h-5 w-5 text-primary" />
             Configurar Metas Personalizadas
           </DialogTitle>
           <DialogDescription>
@@ -185,7 +194,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
 
         {isLoading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-32 w-full" />
             ))}
           </div>
@@ -201,8 +210,8 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Icon className="w-5 h-5 text-primary" />
+                        <div className="rounded-lg bg-primary/10 p-2">
+                          <Icon className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                           <CardTitle className="text-base">{config.label}</CardTitle>
@@ -210,13 +219,18 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Label htmlFor={`active-${goal.goal_type}`} className="text-sm text-muted-foreground">
+                        <Label
+                          htmlFor={`active-${goal.goal_type}`}
+                          className="text-sm text-muted-foreground"
+                        >
                           Ativa
                         </Label>
                         <Switch
                           id={`active-${goal.goal_type}`}
                           checked={goal.is_active}
-                          onCheckedChange={(checked) => handleGoalChange(goal.goal_type, 'is_active', checked)}
+                          onCheckedChange={(checked) =>
+                            handleGoalChange(goal.goal_type, 'is_active', checked)
+                          }
                         />
                       </div>
                     </div>
@@ -232,7 +246,13 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
                           type="number"
                           min={0}
                           value={goal.daily_target}
-                          onChange={(e) => handleGoalChange(goal.goal_type, 'daily_target', parseInt(e.target.value) || 0)}
+                          onChange={(e) =>
+                            handleGoalChange(
+                              goal.goal_type,
+                              'daily_target',
+                              parseInt(e.target.value) || 0
+                            )
+                          }
                           disabled={!goal.is_active}
                         />
                       </div>
@@ -245,7 +265,13 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
                           type="number"
                           min={0}
                           value={goal.weekly_target}
-                          onChange={(e) => handleGoalChange(goal.goal_type, 'weekly_target', parseInt(e.target.value) || 0)}
+                          onChange={(e) =>
+                            handleGoalChange(
+                              goal.goal_type,
+                              'weekly_target',
+                              parseInt(e.target.value) || 0
+                            )
+                          }
                           disabled={!goal.is_active}
                         />
                       </div>
@@ -258,7 +284,13 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
                           type="number"
                           min={0}
                           value={goal.monthly_target}
-                          onChange={(e) => handleGoalChange(goal.goal_type, 'monthly_target', parseInt(e.target.value) || 0)}
+                          onChange={(e) =>
+                            handleGoalChange(
+                              goal.goal_type,
+                              'monthly_target',
+                              parseInt(e.target.value) || 0
+                            )
+                          }
                           disabled={!goal.is_active}
                         />
                       </div>
@@ -268,13 +300,13 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
               );
             })}
 
-            <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex items-center justify-between border-t pt-4">
               <Button variant="outline" onClick={handleReset} className="gap-2">
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="h-4 w-4" />
                 Restaurar Padrões
               </Button>
               <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
-                <Save className="w-4 h-4" />
+                <Save className="h-4 w-4" />
                 {saveMutation.isPending ? 'Salvando...' : 'Salvar Metas'}
               </Button>
             </div>

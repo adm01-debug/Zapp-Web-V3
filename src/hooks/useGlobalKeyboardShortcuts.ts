@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCustomShortcuts } from './useCustomShortcuts';
@@ -8,15 +8,38 @@ interface GlobalShortcutAction {
   action: () => void;
 }
 
+// Static actions that don't depend on navigate or component props
+const STATIC_ACTIONS: Record<string, () => void> = {
+  'global-search': () => {
+    document.dispatchEvent(new CustomEvent('open-global-search'));
+  },
+  'toggle-theme': () => {
+    document.dispatchEvent(new CustomEvent('toggle-theme'));
+  },
+  'show-shortcuts-help': () => {
+    document.dispatchEvent(new CustomEvent('show-shortcuts-help'));
+  },
+  'refresh-data': () => {
+    window.location.reload();
+  },
+  'toggle-sidebar': () => {
+    document.dispatchEvent(new CustomEvent('toggle-sidebar'));
+  },
+  'quick-compose': () => {
+    document.dispatchEvent(new CustomEvent('quick-compose'));
+  },
+  'toggle-notifications': () => {
+    document.dispatchEvent(new CustomEvent('toggle-notifications'));
+  },
+};
+
 export function useGlobalKeyboardShortcuts(customActions?: GlobalShortcutAction[]) {
   const navigate = useNavigate();
   const { shortcuts, getActiveBinding } = useCustomShortcuts();
 
-  // Default global actions
-  const defaultActions: Record<string, () => void> = {
-    'global-search': () => {
-      document.dispatchEvent(new CustomEvent('open-global-search'));
-    },
+  // Dynamic actions that depend on navigate
+  const defaultActions = useMemo(() => ({
+    ...STATIC_ACTIONS,
     'go-to-inbox': () => {
       navigate('/');
       toast.info('📥 Inbox', { duration: 1500 });
@@ -33,31 +56,16 @@ export function useGlobalKeyboardShortcuts(customActions?: GlobalShortcutAction[
       navigate('/');
       toast.info('⚙️ Configurações', { duration: 1500 });
     },
-    'toggle-theme': () => {
-      document.dispatchEvent(new CustomEvent('toggle-theme'));
-    },
-    'show-shortcuts-help': () => {
-      document.dispatchEvent(new CustomEvent('show-shortcuts-help'));
-    },
-    'refresh-data': () => {
-      window.location.reload();
-    },
-    'toggle-sidebar': () => {
-      document.dispatchEvent(new CustomEvent('toggle-sidebar'));
-    },
-    'quick-compose': () => {
-      document.dispatchEvent(new CustomEvent('quick-compose'));
-    },
-    'toggle-notifications': () => {
-      document.dispatchEvent(new CustomEvent('toggle-notifications'));
-    },
-  };
+  }), [navigate]);
 
-  // Merge custom actions with defaults
-  const actions = { ...defaultActions };
-  customActions?.forEach(({ id, action }) => {
-    actions[id] = action;
-  });
+  // Merge custom actions with defaults, memoized to prevent unnecessary recreations
+  const actions = useMemo(() => {
+    const merged = { ...defaultActions };
+    customActions?.forEach(({ id, action }) => {
+      merged[id] = action;
+    });
+    return merged;
+  }, [defaultActions, customActions]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {

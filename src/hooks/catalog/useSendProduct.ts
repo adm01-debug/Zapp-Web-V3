@@ -1,7 +1,6 @@
-// @ts-nocheck
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
@@ -78,19 +77,25 @@ export function useSendToContact(onSuccess: () => void) {
     async (contact: ContactResult, message: string, imageUrls: string[]) => {
       setIsSending(true);
       try {
-        const safeQueries = safeWhatsAppConnectionsQuery(supabase);
-        const { data: connections, error: connError } = await safeQueries.getList({ status: 'connected' });
+        const { data: connections, error: connError } = await supabase
+          .from('whatsapp_connections')
+          .select('id, name, instance_id')
+          .eq('status', 'connected')
+          .limit(1);
         if (connError) {
           log.error('Failed to fetch WhatsApp connections:', connError);
           throw connError;
         }
 
         const connection = connections?.[0];
-        const evoName = connection ? evolutionInstanceName(connection) : null;
+        const evoName = connection
+          ? evolutionInstanceName({ instance_name: connection.name, instance_id: connection.instance_id })
+          : null;
         if (!evoName) {
-          toast.error('Nenhuma conexão WhatsApp ativa com nome de instância válido.');
+          toast({ title: 'Nenhuma conexão WhatsApp ativa com nome de instância válido.', variant: 'destructive' });
           return;
         }
+
 
         for (const imgUrl of imageUrls) {
           const { data: dbResult } = await supabase

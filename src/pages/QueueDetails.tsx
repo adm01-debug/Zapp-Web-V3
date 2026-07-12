@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,7 +83,7 @@ export default function QueueDetails() {
         .from('queue_members')
         .select('id, profile_id, profile:profiles(name, avatar_url, is_active)')
         .eq('queue_id', id);
-      setMembers(membersData as QueueMember[]);
+      setMembers(membersData as unknown as QueueMember[]);
 
       const { data: contactsData } = await dbFrom('contacts')
         .select('id, name, phone, avatar_url, assigned_to, created_at')
@@ -92,34 +91,48 @@ export default function QueueDetails() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      const contactsWithDetails = await Promise.all(
-        (contactsData || []).map(async (contact) => {
-          const { count } = await dbFrom('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('contact_id', contact.id);
-          const { data: lastMessage } = await dbFrom('messages')
-            .select('created_at')
-            .eq('contact_id', contact.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          let assignedAgent = null;
-          if (contact.assigned_to) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('name, avatar_url')
-              .eq('id', contact.assigned_to)
-              .maybeSingle();
-            assignedAgent = data;
+      let contactsWithDetails: QueueContact[] = [];
+
+      if (contactsData && contactsData.length > 0) {
+        const contactIds = contactsData.map((c) => c.id);
+        const assignedToIds = Array.from(
+          new Set(contactsData.map((c) => c.assigned_to).filter(Boolean) as string[])
+        );
+
+        const [messagesResult, agentResult] = await Promise.all([
+          dbFrom('messages')
+            .select('contact_id, created_at')
+            .in('contact_id', contactIds)
+            .order('created_at', { ascending: false }),
+          assignedToIds.length > 0
+            ? supabase.from('profiles').select('id, name, avatar_url').in('id', assignedToIds)
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        const countMap = new Map<string, number>();
+        const lastMessageMap = new Map<string, string>();
+        (messagesResult.data || []).forEach((msg) => {
+          countMap.set(msg.contact_id, (countMap.get(msg.contact_id) || 0) + 1);
+          if (!lastMessageMap.has(msg.contact_id)) {
+            lastMessageMap.set(msg.contact_id, msg.created_at);
           }
-          return {
-            ...contact,
-            messages_count: count || 0,
-            last_message_at: lastMessage?.created_at || null,
-            assigned_agent: assignedAgent,
-          };
-        })
-      );
+        });
+
+        const agentMap = new Map(
+          (agentResult.data || []).map((p: any) => [
+            p.id,
+            { name: p.name, avatar_url: p.avatar_url },
+          ])
+        );
+
+        contactsWithDetails = contactsData.map((contact) => ({
+          ...contact,
+          messages_count: countMap.get(contact.id) || 0,
+          last_message_at: lastMessageMap.get(contact.id) || null,
+          assigned_agent: contact.assigned_to ? agentMap.get(contact.assigned_to) || null : null,
+        }));
+      }
+
       setContacts(contactsWithDetails);
 
       const totalContacts = contactsWithDetails.length;
@@ -214,7 +227,7 @@ export default function QueueDetails() {
                         className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/20"
                       >
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={member.profile?.avatar_url || undefined} alt={member.profile?.name || ""} />
+                          <AvatarImage src={member.profile?.avatar_url || undefined} />
                           <AvatarFallback className="bg-primary/10 text-primary">
                             {member.profile?.name?.[0] || '?'}
                           </AvatarFallback>

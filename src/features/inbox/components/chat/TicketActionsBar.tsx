@@ -5,14 +5,28 @@
  * status, atribuição manual (assumir, transferir para outro atendente,
  * devolver à fila) e atribuição automática via `ticket-router`.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Circle, Clock, UserCheck, UserPlus, Users, Wand2, History, ArrowRight } from 'lucide-react';
+import {
+  CheckCircle2,
+  Circle,
+  Clock,
+  UserCheck,
+  UserPlus,
+  Users,
+  Wand2,
+  History,
+  ArrowRight,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useTicketStatus } from '@/features/inbox';
@@ -27,23 +41,25 @@ interface TeamProfile {
   is_active: boolean | null;
 }
 
-const STATUS_META: Record<TicketStatus, { label: string; icon: typeof Circle; className: string }> = {
-  open: {
-    label: 'Aberto',
-    icon: Circle,
-    className: 'bg-warning/15 text-warning border-warning/40',
-  },
-  in_progress: {
-    label: 'Em atendimento',
-    icon: Clock,
-    className: 'bg-primary/15 text-primary border-primary/40',
-  },
-  resolved: {
-    label: 'Resolvido',
-    icon: CheckCircle2,
-    className: 'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/40',
-  },
-};
+const STATUS_META: Record<TicketStatus, { label: string; icon: typeof Circle; className: string }> =
+  {
+    open: {
+      label: 'Aberto',
+      icon: Circle,
+      className: 'bg-warning/15 text-warning border-warning/40',
+    },
+    in_progress: {
+      label: 'Em atendimento',
+      icon: Clock,
+      className: 'bg-primary/15 text-primary border-primary/40',
+    },
+    resolved: {
+      label: 'Resolvido',
+      icon: CheckCircle2,
+      className:
+        'bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/40',
+    },
+  };
 
 interface TicketActionsBarProps {
   contactId: string;
@@ -64,26 +80,38 @@ function useTeamProfiles() {
 
 export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarProps) {
   const { profile } = useAuth();
-  const { status, assignedTo, setStatus, assumir, transferir, devolverFila, atribuirAuto } = useTicketStatus(contactId);
+  const { status, assignedTo, setStatus, assumir, transferir, devolverFila, atribuirAuto } =
+    useTicketStatus(contactId);
   const { data: team = [] } = useTeamProfiles();
   const [isRouting, setIsRouting] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const meta = STATUS_META[status];
   const Icon = meta.icon;
   const isMine = assignedTo && profile?.id === assignedTo;
   const assignedProfile = useMemo(
     () => team.find((p) => p.id === assignedTo) ?? null,
-    [team, assignedTo],
+    [team, assignedTo]
   );
 
   const handleAuto = async () => {
     setIsRouting(true);
-    try { await atribuirAuto(); } finally { setIsRouting(false); }
+    try {
+      await atribuirAuto();
+    } finally {
+      if (mountedRef.current) setIsRouting(false);
+    }
   };
 
   return (
     <div
-      className="flex flex-wrap items-center gap-2 px-3 md:px-5 py-2 border-b border-border bg-muted/30"
+      className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-3 py-2 md:px-5"
       data-testid="ticket-actions-bar"
     >
       {/* Status badge + troca */}
@@ -95,7 +123,7 @@ export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarP
             className={cn('h-7 gap-1.5 border', meta.className)}
             aria-label="Alterar status do atendimento"
           >
-            <Icon className="w-3.5 h-3.5" />
+            <Icon className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">{meta.label}</span>
           </Button>
         </DropdownMenuTrigger>
@@ -112,9 +140,13 @@ export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarP
                 disabled={s === status}
                 className="text-xs"
               >
-                <SIcon className="w-3.5 h-3.5 mr-2" />
+                <SIcon className="mr-2 h-3.5 w-3.5" />
                 {m.label}
-                {s === status && <Badge variant="outline" className="ml-auto text-[9px]">atual</Badge>}
+                {s === status && (
+                  <Badge variant="outline" className="ml-auto text-[9px]">
+                    atual
+                  </Badge>
+                )}
               </DropdownMenuItem>
             );
           })}
@@ -123,32 +155,40 @@ export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarP
 
       {/* Atribuição */}
       <div className="flex items-center gap-1.5 text-xs">
-        <Users className="w-3.5 h-3.5 text-muted-foreground" />
+        <Users className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-muted-foreground">Atendente:</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 px-2 gap-1 text-xs font-medium">
-              {assignedProfile ? assignedProfile.name : <span className="text-muted-foreground italic">não atribuído</span>}
-              <ArrowRight className="w-3 h-3 opacity-50" />
+            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs font-medium">
+              {assignedProfile ? (
+                assignedProfile.name
+              ) : (
+                <span className="italic text-muted-foreground">não atribuído</span>
+              )}
+              <ArrowRight className="h-3 w-3 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56 max-h-80 overflow-auto">
+          <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-auto">
             <DropdownMenuLabel className="text-[11px]">Atribuir atendimento</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {!isMine && profile?.id && (
               <DropdownMenuItem onClick={() => assumir()} className="text-xs">
-                <UserCheck className="w-3.5 h-3.5 mr-2 text-primary" />
+                <UserCheck className="mr-2 h-3.5 w-3.5 text-primary" />
                 Assumir atendimento
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={handleAuto} disabled={isRouting} className="text-xs">
-              <Wand2 className="w-3.5 h-3.5 mr-2 text-primary" />
+              <Wand2 className="mr-2 h-3.5 w-3.5 text-primary" />
               {isRouting ? 'Roteando…' : 'Atribuir automaticamente'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[10px] text-muted-foreground">Transferir para…</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[10px] text-muted-foreground">
+              Transferir para…
+            </DropdownMenuLabel>
             {team.length === 0 && (
-              <div className="px-2 py-3 text-[11px] text-muted-foreground">Nenhum atendente ativo</div>
+              <div className="px-2 py-3 text-[11px] text-muted-foreground">
+                Nenhum atendente ativo
+              </div>
             )}
             {team.map((p) => (
               <DropdownMenuItem
@@ -157,15 +197,22 @@ export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarP
                 disabled={p.id === assignedTo}
                 className="text-xs"
               >
-                <UserPlus className="w-3.5 h-3.5 mr-2" />
+                <UserPlus className="mr-2 h-3.5 w-3.5" />
                 {p.name}
-                {p.id === assignedTo && <Badge variant="outline" className="ml-auto text-[9px]">atual</Badge>}
+                {p.id === assignedTo && (
+                  <Badge variant="outline" className="ml-auto text-[9px]">
+                    atual
+                  </Badge>
+                )}
               </DropdownMenuItem>
             ))}
             {assignedTo && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => devolverFila()} className="text-xs text-destructive">
+                <DropdownMenuItem
+                  onClick={() => devolverFila()}
+                  className="text-xs text-destructive"
+                >
                   Devolver à fila
                 </DropdownMenuItem>
               </>
@@ -179,10 +226,10 @@ export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarP
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 ml-auto gap-1 text-xs text-muted-foreground hover:text-foreground"
+          className="ml-auto h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           onClick={onOpenHistory}
         >
-          <History className="w-3.5 h-3.5" />
+          <History className="h-3.5 w-3.5" />
           Histórico
         </Button>
       )}

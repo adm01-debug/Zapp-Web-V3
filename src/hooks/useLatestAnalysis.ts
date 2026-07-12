@@ -34,7 +34,7 @@ export function useLatestAnalysis(contactId: string | null | undefined) {
         .limit(1)
         .maybeSingle();
       if (error) return null;
-      return data as LatestAnalysis | null;
+      return data as LatestAnalysis | null; // ignore-audit: explicit select subset mapped to LatestAnalysis interface
     },
     enabled: !!contactId,
     staleTime: 1000 * 60 * 5,

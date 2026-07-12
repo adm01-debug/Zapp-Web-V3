@@ -220,7 +220,7 @@ export const AdminProvidersPage = () => {
                 <Label htmlFor="provider-type">Tipo</Label>
                 <Select
                   value={editing.provider_type ?? 'evolution'}
-                  onValueChange={(v) => setEditing({ ...editing, provider_type: v as ProviderType })}
+                  onValueChange={(v) => setEditing({ ...editing, provider_type: v as ProviderType  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */})}
                 >
                   <SelectTrigger id="provider-type"><SelectValue /></SelectTrigger>
                   <SelectContent>

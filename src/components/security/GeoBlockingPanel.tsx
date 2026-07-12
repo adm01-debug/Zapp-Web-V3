@@ -114,7 +114,7 @@ export function GeoBlockingPanel() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'whitelist' | 'blacklist')}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'whitelist' | 'blacklist' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="whitelist" className="gap-2"><ShieldCheck className="w-4 h-4" />Whitelist ({allowedCountries.length})</TabsTrigger>
               <TabsTrigger value="blacklist" className="gap-2"><Shield className="w-4 h-4" />Blacklist ({blockedCountries.length})</TabsTrigger>

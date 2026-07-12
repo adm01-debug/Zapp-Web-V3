@@ -15,6 +15,8 @@ export * from './useMediaUrl';
 export * from './useMessageDetails';
 export * from './useMessageReactions';
 export * from './useMessageSendHistory';
+export * from './useRetryFailedMessage';
+export * from './messageSendHistory.schemas';
 export * from './useMessageSignature';
 export * from './useMessageStatus';
 export * from './useMessageTemplates';

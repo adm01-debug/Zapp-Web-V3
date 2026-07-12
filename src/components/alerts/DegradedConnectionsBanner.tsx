@@ -40,7 +40,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
     const safeQueries = safeWhatsAppConnectionsQuery(supabase);
     const { data } = await safeQueries.getDegraded(since);
     if (!mountedRef.current) return;
-    setDegraded((data as DegradedInstance[]) ?? []);
+    setDegraded(data ?? []);
   }, [recentWindowMs]);
 
   useEffect(() => {

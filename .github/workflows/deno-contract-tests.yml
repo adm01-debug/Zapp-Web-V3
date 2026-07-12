@@ -63,7 +63,7 @@ jobs:
             --allow-env \
             --allow-net \
             --no-prompt \
-            $(find supabase/functions -name 'contract.test.ts' -o -name 'contract.test.ts' | grep -v '_shared' | tr '\n' ' ')
+            $(find supabase/functions -name 'contract.test.ts' | grep -v '_shared' | tr '\n' ' ')
         env:
           DENO_NO_PROMPT: 1
 

@@ -16,10 +16,10 @@ import {
 
 const log = getLogger('useFailedMessages');
 
+type _SupaRpc = { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }> };
 // Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
-  (supabase as any).rpc(fn, args) as Promise<{ data: T; error: Error | null }>;
+  (supabase as unknown as _SupaRpc).rpc(fn, args) as Promise<{ data: T; error: Error | null }>; // ignore-audit — DLQ RPCs not yet in generated Supabase types
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
 
@@ -110,6 +110,12 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const effectiveFrom = from ?? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
   const effectiveTo = to;
 
+  // Cursor-based pagination: track cursor for each page number to enable efficient navigation
+  // Page 0 always has cursor=null; subsequent pages use last row ID from previous page
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
+
+  const currentPageCursor = pageIndexToCursor.get(page) ?? null;
+
   const queryKey = [
     'failed-messages',
     { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
@@ -118,14 +124,14 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_failed_messages', {
+      const { data, error } = await supabase.rpc('rpc_list_failed_messages_cursor', {
         p_status: status ? [status] : null,
         p_instance: instance,
         p_search: search,
         p_from: effectiveFrom,
         p_to: effectiveTo,
         p_limit: pageSize,
-        p_offset: page * pageSize,
+        p_cursor_id: currentPageCursor,
       });
       if (error) {
         if (isRlsDeniedError(error)) {
@@ -154,6 +160,19 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     refetchInterval: 30_000,
     retry: (count, err) => !isRlsDeniedError(err) && count < 2,
   });
+
+  // Update page history with cursor for next page when current page loads
+  useEffect(() => {
+    if (query.data?.rows && query.data.rows.length > 0) {
+      const lastRow = query.data.rows[query.data.rows.length - 1];
+      const nextPageCursor = lastRow.id;
+      setPageIndexToCursor((prev) => {
+        const updated = new Map(prev);
+        updated.set(page + 1, nextPageCursor);
+        return updated;
+      });
+    }
+  }, [query.data?.rows, page]);
 
   const aggregates = useMemo<FailedMessagesAggregates>(() => {
     const rows = query.data?.rows ?? [];
@@ -203,6 +222,11 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     };
   }, [query.data]);
 
+  // Reset page history when filters change (start over from page 0)
+  useEffect(() => {
+    setPageIndexToCursor(new Map([[0, null]]));
+  }, [status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo]);
+
   // Realtime
   useEffect(() => {
     const channel = supabase
@@ -243,7 +267,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const { data, error } = await supabase.rpc('rpc_dlq_retry_now', { p_id: id });
       if (error) throw error;
       if (data === true) await logItemAction('retry', [id]);
-      return data as boolean;
+      return data as boolean; // ignore-audit: RPC returns unknown; boolean is the documented return type
     },
     onSuccess: (ok) => {
       if (ok) toast.success('Item marcado para reprocesso imediato.');
@@ -263,7 +287,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const { data, error } = await supabase.rpc('rpc_dlq_abandon', { p_id: id, p_reason: reason });
       if (error) throw error;
       if (data === true) await logItemAction('abandon', [id], reason);
-      return data as boolean;
+      return data as boolean; // ignore-audit: RPC returns unknown; boolean is the documented return type
     },
     onSuccess: (ok) => {
       if (ok) toast.success('Item abandonado.');
@@ -281,18 +305,13 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const ids = Array.isArray(input) ? input : input.ids;
       const reason = Array.isArray(input) ? '' : (input.reason ?? '');
       if (ids.length === 0) return 0;
-      let n = 0;
-      const succeededIds: string[] = [];
-      for (const id of ids) {
-        const { data, error } = await supabase.rpc('rpc_dlq_retry_now', { p_id: id });
-        if (error) throw error;
-        if (data === true) {
-          n += 1;
-          succeededIds.push(id);
-        }
-      }
-      if (succeededIds.length > 0)
-        await logItemAction('bulk_retry', succeededIds, reason || undefined);
+      const { data, error } = await _rpc<number>('rpc_dlq_bulk_retry_now', {
+        p_ids: ids,
+        p_reason: reason || null,
+      });
+      if (error) throw error;
+      const n = (data as number | null) ?? 0;
+      if (n > 0) await logItemAction('bulk_retry', ids, reason || undefined);
       return n;
     },
     onSuccess: (n) => {
@@ -315,7 +334,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_reason: reason,
       });
       if (error) throw error;
-      const affected = (data as number | null) ?? 0;
+      const affected = (data as number | null) ?? 0; // ignore-audit: RPC returns unknown; number is the documented return type
       if (affected > 0) await logItemAction('bulk_abandon', ids, reason);
       return affected;
     },

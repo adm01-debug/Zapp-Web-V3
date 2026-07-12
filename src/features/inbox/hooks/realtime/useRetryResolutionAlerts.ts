@@ -143,12 +143,12 @@ export function useRetryResolutionAlerts(enabled = true): void {
     // ── Source 2: Postgres realtime (cross-tab / cross-agent) ──────────────
     const channel = supabase
       .channel('retry_resolution_alerts')
-      .on(
+      .on<MessageRowMinimal>(
         'postgres_changes',
         { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
         (payload) => {
-          const next = payload.new as MessageRowMinimal | null;
-          const prev = payload.old as MessageRowMinimal | null;
+          const next = payload.new;
+          const prev = payload.old;
           if (!next || !prev) return;
 
           // Only react when prior status was 'retrying' and now resolved.
@@ -182,6 +182,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
 
     return () => {
       unsubBus();
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled, navigate]);

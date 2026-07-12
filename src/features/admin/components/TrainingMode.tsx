@@ -1,5 +1,12 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
+
+interface TrainingSession {
+  id: string;
+  scenario_name?: string | null;
+  status?: string | null;
+  score?: number | null;
+}
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +19,13 @@ import { Json } from '@/integrations/supabase/types';
 interface SimMessage {
   role: 'customer' | 'agent';
   content: string;
+}
+
+interface TrainingSession {
+  id: string;
+  scenario_name: string;
+  status: string;
+  score: number | null;
 }
 
 const SCENARIOS = [
@@ -61,7 +75,7 @@ export function TrainingMode() {
   const [customerStep, setCustomerStep] = useState(0);
   const [score, setScore] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [profileId, setProfileId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -142,12 +156,21 @@ export function TrainingMode() {
 
     // Complete if all steps done
     if (customerStep >= scenario.customerScript.length) {
-      const finalScore = Math.min(100, Math.max(40, 60 + Math.round(Math.random() * 40)));
+      // Heurística determinística: penaliza respostas muito curtas (< 20 chars)
+      // e recompensa respostas mais elaboradas (> 80 chars). Não usa Math.random()
+      // pois o score é persistido no banco e deve ser reproduzível.
+      const agentMessages = newMessages.filter((m) => m.role === 'agent');
+      const avgLen =
+        agentMessages.reduce((s, m) => s + m.content.length, 0) / Math.max(agentMessages.length, 1);
+      const lengthBonus = avgLen >= 80 ? 20 : avgLen >= 40 ? 10 : avgLen >= 20 ? 0 : -10;
+      const finalScore = Math.min(100, Math.max(40, 70 + lengthBonus));
       setScore(finalScore);
+      // finalScore range: 60–90. Threshold at 70 so all three branches are reachable:
+      // 80–90 → excellent, 70 → good, 60 → needs improvement.
       const fb =
         finalScore >= 80
           ? 'Excelente! Boa empatia e resolução.'
-          : finalScore >= 60
+          : finalScore >= 70
             ? 'Bom, mas poderia ser mais proativo.'
             : 'Precisa melhorar a abordagem e tempo de resposta.';
       setFeedback(fb);
@@ -318,7 +341,12 @@ export function TrainingMode() {
                   className="text-sm"
                   onKeyDown={(e) => e.key === 'Enter' && sendResponse()}
                 />
-                <Button aria-label="Enviar resposta" size="icon" onClick={sendResponse} disabled={!input.trim()}>
+                <Button
+                  aria-label="Enviar resposta"
+                  size="icon"
+                  onClick={sendResponse}
+                  disabled={!input.trim()}
+                >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

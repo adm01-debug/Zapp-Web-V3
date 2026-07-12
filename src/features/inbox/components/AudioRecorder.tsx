@@ -200,15 +200,14 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
       // After success, clear states
       setAudioBlob(null);
       setIsConfirming(false);
-    } catch (error) {
+    } catch (error: unknown) {
       log.error(`Audio send failed (attempt ${retryCount + 1}):`, error);
       const canRetry = retryCount < 3; // Allowing up to 3 retries as requested
-      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
 
       toast({
         title: 'Erro no envio',
         description: canRetry
-          ? `Falha técnica (${errorMsg}). Tentando novamente em breve (Tentativa ${retryCount + 1}/4)...`
+          ? `Falha técnica (${error instanceof Error ? error.message : 'Erro desconhecido'}). Tentando novamente em breve (Tentativa ${retryCount + 1}/4)...`
           : 'Não foi possível enviar o áudio após várias tentativas. Verifique sua conexão.',
         variant: 'destructive',
         action: (
@@ -446,7 +445,8 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                 onKeyDown={(e) => {
                   const audio = audioRef.current;
                   if (!audio || !audio.duration) return;
-                  if (e.key === 'ArrowRight') audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+                  if (e.key === 'ArrowRight')
+                    audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
                   if (e.key === 'ArrowLeft') audio.currentTime = Math.max(0, audio.currentTime - 5);
                 }}
               >
@@ -490,7 +490,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                       <textarea
                         value={transcription}
                         onChange={(e) => setTranscription(e.target.value)}
-                        className="min-h-[60px] w-full resize-none border-t border-border/30 bg-transparent pt-2 text-sm font-medium italic leading-relaxed text-foreground/80 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:rounded-sm"
+                        className="min-h-[60px] w-full resize-none border-t border-border/30 bg-transparent pt-2 text-sm font-medium italic leading-relaxed text-foreground/80 outline-none focus-visible:rounded-sm focus-visible:ring-1 focus-visible:ring-primary/50"
                         placeholder="Edite a transcrição aqui..."
                         aria-label="Editar transcrição de áudio"
                       />

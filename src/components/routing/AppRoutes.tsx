@@ -194,18 +194,23 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
           />
+          {/* FIX P0: /debug/send-status-bus had no role gate — restricted to
+              admin/dev roles, consistent with /debug/backend and /debug/realtime-fanout. */}
           <Route
             path="/debug/send-status-bus"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={['admin', 'dev']}>
                 <SendStatusBusDebug />
               </ProtectedRoute>
             }
           />
+          {/* FIX P0: /debug/realtime-fanout had no role gate — any authenticated user
+              could access realtime diagnostics. Restricted to admin/dev roles,
+              consistent with /debug/backend. */}
           <Route
             path="/debug/realtime-fanout"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={['admin', 'dev']}>
                 <RealtimeFanoutDebug />
               </ProtectedRoute>
             }

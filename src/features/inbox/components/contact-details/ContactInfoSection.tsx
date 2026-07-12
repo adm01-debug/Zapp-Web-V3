@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Phone, Mail, Calendar, Building, Briefcase, Pencil, Check, X, Plus, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,6 +99,8 @@ function EditableField({ value, icon, onSave, placeholder, label }: EditableFiel
 }
 
 export function ContactInfoSection({ contact, enrichedData }: ContactInfoSectionProps) {
+  const queryClient = useQueryClient();
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copiado!`);
@@ -106,7 +109,12 @@ export function ContactInfoSection({ contact, enrichedData }: ContactInfoSection
   const updateContact = useCallback(async (field: string, value: string) => {
     const { error } = await dbFrom('contacts').update({ [field]: value }).eq('id', contact.id);
     if (error) throw error;
-  }, [contact.id]);
+
+    queryClient.invalidateQueries({ queryKey: ['contact-enriched', contact.id] });
+    queryClient.invalidateQueries({ queryKey: ['contact-ai-tags', contact.id] });
+    queryClient.invalidateQueries({ queryKey: ['contact-sla', contact.id] });
+    queryClient.invalidateQueries({ queryKey: ['contact-local-id', contact.id] });
+  }, [contact.id, queryClient]);
 
   return (
     <div className="space-y-1.5">

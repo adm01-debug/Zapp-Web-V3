@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState, useCallback } from 'react';
 import { zappSupabase, ZAPPWEB_INSTANCE } from '../supabaseClient';
 import type { EvolutionConversation } from '../types';
@@ -32,16 +31,16 @@ export function useZappConversations(opts: Options = {}) {
            last_message_type, last_message_at, last_inbound_at, assigned_to,
            priority, instance_name,
            evolution_contacts ( id, push_name, full_name, phone_number,
-             profile_picture_url, lead_status, company, tags )`,
+             profile_picture_url, lead_status, company, tags )`
         )
         .eq('instance_name', instance)
         .eq('status', status)
         .order('last_message_at', { ascending: false })
         .limit(limit);
       if (err) throw err;
-      setConversations((data ?? []) as EvolutionConversation[]);
+      setConversations((data ?? []) as unknown as EvolutionConversation[]);
       setError(null);
-    } catch (e) {
+    } catch (e: unknown) {
       log.error('[useZappConversations]', e);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -61,7 +60,7 @@ export function useZappConversations(opts: Options = {}) {
           table: 'evolution_conversations',
           filter: `instance_name=eq.${instance}`,
         },
-        () => fetchAll(),
+        () => fetchAll()
       )
       .subscribe();
     return () => {

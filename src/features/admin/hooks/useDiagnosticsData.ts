@@ -74,12 +74,35 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     { count: failedCount },
     { count: pendingCount },
   ] = await Promise.all([
-    dbFrom('messages').select('*', { count: 'exact', head: true }).gte('created_at', since).eq('sender', 'agent'),
-    dbFrom('messages').select('*', { count: 'exact', head: true }).gte('created_at', since).eq('sender', 'agent').eq('status', 'sent'),
-    dbFrom('messages').select('*', { count: 'exact', head: true }).gte('created_at', since).eq('sender', 'agent').eq('status', 'delivered'),
-    dbFrom('messages').select('*', { count: 'exact', head: true }).gte('created_at', since).eq('sender', 'agent').eq('status', 'read'),
-    dbFrom('messages').select('*', { count: 'exact', head: true }).gte('created_at', since).eq('sender', 'agent').eq('status', 'failed'),
-    dbFrom('messages').select('*', { count: 'exact', head: true }).gte('created_at', since).eq('sender', 'agent').eq('status', 'sending'),
+    dbFrom('messages')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', since)
+      .eq('sender', 'agent'),
+    dbFrom('messages')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', since)
+      .eq('sender', 'agent')
+      .eq('status', 'sent'),
+    dbFrom('messages')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', since)
+      .eq('sender', 'agent')
+      .eq('status', 'delivered'),
+    dbFrom('messages')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', since)
+      .eq('sender', 'agent')
+      .eq('status', 'read'),
+    dbFrom('messages')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', since)
+      .eq('sender', 'agent')
+      .eq('status', 'failed'),
+    dbFrom('messages')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', since)
+      .eq('sender', 'agent')
+      .eq('status', 'sending'),
   ]);
 
   const { data: failures } = await supabase
@@ -92,22 +115,25 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
 
   const recentFailures = [];
   if (failures) {
+    // Batch-fetch all contact names in a single query instead of one per failure.
+    const contactIds = failures.map((f) => f.contact_id).filter(Boolean) as string[];
+    const contactNameMap = new Map<string, string>();
+    if (contactIds.length > 0) {
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('id, name')
+        .in('id', contactIds);
+      contacts?.forEach((c) => contactNameMap.set(c.id, c.name));
+    }
     for (const f of failures) {
-      let contactName = 'Desconhecido';
-      if (f.contact_id) {
-        const { data: contact } = await supabase
-          .from('contacts')
-          .select('name')
-          .eq('id', f.contact_id)
-          .single();
-        if (contact) contactName = contact.name;
-      }
       recentFailures.push({
         id: f.id,
         content: f.content,
         status: f.status || 'unknown',
         created_at: f.created_at,
-        contact_name: contactName,
+        contact_name: f.contact_id
+          ? (contactNameMap.get(f.contact_id) ?? 'Desconhecido')
+          : 'Desconhecido',
       });
     }
   }
@@ -120,7 +146,12 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
   const pending = pendingCount || 0;
 
   return {
-    total, sent, delivered, read, failed, pending,
+    total,
+    sent,
+    delivered,
+    read,
+    failed,
+    pending,
     deliveryRate: total > 0 ? Math.round(((delivered + read) / total) * 100) : 0,
     failureRate: total > 0 ? Math.round((failed / total) * 100) : 0,
     recentFailures,
@@ -129,15 +160,23 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
 
 async function fetchSystemHealth(): Promise<SystemHealth> {
   const dbStart = performance.now();
-  const { count: contactsCount } = await dbFrom('contacts').select('*', { count: 'exact', head: true });
+  const { count: contactsCount } = await dbFrom('contacts').select('*', {
+    count: 'exact',
+    head: true,
+  });
   const dbLatency = Math.round(performance.now() - dbStart);
 
   const storageStart = performance.now();
   await supabase.storage.from('whatsapp-media').list('', { limit: 1 });
   const storageLatency = Math.round(performance.now() - storageStart);
 
-  const { count: messagesCount } = await dbFrom('messages').select('*', { count: 'exact', head: true });
-  const { count: connectionsCount } = await supabase.from('whatsapp_connections').select('*', { count: 'exact', head: true });
+  const { count: messagesCount } = await dbFrom('messages').select('*', {
+    count: 'exact',
+    head: true,
+  });
+  const { count: connectionsCount } = await supabase
+    .from('whatsapp_connections')
+    .select('*', { count: 'exact', head: true });
 
   let edgeFunctionsStatus: 'healthy' | 'degraded' | 'down' = 'healthy';
   try {
@@ -211,7 +250,8 @@ async function fetchErrorLogs(): Promise<ErrorLog[]> {
       type: 'system',
       severity: 'warning',
       message: `${orphanCount} contato(s) sem conexão WhatsApp`,
-      details: 'Esses contatos não receberão mensagens enviadas pelo sistema. Vincule-os a uma conexão.',
+      details:
+        'Esses contatos não receberão mensagens enviadas pelo sistema. Vincule-os a uma conexão.',
       timestamp: new Date(),
     });
   }
@@ -228,7 +268,8 @@ async function fetchErrorLogs(): Promise<ErrorLog[]> {
       type: 'message',
       severity: 'warning',
       message: `${stuckCount} mensagem(ns) travada(s) no status "enviando"`,
-      details: 'Mensagens com mais de 5 minutos no status "sending". Pode indicar problemas com a Evolution API.',
+      details:
+        'Mensagens com mais de 5 minutos no status "sending". Pode indicar problemas com a Evolution API.',
       timestamp: new Date(),
     });
   }
@@ -270,14 +311,23 @@ export function useDiagnosticsData() {
     toast.success('Diagnósticos atualizados!');
   };
 
-  const errorCount = errorLogs.filter(l => l.severity === 'error' || l.severity === 'critical').length;
-  const warningCount = errorLogs.filter(l => l.severity === 'warning').length;
-  const connectedCount = connections.filter(c => c.status === 'connected').length;
+  const errorCount = errorLogs.filter(
+    (l) => l.severity === 'error' || l.severity === 'critical'
+  ).length;
+  const warningCount = errorLogs.filter((l) => l.severity === 'warning').length;
+  const connectedCount = connections.filter((c) => c.status === 'connected').length;
 
   return {
-    loading, refreshing, lastRefresh,
-    connections, messageDiag, health, errorLogs,
+    loading,
+    refreshing,
+    lastRefresh,
+    connections,
+    messageDiag,
+    health,
+    errorLogs,
     handleRefresh,
-    errorCount, warningCount, connectedCount,
+    errorCount,
+    warningCount,
+    connectedCount,
   };
 }
