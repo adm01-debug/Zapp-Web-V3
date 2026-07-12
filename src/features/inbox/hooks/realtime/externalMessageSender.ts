@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * externalMessageSender — envio de mensagens no modo FATOR X.
  *
