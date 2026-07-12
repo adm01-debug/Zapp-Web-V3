@@ -46,6 +46,7 @@ export function useServiceWorker() {
 
     let cleanup: (() => void) | undefined;
     let disposed = false;
+    const timeoutIds: NodeJS.Timeout[] = [];
 
     const registerServiceWorker = async (retryCount = 0) => {
       try {
@@ -62,7 +63,14 @@ export function useServiceWorker() {
           const error = err as Error;
           if (error.message.includes('404') && retryCount < 3) {
             log.warn(`[ServiceWorker] 404 on registration attempt ${retryCount + 1}, retrying...`);
-            setTimeout(() => registerServiceWorker(retryCount + 1), 2000 * (retryCount + 1));
+            const jitter = Math.random() * 1000;
+            const delay = (2000 * Math.pow(2, retryCount)) + jitter;
+            const timeoutId = setTimeout(() => {
+              if (!disposed) {
+                registerServiceWorker(retryCount + 1);
+              }
+            }, delay);
+            timeoutIds.push(timeoutId);
             return;
           }
           throw err;
@@ -106,6 +114,7 @@ export function useServiceWorker() {
         // Cleanup on unmount (interval was leaking before)
         cleanup = () => {
           clearInterval(intervalId);
+          timeoutIds.forEach(id => clearTimeout(id));
           navigator.serviceWorker.removeEventListener('message', onMessage);
         };
       } catch (error) {
