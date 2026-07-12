@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,11 +22,12 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const { data: notes, isLoading } = useQuery({
     queryKey: ['internal-notes', contactId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from('contact_notes', q =>
-        q.select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
-         .eq('contact_id', contactId)
-         .order('created_at', { ascending: false })
-         .limit(50)
+      const { data, error } = await safeClient.from('contact_notes', (q) =>
+        q
+          .select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
+          .eq('contact_id', contactId)
+          .order('created_at', { ascending: false })
+          .limit(50)
       );
       if (error) throw error;
       return data || [];
@@ -107,7 +107,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
                   >
                     <div className="mb-2 flex items-center gap-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={note.author?.avatar_url} alt={note.author?.name || ""} />
+                        <AvatarImage src={note.author?.avatar_url} alt={note.author?.name || ''} />
                         <AvatarFallback className="text-xs">
                           {note.author?.name?.substring(0, 2).toUpperCase() || 'NA'}
                         </AvatarFallback>

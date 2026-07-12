@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TrendingUp, ShieldAlert, Filter } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
 } from 'recharts';
 
 type Window = '24h' | '7d';
@@ -46,8 +52,11 @@ const WINDOW_HOURS: Record<Window, number> = { '24h': 24, '7d': 168 };
 function formatBucket(ts: string, window: Window) {
   const d = new Date(ts);
   if (window === '7d') {
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) +
-      ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit' });
+    return (
+      d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) +
+      ' ' +
+      d.toLocaleTimeString('pt-BR', { hour: '2-digit' })
+    );
   }
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
@@ -88,12 +97,17 @@ export function AuthEventTrendChart() {
   // Agrega buckets entre instâncias (gráfico mostra totais por motivo)
   const chartData = useMemo(() => {
     const rows = trendQuery.data ?? [];
-    const map = new Map<string, { time: string; invalid_signature: number; auth_401: number; auth_403: number }>();
+    const map = new Map<
+      string,
+      { time: string; invalid_signature: number; auth_401: number; auth_403: number }
+    >();
     for (const r of rows) {
       const key = r.bucket;
       const cur = map.get(key) ?? {
         time: formatBucket(r.bucket, window),
-        invalid_signature: 0, auth_401: 0, auth_403: 0,
+        invalid_signature: 0,
+        auth_401: 0,
+        auth_403: 0,
       };
       cur.invalid_signature += r.invalid_signature;
       cur.auth_401 += r.auth_401;
@@ -107,21 +121,23 @@ export function AuthEventTrendChart() {
 
   const summary = summaryQuery.data;
   const isLoading = trendQuery.isLoading || summaryQuery.isLoading;
-  const totalRate = summary && summary.total > 0
-    ? `${(summary.total / hours).toFixed(1)} eventos/h`
-    : '0 eventos/h';
+  const totalRate =
+    summary && summary.total > 0
+      ? `${(summary.total / hours).toFixed(1)} eventos/h`
+      : '0 eventos/h';
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4 text-primary" />
               Tendência de falhas de autenticação
             </CardTitle>
             <CardDescription>
-              Eventos <code>invalid_signature</code> (webhook) e <code>auth_401/403</code> (Evolution API) por instância.
+              Eventos <code>invalid_signature</code> (webhook) e <code>auth_401/403</code>{' '}
+              (Evolution API) por instância.
             </CardDescription>
           </div>
           <Tabs value={window} onValueChange={(v) => setWindow(v as Window)}>
@@ -132,8 +148,8 @@ export function AuthEventTrendChart() {
           </Tabs>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3 mt-2">
-          <div className="flex-1 min-w-[180px]">
+        <div className="mt-2 flex flex-wrap items-end gap-3">
+          <div className="min-w-[180px] flex-1">
             <Label htmlFor="instance-filter" className="flex items-center gap-1 text-xs">
               <Filter className="h-3 w-3" /> Instância (opcional)
             </Label>
@@ -150,28 +166,28 @@ export function AuthEventTrendChart() {
 
       <CardContent className="space-y-4">
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-lg border bg-muted/30 px-3 py-2">
             <div className="text-xs text-muted-foreground">Total</div>
             <div className="text-2xl font-bold">{summary?.total ?? 0}</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">{totalRate}</div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground">{totalRate}</div>
           </div>
           <div className="rounded-lg border bg-muted/30 px-3 py-2">
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <span className="h-2 w-2 rounded-full bg-destructive" />
               invalid_signature
             </div>
             <div className="text-2xl font-bold">{summary?.invalid_signature ?? 0}</div>
           </div>
           <div className="rounded-lg border bg-muted/30 px-3 py-2">
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <span className="h-2 w-2 rounded-full bg-warning" />
               auth_401
             </div>
             <div className="text-2xl font-bold">{summary?.auth_401 ?? 0}</div>
           </div>
           <div className="rounded-lg border bg-muted/30 px-3 py-2">
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <span className="h-2 w-2 rounded-full bg-primary" />
               auth_403
             </div>
@@ -183,16 +199,24 @@ export function AuthEventTrendChart() {
         {isLoading ? (
           <Skeleton className="h-72 w-full" />
         ) : chartData.length === 0 ? (
-          <div className="h-72 flex flex-col items-center justify-center text-sm text-muted-foreground border border-dashed rounded-lg">
-            <ShieldAlert className="h-8 w-8 mb-2 opacity-40" />
+          <div className="flex h-72 flex-col items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+            <ShieldAlert className="mb-2 h-8 w-8 opacity-40" />
             Nenhum evento de autenticação registrado nesta janela.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={288}>
             <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-              <XAxis dataKey="time" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
-              <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" allowDecimals={false} />
+              <XAxis
+                dataKey="time"
+                tick={{ style: { fontSize: '0.75rem' } }}
+                className="fill-muted-foreground"
+              />
+              <YAxis
+                tick={{ style: { fontSize: '0.75rem' } }}
+                className="fill-muted-foreground"
+                allowDecimals={false}
+              />
               <Tooltip
                 contentStyle={{
                   background: 'hsl(var(--card))',
@@ -204,18 +228,30 @@ export function AuthEventTrendChart() {
               />
               <Legend wrapperStyle={{ fontSize: '0.6875rem' }} />
               <Area
-                type="monotone" dataKey="invalid_signature" name="invalid_signature"
-                stackId="1" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))"
+                type="monotone"
+                dataKey="invalid_signature"
+                name="invalid_signature"
+                stackId="1"
+                stroke="hsl(var(--destructive))"
+                fill="hsl(var(--destructive))"
                 fillOpacity={0.55}
               />
               <Area
-                type="monotone" dataKey="auth_401" name="auth_401"
-                stackId="1" stroke="hsl(45 93% 47%)" fill="hsl(45 93% 47%)"
+                type="monotone"
+                dataKey="auth_401"
+                name="auth_401"
+                stackId="1"
+                stroke="hsl(45 93% 47%)"
+                fill="hsl(45 93% 47%)"
                 fillOpacity={0.45}
               />
               <Area
-                type="monotone" dataKey="auth_403" name="auth_403"
-                stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary))"
+                type="monotone"
+                dataKey="auth_403"
+                name="auth_403"
+                stackId="1"
+                stroke="hsl(var(--primary))"
+                fill="hsl(var(--primary))"
                 fillOpacity={0.4}
               />
             </AreaChart>
@@ -225,22 +261,35 @@ export function AuthEventTrendChart() {
         {/* Top instâncias */}
         {summary && summary.top_instances.length > 0 && (
           <div>
-            <div className="text-xs uppercase text-muted-foreground mb-2">Top instâncias</div>
+            <div className="mb-2 text-xs uppercase text-muted-foreground">Top instâncias</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    <th scope="col" className="py-2 pr-4">Instância</th>
-                    <th scope="col" className="py-2 pr-4 text-right">Total</th>
-                    <th scope="col" className="py-2 pr-4 text-right">invalid_signature</th>
-                    <th scope="col" className="py-2 pr-4 text-right">auth_401</th>
-                    <th scope="col" className="py-2 pr-4 text-right">auth_403</th>
+                    <th scope="col" className="py-2 pr-4">
+                      Instância
+                    </th>
+                    <th scope="col" className="py-2 pr-4 text-right">
+                      Total
+                    </th>
+                    <th scope="col" className="py-2 pr-4 text-right">
+                      invalid_signature
+                    </th>
+                    <th scope="col" className="py-2 pr-4 text-right">
+                      auth_401
+                    </th>
+                    <th scope="col" className="py-2 pr-4 text-right">
+                      auth_403
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {summary.top_instances.map((row) => (
-                    <tr key={row.instance_name} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="py-2 pr-4  text-xs">{row.instance_name}</td>
+                    <tr
+                      key={row.instance_name}
+                      className="border-b last:border-0 hover:bg-muted/30"
+                    >
+                      <td className="py-2 pr-4 text-xs">{row.instance_name}</td>
                       <td className="py-2 pr-4 text-right">
                         <Badge variant="subtle">{row.total}</Badge>
                       </td>

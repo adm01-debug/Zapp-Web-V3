@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -35,10 +34,14 @@ export interface SLADashboardData {
 function getStartDate(period: PeriodFilter): Date {
   const now = new Date();
   switch (period) {
-    case 'today': return startOfDay(now);
-    case 'week': return startOfWeek(now, { weekStartsOn: 1 });
-    case 'month': return startOfMonth(now);
-    case 'all': return subDays(now, 365);
+    case 'today':
+      return startOfDay(now);
+    case 'week':
+      return startOfWeek(now, { weekStartsOn: 1 });
+    case 'month':
+      return startOfMonth(now);
+    case 'all':
+      return subDays(now, 365);
   }
 }
 
@@ -51,7 +54,7 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   const startDate = getStartDate(period).toISOString();
 
   const [slaResult, profilesResult] = await Promise.all([
-    safeClient.from('conversation_sla', q =>
+    safeClient.from('conversation_sla', (q) =>
       q.select('*, contacts!inner(assigned_to)').gte('created_at', startDate)
     ),
     supabase.from('profiles').select('id, name, avatar_url'),
@@ -64,10 +67,10 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   const profiles = profilesResult.data || [];
 
   // Overall
-  const frOnTime = slaData.filter(s => s.first_response_at && !s.first_response_breached).length;
-  const frBreached = slaData.filter(s => s.first_response_breached).length;
-  const resOnTime = slaData.filter(s => s.resolved_at && !s.resolution_breached).length;
-  const resBreached = slaData.filter(s => s.resolution_breached).length;
+  const frOnTime = slaData.filter((s) => s.first_response_at && !s.first_response_breached).length;
+  const frBreached = slaData.filter((s) => s.first_response_breached).length;
+  const resOnTime = slaData.filter((s) => s.resolved_at && !s.resolution_breached).length;
+  const resBreached = slaData.filter((s) => s.resolution_breached).length;
 
   const firstResponse = buildMetric(frOnTime, frBreached);
   const resolution = buildMetric(resOnTime, resBreached);
@@ -78,9 +81,7 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
     firstResponse,
     resolution,
     totalConversations,
-    overallRate: combinedTotal > 0
-      ? ((frOnTime + resOnTime) / combinedTotal) * 100
-      : 100,
+    overallRate: combinedTotal > 0 ? ((frOnTime + resOnTime) / combinedTotal) * 100 : 100,
   };
 
   // By agent
@@ -100,7 +101,7 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
 
   const byAgent: AgentSLAMetric[] = Array.from(agentMap.entries())
     .map(([agentId, s]) => {
-      const profile = profiles.find(p => p.id === agentId);
+      const profile = profiles.find((p) => p.id === agentId);
       const fr = buildMetric(s.frOn, s.frBr);
       const res = buildMetric(s.resOn, s.resBr);
       const total = fr.total + res.total;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Carrega o histórico completo de envio de uma mensagem para o painel
  * de debug: linha do tempo de tentativas (retry_metrics.retry_reasons),
@@ -109,9 +108,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       const row = metricRes.data;
       if (!row) return { metric: null, auditEntries: combinedAudit };
 
-      const reasons = Array.isArray(row.retry_reasons)
-        ? (row.retry_reasons as RetryAttempt[])
-        : [];
+      const reasons = Array.isArray(row.retry_reasons) ? (row.retry_reasons as RetryAttempt[]) : [];
 
       return {
         metric: {

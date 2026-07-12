@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import { PostgrestError } from '@supabase/supabase-js';
@@ -48,11 +47,20 @@ export const maskEmail = (email: string): string => {
 };
 
 export const maskSensitiveData = (
-  data: Record<string, unknown> | unknown[],
+  data: Record<string, unknown> | unknown[]
 ): Record<string, unknown> | unknown[] => {
   const SENSITIVE_KEYS = new Set([
-    'password', 'senha', 'secret', 'token', 'api_key', 'apikey', 'api-key',
-    'access_token', 'refresh_token', 'private_key', 'auth_token',
+    'password',
+    'senha',
+    'secret',
+    'token',
+    'api_key',
+    'apikey',
+    'api-key',
+    'access_token',
+    'refresh_token',
+    'private_key',
+    'auth_token',
   ]);
   const PARTIAL_KEYS = new Set(['email', 'e-mail', 'e_mail']);
   const LONG_TOKEN_PATTERN = /^[A-Za-z0-9+/=._-]{40,}$/;
@@ -69,12 +77,12 @@ export const maskSensitiveData = (
   };
 
   const maskAny = (
-    d: Record<string, unknown> | unknown[] | null | undefined,
+    d: Record<string, unknown> | unknown[] | null | undefined
   ): Record<string, unknown> | unknown[] => {
-    if (Array.isArray(d)) return d.map(item => maskAny(item as Record<string, unknown>));
+    if (Array.isArray(d)) return d.map((item) => maskAny(item as Record<string, unknown>));
     if (!d || typeof d !== 'object') return {} as Record<string, unknown>;
     return Object.fromEntries(
-      Object.entries(d as Record<string, unknown>).map(([k, v]) => [k, maskValue(k, v)]),
+      Object.entries(d as Record<string, unknown>).map(([k, v]) => [k, maskValue(k, v)])
     );
   };
 
@@ -135,7 +143,9 @@ export const safeClient = {
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const { data, error } = await queryBuilder(supabase.from(table as Parameters<typeof supabase.from>[0]));
+      const { data, error } = await queryBuilder(
+        supabase.from(table as Parameters<typeof supabase.from>[0])
+      );
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
@@ -176,7 +186,9 @@ export const safeClient = {
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const { data, error } = await queryBuilder(supabase.from(table as Parameters<typeof supabase.from>[0])).single();
+      const { data, error } = await queryBuilder(
+        supabase.from(table as Parameters<typeof supabase.from>[0])
+      ).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
@@ -280,7 +292,9 @@ export const safeClient = {
         }
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any).limit(0);
+        const { error } = await (
+          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any
+        ).limit(0);
         if (!error) {
           exists = true;
         } else {
@@ -328,18 +342,15 @@ export const safeClient = {
       // Destructure { error } so PostgREST logical errors (e.g. 403) are not silently discarded
       type RpcResult = { data: unknown; error: { message: string } | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc(
-        'rpc_update_email_health_state',
-        {
-          p_status: status,
-          p_failure_count: telemetry.recentFailures.length,
-          p_metadata: {
-            total_calls: telemetry.stats.totalCalls,
-            cache_hits: telemetry.stats.cacheHits,
-            last_validation: lastValidation?.toISOString(),
-          },
-        }
-      )) as RpcResult;
+      const { error: rpcErr } = (await (supabase as any).rpc('rpc_update_email_health_state', {
+        p_status: status,
+        p_failure_count: telemetry.recentFailures.length,
+        p_metadata: {
+          total_calls: telemetry.stats.totalCalls,
+          cache_hits: telemetry.stats.cacheHits,
+          last_validation: lastValidation?.toISOString(),
+        },
+      })) as RpcResult;
       if (rpcErr) {
         _log.warn('Erro ao sincronizar estado de saúde', { error: rpcErr.message });
       }
@@ -436,17 +447,14 @@ export const safeClient = {
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc(
-        'rpc_log_email_health',
-        {
-          p_status: 'error',
-          p_operation: operation,
-          p_resource: resource,
-          p_request_id: requestId,
-          p_error_message: error,
-          p_is_failure: true,
-        }
-      )) as RpcResult;
+      const { error: rpcErr } = (await (supabase as any).rpc('rpc_log_email_health', {
+        p_status: 'error',
+        p_operation: operation,
+        p_resource: resource,
+        p_request_id: requestId,
+        p_error_message: error,
+        p_is_failure: true,
+      })) as RpcResult;
       if (rpcErr) {
         _log.warn('Falha ao persistir log de saúde', { error: rpcErr.message });
       }
@@ -470,7 +478,10 @@ export const safeClient = {
   },
 
   clearCache(prefix?: string) {
-    if (!prefix) { resourceCache.clear(); return; }
+    if (!prefix) {
+      resourceCache.clear();
+      return;
+    }
     for (const key of resourceCache.keys()) {
       if (key.includes(prefix)) resourceCache.delete(key);
     }

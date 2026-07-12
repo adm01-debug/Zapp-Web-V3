@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,7 +98,9 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         .limit(1)
         .maybeSingle();
 
-      const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn as EvolutionInstanceRef) : null;
+      const fallbackResolved = fallbackConn
+        ? evolutionInstanceName(fallbackConn as EvolutionInstanceRef)
+        : null;
       if (fallbackResolved) {
         setInstanceName(fallbackResolved);
         if (fallbackConn?.id) setWhatsappConnectionId(fallbackConn.id);

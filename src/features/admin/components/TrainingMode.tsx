@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -318,7 +317,12 @@ export function TrainingMode() {
                   className="text-sm"
                   onKeyDown={(e) => e.key === 'Enter' && sendResponse()}
                 />
-                <Button aria-label="Enviar resposta" size="icon" onClick={sendResponse} disabled={!input.trim()}>
+                <Button
+                  aria-label="Enviar resposta"
+                  size="icon"
+                  onClick={sendResponse}
+                  disabled={!input.trim()}
+                >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import type { FunctionInvokeOptions } from '@supabase/supabase-js';
 import {
@@ -21,10 +20,7 @@ export const whatsappConnectionRepository = {
   },
 
   async updateConnection(id: string, updates: Record<string, unknown>) {
-    const res = await supabase
-      .from('whatsapp_connections')
-      .update(updates)
-      .eq('id', id);
+    const res = await supabase.from('whatsapp_connections').update(updates).eq('id', id);
     invalidateWhatsappConnectionsCache();
     return res;
   },
@@ -49,5 +45,5 @@ export const whatsappConnectionRepository = {
 
   async callEvolutionApiV2(path: string, options: FunctionInvokeOptions) {
     return supabase.functions.invoke(path, options);
-  }
+  },
 };
