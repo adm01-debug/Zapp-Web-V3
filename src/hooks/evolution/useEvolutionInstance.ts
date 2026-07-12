@@ -4,13 +4,7 @@ import type { CreateInstanceParams, SettingsConfig, WebhookConfig } from '../evo
 
 export function useEvolutionInstance(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
-  withToast: (
-    action: string,
-    body: object | undefined,
-    successMsg: string,
-    errorMsg: string,
-    method?: HttpMethod
-  ) => Promise<unknown>
+  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
 ) {
   const createInstance = useCallback(
     (params: CreateInstanceParams) =>

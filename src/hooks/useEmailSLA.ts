@@ -16,6 +16,12 @@ export interface EmailSLARecord {
   warning_threshold_pct: number;
 }
 
+interface EmailThreadRow {
+  thread_id: string;
+  last_message_at: string | null;
+  unread_count: number;
+}
+
 interface SLAConfig {
   threshold_minutes: number;
   warning_threshold_pct: number;
@@ -190,15 +196,13 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
     if (!accountId || isMockId(accountId)) return;
 
     safeClient
-      .from<{ thread_id: string; last_message_at: string; unread_count: number }>(
-        'email_threads',
-        (q) =>
-          q
-            .select('thread_id, last_message_at, unread_count')
-            .eq('account_id', accountId)
-            .gt('unread_count', 0)
-            .order('last_message_at', { ascending: true })
-            .limit(100)
+      .from<EmailThreadRow>('email_threads', (q) =>
+        q
+          .select('thread_id, last_message_at, unread_count')
+          .eq('account_id', accountId)
+          .gt('unread_count', 0)
+          .order('last_message_at', { ascending: true })
+          .limit(100)
       )
       .then(({ data }) => {
         for (const row of data ?? []) {

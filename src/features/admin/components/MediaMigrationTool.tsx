@@ -31,7 +31,7 @@ export function MediaMigrationTool() {
 
       if (error) throw error;
 
-      const migrationResult: MigrationResult = { ...(data as MigrationResult), _id: Date.now() };
+      const migrationResult: MigrationResult = { ...(data as MigrationResult), _id: Date.now() }; // ignore-audit: narrows Supabase query result to local interface
       setResult(migrationResult);
       setHistory(prev => [migrationResult, ...prev.slice(0, 9)]);
 

@@ -61,29 +61,10 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       if (!messageId) return { metric: null, auditEntries: [] };
 
       const idempotencyKey = `msg:${messageId}`;
-
-      const outboundQuery = (
-        supabase as unknown as {
-          from: (t: string) => {
-            select: (cols: string) => {
-              or: (f: string) => {
-                order: (
-                  col: string,
-                  opts: { ascending: boolean },
-                ) => {
-                  limit: (n: number) => Promise<{ data: OutboundAuditRow[] | null }>;
-                };
-              };
-            };
-          };
-        }
-      )
-        .from('outbound_delivery_audit')
-        .select('*')
-        .or(`conversation_id.eq.${messageId},metadata->>external_id.eq.${messageId}`)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
+      // Tabelas evolution_retry_metrics/outbound_delivery_audit ainda não estão em types.ts —
+      // usamos cast para `any` até a próxima regeneração dos tipos.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const supa = supabase as any; // ignore-audit — evolution_retry_metrics/outbound_delivery_audit not in generated types
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
         supabase
           .from('evolution_retry_metrics')

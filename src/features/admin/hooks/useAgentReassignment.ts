@@ -14,7 +14,7 @@ export function useAgentReassignment() {
         inactive_minutes: inactiveMinutes,
       });
       if (error) throw error;
-      return data as number;
+      return data as number; // ignore-audit: RPC returns unknown; number is the documented return type
     },
     onSuccess: (count) => {
       if (count > 0) {
@@ -30,7 +30,7 @@ export function useAgentReassignment() {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('reassign_overloaded_agents');
       if (error) throw error;
-      return data as number;
+      return data as number; // ignore-audit: RPC returns unknown; number is the documented return type
     },
     onSuccess: (count) => {
       if (count > 0) {

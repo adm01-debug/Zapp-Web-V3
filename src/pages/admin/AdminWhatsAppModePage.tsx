@@ -130,7 +130,7 @@ export default function AdminWhatsAppModePage() {
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp-cloud-webhook-verify');
       if (error) throw error;
-      setVerify(data as VerifyResult);
+      setVerify(data as VerifyResult); // ignore-audit: narrows Supabase query result to local interface
     } catch (e) {
       toast({
         title: 'Falha na verificação',

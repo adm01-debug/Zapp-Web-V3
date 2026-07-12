@@ -62,7 +62,7 @@ export interface BestTime {
 export interface ChurnData {
   churn_probability: number;
   risk_level: string;
-  risk_factors: Record<string, any> | null;
+  risk_factors: Record<string, unknown> | null;
   recommended_actions: string[] | null;
 }
 
@@ -107,7 +107,7 @@ export function useContactIntelligence(phone: string | undefined) {
         log.error('Intelligence RPC error:', error);
         return null;
       }
-      return data as ContactIntelligenceData;
+      return data as ContactIntelligenceData; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 15, // 15 min

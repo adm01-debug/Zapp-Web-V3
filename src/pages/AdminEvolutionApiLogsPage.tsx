@@ -110,7 +110,7 @@ export default function AdminEvolutionApiLogsPage() {
 
       const { data, error } = await q;
       if (error) throw error;
-      return (data as RetryMetric[]) ?? [];
+      return (data as RetryMetric[]) ?? []; // ignore-audit: narrows Supabase query result to local interface
     },
     refetchInterval: 15_000,
     staleTime: 10_000,

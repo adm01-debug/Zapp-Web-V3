@@ -23,6 +23,7 @@ import { UseMutationResult } from '@tanstack/react-query';
 import type { Campaign } from '@/hooks/useCampaigns';
 
 type TargetType = 'all' | 'tag' | 'queue' | 'groups' | 'custom';
+type CampaignInput = Omit<FormData, 'target_type'> & { target_type: 'all' | 'custom' | 'queue' | 'tag' };
 
 interface FormData {
   name: string;
@@ -45,7 +46,7 @@ const INITIAL_FORM: FormData = {
 interface CampaignCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  createCampaign: UseMutationResult<Campaign, Error, Partial<Campaign>, unknown>;
+  createCampaign: UseMutationResult<unknown, Error, CampaignInput, unknown>;
 }
 
 export function CampaignCreateDialog({
@@ -127,15 +128,8 @@ export function CampaignCreateDialog({
             </div>
             <div>
               <Label htmlFor="campaign-target">Público-alvo</Label>
-              <Select
-                value={form.target_type}
-                onValueChange={(v: string) =>
-                  setForm((f) => ({ ...f, target_type: v as TargetType }))
-                }
-              >
-                <SelectTrigger id="campaign-target">
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={form.target_type} onValueChange={(v: string) => setForm(f => ({ ...f, target_type: v as TargetType  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}>
+                <SelectTrigger id="campaign-target"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os contatos</SelectItem>
                   <SelectItem value="tag">Por etiqueta</SelectItem>

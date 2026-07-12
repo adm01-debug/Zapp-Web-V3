@@ -23,7 +23,7 @@ export interface DegradedConnection {
 
 interface Props {
   connections: DegradedConnection[];
-  onShowQrCode: (connection: DegradedConnection | WhatsAppConnection) => void;
+  onShowQrCode: (connection: Pick<DegradedConnection, 'id' | 'instance_id' | 'name'>) => void;
 }
 
 /** Latency tier helper for the chip color. */

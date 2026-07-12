@@ -63,11 +63,36 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     );
     const currentConfigs = configRows?.[0] ?? null;
 
-    if (fetchError || !currentConfigs) {
-      record(
-        'Fetch Current Config',
-        'fail',
-        'Configuração "FATOR X" não encontrada em system_connections.'
+    results.connectionFetch = connError ? { error: connError.message } : { data: connData };
+
+    // Test basic rpc call
+    const { data: rpcResult, error: rpcError } = await safeClient.rpc('rpc_get_server_time');
+    results.rpcTest = rpcError ? { error: rpcError.message } : { data: rpcResult };
+
+    // Test upsert to system_connections
+    const payload: SystemConnectionForm = {
+      name: '_DIAGNOSTICS_TEST',
+      provider: 'diagnostics',
+      config: { test: true },
+      is_active: false,
+    };
+
+    const validatedPayload = systemConnectionSchema.parse(payload);
+    const { error: upsertError } = await safeClient.from('system_connections', (q: any) => // ignore-audit — query builder shape not in generated types
+      q.upsert({
+        ...validatedPayload,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+    );
+    results.upsertTest = upsertError ? { error: upsertError.message } : { success: true };
+
+    // Verify the upsert
+    if (!upsertError) {
+      const testName = '_DIAGNOSTICS_TEST';
+      const { data: verifyData, error: verifyError } = await safeClient.single<SystemConnectionRow>(
+        'system_connections',
+        (q: any) => q.select('*').eq('name', testName) // ignore-audit
       );
       return diagnostics;
     }

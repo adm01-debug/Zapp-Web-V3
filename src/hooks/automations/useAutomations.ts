@@ -9,8 +9,8 @@ export interface AutomationRow {
   description: string | null;
   is_active: boolean;
   trigger_type: string;
-  trigger_config: Record<string, any>;
-  actions: Record<string, any>[];
+  trigger_config: Record<string, unknown>;
+  actions: Record<string, unknown>[];
   created_by: string | null;
   last_triggered_at: string | null;
   trigger_count: number;

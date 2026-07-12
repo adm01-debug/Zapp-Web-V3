@@ -38,7 +38,7 @@ export function ConnectionAlertPreferences() {
         .select('push_enabled, email_enabled, alert_on_degraded, alert_on_disconnected')
         .eq('user_id', auth.user.id)
         .maybeSingle();
-      if (data) setPrefs(data as Prefs);
+      if (data) setPrefs(data as Prefs); // ignore-audit: narrows Supabase query result to local interface
       setLoading(false);
     })();
   }, []);

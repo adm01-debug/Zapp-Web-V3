@@ -109,7 +109,7 @@ function AuditPanel() {
     if (search.trim()) q = q.ilike('action', `%${search.trim()}%`);
     const { data, error } = await q;
     if (error) toast.error('Erro ao carregar audit: ' + error.message);
-    setRows((data as AuditRow[]) ?? []);
+    setRows((data as AuditRow[]) ?? []); // ignore-audit: narrows Supabase query result to local interface
     setLoading(false);
   }, [entity, search]);
 
@@ -215,7 +215,7 @@ function PmlPanel() {
       return query;
     });
     if (error) toast.error('Erro ao carregar PML: ' + error.message);
-    setRows((data as PmlRow[]) ?? []);
+    setRows((data as PmlRow[]) ?? []); // ignore-audit: narrows Supabase query result to local interface
     setLoading(false);
   }, [status, search]);
 

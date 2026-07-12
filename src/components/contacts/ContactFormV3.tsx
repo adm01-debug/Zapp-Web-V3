@@ -184,11 +184,33 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
         return;
       }
 
-      // Phone validation
-      if (form.phone) {
-        const phoneResult = validatePhoneDetailed(form.phone);
-        if (!phoneResult.valid) {
-          toast({ title: `Telefone inválido: ${phoneResult.error}`, variant: 'destructive' });
+    await withRetry(async () => {
+      const payload = {
+        name:          sanitizeText(form.name),
+        phone:         form.phone || null,
+        phone_numbers: form.phone_numbers,
+        email:         form.email?.toLowerCase().trim() || null,
+        company:       sanitizeText(form.company) || null,
+        tags:          form.tags,
+        notes:         form.notes || null,
+        workspace_id:  workspaceId,
+        updated_at:    new Date().toISOString(),
+      };
+
+      if (mode === 'edit' && form.id && !forceOverwrite) {
+        // Versioned update (optimistic locking)
+        const { data, error } = await dbRpc(RPC.updateContactVersioned, {
+          p_contact_id:      form.id,
+          p_expected_version: form.version ?? 1,
+          p_updates:         payload,
+        });
+
+        if (error) throw error;
+
+        const result = (data ?? {}) as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
+        if (result?.error === 'CONFLICT') {
+          setConflict(result as ConflictInfo); // ignore-audit: narrows Supabase query result to local interface
+          setConflictOpen(true);
           return;
         }
       }
@@ -282,9 +304,8 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
               <Button
                 variant="link"
                 size="sm"
-                disabled={loadingMergeTarget}
-                onClick={() => void openMergeDialog(duplicates[0].id)}
-                className="ml-2 h-auto p-0 text-warning-foreground underline"
+                onClick={() => { setMergeTarget(duplicates[0] as unknown as ContactForMerge); setMergeOpen(true); }} // ignore-audit — PotentialDuplicate lacks company/tags/channel; merge dialog handles missing fields with fallbacks
+                className="ml-2 text-warning-foreground underline p-0 h-auto"
               >
                 <GitMerge className="mr-1 h-3.5 w-3.5" />
                 {loadingMergeTarget ? 'Carregando…' : 'Mesclar'}

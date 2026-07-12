@@ -6,7 +6,7 @@ export interface DiagnosticResult {
   step: string;
   status: 'ok' | 'fail' | 'warn';
   message: string;
-  details?: Record<string, unknown> | string | null;
+  details?: Record<string, unknown> | null;
 }
 
 export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {

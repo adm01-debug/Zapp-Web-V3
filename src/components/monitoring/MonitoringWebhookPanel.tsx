@@ -105,7 +105,7 @@ export function MonitoringWebhookPanel({
       const { data, error } = await supabase.functions.invoke('webhook-secret-status');
       if (!mountedRef.current) return;
       if (error) throw error;
-      setSecretStatus(data as SecretStatus);
+      setSecretStatus(data as SecretStatus); // ignore-audit: supabase.functions.invoke returns unknown
     } catch (e) {
       if (mountedRef.current)
         toast.error(

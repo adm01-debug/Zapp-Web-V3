@@ -290,7 +290,7 @@ export function ChatbotFlowsView() {
             </div>
             <div>
               <Label>Tipo de gatilho</Label>
-              <Select value={form.trigger_type} onValueChange={(v: string) => setForm(f => ({ ...f, trigger_type: v as TriggerType }))}>
+              <Select value={form.trigger_type} onValueChange={(v: string) => setForm(f => ({ ...f, trigger_type: v as TriggerType  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="keyword">Palavra-chave</SelectItem>

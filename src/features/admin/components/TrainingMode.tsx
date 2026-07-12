@@ -21,6 +21,13 @@ interface SimMessage {
   content: string;
 }
 
+interface TrainingSession {
+  id: string;
+  scenario_name: string;
+  status: string;
+  score: number | null;
+}
+
 const SCENARIOS = [
   {
     name: 'Reclamação sobre entrega',

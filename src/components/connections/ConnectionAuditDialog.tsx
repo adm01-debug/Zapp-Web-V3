@@ -15,7 +15,7 @@ interface AuditLog {
   id: string;
   action: string;
   created_at: string;
-  details: Record<string, unknown>;
+  details: Record<string, unknown> | null;
 }
 
 interface ConnectionAuditDialogProps {

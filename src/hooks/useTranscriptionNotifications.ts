@@ -81,9 +81,11 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
               }
 
               // Truncate transcription for preview
-              const transcriptionPreview = newData.transcription!.length > 100
-                ? newData.transcription!.slice(0, 100) + '...'
-                : newData.transcription!;
+              const transcription = newData.transcription;
+              if (!transcription) return;
+              const transcriptionPreview = transcription.length > 100
+                ? transcription.slice(0, 100) + '...'
+                : transcription;
 
               // Show toast notification
               if (showToast) {
