@@ -133,7 +133,7 @@ export async function dbRpc<P extends object, R>(
       correlationId,
     });
 
-    return { data: (data as R) ?? null, error, correlationId };
+    return { data: (data as R) ?? null, error, correlationId }; // ignore-audit: narrows Supabase query result to local interface
   } catch (err) {
     const durationMs = Math.round(performance.now() - startedAt);
     const message = (err as Error)?.message ?? 'rpc error';

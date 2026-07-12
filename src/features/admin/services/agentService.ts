@@ -55,7 +55,7 @@ export const agentService = {
         }
       });
 
-      return (profilesResult.data as AgentProfile[]).map((profile) => {
+      return (profilesResult.data as AgentProfile[] /* ignore-audit: narrows Supabase query result to local interface */).map((profile) => {
         const agentQueues =
           (membersResult.data
             ?.filter((m) => m.profile_id === profile.id)

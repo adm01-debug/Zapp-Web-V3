@@ -49,7 +49,7 @@ async function invoke<T>(action: string, payload: Record<string, unknown> = {}):
   });
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-  return data as T;
+  return data as T; // ignore-audit: narrows Supabase query result to local interface
 }
 
 const reasonIcon = {

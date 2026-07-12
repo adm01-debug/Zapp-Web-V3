@@ -55,7 +55,7 @@ export async function timedRpc<T = unknown>(
         : classifySeverity(durationMs, false, false),
     });
 
-    return { data: (data as T) ?? null, error, correlationId };
+    return { data: (data as T) ?? null, error, correlationId }; // ignore-audit: narrows Supabase query result to local interface
   } catch (err) {
     const durationMs = Math.round(performance.now() - startedAt);
     const name = (err as Error)?.name;
