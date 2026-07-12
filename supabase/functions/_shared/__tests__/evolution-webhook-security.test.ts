@@ -31,14 +31,21 @@ interface Recorded {
 }
 function makeSupabaseMock(insertError: unknown = null, deleteError: unknown = null) {
   const rec: Recorded = { table: '', op: null };
+  const auditInserted: Record<string, unknown>[] = [];
   const api = {
     _rec: rec,
+    _auditInserted: auditInserted,
     from(table: string) {
       rec.table = table;
       return {
         insert(row: Record<string, unknown>) {
           rec.op = 'insert';
           rec.row = row;
+          // Track audit table inserts separately
+          if (table === 'idempotency_rollback_failures') {
+            auditInserted.push(row);
+            return Promise.resolve({ error: null });
+          }
           return Promise.resolve({ error: insertError });
         },
         delete() {
@@ -144,16 +151,21 @@ Deno.test('routeToDeadLetter | null payload stays null (no crash)', async () => 
 
 Deno.test('unmarkEventProcessed | deletes the dedup row by event_id', async () => {
   const sb = makeSupabaseMock();
-  await unmarkEventProcessed(sb, 'wpp2:messages.upsert:abcdef');
+  const result = await unmarkEventProcessed(sb, 'wpp2:messages.upsert:abcdef');
   assertEquals(sb._rec.table, 'webhook_events_processed');
   assertEquals(sb._rec.op, 'delete');
   assertEquals(sb._rec.eqField, 'event_id');
   assertEquals(sb._rec.eqValue, 'wpp2:messages.upsert:abcdef');
+  assertEquals(result, true, 'successful unmark returns true');
 });
 
 Deno.test('unmarkEventProcessed | never throws when the delete errors (fail-safe)', async () => {
   const sb = makeSupabaseMock(null, { message: 'delete failed', code: 'XX000' });
   // Must resolve without throwing — a failed rollback cannot change the 429 response.
-  await unmarkEventProcessed(sb, 'wpp2:call:zzz');
+  const result = await unmarkEventProcessed(sb, 'wpp2:call:zzz', 'wpp2', 'call');
   assertEquals(sb._rec.op, 'delete');
+  assertEquals(result, false, 'failed unmark returns false');
+  assertEquals(sb._auditInserted.length, 1, 'audit entry written on delete error');
+  assertEquals(sb._auditInserted[0].event_id, 'wpp2:call:zzz');
+  assertEquals(sb._auditInserted[0].error_code, 'XX000');
 });
