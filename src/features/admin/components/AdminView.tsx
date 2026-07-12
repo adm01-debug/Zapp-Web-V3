@@ -153,27 +153,27 @@ export function AdminView() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Nome</Label><Input value={editingUser.name} onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Apelido</Label><Input placeholder="Ex: Joãozinho" value={editingUser.nickname || ''} onChange={(e) => setEditingUser({ ...editingUser, nickname: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="edit-name">Nome</Label><Input id="edit-name" value={editingUser.name} onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="edit-nickname">Apelido</Label><Input id="edit-nickname" placeholder="Ex: Joãozinho" value={editingUser.nickname || ''} onChange={(e) => setEditingUser({ ...editingUser, nickname: e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Cargo</Label><Input placeholder="Ex: Atendente Senior" value={editingUser.job_title || ''} onChange={(e) => setEditingUser({ ...editingUser, job_title: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Departamento</Label><Input placeholder="Ex: Vendas" value={editingUser.department || ''} onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="edit-job-title">Cargo</Label><Input id="edit-job-title" placeholder="Ex: Atendente Senior" value={editingUser.job_title || ''} onChange={(e) => setEditingUser({ ...editingUser, job_title: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="edit-department">Departamento</Label><Input id="edit-department" placeholder="Ex: Vendas" value={editingUser.department || ''} onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })} /></div>
               </div>
               <div className="space-y-2">
-                <Label>Assinatura</Label>
-                <Input placeholder="Ex: João Silva - Suporte Técnico" value={editingUser.signature || ''} onChange={(e) => setEditingUser({ ...editingUser, signature: e.target.value })} />
+                <Label htmlFor="edit-signature">Assinatura</Label>
+                <Input id="edit-signature" placeholder="Ex: João Silva - Suporte Técnico" value={editingUser.signature || ''} onChange={(e) => setEditingUser({ ...editingUser, signature: e.target.value })} />
                 <p className="text-xs text-muted-foreground">Texto usado como assinatura em mensagens</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Telefone</Label><Input value={editingUser.phone || ''} onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Limite de Chats</Label><Input type="number" min={1} max={50} value={editingUser.max_chats || 5} onChange={(e) => setEditingUser({ ...editingUser, max_chats: parseInt(e.target.value) })} /></div>
+                <div className="space-y-2"><Label htmlFor="edit-phone">Telefone</Label><Input id="edit-phone" value={editingUser.phone || ''} onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="edit-max-chats">Limite de Chats</Label><Input id="edit-max-chats" type="number" min={1} max={50} value={editingUser.max_chats || 5} onChange={(e) => setEditingUser({ ...editingUser, max_chats: parseInt(e.target.value) })} /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nível de Acesso</Label>
+                  <Label htmlFor="edit-access-level">Nível de Acesso</Label>
                   <Select value={editingUser.access_level || 'basic'} onValueChange={(v) => setEditingUser({ ...editingUser, access_level: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="edit-access-level"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.entries(accessLevelConfig).map(([key, config]) => (
                         <SelectItem key={key} value={key}>
@@ -186,10 +186,10 @@ export function AdminView() {
               </div>
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <Label className="text-sm font-medium">Permitir Download</Label>
+                  <Label htmlFor="edit-can-download" className="text-sm font-medium">Permitir Download</Label>
                   <p className="text-xs text-muted-foreground">Habilita download de arquivos e imagens para este usuário</p>
                 </div>
-                <Switch checked={editingUser.can_download ?? false} onCheckedChange={(checked) => setEditingUser({ ...editingUser, can_download: checked })} />
+                <Switch id="edit-can-download" checked={editingUser.can_download ?? false} onCheckedChange={(checked) => setEditingUser({ ...editingUser, can_download: checked })} />
               </div>
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
@@ -207,25 +207,25 @@ export function AdminView() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Adicionar Novo Usuário</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4 max-h-[70vh] overflow-y-auto pr-1">
-            <div className="space-y-2"><Label>Primeiro Nome *</Label><Input placeholder="Ex: João" value={newUser.name} onChange={(e) => setNewUser(p => ({ ...p, name: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Apelido</Label><Input placeholder="Ex: Joãozinho" value={newUser.nickname} onChange={(e) => setNewUser(p => ({ ...p, nickname: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Cargo</Label><Input placeholder="Ex: Atendente Senior" value={newUser.jobTitle} onChange={(e) => setNewUser(p => ({ ...p, jobTitle: e.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="new-name">Primeiro Nome *</Label><Input id="new-name" placeholder="Ex: João" value={newUser.name} onChange={(e) => setNewUser(p => ({ ...p, name: e.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="new-nickname">Apelido</Label><Input id="new-nickname" placeholder="Ex: Joãozinho" value={newUser.nickname} onChange={(e) => setNewUser(p => ({ ...p, nickname: e.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="new-job-title">Cargo</Label><Input id="new-job-title" placeholder="Ex: Atendente Senior" value={newUser.jobTitle} onChange={(e) => setNewUser(p => ({ ...p, jobTitle: e.target.value }))} /></div>
             <div className="space-y-2">
-              <Label>Assinatura</Label>
-              <Input placeholder="Ex: João Silva - Suporte" value={newUser.signature} onChange={(e) => setNewUser(p => ({ ...p, signature: e.target.value }))} />
+              <Label htmlFor="new-signature">Assinatura</Label>
+              <Input id="new-signature" placeholder="Ex: João Silva - Suporte" value={newUser.signature} onChange={(e) => setNewUser(p => ({ ...p, signature: e.target.value }))} />
               <p className="text-xs text-muted-foreground">Texto usado como assinatura em mensagens e e-mails.</p>
             </div>
             <div className="space-y-2">
-              <Label>Foto (opcional)</Label>
-              <Input type="file" accept="image/*" onChange={(e) => setNewUserAvatarFile(e.target.files?.[0] || null)} />
+              <Label htmlFor="new-avatar-file">Foto (opcional)</Label>
+              <Input id="new-avatar-file" type="file" accept="image/*" onChange={(e) => setNewUserAvatarFile(e.target.files?.[0] || null)} />
               {newUserAvatarFile && <p className="text-xs text-muted-foreground">{newUserAvatarFile.name}</p>}
             </div>
-            <div className="space-y-2"><Label>Email *</Label><Input type="email" placeholder="usuario@email.com" value={newUser.email} onChange={(e) => setNewUser(p => ({ ...p, email: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Senha *</Label><Input type="password" placeholder="Mínimo 6 caracteres" value={newUser.password} onChange={(e) => setNewUser(p => ({ ...p, password: e.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="new-email">Email *</Label><Input id="new-email" type="email" placeholder="usuario@email.com" value={newUser.email} onChange={(e) => setNewUser(p => ({ ...p, email: e.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="new-password">Senha *</Label><Input id="new-password" type="password" placeholder="Mínimo 6 caracteres" value={newUser.password} onChange={(e) => setNewUser(p => ({ ...p, password: e.target.value }))} /></div>
             <div className="space-y-2">
-              <Label>Role</Label>
+              <Label htmlFor="new-role">Role</Label>
               <Select value={newUser.role} onValueChange={(v) => setNewUser(p => ({ ...p, role: v as AppRole }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="new-role"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(roleIconMap) as AppRole[]).map((key) => {
                     const RIcon = roleIconMap[key];
@@ -235,8 +235,8 @@ export function AdminView() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Conta Google (opcional)</Label>
-              <Input type="email" placeholder="usuario@email.com" value={newUser.email} onChange={(e) => setNewUser(p => ({ ...p, email: e.target.value }))} />
+              <Label htmlFor="new-google-account">Conta Google (opcional)</Label>
+              <Input id="new-google-account" type="email" placeholder="usuario@email.com" value={newUser.email} onChange={(e) => setNewUser(p => ({ ...p, email: e.target.value }))} />
             </div>
             {newUser.email && (
               <div className="space-y-3 rounded-lg border border-secondary/30 p-3">
@@ -251,8 +251,8 @@ export function AdminView() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Conta Dropbox (opcional)</Label>
-              <Input type="email" placeholder="usuario@email.com" value={newUser.dropboxEmail} onChange={(e) => setNewUser(p => ({ ...p, dropboxEmail: e.target.value }))} />
+              <Label htmlFor="new-dropbox-email">Conta Dropbox (opcional)</Label>
+              <Input id="new-dropbox-email" type="email" placeholder="usuario@email.com" value={newUser.dropboxEmail} onChange={(e) => setNewUser(p => ({ ...p, dropboxEmail: e.target.value }))} />
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>

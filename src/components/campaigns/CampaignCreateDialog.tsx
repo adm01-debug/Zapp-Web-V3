@@ -60,25 +60,25 @@ export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: Cam
 
         <div className="space-y-4">
           <div>
-            <Label>Nome da campanha</Label>
-            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            <Label htmlFor="campaign-name">Nome da campanha</Label>
+            <Input id="campaign-name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="Ex: Black Friday 2024" />
           </div>
           <div>
-            <Label>Descrição</Label>
-            <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            <Label htmlFor="campaign-description">Descrição</Label>
+            <Input id="campaign-description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="Breve descrição..." />
           </div>
           <div>
-            <Label>Mensagem</Label>
-            <Textarea value={form.message_content} onChange={e => setForm(f => ({ ...f, message_content: e.target.value }))}
+            <Label htmlFor="campaign-message">Mensagem</Label>
+            <Textarea id="campaign-message" value={form.message_content} onChange={e => setForm(f => ({ ...f, message_content: e.target.value }))}
               placeholder="Conteúdo da mensagem..." rows={4} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Tipo de mensagem</Label>
+              <Label htmlFor="campaign-msg-type">Tipo de mensagem</Label>
               <Select value={form.message_type} onValueChange={v => setForm(f => ({ ...f, message_type: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="campaign-msg-type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="text">Texto</SelectItem>
                   <SelectItem value="image">Imagem</SelectItem>
@@ -88,9 +88,9 @@ export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: Cam
               </Select>
             </div>
             <div>
-              <Label>Público-alvo</Label>
+              <Label htmlFor="campaign-target">Público-alvo</Label>
               <Select value={form.target_type} onValueChange={(v: string) => setForm(f => ({ ...f, target_type: v as TargetType }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="campaign-target"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os contatos</SelectItem>
                   <SelectItem value="tag">Por etiqueta</SelectItem>
@@ -102,8 +102,8 @@ export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: Cam
             </div>
           </div>
           <div>
-            <Label>Intervalo entre envios (segundos)</Label>
-            <Input type="number" value={form.send_interval_seconds}
+            <Label htmlFor="campaign-interval">Intervalo entre envios (segundos)</Label>
+            <Input id="campaign-interval" type="number" value={form.send_interval_seconds}
               onChange={e => setForm(f => ({ ...f, send_interval_seconds: Number(e.target.value) }))}
               min={1} max={60} />
           </div>

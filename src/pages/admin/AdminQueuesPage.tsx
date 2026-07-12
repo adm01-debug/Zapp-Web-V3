@@ -67,31 +67,35 @@ export default function AdminQueuesPage() {
             </DialogHeader>
             <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-2">
               <div>
-                <Label>Nome</Label>
+                <Label htmlFor="queue-name">Nome</Label>
                 <Input
+                  id="queue-name"
                   value={editing?.name ?? ''}
                   onChange={(e) => setEditing({ ...editing!, name: e.target.value })}
                 />
               </div>
               <div>
-                <Label>Descrição</Label>
+                <Label htmlFor="queue-description">Descrição</Label>
                 <Input
+                  id="queue-description"
                   value={editing?.description ?? ''}
                   onChange={(e) => setEditing({ ...editing!, description: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Cor</Label>
+                  <Label htmlFor="queue-color">Cor</Label>
                   <Input
+                    id="queue-color"
                     type="color"
                     value={editing?.color ?? '#3B82F6'}
                     onChange={(e) => setEditing({ ...editing!, color: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label>Prioridade</Label>
+                  <Label htmlFor="queue-priority">Prioridade</Label>
                   <Input
+                    id="queue-priority"
                     type="number"
                     value={editing?.priority ?? 0}
                     onChange={(e) => setEditing({ ...editing!, priority: Number(e.target.value) })}
@@ -101,14 +105,14 @@ export default function AdminQueuesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Algoritmo de distribuição</Label>
+                  <Label htmlFor="queue-algorithm">Algoritmo de distribuição</Label>
                   <Select
                     value={editing?.distribution_algorithm ?? 'least_busy'}
                     onValueChange={(v) =>
                       setEditing({ ...editing!, distribution_algorithm: v as DistAlgo })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="queue-algorithm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -121,14 +125,14 @@ export default function AdminQueuesPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Departamento (elegibilidade)</Label>
+                  <Label htmlFor="queue-department">Departamento (elegibilidade)</Label>
                   <Select
                     value={editing?.department_id ?? 'none'}
                     onValueChange={(v) =>
                       setEditing({ ...editing!, department_id: v === 'none' ? null : v })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="queue-department">
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
@@ -145,8 +149,9 @@ export default function AdminQueuesPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <Label>Tamanho máx. da fila</Label>
+                  <Label htmlFor="queue-max-size">Tamanho máx. da fila</Label>
                   <Input
+                    id="queue-max-size"
                     type="number"
                     placeholder="Ilimitado"
                     value={editing?.max_queue_size ?? ''}
@@ -159,8 +164,9 @@ export default function AdminQueuesPage() {
                   />
                 </div>
                 <div>
-                  <Label>Espera máx. (s)</Label>
+                  <Label htmlFor="queue-max-wait-seconds">Espera máx. (s)</Label>
                   <Input
+                    id="queue-max-wait-seconds"
                     type="number"
                     placeholder="Ilimitado"
                     value={editing?.max_wait_seconds ?? ''}
@@ -173,8 +179,9 @@ export default function AdminQueuesPage() {
                   />
                 </div>
                 <div>
-                  <Label>Máx. por agente</Label>
+                  <Label htmlFor="queue-max-per-agent">Máx. por agente</Label>
                   <Input
+                    id="queue-max-per-agent"
                     type="number"
                     placeholder="Sem limite"
                     value={editing?.max_per_queue_per_agent ?? ''}
@@ -189,14 +196,14 @@ export default function AdminQueuesPage() {
               </div>
 
               <div>
-                <Label>Fila de overflow</Label>
+                <Label htmlFor="queue-overflow">Fila de overflow</Label>
                 <Select
                   value={editing?.overflow_queue_id ?? 'none'}
                   onValueChange={(v) =>
                     setEditing({ ...editing!, overflow_queue_id: v === 'none' ? null : v })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="queue-overflow">
                     <SelectValue placeholder="Nenhuma" />
                   </SelectTrigger>
                   <SelectContent>
@@ -213,8 +220,9 @@ export default function AdminQueuesPage() {
               </div>
 
               <div>
-                <Label>Tempo máx. de espera legado (min)</Label>
+                <Label htmlFor="queue-max-wait-minutes">Tempo máx. de espera legado (min)</Label>
                 <Input
+                  id="queue-max-wait-minutes"
                   type="number"
                   value={editing?.max_wait_time_minutes ?? 30}
                   onChange={(e) =>
@@ -224,8 +232,9 @@ export default function AdminQueuesPage() {
               </div>
 
               <div className="flex items-center justify-between">
-                <Label>Ativa</Label>
+                <Label htmlFor="queue-is-active">Ativa</Label>
                 <Switch
+                  id="queue-is-active"
                   checked={editing?.is_active ?? true}
                   onCheckedChange={(v) => setEditing({ ...editing!, is_active: v })}
                 />
@@ -474,11 +483,13 @@ export default function AdminQueuesPage() {
                 <h3 className="mb-2 font-semibold">Skills exigidas</h3>
                 <div className="mb-3 flex gap-2">
                   <Input
+                    aria-label="Nome da habilidade"
                     placeholder="Ex.: vendas, suporte, ingles"
                     value={newSkill.name}
                     onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
                   />
                   <Input
+                    aria-label="Nível mínimo da habilidade (1–5)"
                     type="number"
                     min={1}
                     max={5}

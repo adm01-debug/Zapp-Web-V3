@@ -46,17 +46,17 @@ export function AutomationEditorDialog({ open, onOpenChange, automation, onSave 
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Nome da Automação</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Boas-vindas Automáticas" />
+            <Label htmlFor="automation-name">Nome da Automação</Label>
+            <Input id="automation-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Boas-vindas Automáticas" />
           </div>
           <div className="space-y-2">
-            <Label>Descrição</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descreva o que essa automação faz" />
+            <Label htmlFor="automation-description">Descrição</Label>
+            <Input id="automation-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descreva o que essa automação faz" />
           </div>
           <div className="space-y-2">
-            <Label>Gatilho (Quando executar?)</Label>
+            <Label htmlFor="automation-trigger">Gatilho (Quando executar?)</Label>
             <Select value={triggerType} onValueChange={setTriggerType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="automation-trigger"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TRIGGER_TYPES.map((t) => (
                   <SelectItem key={t.type} value={t.type}>
@@ -67,9 +67,9 @@ export function AutomationEditorDialog({ open, onOpenChange, automation, onSave 
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Ação (O que fazer?)</Label>
+            <Label htmlFor="automation-action">Ação (O que fazer?)</Label>
             <Select value={actionType} onValueChange={setActionType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="automation-action"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {ACTION_TYPES.map((a) => (
                   <SelectItem key={a.type} value={a.type}>
@@ -81,8 +81,8 @@ export function AutomationEditorDialog({ open, onOpenChange, automation, onSave 
           </div>
           {actionType === 'send_message' && (
             <div className="space-y-2">
-              <Label>Mensagem</Label>
-              <Input value={messageContent} onChange={(e) => setMessageContent(e.target.value)} placeholder="Digite a mensagem automática..." />
+              <Label htmlFor="automation-message">Mensagem</Label>
+              <Input id="automation-message" value={messageContent} onChange={(e) => setMessageContent(e.target.value)} placeholder="Digite a mensagem automática..." />
             </div>
           )}
         </div>

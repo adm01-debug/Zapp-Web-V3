@@ -52,9 +52,9 @@ export function NewConversationModal({ open, onOpenChange, onConversationStarted
 
           {connections.length > 1 && (
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Conexão WhatsApp</Label>
+              <Label htmlFor="new-conv-connection" className="text-xs text-muted-foreground">Conexão WhatsApp</Label>
               <Select value={selectedConnection} onValueChange={setSelectedConnection}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="new-conv-connection" className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {connections.map(c => (
                     <SelectItem key={c.id} value={c.id}>
@@ -101,14 +101,14 @@ export function NewConversationModal({ open, onOpenChange, onConversationStarted
 
           {mode === 'new' && (
             <div className="space-y-3">
-              <div><Label className="text-xs">Telefone *</Label><Input placeholder="+5511999999999" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} /></div>
-              <div><Label className="text-xs">Nome (opcional)</Label><Input placeholder="Nome do contato" value={newName} onChange={(e) => setNewName(e.target.value)} /></div>
+              <div><Label htmlFor="new-contact-phone" className="text-xs">Telefone *</Label><Input id="new-contact-phone" placeholder="+5511999999999" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} /></div>
+              <div><Label htmlFor="new-contact-name" className="text-xs">Nome (opcional)</Label><Input id="new-contact-name" placeholder="Nome do contato" value={newName} onChange={(e) => setNewName(e.target.value)} /></div>
             </div>
           )}
 
           <div className="space-y-1">
-            <Label className="text-xs">Mensagem</Label>
-            <Textarea placeholder="Digite a primeira mensagem..." value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={3} />
+            <Label htmlFor="new-conv-message" className="text-xs">Mensagem</Label>
+            <Textarea id="new-conv-message" placeholder="Digite a primeira mensagem..." value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={3} />
           </div>
 
           <div className="flex justify-end gap-2">

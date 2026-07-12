@@ -179,29 +179,32 @@ export function InstanceSettingsDialog({ open, onOpenChange, instanceName, conne
               </h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Intervalo (segundos)</Label>
-                  <Input 
-                    type="number" 
-                    value={reconnectConfig.interval} 
+                  <Label htmlFor="reconnect-interval">Intervalo (segundos)</Label>
+                  <Input
+                    id="reconnect-interval"
+                    type="number"
+                    value={reconnectConfig.interval}
                     onChange={(e) => setReconnectConfig(p => ({...p, interval: parseInt(e.target.value)}))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Máximo de Tentativas</Label>
-                  <Input 
-                    type="number" 
-                    value={reconnectConfig.maxAttempts} 
+                  <Label htmlFor="reconnect-max-attempts">Máximo de Tentativas</Label>
+                  <Input
+                    id="reconnect-max-attempts"
+                    type="number"
+                    value={reconnectConfig.maxAttempts}
                     onChange={(e) => setReconnectConfig(p => ({...p, maxAttempts: parseInt(e.target.value)}))}
                   />
                 </div>
               </div>
               <div className="flex items-center justify-between mt-4 p-2 bg-background/50 rounded-lg">
                 <div className="space-y-0.5">
-                  <Label>Proteção contra Loop</Label>
+                  <Label htmlFor="loop-protection">Proteção contra Loop</Label>
                   <p className="text-[10px] text-muted-foreground">Pausa automática se houver muitas quedas seguidas</p>
                 </div>
-                <Switch 
-                  checked={reconnectConfig.loopProtection} 
+                <Switch
+                  id="loop-protection"
+                  checked={reconnectConfig.loopProtection}
                   onCheckedChange={(v) => setReconnectConfig(p => ({...p, loopProtection: v}))}
                 />
               </div>
@@ -244,11 +247,11 @@ export function InstanceSettingsDialog({ open, onOpenChange, instanceName, conne
 
           <TabsContent value="profile" className="space-y-4 mt-4">
             {profile.pictureUrl && <div className="flex justify-center"><img src={profile.pictureUrl} alt="Foto do perfil da instância" className="w-24 h-24 rounded-full object-cover border-2 border-primary/30" /></div>}
-            <div><Label>Nome</Label><Input value={profile.name} onChange={(e) => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Nome do perfil" /></div>
-            <div><Label>Recado (Status)</Label><Input value={profile.status} onChange={(e) => setProfile(p => ({ ...p, status: e.target.value }))} placeholder="Seu recado aqui..." /></div>
-            <div><Label>Nova foto de perfil (URL)</Label>
+            <div><Label htmlFor="profile-name">Nome</Label><Input id="profile-name" value={profile.name} onChange={(e) => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Nome do perfil" /></div>
+            <div><Label htmlFor="profile-status">Recado (Status)</Label><Input id="profile-status" value={profile.status} onChange={(e) => setProfile(p => ({ ...p, status: e.target.value }))} placeholder="Seu recado aqui..." /></div>
+            <div><Label htmlFor="profile-picture-url">Nova foto de perfil (URL)</Label>
               <div className="flex gap-2">
-                <Input value={profile.pictureUrl} onChange={(e) => setProfile(p => ({ ...p, pictureUrl: e.target.value }))} placeholder="https://exemplo.com/foto.jpg" />
+                <Input id="profile-picture-url" value={profile.pictureUrl} onChange={(e) => setProfile(p => ({ ...p, pictureUrl: e.target.value }))} placeholder="https://exemplo.com/foto.jpg" />
                 <Button variant="outline" size="sm" onClick={async () => { try { if (profile.pictureUrl) { await updateProfilePicture(instanceName, profile.pictureUrl); toast.success('Foto atualizada!'); } } catch { toast.error('Erro ao atualizar foto'); } }}>Aplicar</Button>
                 <Button variant="destructive" size="sm" onClick={async () => { try { await removeProfilePicture(instanceName); setProfile(p => ({ ...p, pictureUrl: '' })); toast.success('Foto removida'); } catch { toast.error('Erro ao remover foto'); } }}>Remover</Button>
               </div>
