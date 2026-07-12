@@ -5,6 +5,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireUser } from "../_shared/auth.ts";
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 type DynamicSupabaseClient = ReturnType<typeof createClient> & {
   schema(schema: string): DynamicSupabaseClient;
   from(table: string): ReturnType<ReturnType<typeof createClient>["from"]>;
@@ -24,12 +25,6 @@ type RequestBody = {
   order_by?: unknown;
   order?: { column?: unknown; ascending?: unknown };
   order_asc?: unknown;
-};
-
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-correlation-id, x-request-id",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
 const PLACEHOLDER_RE = /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i;
@@ -218,12 +213,12 @@ function resolveSchema(schema: string, table: string): string {
 function jsonResponse(payload: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(payload), {
     status,
-    headers: { ...cors, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Health GET does not require auth; all data-access paths (POST + health=1) do
   const url = new URL(req.url);

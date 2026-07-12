@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * email-track-pixel — Rastreio de abertura de email via pixel 1x1
@@ -23,15 +24,15 @@ const PIXEL_GIF = new Uint8Array([
   0x01, 0x00, 0x3b,
 ]);
 
-const PIXEL_HEADERS = {
+const PIXEL_HEADERS_BASE = {
   'Content-Type': 'image/gif',
   'Content-Length': PIXEL_GIF.length.toString(),
   'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
   'Pragma': 'no-cache',
   'Expires': '0',
   'X-Content-Type-Options': 'nosniff',
-  'Access-Control-Allow-Origin': '*',
 };
+const pixelHeaders = (req: Request) => ({ ...PIXEL_HEADERS_BASE, ...getCorsHeaders(req) });
 
 function parseUserAgent(ua: string): { device: string; browser: string; os: string; isBot: boolean } {
   const uaLower = ua.toLowerCase();
@@ -72,7 +73,7 @@ function parseUserAgent(ua: string): { device: string; browser: string; os: stri
 serve(async (req) => {
   // Apenas GET
   if (req.method !== 'GET') {
-    return new Response(PIXEL_GIF, { status: 200, headers: PIXEL_HEADERS });
+    return new Response(PIXEL_GIF, { status: 200, headers: pixelHeaders(req) });
   }
 
   const url = new URL(req.url);
@@ -80,7 +81,7 @@ serve(async (req) => {
 
   // Se não tem tracking_id, retorna pixel sem tracking
   if (!trackingId) {
-    return new Response(PIXEL_GIF, { status: 200, headers: PIXEL_HEADERS });
+    return new Response(PIXEL_GIF, { status: 200, headers: pixelHeaders(req) });
   }
 
   // Registrar abertura em background (não bloqueia a resposta do pixel)
@@ -126,5 +127,5 @@ serve(async (req) => {
   }
 
   // SEMPRE retorna o pixel (independente de erros)
-  return new Response(PIXEL_GIF, { status: 200, headers: PIXEL_HEADERS });
+  return new Response(PIXEL_GIF, { status: 200, headers: pixelHeaders(req) });
 });

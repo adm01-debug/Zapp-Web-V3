@@ -12,13 +12,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface CursorPayload {
   created_at: string;
   id: string;
@@ -47,7 +41,7 @@ function decodeCursor(raw: string): CursorPayload | null {
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -57,7 +51,7 @@ const UUID_RE =
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   // Accept GET with query params or POST with JSON body.

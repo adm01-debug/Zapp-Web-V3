@@ -4,9 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const supabase = createClient((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!, { auth: { persistSession: false } });
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, x-api-key", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
-
 interface SentimentResult {
   sentiment: string;
   score: number;
@@ -74,7 +73,7 @@ async function saveAnalysis(remoteJid: string, msgId: string | null, text: strin
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Internal endpoint — require service role or cron secret
   const authErr = requireServiceRoleOrCron(req);
@@ -89,7 +88,7 @@ Deno.serve(async (req: Request) => {
       const days = Math.max(1, Math.min(30, isNaN(rawDays) ? 7 : rawDays));
       const since = new Date(Date.now() - days * 86400000).toISOString();
       const { data } = await supabase.from("evolution_sentiment_analysis").select("sentiment, sentiment_score, intent, urgency, created_at").gte("created_at", since);
-      if (!data?.length) return new Response(JSON.stringify({ success: true, metrics: { period_days: days, total_analyzed: 0 } }), { headers: { ...cors, "Content-Type": "application/json" } });
+      if (!data?.length) return new Response(JSON.stringify({ success: true, metrics: { period_days: days, total_analyzed: 0 } }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       const sd: Record<string, number> = { positive: 0, negative: 0, neutral: 0, mixed: 0 };
       const ud: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
       const id: Record<string, number> = {};
@@ -100,7 +99,7 @@ Deno.serve(async (req: Request) => {
         id[a.intent || "geral"] = (id[a.intent || "geral"] || 0) + 1;
         ts += Number(a.sentiment_score) || 0;
       }
-      return new Response(JSON.stringify({ success: true, metrics: { period_days: days, total_analyzed: data.length, sentiment_distribution: sd, avg_score: Math.round((ts / data.length) * 100) / 100, urgency_distribution: ud, intent_distribution: id, health_score: Math.round((sd.positive / data.length) * 100) } }), { headers: { ...cors, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, metrics: { period_days: days, total_analyzed: data.length, sentiment_distribution: sd, avg_score: Math.round((ts / data.length) * 100) / 100, urgency_distribution: ud, intent_distribution: id, health_score: Math.round((sd.positive / data.length) * 100) } }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
@@ -108,17 +107,17 @@ Deno.serve(async (req: Request) => {
         const { text, remote_jid, message_id } = body;
         // Validate text is a non-empty string — .slice() on a non-string crashes at runtime
         if (typeof text !== "string" || !text.trim()) {
-          return new Response(JSON.stringify({ error: "text deve ser uma string não vazia" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+          return new Response(JSON.stringify({ error: "text deve ser uma string não vazia" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
         }
         const analysis = await analyzeAI(text);
         let saved = null;
         if (remote_jid) saved = await saveAnalysis(remote_jid, message_id || null, text, analysis);
-        return new Response(JSON.stringify({ success: true, analysis, saved_id: saved?.id }), { headers: { ...cors, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ success: true, analysis, saved_id: saved?.id }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       }
     }
-    return new Response(JSON.stringify({ error: "Endpoint não encontrado" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Endpoint não encontrado" }), { status: 404, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[evolution-sentiment] unhandled error:", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }
 });

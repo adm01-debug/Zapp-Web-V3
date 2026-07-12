@@ -3,6 +3,7 @@
  * Routes AI calls through admin-configured provider with automatic fallback to Lovable AI.
  */
 import { handleCors, errorResponse, jsonResponse, Logger, requireEnv, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { z, parseBody } from "../_shared/schemas.ts";
 import { logAiUsage, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { callLovableAI, callOpenAICompatible, callCustomWebhook, withRetry } from "../_shared/ai-providers.ts";
@@ -195,8 +196,7 @@ Deno.serve(async (req) => {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+          ...getCorsHeaders(req),
         },
       });
     }

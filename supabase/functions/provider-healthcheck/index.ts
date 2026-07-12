@@ -5,12 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 async function ping(baseUrl: string, authToken: string | null, providerType: string) {
   const url = baseUrl.replace(/\/$/, "") + (
     providerType === "evolution" ? "/" :
@@ -36,7 +31,7 @@ async function ping(baseUrl: string, authToken: string | null, providerType: str
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Accept service-role/cron (automated) OR user JWT (admin UI-triggered)
   if (requireServiceRoleOrCron(req)) {
@@ -48,7 +43,7 @@ Deno.serve(async (req) => {
   const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !serviceKey) {
     return new Response(JSON.stringify({ error: "missing_env" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -61,7 +56,7 @@ Deno.serve(async (req) => {
 
   if (!providers || providers.length === 0) {
     return new Response(JSON.stringify({ checked: 0, message: "no active providers" }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -127,6 +122,6 @@ Deno.serve(async (req) => {
     errors: errors.length > 0 ? errors : undefined,
     finished_at: new Date().toISOString(),
   }), {
-    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 });

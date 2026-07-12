@@ -10,6 +10,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
 const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 const BATCH_SIZE = 10;
@@ -297,12 +298,7 @@ async function processQueue(): Promise<{
 }
 
 Deno.serve(async (request: Request) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, content-type",
-    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-  };
-  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+    if (request.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Internal cron endpoint — require service role or cron secret
   const authErr = requireServiceRoleOrCron(request);
@@ -323,11 +319,11 @@ Deno.serve(async (request: Request) => {
     }).then(() => {}, () => {});
     return new Response(JSON.stringify({
       success: true, version: "v6", ...result, timestamp: new Date().toISOString(),
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   } catch (error) {
     console.error("evolution-sender v6 error:", error);
     return new Response(JSON.stringify({
       error: "Internal server error",
-    }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }
 });

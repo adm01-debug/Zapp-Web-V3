@@ -13,13 +13,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const E2E_PREFIX = "e2e-";
 
 type Action =
@@ -42,7 +36,7 @@ interface RequestBody {
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -355,7 +349,7 @@ function safeJson(text: string) {
 // Handler
 // ------------------------------------------------------------------
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return handleCorsPreflight(req);
   if (req.method !== "POST") return json(405, { error: "method-not-allowed" });
 
   const authz = await authorize(req);

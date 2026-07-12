@@ -4,6 +4,7 @@ import { requireUser } from '../_shared/auth.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { SendEmailV1Schema } from '../_shared/contract-schemas.ts';
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 /**
  * send-email — Endpoint unificado legado (mantido para compatibilidade)
  *
@@ -11,16 +12,11 @@ import { SendEmailV1Schema } from '../_shared/contract-schemas.ts';
  * Use gmail-send diretamente em novos desenvolvimentos.
  */
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   const json = (data: unknown, status = 200) =>
-    new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
   try {
     const authed = await requireUser(req);

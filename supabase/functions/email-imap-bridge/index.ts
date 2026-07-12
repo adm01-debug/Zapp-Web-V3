@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 /**
  * email-imap-bridge — Suporte a provedores IMAP/SMTP genéricos (Outlook, Yahoo, etc.)
  *
@@ -16,11 +17,6 @@ import { requireUser } from '../_shared/auth.ts';
  * (as Edge Functions Supabase são HTTP-only).
  * Para produção, use um serviço como Nylas, EmailEngine ou MailSlurp.
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 interface ImapSmtpConfig {
   id?: string;
@@ -65,12 +61,12 @@ const PROVIDER_CONFIGS: Record<string, Partial<ImapSmtpConfig>> = {
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
       status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
 
   try {
