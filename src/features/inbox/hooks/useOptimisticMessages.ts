@@ -1,6 +1,9 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { isFeatureEnabled } from '@/lib/featureFlags';
+import { getLogger } from '@/lib/logger';
 import { Message } from '@/types/chat';
+
+const log = getLogger('useOptimisticMessages');
 
 /**
  * Provides optimistic message updates for the chat UI.
@@ -139,7 +142,11 @@ export function useOptimisticMessages(context?: { userId?: string }) {
 
       if (toRemove.length > 0) {
         // Trigger cleanup in next tick to avoid state updates during render
-        Promise.resolve().then(() => cleanup(toRemove));
+        Promise.resolve()
+          .then(() => cleanup(toRemove))
+          .catch((err) => {
+            log.error('Optimistic message cleanup failed', err);
+          });
       }
       
       if (stillPending.length === 0) return realMessages;
