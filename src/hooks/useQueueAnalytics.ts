@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import {
@@ -57,6 +58,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
   const [agentPerformance, setAgentPerformance] = useState<AgentPerformance[]>([]);
   const [statusData, setStatusData] = useState<StatusData[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     if (queueId && dateRange.from && dateRange.to) {
@@ -74,6 +76,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
         .eq('queue_id', queueId);
 
       if (contactsError) throw contactsError;
+      if (!mountedRef.current) return;
 
       const contactIds = contacts?.map((c) => c.id) || [];
 
@@ -99,6 +102,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
         .order('created_at', { ascending: true });
 
       if (messagesError) throw messagesError;
+      if (!mountedRef.current) return;
 
       // Process daily data
       const dailyAggregation = processDailyData(messages || [], contacts || [], dateRange);
@@ -110,6 +114,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
 
       // Process agent performance
       const agentAggregation = await processAgentPerformance(messages || []);
+      if (!mountedRef.current) return;
       setAgentPerformance(agentAggregation);
 
       // Process status distribution
@@ -118,7 +123,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
     } catch (error) {
       log.error('Error fetching queue analytics:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

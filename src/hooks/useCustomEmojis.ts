@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CATEGORY_LABELS } from '@/features/inbox';
@@ -30,6 +31,7 @@ export function useCustomEmojis(open: boolean) {
   const [uploading, setUploading] = useState(false);
   const [pendingUpload, setPendingUpload] = useState<PendingEmojiUpload | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useMountedRef();
 
   const fetchEmojis = useCallback(async () => {
     setLoading(true);
@@ -38,9 +40,10 @@ export function useCustomEmojis(open: boolean) {
       .select('*')
       .order('use_count', { ascending: false })
       .limit(500);
+    if (!mountedRef.current) return;
     if (!error && data) setEmojis(data as CustomEmoji[]);
     setLoading(false);
-  }, []);
+  }, [mountedRef]);
 
   useEffect(() => {
     if (open) void fetchEmojis();
@@ -70,22 +73,33 @@ export function useCustomEmojis(open: boolean) {
         .from('custom-emojis')
         .upload(storagePath, file, { contentType: file.type, cacheControl: '31536000' });
 
-      if (uploadError) { toast.error('Erro ao enviar arquivo'); return; }
+      if (uploadError) {
+        toast.error('Erro ao enviar arquivo');
+        return;
+      }
 
       const { data: urlData } = supabase.storage.from('custom-emojis').getPublicUrl(storagePath);
 
       let aiCategory = 'outros';
       try {
         toast.info('🔍 Classificando emoji com IA...');
-        const { data: classifyData, error: classifyErr } = await supabase.functions.invoke('classify-emoji', {
-          body: { image_url: urlData.publicUrl, file_name: file.name },
-        });
+        const { data: classifyData, error: classifyErr } = await supabase.functions.invoke(
+          'classify-emoji',
+          {
+            body: { image_url: urlData.publicUrl, file_name: file.name },
+          }
+        );
         if (!classifyErr && classifyData?.category) aiCategory = classifyData.category;
-      } catch (err) { log.error('Unexpected error in useCustomEmojis:', err); }
+      } catch (err) {
+        log.error('Unexpected error in useCustomEmojis:', err);
+      }
 
       setPendingUpload({
-        file, imageUrl: urlData.publicUrl, storagePath,
-        aiCategory, selectedCategory: aiCategory,
+        file,
+        imageUrl: urlData.publicUrl,
+        storagePath,
+        aiCategory,
+        selectedCategory: aiCategory,
         name: file.name.replace(/\.[^.]+$/, ''),
       });
     } catch {
@@ -96,18 +110,31 @@ export function useCustomEmojis(open: boolean) {
     }
   }, []);
 
-  const handleConfirmUpload = useCallback(async (pending: PendingEmojiUpload) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('custom_emojis').insert({
-      name: pending.name, image_url: pending.imageUrl,
-      category: pending.selectedCategory, is_favorite: false,
-      use_count: 0, uploaded_by: user?.id || null,
-    });
-    if (error) { toast.error('Erro ao salvar emoji'); return; }
-    toast.success(`Emoji salvo como "${CATEGORY_LABELS[pending.selectedCategory]?.label || pending.selectedCategory}"!`);
-    setPendingUpload(null);
-    fetchEmojis();
-  }, [fetchEmojis]);
+  const handleConfirmUpload = useCallback(
+    async (pending: PendingEmojiUpload) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const { error } = await supabase.from('custom_emojis').insert({
+        name: pending.name,
+        image_url: pending.imageUrl,
+        category: pending.selectedCategory,
+        is_favorite: false,
+        use_count: 0,
+        uploaded_by: user?.id || null,
+      });
+      if (error) {
+        toast.error('Erro ao salvar emoji');
+        return;
+      }
+      toast.success(
+        `Emoji salvo como "${CATEGORY_LABELS[pending.selectedCategory]?.label || pending.selectedCategory}"!`
+      );
+      setPendingUpload(null);
+      fetchEmojis();
+    },
+    [fetchEmojis]
+  );
 
   const handleCancelUpload = useCallback(async () => {
     if (pendingUpload) {
@@ -116,28 +143,40 @@ export function useCustomEmojis(open: boolean) {
     setPendingUpload(null);
   }, [pendingUpload]);
 
-  const handleSend = useCallback(async (emoji: CustomEmoji, onSendEmoji: (url: string) => void, onClose: () => void) => {
-    onSendEmoji(emoji.image_url);
-    onClose();
-    await supabase.from('custom_emojis').update({ use_count: (emoji.use_count || 0) + 1 }).eq('id', emoji.id);
-  }, []);
+  const handleSend = useCallback(
+    async (emoji: CustomEmoji, onSendEmoji: (url: string) => void, onClose: () => void) => {
+      onSendEmoji(emoji.image_url);
+      onClose();
+      await supabase
+        .from('custom_emojis')
+        .update({ use_count: (emoji.use_count || 0) + 1 })
+        .eq('id', emoji.id);
+    },
+    []
+  );
 
   const toggleFavorite = useCallback(async (e: React.MouseEvent, emoji: CustomEmoji) => {
     e.stopPropagation();
     const newVal = !emoji.is_favorite;
-    setEmojis(prev => prev.map(em => em.id === emoji.id ? { ...em, is_favorite: newVal } : em));
+    setEmojis((prev) =>
+      prev.map((em) => (em.id === emoji.id ? { ...em, is_favorite: newVal } : em))
+    );
     await supabase.from('custom_emojis').update({ is_favorite: newVal }).eq('id', emoji.id);
   }, []);
 
   const handleCategoryChange = useCallback(async (emoji: CustomEmoji, newCategory: string) => {
-    setEmojis(prev => prev.map(em => em.id === emoji.id ? { ...em, category: newCategory } : em));
+    setEmojis((prev) =>
+      prev.map((em) => (em.id === emoji.id ? { ...em, category: newCategory } : em))
+    );
     await supabase.from('custom_emojis').update({ category: newCategory }).eq('id', emoji.id);
-    toast.success(`Categoria alterada para "${CATEGORY_LABELS[newCategory]?.label || newCategory}"`);
+    toast.success(
+      `Categoria alterada para "${CATEGORY_LABELS[newCategory]?.label || newCategory}"`
+    );
   }, []);
 
   const handleDelete = useCallback(async (e: React.MouseEvent, emoji: CustomEmoji) => {
     e.stopPropagation();
-    setEmojis(prev => prev.filter(em => em.id !== emoji.id));
+    setEmojis((prev) => prev.filter((em) => em.id !== emoji.id));
     const path = emoji.image_url.split('/custom-emojis/')[1];
     if (path) await supabase.storage.from('custom-emojis').remove([path]);
     await supabase.from('custom_emojis').delete().eq('id', emoji.id);
@@ -145,9 +184,18 @@ export function useCustomEmojis(open: boolean) {
   }, []);
 
   return {
-    emojis, loading, uploading, pendingUpload, fileInputRef,
-    handleFileSelect, handleConfirmUpload, handleCancelUpload,
-    handleSend, toggleFavorite, handleCategoryChange, handleDelete,
+    emojis,
+    loading,
+    uploading,
+    pendingUpload,
+    fileInputRef,
+    handleFileSelect,
+    handleConfirmUpload,
+    handleCancelUpload,
+    handleSend,
+    toggleFavorite,
+    handleCategoryChange,
+    handleDelete,
     setPendingUpload,
   };
 }

@@ -126,10 +126,8 @@ src/hooks/useForwardMessage.ts
 src/hooks/useGmailLabels.ts
 src/hooks/useGmailOAuthFlow.ts
 src/hooks/useGoalsDashboard.ts
-src/hooks/useKnowledgeBase.ts
 src/hooks/useProviderPanel.ts
 src/hooks/useQueueSlaPanel.ts
-src/hooks/useQueues.ts
 src/hooks/useQueuesComparison.ts
 src/hooks/useTags.ts
 src/hooks/useTalkX.ts

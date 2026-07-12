@@ -1,10 +1,27 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion } from 'framer-motion';
-import { FileText, Search, Filter, Calendar, User, Globe, AlertTriangle, Shield, Activity } from 'lucide-react';
+import {
+  FileText,
+  Search,
+  Filter,
+  Calendar,
+  User,
+  Globe,
+  AlertTriangle,
+  Shield,
+  Activity,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -54,6 +71,7 @@ export function AuditLogDashboard() {
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [stats, setStats] = useState({ total: 0, today: 0, suspicious: 0, uniqueUsers: 0 });
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     fetchLogs();
@@ -75,16 +93,20 @@ export function AuditLogDashboard() {
     }
 
     const { data, error } = await query;
+    if (!mountedRef.current) return;
     if (!error && data) {
       setLogs(data as AuditLog[]);
-      
+
       const today = new Date().toISOString().split('T')[0];
-      const todayLogs = data.filter(l => l.created_at.startsWith(today));
-      const uniqueUsers = new Set(data.map(l => l.user_id).filter(Boolean));
-      const suspicious = data.filter(l => 
-        l.action.includes('delete') || l.action.includes('role_change') || l.action.includes('export')
+      const todayLogs = data.filter((l) => l.created_at.startsWith(today));
+      const uniqueUsers = new Set(data.map((l) => l.user_id).filter(Boolean));
+      const suspicious = data.filter(
+        (l) =>
+          l.action.includes('delete') ||
+          l.action.includes('role_change') ||
+          l.action.includes('export')
       );
-      
+
       setStats({
         total: data.length,
         today: todayLogs.length,
@@ -95,7 +117,7 @@ export function AuditLogDashboard() {
     setLoading(false);
   };
 
-  const filteredLogs = logs.filter(log => {
+  const filteredLogs = logs.filter((log) => {
     if (!search) return true;
     const s = search.toLowerCase();
     return (
@@ -123,17 +145,22 @@ export function AuditLogDashboard() {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
           { label: 'Total de Logs', value: stats.total, icon: FileText, color: 'text-primary' },
           { label: 'Hoje', value: stats.today, icon: Calendar, color: 'text-success' },
-          { label: 'Ações Sensíveis', value: stats.suspicious, icon: AlertTriangle, color: 'text-destructive' },
+          {
+            label: 'Ações Sensíveis',
+            value: stats.suspicious,
+            icon: AlertTriangle,
+            color: 'text-destructive',
+          },
           { label: 'Usuários Únicos', value: stats.uniqueUsers, icon: User, color: 'text-info' },
         ].map((stat) => (
           <Card key={stat.label}>
-            <CardContent className="pt-4 pb-4">
+            <CardContent className="pb-4 pt-4">
               <div className="flex items-center gap-3">
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 <div>
                   <p className="text-2xl font-bold">{stat.value}</p>
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
@@ -148,15 +175,15 @@ export function AuditLogDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
+            <Filter className="h-5 w-5" />
             Filtros
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <div className="flex-1 min-w-[200px]">
+            <div className="min-w-[200px] flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por ação, IP, usuário..."
                   value={search}
@@ -200,7 +227,7 @@ export function AuditLogDashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
+            <FileText className="h-5 w-5" />
             Logs de Auditoria ({filteredLogs.length})
           </CardTitle>
         </CardHeader>
@@ -209,12 +236,10 @@ export function AuditLogDashboard() {
             <div className="space-y-2">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-16 bg-muted/50 animate-pulse rounded-lg" />
+                  <div key={i} className="h-16 animate-pulse rounded-lg bg-muted/50" />
                 ))
               ) : filteredLogs.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhum log encontrado
-                </p>
+                <p className="py-8 text-center text-muted-foreground">Nenhum log encontrado</p>
               ) : (
                 filteredLogs.map((log) => {
                   const Icon = getActionIcon(log.action);
@@ -223,27 +248,31 @@ export function AuditLogDashboard() {
                       key={log.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-3 rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50"
                     >
-                      <div className={`p-2 rounded-lg ${getActionColor(log.action)}`}>
-                        <Icon className="w-4 h-4" />
+                      <div className={`rounded-lg p-2 ${getActionColor(log.action)}`}>
+                        <Icon className="h-4 w-4" />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{log.action}</span>
+                          <span className="text-sm font-medium">{log.action}</span>
                           {log.entity_type && (
                             <Badge variant="outline" className="text-xs">
                               {log.entity_type}
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          <span>{format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</span>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>
+                            {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss', {
+                              locale: ptBR,
+                            })}
+                          </span>
                           {log.ip_address && (
                             <>
                               <span>•</span>
                               <span className="flex items-center gap-1">
-                                <Globe className="w-3 h-3" />
+                                <Globe className="h-3 w-3" />
                                 {log.ip_address}
                               </span>
                             </>
@@ -251,7 +280,7 @@ export function AuditLogDashboard() {
                         </div>
                       </div>
                       {log.details && (
-                        <Badge variant="secondary" className="text-xs shrink-0">
+                        <Badge variant="secondary" className="shrink-0 text-xs">
                           +detalhes
                         </Badge>
                       )}
