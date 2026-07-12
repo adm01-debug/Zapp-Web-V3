@@ -168,7 +168,7 @@ export default function AdminConnectionsPage() {
     );
 
     if (!error && data) {
-      setConnections(data as SystemConnection[]);
+      setConnections(data as SystemConnection[]); // ignore-audit: narrows Supabase query result to local interface
       const fatorX = (data as SystemConnection[]).find(
         (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );

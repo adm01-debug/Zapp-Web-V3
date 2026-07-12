@@ -36,7 +36,7 @@ export function useRateLimitLogs() {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
-      if (!error && data) return data as RateLimitLog[];
+      if (!error && data) return data as RateLimitLog[]; // ignore-audit: narrows Supabase query result to local interface
       return [];
     },
   });

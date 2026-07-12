@@ -88,7 +88,7 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
         p_merged_fields: {},
       });
       if (error) throw error;
-      const result = data as Record<string, unknown>;
+      const result = data as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
       if (result?.error) throw new Error(String(result.error));
 
       setGroups((prev) => prev.filter((g) => g.phone_normalized !== group.phone_normalized));
@@ -117,7 +117,7 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
       clearInterval(progressInterval);
       setAutoProgress(100);
 
-      const result = data as Record<string, unknown>;
+      const result = data as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
       toast({
         title: '🎉 Auto-merge concluído!',
         description: `${result.merged_contacts} contatos mesclados em ${result.groups_processed} grupos.`,

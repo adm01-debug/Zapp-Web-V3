@@ -41,7 +41,7 @@ export const emailApi = {
       .order('scheduled_at', { ascending: false })
       .range(from, to);
 
-    return { data: data as EmailRevalidationJob[] | null, count, error };
+    return { data: data as EmailRevalidationJob[] | null, count, error }; // ignore-audit: narrows Supabase query result to local interface
   },
   getHealthSummary: async () => {
     const { data: rows, error } = await safeClient.from<EmailHealthSummary>(

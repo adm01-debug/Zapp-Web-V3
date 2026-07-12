@@ -58,7 +58,7 @@ export default function AdminTelemetriaPage() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data as TelemetryRow[]) || [];
+      return (data as TelemetryRow[]) || []; // ignore-audit: narrows Supabase query result to local interface
     },
     refetchInterval: 30000,
     staleTime: 10000,

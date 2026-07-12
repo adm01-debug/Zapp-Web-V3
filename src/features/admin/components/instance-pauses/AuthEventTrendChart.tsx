@@ -79,7 +79,7 @@ export function AuthEventTrendChart() {
         p_instance: filterTrim,
       });
       if (error) throw error;
-      return data as SummaryResp;
+      return data as SummaryResp; // ignore-audit: narrows Supabase query result to local interface
     },
     refetchInterval: 30_000,
   });

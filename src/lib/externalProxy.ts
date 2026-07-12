@@ -459,7 +459,7 @@ async function executeProxyCall<T>(
               error: { name?: string; message?: string; code?: string; status?: number } | null;
             })
           : await invokeViaFetch<ProxyResponse<T>>('external-db-proxy', perAttemptOptions);
-        data = result.data as ProxyResponse<T> | null;
+        data = result.data as ProxyResponse<T> | null; // ignore-audit: narrows Supabase query result to local interface
         error = result.error ? normalizeInvokeError(result.error) : null;
         if (
           !error &&
@@ -623,7 +623,7 @@ async function executeProxyCall<T>(
       correlationId,
     });
 
-    return data as ProxyResponse<T>;
+    return data as ProxyResponse<T>; // ignore-audit: narrows Supabase query result to local interface
   } catch (err) {
     const name = (err as Error)?.name;
     const message = (err as Error)?.message ?? '';

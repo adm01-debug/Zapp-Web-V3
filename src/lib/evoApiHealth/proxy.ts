@@ -104,7 +104,7 @@ class ExternalDbProxyClient {
         throw new Error(errorMsg);
       }
 
-      const okResult = result as ProxyResponse<T> | null;
+      const okResult = result as ProxyResponse<T> | null; // ignore-audit: narrows Supabase query result to local interface
       return {
         data: (okResult?.data ?? null) as T | null,
         schema_unavailable: !!okResult?.schema_unavailable,

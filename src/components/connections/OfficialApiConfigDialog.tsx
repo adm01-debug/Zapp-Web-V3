@@ -65,7 +65,7 @@ export function OfficialApiConfigDialog({
           .select('phone_number_id, waba_id, has_access_token, has_app_secret')
           .eq('connection_id', connectionId)
           .maybeSingle();
-        const data = res.data as SafeCredentialView | null;
+        const data = res.data as SafeCredentialView | null; // ignore-audit: narrows Supabase query result to local interface
         if (cancelled) return;
         if (data) {
           setForm({

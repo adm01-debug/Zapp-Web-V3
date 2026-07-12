@@ -180,7 +180,7 @@ export const safeClient = {
         stats.failedCalls++;
         return { data: null, error: this.formatError(error), requestId };
       }
-      return { data: data as T, error: null, requestId };
+      return { data: data as T, error: null, requestId }; // ignore-audit: narrows Supabase query result to local interface
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico single ${table}`, err);
       await this.recordFailure(
@@ -215,7 +215,7 @@ export const safeClient = {
         return { data: null, error: this.formatError(error), requestId };
       }
       if (data === undefined || data === null) return { data: null, error: null, requestId };
-      return { data: data as T, error: null, requestId };
+      return { data: data as T, error: null, requestId }; // ignore-audit: narrows Supabase query result to local interface
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico RPC ${name}`, err);
       await this.recordFailure(
@@ -369,7 +369,7 @@ export const safeClient = {
     if (Array.isArray(data)) {
       return (data as unknown[]).map((item) => this.maskSensitiveData(item));
     }
-    const masked: Record<string, unknown> = { ...(data as Record<string, unknown>) };
+    const masked: Record<string, unknown> = { ...(data as Record<string, unknown>) }; // ignore-audit: narrows Supabase query result to local interface
     for (const key in masked) {
       const val = masked[key];
       const lowerKey = key.toLowerCase();

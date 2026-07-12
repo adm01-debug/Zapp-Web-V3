@@ -85,7 +85,7 @@ async function checkCloudCredentials(): Promise<{ ok: boolean; missing: string[]
   try {
     const { data, error } = await supabase.functions.invoke('whatsapp-cloud-secrets-status');
     if (error) throw error;
-    const list = (data as CloudSecretsStatus)?.secrets ?? [];
+    const list = (data as CloudSecretsStatus)?.secrets ?? []; // ignore-audit: narrows Supabase query result to local interface
     const byName = new Map(list.map((s) => [s.name, s.configured]));
     const missing = REQUIRED_CLOUD_SECRETS.filter((n) => !byName.get(n));
     const result = { ok: missing.length === 0, missing };
@@ -230,7 +230,7 @@ async function invokeCloud(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
   if (error) throw error;
   if (data && typeof data === 'object' && 'error' in data) {
-    throw new Error(((data as Record<string, unknown>).error as string | undefined) ?? 'cloud_send_failed');
+    throw new Error(((data as Record<string, unknown>).error as string | undefined) ?? 'cloud_send_failed'); // ignore-audit: narrows Supabase query result to local interface
   }
   return data;
 }

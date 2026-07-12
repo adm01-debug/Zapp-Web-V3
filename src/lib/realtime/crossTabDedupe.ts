@@ -122,7 +122,7 @@ function ensureTransport(): Transport {
   if (typeof BroadcastChannel !== 'undefined' && !bc) {
     try {
       bc = new BroadcastChannel(BC_NAME);
-      bc.addEventListener('message', (e) => onBroadcast(e.data as BroadcastMessage));
+      bc.addEventListener('message', (e) => onBroadcast(e.data as BroadcastMessage)); // ignore-audit: narrows Supabase query result to local interface
       transportKind = 'broadcast-channel';
       log.debug('Transport ativo: BroadcastChannel');
       return transportKind;

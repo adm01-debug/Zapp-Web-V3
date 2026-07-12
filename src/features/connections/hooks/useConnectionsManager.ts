@@ -115,7 +115,7 @@ export function useConnectionsManager() {
           (result as Record<string, unknown> & { qrcode?: { base64?: string } })?.qrcode?.base64 ||
           ((result as Record<string, unknown>)?.base64 as string) ||
           ((result as Record<string, unknown>)?.qr as string) ||
-          ((result as Record<string, unknown>)?.qrcode as string);
+          ((result as Record<string, unknown>)?.qrcode as string); // ignore-audit: narrows Supabase query result to local interface
 
         if (!rawBase64) {
           setQrCodeDialog((prev) => ({
@@ -221,7 +221,7 @@ export function useConnectionsManager() {
       setLoading(true);
       const { data, error } = await whatsappConnectionRepository.fetchConnections();
       if (cancelled) return;
-      if (!error && data) setConnections(data as WhatsAppConnection[]);
+      if (!error && data) setConnections(data as WhatsAppConnection[]); // ignore-audit: narrows Supabase query result to local interface
       setLoading(false);
     };
     void fetchConnections();

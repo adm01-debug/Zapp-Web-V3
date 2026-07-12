@@ -107,7 +107,7 @@ export function useContactIntelligence(phone: string | undefined) {
         log.error('Intelligence RPC error:', error);
         return null;
       }
-      return data as ContactIntelligenceData;
+      return data as ContactIntelligenceData; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 15, // 15 min

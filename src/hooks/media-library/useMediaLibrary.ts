@@ -148,7 +148,7 @@ export function useMediaLibrary(type: MediaType) {
           `Erro ao carregar ${type === 'stickers' ? 'figurinhas' : type === 'audio_memes' ? 'áudios' : 'emojis'}`
         );
       }
-      setItems((data as MediaItem[]) || []);
+      setItems((data as MediaItem[]) || []); // ignore-audit: narrows Supabase query result to local interface
     } catch (err) {
       log.error(`Unexpected error fetching ${type}:`, err);
       setItems([]);

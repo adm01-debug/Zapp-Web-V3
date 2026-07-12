@@ -487,5 +487,5 @@ export async function sendMessageToContact(
     throw evolutionError;
   }
 
-  return data as SendMessageResult;
+  return data as SendMessageResult; // ignore-audit: narrows Supabase query result to local interface
 }

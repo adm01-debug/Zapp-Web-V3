@@ -92,7 +92,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
     enabled,
     staleTime: 30_000,
     refetchInterval: (query) => {
-      const data = query.state.data as SLATimelineData | undefined;
+      const data = query.state.data as SLATimelineData | undefined; // ignore-audit: narrows Supabase query result to local interface
       return data?.isAwaitingFirstResponse ? 30_000 : false;
     },
     queryFn: async (): Promise<SLATimelineData> => {

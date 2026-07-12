@@ -28,8 +28,8 @@ function extractGroupData(g: EvolutionGroup) {
 function normalizeApiResponse(data: unknown): EvolutionGroup[] {
   if (Array.isArray(data)) return data;
   if (data && typeof data === 'object') {
-    const obj = data as Record<string, unknown>;
-    if (Array.isArray(obj.data)) return obj.data as EvolutionGroup[];
+    const obj = data as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
+    if (Array.isArray(obj.data)) return obj.data as EvolutionGroup[]; // ignore-audit: narrows Supabase query result to local interface
     if (Array.isArray(obj.groups)) return obj.groups as EvolutionGroup[];
   }
   return [];

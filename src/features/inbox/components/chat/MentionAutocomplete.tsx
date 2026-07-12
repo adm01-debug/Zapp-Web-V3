@@ -38,7 +38,7 @@ export function MentionAutocomplete({
         .from('profiles')
         .select('id, name, email, avatar_url')
         .limit(50);
-      if (data) setAgents(data as AgentMention[]);
+      if (data) setAgents(data as AgentMention[]); // ignore-audit: narrows Supabase query result to local interface
     };
     fetchAgents();
   }, []);

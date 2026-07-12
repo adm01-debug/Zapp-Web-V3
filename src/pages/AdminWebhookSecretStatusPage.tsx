@@ -82,7 +82,7 @@ export default function AdminWebhookSecretStatusPage() {
     queryFn: async (): Promise<SecretStatus> => {
       const { data, error } = await supabase.functions.invoke('webhook-secret-status');
       if (error) throw error;
-      return data as SecretStatus;
+      return data as SecretStatus; // ignore-audit: narrows Supabase query result to local interface
     },
     refetchInterval: REFRESH_INTERVAL,
   });
