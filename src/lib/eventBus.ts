@@ -31,7 +31,7 @@ interface EventMap {
   'notification:show': { title: string; body: string; type: 'info' | 'warning' | 'error' };
   'agent:status': { agentId: string; status: 'online' | 'away' | 'offline' };
   'queue:update': { queueId: string; count: number };
-  'queue:updated': any[];
+  'queue:updated': Record<string, unknown>[];
 }
 
 type EventName = keyof EventMap;

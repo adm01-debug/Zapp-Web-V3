@@ -106,10 +106,42 @@ function TruncatedTooltip({
   );
 }
 
+interface ConversationContactData {
+  id?: string;
+  name?: string | null;
+  pushName?: string | null;
+  phone?: string | null;
+  tags?: string[] | null;
+  avatar?: string | null;
+  avatar_url?: string | null;
+  company_name?: string | null;
+  company?: string | null;
+  organization?: string | null;
+  updated_at?: string | null;
+  ai_sentiment?: string | null;
+  job_title?: string | null;
+  jobTitle?: string | null;
+  role?: string | null;
+}
+
+export interface ConversationItemData {
+  id: string;
+  contact?: ConversationContactData | null;
+  status?: string | null;
+  unreadCount?: number;
+  lastMessage?: { content?: string | null; created_at?: string | null } | null;
+  updatedAt?: string | null;
+  sentiment?: string | null;
+  sentimentScore?: number;
+  pinnedAt?: string | null;
+  assignedTo?: string | null;
+  connection_type?: string | null;
+}
+
 interface ConversationItemProps {
-  conversation: any;
+  conversation: ConversationItemData;
   isSelected: boolean;
-  onSelect: (conversation: any) => void;
+  onSelect: (conversation: ConversationItemData) => void;
   compact?: boolean;
   selectionMode?: boolean;
   isMultiSelected?: boolean;
@@ -117,7 +149,7 @@ interface ConversationItemProps {
   isPinned?: boolean;
 }
 
-function buildPrimaryLabel(conversation: any): string {
+function buildPrimaryLabel(conversation: ConversationItemData): string {
   const name = (
     conversation.contact?.name ||
     conversation.contact?.pushName ||
@@ -133,11 +165,11 @@ function buildPrimaryLabel(conversation: any): string {
   return safeName;
 }
 
-function buildFullPrimaryLabel(conversation: any): string {
+function buildFullPrimaryLabel(conversation: ConversationItemData): string {
   return buildPrimaryLabel(conversation);
 }
 
-function buildSecondaryLabel(conversation: any): string | null {
+function buildSecondaryLabel(conversation: ConversationItemData): string | null {
   const jobTitle =
     conversation.contact?.job_title?.trim() ||
     conversation.contact?.jobTitle?.trim() ||

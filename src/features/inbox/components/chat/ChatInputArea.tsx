@@ -34,6 +34,7 @@ import { InputPreviewBars } from './InputPreviewBars';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
+import type { QueueItem } from '@/features/inbox/hooks/useMessageQueue';
 
 interface QuickReplyItem {
   id: string;
@@ -91,7 +92,7 @@ interface ChatInputAreaProps {
   fileUploaderRef: React.RefObject<FileUploaderRef | null>;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   onOpenTeamFiles?: () => void;
-  queue?: any[];
+  queue?: QueueItem[];
   onRetry?: (id: string) => void;
   onRemoveFromQueue?: (id: string) => void;
 }
@@ -309,7 +310,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
             exit={{ opacity: 0, height: 0 }}
             className="border-t border-primary/10 bg-primary/5 px-4 py-1.5"
           >
-            {props.queue?.map((item: any) => (
+            {props.queue?.map((item) => (
               <div key={item.id} className="group mb-2 last:mb-0">
                 <div className="mb-1 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
