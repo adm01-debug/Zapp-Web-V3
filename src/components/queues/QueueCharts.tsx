@@ -197,7 +197,7 @@ export function QueueCharts({ queueId, queueColor }: QueueChartsProps) {
                   </Pie>
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
-                    formatter={(value: number | string) => [String(value) + '%', '']}
+                    formatter={(value) => [String(value ?? '') + '%', '']}
                   />
                 </PieChart>
               </ResponsiveContainer>
