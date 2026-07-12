@@ -15,10 +15,15 @@ const PUBSUB_TOPIC = Deno.env.get('GMAIL_PUBSUB_TOPIC') ?? 'projects/your-projec
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-  );
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+  const supabaseKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !supabaseKey) {
+    const json = (data: unknown, status = 200) =>
+      new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json({ error: 'Supabase configuration missing' }, 500);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -27,7 +32,9 @@ serve(async (req) => {
     // ── Push notification do Google Pub/Sub (POST sem body action) ────
     if (req.method === 'POST') {
       const body = await req.json().catch(() => ({}));
-      const { action } = body;
+      const action = typeof body === 'object' && body !== null && !Array.isArray(body)
+        ? String(body.action ?? '')
+        : '';
 
       // F2 security fix: fail-closed auth for Pub/Sub push notifications.
       // The 'registerWatch' action uses its own token auth via getValidToken().
@@ -49,7 +56,10 @@ serve(async (req) => {
         const authed = await requireUser(req);
         if (authed instanceof Response) return authed;
 
-        const { accountId } = body;
+        const accountId = typeof body === 'object' && body !== null && !Array.isArray(body)
+          ? String(body.accountId ?? '')
+          : '';
+        if (!accountId) return json({ error: 'Missing accountId' }, 400);
 
         // Verify the authenticated user owns this gmail_accounts row.
         const { data: accountCheck } = await supabase
@@ -92,17 +102,26 @@ serve(async (req) => {
       }
 
       // ── Pub/Sub push: process email notification ────────────────────
-      const { message } = body;
-      if (!message?.data) return json({ ok: true, skipped: 'no_message' });
+      const message = typeof body === 'object' && body !== null && !Array.isArray(body)
+        ? body.message
+        : null;
+      if (typeof message !== 'object' || message === null || !message.data) {
+        return json({ ok: true, skipped: 'no_message' });
+      }
 
-      let decoded: { emailAddress?: string; historyId?: string };
+      let decoded: unknown;
       try {
         decoded = JSON.parse(atob(message.data));
       } catch {
         return json({ error: 'Bad payload' }, 400);
       }
 
-      const { emailAddress, historyId } = decoded;
+      const emailAddress = typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)
+        ? String(decoded.emailAddress ?? '')
+        : '';
+      const historyId = typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)
+        ? String(decoded.historyId ?? '')
+        : '';
       if (!emailAddress || !historyId) return json({ ok: true, skipped: 'missing_fields' });
 
       const { data: account } = await supabase.from('email_accounts').select('id, access_token, refresh_token, token_expires_at').eq('email', emailAddress).maybeSingle();
@@ -131,8 +150,15 @@ serve(async (req) => {
         const msg = await msgRes.json();
         if (!msgRes.ok) continue;
 
-        const headers = msg.payload?.headers ?? [];
-        const getHeader = (name: string) => headers.find((h: { name: string; value: string }) => h.name.toLowerCase() === name.toLowerCase())?.value ?? '';
+        const headers = Array.isArray(msg.payload?.headers) ? msg.payload.headers : [];
+        const getHeader = (name: string) => {
+          const h = headers.find((h: unknown) =>
+            typeof h === 'object' && h !== null && !Array.isArray(h) &&
+            typeof (h as Record<string, unknown>).name === 'string' &&
+            ((h as Record<string, unknown>).name as string).toLowerCase() === name.toLowerCase()
+          ) as Record<string, unknown> | undefined;
+          return typeof h?.value === 'string' ? h.value : '';
+        };
 
         const subject = getHeader('Subject');
         const from = getHeader('From');
@@ -142,7 +168,14 @@ serve(async (req) => {
 
         const getBody = (payload: { mimeType: string; body?: { data?: string }; parts?: unknown[] }): string => {
           if (payload.mimeType === 'text/plain' && payload.body?.data) return atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-          if (payload.parts) return (payload.parts as { mimeType: string; body?: { data?: string }; parts?: unknown[] }[]).map(p => getBody(p)).join('');
+          if (Array.isArray(payload.parts)) {
+            return payload.parts
+              .filter((p): p is { mimeType: string; body?: { data?: string }; parts?: unknown[] } =>
+                typeof p === 'object' && p !== null && !Array.isArray(p) && 'mimeType' in p
+              )
+              .map(p => getBody(p))
+              .join('');
+          }
           return '';
         };
 
@@ -322,8 +355,14 @@ async function fetchAndPersistMessage(
   }
 
   const headers: Record<string, string> = {};
-  for (const h of msg.payload?.headers ?? []) {
-    headers[h.name.toLowerCase()] = h.value;
+  const payloadHeaders = Array.isArray(msg.payload?.headers) ? msg.payload.headers : [];
+  for (const h of payloadHeaders) {
+    if (typeof h === 'object' && h !== null && !Array.isArray(h)) {
+      const hObj = h as Record<string, unknown>;
+      if (typeof hObj.name === 'string' && typeof hObj.value === 'string') {
+        headers[hObj.name.toLowerCase()] = hObj.value;
+      }
+    }
   }
 
   const threadId   = msg.threadId;
@@ -343,29 +382,44 @@ async function fetchAndPersistMessage(
   let bodyPlain = '';
   let bodyHtml  = '';
   const extractParts = (parts: unknown[]): void => {
-    for (const part of parts ?? []) {
+    if (!Array.isArray(parts)) return;
+    for (const part of parts) {
+      if (typeof part !== 'object' || part === null || Array.isArray(part)) continue;
       const p = part as Record<string, unknown>;
-      if (p.mimeType === 'text/plain' && p.body) {
-        bodyPlain = atob(((p.body as Record<string,string>).data ?? '').replace(/-/g, '+').replace(/_/g, '/'));
-      } else if (p.mimeType === 'text/html' && p.body) {
-        bodyHtml = atob(((p.body as Record<string,string>).data ?? '').replace(/-/g, '+').replace(/_/g, '/'));
+      if (p.mimeType === 'text/plain' && typeof p.body === 'object' && p.body !== null) {
+        const body = p.body as Record<string, unknown>;
+        if (typeof body.data === 'string') {
+          bodyPlain = atob(body.data.replace(/-/g, '+').replace(/_/g, '/'));
+        }
+      } else if (p.mimeType === 'text/html' && typeof p.body === 'object' && p.body !== null) {
+        const body = p.body as Record<string, unknown>;
+        if (typeof body.data === 'string') {
+          bodyHtml = atob(body.data.replace(/-/g, '+').replace(/_/g, '/'));
+        }
       } else if (Array.isArray(p.parts)) {
-        extractParts(p.parts as unknown[]);
+        extractParts(p.parts);
       }
     }
   };
-  if (msg.payload?.parts) {
-    extractParts(msg.payload.parts);
-  } else if (msg.payload?.body?.data) {
-    const data = msg.payload.body.data.replace(/-/g, '+').replace(/_/g, '/');
-    if (msg.payload.mimeType === 'text/html') bodyHtml = atob(data);
-    else bodyPlain = atob(data);
+  const payloadParts = Array.isArray(msg.payload?.parts) ? msg.payload.parts : null;
+  if (payloadParts) {
+    extractParts(payloadParts);
+  } else if (typeof msg.payload?.body === 'object' && msg.payload.body !== null) {
+    const body = msg.payload.body as Record<string, unknown>;
+    if (typeof body.data === 'string') {
+      const data = (body.data as string).replace(/-/g, '+').replace(/_/g, '/');
+      if (msg.payload.mimeType === 'text/html') bodyHtml = atob(data);
+      else bodyPlain = atob(data);
+    }
   }
 
-  const labelIds     = msg.labelIds ?? [];
-  const isRead       = !labelIds.includes('UNREAD');
-  const isSent       = labelIds.includes('SENT');
-  const hasAttach    = !!(msg.payload?.parts ?? []).some((p: Record<string, unknown>) => p.filename);
+  const labelIds = Array.isArray(msg.labelIds) ? msg.labelIds : [];
+  const isRead = !labelIds.includes('UNREAD');
+  const isSent = labelIds.includes('SENT');
+  const payloadPartsForAttach = Array.isArray(msg.payload?.parts) ? msg.payload.parts : [];
+  const hasAttach = payloadPartsForAttach.some((p: unknown) =>
+    typeof p === 'object' && p !== null && !Array.isArray(p) && (p as Record<string, unknown>).filename
+  );
 
   // Step 1: insert the thread row if it doesn't exist yet (no-op on conflict).
   await supabase.from('gmail_threads').upsert({
