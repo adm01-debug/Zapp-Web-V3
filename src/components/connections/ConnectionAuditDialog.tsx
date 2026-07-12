@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 
@@ -51,7 +50,16 @@ export function ConnectionAuditDialog({
         .limit(50);
 
       if (error) throw error;
-      setLogs(data || []);
+      const normalized: AuditLog[] = (data ?? []).map((row) => ({
+        id: row.id,
+        action: row.action,
+        created_at: row.created_at,
+        details:
+          row.details && typeof row.details === 'object' && !Array.isArray(row.details)
+            ? (row.details as Record<string, unknown>)
+            : {},
+      }));
+      setLogs(normalized);
     } catch (err) {
       log.error('Failed to fetch connection audit logs', err);
     } finally {
@@ -130,11 +138,11 @@ export function ConnectionAuditDialog({
 
                     {log.details && (
                       <div className="mt-2 rounded border bg-card p-2 text-xs text-muted-foreground">
-                        {log.details.cause && (
+                        {log.details.cause ? (
                           <p className="mb-1 font-medium text-destructive">
                             Motivo: {String(log.details.cause)}
                           </p>
-                        )}
+                        ) : null}
                         <pre className="overflow-x-auto whitespace-pre-wrap font-mono">
                           {JSON.stringify(log.details, null, 2)}
                         </pre>
