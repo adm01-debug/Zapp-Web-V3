@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -20,10 +19,13 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
   const handleHandoff = async (agentId: string, comment: string) => {
     await dbFrom('contacts').update({ assigned_to: agentId }).eq('id', contactId);
     if (comment) {
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes.user?.id;
+      if (!userId) return;
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('user_id', userId)
         .single();
       if (profile) {
         await supabase.from('contact_notes').insert({

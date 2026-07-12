@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 // URL regex pattern
 export const URL_REGEX =
   /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/gi;
@@ -19,7 +19,7 @@ export function isYouTubeUrl(url: string): boolean {
 }
 
 export function getYouTubeThumbnail(url: string): string | null {
-  let videoId = null;
+  let videoId: string | null = null;
   if (url.includes('youtube.com/watch')) {
     const urlParams = new URLSearchParams(url.split('?')[1]);
     videoId = urlParams.get('v');
