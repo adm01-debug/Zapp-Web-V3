@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
           if (cachedResult) {
             const durationMs = performance.now() - ctx.startTime;
             log.info("Deduplication hit", { action, requestId, durationMs });
-            return jsonResponse({ ...cachedResult, _cached: true }, 200, req);
+            return jsonResponse({ ...(cachedResult as Record<string, unknown>), _cached: true }, 200, req);
           }
         }
       } catch (err) {
@@ -403,10 +403,8 @@ async function handleAutoTag(
     let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
-      const { response: resp, data: d } = await withCircuitBreaker(
-        'lovable-auto-tag',
+      const result = await withCircuitBreaker(
         () => callAiWithTimeout(
-          'auto-tag',
           () => callAiWithTracking({
             functionName: 'ai-auto-tag',
             userId: ctx.userId,
@@ -440,11 +438,13 @@ Responda APENAS em JSON:
               ],
               temperature: 0.3,
             },
-          })
-        )
+          }),
+          ACTION_TIMEOUTS['auto_tag']
+        ),
+        'lovable-auto-tag'
       );
-      response = resp;
-      data = d;
+      response = result.response;
+      data = result.data;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -781,10 +781,8 @@ Foque em:
     let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
-      const { response: resp, data: d } = await withCircuitBreaker(
-        'lovable-conversation-summary',
+      const result = await withCircuitBreaker(
         () => callAiWithTimeout(
-          'conversation-summary',
           () => callAiWithTracking({
             functionName: 'ai-conversation-summary',
             userId: ctx.userId,
@@ -833,11 +831,13 @@ Foque em:
               ],
               tool_choice: { type: "function", function: { name: "generate_analysis" } }
             },
-          })
-        )
+          }),
+          ACTION_TIMEOUTS['conversation_summary']
+        ),
+        'lovable-conversation-summary'
       );
-      response = resp;
-      data = d;
+      response = result.response;
+      data = result.data;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1134,10 +1134,8 @@ async function handleEnhanceMessage(
     let metricsMetadata: Record<string, unknown> = { requestId, tone };
 
     try {
-      const { response: resp, data: d } = await withCircuitBreaker(
-        'lovable-enhance-message',
+      const result = await withCircuitBreaker(
         () => callAiWithTimeout(
-          'enhance-message',
           () => callAiWithTracking({
             functionName: 'ai-enhance-message',
             userId: ctx.userId,
@@ -1161,11 +1159,13 @@ Regras importantes:
                 { role: "user", content: sanitizeString(message, 2000) }
               ],
             },
-          })
-        )
+          }),
+          ACTION_TIMEOUTS['enhance_message']
+        ),
+        'lovable-enhance-message'
       );
-      response = resp;
-      data = d;
+      response = result.response;
+      data = result.data;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1315,10 +1315,8 @@ async function handleClassifyEmoji(
     let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
-      const { response: resp, data: d } = await withCircuitBreaker(
-        'lovable-classify-emoji',
+      const result = await withCircuitBreaker(
         () => callAiWithTimeout(
-          'classify-emoji',
           () => callAiWithTracking({
             functionName: 'ai-classify-emoji',
             userId: ctx.userId,
@@ -1340,11 +1338,13 @@ async function handleClassifyEmoji(
               ],
               temperature: 0.2,
             },
-          })
-        )
+          }),
+          ACTION_TIMEOUTS['classify_emoji']
+        ),
+        'lovable-classify-emoji'
       );
-      response = resp;
-      data = d;
+      response = result.response;
+      data = result.data;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1504,10 +1504,8 @@ async function handleClassifySticker(
     let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
-      const { response: resp, data: d } = await withCircuitBreaker(
-        'lovable-classify-sticker',
+      const result = await withCircuitBreaker(
         () => callAiWithTimeout(
-          'classify-sticker',
           () => callAiWithTracking({
             functionName: 'ai-classify-sticker',
             userId: ctx.userId,
@@ -1529,11 +1527,13 @@ async function handleClassifySticker(
               ],
               temperature: 0.2,
             },
-          })
-        )
+          }),
+          ACTION_TIMEOUTS['classify_sticker']
+        ),
+        'lovable-classify-sticker'
       );
-      response = resp;
-      data = d;
+      response = result.response;
+      data = result.data;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2002,10 +2002,8 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
     let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
-      const { response: resp, data: d } = await withCircuitBreaker(
-        'lovable-conversation-analysis',
+      const result = await withCircuitBreaker(
         () => callAiWithTimeout(
-          'conversation-analysis',
           () => callAiWithTracking({
             functionName: 'ai-conversation-analysis',
             userId: ctx.userId,
@@ -2056,11 +2054,13 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
               ],
               tool_choice: { type: "function", function: { name: "analyze_conversation" } }
             },
-          })
-        )
+          }),
+          ACTION_TIMEOUTS['conversation_analysis']
+        ),
+        'lovable-conversation-analysis'
       );
-      response = resp;
-      data = d;
+      response = result.response;
+      data = result.data;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2395,10 +2395,8 @@ Responda APENAS em formato JSON com a seguinte estrutura:
     let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
-      const { response: resp, data: d } = await withCircuitBreaker(
-        'lovable-suggest-reply',
+      const result = await withCircuitBreaker(
         () => callAiWithTimeout(
-          'suggest-reply',
           () => callAiWithTracking({
             functionName: 'ai-suggest-reply',
             userId: ctx.userId,
@@ -2412,11 +2410,13 @@ Responda APENAS em formato JSON com a seguinte estrutura:
               ],
               temperature: 0.7,
             },
-          })
-        )
+          }),
+          ACTION_TIMEOUTS['suggest_reply']
+        ),
+        'lovable-suggest-reply'
       );
-      response = resp;
-      data = d;
+      response = result.response;
+      data = result.data;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2622,7 +2622,7 @@ async function handleTranscribeAudio(
 
         const chunks: Uint8Array[] = [];
         let totalBytes = 0;
-        for await (const chunk of response.body as AsyncIterable<Uint8Array>) {
+        for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
           totalBytes += chunk.byteLength;
           if (totalBytes > MAX_AUDIO_SIZE) {
             await response.body?.cancel().catch(() => {});
@@ -2675,18 +2675,19 @@ async function handleTranscribeAudio(
       formData.append('tag_audio_events', String(tagAudioEvents ?? false));
       formData.append('diarize', String(enableDiarization ?? false));
 
-      let transcriptionResponse;
+      let transcriptionResult;
       try {
-        transcriptionResponse = await withCircuitBreaker(
-          'elevenlabs-transcription',
-          () => Promise.resolve(
-            fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+        transcriptionResult = await withCircuitBreaker(
+          async () => {
+            const resp = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
               method: 'POST',
               headers: { 'xi-api-key': ELEVENLABS_API_KEY },
               body: formData,
               signal: AbortSignal.timeout(60_000),
-            })
-          )
+            });
+            return { response: resp, data: null };
+          },
+          'elevenlabs-transcription'
         );
       } catch (err) {
         const circuitMsg = (err instanceof Error ? err.message : String(err));
@@ -2705,6 +2706,7 @@ async function handleTranscribeAudio(
         throw err;
       }
 
+      const transcriptionResponse = transcriptionResult.response;
       if (!transcriptionResponse.ok) {
         const errorText = await transcriptionResponse.text().catch(() => "");
         log.error("ElevenLabs STT error", { status: transcriptionResponse.status });
