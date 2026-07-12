@@ -84,15 +84,23 @@ export function useEmail() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
   const [schemaStatus, setSchemaStatus] = useState<{ ok: boolean; lastChecked: Date | null }>({
     ok: true,
     lastChecked: null,
   });
-  const [nextPageToken, _setNextPageToken] = useState<string | null>(null);
+  // setter nunca é chamado hoje — paginação de threads ainda não implementada;
+  // ver docs/AUDITORIA_EXAUSTIVA_2026-07-12.md (Onda 6, item de código morto).
+  const [nextPageToken] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  /**
+   * AUTH GATE: tracks whether the Supabase session has been confirmed.
+   * loadAccounts() and checkTokenStatus() must not fire as anon — that causes
+   * 403 on public.email_accounts (anon has no SELECT), which feeds the
+   * safeClient infinite loop (recordFailure -> rpc -> recordFailure).
+   */
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const oauthInFlightRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -109,7 +117,9 @@ export function useEmail() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session && mountedRef.current) setIsAuthenticated(true);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (mountedRef.current) setIsAuthenticated(!!session);
     });
     return () => subscription.unsubscribe();
@@ -134,8 +144,12 @@ export function useEmail() {
     if (!mountedRef.current) return;
 
     if (dbErr) {
-      if (dbErr.message.includes('disponível') || dbErr.message.includes('not found') ||
-          dbErr.message.includes('permission denied') || dbErr.message.includes('42501')) {
+      if (
+        dbErr.message.includes('disponível') ||
+        dbErr.message.includes('not found') ||
+        dbErr.message.includes('permission denied') ||
+        dbErr.message.includes('42501')
+      ) {
         log.warn('Email schema unavailable — using mock accounts');
         setAccounts(GMAIL_MOCKS.accounts);
         if (GMAIL_MOCKS.accounts.length > 0 && !activeAccountId) {
@@ -384,7 +398,7 @@ export function useEmail() {
       p_thread_id: threadId,
       p_read: read,
       p_message_ids: null,
-    } as any);
+    });
 
     if (!rpcErr) {
       setThreads((prev) =>
@@ -486,13 +500,15 @@ export function useEmail() {
         body: { action: 'getAuthUrl' },
       });
 
-      if (fnErr || !data?.authUrl) {
+      // A edge function retorna `{ url, state }` (action 'getAuthUrl' em
+      // supabase/functions/gmail-oauth), não `authUrl`.
+      if (fnErr || !data?.url) {
         setError('Erro ao obter URL de autorização Google. Verifique GOOGLE_CLIENT_ID.');
         oauthInFlightRef.current = false;
         return;
       }
 
-      const popup = window.open(data.authUrl, 'email_oauth', 'width=500,height=600,scrollbars=yes');
+      const popup = window.open(data.url, 'email_oauth', 'width=500,height=600,scrollbars=yes');
       if (!popup) {
         setError('Popup bloqueado. Permita popups para este site.');
         oauthInFlightRef.current = false;
@@ -621,7 +637,7 @@ export function useEmail() {
               prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
             );
           } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as any)?.id;
+            const deletedId = (payload.old as { id?: string })?.id;
             if (!deletedId) return;
             setThreads((prev) => prev.filter((t) => t.id !== deletedId));
           }
