@@ -1,4 +1,11 @@
 import { useState, useEffect } from 'react';
+
+interface TrainingSession {
+  id: string;
+  scenario_name?: string | null;
+  status?: string | null;
+  score?: number | null;
+}
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,7 +67,7 @@ export function TrainingMode() {
   const [customerStep, setCustomerStep] = useState(0);
   const [score, setScore] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [profileId, setProfileId] = useState<string | null>(null);
 
   useEffect(() => {

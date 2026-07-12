@@ -466,7 +466,7 @@ function KV({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
   );
 }
 
-function Pre({ title, data }: { title: string; data: any }) {
+function Pre({ title, data }: { title: string; data: unknown }) {
   return (
     <div>
       <Label className="text-xs">{title}</Label>

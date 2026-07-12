@@ -113,15 +113,33 @@ function describeRemote(e: RemoteEvent, nameMap: Record<string, string>): Unifie
   return { id: e.id, source: 'remote', type: e.event_type, at: e.created_at, label, detail };
 }
 
-function describeAudit(e: any): UnifiedEvent {
+interface AuditLogRow {
+  id: string;
+  created_at: string;
+  details?: Record<string, unknown> | null;
+  action?: string | null;
+  event_type?: string | null;
+  status?: string | null;
+  error_message?: string | null;
+  attempt_number?: number | null;
+}
+
+function describeAudit(e: AuditLogRow): UnifiedEvent {
   // Após migração: linhas de `audit_logs` (entity_type='conversation')
   // guardam o antigo `event_type/status/error_message/attempt_number` dentro
   // de `details`. Retrocompatível com o shape antigo `conversation_audit_logs`.
-  const details = (e.details ?? {}) as Record<string, any>;
+  const details = (e.details ?? {}) as Record<string, unknown>;
   const action: string = e.action ?? e.event_type ?? 'audit';
-  const status: string | undefined = details.status ?? e.status;
-  const errorMessage: string | undefined = details.error_message ?? e.error_message;
-  const attemptNumber: number | undefined = details.attempt_number ?? e.attempt_number;
+  const status: string | undefined =
+    (typeof details.status === 'string' ? details.status : undefined) ?? e.status ?? undefined;
+  const errorMessage: string | undefined =
+    (typeof details.error_message === 'string' ? details.error_message : undefined) ??
+    e.error_message ??
+    undefined;
+  const attemptNumber: number | undefined =
+    (typeof details.attempt_number === 'number' ? details.attempt_number : undefined) ??
+    e.attempt_number ??
+    undefined;
 
   let label = 'Evento de Outbound';
   let detail = status;

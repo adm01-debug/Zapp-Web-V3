@@ -21,6 +21,16 @@ const _log = getLogger('safeClient');
 // ---------------------------------------------------------------------------
 type AnyQueryResult = PromiseLike<{ data: unknown; error: PostgrestError | null }>;
 
+// Supabase query builders expose `.single()` at runtime but the PromiseLike
+// interface we use for `AnyQueryResult` does not declare it. This intersection
+// lets executeSingle call `.single()` without an `as any` escape hatch.
+type AnyQueryBuilderResult = AnyQueryResult & { single?: () => AnyQueryResult };
+
+// Dynamic table accessor — bypasses the overloaded `from()` signature that
+// requires a string-literal table name from the generated types, while
+// preserving the runtime type we actually use downstream.
+type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
+
 export interface SafeResponse<T> {
   data: T | null;
   error: Error | null;
@@ -92,8 +102,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     timeoutId = setTimeout(() => reject(new Error(`Request timeout after ${ms}ms`)), ms);
   });
   return Promise.race([promise, timeout]).then(
-    (result) => { if (timeoutId !== undefined) clearTimeout(timeoutId); return result as T; },
-    (err) => { if (timeoutId !== undefined) clearTimeout(timeoutId); throw err; },
+    (result) => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      return result as T;
+    },
+    (err) => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      throw err;
+    }
   );
 }
 
@@ -105,12 +121,25 @@ export const maskEmail = (email: string): string => {
 };
 
 export const maskSensitiveData = (
-  data: Record<string, unknown> | unknown[],
+  data: Record<string, unknown> | unknown[]
 ): Record<string, unknown> | unknown[] => {
   const SENSITIVE_KEYS = new Set([
-    'password', 'senha', 'secret', 'token', 'api_key', 'apikey', 'api-key',
-    'access_token', 'refresh_token', 'private_key', 'auth_token',
-    'authorization', 'x-api-key', 'x-auth-token', 'x-access-token', 'bearer',
+    'password',
+    'senha',
+    'secret',
+    'token',
+    'api_key',
+    'apikey',
+    'api-key',
+    'access_token',
+    'refresh_token',
+    'private_key',
+    'auth_token',
+    'authorization',
+    'x-api-key',
+    'x-auth-token',
+    'x-access-token',
+    'bearer',
   ]);
   const PARTIAL_KEYS = new Set(['email', 'e-mail', 'e_mail']);
   const LONG_TOKEN_PATTERN = /^[A-Za-z0-9+/=._-]{40,}$/;
@@ -127,12 +156,12 @@ export const maskSensitiveData = (
   };
 
   const maskAny = (
-    d: Record<string, unknown> | unknown[] | null | undefined,
+    d: Record<string, unknown> | unknown[] | null | undefined
   ): Record<string, unknown> | unknown[] => {
-    if (Array.isArray(d)) return d.map(item => maskAny(item as Record<string, unknown>));
+    if (Array.isArray(d)) return d.map((item) => maskAny(item as Record<string, unknown>));
     if (!d || typeof d !== 'object') return {} as Record<string, unknown>;
     return Object.fromEntries(
-      Object.entries(d as Record<string, unknown>).map(([k, v]) => [k, maskValue(k, v)]),
+      Object.entries(d as Record<string, unknown>).map(([k, v]) => [k, maskValue(k, v)])
     );
   };
 
@@ -142,15 +171,15 @@ export const maskSensitiveData = (
 async function executeQuery<T>(
   operation: string,
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
+  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
 ): Promise<SafeResponse<T>> {
   const requestId = generateRequestId();
   telemetry.stats.totalCalls++;
   try {
-    const q = supabase.from(table as any);
+    const q = (supabase as unknown as DynamicSupabaseClient).from(table);
     const result = await withTimeout(
       Promise.resolve(callback(q)) as Promise<{ data: unknown; error: PostgrestError | null }>,
-      REQUEST_TIMEOUT_MS,
+      REQUEST_TIMEOUT_MS
     );
     if (result.error) {
       recordFailure(operation, result.error, table);
@@ -170,17 +199,17 @@ async function executeQuery<T>(
 
 async function executeSingle<T>(
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
+  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
 ): Promise<SafeResponse<T>> {
   return executeQuery<T>('single', table, (q) => {
-    const query = callback(q) as any;
+    const query = callback(q) as AnyQueryBuilderResult;
     return typeof query.single === 'function' ? query.single() : query;
   });
 }
 
 async function executeFrom<T>(
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
+  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
 ): Promise<SafeResponse<T[]>> {
   const result = await executeQuery<T[]>('from', table, callback);
   return result;
@@ -188,14 +217,19 @@ async function executeFrom<T>(
 
 async function executeRpc<T = unknown>(
   fn: string,
-  params?: Record<string, unknown>,
+  params?: Record<string, unknown>
 ): Promise<SafeResponse<T>> {
   const requestId = generateRequestId();
   telemetry.stats.totalCalls++;
   try {
     const result = await withTimeout(
-      (supabase.rpc as unknown as (name: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: PostgrestError | null }>)(fn, params),
-      REQUEST_TIMEOUT_MS,
+      (
+        supabase.rpc as unknown as (
+          name: string,
+          params?: Record<string, unknown>
+        ) => Promise<{ data: unknown; error: PostgrestError | null }>
+      )(fn, params),
+      REQUEST_TIMEOUT_MS
     );
     if (result.error) {
       recordFailure('rpc', result.error, fn);
@@ -213,17 +247,11 @@ async function executeRpc<T = unknown>(
   }
 }
 
-async function invokeFunction<T = unknown>(
-  fn: string,
-  body?: unknown,
-): Promise<SafeResponse<T>> {
+async function invokeFunction<T = unknown>(fn: string, body?: unknown): Promise<SafeResponse<T>> {
   const requestId = generateRequestId();
   telemetry.stats.totalCalls++;
   try {
-    const result = await withTimeout(
-      supabase.functions.invoke(fn, { body }),
-      REQUEST_TIMEOUT_MS,
-    );
+    const result = await withTimeout(supabase.functions.invoke(fn, { body }), REQUEST_TIMEOUT_MS);
     if (result.error) {
       recordFailure('invoke', result.error, fn);
       return { data: null, error: result.error, requestId };
@@ -247,7 +275,6 @@ function getTelemetry(): ClientTelemetry {
 function getCacheInfo(): CacheInfo {
   return { ...cache };
 }
-
 
 export const safeClient = {
   from: executeFrom,

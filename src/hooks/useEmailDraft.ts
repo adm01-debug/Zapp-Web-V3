@@ -68,7 +68,7 @@ export function useEmailDraft(accountId: string | null, threadId?: string) {
         setDraft((prev) => ({
           ...prev,
           id: localId,
-          email_draft_id: (emailResult as any)?.draftId,
+          email_draft_id: emailResult.data?.draftId,
           isDirty: false,
           lastSaved: new Date(),
         }));

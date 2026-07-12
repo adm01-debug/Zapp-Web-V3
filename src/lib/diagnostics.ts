@@ -10,6 +10,15 @@ interface DiagStep {
   details: unknown;
 }
 
+interface SystemConnectionRow {
+  id: string;
+  name: string;
+  provider: string;
+  config: Record<string, unknown>;
+  is_active: boolean;
+  created_by: string;
+}
+
 interface DiagResult {
   timestamp: string;
   steps: DiagStep[];
@@ -55,9 +64,10 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     record('Auth Check', 'pass', { user: session.user.email });
 
     // Passo 2: Buscar Configuração Atual no Banco
-    const { data: configRows, error: fetchError } = await safeClient.from<any>(
-      'system_connections',
-      (q) => q.select('*').eq('name', 'FATOR X').eq('provider', 'supabase_external').limit(1)
+    const { data: configRows, error: fetchError } = await safeClient.from<{
+      config: { url?: string; anon_key?: string };
+    }>('system_connections', (q) =>
+      q.select('*').eq('name', 'FATOR X').eq('provider', 'supabase_external').limit(1)
     );
     const currentConfigs = configRows?.[0] ?? null;
 
@@ -70,9 +80,8 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
       return diagnostics;
     }
 
-    const configData = currentConfigs as any;
-    const externalUrl = configData.config?.url;
-    const externalKey = configData.config?.anon_key;
+    const externalUrl = currentConfigs.config?.url;
+    const externalKey = currentConfigs.config?.anon_key;
 
     if (!externalUrl || !externalKey) {
       record('Config Validation', 'fail', 'URL ou Anon Key ausentes na configuração do banco.');
@@ -104,7 +113,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
 
     // Passo 4: Testar Escrita/Leitura no system_connections (Verificar RLS)
     const testName = `DIAG_TEST_${Math.floor(Math.random() * 1000)}`;
-    const { data: saveResult, error: saveError } = await safeClient.from<any>(
+    const { data: saveResult, error: saveError } = await safeClient.from<SystemConnectionRow>(
       'system_connections',
       (q) =>
         q
@@ -127,7 +136,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
       record('Database Write (RLS)', 'pass', { id: saveResult?.[0]?.id });
 
       // Passo 5: Verificação de Visibilidade (Read-back)
-      const { data: verifyRows, error: verifyError } = await safeClient.from<any>(
+      const { data: verifyRows, error: verifyError } = await safeClient.from<SystemConnectionRow>(
         'system_connections',
         (q) => q.select('*').eq('name', testName).limit(1)
       );
@@ -141,7 +150,9 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
         record('Data Read-back (RLS)', 'pass', { verified_id: verifyData.id });
 
         // Limpeza
-        await safeClient.from<any>('system_connections', (q) => q.delete().eq('name', testName));
+        await safeClient.from<SystemConnectionRow>('system_connections', (q) =>
+          q.delete().eq('name', testName)
+        );
         record('Cleanup', 'pass', 'Registro de teste removido.');
       }
     }

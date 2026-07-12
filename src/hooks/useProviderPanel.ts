@@ -75,7 +75,7 @@ export function useProviderPanel() {
   const upsertProvider = async (
     payload: Partial<ProviderRow> & { id?: string; auth_token?: string }
   ) => {
-    const { id, ...rest } = payload as any;
+    const { id, name, provider_type, base_url, auth_token, priority, is_active } = payload;
     const data = {
       name,
       provider_type,

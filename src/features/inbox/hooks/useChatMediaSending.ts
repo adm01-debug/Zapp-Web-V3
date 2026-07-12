@@ -82,7 +82,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
           .select('instance_id, instance_name')
           .eq('id', connectionId)
           .maybeSingle();
-        const resolved = conn ? evolutionInstanceName(conn as any) : null;
+        const resolved = conn ? evolutionInstanceName(conn) : null;
         if (resolved) {
           setInstanceName(resolved);
           return resolved;
@@ -98,7 +98,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         .limit(1)
         .maybeSingle();
 
-      const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn as any) : null;
+      const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn) : null;
       if (fallbackResolved) {
         setInstanceName(fallbackResolved);
         if (fallbackConn?.id) setWhatsappConnectionId(fallbackConn.id);
