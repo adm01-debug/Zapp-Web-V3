@@ -661,37 +661,110 @@ Deno.serve(async (req) => {
         if (videoFile) evolutionFormData.append('video', videoFile);
         return await proxy(`/message/sendPtv/${instance}`, 'POST', evolutionFormData);
       }
-      const rawVideo = (body as Record<string, unknown>).video ?? (body as Record<string, unknown>).videoUrl ?? (body as Record<string, unknown>).mediaUrl;
+      const jsonBody = ensureBodyIsRecord(body);
+      const rawVideo = safeGetAny(jsonBody, 'video', false) ?? safeGetAny(jsonBody, 'videoUrl', false) ?? safeGetAny(jsonBody, 'mediaUrl', false);
       let videoSource: unknown = typeof rawVideo === 'string'
         ? rawVideo.trim().replace(/^"+|"+$/g, '').replace(/\.supabase\.co"\//, '.supabase.co/')
         : rawVideo;
       if (typeof videoSource === 'string') videoSource = await resolvePrivateBucketUrl(supabase, videoSource, ['whatsapp-media']);
-      const ptvPayload: Record<string, unknown> = { number: (body as Record<string, unknown>).number, video: videoSource };
-      if ((body as Record<string, unknown>).delay) ptvPayload.delay = (body as Record<string, unknown>).delay;
+      const ptvPayload: Record<string, unknown> = { number: safeGet(jsonBody, 'number', false), video: videoSource };
+      const delay = safeGetAny(jsonBody, 'delay', false);
+      if (delay !== undefined) ptvPayload.delay = delay;
       return await proxy(`/message/sendPtv/${instance}`, 'POST', ptvPayload);
     }
 
-    if (action === 'send-location') return await proxy(`/message/sendLocation/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, name: (body as Record<string, unknown>).locationName || (body as Record<string, unknown>).name, address: (body as Record<string, unknown>).locationAddress || (body as Record<string, unknown>).address, latitude: (body as Record<string, unknown>).latitude, longitude: (body as Record<string, unknown>).longitude });
-    if (action === 'send-contact') return await proxy(`/message/sendContact/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, contact: (body as Record<string, unknown>).contact });
-    if (action === 'send-reaction') return await proxy(`/message/sendReaction/${instance}`, 'POST', { key: (body as Record<string, unknown>).key, reaction: (body as Record<string, unknown>).reaction });
-    
-    if (action === 'send-poll') return await proxy(`/message/sendPoll/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, name: (body as Record<string, unknown>).name || (body as Record<string, unknown>).question, selectableCount: (body as Record<string, unknown>).selectableCount || 1, values: (body as Record<string, unknown>).values || (body as Record<string, unknown>).options });
-    if (action === 'send-sticker') {
-      let finalStickerUrl = (body as Record<string, unknown>).sticker || (body as Record<string, unknown>).mediaUrl;
-      if (typeof finalStickerUrl === 'string') finalStickerUrl = await resolvePrivateBucketUrl(supabase, finalStickerUrl, ['whatsapp-media']);
-      return await proxy(`/message/sendSticker/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, sticker: finalStickerUrl });
+    if (action === 'send-location') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/sendLocation/${instance}`, 'POST', {
+        number: safeGet(jsonBody, 'number', false),
+        name: safeGet(jsonBody, 'locationName', false) || safeGet(jsonBody, 'name', false),
+        address: safeGet(jsonBody, 'locationAddress', false) || safeGet(jsonBody, 'address', false),
+        latitude: safeGetAny(jsonBody, 'latitude', false),
+        longitude: safeGetAny(jsonBody, 'longitude', false),
+      });
+    }
+    if (action === 'send-contact') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/sendContact/${instance}`, 'POST', {
+        number: safeGet(jsonBody, 'number', false),
+        contact: safeGetAny(jsonBody, 'contact', false),
+      });
+    }
+    if (action === 'send-reaction') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/sendReaction/${instance}`, 'POST', {
+        key: safeGetAny(jsonBody, 'key', false),
+        reaction: safeGet(jsonBody, 'reaction', false),
+      });
     }
     
-    if (action === 'send-list') return await proxy(`/message/sendList/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, title: (body as Record<string, unknown>).title, description: (body as Record<string, unknown>).description, footer: (body as Record<string, unknown>).footer, buttonText: (body as Record<string, unknown>).buttonText, sections: (body as Record<string, unknown>).sections });
-    if (action === 'send-buttons') return await proxy(`/message/sendButtons/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, title: (body as Record<string, unknown>).title, description: (body as Record<string, unknown>).description, footer: (body as Record<string, unknown>).footer, buttons: (body as Record<string, unknown>).buttons });
+    if (action === 'send-poll') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/sendPoll/${instance}`, 'POST', {
+        number: safeGet(jsonBody, 'number', false),
+        name: safeGet(jsonBody, 'name', false) || safeGet(jsonBody, 'question', false),
+        selectableCount: safeGetAny(jsonBody, 'selectableCount', false) || 1,
+        values: safeGetAny(jsonBody, 'values', false) || safeGetAny(jsonBody, 'options', false),
+      });
+    }
+    if (action === 'send-sticker') {
+      const jsonBody = ensureBodyIsRecord(body);
+      let finalStickerUrl = safeGetAny(jsonBody, 'sticker', false) || safeGetAny(jsonBody, 'mediaUrl', false);
+      if (typeof finalStickerUrl === 'string') finalStickerUrl = await resolvePrivateBucketUrl(supabase, finalStickerUrl, ['whatsapp-media']);
+      return await proxy(`/message/sendSticker/${instance}`, 'POST', {
+        number: safeGet(jsonBody, 'number', false),
+        sticker: finalStickerUrl,
+      });
+    }
+    
+    if (action === 'send-list') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/sendList/${instance}`, 'POST', {
+        number: safeGet(jsonBody, 'number', false),
+        title: safeGet(jsonBody, 'title', false),
+        description: safeGet(jsonBody, 'description', false),
+        footer: safeGet(jsonBody, 'footer', false),
+        buttonText: safeGet(jsonBody, 'buttonText', false),
+        sections: safeGetAny(jsonBody, 'sections', false),
+      });
+    }
+    if (action === 'send-buttons') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/sendButtons/${instance}`, 'POST', {
+        number: safeGet(jsonBody, 'number', false),
+        title: safeGet(jsonBody, 'title', false),
+        description: safeGet(jsonBody, 'description', false),
+        footer: safeGet(jsonBody, 'footer', false),
+        buttons: safeGetAny(jsonBody, 'buttons', false),
+      });
+    }
     if (action === 'send-status') return await proxy(`/message/sendStatus/${instance}`, 'POST', body);
-    if (action === 'send-template') return await proxy(`/message/sendTemplate/${instance}`, 'POST', { number: (body as Record<string, unknown>).number, template: (body as Record<string, unknown>).template });
-    if (action === 'mark-read') return await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages: (body as Record<string, unknown>).readMessages || [(body as Record<string, unknown>).key] });
-    if (action === 'mark-unread') return await proxy(`/chat/markMessageAsUnread/${instance}`, 'POST', { readMessages: (body as Record<string, unknown>).readMessages || [(body as Record<string, unknown>).key] });
+    if (action === 'send-template') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/sendTemplate/${instance}`, 'POST', {
+        number: safeGet(jsonBody, 'number', false),
+        template: safeGetAny(jsonBody, 'template', false),
+      });
+    }
+    if (action === 'mark-read') {
+      const jsonBody = ensureBodyIsRecord(body);
+      const readMessages = safeGetAny(jsonBody, 'readMessages', false);
+      return await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', {
+        readMessages: Array.isArray(readMessages) ? readMessages : [safeGetAny(jsonBody, 'key', false)],
+      });
+    }
+    if (action === 'mark-unread') {
+      const jsonBody = ensureBodyIsRecord(body);
+      const readMessages = safeGetAny(jsonBody, 'readMessages', false);
+      return await proxy(`/chat/markMessageAsUnread/${instance}`, 'POST', {
+        readMessages: Array.isArray(readMessages) ? readMessages : [safeGetAny(jsonBody, 'key', false)],
+      });
+    }
 
 
     if (action === 'read-messages') {
-      const remoteJid = (body as Record<string, unknown>).remoteJid || (body as Record<string, unknown>).chat;
+      const jsonBody = ensureBodyIsRecord(body);
+      const remoteJid = safeGet(jsonBody, 'remoteJid', false) || safeGet(jsonBody, 'chat', false);
       if (!remoteJid) {
         return new Response(JSON.stringify({ ok: false, skipped: true, reason: 'missing remoteJid' }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -711,23 +784,58 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (action === 'archive-chat') return await proxy(`/message/archiveChat/${instance}`, 'POST', { lastMessage: (body as Record<string, unknown>).lastMessage, chat: (body as Record<string, unknown>).chat, archive: (body as Record<string, unknown>).archive ?? true });
-    if (action === 'delete-message') return await proxy(`/message/delete/${instance}`, 'DELETE', { id: (body as Record<string, unknown>).id, remoteJid: (body as Record<string, unknown>).remoteJid, fromMe: (body as Record<string, unknown>).fromMe });
-    if (action === 'update-message') return await proxy(`/message/update/${instance}`, 'PUT', { number: (body as Record<string, unknown>).number, key: (body as Record<string, unknown>).key, text: (body as Record<string, unknown>).text });
+    if (action === 'archive-chat') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/archiveChat/${instance}`, 'POST', {
+        lastMessage: safeGetAny(jsonBody, 'lastMessage', false),
+        chat: safeGet(jsonBody, 'chat', false),
+        archive: safeGetAny(jsonBody, 'archive', false) ?? true,
+      });
+    }
+    if (action === 'delete-message') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/delete/${instance}`, 'DELETE', {
+        id: safeGet(jsonBody, 'id', false),
+        remoteJid: safeGet(jsonBody, 'remoteJid', false),
+        fromMe: safeGetAny(jsonBody, 'fromMe', false),
+      });
+    }
+    if (action === 'update-message') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/message/update/${instance}`, 'PUT', {
+        number: safeGet(jsonBody, 'number', false),
+        key: safeGetAny(jsonBody, 'key', false),
+        text: safeGet(jsonBody, 'text', false),
+      });
+    }
 
     if (action === 'find-chats') {
       const t0 = Date.now();
       const endpoint = `/chat/findChats/${instance}`;
-      const response = await proxy(endpoint, 'POST', { where: (body as Record<string, unknown>).where || {} });
+      const jsonBody = ensureBodyIsRecord(body);
+      const where = safeGetAny(jsonBody, 'where', false) || {};
+      const response = await proxy(endpoint, 'POST', { where });
       const data = await response.json();
       maybeLogFallback({ action: 'find-chats', endpoint, instance: instance ? String(instance) : null, status: response.status, data, primary_ms: Date.now() - t0, supabase });
       if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify(normalizeChatList(data)), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    if (action === 'find-messages') return await proxy(`/chat/findMessages/${instance}`, 'POST', { where: (body as Record<string, unknown>).where || {}, page: (body as Record<string, unknown>).page, offset: (body as Record<string, unknown>).offset });
+    if (action === 'find-messages') {
+      const jsonBody = ensureBodyIsRecord(body);
+      return await proxy(`/chat/findMessages/${instance}`, 'POST', {
+        where: safeGetAny(jsonBody, 'where', false) || {},
+        page: safeGetAny(jsonBody, 'page', false),
+        offset: safeGetAny(jsonBody, 'offset', false),
+      });
+    }
 
     if (action === 'find-status-messages') {
-      const response = await proxy(`/chat/findMessages/${instance}`, 'POST', { where: { key: { remoteJid: 'status@broadcast' } }, page: (body as Record<string, unknown>).page ?? 1, offset: (body as Record<string, unknown>).offset ?? 200 });
+      const jsonBody = ensureBodyIsRecord(body);
+      const response = await proxy(`/chat/findMessages/${instance}`, 'POST', {
+        where: { key: { remoteJid: 'status@broadcast' } },
+        page: safeGetAny(jsonBody, 'page', false) ?? 1,
+        offset: safeGetAny(jsonBody, 'offset', false) ?? 200,
+      });
       const data = await response.json();
       if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       const records = Array.isArray(data?.messages?.records) ? data.messages.records : [];
@@ -737,7 +845,9 @@ Deno.serve(async (req) => {
     if (action === 'find-contacts') {
       const t0 = Date.now();
       const endpoint = `/chat/findContacts/${instance}`;
-      const response = await proxy(endpoint, 'POST', { where: (body as Record<string, unknown>).where || {} });
+      const jsonBody = ensureBodyIsRecord(body);
+      const where = safeGetAny(jsonBody, 'where', false) || {};
+      const response = await proxy(endpoint, 'POST', { where });
       const data = await response.json();
       maybeLogFallback({ action: 'find-contacts', endpoint, instance: instance ? String(instance) : null, status: response.status, data, primary_ms: Date.now() - t0, supabase });
       if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
