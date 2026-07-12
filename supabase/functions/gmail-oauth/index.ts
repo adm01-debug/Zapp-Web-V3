@@ -7,6 +7,15 @@ const corsHeaders = {
 };
 const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
+function escapeJsonForHtml(value: unknown): string {
+  const json = JSON.stringify(value);
+  return json
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/"/g, '\\u0022')
+    .replace(/'/g, '\\u0027');
+}
+
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_AUTH_URL  = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_USERINFO  = 'https://www.googleapis.com/oauth2/v2/userinfo';
@@ -362,7 +371,7 @@ serve(async (req) => {
       const errorP = url.searchParams.get('error');
 
       if (typeof errorP === 'string' && errorP.length > 0) {
-        const errorMsg = JSON.stringify(errorP);
+        const errorMsg = escapeJsonForHtml(errorP);
         return new Response(
           `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:${errorMsg}},'*');window.close()</script>`,
           { headers: { 'Content-Type': 'text/html' } }
@@ -377,7 +386,7 @@ serve(async (req) => {
       }
 
       // Retorna o code para o popup processar via exchangeCode
-      const codeEscaped = JSON.stringify(code);
+      const codeEscaped = escapeJsonForHtml(code);
       return new Response(
         `<script>
           window.opener?.postMessage({type:'gmail-oauth-code',code:${codeEscaped}},'*');
