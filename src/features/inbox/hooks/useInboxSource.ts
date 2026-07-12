@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useRealtimeMessages } from './useRealtimeMessages';
 import { useExternalConversations, useExternalMessages } from '@/hooks/useExternalEvolution';
 import { useMessages } from './useMessages';
+import { resolveContactJid } from '@/adapters/evolutionAdapter';
 import type { LoadOlderCallback, CancelLoadOlderCallback } from '@/features/inbox';
 
 export function useInboxSource(useExternalDb: boolean, selectedContactId: string | null) {
@@ -23,8 +24,10 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
   // Search and Filter controls (always from localRealtime for UI consistency)
   const { search, setSearch, statusFilter, setStatusFilter, sortBy, setSortBy } = localRealtime;
 
-  // Messages for selected contact
-  const externalMsgs = useExternalMessages(useExternalDb ? selectedContactId : null);
+  // Messages for selected contact — useExternalMessages needs the bare JID (not a composite key).
+  const externalMsgs = useExternalMessages(
+    useExternalDb ? resolveContactJid(selectedContactId) : null
+  );
   const localMsgs = useMessages({
     contactId: useExternalDb ? null : selectedContactId,
     enabled: !useExternalDb && Boolean(selectedContactId),

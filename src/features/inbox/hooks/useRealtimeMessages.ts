@@ -92,6 +92,8 @@ export interface ConversationContact {
   channel_type: string | null;
   channel_connection_id: string | null;
   instance_name?: string | null;
+  /** Composite key for per-instance disambiguation: "${instanceName}:${remoteJid}" or bare remoteJid. Used for selection, NOT for DB queries. */
+  conversationKey?: string;
 }
 
 export interface ConversationWithMessages {

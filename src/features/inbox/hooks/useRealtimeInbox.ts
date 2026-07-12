@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
 import { seedAvatarCache } from '@/features/inbox';
 import { isValidUUID } from '@/utils/uuid';
+import { resolveContactJid } from '@/adapters/evolutionAdapter';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useMessageQueue, QueueItem } from './useMessageQueue';
@@ -123,6 +124,9 @@ export function useRealtimeInbox() {
     () =>
       conversations.find(
         (c) =>
+          // Match by composite conversationKey first (exact disambiguation), then fall back to
+          // bare contact.id for notification-triggered selections that carry only a JID.
+          (c.contact.conversationKey ?? c.contact.id) === selectedContactId ||
           c.contact.id === selectedContactId ||
           (c.contact as ConversationContact & { remote_jid?: string }).remote_jid ===
             selectedContactId
@@ -141,7 +145,8 @@ export function useRealtimeInbox() {
       // FIX B1: o handshake pode chegar como UUID, JID (`num@s.whatsapp.net`)
       // ou telefone puro (só dígitos). Detectamos qual é para não enviar telefone
       // para a coluna `id` (UUID) — isso causa 400 no PostgREST.
-      const raw = String(selectedContactId);
+      // resolveContactJid strips the "instance:" prefix from composite keys.
+      const raw = resolveContactJid(String(selectedContactId)) ?? String(selectedContactId);
       const isJid = raw.includes('@');
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
       const phone = isJid
@@ -261,6 +266,10 @@ export function useRealtimeInbox() {
 
   const messageQueue = useMessageQueue(async (item: QueueItem) => {
     const { contactId, content, attachments } = item;
+    // Strip the "instance:" prefix so bare JID is used for DB queries and Evolution API calls.
+    const jid = resolveContactJid(contactId) ?? contactId;
+    const conversationInstance =
+      resolvedSelectedConversation?.contact.instance_name ?? ACTIVE_WHATSAPP_INSTANCE;
 
     // Auto-assign on reply
     try {
@@ -268,10 +277,10 @@ export function useRealtimeInbox() {
       const idField = USE_EXTERNAL_DB ? 'remote_jid' : 'id';
       const { data: conv } = await dbFrom(tableName)
         .select(`${idField}, routing_status`)
-        .eq(idField, contactId)
+        .eq(idField, jid)
         .maybeSingle();
       if (conv && conv.routing_status === 'pending') {
-        await dbFrom(tableName).update({ routing_status: 'assigned' }).eq(idField, contactId);
+        await dbFrom(tableName).update({ routing_status: 'assigned' }).eq(idField, jid);
       }
     } catch (err) {
       log.error('Error auto-assigning on reply:', err);
@@ -283,10 +292,10 @@ export function useRealtimeInbox() {
 
       try {
         if (item.type === 'audio' && attachments?.[0]) {
-          const { optimistic } = await sendExternalAudio(contactId, attachments[0], {
+          const { optimistic } = await sendExternalAudio(jid, attachments[0], {
             contactAvatar: currentAvatar,
             isPtt: !attachments[0].name.endsWith('.mp3'),
-            conversationInstance: resolvedSelectedConversation?.contact.instance_name ?? undefined,
+            conversationInstance,
             onProgress: (p) => {
               messageQueue.updateProgress(item.id, p);
             },
@@ -296,8 +305,9 @@ export function useRealtimeInbox() {
         } else if (attachments && attachments.length > 0) {
           for (let i = 0; i < attachments.length; i++) {
             const file = attachments[i];
-            const { optimistic } = await sendExternalMedia(contactId, file, {
+            const { optimistic } = await sendExternalMedia(jid, file, {
               contactAvatar: currentAvatar,
+              instanceName: conversationInstance,
               caption: i === 0 ? content : undefined,
               onProgress: (p) => {
                 const _total = (i / attachments.length) * 100 + p / attachments.length;
@@ -311,8 +321,9 @@ export function useRealtimeInbox() {
             addExternalMessage?.(optimistic);
           }
         } else {
-          const { optimistic } = await sendExternalText(contactId, content, {
+          const { optimistic } = await sendExternalText(jid, content, {
             contactAvatar: currentAvatar,
+            instanceName: conversationInstance,
             onProgress: (p) => {
               messageQueue.updateProgress(item.id, p);
             },
@@ -345,29 +356,35 @@ export function useRealtimeInbox() {
   });
 
   const handleSelectConversation = useCallback(
-    (contactId: string) => {
-      setSelectedContactId(contactId);
-      setSelectedContact(contactId);
+    (contactIdOrKey: string) => {
+      // Find by conversationKey (composite) OR bare contact.id so both
+      // notification-triggered (bare JID) and list-click (composite key) work.
+      const conv = conversations.find(
+        (c) =>
+          (c.contact.conversationKey ?? c.contact.id) === contactIdOrKey ||
+          c.contact.id === contactIdOrKey
+      );
+      // The selection key stored in state: prefer composite key for disambiguation.
+      const selectionKey = conv?.contact.conversationKey ?? conv?.contact.id ?? contactIdOrKey;
+      // The bare JID used for API calls (strips "instance:" prefix if composite).
+      const jid = conv?.contact.id ?? resolveContactJid(contactIdOrKey) ?? contactIdOrKey;
+      const instanceName = conv?.contact.instance_name ?? ACTIVE_WHATSAPP_INSTANCE;
+
+      setSelectedContactId(selectionKey);
+      setSelectedContact(selectionKey);
       setDeliveryAlert(null);
 
       if (USE_EXTERNAL_DB) {
-        // Use the conversation's own instance_name so wpp2 (historical) conversations are
-        // marked as read on the correct instance, not always on ACTIVE_WHATSAPP_INSTANCE.
-        const conv = conversations.find(
-          (c) =>
-            c.contact.id === contactId ||
-            (c.contact as ConversationContact & { remote_jid?: string }).remote_jid === contactId
-        );
-        const instanceName = conv?.contact.instance_name ?? ACTIVE_WHATSAPP_INSTANCE;
+        // Mark the correct instance as read — critical for wpp2 vs wpp_pink_test routing.
         void supabase.functions.invoke('evolution-api', {
           body: {
             action: 'read-messages',
             instanceName,
-            remoteJid: contactId,
+            remoteJid: jid,
           },
         });
       } else {
-        markAsRead(contactId);
+        markAsRead(jid);
       }
     },
     [setSelectedContact, markAsRead, conversations]

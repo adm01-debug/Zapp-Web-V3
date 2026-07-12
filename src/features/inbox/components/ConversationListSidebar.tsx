@@ -76,7 +76,8 @@ export function ConversationListSidebar({
   }, [inbox]);
 
   const sortedFilteredIds = useMemo(
-    () => inboxFilters.filteredConversations.map((c: any) => c.contact.id), // ignore-audit
+    () =>
+      inboxFilters.filteredConversations.map((c: any) => c.contact.conversationKey ?? c.contact.id), // ignore-audit
     [inboxFilters.filteredConversations]
   );
 

@@ -15,6 +15,22 @@ export function jidToPhone(jid: string): string {
   return jid.replace(/@.*$/, '');
 }
 
+/**
+ * Extracts the bare WhatsApp JID from a contact ID that may be composite.
+ * Composite format: "${instanceName}:${remoteJid}" (e.g. "wpp2:5511999@s.whatsapp.net").
+ * Detects composite by finding a colon that appears before the "@" character.
+ */
+export function resolveContactJid(contactId: string | null): string | null {
+  if (!contactId) return null;
+  const atIdx = contactId.indexOf('@');
+  const colonIdx = contactId.indexOf(':');
+  // Composite: colon exists and precedes the "@"
+  if (atIdx > -1 && colonIdx > -1 && colonIdx < atIdx) {
+    return contactId.slice(colonIdx + 1);
+  }
+  return contactId;
+}
+
 export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessage {
   const msgType = extractMessageType(evo.message_type);
   let content = evo.content || evo.caption || '';
@@ -79,13 +95,15 @@ export function deriveContactsFromMessages(messages: EvolutionMessage[]): Derive
   const contactMap = new Map<string, DerivedContact>();
   for (const msg of messages) {
     if (!msg.remote_jid) continue;
-    const existing = contactMap.get(msg.remote_jid);
+    // Key by (instance, jid) so the same phone number on wpp2 vs wpp_pink_test stays separate.
+    const convKey = msg.instance_name ? `${msg.instance_name}:${msg.remote_jid}` : msg.remote_jid;
+    const existing = contactMap.get(convKey);
     const isUnread = !msg.from_me && msg.status !== 'read';
     const safePushName =
       !msg.from_me && msg.push_name && msg.push_name !== 'Você' ? msg.push_name : undefined;
 
     if (!existing) {
-      contactMap.set(msg.remote_jid, {
+      contactMap.set(convKey, {
         remoteJid: msg.remote_jid,
         pushName: safePushName ?? null,
         phone: jidToPhone(msg.remote_jid),
@@ -133,8 +151,10 @@ export function deriveContactsFromMessages(messages: EvolutionMessage[]): Derive
 }
 
 export function derivedToConversationContact(dc: DerivedContact): ConversationContact {
+  const convKey = dc.instanceName ? `${dc.instanceName}:${dc.remoteJid}` : dc.remoteJid;
   return {
     id: dc.remoteJid,
+    conversationKey: convKey,
     name: dc.pushName || dc.phone,
     surname: null,
     nickname: dc.pushName,
@@ -162,16 +182,19 @@ export function buildExternalConversations(
   messages: EvolutionMessage[]
 ): ConversationWithMessages[] {
   const derivedContacts = deriveContactsFromMessages(messages);
-  const messagesByJid = new Map<string, EvolutionMessage[]>();
+  // Key by (instance, jid) to match the grouping in deriveContactsFromMessages.
+  const messagesByKey = new Map<string, EvolutionMessage[]>();
   for (const msg of messages) {
     if (!msg.remote_jid) continue;
-    const existing = messagesByJid.get(msg.remote_jid) || [];
+    const convKey = msg.instance_name ? `${msg.instance_name}:${msg.remote_jid}` : msg.remote_jid;
+    const existing = messagesByKey.get(convKey) || [];
     existing.push(msg);
-    messagesByJid.set(msg.remote_jid, existing);
+    messagesByKey.set(convKey, existing);
   }
   return derivedContacts.map((dc) => {
     const contact = derivedToConversationContact(dc);
-    const evoMessages = messagesByJid.get(dc.remoteJid) || [];
+    const convKey = contact.conversationKey ?? dc.remoteJid;
+    const evoMessages = messagesByKey.get(convKey) || [];
     const realtimeMessages = evoMessages
       .map(evolutionToRealtimeMessage)
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());

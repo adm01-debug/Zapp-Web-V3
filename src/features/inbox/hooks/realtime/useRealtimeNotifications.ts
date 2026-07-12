@@ -5,6 +5,7 @@ import {
   requestNotificationPermission,
 } from '@/utils/notificationSound';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
+import { resolveContactJid } from '@/adapters/evolutionAdapter';
 import type {
   ConversationContact,
   RealtimeMessage,
@@ -30,9 +31,12 @@ export function useRealtimeNotifications() {
 
   const notifyAboutIncomingMessage = useCallback(
     (contact: ConversationContact, message: RealtimeMessage) => {
+      // selectedContactIdRef may hold a composite key ("instance:jid"); resolve to bare JID before comparing
+      const activeJid = resolveContactJid(selectedContactIdRef.current);
       if (
         message.sender !== 'contact' ||
         message.is_read ||
+        activeJid === message.contact_id ||
         selectedContactIdRef.current === message.contact_id
       ) {
         return;

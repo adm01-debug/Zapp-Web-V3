@@ -51,7 +51,9 @@ const VirtualizedItem = memo(
     onToggleSelection?: (id: string) => void;
     onSelectConversation: (contactId: string) => void;
   }) => {
-    const contactId = conversation.contact.id;
+    // Use the composite conversationKey (instance:jid) for selection identity so that
+    // the same phone number on different WhatsApp instances forms distinct conversations.
+    const contactId = conversation.contact.conversationKey ?? conversation.contact.id;
     const isSelected = selectedContactId === contactId;
     const isMultiSelected = selectedIds.has(contactId);
     const isPinned = pinnedIds.has(contactId);
@@ -110,15 +112,16 @@ export function VirtualizedRealtimeList({
     const seen = new Set<string>();
 
     for (const c of safeConversations) {
-      if (!seen.has(c.contact.id)) {
+      const key = c.contact.conversationKey ?? c.contact.id;
+      if (!seen.has(key)) {
         deduped.push(c);
-        seen.add(c.contact.id);
+        seen.add(key);
       }
     }
 
     return deduped.sort((a, b) => {
-      const aPin = pinnedIds.has(a.contact.id);
-      const bPin = pinnedIds.has(b.contact.id);
+      const aPin = pinnedIds.has(a.contact.conversationKey ?? a.contact.id);
+      const bPin = pinnedIds.has(b.contact.conversationKey ?? b.contact.id);
       if (aPin && !bPin) return -1;
       if (!aPin && bPin) return 1;
       const aTime = a.lastMessage ? new Date(a.lastMessage.created_at).getTime() : 0;
@@ -153,7 +156,7 @@ export function VirtualizedRealtimeList({
 
           return (
             <VirtualizedItem
-              key={conversation.contact.id}
+              key={conversation.contact.conversationKey ?? conversation.contact.id}
               virtualRow={virtualRow}
               conversation={conversation}
               selectedContactId={selectedContactId}
