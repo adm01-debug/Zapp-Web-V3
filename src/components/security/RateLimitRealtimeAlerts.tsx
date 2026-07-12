@@ -46,6 +46,7 @@ export function RateLimitRealtimeAlerts() {
         .select('*')
         .eq('is_resolved', false)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(10);
 
       if (error) {

@@ -44,11 +44,13 @@ export function MonitoringEventTimeline() {
           .select('id, sender, content, created_at, contact_id')
           .gte('created_at', oneHourAgo)
           .order('created_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(20),
         supabase
           .from('connection_health_logs')
           .select('id, instance_id, status, checked_at')
           .order('checked_at', { ascending: false })
+          .order('id', { ascending: false })
           .limit(10),
       ]);
 

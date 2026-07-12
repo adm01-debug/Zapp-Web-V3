@@ -23,7 +23,7 @@ export function FollowUpExecutionsHistory() {
       type ExecutionRow = { id: string; status: string; current_step: number; created_at: string; sequence: { name: string } | null; contact: { name: string | null; phone: string | null } | null };
       const { data, error } = await safeClient.from<ExecutionRow>(
         'followup_executions',
-        q => q.select('*, sequence:followup_sequences(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).limit(100),
+        q => q.select('*, sequence:followup_sequences(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).order('id', { ascending: false }).limit(100),
       );
       if (error) throw error;
       return data ?? [];

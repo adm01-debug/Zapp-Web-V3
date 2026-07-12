@@ -26,7 +26,7 @@ export function TalkXRecipientsList({ campaignId }: Props) {
     queryFn: async () => {
       const { data, error } = await safeClient.from<TalkXRecipient>(
         'talkx_recipients',
-        q => q.select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)').eq('campaign_id', campaignId).order('created_at', { ascending: true }),
+        q => q.select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)').eq('campaign_id', campaignId).order('created_at', { ascending: true }).order('id', { ascending: true }),
       );
       if (error) throw error;
       return data ?? [];

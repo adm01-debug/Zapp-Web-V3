@@ -46,6 +46,7 @@ export function QrAttemptHistory({ connectionId, refreshKey, limit = 5 }: Props)
         .select('id,status,created_at,connected_at,expired_at,error_message')
         .eq('connection_id', connectionId)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(limit);
       if (cancelled) return;
       if (error) {

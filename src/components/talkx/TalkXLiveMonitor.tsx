@@ -93,6 +93,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
           .select('*, contacts:contact_id(name, nickname, phone, company)')
           .eq('campaign_id', campaignId)
           .order('created_at', { ascending: true })
+          .order('id', { ascending: true })
     );
 
     if (!recipients || recipients.length === 0) return;

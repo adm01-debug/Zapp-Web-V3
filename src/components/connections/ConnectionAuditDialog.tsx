@@ -44,6 +44,7 @@ export function ConnectionAuditDialog({ open, onOpenChange, instanceId, connecti
         .select('*')
         .contains('details', { instance_id: instanceId })
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(50);
 
       if (error) throw error;

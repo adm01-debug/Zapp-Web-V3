@@ -50,7 +50,8 @@ export function TranscriptionsHistoryView() {
         )
         .eq('message_type', 'audio')
         .not('transcription', 'is', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (error) throw error;
       type ContactRow = { name: string; phone: string; avatar_url: string | null };
       type RawRow = {

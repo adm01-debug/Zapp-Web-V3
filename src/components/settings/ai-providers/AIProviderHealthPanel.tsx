@@ -32,6 +32,7 @@ export function AIProviderHealthPanel() {
         .select('*')
         .eq('function_name', 'ai-proxy')
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(50);
       if (error) throw error;
       return (data || []) as unknown as UsageLog[];

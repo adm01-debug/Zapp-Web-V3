@@ -80,11 +80,13 @@ export function ConnectionHealthPanel() {
       supabase
         .from('whatsapp_connections')
         .select('id, instance_id, status, phone_number, last_health_check, health_status, health_response_ms')
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }),
       supabase
         .from('connection_health_logs')
         .select('id, instance_id, status, response_time_ms, error_message, checked_at')
         .order('checked_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(50),
     ]);
 

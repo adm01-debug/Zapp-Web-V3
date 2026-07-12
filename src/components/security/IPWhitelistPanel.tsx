@@ -55,7 +55,8 @@ export function IPWhitelistPanel() {
     const { data, error } = await supabase
       .from('ip_whitelist')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
 
     if (!error && data) {
       setWhitelistedIPs(data);

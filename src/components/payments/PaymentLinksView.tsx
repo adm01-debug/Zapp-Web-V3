@@ -47,7 +47,7 @@ export function PaymentLinksView() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from('payment_links').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('payment_links').select('*').order('created_at', { ascending: false }).order('id', { ascending: false });
     if (mountedRef.current) {
       if (data) setLinks(data);
       setLoading(false);

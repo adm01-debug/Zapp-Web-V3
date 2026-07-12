@@ -29,8 +29,8 @@ export function ChatbotExecutionsDashboard() {
       const { data, error } = await safeClient.from<ExecRow>(
         'chatbot_executions',
         q => statusFilter !== 'all'
-          ? q.select('*, flow:chatbot_flows(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).limit(200).eq('status', statusFilter)
-          : q.select('*, flow:chatbot_flows(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).limit(200),
+          ? q.select('*, flow:chatbot_flows(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).order('id', { ascending: false }).limit(200).eq('status', statusFilter)
+          : q.select('*, flow:chatbot_flows(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).order('id', { ascending: false }).limit(200),
       );
       if (error) throw error;
       return data ?? [];

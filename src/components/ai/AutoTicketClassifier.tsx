@@ -58,7 +58,7 @@ export function AutoTicketClassifier() {
       type AiTagRow = { contact_id: string; tag_name: string; confidence: number | null; created_at: string; contacts: { name: string | null; phone: string | null } | null };
       const { data: tags, error } = await safeClient.from<AiTagRow>(
         'ai_conversation_tags',
-        q => q.select('*, contacts(name, phone)').order('created_at', { ascending: false }).limit(100),
+        q => q.select('*, contacts(name, phone)').order('created_at', { ascending: false }).order('id', { ascending: false }).limit(100),
       );
 
       if (!error && tags) {

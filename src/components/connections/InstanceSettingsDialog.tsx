@@ -128,6 +128,7 @@ export function InstanceSettingsDialog({ open, onOpenChange, instanceName, conne
         .select('*')
         .eq('connection_id', connectionId)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(20);
       
       if (!error && data && mountedRef.current) setAuditLogs(data);

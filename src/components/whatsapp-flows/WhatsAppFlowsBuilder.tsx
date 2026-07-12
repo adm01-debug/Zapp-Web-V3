@@ -78,7 +78,8 @@ export function WhatsAppFlowsBuilder() {
     const { data } = await supabase
       .from('whatsapp_flows')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
     if (data) {
       setFlows(
         data.map((f) => ({

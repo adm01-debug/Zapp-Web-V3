@@ -84,7 +84,8 @@ export function RateLimitConfigPanel() {
     const { data, error } = await supabase
       .from('rate_limit_configs')
       .select('*')
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true });
 
     if (!error && data && data.length > 0) {
       setRules(

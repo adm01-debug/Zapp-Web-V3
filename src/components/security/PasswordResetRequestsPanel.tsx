@@ -58,7 +58,7 @@ export function PasswordResetRequestsPanel() {
     try {
       const { data, error } = await safeClient.from<ResetRequest>(
         'password_reset_requests_safe',
-        (q) => q.select('*').order('created_at', { ascending: false })
+        (q) => q.select('*').order('created_at', { ascending: false }).order('id', { ascending: false })
       );
       if (error) throw error;
       setRequests((data || []) as unknown as ResetRequest[]);

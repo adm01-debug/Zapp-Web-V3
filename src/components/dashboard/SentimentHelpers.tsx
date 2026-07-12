@@ -26,7 +26,8 @@ export function useRealSentimentData(days: number): SentimentData[] | null {
         .from('conversation_analyses')
         .select('created_at, sentiment, sentiment_score')
         .gte('created_at', startDate.toISOString())
-        .order('created_at');
+        .order('created_at')
+        .order('id');
       
       if (error) throw error;
       if (!analyses || analyses.length === 0) return null;

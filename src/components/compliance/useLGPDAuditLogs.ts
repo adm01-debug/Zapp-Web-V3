@@ -36,6 +36,7 @@ export function useLGPDAuditLogs(userId: string | undefined, limit = 50) {
         .eq('user_id', userId)
         .or(orFilter)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(limit);
 
       if (qErr) throw qErr;
