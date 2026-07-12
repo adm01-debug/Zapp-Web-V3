@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -35,7 +34,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   // Mirror of the latest transcription so async handlers (onstop) read the
   // current value instead of the stale one captured when startRecording was memoized.
   const transcriptionRef = useRef<string>('');
-  useEffect(() => { transcriptionRef.current = transcription; }, [transcription]);
+  useEffect(() => {
+    transcriptionRef.current = transcription;
+  }, [transcription]);
 
   const startRecording = useCallback(
     async (isRecovery = false) => {
@@ -142,7 +143,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           recognition.continuous = true;
           recognition.interimResults = true;
 
-          recognition.onresult = (event: any) => { // ignore-audit
+          recognition.onresult = (event: any) => {
+            // ignore-audit
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 setTranscription((prev) => (prev + ' ' + event.results[i][0].transcript).trim());
@@ -150,7 +152,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             }
           };
 
-          recognition.onerror = async (event: any) => { // ignore-audit
+          recognition.onerror = async (event: any) => {
+            // ignore-audit
             log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
@@ -228,7 +231,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       setIsRecording(false);
       setIsPaused(false);
     }
-    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
     if (intervalRef.current) {
@@ -247,13 +250,27 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-      streamRef.current?.getTracks().forEach(track => track.stop());
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
       const ctx = audioContextRef.current;
-      if (ctx && ctx.state !== 'closed') { ctx.close().catch(() => { /* ignore */ }); }
+      if (ctx && ctx.state !== 'closed') {
+        ctx.close().catch(() => {
+          /* ignore */
+        });
+      }
       const mr = mediaRecorderRef.current;
-      if (mr && mr.state !== 'inactive') { try { mr.stop(); } catch { /* ignore */ } }
+      if (mr && mr.state !== 'inactive') {
+        try {
+          mr.stop();
+        } catch {
+          /* ignore */
+        }
+      }
     };
   }, []);
 

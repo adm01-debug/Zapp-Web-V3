@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEvolutionApiIntegration — Wave 3 (2026-07-06)
  * Camada de dados extraída de EvolutionApiIntegrationView (componente ficou 100% UI).
@@ -37,14 +36,14 @@ export function useEvolutionApiIntegration() {
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState<string | null>(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     instance_name: '',
     api_url: DEFAULT_URL,
     api_key: '',
     show_key: false,
-    is_editing: null as string | null
+    is_editing: null as string | null,
   });
 
   const fetchData = useCallback(async () => {
@@ -52,7 +51,11 @@ export function useEvolutionApiIntegration() {
     try {
       const [credsRes, logsRes] = await Promise.all([
         supabase.from('evolution_instance_credentials').select('*').order('instance_name'),
-        supabase.from('evolution_health_logs').select('*').order('performed_at', { ascending: false }).limit(20)
+        supabase
+          .from('evolution_health_logs')
+          .select('*')
+          .order('performed_at', { ascending: false })
+          .limit(20),
       ]);
 
       if (credsRes.error) throw credsRes.error;
@@ -88,7 +91,7 @@ export function useEvolutionApiIntegration() {
     const testId = creds.id || 'new';
     setTesting(testId);
     const startTime = Date.now();
-    
+
     try {
       const url = normalizeUrl(creds.api_url);
       const response = await fetch(`${url}/instance/fetchInstances`, {
@@ -109,7 +112,8 @@ export function useEvolutionApiIntegration() {
         onlineCount = instances.filter((i: any) => i.connectionStatus === 'open').length;
         toast.success(`Teste bem-sucedido para ${creds.instance_name || 'nova config'}`);
       } else {
-        errorMsg = response.status === 401 ? 'Chave de API inválida' : `Erro HTTP ${response.status}`;
+        errorMsg =
+          response.status === 401 ? 'Chave de API inválida' : `Erro HTTP ${response.status}`;
         toast.error(`Falha no teste: ${errorMsg}`);
       }
 
@@ -121,15 +125,18 @@ export function useEvolutionApiIntegration() {
           error_message: errorMsg,
           response_time_ms: responseTime,
           online_instances: onlineCount,
-          total_instances: totalCount
+          total_instances: totalCount,
         });
-        
+
         // Update credential status
-        await supabase.from('evolution_instance_credentials').update({
-          health_status: isSuccess ? 'healthy' : 'unhealthy',
-          last_health_check: new Date().toISOString()
-        }).eq('id', creds.id);
-        
+        await supabase
+          .from('evolution_instance_credentials')
+          .update({
+            health_status: isSuccess ? 'healthy' : 'unhealthy',
+            last_health_check: new Date().toISOString(),
+          })
+          .eq('id', creds.id);
+
         fetchData();
       }
 
@@ -138,13 +145,13 @@ export function useEvolutionApiIntegration() {
       const rawMsg = err instanceof Error ? err.message : String(err);
       const errorMsg = rawMsg.includes('fetch') ? 'Erro de rede/URL inacessível' : rawMsg;
       toast.error(`Erro de conexão: ${errorMsg}`);
-      
+
       if (creds.instance_name) {
         await supabase.from('evolution_health_logs').insert({
           instance_name: creds.instance_name,
           status: 'failure',
           error_message: errorMsg,
-          response_time_ms: Date.now() - startTime
+          response_time_ms: Date.now() - startTime,
         });
         fetchData();
       }
@@ -161,12 +168,12 @@ export function useEvolutionApiIntegration() {
     }
 
     const normalizedUrl = normalizeUrl(formData.api_url);
-    
+
     // Auto-test before saving
     const isTestOk = await handleTestConnection({
       api_url: normalizedUrl,
       api_key: formData.api_key,
-      instance_name: formData.instance_name
+      instance_name: formData.instance_name,
     });
 
     if (!isTestOk) {
@@ -178,7 +185,7 @@ export function useEvolutionApiIntegration() {
       api_url: normalizedUrl,
       api_key: formData.api_key,
       health_status: isTestOk ? 'healthy' : 'unhealthy',
-      last_health_check: new Date().toISOString()
+      last_health_check: new Date().toISOString(),
     };
 
     try {
@@ -190,9 +197,7 @@ export function useEvolutionApiIntegration() {
         if (error) throw error;
         toast.success('Configurações atualizadas');
       } else {
-        const { error } = await supabase
-          .from('evolution_instance_credentials')
-          .insert(payload);
+        const { error } = await supabase.from('evolution_instance_credentials').insert(payload);
         if (error) throw error;
         toast.success('Novas credenciais salvas');
       }
@@ -202,7 +207,7 @@ export function useEvolutionApiIntegration() {
         api_url: DEFAULT_URL,
         api_key: '',
         show_key: false,
-        is_editing: null
+        is_editing: null,
       });
       fetchData();
     } catch (err) {
@@ -211,7 +216,8 @@ export function useEvolutionApiIntegration() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Tem certeza que deseja excluir as credenciais da instância "${name}"?`)) return;
+    if (!window.confirm(`Tem certeza que deseja excluir as credenciais da instância "${name}"?`))
+      return;
 
     try {
       const { error } = await supabase.from('evolution_instance_credentials').delete().eq('id', id);
@@ -224,7 +230,16 @@ export function useEvolutionApiIntegration() {
   };
 
   return {
-    credentials, healthLogs, loading, testing, formData, setFormData,
-    fetchData, handleTestConnection, handleSave, handleDelete, normalizeUrl,
+    credentials,
+    healthLogs,
+    loading,
+    testing,
+    formData,
+    setFormData,
+    fetchData,
+    handleTestConnection,
+    handleSave,
+    handleDelete,
+    normalizeUrl,
   };
 }
