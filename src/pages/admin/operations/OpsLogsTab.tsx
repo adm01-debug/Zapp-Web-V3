@@ -95,13 +95,14 @@ function AuditPanel() {
       .order('created_at', { ascending: false })
       .limit(100);
     if (entity === 'all') {
-      q = q.in('entity_type', [
+      const entityTypes = [
         'service_channel',
         'queue',
         'channel_queue',
         'sticky_assignment',
         'message_reaction',
-      ]);
+      ];
+      q = q.in('entity_type', entityTypes).limit(entityTypes.length);
     } else {
       q = q.eq('entity_type', entity);
     }

@@ -104,6 +104,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
       const { data: messages, error: messagesError } = await dbFrom('messages')
         .select('id, contact_id, created_at, sender, agent_id')
         .in('contact_id', contactIds)
+        .limit(contactIds.length)
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
         .order('created_at', { ascending: false })

@@ -71,7 +71,8 @@ export default function DepartmentsPage() {
       const { data: profilesByDept } = await supabase
         .from('profiles')
         .select('department_id')
-        .in('department_id', ids);
+        .in('department_id', ids)
+        .limit(ids.length);
       counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {
         if (p.department_id) acc[p.department_id] = (acc[p.department_id] ?? 0) + 1;
         return acc;

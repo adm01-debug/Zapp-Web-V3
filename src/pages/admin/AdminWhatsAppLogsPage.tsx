@@ -122,8 +122,8 @@ function useWhatsAppLogs(mode: ModeFilter, search: string) {
             )
             .order('received_at', { ascending: false })
             .limit(150);
-          if (mode === 'official') query = query.in('provider', OFFICIAL_PROVIDERS);
-          if (mode === 'unofficial') query = query.in('provider', UNOFFICIAL_PROVIDERS);
+          if (mode === 'official') query = query.in('provider', OFFICIAL_PROVIDERS).limit(OFFICIAL_PROVIDERS.length);
+          if (mode === 'unofficial') query = query.in('provider', UNOFFICIAL_PROVIDERS).limit(UNOFFICIAL_PROVIDERS.length);
           if (search)
             query = query.or(
               `remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`
@@ -146,8 +146,8 @@ function useWhatsAppLogs(mode: ModeFilter, search: string) {
             )
             .order('occurred_at', { ascending: false })
             .limit(150);
-          if (mode === 'official') query = query.in('channel_type', OFFICIAL_CHANNELS);
-          if (mode === 'unofficial') query = query.in('channel_type', UNOFFICIAL_CHANNELS);
+          if (mode === 'official') query = query.in('channel_type', OFFICIAL_CHANNELS).limit(OFFICIAL_CHANNELS.length);
+          if (mode === 'unofficial') query = query.in('channel_type', UNOFFICIAL_CHANNELS).limit(UNOFFICIAL_CHANNELS.length);
           if (search)
             query = query.or(
               `remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`
