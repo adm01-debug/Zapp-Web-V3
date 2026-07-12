@@ -731,7 +731,7 @@ export default function AdminConnectionsPage() {
                     <div className="space-y-2">
                       <Label htmlFor="mcp-security-token">Token de Segurança MCP</Label>
                       <div className="flex gap-2">
-                        <Input id="mcp-security-token" type="password" value="sk_mcp_zapp_********************" readOnly />
+                        <Input id="mcp-security-token" type="password" placeholder="Clique em 'Regerar' para criar um token" readOnly />
                         <Button variant="outline">Regerar</Button>
                       </div>
                     </div>
