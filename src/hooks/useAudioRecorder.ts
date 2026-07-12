@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useAudioRecorder');
 import { MAX_PTT_DURATION_SEC } from '@/lib/audio/pttLimits';
 
 interface UseAudioRecorderOptions {
