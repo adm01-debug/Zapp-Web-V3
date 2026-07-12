@@ -22,7 +22,8 @@ export interface AdminProfileRef {
 }
 
 /** Profile de agente com atributos operacionais (dashboards, agent lists). */
-export interface AdminAgentProfile extends AdminProfileRef {
+export interface AdminAgentProfile extends Omit<AdminProfileRef, 'user_id'> {
+  user_id: string;
   role: string | null;
   job_title: string | null;
   department: string | null;
@@ -79,7 +80,7 @@ export function normalizeAgentProfile(raw: unknown): AdminAgentProfile | null {
 
   return {
     id: p.id,
-    user_id: typeof p.user_id === 'string' ? p.user_id : undefined,
+    user_id: typeof p.user_id === 'string' ? p.user_id : '',
     name: (typeof p.name === 'string' && p.name.trim()) || DEFAULT_NAME,
     email: typeof p.email === 'string' ? p.email : null,
     avatar_url: typeof p.avatar_url === 'string' ? p.avatar_url : null,
