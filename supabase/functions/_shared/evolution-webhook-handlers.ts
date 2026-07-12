@@ -307,6 +307,8 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
 }
 
 export async function handleChatsUpdate(supabase: SupabaseClient, instance: string, data: unknown) {
+  // M-5 (2026-07-12): previously discarded name/pin/mute/timestamp data from chats.upsert and
+  // chats.update payloads. Now syncs all meaningful fields to contacts.
   const chats = Array.isArray(data) ? data : [data];
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;
@@ -317,16 +319,60 @@ export async function handleChatsUpdate(supabase: SupabaseClient, instance: stri
 
     const phone = normalizePhone(jid);
     if (!phone) continue;
-    const unreadCount = chatData.unreadCount as number;
 
-    if (unreadCount !== undefined) {
-      const contact = await getContactByPhone(supabase, phone, connection.id);
-      if (contact && unreadCount === 0) {
-        await supabase.schema('evo').from('evolution_messages')
-          .update({ is_read: true, updated_at: new Date().toISOString() })
-          .eq('contact_id', contact.id).eq('from_me', false).eq('is_read', false)
-          .eq('instance_name', instance);
-      }
+    // Fetch contact with metadata so we can merge chat data without overwriting
+    const { data: contact } = await supabase
+      .from('contacts')
+      .select('id, name, push_name, metadata')
+      .in('phone', generatePhoneVariants(phone))
+      .eq('whatsapp_connection_id', connection.id)
+      .limit(1)
+      .maybeSingle();
+    if (!contact) continue;
+
+    const unreadCount = chatData.unreadCount as number | undefined;
+    const chatName = (chatData.name as string) || (chatData.pushName as string) || undefined;
+    const conversationTimestamp = chatData.conversationTimestamp as number | undefined;
+    const pinned = chatData.pinned as boolean | undefined;
+    const muteExpiration = chatData.muteExpiration as number | undefined;
+    const muted = (chatData.muted as boolean | undefined) ?? (typeof muteExpiration === 'number' && muteExpiration > 0);
+    const archived = chatData.archived as boolean | undefined;
+    const notSpam = chatData.notSpam as boolean | undefined;
+
+    const contactUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
+    // Update name only if the contact has no human-set name (avoids overwriting CRM edits)
+    if (chatName && !contact.name && !contact.push_name) contactUpdate.name = chatName;
+    if (chatName) contactUpdate.push_name = chatName;
+    if (conversationTimestamp) {
+      contactUpdate.last_message_at = new Date(conversationTimestamp * 1000).toISOString();
+    }
+    if (unreadCount !== undefined) contactUpdate.unread_count = unreadCount;
+
+    // Merge pin/mute/archive into metadata JSONB without clobbering other keys
+    const metaOverlay: Record<string, unknown> = {};
+    if (pinned !== undefined) metaOverlay.wa_pinned = pinned;
+    if (muted !== undefined || muteExpiration !== undefined) {
+      metaOverlay.wa_muted = muted ?? false;
+      metaOverlay.wa_mute_expiration = muteExpiration ?? 0;
+    }
+    if (archived !== undefined) metaOverlay.wa_archived = archived;
+    if (notSpam !== undefined) metaOverlay.wa_not_spam = notSpam;
+    if (Object.keys(metaOverlay).length > 0) {
+      const existingMeta = (isRecord(contact.metadata) ? contact.metadata : {}) as Record<string, unknown>;
+      contactUpdate.metadata = { ...existingMeta, ...metaOverlay };
+    }
+
+    if (Object.keys(contactUpdate).length > 1) {
+      await supabase.from('contacts').update(contactUpdate).eq('id', contact.id);
+    }
+
+    // Mark messages as read in evo layer when unreadCount resets to 0
+    if (unreadCount === 0) {
+      await supabase.schema('evo').from('evolution_messages')
+        .update({ is_read: true, updated_at: new Date().toISOString() })
+        .eq('contact_id', contact.id).eq('from_me', false).eq('is_read', false)
+        .eq('instance_name', instance);
     }
   }
 }
