@@ -109,18 +109,17 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
     try {
       const result = await emailRefreshToken(accountId);
+      if (result.error) throw new Error(result.error.message);
 
-      // Atualiza token_expiry local
+      // Atualiza token_expiry local com o campo correto do retorno da API
       setAccounts((prev) =>
         prev.map((a) =>
-          a.id === accountId ? { ...a, token_expiry: (result as any).token_expiry } : a
+          a.id === accountId ? { ...a, token_expiry: result.data?.expiresAt ?? null } : a
         )
       );
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
 
-      log.info(
-        `Token refreshed for account ${accountId}, expires at ${(result as any).token_expiry}`
-      );
+      log.info(`Token refreshed for account ${accountId}, expires at ${result.data?.expiresAt}`);
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));
@@ -163,14 +162,17 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       if (!acc.watch_expiry || watchExpiry - Date.now() < renewThreshold) {
         try {
           const result = await emailRegisterWatch(accountId);
+          if (result.error) {
+            log.warn(`Não foi possível renovar watch para ${accountId}`, result.error);
+            return;
+          }
+          // Atualiza watch_expiry local com o campo correto do retorno da API
           setAccounts((prev) =>
             prev.map((a) =>
-              a.id === accountId ? { ...a, watch_expiry: (result as any).expiration } : a
+              a.id === accountId ? { ...a, watch_expiry: result.data?.watchExpiry ?? null } : a
             )
           );
-          log.info(
-            `Pub/Sub watch renovado para ${accountId}, expira em ${(result as any).expiration}`
-          );
+          log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${result.data?.watchExpiry}`);
         } catch (err) {
           log.warn(`Não foi possível renovar watch para ${accountId}`, err);
         }
