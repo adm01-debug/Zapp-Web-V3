@@ -61,7 +61,15 @@ SELECT vault.update_secret(
 ### 5. Invalidar secret antigo
 
 ```bash
-# Remover o secret antigo após confirmar que o novo funciona
+# Verificar que a chave antiga foi revogada (deve retornar 401)
+# Ler a chave antiga do secret file para não expor no histórico do shell
+OLD_APIKEY=$(cat /run/secrets/evolution_api_key_v4_20260704 | tr -d '\n\r')
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "apikey: ${OLD_APIKEY}" \
+  https://evolution.atomicabr.com.br/instance/fetchInstances)
+echo "Status com chave antiga: $STATUS"  # Deve ser 401
+unset OLD_APIKEY
+
+# Remover o secret antigo após confirmar status 401
 docker secret rm evolution_api_key_v4_20260704
 ```
 
@@ -83,14 +91,20 @@ unset APIKEY
 ### 7. Limpar histórico Git (opcional, recomendado)
 
 ```bash
+# OBRIGATÓRIO: fazer backup verificável antes de reescrever histórico
+git bundle create /tmp/zapp-web-v3-backup-$(date +%Y%m%d).bundle --all
+# Verificar que o bundle é válido:
+git bundle verify /tmp/zapp-web-v3-backup-$(date +%Y%m%d).bundle
+
 # Instalar git-filter-repo se necessário
 pip install git-filter-repo
 
 # Remover o valor antigo de todo o histórico
 # Substitua <CHAVE-ANTIGA> pelo valor real da chave comprometida (não versionar aqui)
-TMPFILE=$(mktemp) && echo "<CHAVE-ANTIGA>==>REDACTED_ROTATED" > "$TMPFILE"
+TMPFILE=$(mktemp)
+trap 'rm -f "$TMPFILE"' EXIT
+echo "<CHAVE-ANTIGA>==>REDACTED_ROTATED" > "$TMPFILE"
 git filter-repo --replace-text "$TMPFILE"
-rm -f "$TMPFILE"
 
 # Force-push (coordenar com a equipe — reescreve histórico)
 git push --force-with-lease origin main

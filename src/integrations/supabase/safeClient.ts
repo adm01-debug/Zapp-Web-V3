@@ -5,22 +5,6 @@ import { PostgrestError } from '@supabase/supabase-js';
 const supabase = _supabase;
 const _log = getLogger('safeClient');
 
-// ---------------------------------------------------------------------------
-// AnyQueryResult — tipo para o callback passado a safeClient.from() e
-// safeClient.single().
-//
-// Por que não usar ReturnType<typeof supabase.from> como retorno?
-//   supabase.from(<tableName>) → PostgrestQueryBuilder
-//   query.select().eq()...    → PostgrestFilterBuilder  (subclasse diferente)
-//   FilterBuilder NÃO estende QueryBuilder → TS2739 em todos os callsites.
-//
-// Solução: anotar o retorno do callback como PromiseLike<{data,error}>, que
-// é a interface comum que QUALQUER builder supabase implementa ao ser `await`ed.
-// Isso é semanticamente correto: só precisamos que o callback retorne algo
-// que, ao ser awaited, devolva { data, error }. O runtime já faz `await cb(q)`.
-// ---------------------------------------------------------------------------
-type AnyQueryResult = PromiseLike<{ data: unknown; error: PostgrestError | null }>;
-
 export interface SafeResponse<T> {
   data: T | null;
   error: Error | null;
@@ -54,44 +38,6 @@ export interface CacheInfo {
 }
 
 const MAX_FAILURES = 20;
-const REQUEST_TIMEOUT_MS = 15_000;
-
-const telemetry: ClientTelemetry = {
-  lastValidation: null,
-  recentFailures: [],
-  stats: { totalCalls: 0, failedCalls: 0, cacheHits: 0 },
-};
-
-const cache: CacheInfo = {
-  expiration: null,
-  size: 0,
-};
-
-function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function recordFailure(operation: string, error: unknown, table?: string): void {
-  const failure: OperationFailure = {
-    operation,
-    table,
-    error: error instanceof Error ? error.message : String(error),
-    timestamp: Date.now(),
-    requestId: generateRequestId(),
-  };
-  telemetry.recentFailures.push(failure);
-  if (telemetry.recentFailures.length > MAX_FAILURES) {
-    telemetry.recentFailures.shift();
-  }
-  telemetry.stats.failedCalls++;
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(`Request timeout after ${ms}ms`)), ms),
-  );
-  return Promise.race([promise, timeout]) as Promise<T>;
-}
 
 export const maskEmail = (email: string): string => {
   const [local, domain] = email.split('@');
@@ -134,35 +80,6 @@ export const maskSensitiveData = (
   return maskAny(data);
 };
 
-async function executeQuery<T>(
-  operation: string,
-  table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult,
-): Promise<SafeResponse<T>> {
-  const requestId = generateRequestId();
-  telemetry.stats.totalCalls++;
-  try {
-    const q = supabase.from(table as any);
-    const result = await withTimeout(
-      Promise.resolve(callback(q)) as Promise<{ data: unknown; error: PostgrestError | null }>,
-      REQUEST_TIMEOUT_MS,
-    );
-    if (result.error) {
-      recordFailure(operation, result.error, table);
-      return { data: null, error: result.error, requestId };
-    }
-    return { data: result.data as T, error: null, requestId };
-  } catch (err) {
-    recordFailure(operation, err, table);
-    _log.error(`[${requestId}] ${operation} on '${table}' failed`, err);
-    return {
-      data: null,
-      error: err instanceof Error ? err : new Error(String(err)),
-      requestId,
-    };
-  }
-}
-
 // ---------------------------------------------------------------------------
 // State for the safeClient object below.
 // These were lost during a merge conflict resolution — restored here.
@@ -203,8 +120,7 @@ let _healthLogInProgress = false;
 export const safeClient = {
   async from<T = unknown>(
     table: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => any
+    queryBuilder: (query: ReturnType<typeof supabase.from>) => PromiseLike<{ data: unknown; error: unknown }>
   ): Promise<SafeResponse<T[]>> {
     const requestId = Math.random().toString(36).substring(7);
     stats.totalCalls++;
@@ -245,8 +161,7 @@ export const safeClient = {
 
   async single<T = unknown>(
     table: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => any
+    queryBuilder: (query: ReturnType<typeof supabase.from>) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
   ): Promise<SafeResponse<T>> {
     const requestId = Math.random().toString(36).substring(7);
     stats.totalCalls++;
@@ -260,7 +175,7 @@ export const safeClient = {
         }
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (queryBuilder(supabase.from(table as any)) as any).single();
+      const { data, error } = await queryBuilder(supabase.from(table as any)).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
@@ -341,6 +256,7 @@ export const safeClient = {
       let exists = false;
       if (type === 'table') {
         const { error } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .from(name as any)
           .select('count', { count: 'exact', head: true })
           .limit(0);
@@ -452,10 +368,10 @@ export const safeClient = {
       }
       return data;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const masked: any = Array.isArray(data) // ignore-audit: union array|object not narrowable without any
-      ? [...(data as unknown[])]
-      : { ...(data as Record<string, unknown>) };
+    if (Array.isArray(data)) {
+      return (data as unknown[]).map((item) => this.maskSensitiveData(item));
+    }
+    const masked: Record<string, unknown> = { ...(data as Record<string, unknown>) };
     for (const key in masked) {
       const val = masked[key];
       const lowerKey = key.toLowerCase();
