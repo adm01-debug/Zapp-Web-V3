@@ -156,10 +156,11 @@ export function useNewConversation(
         setIsSending(false);
         return;
       }
-      await supabase.functions.invoke('evolution-api', {
+      const { error: sendError } = await supabase.functions.invoke('evolution-api', {
         body: { action: 'send-text', ...sendValidation.data },
         headers: trace.headers,
       });
+      if (sendError) throw sendError;
       toast.success('Mensagem enviada!');
       await supabase.functions.invoke('batch-fetch-avatars');
       onConversationStarted?.(contactId);

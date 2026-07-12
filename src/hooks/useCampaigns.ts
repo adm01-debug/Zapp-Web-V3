@@ -99,11 +99,12 @@ export function useCampaigns() {
         .insert(records);
       if (error) throw error;
 
-      // Update total
-      await supabase
+      // Update total — throw on failure so the mutation's onError fires
+      const { error: updateErr } = await supabase
         .from('campaigns')
         .update({ total_contacts: contactIds.length })
         .eq('id', campaignId);
+      if (updateErr) throw updateErr;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });

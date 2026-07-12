@@ -173,9 +173,13 @@ export function useKnowledgeBase() {
         });
         return;
       }
-      const { data: signedData } = await supabase.storage
+      const { data: signedData, error: signedError } = await supabase.storage
         .from('whatsapp-media')
         .createSignedUrl(fileName, 86400);
+      if (signedError) {
+        toast({ title: 'Erro ao gerar URL do arquivo', description: signedError.message, variant: 'destructive' });
+        return;
+      }
       const { error: insertError } = await supabase
         .from('knowledge_base_files')
         .insert({
