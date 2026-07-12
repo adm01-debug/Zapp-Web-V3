@@ -249,6 +249,7 @@ export const ConversationItem = memo(function ConversationItem({
                 type="checkbox"
                 checked={isMultiSelected}
                 onChange={() => {}}
+                aria-label={`Selecionar conversa de ${contact?.name || 'Contato'}`}
                 className={cn(
                   'h-4 w-4 rounded border-border focus:ring-primary/20',
                   isSelected ? 'accent-white' : 'text-primary'
@@ -472,6 +473,7 @@ export const ConversationItem = memo(function ConversationItem({
                 type="checkbox"
                 checked={isMultiSelected}
                 onChange={() => {}}
+                aria-label={`Selecionar conversa de ${contact?.name || 'Contato'}`}
                 className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
               />
             </div>

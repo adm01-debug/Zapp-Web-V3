@@ -146,7 +146,7 @@ export function N8nIntegrationView() {
                   </div>
                   <div>
                     <Label>Evento Gatilho</Label>
-                    <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={newWorkflow.triggerEvent} onChange={e => setNewWorkflow(p => ({ ...p, triggerEvent: e.target.value }))}>
+                    <select aria-label="Evento gatilho" className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={newWorkflow.triggerEvent} onChange={e => setNewWorkflow(p => ({ ...p, triggerEvent: e.target.value }))}>
                       {triggerEvents.map(te => <option key={te.value} value={te.value}>{te.label}</option>)}
                     </select>
                   </div>

@@ -196,6 +196,7 @@ export function CRMSyncButton({ conversation, messageCount }: { conversation: Co
           onClick={handleSync}
           disabled={isSyncing}
           className="w-9 h-9 border-border/30 hover:border-primary/50 hover:bg-primary/10"
+          aria-label={tooltipText}
         >
           {isSyncing ? (
             <Loader2 className="w-4 h-4 animate-spin" />

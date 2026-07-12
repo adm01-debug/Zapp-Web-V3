@@ -134,7 +134,7 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
                   <Label htmlFor="media-url">URL da mídia</Label>
                   <div className="relative">
                     <Input id="media-url" value={ed.mediaUrl} onChange={(e) => ed.setMediaUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" className="pr-8" />
-                    {ed.mediaUrl && <button type="button" onClick={() => ed.setMediaUrl('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>}
+                    {ed.mediaUrl && <button type="button" onClick={() => ed.setMediaUrl('')} aria-label="Limpar URL da mídia" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">A mídia será enviada junto com a mensagem de texto como legenda</p>
                 </div>

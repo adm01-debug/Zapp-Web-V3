@@ -98,6 +98,7 @@ export function EmojiPicker({
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
+                  aria-label="Limpar busca de emoji"
                   className="absolute right-2 top-1/2 -translate-y-1/2"
                 >
                   <X className="h-3 w-3 text-muted-foreground" />
@@ -119,7 +120,7 @@ export function EmojiPicker({
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
-                  title="Recentes"
+                  aria-label="Recentes"
                 >
                   <Clock className="h-4 w-4" />
                 </button>
@@ -136,7 +137,7 @@ export function EmojiPicker({
                         ? 'bg-primary/10 text-primary'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
-                    title={category.label}
+                    aria-label={category.label}
                   >
                     <Icon className="h-4 w-4" />
                   </button>

@@ -370,6 +370,7 @@ function MediaAdminPanel({ type }: { type: MediaType }) {
                     <div className="w-12 text-center">
                       <button
                         onClick={() => lib.handleToggleFavorite(item)}
+                        aria-label={item.is_favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
                         className="rounded p-1 transition-colors hover:bg-muted/50"
                       >
                         <Star

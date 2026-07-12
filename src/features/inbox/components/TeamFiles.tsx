@@ -189,6 +189,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
+            aria-label="Filtrar por tipo de arquivo"
             className="h-8 rounded-md border-warning bg-warning/30 px-2 text-[10px] text-warning-foreground outline-none focus:ring-1 focus:ring-amber-200"
           >
             <option value="all">Todos</option>
