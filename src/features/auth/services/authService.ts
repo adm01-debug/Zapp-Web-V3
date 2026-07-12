@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { mirrorExternalSignIn, mirrorExternalSignOut } from '@/integrations/supabase/externalSessionBridge';
+import { log } from '@/lib/logger';
 import { Session } from '@supabase/supabase-js';
 
 export interface Profile {
@@ -27,7 +28,9 @@ export const authService = {
     const result = await supabase.auth.signInWithPassword({ email, password });
     if (!result.error) {
       // dual-session: replica login no self-hosted com as mesmas credenciais
-      void mirrorExternalSignIn(email, password);
+      void mirrorExternalSignIn(email, password).catch(
+        (err) => log.error('mirrorExternalSignIn unhandled rejection', err)
+      );
     }
     return result;
   },
@@ -43,7 +46,9 @@ export const authService = {
       }
     });
     if (!result.error) {
-      void mirrorExternalSignIn(email, password);
+      void mirrorExternalSignIn(email, password).catch(
+        (err) => log.error('mirrorExternalSignIn unhandled rejection', err)
+      );
     }
     return result;
   },
