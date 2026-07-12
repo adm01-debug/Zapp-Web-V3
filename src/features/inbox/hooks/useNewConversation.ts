@@ -47,8 +47,15 @@ export function useNewConversation(
       .then(
         ({ data }) => {
           if (data && data.length > 0) {
-            setConnections(data);
-            setSelectedConnection(data[0].id);
+            setConnections(
+              data as unknown as {
+                id: string;
+                name: string;
+                instance_id: string | null;
+                instance_name: string | null;
+              }[]
+            );
+            setSelectedConnection((data as unknown as { id: string }[])[0].id);
           }
         },
         () => {}

@@ -101,9 +101,10 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
       const fallbackResolved = fallbackConn
         ? evolutionInstanceName(fallbackConn as EvolutionInstanceRef)
         : null;
-      if (fallbackResolved) {
+      if (fallbackResolved && fallbackConn) {
         setInstanceName(fallbackResolved);
-        if (fallbackConn?.id) setWhatsappConnectionId(fallbackConn.id);
+        const connId = (fallbackConn as unknown as { id?: string }).id;
+        if (connId) setWhatsappConnectionId(connId);
         return fallbackResolved;
       }
     } catch (err) {

@@ -87,8 +87,10 @@ export function useAIStats(selectedPeriod: PeriodOption) {
 
       const prevTotal = previousAnalyses?.length || 0;
       const prevAvgSentiment =
-        previousAnalyses?.reduce((acc, a) => acc + (a.sentiment_score || 0), 0) / (prevTotal || 1);
-      const prevNegative = previousAnalyses?.filter((a) => a.sentiment === 'negative').length || 0;
+        (previousAnalyses ?? []).reduce((acc, a) => acc + (a.sentiment_score || 0), 0) /
+        (prevTotal || 1);
+      const prevNegative =
+        (previousAnalyses ?? []).filter((a) => a.sentiment === 'negative').length || 0;
 
       const trendMap = new Map<
         string,

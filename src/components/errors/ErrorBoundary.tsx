@@ -156,7 +156,7 @@ export class ErrorBoundary extends Component<Props, State> {
         filters: null,
         recordCount: null,
         errorMessage: `[ErrorBoundary] ${error.message}`,
-        severity: isStackOverflow ? 'critical' : severity,
+        severity: isStackOverflow ? 'error' : severity,
         startedAt: performance.now(),
         correlationId: extractCorrelationId(error),
       });

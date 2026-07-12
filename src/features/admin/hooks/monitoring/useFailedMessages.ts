@@ -139,8 +139,8 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         }
         throw error;
       }
-      const list = (data ?? []) as _RpcRow[];
-      const filtered = list.filter((r) => {
+      const list = data ?? [];
+      const filtered = list.filter((r: Record<string, unknown>) => {
         if (errorCode) {
           const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');
           if (code !== errorCode) return false;

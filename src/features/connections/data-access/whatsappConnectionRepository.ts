@@ -47,7 +47,10 @@ export const whatsappConnectionRepository = {
   },
 
   async updateQrAttempt(id: string, updates: Record<string, unknown>) {
-    return supabase.from('qr_attempts').update(updates).eq('id', id);
+    return supabase
+      .from('qr_attempts')
+      .update(updates as any)
+      .eq('id', id);
   },
 
   async callEvolutionApi(body: Record<string, unknown>) {

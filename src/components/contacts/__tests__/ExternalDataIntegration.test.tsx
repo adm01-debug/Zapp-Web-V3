@@ -20,7 +20,7 @@ vi.mock('@/integrations/datasource/db', () => ({
 
 vi.mock('@/integrations/supabase/externalClient', () => {
   const _mockFrom = (table: string) => {
-    (globalThis as Record<string, (t: string) => void>).__extMockFrom(table);
+    (globalThis as unknown as Record<string, (t: string) => void>).__extMockFrom(table);
     return {
       select: vi.fn(() => ({
         not: vi.fn(() => ({

@@ -172,18 +172,19 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
           if (error) throw error;
 
           if (data && typeof data === 'object' && 'error' in data && data.error === 'CONFLICT') {
-            const isValidConflict = (obj: Record<string, unknown>): obj is ConflictInfo => {
+            const isValidConflict = (obj: unknown): obj is ConflictInfo => {
+              if (typeof obj !== 'object' || obj === null) return false;
+              const cast = obj as Record<string, unknown>;
               return (
-                typeof obj.message === 'string' &&
-                typeof obj.current_version === 'number' &&
-                typeof obj.your_version === 'number' &&
-                typeof obj.last_updated_by === 'string' &&
-                typeof obj.last_updated_at === 'string'
+                typeof cast.message === 'string' &&
+                typeof cast.current_version === 'number' &&
+                typeof cast.your_version === 'number' &&
+                (cast.last_updated_by === null || typeof cast.last_updated_by === 'string') &&
+                (cast.last_updated_at === null || typeof cast.last_updated_at === 'string')
               );
             };
-            const dataObj = data as Record<string, unknown>;
-            if (isValidConflict(dataObj)) {
-              setConflict(dataObj);
+            if (isValidConflict(data)) {
+              setConflict(data);
               setConflictOpen(true);
               return;
             }

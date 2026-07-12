@@ -58,7 +58,7 @@ export function useConnectionsActions(
 
       if (error) throw error;
 
-      setConnections((prev) => [...prev, data as WhatsAppConnection]);
+      setConnections((prev) => [...prev, data as unknown as WhatsAppConnection]);
 
       toast({
         title: 'Conexão criada!',
@@ -68,7 +68,7 @@ export function useConnectionsActions(
       });
       setIsAddDialogOpen(false);
       setNewConnection({ name: '', phone_number: '', api_type: 'evolution' });
-      if (data && !isOfficial) handleShowQrCode(data as WhatsAppConnection);
+      if (data && !isOfficial) handleShowQrCode(data as unknown as WhatsAppConnection);
     } catch (error) {
       log.error('Error creating connection:', error);
       toast({
