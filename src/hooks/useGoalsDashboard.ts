@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

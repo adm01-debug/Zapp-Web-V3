@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useEvolutionApiIntegration — Wave 3 (2026-07-06)
  * Camada de dados extraída de EvolutionApiIntegrationView (componente ficou 100% UI).

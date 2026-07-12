@@ -9,6 +9,7 @@ import {
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { toast } from 'sonner';
 import { SessionCard, DeviceCard } from './DeviceCard';
+import { normalizeUserDevice, normalizeUserSession } from '@/lib/normalizers';
 
 export function DevicesPanel() {
   const { devices, sessions, loading, currentDeviceId, trustDevice, removeDevice, endSession, endAllOtherSessions } = useDeviceDetection();
@@ -62,9 +63,12 @@ export function DevicesPanel() {
             </div>
           ) : (
             <div className="space-y-3">
-              {sessions.map((session) => (
-                <SessionCard key={session.id} session={session} device={devices.find(d => d.id === session.device_id)} isCurrentSession={session.device_id === currentDeviceId} isProcessing={processingSession === session.id} onEndSession={handleEndSession} />
-              ))}
+              {sessions.map((session) => {
+                const rawDevice = devices.find(d => d.id === session.device_id);
+                return (
+                  <SessionCard key={session.id} session={normalizeUserSession(session as unknown as Record<string, unknown>)} device={rawDevice ? normalizeUserDevice(rawDevice as unknown as Record<string, unknown>) : null} isCurrentSession={session.device_id === currentDeviceId} isProcessing={processingSession === session.id} onEndSession={handleEndSession} />
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -83,7 +87,7 @@ export function DevicesPanel() {
           ) : (
             <div className="space-y-3">
               {devices.map((device) => (
-                <DeviceCard key={device.id} device={device} isCurrentDevice={device.id === currentDeviceId} isProcessing={processingDevice === device.id} onTrust={handleTrustDevice} onRemove={handleRemoveDevice} />
+                <DeviceCard key={device.id} device={normalizeUserDevice(device as unknown as Record<string, unknown>)} isCurrentDevice={device.id === currentDeviceId} isProcessing={processingDevice === device.id} onTrust={handleTrustDevice} onRemove={handleRemoveDevice} />
               ))}
             </div>
           )}

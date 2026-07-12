@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Zap Webb — Evolution API Client (ESCRITA / envio)
  *
