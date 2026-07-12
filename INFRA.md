@@ -1,6 +1,6 @@
 # INFRA.md — Mapa de Infraestrutura EVO API / ZAPP WEB
 
-**Última atualização:** 2026-07-11 R9-R10 — fix AUTHENTICATION_API_KEY + 7 bugs DB + fn_health_preflight
+**Última atualização:** 2026-07-12 R9-R11 — fix AUTHENTICATION_API_KEY + 7 bugs DB + fn_health_preflight
 **Score:** 10/10 — AUTHENTICATION_API_KEY via secret (stack file atualizado R11; deploy VPS ⏳ pendente) · fn_health_preflight 15/15 all_green
 
 > **BANCO CANÔNICO: `supabase.atomicabr.com.br` (self-hosted VPS)**

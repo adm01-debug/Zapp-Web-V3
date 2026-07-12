@@ -141,10 +141,11 @@ pip install git-filter-repo
 
 # Remover o valor antigo de todo o histórico
 # Substitua <CHAVE-ANTIGA> pelo valor real da chave comprometida (não versionar aqui)
+# Nota: NÃO use trap … EXIT aqui — em shells POSIX um segundo trap sobrescreve o anterior.
+# Step 2b já registrou o trap de limpeza de $OLD_KEY_FILE; este bloco usa cleanup explícito.
 TMPFILE=$(mktemp)
-trap 'rm -f "$TMPFILE"' EXIT
 echo "<CHAVE-ANTIGA>==>REDACTED_ROTATED" > "$TMPFILE"
-git filter-repo --replace-text "$TMPFILE"
+git filter-repo --replace-text "$TMPFILE" && rm -f "$TMPFILE" || { rm -f "$TMPFILE"; exit 1; }
 
 # Force-push (coordenar com a equipe — reescreve histórico)
 git push --force-with-lease origin main

@@ -1,6 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useDepartmentsAdmin, type Department } from '@/hooks/admin/useDepartmentsAdmin';
 import { Button } from '@/components/ui/button';
@@ -42,7 +40,7 @@ function slugify(input: string): string {
 }
 
 export default function DepartmentsPage() {
-  const { departments, loading, saving, save: _save, removeDepartment } = useDepartmentsAdmin();
+  const { departments, loading, saving, save, removeDepartment } = useDepartmentsAdmin();
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Department | null>(null);
@@ -51,40 +49,6 @@ export default function DepartmentsPage() {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [isActive, setIsActive] = useState(true);
-
-  const fetchDepartments = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await safeClient.from<Department>('departments', (q) =>
-      q.select('*').order('name')
-    );
-
-    if (error) {
-      toast.error('Erro ao carregar departamentos');
-      setLoading(false);
-      return;
-    }
-
-    // Count members per department
-    const ids = (data ?? []).map((d) => d.id);
-    let counts: Record<string, number> = {};
-    if (ids.length) {
-      const { data: profilesByDept } = await supabase
-        .from('profiles')
-        .select('department_id')
-        .in('department_id', ids);
-      counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {
-        if (p.department_id) acc[p.department_id] = (acc[p.department_id] ?? 0) + 1;
-        return acc;
-      }, {});
-    }
-
-    setDepartments((data ?? []).map((d) => ({ ...d, member_count: counts[d.id] ?? 0 })));
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    void fetchDepartments();
-  }, [fetchDepartments]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -121,7 +85,6 @@ export default function DepartmentsPage() {
       return;
     }
 
-    setSaving(true);
     const payload = {
       name: trimmedName,
       slug: finalSlug,
@@ -129,25 +92,11 @@ export default function DepartmentsPage() {
       is_active: isActive,
     };
 
-    const { error } = await safeClient.from<Department>('departments', (q) =>
-      editingId ? q.update(payload).eq('id', editingId) : q.insert(payload)
-    );
-
-    setSaving(false);
-
-    if (error) {
-      toast.error(
-        error.message.includes('duplicate')
-          ? 'Já existe um departamento com esse nome ou identificador'
-          : 'Erro ao salvar departamento'
-      );
-      return;
+    const ok = await save(payload, editingId);
+    if (ok) {
+      setShowDialog(false);
+      resetForm();
     }
-
-    toast.success(editingId ? 'Departamento atualizado' : 'Departamento criado');
-    setShowDialog(false);
-    resetForm();
-    void fetchDepartments();
   };
 
   const handleDelete = async () => {

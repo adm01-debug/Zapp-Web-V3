@@ -14,7 +14,7 @@ const ALLOWED_PATTERNS = [
   /^https:\/\/.*\.supabase\.co$/,
   /^https:\/\/.*\.promobrindes\.com\.br$/,
   /^https:\/\/.*\.atomicabr\.com\.br$/,
-  /^https:\/\/zapp-web-v3[a-z0-9-]+-juca1\.vercel\.app$/,
+  /^https:\/\/zapp-web-v3-git-[a-z0-9-]+-juca1\.vercel\.app$/,
 ];
 const ALLOWED_HEADERS = [
   'authorization', 'x-client-info', 'apikey', 'content-type',
@@ -33,11 +33,11 @@ function isOriginAllowed(o: string): boolean {
 export function getCorsHeaders(req: Request): Record<string, string> {
   const requestOrigin = req.headers.get('Origin') ?? '';
   // Use value from static array (not user input) to avoid reflected-origin taint path.
-  // Pattern-matched origins (localhost, dev previews) get '*' which is safe for those envs.
   const exactMatch = ALLOWED_ORIGINS.find((allowed) => allowed === requestOrigin);
-  // For pattern-matched origins (localhost, dev previews), '*' is sufficient since no
-  // credentialed requests are used; exact-match origins get their constant from the array.
-  const acao = exactMatch ?? '*';
+  // Pattern-matched origins (localhost, dev previews) echo the validated requestOrigin back.
+  // Unrecognized origins get 'null' so browsers block the cross-origin request.
+  const patternMatch = !exactMatch && ALLOWED_PATTERNS.some((p) => p.test(requestOrigin));
+  const acao = exactMatch ?? (patternMatch ? requestOrigin : 'null');
   return {
     'Access-Control-Allow-Origin': acao,
     'Access-Control-Allow-Headers': ALLOWED_HEADERS,
