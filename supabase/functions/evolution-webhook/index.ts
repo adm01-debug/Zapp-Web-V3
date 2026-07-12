@@ -117,7 +117,22 @@ serve(async (req) => {
     }
     rawBody = result.payload ?? '';
   } else {
-    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped`));
+    // No secrets configured. In strict mode (default: true), this is a deployment error —
+    // fail closed with 401 to prevent unauthenticated event injection. Set
+    // EVOLUTION_WEBHOOK_STRICT=false only in dev/test environments to allow skipping auth.
+    if (STRICT_MODE) {
+      console.error(`[webhook][${requestId}] REJECTED: EVOLUTION_WEBHOOK_SECRETS not configured and EVOLUTION_WEBHOOK_STRICT=true`);
+      await auditWebhookEvent(supabase, {
+        request_id: requestId, status: 'rejected', status_code: 401,
+        error_message: 'webhook_secrets_not_configured',
+        duration_ms: Date.now() - startedAt,
+      });
+      return new Response(
+        JSON.stringify({ error: 'webhook_unconfigured', hint: 'Set EVOLUTION_WEBHOOK_SECRETS env var', requestId }),
+        { status: 401, headers: corsHeaders },
+      );
+    }
+    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped (EVOLUTION_WEBHOOK_STRICT=false)`));
     rawBody = await req.text();
   }
 
