@@ -156,7 +156,7 @@ BEGIN
 
   -- Gap 10: Check null bytes
   IF v_config.enable_null_byte_check THEN
-    IF p_payload_bytes ~ '\x00' THEN
+    IF POSITION('\x00'::BYTEA IN p_payload_bytes) > 0 THEN
       v_violations := array_append(v_violations, 'NULL_BYTE_DETECTED');
       v_severity := 'CRITICAL';
     END IF;
@@ -301,7 +301,7 @@ BEGIN
         CASE WHEN jsonb_typeof(val) = 'array' THEN jsonb_array_length(val) ELSE 0 END,
         CASE WHEN jsonb_typeof(val) = 'object' THEN jsonb_object_keys(val)::BIGINT ELSE 0 END
       FROM (
-        SELECT depth, jsonb_each_values(js) AS val FROM json_depth
+        SELECT depth, jsonb_each(js).value AS val FROM json_depth
         WHERE depth < p_max_depth + 10
       ) sub
     )

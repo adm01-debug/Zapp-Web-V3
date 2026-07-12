@@ -18,6 +18,16 @@
 -- For this implementation, we'll create partitioned audit_logs if it doesn't exist
 -- and provide utilities for existing data
 
+-- Helper: Create IMMUTABLE partition key function for month calculation
+CREATE OR REPLACE FUNCTION public.fn_audit_log_month_start(ts TIMESTAMP WITH TIME ZONE)
+RETURNS TIMESTAMP WITH TIME ZONE
+LANGUAGE SQL
+IMMUTABLE
+PARALLEL SAFE
+AS $$
+  SELECT DATE_TRUNC('month'::text, ts)::TIMESTAMP WITH TIME ZONE
+$$;
+
 -- Gap 1 & 2: Create partitioned audit_logs table (if not exists)
 -- This creates a new partitioned table; existing tables need manual migration
 CREATE TABLE IF NOT EXISTS public.audit_logs_partitioned (
@@ -33,7 +43,7 @@ CREATE TABLE IF NOT EXISTS public.audit_logs_partitioned (
   user_agent TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 )
-PARTITION BY RANGE (DATE_TRUNC('month', created_at));
+PARTITION BY RANGE (public.fn_audit_log_month_start(created_at));
 
 -- Create constraint to ensure all data goes through partitions
 ALTER TABLE public.audit_logs_partitioned
@@ -45,22 +55,22 @@ ADD CONSTRAINT audit_logs_partitioned_pkey PRIMARY KEY (id, created_at);
 
 -- Gap 2: Create initial partitions for current and future months
 CREATE TABLE IF NOT EXISTS public.audit_logs_2026_07 PARTITION OF public.audit_logs_partitioned
-  FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+  FOR VALUES FROM ('2026-07-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE) TO ('2026-08-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE);
 
 CREATE TABLE IF NOT EXISTS public.audit_logs_2026_08 PARTITION OF public.audit_logs_partitioned
-  FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+  FOR VALUES FROM ('2026-08-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE) TO ('2026-09-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE);
 
 CREATE TABLE IF NOT EXISTS public.audit_logs_2026_09 PARTITION OF public.audit_logs_partitioned
-  FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+  FOR VALUES FROM ('2026-09-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE) TO ('2026-10-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE);
 
 CREATE TABLE IF NOT EXISTS public.audit_logs_2026_10 PARTITION OF public.audit_logs_partitioned
-  FOR VALUES FROM ('2026-10-01') TO ('2026-11-01');
+  FOR VALUES FROM ('2026-10-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE) TO ('2026-11-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE);
 
 CREATE TABLE IF NOT EXISTS public.audit_logs_2026_11 PARTITION OF public.audit_logs_partitioned
-  FOR VALUES FROM ('2026-11-01') TO ('2026-12-01');
+  FOR VALUES FROM ('2026-11-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE) TO ('2026-12-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE);
 
 CREATE TABLE IF NOT EXISTS public.audit_logs_2026_12 PARTITION OF public.audit_logs_partitioned
-  FOR VALUES FROM ('2026-12-01') TO ('2027-01-01');
+  FOR VALUES FROM ('2026-12-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE) TO ('2027-01-01 00:00:00+00'::TIMESTAMP WITH TIME ZONE);
 
 -- Create indexes on partitioned table and partitions
 CREATE INDEX IF NOT EXISTS idx_audit_logs_instance_created ON public.audit_logs_partitioned (instance_id, created_at DESC);
@@ -150,7 +160,7 @@ SELECT
     WHEN tablename LIKE 'audit_logs_%' THEN 'PARTITION'
     ELSE 'MAIN_TABLE'
   END AS table_type,
-  EXTRACT(YEAR_MONTH FROM DATE_TRUNC('month', CURRENT_DATE - ((tablename::TEXT LIKE 'audit_logs_%')::INTEGER * 30 || ' days')::INTERVAL))::TEXT AS partition_month
+  TO_CHAR(DATE_TRUNC('month', CURRENT_DATE - ((tablename::TEXT LIKE 'audit_logs_%')::INTEGER * 30 || ' days')::INTERVAL), 'YYYY_MM') AS partition_month
 FROM pg_stat_user_indexes
 WHERE tablename LIKE 'audit_logs%'
 ORDER BY tablename, idx_scan DESC;

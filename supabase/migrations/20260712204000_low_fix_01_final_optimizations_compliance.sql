@@ -81,16 +81,25 @@ SECURITY DEFINER
 AS $$
 DECLARE
   v_encoded TEXT;
+  v_secret_key TEXT;
 BEGIN
-  -- Use pgcrypto for encoding if available
+  -- Get the secret key from configuration
+  BEGIN
+    v_secret_key := CURRENT_SETTING('app.settings.secret_key');
+  EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'SECRET_KEY_NOT_CONFIGURED: app.settings.secret_key must be set for secret encoding. Plaintext secrets will be rejected to prevent exposure.';
+  END;
+
+  -- Verify pgcrypto is available by testing a simple operation
   BEGIN
     SELECT encode(
-      pgp_sym_encrypt(p_secret, CURRENT_SETTING('app.settings.secret_key'))::BYTEA,
+      pgp_sym_encrypt(p_secret, v_secret_key)::BYTEA,
       'base64'
     ) INTO v_encoded;
+  EXCEPTION WHEN UNDEFINED_FUNCTION THEN
+    RAISE EXCEPTION 'PGCRYPTO_NOT_AVAILABLE: pgcrypto extension must be installed for secret encoding. Install with: CREATE EXTENSION pgcrypto;';
   EXCEPTION WHEN OTHERS THEN
-    -- Fallback to base64 encoding if pgcrypto not available
-    SELECT encode(convert_to(p_secret, 'UTF8'), 'base64') INTO v_encoded;
+    RAISE EXCEPTION 'SECRET_ENCODING_FAILED: Could not encode secret using pgcrypto. Details: %', SQLERRM;
   END;
 
   RETURN v_encoded;
@@ -107,13 +116,23 @@ SECURITY DEFINER
 AS $$
 DECLARE
   v_decoded TEXT;
+  v_secret_key TEXT;
 BEGIN
+  -- Get the secret key from configuration
   BEGIN
-    SELECT pgp_sym_decrypt(decode(p_encoded, 'base64'), CURRENT_SETTING('app.settings.secret_key'))
-    INTO v_decoded;
+    v_secret_key := CURRENT_SETTING('app.settings.secret_key');
   EXCEPTION WHEN OTHERS THEN
-    -- Fallback to base64 decoding
-    SELECT convert_from(decode(p_encoded, 'base64'), 'UTF8') INTO v_decoded;
+    RAISE EXCEPTION 'SECRET_KEY_NOT_CONFIGURED: app.settings.secret_key must be set for secret decoding.';
+  END;
+
+  -- Decrypt using pgcrypto
+  BEGIN
+    SELECT pgp_sym_decrypt(decode(p_encoded, 'base64'), v_secret_key)
+    INTO v_decoded;
+  EXCEPTION WHEN UNDEFINED_FUNCTION THEN
+    RAISE EXCEPTION 'PGCRYPTO_NOT_AVAILABLE: pgcrypto extension must be installed for secret decoding.';
+  EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'SECRET_DECODING_FAILED: Could not decode secret. Details: %', SQLERRM;
   END;
 
   RETURN v_decoded;

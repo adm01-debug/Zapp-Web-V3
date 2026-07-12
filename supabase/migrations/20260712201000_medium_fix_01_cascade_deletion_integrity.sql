@@ -109,7 +109,7 @@ BEGIN
   DELETE FROM public.messages
   WHERE webhook_event_id IS NOT NULL
     AND webhook_event_id NOT IN (SELECT id FROM public.webhook_events);
-  v_deleted := FOUND::INTEGER::BIGINT;
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
 
   IF v_deleted > 0 THEN
     RETURN QUERY SELECT 'CLEANED_ORPHANED_MESSAGES'::VARCHAR, v_deleted;
@@ -119,7 +119,7 @@ BEGIN
   -- Delete orphaned webhook_events (events without instances)
   DELETE FROM public.webhook_events
   WHERE instance_id NOT IN (SELECT id FROM public.whatsapp_instances);
-  v_deleted := FOUND::INTEGER::BIGINT;
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
 
   IF v_deleted > 0 THEN
     RETURN QUERY SELECT 'CLEANED_ORPHANED_EVENTS'::VARCHAR, v_deleted;
@@ -129,7 +129,7 @@ BEGIN
   -- Delete orphaned chats (chats without instances)
   DELETE FROM public.chats
   WHERE instance_id NOT IN (SELECT id FROM public.whatsapp_instances);
-  v_deleted := FOUND::INTEGER::BIGINT;
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
 
   IF v_deleted > 0 THEN
     RETURN QUERY SELECT 'CLEANED_ORPHANED_CHATS'::VARCHAR, v_deleted;
@@ -139,7 +139,7 @@ BEGIN
   -- Delete orphaned dedup cache entries
   DELETE FROM public.webhook_dedup_cache
   WHERE instance_id NOT IN (SELECT id FROM public.whatsapp_instances);
-  v_deleted := FOUND::INTEGER::BIGINT;
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
 
   IF v_deleted > 0 THEN
     RETURN QUERY SELECT 'CLEANED_ORPHANED_CACHE'::VARCHAR, v_deleted;

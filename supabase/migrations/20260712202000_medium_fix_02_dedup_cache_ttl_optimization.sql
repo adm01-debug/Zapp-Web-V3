@@ -20,9 +20,10 @@ CREATE INDEX IF NOT EXISTS idx_webhook_dedup_cache_created_at_brin
 
 -- Gap 2: Create partial index for invalid/expired entries
 -- This index is only on entries that could be deleted, reducing index size
+-- Note: Using only is_valid = false as predicate (NOW() is STABLE, not IMMUTABLE for indexes)
 CREATE INDEX IF NOT EXISTS idx_webhook_dedup_cache_invalid_created
   ON public.webhook_dedup_cache (instance_id, created_at DESC)
-  WHERE is_valid = false OR (NOW() - created_at > INTERVAL '24 hours');
+  WHERE is_valid = false;
 
 -- Gap 3: Create composite B-tree index for instance + created_at queries
 CREATE INDEX IF NOT EXISTS idx_webhook_dedup_cache_instance_created
@@ -55,7 +56,7 @@ BEGIN
   WHERE created_at < v_cutoff_time
     AND is_valid = false;
 
-  v_deleted_count := CHANGES();
+  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
 
   RETURN QUERY SELECT
     v_deleted_count,
@@ -107,7 +108,7 @@ BEGIN
     AND created_at < v_cutoff_time
     AND (is_valid = false OR NOW() - created_at > INTERVAL '24 hours');
 
-  v_deleted_count := CHANGES();
+  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
 
   -- Get remaining cache size for this instance
   SELECT COUNT(*) INTO v_remaining_count
