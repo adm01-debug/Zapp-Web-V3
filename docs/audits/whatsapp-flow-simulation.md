@@ -1,15 +1,15 @@
 # Simulação do Fluxo WhatsApp Multi-Atendimento
 
-Execução: 2026-07-12T22:05:42.664Z
+Execução: 2026-07-12T22:06:40.531Z
 Cenários: **693** · Mensagens simuladas: **13860**
 
 ## KPIs agregados
 
 | Métrica | Valor |
 |---|---|
-| Sent | 1919 (13.8%) |
-| Failed | 6588 |
-| Processed | 16116 |
+| Sent | 1931 (13.9%) |
+| Failed | 6546 |
+| Processed | 16122 |
 | Orphan processing | 0 |
 | Double sends | 0 |
 
@@ -17,19 +17,18 @@ Cenários: **693** · Mensagens simuladas: **13860**
 
 | Violação | Ocorrências |
 |---|---|
-| `no-explicit-backoff-on-429` | 21 |
 
 ## Desempenho por modo de falha
 
 | Falha | Runs | Sent | Failed | Avg attempts (sucesso) |
 |---|---|---|---|---|
-| `none` | 63 | 1079 | 58 | 1 |
+| `none` | 63 | 1091 | 46 | 1 |
 | `http_401` | 63 | 0 | 1260 | 0 |
-| `http_429` | 63 | 0 | 450 | 0 |
-| `http_500` | 63 | 0 | 471 | 0 |
-| `http_502` | 63 | 0 | 440 | 0 |
-| `timeout` | 63 | 0 | 451 | 0 |
-| `network` | 63 | 0 | 455 | 0 |
+| `http_429` | 63 | 0 | 440 | 0 |
+| `http_500` | 63 | 0 | 439 | 0 |
+| `http_502` | 63 | 0 | 467 | 0 |
+| `timeout` | 63 | 0 | 467 | 0 |
+| `network` | 63 | 0 | 424 | 0 |
 | `invalid_number` | 63 | 0 | 1260 | 0 |
 | `flaky` | 63 | 840 | 420 | 1.33 |
 | `vault_missing` | 63 | 0 | 63 | 0 |
@@ -61,16 +60,16 @@ Os gaps abaixo foram derivados diretamente das violações agregadas acima e da 
 
 | ID | msg_type | falha | max_att | batch | conc | sent | failed | violations |
 |---|---|---|---|---|---|---|---|---|
-| S19 | text | http_429 | 1 | 5 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S20 | text | http_429 | 1 | 10 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S21 | text | http_429 | 1 | 25 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S118 | image | http_429 | 1 | 5 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S119 | image | http_429 | 1 | 10 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S120 | image | http_429 | 1 | 25 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S217 | audio | http_429 | 1 | 5 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S218 | audio | http_429 | 1 | 10 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S219 | audio | http_429 | 1 | 25 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
-| S316 | video | http_429 | 1 | 5 | 1 | 0 | 20 | no-explicit-backoff-on-429 |
+| S1 | text | none | 1 | 5 | 1 | 18 | 0 | — |
+| S2 | text | none | 1 | 10 | 1 | 18 | 1 | — |
+| S3 | text | none | 1 | 25 | 1 | 17 | 0 | — |
+| S4 | text | none | 3 | 5 | 1 | 16 | 1 | — |
+| S5 | text | none | 3 | 10 | 1 | 19 | 1 | — |
+| S6 | text | none | 3 | 25 | 1 | 18 | 0 | — |
+| S7 | text | none | 5 | 5 | 1 | 19 | 0 | — |
+| S8 | text | none | 5 | 10 | 1 | 17 | 1 | — |
+| S9 | text | none | 5 | 25 | 1 | 18 | 0 | — |
+| S10 | text | http_401 | 1 | 5 | 1 | 0 | 20 | — |
 
 ## Próximos passos sugeridos (ordenados por impacto)
 
