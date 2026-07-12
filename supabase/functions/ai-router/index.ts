@@ -2662,6 +2662,8 @@ async function handleSuggestReply(
 
     const { conversationHistory, contactName, contactId, context, requestId } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+    // C.36: Validate contactId upfront for consistent logging
+    const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
 
     let knowledgeContext = '';
     try {
@@ -2679,7 +2681,6 @@ async function handleSuggestReply(
         }`;
       }
 
-      const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
       if (validContactId) {
         const { data: notes } = await supabase
           .from('contact_notes')
@@ -2880,7 +2881,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
           p_request_id: requestId,
           p_action: 'suggest-reply',
           p_user_id: ctx.userId,
-          p_contact_id: contactId || null,
+          p_contact_id: validContactId,
           p_status_code: 200,
           p_result_payload: { suggestions_count: suggestions.suggestions?.length || 0 },
         }).catch(() => {});
