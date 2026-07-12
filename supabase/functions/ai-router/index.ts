@@ -592,7 +592,14 @@ Responda APENAS em JSON:
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage || 'AI call failed', duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : errorMessage.length > 200
+        ? errorMessage.substring(0, 200)
+        : errorMessage;
+
+      return { success: false, error: clientErrorMsg, duration_ms: durationMs };
     }
 
     if (!response.ok || !data) {
@@ -1009,7 +1016,14 @@ Foque em:
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage || 'AI call failed', duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : errorMessage.length > 200
+        ? errorMessage.substring(0, 200)
+        : errorMessage;
+
+      return { success: false, error: clientErrorMsg || 'AI call failed', duration_ms: durationMs };
     }
 
     if (!response.ok || !data) {
@@ -1362,7 +1376,14 @@ Regras importantes:
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage || 'AI call failed', duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : errorMessage.length > 200
+        ? errorMessage.substring(0, 200)
+        : errorMessage;
+
+      return { success: false, error: clientErrorMsg || 'AI call failed', duration_ms: durationMs };
     }
 
     if (!response.ok || !data) {
@@ -1554,7 +1575,14 @@ async function handleClassifyEmoji(
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage || 'AI call failed', duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : errorMessage.length > 200
+        ? errorMessage.substring(0, 200)
+        : errorMessage;
+
+      return { success: false, error: clientErrorMsg || 'AI call failed', duration_ms: durationMs };
     }
 
     if (!response.ok || !data) {
@@ -1761,7 +1789,14 @@ async function handleClassifySticker(
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage || 'AI call failed', duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : errorMessage.length > 200
+        ? errorMessage.substring(0, 200)
+        : errorMessage;
+
+      return { success: false, error: clientErrorMsg || 'AI call failed', duration_ms: durationMs };
     }
 
     if (!response.ok || !data) {
@@ -2115,7 +2150,14 @@ async function handleChurnAnalysis(
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage, duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : errorMessage.length > 200
+        ? errorMessage.substring(0, 200)
+        : errorMessage;
+
+      return { success: false, error: clientErrorMsg, duration_ms: durationMs };
     }
   } catch (err) {
     const durationMs = performance.now() - startTime;
@@ -2323,7 +2365,14 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage || 'AI call failed', duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : errorMessage.length > 200
+        ? errorMessage.substring(0, 200)
+        : errorMessage;
+
+      return { success: false, error: clientErrorMsg || 'AI call failed', duration_ms: durationMs };
     }
 
     if (!response.ok || !data) {
@@ -2725,7 +2774,14 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage || 'AI call failed', duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : errorMessage.length > 200
+        ? errorMessage.substring(0, 200)
+        : errorMessage;
+
+      return { success: false, error: clientErrorMsg || 'AI call failed', duration_ms: durationMs };
     }
 
     if (!response.ok || !data) {
@@ -3173,7 +3229,14 @@ async function handleTranscribeAudio(
         // Metrics not critical
       }
 
-      return { success: false, error: errorMessage || errMsg, duration_ms: durationMs };
+      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
+      const clientErrMsg = (errorMessage || errMsg).includes('database') || (errorMessage || errMsg).includes('ECONNREFUSED') || (errorMessage || errMsg).includes('ENOTFOUND')
+        ? 'Service temporarily unavailable. Please try again.'
+        : (errorMessage || errMsg).length > 200
+        ? (errorMessage || errMsg).substring(0, 200)
+        : (errorMessage || errMsg);
+
+      return { success: false, error: clientErrMsg, duration_ms: durationMs };
     } finally {
       // CRITICAL GAP H.7: Always decrement concurrent upload counter to prevent resource leak
       activeTranscodeCount--;
