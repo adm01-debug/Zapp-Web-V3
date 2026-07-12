@@ -69,11 +69,37 @@ const ACTION_RATE_LIMITS: Record<string, number> = {
   transcribe_audio: 10,
 };
 
+/**
+ * FIX #9: RequestContext - Per-Request State Container
+ *
+ * Holds transient state for a single request. State is initialized at request start
+ * and cleaned up before response to prevent leakage across requests.
+ *
+ * FIELD LIFECYCLE:
+ * - userId: Set once from auth token (immutable)
+ * - ip: Set once from request headers (immutable)
+ * - action: Set once from routing (immutable)
+ * - requestId: Set during idempotency phase if valid, CLEARED before response (scoped)
+ * - startTime: Set at request entry for duration tracking (immutable)
+ *
+ * REQUESTID SCOPING:
+ * requestId is a scoped property - active only during request processing:
+ * 1. Extracted from body during PHASE 4
+ * 2. Validated and stored in ctx.requestId if valid
+ * 3. Used by handlers for RPC calls (record_processed_request, check_duplicate_request)
+ * 4. CLEARED in two places to prevent state accumulation:
+ *    a) Immediately after dedup hit (early return)
+ *    b) After final response returned (success or error path)
+ *
+ * MEMORY SAFETY:
+ * Clearing requestId ensures ctx object is ready for garbage collection and
+ * prevents sensitive request identifiers from accumulating in memory.
+ */
 interface RequestContext {
   userId: string;
   ip: string;
   action: string;
-  requestId?: string;
+  requestId?: string; // Scoped to current request; cleared before response
   startTime: number;
 }
 
@@ -430,6 +456,23 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // ━━━ PHASE 4: Idempotency Check (5-min window) ━━━
+    // FIX #9: RequestId State Management & Lifecycle Documentation
+    // LIFECYCLE:
+    // 1. EXTRACTION: Raw requestId from body, trimmed of whitespace
+    // 2. VALIDATION: Format check (alphanumeric, dash, underscore), max 100 chars
+    //    - Invalid format → requestId cleared, idempotency disabled
+    //    - Empty/whitespace → requestId cleared
+    //    - Too long → truncated to 100 chars with warning
+    // 3. STORAGE: If valid, stored in ctx.requestId for all handlers
+    // 4. DEDUPLICATION: Check 5-min window for exact (requestId, action, userId) tuple
+    //    - Hit → return cached result immediately
+    //    - Miss → continue to handler
+    // 5. RECORDING: Handler records result via record_processed_request RPC
+    // 6. CLEANUP: ctx.requestId cleared after response to prevent state accumulation
+    //
+    // STATE ISOLATION: Each (requestId, action, userId) is independent
+    // TIMING: Dedup window is 5 minutes; older duplicates are not rejected
+
     const rawRequestId = String(body.requestId || "").trim();
     // C.18: Validate requestId is not empty and not just whitespace
     let requestId = rawRequestId && rawRequestId.length > 0 ? rawRequestId : "";
@@ -465,6 +508,8 @@ Deno.serve(async (req) => {
           if (cachedResult) {
             const durationMs = performance.now() - ctx.startTime;
             log.info("Deduplication hit", { action, requestId, durationMs });
+            // FIX #9: Clear ctx.requestId after dedup return to prevent state leakage
+            ctx.requestId = "";
             return jsonResponse({ ...(cachedResult as Record<string, unknown>), _cached: true }, 200, req);
           }
         }
@@ -541,6 +586,12 @@ Deno.serve(async (req) => {
     }
 
     log.done(200, { action, duration_ms: result.duration_ms, ...result.metrics });
+
+    // FIX #9: Clear requestId state to prevent accumulation across requests
+    if (ctx.requestId) {
+      ctx.requestId = "";
+    }
+
     return jsonResponse(result.data, 200, req);
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -552,6 +603,11 @@ Deno.serve(async (req) => {
       duration: durationMs,
       userId: ctx?.userId,
     });
+
+    // FIX #9: Clear requestId state even on error to prevent state accumulation
+    if (ctx?.requestId) {
+      ctx.requestId = "";
+    }
 
     return errorResponse("Internal server error", 500, req);
   }
