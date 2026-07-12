@@ -14,7 +14,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useSyncToCRM');
 
 interface SyncParams {
   phone: string;

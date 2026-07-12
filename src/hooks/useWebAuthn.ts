@@ -2,7 +2,9 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useWebAuthn');
 import {
   base64URLToBuffer, bufferToBase64URL, getDeviceName,
   isWebAuthnSupported, isPlatformAuthenticatorAvailable as checkPlatformAuth,
