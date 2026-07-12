@@ -286,17 +286,7 @@ export function useRealtimeInbox() {
           const { optimistic } = await sendExternalAudio(contactId, attachments[0], {
             contactAvatar: currentAvatar,
             isPtt: !attachments[0].name.endsWith('.mp3'),
-            conversationInstance:
-              (
-                resolvedSelectedConversation as ConversationWithMessages & {
-                  instance_name?: string;
-                }
-              )?.instance_name ||
-              (
-                resolvedSelectedConversation?.contact as ConversationContact & {
-                  instance_name?: string;
-                }
-              )?.instance_name,
+            conversationInstance: resolvedSelectedConversation?.contact.instance_name ?? undefined,
             onProgress: (p) => {
               messageQueue.updateProgress(item.id, p);
             },
@@ -361,10 +351,18 @@ export function useRealtimeInbox() {
       setDeliveryAlert(null);
 
       if (USE_EXTERNAL_DB) {
+        // Use the conversation's own instance_name so wpp2 (historical) conversations are
+        // marked as read on the correct instance, not always on ACTIVE_WHATSAPP_INSTANCE.
+        const conv = conversations.find(
+          (c) =>
+            c.contact.id === contactId ||
+            (c.contact as ConversationContact & { remote_jid?: string }).remote_jid === contactId
+        );
+        const instanceName = conv?.contact.instance_name ?? ACTIVE_WHATSAPP_INSTANCE;
         void supabase.functions.invoke('evolution-api', {
           body: {
             action: 'read-messages',
-            instanceName: ACTIVE_WHATSAPP_INSTANCE,
+            instanceName,
             remoteJid: contactId,
           },
         });
@@ -372,7 +370,7 @@ export function useRealtimeInbox() {
         markAsRead(contactId);
       }
     },
-    [setSelectedContact, markAsRead]
+    [setSelectedContact, markAsRead, conversations]
   );
 
   const handleNotificationView = useCallback(() => {
