@@ -2,6 +2,7 @@
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import { PostgrestError } from '@supabase/supabase-js';
+import { generateCorrelationId } from '@/lib/correlationId';
 
 const supabase = _supabase;
 const _log = getLogger('safeClient');
@@ -352,6 +353,9 @@ export const safeClient = {
     const requestId = crypto.randomUUID();
     stats.totalCalls++;
     try {
+      // Validação de SQL injection: verifica se tabela está na whitelist
+      validateTableName(table);
+
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {

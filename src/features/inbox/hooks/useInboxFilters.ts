@@ -23,7 +23,13 @@ interface UseInboxFiltersProps {
   statusFilter?: 'all' | 'open' | 'closed' | 'unread';
 }
 
-export function useInboxFilters({ conversations, profileId, search: externalSearch, sortBy, statusFilter }: UseInboxFiltersProps) {
+export function useInboxFilters({
+  conversations,
+  profileId,
+  search: externalSearch,
+  sortBy,
+  statusFilter,
+}: UseInboxFiltersProps) {
   const [mainTab, setMainTab] = useState<MainTab>('open');
   const [subTab, setSubTab] = useState<SubTab>('attending');
   const [showAll, setShowAll] = useState(() => {
@@ -41,9 +47,15 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
   const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
   const [selectedContactType, setSelectedContactType] = useState<string | null>(null);
   const [showOnlyRetrying, setShowOnlyRetrying] = useState(false);
-  const [failureCategoryFilter, setFailureCategoryFilter] = useState<FailureCategory | 'all'>('all');
+  const [failureCategoryFilter, setFailureCategoryFilter] = useState<FailureCategory | 'all'>(
+    'all'
+  );
 
-  const { filters: urlFilters, setFilters: setUrlFilters, clearFilters: clearUrlFilters } = useUrlFilters();
+  const {
+    filters: urlFilters,
+    setFilters: setUrlFilters,
+    clearFilters: clearUrlFilters,
+  } = useUrlFilters();
   const prevScopeRef = useRef(scope);
 
   // Security: Enforce permissions on scope and showAll
@@ -72,7 +84,7 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
       log.info('Scope changed', { from: prevScopeRef.current, to: scope });
       logAudit({
         action: 'scope_change',
-        details: { from: prevScopeRef.current, to: scope, module: 'inbox' }
+        details: { from: prevScopeRef.current, to: scope, module: 'inbox' },
       });
       prevScopeRef.current = scope;
     }
@@ -81,13 +93,13 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
   // Carrega categorias de falha em lote quando o filtro de retry está ativo
   const { data: failureCategoryById = {} } = useFailureMetricsBatch(
     conversations,
-    showOnlyRetrying,
+    showOnlyRetrying
   );
 
   // Sync state with URL on mount only
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    
+
     // Contact Type
     const typeFromUrl = params.get('type');
     if (typeFromUrl && typeFromUrl !== 'all') {
@@ -112,7 +124,7 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
 
   const handleContactTypeChange = useCallback((value: string | null) => {
     setSelectedContactType(value);
-    
+
     const params = new URLSearchParams(window.location.search);
     if (value && value !== 'all') {
       params.set('type', value);
@@ -186,75 +198,111 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
   const { data: customScopes = [] } = useQuery({
     queryKey: ['inbox-custom-scopes'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('inbox_custom_scopes').select('*').eq('is_active', true);
+      const { data, error } = await supabase
+        .from('inbox_custom_scopes')
+        .select('id, name')
+        .eq('is_active', true);
       if (error) throw error;
       return data || [];
     },
     staleTime: 60_000,
   });
 
-  // Load contact_tags mapping
+  // Load contact_tags mapping with bounds to prevent unbounded result set
+  // When conversations change (new contacts added), this cache will be used for filtering.
+  // Invalidation is handled via realtime subscriptions on contact_tags table.
   const { data: contactTagsMap = {} } = useQuery({
     queryKey: ['contact-tags-map'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contact_tags')
-        .select('contact_id, tag_id');
-      if (error) throw error;
+      const conversationContactIds = new Set(
+        conversations.filter((c) => c?.contact?.id).map((c) => c.contact.id)
+      );
+
+      if (conversationContactIds.size === 0) {
+        return {};
+      }
+
+      const contactIds = Array.from(conversationContactIds);
       const map: Record<string, string[]> = {};
-      (data || []).forEach(ct => {
-        if (!map[ct.contact_id]) map[ct.contact_id] = [];
-        map[ct.contact_id].push(ct.tag_id);
-      });
+
+      // Fetch tags in chunks to avoid massive IN clause
+      const CHUNK_SIZE = 500;
+      for (let i = 0; i < contactIds.length; i += CHUNK_SIZE) {
+        const chunk = contactIds.slice(i, i + CHUNK_SIZE);
+        const { data, error } = await supabase
+          .from('contact_tags')
+          .select('contact_id, tag_id')
+          .in('contact_id', chunk);
+
+        if (error) {
+          log.warn('Error fetching contact tags for chunk', { error: error.message });
+          continue;
+        }
+
+        (data || []).forEach((ct) => {
+          if (!map[ct.contact_id]) map[ct.contact_id] = [];
+          map[ct.contact_id].push(ct.tag_id);
+        });
+      }
+
       return map;
     },
     staleTime: 30_000,
   });
 
   // Convert URL filters to InboxFiltersState
-  const filters = useMemo<InboxFiltersState>(() => ({
-    status: urlFilters.status,
-    tags: urlFilters.tags,
-    agentId: urlFilters.agentId,
-    dateRange: {
-      from: urlFilters.dateFrom ? parseISO(urlFilters.dateFrom) : null,
-      to: urlFilters.dateTo ? parseISO(urlFilters.dateTo) : null,
-    },
-  }), [urlFilters]);
+  const filters = useMemo<InboxFiltersState>(
+    () => ({
+      status: urlFilters.status,
+      tags: urlFilters.tags,
+      agentId: urlFilters.agentId,
+      dateRange: {
+        from: urlFilters.dateFrom ? parseISO(urlFilters.dateFrom) : null,
+        to: urlFilters.dateTo ? parseISO(urlFilters.dateTo) : null,
+      },
+    }),
+    [urlFilters]
+  );
 
   const search = urlFilters.search;
-  const setSearch = useCallback((value: string) => {
-    setUrlFilters({ search: value });
-  }, [setUrlFilters]);
+  const setSearch = useCallback(
+    (value: string) => {
+      setUrlFilters({ search: value });
+    },
+    [setUrlFilters]
+  );
 
-  const setFilters = useCallback((newFilters: InboxFiltersState) => {
-    setUrlFilters({
-      status: newFilters.status,
-      tags: newFilters.tags,
-      agentId: newFilters.agentId,
-      dateFrom: newFilters.dateRange.from?.toISOString().split('T')[0] || null,
-      dateTo: newFilters.dateRange.to?.toISOString().split('T')[0] || null,
-    });
-  }, [setUrlFilters]);
+  const setFilters = useCallback(
+    (newFilters: InboxFiltersState) => {
+      setUrlFilters({
+        status: newFilters.status,
+        tags: newFilters.tags,
+        agentId: newFilters.agentId,
+        dateFrom: newFilters.dateRange.from?.toISOString().split('T')[0] || null,
+        dateTo: newFilters.dateRange.to?.toISOString().split('T')[0] || null,
+      });
+    },
+    [setUrlFilters]
+  );
 
   const ticketStates = useAllTicketStates();
 
   const filteredConversations = useMemo(() => {
-    log.debug('Recomputing filtered conversations', { 
-      total: conversations.length, 
-      mainTab, 
-      subTab, 
-      showOnlyRetrying, 
-      failureCategoryFilter 
+    log.debug('Recomputing filtered conversations', {
+      total: conversations.length,
+      mainTab,
+      subTab,
+      showOnlyRetrying,
+      failureCategoryFilter,
     });
-    let result = conversations.filter(c => c && c.contact && c.contact.id);
+    let result = conversations.filter((c) => c && c.contact && c.contact.id);
 
     // 0. Channel visibility filtering (CRITICAL SECURITY: Always apply, even during search)
     const canSeeWhatsapp = hasPermission('inbox.view_whatsapp');
     const canSeeInstagram = hasPermission('inbox.view_instagram');
     const canSeeChat = hasPermission('inbox.view_chat');
 
-    result = result.filter(c => {
+    result = result.filter((c) => {
       const channel = c.contact?.channel_type;
       if (channel === 'whatsapp' && !canSeeWhatsapp) return false;
       if (channel === 'instagram' && !canSeeInstagram) return false;
@@ -275,7 +323,7 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
     // 1. Tab and Status Filtering
     if (searchTrimmed.length === 0) {
       if (mainTab === 'open') {
-        result = result.filter(c => {
+        result = result.filter((c) => {
           const s = statusOf(c.contact.id);
           // Bug fix: TicketTabs contabiliza como "aberto" tudo que não é `resolved`
           // (inclui `pending`, `waiting`, `snoozed` etc). O filtro precisa seguir
@@ -292,10 +340,17 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
           if (subTab === 'attending') {
             const canSeeDept = hasPermission('inbox.view_department');
             const canSeeAll = hasPermission('inbox.view_all');
-            
-            const effectiveScope = (showAll && canSeeAll) ? 'all' : (scope === 'department' && (canSeeDept || canSeeAll)) ? 'department' : (scope === 'all' && canSeeAll) ? 'all' : 'mine';
+
+            const effectiveScope =
+              showAll && canSeeAll
+                ? 'all'
+                : scope === 'department' && (canSeeDept || canSeeAll)
+                  ? 'department'
+                  : scope === 'all' && canSeeAll
+                    ? 'all'
+                    : 'mine';
             const assignee = assignedOf(c.contact.id, c.contact.assigned_to);
-            
+
             // 1. Prioridade para filtro de Agente específico (Coordenadores/Supervisores)
             if (filters.agentId) {
               // SECURITY: Only allow filtering by other agents if they have permission
@@ -307,7 +362,7 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
 
             // 2. Se não houver agente específico, aplica a lógica de escopo
             if (effectiveScope === 'all') return true;
-            
+
             if (effectiveScope === 'department') {
               if (!assignee) return false;
               return departmentAgentIds.includes(assignee);
@@ -318,14 +373,14 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
             }
 
             // Custom scopes filtering logic
-            const customScope = customScopes.find(s => s.name === effectiveScope);
+            const customScope = customScopes.find((s) => s.name === effectiveScope);
             if (customScope) {
               return true;
             }
 
             return assignee === profileId; // Fallback
           }
-          
+
           if (subTab === 'waiting') {
             return !assignedOf(c.contact.id, c.contact.assigned_to);
           }
@@ -334,33 +389,39 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
         });
 
         if (selectedQueueId) {
-          result = result.filter(c => c.contact.queue_id === selectedQueueId);
+          result = result.filter((c) => c.contact.queue_id === selectedQueueId);
         }
       } else if (mainTab === 'resolved') {
-        result = result.filter(c => statusOf(c.contact.id) === 'resolved');
+        result = result.filter((c) => statusOf(c.contact.id) === 'resolved');
       }
     } else {
       // Quando há busca, filtramos apenas por aberto/resolvido se não estiver na aba de busca
       if (mainTab === 'open') {
-        result = result.filter(c => {
+        result = result.filter((c) => {
           const s = statusOf(c.contact.id);
           const isOpen = s === 'open' || s === 'in_progress';
           if (!isOpen) return false;
           if (statusFilter === 'unread' && c.unreadCount === 0) return false;
-          
+
           // SECURITY: In search mode, also enforce scope if not searching globally
           const canSeeDept = hasPermission('inbox.view_department');
           const canSeeAll = hasPermission('inbox.view_all');
-          const effectiveScope = (showAll && canSeeAll) ? 'all' : (scope === 'department' && (canSeeDept || canSeeAll)) ? 'department' : 'mine';
+          const effectiveScope =
+            showAll && canSeeAll
+              ? 'all'
+              : scope === 'department' && (canSeeDept || canSeeAll)
+                ? 'department'
+                : 'mine';
           const assignee = assignedOf(c.contact.id, c.contact.assigned_to);
 
           if (effectiveScope === 'mine' && assignee !== profileId) return false;
-          if (effectiveScope === 'department' && assignee && !departmentAgentIds.includes(assignee)) return false;
+          if (effectiveScope === 'department' && assignee && !departmentAgentIds.includes(assignee))
+            return false;
 
           return true;
         });
       } else if (mainTab === 'resolved') {
-        result = result.filter(c => statusOf(c.contact.id) === 'resolved');
+        result = result.filter((c) => statusOf(c.contact.id) === 'resolved');
       }
     }
 
@@ -374,14 +435,13 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
         const email = (c.contact?.email || '').toLowerCase();
         const jid = String(c.contact?.id || '').toLowerCase();
         const lastMsg = (c.lastMessage?.content || '').toLowerCase();
-        
-        const matches = (
+
+        const matches =
           name.includes(searchLower) ||
           (digits.length > 0 && phone.replace(/\D/g, '').includes(digits)) ||
           email.includes(searchLower) ||
           jid.includes(searchLower) ||
-          lastMsg.includes(searchLower)
-        );
+          lastMsg.includes(searchLower);
         return matches;
       });
     }
@@ -403,7 +463,7 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
     if (filters.tags.length > 0) {
       result = result.filter((c) => {
         const tagIds = contactTagsMap[c.contact.id] || [];
-        return filters.tags.some(filterTagId => tagIds.includes(filterTagId));
+        return filters.tags.some((filterTagId) => tagIds.includes(filterTagId));
       });
     }
 
@@ -422,7 +482,7 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
     if (filters.dateRange.from) {
       const fromStart = startOfDay(filters.dateRange.from);
       const toEnd = filters.dateRange.to ? endOfDay(filters.dateRange.to) : null;
-      
+
       result = result.filter((c) => {
         const lastMessageDate = c.lastMessage
           ? new Date(c.lastMessage.created_at)
@@ -440,7 +500,11 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
     if (showOnlyRetrying) {
       result = result.filter((c) => {
         const failingMsgs = c.messages.filter(
-          (m) => m.status === 'retrying' || m.status === 'failed_retries' || m.status === 'failed' || m.status === 'failed_auth'
+          (m) =>
+            m.status === 'retrying' ||
+            m.status === 'failed_retries' ||
+            m.status === 'failed' ||
+            m.status === 'failed_auth'
         );
         if (failingMsgs.length === 0) return false;
 
@@ -460,61 +524,81 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
       if (sortBy === 'unread') {
         if (a.unreadCount !== b.unreadCount) return b.unreadCount - a.unreadCount;
       }
-      
+
       if (sortBy === 'name') {
         return (a.contact.name || '').localeCompare(b.contact.name || '');
       }
 
       // Default: lastMessage date (descending)
-      const aTime = a.lastMessage ? new Date(a.lastMessage.created_at).getTime() : new Date(a.contact.updated_at).getTime();
-      const bTime = b.lastMessage ? new Date(b.lastMessage.created_at).getTime() : new Date(b.contact.updated_at).getTime();
+      const aTime = a.lastMessage
+        ? new Date(a.lastMessage.created_at).getTime()
+        : new Date(a.contact.updated_at).getTime();
+      const bTime = b.lastMessage
+        ? new Date(b.lastMessage.created_at).getTime()
+        : new Date(b.contact.updated_at).getTime();
       return bTime - aTime;
     });
   }, [
-    conversations, 
-    search, externalSearch,
-    filters, 
-    mainTab, 
-    subTab, 
-    showAll, 
+    conversations,
+    search,
+    externalSearch,
+    filters,
+    mainTab,
+    subTab,
+    showAll,
     scope,
     departmentAgentIds,
-    selectedQueueId, 
-    selectedContactType, 
-    showOnlyRetrying, 
-    failureCategoryFilter, 
-    failureCategoryById, 
-    profileId, 
-    contactTagsMap, 
+    selectedQueueId,
+    selectedContactType,
+    showOnlyRetrying,
+    failureCategoryFilter,
+    failureCategoryById,
+    profileId,
+    contactTagsMap,
     ticketStates,
     sortBy,
     statusFilter,
-    hasPermission
+    hasPermission,
   ]);
 
   const retryingCount = useMemo(
-    () => conversations.filter((c) =>
-      c.messages?.some((m) => m.status === 'retrying' || m.status === 'failed_retries')
-    ).length,
+    () =>
+      conversations.filter((c) =>
+        c.messages?.some((m) => m.status === 'retrying' || m.status === 'failed_retries')
+      ).length,
     [conversations]
   );
 
   // Contagem por categoria (apenas quando filtro retry está ativo e métricas carregadas)
   const failureCategoryCounts = useMemo(() => {
     const counts: Record<FailureCategory | 'all', number> = {
-      all: 0, auth: 0, http_4xx: 0, http_5xx: 0, network: 0, unknown: 0,
+      all: 0,
+      auth: 0,
+      http_4xx: 0,
+      http_5xx: 0,
+      network: 0,
+      unknown: 0,
     };
     if (!showOnlyRetrying) return counts;
     const seenConvs = new Set<string>();
-    const seenByCat: Record<string, Set<string>> = { auth: new Set(), http_4xx: new Set(), http_5xx: new Set(), network: new Set(), unknown: new Set() };
+    const seenByCat: Record<string, Set<string>> = {
+      auth: new Set(),
+      http_4xx: new Set(),
+      http_5xx: new Set(),
+      network: new Set(),
+      unknown: new Set(),
+    };
     for (const c of conversations) {
-      const failing = c.messages?.filter(
-        (m) => m.status === 'failed' || m.status === 'failed_auth' || m.status === 'failed_retries'
-      ) || [];
+      const failing =
+        c.messages?.filter(
+          (m) =>
+            m.status === 'failed' || m.status === 'failed_auth' || m.status === 'failed_retries'
+        ) || [];
       if (failing.length === 0) continue;
       seenConvs.add(c.contact.id);
       for (const m of failing) {
-        const cat: FailureCategory = m.status === 'failed_auth' ? 'auth' : (failureCategoryById[m.id] ?? 'unknown');
+        const cat: FailureCategory =
+          m.status === 'failed_auth' ? 'auth' : (failureCategoryById[m.id] ?? 'unknown');
         seenByCat[cat].add(c.contact.id);
       }
     }
@@ -528,19 +612,30 @@ export function useInboxFilters({ conversations, profileId, search: externalSear
   }, [conversations, showOnlyRetrying, failureCategoryById]);
 
   return {
-    mainTab, setMainTab,
-    subTab, setSubTab,
-    showAll, setShowAll,
-    scope, setScope,
-    departmentAgentIds, setDepartmentAgentIds,
-    selectedQueueId, setSelectedQueueId,
-    selectedContactType, handleContactTypeChange,
-    showOnlyRetrying, setShowOnlyRetrying,
-    failureCategoryFilter, setFailureCategoryFilter,
+    mainTab,
+    setMainTab,
+    subTab,
+    setSubTab,
+    showAll,
+    setShowAll,
+    scope,
+    setScope,
+    departmentAgentIds,
+    setDepartmentAgentIds,
+    selectedQueueId,
+    setSelectedQueueId,
+    selectedContactType,
+    handleContactTypeChange,
+    showOnlyRetrying,
+    setShowOnlyRetrying,
+    failureCategoryFilter,
+    setFailureCategoryFilter,
     failureCategoryCounts,
     retryingCount,
-    filters, setFilters,
-    search, setSearch,
+    filters,
+    setFilters,
+    search,
+    setSearch,
     filteredConversations,
     customScopes,
     clearUrlFilters,

@@ -40,7 +40,11 @@ export interface TransfersFilters {
 export function useTransfersPaginated(filters: TransfersFilters = {}) {
   const { status = null, priority = null, from = null, to = null, page = 0, pageSize = 50 } = filters;
 
-  return useQuery<{ rows: TransferRow[]; total: number; deniedReason: string | null }>({
+  // Cursor-based pagination: track cursor for each page
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
+  const currentPageCursor = pageIndexToCursor.get(page) ?? null;
+
+  const query = useQuery<{ rows: TransferRow[]; total: number; deniedReason: string | null }>({
     queryKey: ['transfers-paginated', { status, priority, from, to, page, pageSize }],
     queryFn: async () => {
       const { data, error } = await safeClient.rpc<Array<TransferRow & { total_count?: number | string }>>(
@@ -62,4 +66,23 @@ export function useTransfersPaginated(filters: TransfersFilters = {}) {
     refetchInterval: 30_000,
     retry: (count, err) => !isRlsDeniedError(err) && count < 2,
   });
+
+  // Update page history with cursor for next page when current page loads
+  useEffect(() => {
+    if (query.data?.rows && query.data.rows.length > 0) {
+      const lastRow = query.data.rows[query.data.rows.length - 1];
+      setPageIndexToCursor((prev) => {
+        const updated = new Map(prev);
+        updated.set(page + 1, lastRow.id);
+        return updated;
+      });
+    }
+  }, [query.data?.rows, page]);
+
+  // Reset page history when filters change
+  useEffect(() => {
+    setPageIndexToCursor(new Map([[0, null]]));
+  }, [status, priority, from, to]);
+
+  return query;
 }

@@ -432,12 +432,86 @@ export function getClientIP(req: Request): string {
 }
 
 /** Get required env var or throw */
-export function requireEnv(name: string): string {
+/**
+ * Require an environment variable to be set and non-empty.
+ * Throws with detailed error message if missing or blank.
+ *
+ * Usage:
+ *   const supabaseUrl = requireEnv('SUPABASE_URL', 'https://');
+ *   const apiKey = requireEnv('API_KEY');
+ */
+export function requireEnv(
+  name: string,
+  expectedPattern?: string | RegExp
+): string {
   const value = Deno.env.get(name);
-  if (!value) {
-    throw new Error(`${name} is not configured`);
+
+  if (!value || value.trim() === '') {
+    throw new Error(
+      `[Configuration Error] Environment variable "${name}" is required but not configured. ` +
+      `Please set it in your .env or deployment configuration.`
+    );
   }
+
+  // Optional pattern validation (e.g., URL prefix, format)
+  if (expectedPattern) {
+    const pattern = typeof expectedPattern === 'string'
+      ? expectedPattern
+      : expectedPattern.toString();
+
+    if (expectedPattern instanceof RegExp) {
+      if (!expectedPattern.test(value)) {
+        throw new Error(
+          `[Configuration Error] Environment variable "${name}" does not match expected format. ` +
+          `Expected pattern: ${pattern}, got: ${redactSecrets(value)}`
+        );
+      }
+    } else if (typeof expectedPattern === 'string') {
+      if (!value.startsWith(expectedPattern)) {
+        throw new Error(
+          `[Configuration Error] Environment variable "${name}" does not start with expected value "${expectedPattern}". ` +
+          `Got: ${redactSecrets(value)}`
+        );
+      }
+    }
+  }
+
   return value;
+}
+
+/**
+ * Validate multiple environment variables at module load time.
+ * Fails fast if any required env var is missing.
+ *
+ * Usage:
+ *   validateEnvironment({
+ *     'SUPABASE_URL': /^https:\/\//,
+ *     'SUPABASE_SERVICE_ROLE_KEY': undefined, // no pattern validation
+ *     'EVOLUTION_API_KEY': /^[a-zA-Z0-9]{32,}$/,
+ *   });
+ */
+export function validateEnvironment(
+  envVars: Record<string, RegExp | string | undefined>
+): Record<string, string> {
+  const validated: Record<string, string> = {};
+  const errors: string[] = [];
+
+  for (const [name, pattern] of Object.entries(envVars)) {
+    try {
+      validated[name] = requireEnv(name, pattern);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      `[Configuration Error] ${errors.length} environment variable(s) are not properly configured:\n` +
+      errors.map(e => `  • ${e}`).join('\n')
+    );
+  }
+
+  return validated;
 }
 
 /**

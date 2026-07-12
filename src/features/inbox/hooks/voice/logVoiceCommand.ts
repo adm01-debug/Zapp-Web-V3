@@ -15,6 +15,9 @@ interface VoiceCommandLogParams {
 export function logVoiceCommand(params: VoiceCommandLogParams) {
   // Fire-and-forget — never block UI
   void (async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -27,6 +30,7 @@ export function logVoiceCommand(params: VoiceCommandLogParams) {
 
       await fetch(url, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           apikey: key,
@@ -43,6 +47,9 @@ export function logVoiceCommand(params: VoiceCommandLogParams) {
           success: params.success ?? true,
         }),
       });
-    } catch (err) { log.error('Unexpected error in logVoiceCommand:', err); }
+    } catch (err) { log.error('Unexpected error in logVoiceCommand:', err); } finally {
+      clearTimeout(timeoutId);
+      controller.abort();
+    }
   })();
 }
