@@ -41,6 +41,7 @@ import {
   handleCors, errorResponse, jsonResponse,
   sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger,
 } from "../_shared/validation.ts";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
 import {
   AiAutoTagSchema, AiConversationSummarySchema, AiEnhanceMessageSchema,
   ClassifyEmojiSchema, ClassifyStickerSchema, AiChurnAnalysisSchema,
@@ -804,21 +805,17 @@ async function validateRequestSignature(
     const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const signature = await crypto.subtle.sign('HMAC', key, messageData);
 
-    // Compare signatures (constant-time comparison to prevent timing attacks)
-    const computedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
+    // Convert signature to hex (standard format for this codebase)
+    const computedSignature = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
 
-    const normalizedProvided = providedSignature
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-
-    if (computedSignature !== normalizedProvided) {
+    // Timing-safe comparison to prevent timing attacks
+    const isValid = timingSafeStringEqual(computedSignature, providedSignature);
+    if (!isValid) {
       log.warn("Signature mismatch (tampering detected?)", {
         computed: computedSignature.substring(0, 10),
-        provided: normalizedProvided.substring(0, 10),
+        provided: providedSignature.substring(0, 10),
       });
       return { valid: false, error: 'Invalid request signature' };
     }
