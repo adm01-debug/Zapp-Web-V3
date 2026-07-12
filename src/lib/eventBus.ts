@@ -40,10 +40,10 @@ class TypedEventBus {
   private listeners = new Map<string, Set<EventCallback>>();
 
   on<K extends EventName>(event: K, callback: EventCallback<EventMap[K]>): () => void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
-    }
-    this.listeners.get(event)!.add(callback as EventCallback);
+    const existing = this.listeners.get(event);
+    const set = existing ?? new Set<EventCallback>();
+    if (!existing) this.listeners.set(event, set);
+    set.add(callback as EventCallback);
 
     // Return unsubscribe function
     return () => {

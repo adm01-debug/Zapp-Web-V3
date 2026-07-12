@@ -353,12 +353,12 @@ export function AudioMessagePlayer({
               if (e.key === 'ArrowRight') {
                 e.preventDefault();
                 const newTime = Math.min(duration, currentTime + 5);
-                audioRef.current!.currentTime = newTime;
+                if (audioRef.current) audioRef.current.currentTime = newTime;
               }
               if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 const newTime = Math.max(0, currentTime - 5);
-                audioRef.current!.currentTime = newTime;
+                if (audioRef.current) audioRef.current.currentTime = newTime;
               }
             }}
           >
