@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
         return json(req, 200, await cleanup(body.runId));
     }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return json(req, 500, { error: "fixture-op-failed", message: msg });
+    console.error('[e2e-webhook-fixture] unhandled error:', e instanceof Error ? e.message : e);
+    return json(req, 500, { error: "fixture-op-failed" });
   }
 });

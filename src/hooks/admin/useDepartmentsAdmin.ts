@@ -41,10 +41,11 @@ export function useDepartmentsAdmin() {
     const ids = (data ?? []).map((d) => d.id);
     let counts: Record<string, number> = {};
     if (ids.length) {
-      const { data: profilesByDept , error: _profilesByDeptErr } = await supabase
+      const { data: profilesByDept, error: profilesByDeptErr } = await supabase
         .from('profiles')
         .select('department_id')
         .in('department_id', ids);
+      if (profilesByDeptErr) console.warn('[useDepartmentsAdmin] member-count fetch failed:', profilesByDeptErr.message);
       counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {
         if (p.department_id) acc[p.department_id] = (acc[p.department_id] ?? 0) + 1;
         return acc;

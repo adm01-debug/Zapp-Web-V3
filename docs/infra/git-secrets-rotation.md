@@ -144,16 +144,28 @@ pip install git-filter-repo
 #
 # IMPORTANTE: git-filter-repo recusa reescrever checkouts existentes por padrão ("Refusing to
 # destructively overwrite repo history since this does not look like a fresh clone").
-# Opção A (recomendada): clone em diretório temporário limpo:
-#   git clone --no-local /caminho/para/zapp-web-v3 /tmp/zapp-fresh && cd /tmp/zapp-fresh
+# Além disso, git-filter-repo REMOVE o remote 'origin' após reescrever o histórico
+# (comportamento intencional para evitar push acidental). Salve a URL antes de filtrar.
+#
+# Opção A (recomendada) — clone em diretório temporário limpo:
+REMOTE_URL=$(git remote get-url origin)  # salvar URL canônica ANTES de entrar no clone
+git clone --no-local /caminho/para/zapp-web-v3 /tmp/zapp-fresh
+cd /tmp/zapp-fresh
+# (executar TMPFILE + filter-repo dentro do /tmp/zapp-fresh — veja abaixo)
+# Após o filter-repo, o remote 'origin' é removido automaticamente. Re-adicionar:
+#   git remote add origin "$REMOTE_URL"
+# Depois execute o force-push a partir do clone temporário e remova-o.
+#
 # Opção B (avançado): use --force se já estiver no clone correto e souber o que está fazendo.
+#   Lembre-se de salvar e re-adicionar o remote da mesma forma (filter-repo também o remove).
 #
 # Nota: NÃO use trap … EXIT aqui — o trap de $OLD_KEY_FILE já está registrado no Step 2b.
 # Este bloco usa cleanup explícito para evitar sobreescrever o trap anterior.
 TMPFILE=$(mktemp)
 echo "<CHAVE-ANTIGA>==>REDACTED_ROTATED" > "$TMPFILE"
 git filter-repo --replace-text "$TMPFILE" && rm -f "$TMPFILE" || { rm -f "$TMPFILE"; exit 1; }
-# Se usar Opção A, execute o force-push a partir do clone temporário e depois remova-o.
+# Se usar Opção A, re-adicionar o remote antes do force-push:
+#   git remote add origin "$REMOTE_URL"
 
 # Force-push (coordenar com a equipe — reescreve histórico)
 git push --force-with-lease origin main

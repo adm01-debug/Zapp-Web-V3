@@ -311,16 +311,13 @@ Deno.serve(async (req) => {
         fn: "external-db-proxy",
         version: "1.10-issuer-fastpath",
         target: targetName,
-        env_set: ENV_SET,
-        url_source: URL_SOURCE,
-        key_source: KEY_SOURCE,
         checks,
         hint: allOk ? undefined : "Se missing_table=true, aplique a migration no self-hosted e exponha o schema 'evo' em config.toml → [api].schemas.",
         latency_ms: Date.now() - startH,
         ts: Date.now(),
       }, allOk ? 200 : 503);
     }
-    return jsonResponse(req, { ok: true, fn: "external-db-proxy", version: "1.10-issuer-fastpath", target: targetName, env_set: ENV_SET, ts: Date.now() }, 200);
+    return jsonResponse(req, { ok: true, fn: "external-db-proxy", version: "1.10-issuer-fastpath", target: targetName, ts: Date.now() }, 200);
   }
 
   if (req.method !== "POST") {

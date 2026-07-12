@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
 
     return json(req, 200, result);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return json(req, 500, { error: 'fixture-op-failed', message: msg });
+    console.error('[e2e-fixtures] unhandled error:', e instanceof Error ? e.message : e);
+    return json(req, 500, { error: 'fixture-op-failed' });
   }
 });
