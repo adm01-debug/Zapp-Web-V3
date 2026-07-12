@@ -212,21 +212,34 @@ serve(async (req) => {
     // Usado quando redirect_uri aponta para este endpoint
     const url = new URL(req.url);
     if (req.method === 'GET' && url.searchParams.has('code')) {
-      const code    = url.searchParams.get('code')!;
-      const _state  = url.searchParams.get('state');
-      const errorP  = url.searchParams.get('error');
+      const code   = url.searchParams.get('code')!;
+      const state  = url.searchParams.get('state');
+      const errorP = url.searchParams.get('error');
+
+      // Interpolação de query params direto em <script> permite reflected XSS
+      // (ex.: ?error='});alert(document.cookie);// escaparia da string literal).
+      // JSON.stringify() sozinho não basta: ele escapa a sintaxe de string JS mas
+      // NÃO escapa a sequência literal `</script>`, que fecharia a tag e injetaria
+      // HTML/script arbitrário mesmo dentro de um literal JSON válido. Escapamos
+      // `<` para `<` em todo valor antes de embutir inline.
+      const safeJsonForScript = (value: unknown): string =>
+        JSON.stringify(value).replace(/</g, '\\u003c');
 
       if (errorP) {
         return new Response(
-          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:'${errorP}'},'*');window.close()</script>`,
+          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:${safeJsonForScript(errorP)},state:${safeJsonForScript(state)}},'*');window.close()</script>`,
           { headers: { 'Content-Type': 'text/html' } }
         );
       }
 
-      // Retorna o code para o popup processar via exchangeCode
+      // `state` é devolvido para o popup validar contra o valor emitido em
+      // getAuthUrl antes de chamar exchangeCode — sem isso, qualquer mensagem
+      // postMessage com type:'gmail-oauth-code' era aceita, permitindo que uma
+      // aba maliciosa injetasse o code de OUTRA conta Google para ser trocado
+      // com o user.id da vítima (account-linking hijack).
       return new Response(
         `<script>
-          window.opener?.postMessage({type:'gmail-oauth-code',code:'${code}'},'*');
+          window.opener?.postMessage({type:'gmail-oauth-code',code:${safeJsonForScript(code)},state:${safeJsonForScript(state)}},'*');
           window.close();
         </script>`,
         { headers: { 'Content-Type': 'text/html' } }

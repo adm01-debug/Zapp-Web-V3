@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { normalizeMessage, buildConversation } from './realtimeUtils';
-import type { ConversationWithMessages, RealtimeMessage } from '../useRealtimeMessages';
+import type { ConversationWithMessages, RealtimeMessage } from './types';
 
 export interface MessageBatcherStatus {
   /** True while there are pending updates waiting for the debounce window to flush. */

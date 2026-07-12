@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { log } from '@/lib/logger';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
@@ -40,8 +40,16 @@ export function TranscriptionsHistoryView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [expandedContacts, setExpandedContacts] = useState<Set<string>>(new Set());
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const fetchTranscriptions = async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     try {
       const { data, error } = await dbFrom('messages')
@@ -52,6 +60,7 @@ export function TranscriptionsHistoryView() {
         .not('transcription', 'is', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
+      if (!mountedRef.current) return;
       type ContactRow = { name: string; phone: string; avatar_url: string | null };
       type RawRow = {
         id: string;
@@ -79,9 +88,10 @@ export function TranscriptionsHistoryView() {
         })
       );
     } catch (error) {
+      if (!mountedRef.current) return;
       log.error('Error fetching transcriptions:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

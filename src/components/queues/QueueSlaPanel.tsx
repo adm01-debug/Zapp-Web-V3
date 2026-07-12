@@ -5,11 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Clock, RefreshCw, Users, Zap, Filter } from 'lucide-react';
-import { useQueueSlaPanel, QueueSlaFilters, QueueSlaRow, SlaStatusFilter } from '@/hooks/useQueueSlaPanel';
+import {
+  useQueueSlaPanel,
+  QueueSlaFilters,
+  QueueSlaRow,
+  SlaStatusFilter,
+} from '@/hooks/useQueueSlaPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -45,17 +54,36 @@ export const QueueSlaPanel = () => {
         supabase.from('queue_skill_requirements').select('skill_name'),
         supabase.from('channel_connections').select('channel_type'),
       ]);
-      setSkills(Array.from(new Set((sk ?? []).map((s: { skill_name: string | null }) => s.skill_name).filter(Boolean) as string[])));
-      setChannels(Array.from(new Set((ch ?? []).map((c: { channel_type: string | null }) => c.channel_type).filter(Boolean) as string[])));
+      setSkills(
+        Array.from(
+          new Set(
+            (sk ?? [])
+              .map((s: { skill_name: string | null }) => s.skill_name)
+              .filter(Boolean) as string[]
+          )
+        )
+      );
+      setChannels(
+        Array.from(
+          new Set(
+            (ch ?? [])
+              .map((c: { channel_type: string | null }) => c.channel_type)
+              .filter(Boolean) as string[]
+          )
+        )
+      );
     })();
   }, []);
 
-  const totals = useMemo(() => ({
-    waiting: rows.reduce((s, r) => s + r.waiting_count, 0),
-    inProgress: rows.reduce((s, r) => s + r.in_progress_count, 0),
-    breached: rows.reduce((s, r) => s + r.breached_count, 0),
-    atRisk: rows.reduce((s, r) => s + r.at_risk_count, 0),
-  }), [rows]);
+  const totals = useMemo(
+    () => ({
+      waiting: rows.reduce((s, r) => s + r.waiting_count, 0),
+      inProgress: rows.reduce((s, r) => s + r.in_progress_count, 0),
+      breached: rows.reduce((s, r) => s + r.breached_count, 0),
+      atRisk: rows.reduce((s, r) => s + r.at_risk_count, 0),
+    }),
+    [rows]
+  );
 
   const handleRebalance = async () => {
     setRebalancing(true);
@@ -66,49 +94,84 @@ export const QueueSlaPanel = () => {
   return (
     <div className="space-y-6">
       {/* KPIs globais */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <KpiCard label="Aguardando" value={totals.waiting} icon={<Clock className="h-4 w-4" />} />
-        <KpiCard label="Em atendimento" value={totals.inProgress} icon={<Users className="h-4 w-4" />} />
-        <KpiCard label="Em risco" value={totals.atRisk} icon={<AlertTriangle className="h-4 w-4" />} tone="warning" />
-        <KpiCard label="SLA estourado" value={totals.breached} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" />
+        <KpiCard
+          label="Em atendimento"
+          value={totals.inProgress}
+          icon={<Users className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Em risco"
+          value={totals.atRisk}
+          icon={<AlertTriangle className="h-4 w-4" />}
+          tone="warning"
+        />
+        <KpiCard
+          label="SLA estourado"
+          value={totals.breached}
+          icon={<AlertTriangle className="h-4 w-4" />}
+          tone="destructive"
+        />
       </div>
 
       {/* Filtros + ações */}
       <Card className="rounded-2xl">
-        <CardContent className="p-4 flex flex-wrap items-center gap-3">
+        <CardContent className="flex flex-wrap items-center gap-3 p-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Filter className="h-4 w-4" /> Filtros:
           </div>
 
           <Select
             value={filters.skill_name ?? '__all'}
-            onValueChange={(v) => setFilters((f) => ({ ...f, skill_name: v === '__all' ? null : v }))}
+            onValueChange={(v) =>
+              setFilters((f) => ({ ...f, skill_name: v === '__all' ? null : v }))
+            }
           >
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Habilidade" /></SelectTrigger>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Habilidade" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all">Todas as habilidades</SelectItem>
-              {skills.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {skills.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
           <Select
             value={filters.channel_type ?? '__all'}
-            onValueChange={(v) => setFilters((f) => ({ ...f, channel_type: v === '__all' ? null : v }))}
+            onValueChange={(v) =>
+              setFilters((f) => ({ ...f, channel_type: v === '__all' ? null : v }))
+            }
           >
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Canal" /></SelectTrigger>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Canal" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all">Todos os canais</SelectItem>
-              {channels.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              {channels.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
           <Select
             value={filters.sla_status ?? '__all'}
             onValueChange={(v) =>
-              setFilters((f) => ({ ...f, sla_status: v === '__all' ? null : v as SlaStatusFilter }))
+              setFilters((f) => ({
+                ...f,
+                sla_status: v === '__all' ? null : (v as SlaStatusFilter),
+              }))
             }
           >
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status SLA" /></SelectTrigger>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Status SLA" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all">Todos</SelectItem>
               <SelectItem value="on_track">No prazo</SelectItem>
@@ -137,7 +200,9 @@ export const QueueSlaPanel = () => {
         <CardContent>
           {loading ? (
             <div className="space-y-2">
-              {[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
             </div>
           ) : rows.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
@@ -146,8 +211,8 @@ export const QueueSlaPanel = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" aria-label="Painel de SLA das filas">
-                <thead className="text-xs uppercase text-muted-foreground border-b">
-                  <tr className="[&>th]:py-2 [&>th]:px-2 text-left">
+                <thead className="border-b text-xs uppercase text-muted-foreground">
+                  <tr className="text-left [&>th]:px-2 [&>th]:py-2">
                     <th scope="col">Fila</th>
                     <th scope="col">Prioridade</th>
                     <th scope="col">Peso</th>
@@ -172,26 +237,36 @@ export const QueueSlaPanel = () => {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground text-center">
-        Job automático: o sistema redistribui tickets sem agente ou com SLA estourado a cada 5 minutos,
-        respeitando a prioridade e o peso de cada fila.
+      <p className="text-center text-xs text-muted-foreground">
+        Job automático: o sistema redistribui tickets sem agente ou com SLA estourado a cada 5
+        minutos, respeitando a prioridade e o peso de cada fila.
       </p>
     </div>
   );
 };
 
 function KpiCard({
-  label, value, icon, tone = 'default',
-}: { label: string; value: number; icon: React.ReactNode; tone?: 'default' | 'warning' | 'destructive' }) {
+  label,
+  value,
+  icon,
+  tone = 'default',
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  tone?: 'default' | 'warning' | 'destructive';
+}) {
   return (
     <Card className="rounded-2xl">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={cn(
-          'h-10 w-10 rounded-xl flex items-center justify-center',
-          tone === 'destructive' && 'bg-destructive/10 text-destructive',
-          tone === 'warning' && 'bg-warning/10 text-warning',
-          tone === 'default' && 'bg-primary/10 text-primary',
-        )}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-xl',
+            tone === 'destructive' && 'bg-destructive/10 text-destructive',
+            tone === 'warning' && 'bg-warning/10 text-warning',
+            tone === 'default' && 'bg-primary/10 text-primary'
+          )}
+        >
           {icon}
         </div>
         <div>
@@ -204,7 +279,8 @@ function KpiCard({
 }
 
 function QueueRow({
-  row, onUpdate,
+  row,
+  onUpdate,
 }: {
   row: QueueSlaRow;
   onUpdate: (id: string, patch: Partial<QueueSlaRow>) => Promise<boolean>;
@@ -213,7 +289,7 @@ function QueueRow({
   useEffect(() => setWeight(String(row.routing_weight)), [row.routing_weight]);
 
   return (
-    <tr className="border-b hover:bg-muted/30 [&>td]:py-2 [&>td]:px-2">
+    <tr className="border-b hover:bg-muted/30 [&>td]:px-2 [&>td]:py-2">
       <td>
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: row.color }} />
@@ -223,7 +299,9 @@ function QueueRow({
       <td>
         <Select
           value={row.sla_priority}
-          onValueChange={(v) => onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })}
+          onValueChange={(v) =>
+            onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })
+          }
         >
           <SelectTrigger className="h-8 w-[110px]">
             <Badge className={cn('text-[10px]', PRIORITY_COLOR[row.sla_priority])}>
@@ -263,13 +341,15 @@ function QueueRow({
       <td>{row.in_progress_count}</td>
       <td>
         {row.at_risk_count > 0 ? (
-          <Badge variant="outline" className="border-warning text-warning">{row.at_risk_count}</Badge>
-        ) : '0'}
+          <Badge variant="outline" className="border-warning text-warning">
+            {row.at_risk_count}
+          </Badge>
+        ) : (
+          '0'
+        )}
       </td>
       <td>
-        {row.breached_count > 0 ? (
-          <Badge variant="destructive">{row.breached_count}</Badge>
-        ) : '0'}
+        {row.breached_count > 0 ? <Badge variant="destructive">{row.breached_count}</Badge> : '0'}
       </td>
       <td className="tabular-nums">{Math.round(Number(row.oldest_wait_minutes) || 0)}</td>
       <td className="text-xs text-muted-foreground">

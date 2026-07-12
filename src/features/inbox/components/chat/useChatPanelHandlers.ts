@@ -21,7 +21,7 @@ interface UseChatPanelHandlersOptions {
   editMessageApi: (
     instance: string,
     params: { number: string; messageId: string; text: string }
-  ) => Promise<any>;
+  ) => Promise<unknown>;
   applySignature: (text: string) => string;
   handleTypingStart: () => void;
   handleTypingStop: () => void;
@@ -50,7 +50,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [lastSendError, setLastSendError] = useState<string | null>(null);
   const [lastSendErrorDetail, setLastSendErrorDetail] = useState<string | null>(null);
-  const lastFailedPayloadRef = useRef<string | null>(null);
+  // Guarda content + attachments juntos (não só o texto): um envio só-mídia
+  // falho tem messageContent === '' (falsy), então checar `!payload` sozinho
+  // fazia retryLastSend virar no-op silencioso para esse caso.
+  const lastFailedSendRef = useRef<{ content: string; attachments?: File[] } | null>(null);
   const lastFailedAudioRef = useRef<{
     blob: Blob;
     onSendAudio: (blob: Blob) => Promise<void>;
@@ -97,12 +100,19 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const handleSend = useCallback(
     async (attachments?: File[]) => {
       const currentInput = inputValueRef.current;
-      const hasAttachments = !!attachments && attachments.length > 0;
-      // FIX C1 (2026-07-12): legenda é opcional para mídia — bloquear aqui
-      // descartava silenciosamente qualquer anexo enviado sem texto.
-      if ((!currentInput.trim() && !hasAttachments) || isSendingRef.current) return;
-
       const currentEditing = editingMessageRef.current;
+      const hasAttachments = !!attachments && attachments.length > 0;
+      // Legenda é opcional para mídia (onSendMessage/sendExternalMedia já tratam
+      // content vazio); bloquear aqui descartava silenciosamente qualquer anexo
+      // enviado sem texto — nada era enviado e nenhum erro era mostrado. O bypass
+      // só vale para envio novo: em modo de edição, texto vazio deve continuar
+      // bloqueado (senão apagaria o conteúdo da mensagem ao invés de editá-la).
+      // Também exclui modo sussurro: whisper_messages não suporta anexos (ver
+      // toast "Arquivos nao sao suportados" abaixo), então liberar o bypass aqui
+      // criava uma nota interna vazia após mostrar o aviso de "não suportado".
+      const bypassEmptyText = hasAttachments && !currentEditing && !isWhisperRef.current;
+      if ((!currentInput.trim() && !bypassEmptyText) || isSendingRef.current) return;
+
       if (currentEditing) {
         const externalId = currentEditing.external_id;
         const contactJid = contactPhone ? `${contactPhone}@s.whatsapp.net` : '';
@@ -136,7 +146,11 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         return;
       }
 
-      const messageContent = applySignature(currentInput.trim());
+      // Só aplica assinatura quando há texto real: applySignature('') retorna
+      // "*Agente:*\n" (não vazio) quando a assinatura está ativa, o que faria
+      // um envio só-mídia sair com a assinatura como legenda visível.
+      const trimmedInput = currentInput.trim();
+      const messageContent = trimmedInput ? applySignature(trimmedInput) : '';
       const wasReply = replyToMessageRef.current;
       setIsSending(true);
       setSendProgress(0);
@@ -190,7 +204,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           );
           setSendProgress(100);
         }
-        lastFailedPayloadRef.current = null;
+        lastFailedSendRef.current = null;
         undoToast({
           message: 'Mensagem enviada',
           icon: 'ok',
@@ -204,11 +218,15 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
             });
           },
         });
-      } catch (err: any) { // ignore-audit
+      } catch (err: unknown) {
+        // ignore-audit
         log.error('Failed to send message:', err);
-        const msg = err?.message || 'Falha ao invocar a funcao de envio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
-        lastFailedPayloadRef.current = messageContent;
+        const msg = err instanceof Error ? err.message : 'Falha ao invocar a funcao de envio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
+        lastFailedSendRef.current = { content: messageContent, attachments };
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         setInputValue(messageContent);
@@ -232,10 +250,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         await audioPending.onSendAudio(audioPending.blob);
         lastFailedAudioRef.current = null;
         toast({ title: 'Audio reenviado', description: 'O audio foi reenviado com sucesso.' });
-      } catch (err: any) { // ignore-audit
+      } catch (err: unknown) {
+        // ignore-audit
         log.error('Audio retry failed:', err);
-        const msg = err?.message || 'Falha ao reenviar audio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
+        const msg = err instanceof Error ? err.message : 'Falha ao reenviar audio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         toast({ title: 'Erro ao reenviar audio', description: msg, variant: 'destructive' });
@@ -244,19 +266,23 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       }
       return;
     }
-    const payload = lastFailedPayloadRef.current;
-    if (!payload) return;
+    const failedSend = lastFailedSendRef.current;
+    if (!failedSend) return;
     setIsSending(true);
     setLastSendError(null);
     setLastSendErrorDetail(null);
     try {
-      await Promise.resolve(onSendMessage(payload));
-      lastFailedPayloadRef.current = null;
+      await Promise.resolve(onSendMessage(failedSend.content, failedSend.attachments));
+      lastFailedSendRef.current = null;
       toast({ title: 'Reenviado', description: 'A mensagem foi enviada com sucesso.' });
-    } catch (err: any) { // ignore-audit
+    } catch (err: unknown) {
+      // ignore-audit
       log.error('Retry failed:', err);
-      const msg = err?.message || 'Falha ao reenviar.';
-      const detail = typeof err?.detail === 'string' ? err.detail : null;
+      const msg = err instanceof Error ? err.message : 'Falha ao reenviar.';
+      const detail =
+        typeof (err as { detail?: string }).detail === 'string'
+          ? (err as { detail?: string }).detail!
+          : null;
       setLastSendError(msg);
       setLastSendErrorDetail(detail);
       toast({ title: 'Erro ao reenviar', description: msg, variant: 'destructive' });
@@ -268,7 +294,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const dismissSendError = useCallback(() => {
     setLastSendError(null);
     setLastSendErrorDetail(null);
-    lastFailedPayloadRef.current = null;
+    lastFailedSendRef.current = null;
     lastFailedAudioRef.current = null;
   }, []);
   const handleReplyToMessage = useCallback((message: Message) => {
@@ -481,12 +507,16 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       try {
         await onSendAudio(audioBlob);
         lastFailedAudioRef.current = null;
-      } catch (err: any) { // ignore-audit
+      } catch (err: unknown) {
+        // ignore-audit
         log.error('Error sending audio:', err);
-        const msg = err?.message || 'Falha ao enviar audio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
+        const msg = err instanceof Error ? err.message : 'Falha ao enviar audio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
         lastFailedAudioRef.current = { blob: audioBlob, onSendAudio };
-        lastFailedPayloadRef.current = null;
+        lastFailedSendRef.current = null;
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         toast({
@@ -515,9 +545,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         .update({ mediaUrl: publicUrl, updated_at: new Date().toISOString() })
         .eq('id', messageId);
       toast({ title: 'Sucesso', description: 'Audio atualizado com a nova voz.' });
-    } catch (err: any) { // ignore-audit
+    } catch (err: unknown) {
+      // ignore-audit
       log.error('Failed to change audio voice:', err);
-      toast({ title: 'Erro na conversao', description: err.message, variant: 'destructive' });
+      toast({
+        title: 'Erro na conversao',
+        description: err instanceof Error ? err.message : String(err),
+        variant: 'destructive',
+      });
     }
   }, []);
 

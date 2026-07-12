@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './useAuth';
 import { useWebAuthn } from '@/hooks/useWebAuthn';
@@ -65,6 +65,13 @@ export function useAuthForm() {
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (user) navigate(nextPath, { replace: true });
@@ -73,7 +80,11 @@ export function useAuthForm() {
   useEffect(() => {
     if (isSupported()) {
       isPlatformAuthenticatorAvailable()
-        .then(setPasskeyAvailable)
+        .then((available) => {
+          if (mountedRef.current) {
+            setPasskeyAvailable(available);
+          }
+        })
         .catch(() => {});
     }
   }, [isSupported, isPlatformAuthenticatorAvailable]);
@@ -129,11 +140,15 @@ export function useAuthForm() {
 
     setLoading(true);
     const { error } = await signIn(formData.email, formData.password);
-    setLoading(false);
+    if (mountedRef.current) {
+      setLoading(false);
+    }
 
     if (error) {
       const lockResult = await recordFailedLogin(formData.email);
-      setLockStatus(lockResult);
+      if (mountedRef.current) {
+        setLockStatus(lockResult);
+      }
       if (lockResult.isLocked) {
         toast({
           title: 'Conta bloqueada temporariamente',
@@ -153,8 +168,10 @@ export function useAuthForm() {
       }
     } else {
       await clearLoginAttempts(formData.email);
-      toast({ title: 'Bem-vindo!', description: 'Login realizado com sucesso.' });
-      navigate(nextPath, { replace: true });
+      if (mountedRef.current) {
+        toast({ title: 'Bem-vindo!', description: 'Login realizado com sucesso.' });
+        navigate(nextPath, { replace: true });
+      }
     }
   };
 
@@ -174,7 +191,9 @@ export function useAuthForm() {
 
     setLoading(true);
     const { error } = await signUp(formData.email, formData.password, formData.name);
-    setLoading(false);
+    if (mountedRef.current) {
+      setLoading(false);
+    }
 
     if (error) {
       const errorMessage = error.message.includes('already registered')
@@ -195,8 +214,14 @@ export function useAuthForm() {
         options: { shouldCreateUser: false },
       });
       if (error) {
-        toast({ title: 'Autenticado com Passkey!', description: 'Redirecionando...' });
+        toast({
+          title: 'Erro ao autenticar com Passkey',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
       }
+      toast({ title: 'Autenticado com Passkey!', description: 'Redirecionando...' });
       navigate(nextPath, { replace: true });
     }
   };

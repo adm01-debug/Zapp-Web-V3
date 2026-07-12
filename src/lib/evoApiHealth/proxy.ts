@@ -73,7 +73,7 @@ class ExternalDbProxyClient {
       });
 
       const text = await response.text();
-      let result: any = null;
+      let result: { error?: string } | Record<string, unknown> | null = null;
       try {
         result = text ? JSON.parse(text) : null;
       } catch {
@@ -109,7 +109,7 @@ class ExternalDbProxyClient {
         data: (okResult?.data ?? null) as T | null,
         schema_unavailable: !!okResult?.schema_unavailable,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       const isTransient =
         errorMsg.includes('PGRST106') ||

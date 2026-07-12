@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -190,7 +189,7 @@ export const VoiceChanger = memo(function VoiceChanger({
         p_duration_ms: Date.now() - conversionStartTime,
         p_status: 'completed',
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Erro desconhecido';
       const conversionDuration = Date.now() - conversionStartTime;
 

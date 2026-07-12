@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useExternalEvolution — Hooks for reading evolution_messages from external FATOR X DB
  * Replaces the local DB reads for the Inbox when external DB is the source of truth.
@@ -53,16 +52,6 @@ const log = getLogger('useExternalEvolution');
 const OPTIMISTIC_PREFIX = 'optimistic:';
 const OPTIMISTIC_FALLBACK_WINDOW_MS = 120_000;
 const MEDIA_TYPES = new Set(['audio', 'image', 'video', 'document', 'sticker']);
-
-// Optimistic messages may carry extra fields not in RealtimeMessage (set by useChatMediaSending).
-type WithOptimisticExtras = { media_meta?: { ptt?: boolean } | null; audio_meme_id?: string | null };
-
-function resolveAudioSubtype(m: RealtimeMessage): string {
-  const extra = m as RealtimeMessage & WithOptimisticExtras;
-  const isPtt = extra.media_meta?.ptt === true;
-  const isMeme = !!extra.audio_meme_id;
-  return isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
-}
 
 /**
  * Hierarquia oficial de status do envio. Reconciliação NUNCA regride —
@@ -152,9 +141,17 @@ export function reconcileOptimistic(
         if (!can.media_url && m.media_url) patch.media_url = m.media_url;
         if (can.reactions && can.reactions.length > 0) patch.reactions = can.reactions;
 
+        // Telemetria enriquecida para áudio (PTT vs Gravado vs Meme)
+        let messageType = m.message_type;
+        if (messageType === 'audio') {
+          const isPtt = m.media_meta?.['ptt'] === true;
+          const isMeme = !!m.audio_meme_id;
+          messageType = isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
+        }
+
         recordMatch({
           strategy: 'external_id',
-          messageType: m.message_type === 'audio' ? resolveAudioSubtype(m) : m.message_type,
+          messageType,
           optimisticId: m.id,
           canonicalId: can.id,
         });
@@ -184,9 +181,17 @@ export function reconcileOptimistic(
         if (!match.media_url && m.media_url) patch.media_url = m.media_url;
         if (match.reactions && match.reactions.length > 0) patch.reactions = match.reactions;
 
+        // Telemetria enriquecida para áudio fallback (PTT vs Gravado vs Meme)
+        let messageType = m.message_type;
+        if (messageType === 'audio') {
+          const isPtt = m.media_meta?.['ptt'] === true;
+          const isMeme = !!m.audio_meme_id;
+          messageType = isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
+        }
+
         recordMatch({
           strategy: 'media_fallback',
-          messageType: m.message_type === 'audio' ? resolveAudioSubtype(m) : m.message_type,
+          messageType,
           optimisticId: m.id,
           canonicalId: match.id,
           deltaMs: Math.abs(new Date(match.created_at).getTime() - optTime),
@@ -399,13 +404,16 @@ interface ContactEnrichmentData {
   [key: string]: unknown;
 }
 // ─── Global Enrichment Cache to avoid redundant RPC calls ──────────
-const contactEnrichmentCache = new Map<string, { data: ContactEnrichmentData; timestamp: number }>();
+const contactEnrichmentCache = new Map<
+  string,
+  { data: ContactEnrichmentData; timestamp: number }
+>();
 const CACHE_TTL = 300_000; // 5 minutes
 
 // Enrichment `tags` may arrive as a JSON array string, a plain comma-separated
 // string, or malformed data. Never let a single bad value throw and take down
 // the whole conversation-list query (it re-runs every 5s poll).
-function _safeParseTags(raw: string): string[] {
+function safeParseTags(raw: string): string[] {
   const trimmed = raw.trim();
   if (!trimmed) return [];
   if (trimmed.startsWith('[')) {
@@ -416,7 +424,10 @@ function _safeParseTags(raw: string): string[] {
       return [];
     }
   }
-  return trimmed.split(',').map(t => t.trim()).filter(Boolean);
+  return trimmed
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
 }
 
 // ─── Hook: External Conversations (list for sidebar) ──────────
@@ -466,7 +477,7 @@ export function useExternalConversations(enabled = true) {
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>
-              queryExternalProxy<any>({
+              queryExternalProxy<ContactEnrichmentData>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',
                 params: {
@@ -501,7 +512,7 @@ export function useExternalConversations(enabled = true) {
             conv.contact.tags = Array.isArray(extra.tags)
               ? extra.tags
               : typeof extra.tags === 'string'
-                ? JSON.parse(extra.tags)
+                ? safeParseTags(extra.tags)
                 : [];
           if (extra.company) conv.contact.company = extra.company;
           if (extra.ai_sentiment) conv.contact.ai_sentiment = extra.ai_sentiment;
@@ -596,6 +607,11 @@ export function useExternalMessages(remoteJid: string | null) {
         { lockTtl: 10_000, resultTtl: 15_000, waitTimeout: 8_000 }
       );
       if (!mountedRef.current) return;
+      // Guard: if the user switched contacts while this fetch was in-flight,
+      // previousJidRef.current was already updated to the new jid before the
+      // new initialFetch was called. Discard stale results to prevent the
+      // previous contact's messages bleeding into the current conversation.
+      if (previousJidRef.current !== remoteJid) return;
 
       const mapped = evoMessages.map(evolutionToRealtimeMessage);
 
@@ -604,8 +620,12 @@ export function useExternalMessages(remoteJid: string | null) {
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens
         const currentAvatar =
-          queryClient.getQueryData<{ avatar_url?: string | null }>(['contact', remoteJid])?.avatar_url ||
-          queryClient.getQueryData<{ avatar_url?: string | null }>(['external-evolution', 'contact', remoteJid])?.avatar_url;
+          queryClient.getQueryData<{ avatar_url?: string }>(['contact', remoteJid])?.avatar_url ||
+          queryClient.getQueryData<{ avatar_url?: string }>([
+            'external-evolution',
+            'contact',
+            remoteJid,
+          ])?.avatar_url;
 
         // Propaga o avatar para todas as mensagens (canônicas e otimistas remanescentes)
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
@@ -613,13 +633,11 @@ export function useExternalMessages(remoteJid: string | null) {
           m.id.startsWith(OPTIMISTIC_PREFIX) ? { ...m, contactAvatar: currentAvatar } : m
         );
 
-        // Initial: o servidor é a fonte da verdade — ordenamos por created_at
-        // garantindo que otimistas remanescentes (ainda sem external_id real)
-        // continuem visíveis ao final.
-        const merged = [
-          ...filteredWithAvatar.filter((m) => m.id.startsWith(OPTIMISTIC_PREFIX)),
-          ...additionsWithAvatar,
-        ];
+        // Union: mantém todas as mensagens já em estado (canônicas carregadas via
+        // scroll/load-older + otimistas pendentes) e acrescenta apenas as novas vindas
+        // do servidor. Na troca de jid, setMessages([]) é chamado antes de initialFetch,
+        // portanto filteredPrev será [] e o resultado é equivalente a uma substituição.
+        const merged = [...filteredWithAvatar, ...additionsWithAvatar];
         return merged.sort(
           (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
@@ -656,8 +674,12 @@ export function useExternalMessages(remoteJid: string | null) {
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens poladas
         const currentAvatar =
-          queryClient.getQueryData<{ avatar_url?: string | null }>(['contact', remoteJid])?.avatar_url ||
-          queryClient.getQueryData<{ avatar_url?: string | null }>(['external-evolution', 'contact', remoteJid])?.avatar_url;
+          queryClient.getQueryData<{ avatar_url?: string }>(['contact', remoteJid])?.avatar_url ||
+          queryClient.getQueryData<{ avatar_url?: string }>([
+            'external-evolution',
+            'contact',
+            remoteJid,
+          ])?.avatar_url;
 
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
         return [...filteredPrev, ...additionsWithAvatar];
@@ -728,6 +750,10 @@ export function useExternalMessages(remoteJid: string | null) {
       previousJidRef.current = remoteJid;
       lastSeenRef.current = null;
       setHasMore(true);
+      // Clear state so the union merge in initialFetch starts from a clean slate
+      // for this conversation — avoids stale canonical messages from the previous
+      // jid bleeding into the union when the contact changes.
+      setMessages([]);
       void initialFetch();
     }
   }, [remoteJid, initialFetch]);

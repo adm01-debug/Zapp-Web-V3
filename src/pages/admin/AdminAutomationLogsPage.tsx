@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  type LucideIcon,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,12 +43,12 @@ interface ExecutionRow {
   remote_jid: string;
   instance_name: string | null;
   status: 'pending' | 'executed' | 'dismissed' | 'error' | string;
-  trigger_payload: any;
+  trigger_payload: Record<string, unknown>;
   suggestion_text: string | null;
   applied_tags: string[] | null;
   recommended_tag: string | null;
   kb_sources: string[] | null;
-  rule_snapshot: any;
+  rule_snapshot: Record<string, unknown>;
   channel_id: string | null;
   department_id: string | null;
   error_message: string | null;
@@ -62,7 +63,10 @@ interface RuleLite {
   name: string;
 }
 
-const STATUS_META: Record<string, { label: string; icon: any; variant: any }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; icon: LucideIcon; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+> = {
   pending: { label: 'Pendente', icon: Clock, variant: 'outline' },
   accepted: { label: 'Aceita', icon: CheckCircle2, variant: 'default' },
   executed: { label: 'Executada', icon: CheckCircle2, variant: 'default' },
@@ -113,7 +117,7 @@ export default function AdminAutomationLogsPage() {
     if (error) {
       // Silently show empty state when table doesn't exist yet (pending migration)
       const isMissing =
-        error.message?.includes('does not exist') || error.message?.includes('42P01');
+        error.message?.includes('does not exist') || (error as { code?: string }).code === '42P01';
       if (!isMissing) {
         toast({ title: 'Erro', description: error.message, variant: 'destructive' });
       }
@@ -462,7 +466,7 @@ function KV({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
   );
 }
 
-function Pre({ title, data }: { title: string; data: any }) {
+function Pre({ title, data }: { title: string; data: unknown }) {
   return (
     <div>
       <Label className="text-xs">{title}</Label>

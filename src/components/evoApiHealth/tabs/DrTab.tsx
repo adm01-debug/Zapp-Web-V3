@@ -7,7 +7,7 @@ import { Shield } from 'lucide-react';
 import { DrRunbookStep } from '@/lib/evoApiHealth/types';
 
 interface DrTabProps {
-  drHealth?: Record<string, unknown> | null;
+  drHealth?: Record<string, unknown>;
   runbook?: DrRunbookStep[];
 }
 
@@ -17,9 +17,9 @@ export const DrTab = React.memo(({ drHealth, runbook }: DrTabProps) => {
       {drHealth && (
         <Alert>
           <Shield className="h-4 w-4" />
-          <AlertTitle>{String(drHealth?.['overall'] ?? 'DR Health')}</AlertTitle>
+          <AlertTitle>{(drHealth as { overall?: string }).overall ?? 'DR Health'}</AlertTitle>
           <AlertDescription>
-            <pre className="text-xs bg-muted p-2 rounded overflow-x-auto mt-2">
+            <pre className="mt-2 overflow-x-auto rounded bg-muted p-2 text-xs">
               {JSON.stringify(drHealth, null, 2)}
             </pre>
           </AlertDescription>
@@ -34,16 +34,22 @@ export const DrTab = React.memo(({ drHealth, runbook }: DrTabProps) => {
             <ol className="space-y-3">
               {runbook?.map((s) => (
                 <li key={s.step_number} className="border-l-2 border-primary/40 pl-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline">{s.icon} {s.category}</Badge>
-                    <span className="font-medium">Passo {s.step_number}: {s.title}</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">
+                      {s.icon} {s.category}
+                    </Badge>
+                    <span className="font-medium">
+                      Passo {s.step_number}: {s.title}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{s.description}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{s.description}</p>
                   {s.command && (
-                    <pre className="text-xs bg-muted p-2 rounded mt-2 overflow-x-auto">{s.command}</pre>
+                    <pre className="mt-2 overflow-x-auto rounded bg-muted p-2 text-xs">
+                      {s.command}
+                    </pre>
                   )}
                   {(s.rto_minutes != null || s.rpo_minutes != null) && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {s.rto_minutes != null && <>RTO: {s.rto_minutes}min · </>}
                       {s.rpo_minutes != null && <>RPO: {s.rpo_minutes}min</>}
                     </p>
