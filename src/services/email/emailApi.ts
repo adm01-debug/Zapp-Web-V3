@@ -4,8 +4,8 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 export interface EmailRevalidationJob {
   id: string;
   status: string;
-  requested_at: string;
-  requested_by: string | null;
+  scheduled_at: string;
+  triggered_by: string | null;
   result: Record<string, unknown> | null;
 }
 
@@ -24,21 +24,21 @@ export const emailApi = {
   ) => {
      
     let query = supabase
-      .from('email_revalidation_jobs' as any)
-      .select('*', { count: 'exact' } as any);
+      .from('email_revalidation_jobs')
+      .select('*', { count: 'exact' });
 
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
     }
     if (filters?.dateFrom) {
-      query = query.gte('requested_at', filters.dateFrom);
+      query = query.gte('scheduled_at', filters.dateFrom);
     }
     if (filters?.dateTo) {
-      query = query.lte('requested_at', filters.dateTo);
+      query = query.lte('scheduled_at', filters.dateTo);
     }
 
     const { data, count, error } = await query
-      .order('requested_at', { ascending: false })
+      .order('scheduled_at', { ascending: false })
       .range(from, to);
 
     return { data: data as unknown as EmailRevalidationJob[] | null, count, error };
@@ -74,7 +74,7 @@ export const emailApi = {
     return await safeClient.from<EmailRevalidationJob>('email_revalidation_jobs', (q) =>
       q.insert({
         status: 'pending',
-        requested_by: job.requested_by,
+        triggered_by: job.triggered_by,
         result: { retry_of: jobId },
       })
     );

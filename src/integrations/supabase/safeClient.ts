@@ -133,8 +133,7 @@ export const safeClient = {
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await queryBuilder(supabase.from(table as any));
+      const { data, error } = await queryBuilder(supabase.from(table as Parameters<typeof supabase.from>[0]));
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
@@ -174,8 +173,7 @@ export const safeClient = {
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await queryBuilder(supabase.from(table as any)).single();
+      const { data, error } = await queryBuilder(supabase.from(table as Parameters<typeof supabase.from>[0])).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
@@ -256,8 +254,7 @@ export const safeClient = {
       let exists = false;
       if (type === 'table') {
         const { error } = await supabase
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from(name as any)
+          .from(name as Parameters<typeof supabase.from>[0])
           .select('count', { count: 'exact', head: true })
           .limit(0);
         if (!error) {
@@ -280,7 +277,7 @@ export const safeClient = {
         }
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase.rpc(name as any) as any).limit(0);
+        const { error } = await (supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any).limit(0);
         if (!error) {
           exists = true;
         } else {
