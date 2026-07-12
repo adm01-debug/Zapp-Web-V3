@@ -4,6 +4,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionHealthPanel');
 import { supabase } from '@/integrations/supabase/client';
+import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,6 @@ import { toast } from 'sonner';
 
 interface ConnectionHealth {
   id: string;
-  instance_id: string;
   status: string;
   phone_number: string | null;
   last_health_check: string | null;
@@ -50,37 +50,14 @@ export function ConnectionHealthPanel() {
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
   }, []);
 
-  /** Build a deep link that opens the connections view and auto-launches the QR dialog. */
-  const buildQrLink = (instanceId: string) => {
-    const url = new URL(window.location.origin);
-    url.searchParams.set('view', 'connections');
-    url.searchParams.set('qr', instanceId);
-    return url.toString();
-  };
-
   const handleCopyQrLink = async (conn: ConnectionHealth) => {
-    if (!conn.instance_id) {
-      toast.error('Instância sem identificador — não é possível gerar o link.');
-      return;
-    }
-    const link = buildQrLink(conn.instance_id);
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopiedId(conn.id);
-      toast.success('Link do QR copiado — abra em outro dispositivo para reconectar.');
-      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-      copiedTimerRef.current = setTimeout(() => setCopiedId((c) => (c === conn.id ? null : c)), 2000);
-    } catch {
-      toast.error('Falha ao copiar. Copie manualmente: ' + link);
-    }
+    toast.error('Funcionalidade de QR link requer acesso seguro — use o painel de configurações.');
   };
 
   const fetchData = useCallback(async () => {
-    const [{ data: conns }, { data: logs }] = await Promise.all([
-      supabase
-        .from('whatsapp_connections')
-        .select('id, instance_id, status, phone_number, last_health_check, health_status, health_response_ms')
-        .order('created_at', { ascending: false }),
+    const safeQueries = safeWhatsAppConnectionsQuery(supabase);
+    const [connResult, { data: logs }] = await Promise.all([
+      safeQueries.getList(),
       supabase
         .from('connection_health_logs')
         .select('id, instance_id, status, response_time_ms, error_message, checked_at')
@@ -89,7 +66,7 @@ export function ConnectionHealthPanel() {
     ]);
 
     if (!mountedRef.current) return;
-    if (conns) setConnections(conns as ConnectionHealth[]);
+    if (connResult.data) setConnections(connResult.data as unknown as ConnectionHealth[]);
     if (logs) setRecentLogs(logs as HealthLog[]);
     setLoading(false);
   }, []);

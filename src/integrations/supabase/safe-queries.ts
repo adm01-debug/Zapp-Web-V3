@@ -42,7 +42,7 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
   getById: async (id: string) => {
     return supabase
       .from('whatsapp_connections')
-      .select('id, name, phone_number, status, is_default, health_status, health_response_ms, last_health_check, updated_at')
+      .select('id, name, phone_number, status, is_default, health_status, health_response_ms, last_health_check, auto_reconnect_enabled, reconnect_interval_seconds, max_reconnect_attempts, loop_protection_active, updated_at')
       .eq('id', id)
       .single();
   },
@@ -61,6 +61,23 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
     }
 
     return query.order('name', { ascending: true });
+  },
+
+  /**
+   * Get connections with degraded health status (RLS enforced)
+   * Safe for: monitoring, alerts, health dashboards
+   */
+  getDegraded: async (sinceDatetime?: string) => {
+    let query = supabase
+      .from('whatsapp_connections')
+      .select('id, name, instance_name, health_status, health_response_ms, last_health_check, updated_at')
+      .eq('health_status', 'degraded');
+
+    if (sinceDatetime) {
+      query = query.gte('last_health_check', sinceDatetime);
+    }
+
+    return query.order('last_health_check', { ascending: false });
   },
 
   /**
