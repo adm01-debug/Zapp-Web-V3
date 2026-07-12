@@ -55,6 +55,21 @@ interface QueuedMessage {
 
 interface SendResult { success: boolean; messageId?: string; error?: string; http_status?: number; }
 
+/** HTTP status considered terminal — never retry (auth/permission/validation). */
+function isTerminalStatus(status?: number): boolean {
+  return status === 400 || status === 401 || status === 403 || status === 404 || status === 422;
+}
+
+/** Exponential backoff with jitter (ms). base=30s, cap=10min. */
+function nextBackoffMs(attempts: number): number {
+  const base = 30_000;
+  const cap = 600_000;
+  const exp = Math.min(cap, base * Math.pow(2, Math.max(0, attempts - 1)));
+  const jitter = Math.floor(Math.random() * Math.min(exp, 15_000));
+  return exp + jitter;
+}
+
+
 /** Escape regex metacharacters in template variable keys to prevent injection. */
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
