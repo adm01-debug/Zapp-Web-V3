@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useHmacSelfTest — Wave 3 batch-3 (2026-07-06)
  * Camada de dados extraída de HmacSelfTestPage: invoke do self-test, auditoria
