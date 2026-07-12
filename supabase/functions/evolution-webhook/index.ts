@@ -204,7 +204,11 @@ serve(async (req) => {
 
   // [ORDER 2026-07-04] Idempotency ANTES do rate-limit: retries duplicados do Evolution nao consomem quota.
   // Dedup by hash of (instance + event + body); se ja vimos este event_id, short-circuit 200.
-  const bodyHash = await sha256Hex(rawBody);
+  // [FIX-07 2026-07-12 S2] Apply NFC Unicode normalization before hashing to prevent
+  // normalization attacks where semantically identical messages with different Unicode
+  // representations (e.g., café as precomposed U+00E9 vs combining U+0301) bypass dedup.
+  const normalizedBody = rawBody.normalize('NFC');
+  const bodyHash = await sha256Hex(normalizedBody);
   const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
   const isNew = await markEventProcessed(supabase, eventId, instance, event);
   if (!isNew) {
