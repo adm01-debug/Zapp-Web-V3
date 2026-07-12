@@ -49,9 +49,15 @@ export function useServiceWorker() {
     const timeoutIds: NodeJS.Timeout[] = [];
 
     const registerServiceWorker = async (retryCount = 0) => {
+      // Capture disposed state at entry to prevent race conditions
+      const wasDisposed = disposed;
+      if (wasDisposed) return;
+
       try {
         const reloadedForLegacyCleanup = await cleanupLegacyServiceWorker();
-        if (reloadedForLegacyCleanup || disposed) return;
+        if (reloadedForLegacyCleanup) return;
+        // Re-check disposed flag after async operation
+        if (disposed) return;
 
         let registration;
         try {
@@ -76,6 +82,7 @@ export function useServiceWorker() {
           throw err;
         }
 
+        // Final disposed check before setting up event listeners
         if (disposed) return;
 
         log.debug('[ServiceWorker] Registration successful:', registration.scope);
