@@ -34,9 +34,20 @@ serve(async (req) => {
   const redirectUri  = Deno.env.get('GMAIL_REDIRECT_URI') ?? `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/gmail-oauth`;
 
   try {
-    const body = await req.json().catch(() => ({}));
+    let bodyRaw: unknown;
+    try {
+      bodyRaw = await req.json();
+    } catch {
+      bodyRaw = {};
+    }
+
+    if (!bodyRaw || typeof bodyRaw !== 'object' || Array.isArray(bodyRaw)) {
+      bodyRaw = {};
+    }
+    const body = bodyRaw as Record<string, unknown>;
+
     // Normalize action: accept both camelCase and kebab-case
-    const rawAction = body.action as string | undefined;
+    const rawAction = typeof body.action === 'string' ? body.action : undefined;
     const actionMap: Record<string, string> = {
       'get-auth-url': 'getAuthUrl',
       'exchange-code': 'exchangeCode',
@@ -67,7 +78,8 @@ serve(async (req) => {
 
     // ── 2. exchangeCode — troca code por tokens ────────────────────────
     if (action === 'exchangeCode') {
-      const { code, userId } = body;
+      const code = typeof body.code === 'string' ? body.code : '';
+      const userId = typeof body.userId === 'string' ? body.userId : '';
       if (!code || !userId) {
         return new Response(JSON.stringify({ error: 'code e userId obrigatórios' }), { status: 400, headers: jsonHeaders });
       }
@@ -85,32 +97,70 @@ serve(async (req) => {
         signal: AbortSignal.timeout(10_000),
       });
 
-      const tokens = await tokenRes.json();
+      let tokensRaw: unknown;
+      try {
+        tokensRaw = await tokenRes.json();
+      } catch {
+        return new Response(JSON.stringify({ error: 'Invalid token response' }), { status: 400, headers: jsonHeaders });
+      }
+
+      if (!tokensRaw || typeof tokensRaw !== 'object' || Array.isArray(tokensRaw)) {
+        return new Response(JSON.stringify({ error: 'Invalid token response' }), { status: 400, headers: jsonHeaders });
+      }
+      const tokens = tokensRaw as Record<string, unknown>;
+
       if (tokens.error) {
-        return new Response(JSON.stringify({ error: tokens.error_description ?? tokens.error }), { status: 400, headers: jsonHeaders });
+        const errorDesc = typeof tokens.error_description === 'string' ? tokens.error_description : (typeof tokens.error === 'string' ? tokens.error : 'Unknown error');
+        return new Response(JSON.stringify({ error: errorDesc }), { status: 400, headers: jsonHeaders });
+      }
+
+      const accessToken = typeof tokens.access_token === 'string' ? tokens.access_token : '';
+      if (!accessToken) {
+        return new Response(JSON.stringify({ error: 'No access token received' }), { status: 400, headers: jsonHeaders });
       }
 
       // Busca perfil do usuário
       const profileRes = await fetch(GOOGLE_USERINFO, {
-        headers: { Authorization: `Bearer ${tokens.access_token}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.timeout(10_000),
       });
-      const profile = await profileRes.json();
+      let profileRaw: unknown;
+      try {
+        profileRaw = await profileRes.json();
+      } catch {
+        return new Response(JSON.stringify({ error: 'Invalid profile response' }), { status: 400, headers: jsonHeaders });
+      }
+
+      if (!profileRaw || typeof profileRaw !== 'object' || Array.isArray(profileRaw)) {
+        return new Response(JSON.stringify({ error: 'Invalid profile response' }), { status: 400, headers: jsonHeaders });
+      }
+      const profile = profileRaw as Record<string, unknown>;
 
       // Upsert na tabela gmail_accounts
-      const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();
+      const expiresIn = typeof tokens.expires_in === 'number' ? tokens.expires_in : 3600;
+      const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+      const profileEmail = typeof profile.email === 'string' ? profile.email : '';
+      const profileName = typeof profile.name === 'string' ? profile.name : '';
+      const profilePicture = typeof profile.picture === 'string' ? profile.picture : null;
+      const refreshToken = typeof tokens.refresh_token === 'string' ? tokens.refresh_token : null;
+      const tokenScope = typeof tokens.scope === 'string' ? tokens.scope : '';
+
+      if (!profileEmail) {
+        return new Response(JSON.stringify({ error: 'Profile email not available' }), { status: 400, headers: jsonHeaders });
+      }
 
       const { data: account, error: upsertErr } = await supabase
         .from('gmail_accounts')
         .upsert({
           user_id:       userId,
-          email:         profile.email,
-          display_name:  profile.name,
-          picture_url:   profile.picture,
-          access_token:  tokens.access_token,
-          refresh_token: tokens.refresh_token,
+          email:         profileEmail,
+          display_name:  profileName,
+          picture_url:   profilePicture,
+          access_token:  accessToken,
+          refresh_token: refreshToken,
           token_expiry:  expiresAt,
-          scope:         tokens.scope,
+          scope:         tokenScope,
           is_active:     true,
         }, { onConflict: 'user_id,email' })
         .select('id, email')
@@ -121,34 +171,50 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: jsonHeaders });
       }
 
+      if (!account || typeof account !== 'object' || Array.isArray(account)) {
+        return new Response(JSON.stringify({ error: "Failed to create account" }), { status: 500, headers: jsonHeaders });
+      }
+      const accountObj = account as Record<string, unknown>;
+      const accountId = typeof accountObj.id === 'string' ? accountObj.id : null;
+      const accountEmail = typeof accountObj.email === 'string' ? accountObj.email : null;
+
+      if (!accountId || !accountEmail) {
+        return new Response(JSON.stringify({ error: "Invalid account response" }), { status: 500, headers: jsonHeaders });
+      }
+
       return new Response(
-        JSON.stringify({ success: true, accountId: account.id, email: account.email }),
+        JSON.stringify({ success: true, accountId, email: accountEmail }),
         { headers: jsonHeaders }
       );
     }
 
     // ── 3. refresh — renova access_token ──────────────────────────────
     if (action === 'refresh') {
-      const { accountId } = body;
+      const accountId = typeof body.accountId === 'string' ? body.accountId : '';
       if (!accountId) {
         return new Response(JSON.stringify({ error: 'accountId obrigatório' }), { status: 400, headers: jsonHeaders });
       }
 
-      const { data: account, error: fetchErr } = await supabase
+      const { data: accountData, error: fetchErr } = await supabase
         .from('gmail_accounts')
         .select('refresh_token')
         .eq('id', accountId)
         .single();
 
-      if (fetchErr || !account) {
+      if (fetchErr || !accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
         return new Response(JSON.stringify({ error: 'Conta não encontrada' }), { status: 404, headers: jsonHeaders });
+      }
+      const account = accountData as Record<string, unknown>;
+      const refreshToken = typeof account.refresh_token === 'string' ? account.refresh_token : '';
+      if (!refreshToken) {
+        return new Response(JSON.stringify({ error: 'Refresh token não encontrado' }), { status: 404, headers: jsonHeaders });
       }
 
       const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          refresh_token: account.refresh_token,
+          refresh_token: refreshToken,
           client_id:     clientId,
           client_secret: clientSecret,
           grant_type:    'refresh_token',
@@ -156,51 +222,75 @@ serve(async (req) => {
         signal: AbortSignal.timeout(10_000),
       });
 
-      const tokens = await tokenRes.json();
+      let tokensRaw: unknown;
+      try {
+        tokensRaw = await tokenRes.json();
+      } catch {
+        await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
+        return new Response(JSON.stringify({ error: 'refresh token inválido — reconecte a conta' }), { status: 401, headers: jsonHeaders });
+      }
+
+      if (!tokensRaw || typeof tokensRaw !== 'object' || Array.isArray(tokensRaw)) {
+        await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
+        return new Response(JSON.stringify({ error: 'refresh token inválido — reconecte a conta' }), { status: 401, headers: jsonHeaders });
+      }
+      const tokens = tokensRaw as Record<string, unknown>;
+
       if (tokens.error) {
         // Token revogado — marcar conta inativa
         await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
         return new Response(JSON.stringify({ error: 'refresh_token inválido — reconecte a conta' }), { status: 401, headers: jsonHeaders });
       }
 
-      const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();
+      const expiresIn = typeof tokens.expires_in === 'number' ? tokens.expires_in : 3600;
+      const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
+      const newAccessToken = typeof tokens.access_token === 'string' ? tokens.access_token : '';
+      if (!newAccessToken) {
+        return new Response(JSON.stringify({ error: 'No access token in refresh response' }), { status: 400, headers: jsonHeaders });
+      }
+
+      const newRefreshToken = typeof tokens.refresh_token === 'string' ? tokens.refresh_token : null;
       await supabase.from('gmail_accounts').update({
-        access_token: tokens.access_token,
+        access_token: newAccessToken,
         token_expiry: expiresAt,
-        ...(tokens.refresh_token ? { refresh_token: tokens.refresh_token } : {}),
+        ...(newRefreshToken ? { refresh_token: newRefreshToken } : {}),
       }).eq('id', accountId);
 
       return new Response(
-        JSON.stringify({ access_token: tokens.access_token, token_expiry: expiresAt }),
+        JSON.stringify({ access_token: newAccessToken, token_expiry: expiresAt }),
         { headers: jsonHeaders }
       );
     }
 
     // ── 4. revoke — revoga acesso e remove conta ──────────────────────
     if (action === 'revoke') {
-      const { accountId } = body;
+      const accountId = typeof body.accountId === 'string' ? body.accountId : '';
       if (!accountId) {
         return new Response(JSON.stringify({ error: 'accountId obrigatório' }), { status: 400, headers: jsonHeaders });
       }
 
-      const { data: account } = await supabase
+      const { data: accountData } = await supabase
         .from('gmail_accounts')
         .select('access_token')
         .eq('id', accountId)
         .single();
 
-      if (account?.access_token) {
-        // Best-effort — a network failure or timeout must not block account deletion
-        try {
-          await fetch(GOOGLE_REVOKE, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ token: account.access_token }),
-            signal: AbortSignal.timeout(10_000),
-          });
-        } catch (revokeErr) {
-          console.warn('[gmail-oauth] Google revoke failed (continuing with DB deletion)', revokeErr instanceof Error ? revokeErr.message : String(revokeErr));
+      if (accountData && typeof accountData === 'object' && !Array.isArray(accountData)) {
+        const account = accountData as Record<string, unknown>;
+        const accessToken = typeof account.access_token === 'string' ? account.access_token : '';
+        if (accessToken) {
+          // Best-effort — a network failure or timeout must not block account deletion
+          try {
+            await fetch(GOOGLE_REVOKE, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({ token: accessToken }),
+              signal: AbortSignal.timeout(10_000),
+            });
+          } catch (revokeErr) {
+            console.warn('[gmail-oauth] Google revoke failed (continuing with DB deletion)', revokeErr instanceof Error ? revokeErr.message : String(revokeErr));
+          }
         }
       }
 
@@ -215,21 +305,30 @@ serve(async (req) => {
     // Usado quando redirect_uri aponta para este endpoint
     const url = new URL(req.url);
     if (req.method === 'GET' && url.searchParams.has('code')) {
-      const code    = url.searchParams.get('code')!;
-      const _state  = url.searchParams.get('state');
-      const errorP  = url.searchParams.get('error');
+      const code = url.searchParams.get('code');
+      const _state = url.searchParams.get('state');
+      const errorP = url.searchParams.get('error');
 
       if (errorP) {
+        const errorMsg = typeof errorP === 'string' ? errorP.replace(/'/g, "\\'") : 'unknown';
         return new Response(
-          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:'${errorP}'},'*');window.close()</script>`,
+          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:'${errorMsg}'},'*');window.close()</script>`,
+          { headers: { 'Content-Type': 'text/html' } }
+        );
+      }
+
+      if (!code || typeof code !== 'string') {
+        return new Response(
+          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:'No code received'},'*');window.close()</script>`,
           { headers: { 'Content-Type': 'text/html' } }
         );
       }
 
       // Retorna o code para o popup processar via exchangeCode
+      const codeEscaped = code.replace(/'/g, "\\'");
       return new Response(
         `<script>
-          window.opener?.postMessage({type:'gmail-oauth-code',code:'${code}'},'*');
+          window.opener?.postMessage({type:'gmail-oauth-code',code:'${codeEscaped}'},'*');
           window.close();
         </script>`,
         { headers: { 'Content-Type': 'text/html' } }
