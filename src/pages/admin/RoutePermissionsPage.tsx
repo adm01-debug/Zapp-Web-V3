@@ -17,7 +17,7 @@ import type { AppRole } from "@/features/auth";
 import { useRoutePermissions, ALL_ROLES, type RoutePermission } from '@/hooks/admin/useRoutePermissions';
 
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 const ROLE_LABELS: Record<AppRole, string> = {
   dev: "Dev",
   admin: "Admin",
