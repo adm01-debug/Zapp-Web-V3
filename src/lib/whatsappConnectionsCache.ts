@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Module-level cache for `whatsapp_connections` reads.
  *
