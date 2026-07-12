@@ -27,7 +27,14 @@ export function useGroupsManager() {
     if (error) {
       toast.error('Erro ao carregar grupos');
       log.error('Error fetching groups:', error);
-    } else setGroups(data || []);
+    } else {
+      const normalizedData = (data || []).map((g) => ({
+        ...g,
+        is_admin: g.is_admin ?? false,
+        participant_count: g.participant_count ?? 0,
+      }));
+      setGroups(normalizedData);
+    }
     setIsLoading(false);
   }, []);
 

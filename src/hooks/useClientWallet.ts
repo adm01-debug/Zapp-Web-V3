@@ -64,6 +64,8 @@ export function useClientWallet() {
       setRules(
         rulesData.map((rule) => ({
           ...rule,
+          priority: rule.priority ?? 0,
+          is_active: rule.is_active ?? false,
           agent: agentsData?.find((a) => a.id === rule.agent_id),
           connection: connectionsData?.find((c) => c.id === rule.whatsapp_connection_id),
         }))

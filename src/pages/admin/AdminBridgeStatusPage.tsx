@@ -57,6 +57,7 @@ interface HealthIncident {
   title: string;
   description?: string | null;
   severity: 'critical' | 'high' | 'medium' | 'low';
+  status: 'active' | 'resolved' | 'investigating';
 }
 
 interface RecentTraffic {
@@ -171,7 +172,8 @@ export default function BridgeStatusPage() {
         const { data: alerts } = await safeClient.from('v_alerts_active', (q) =>
           q.select('*').limit(5)
         );
-        if (mountedRef.current) setActiveAlerts(alerts || []);
+        if (mountedRef.current)
+          setActiveAlerts((Array.isArray(alerts) ? alerts : []) as ActiveAlert[]);
       } catch {
         if (mountedRef.current) setActiveAlerts([]);
       }
@@ -212,7 +214,7 @@ export default function BridgeStatusPage() {
     const { data } = await safeClient.from('system_health_incidents', (q) =>
       q.select('*').order('started_at', { ascending: false }).limit(10)
     );
-    if (mountedRef.current) setIncidents(data || []);
+    if (mountedRef.current) setIncidents((Array.isArray(data) ? data : []) as HealthIncident[]);
   }, [mountedRef]);
 
   useEffect(() => {

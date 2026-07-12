@@ -127,7 +127,7 @@ export function useMonitoringData(onConnectionsUpdate?: (conns: ConnectionInfo[]
           supabase
             .from('whatsapp_connections')
             .select(
-              'id, instance_id, instance_name, phone_number, status, health_status, health_response_ms, last_health_check, updated_at'
+              'id, instance_id, name, phone_number, status, health_status, health_response_ms, last_health_check, updated_at'
             ),
           supabase
             .from('connection_health_logs')
