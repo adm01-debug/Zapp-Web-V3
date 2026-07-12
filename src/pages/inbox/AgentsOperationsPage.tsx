@@ -61,7 +61,7 @@ export default function AgentsOperationsPage() {
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
           <SelectTrigger className="sm:w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>

@@ -178,7 +178,7 @@ export function ContactAdvancedFilters({
             </Label>
             <Slider
               value={filterLeadScoreRange}
-              onValueChange={(v) => setFilterLeadScoreRange(v as [number, number])} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values
+              onValueChange={(v) => setFilterLeadScoreRange(v as [number, number] /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
               min={0}
               max={100}
               step={5}

@@ -44,7 +44,7 @@ export function CSATDashboard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Tabs value={period} onValueChange={(v) => setPeriod(v as typeof period)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
+        <Tabs value={period} onValueChange={(v) => setPeriod(v as typeof period /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
           <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="today">Hoje</TabsTrigger>
             <TabsTrigger value="week">Semana</TabsTrigger>

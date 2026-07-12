@@ -162,7 +162,7 @@ export const SLADashboard = () => {
           <ToggleGroup 
             type="single" 
             value={period} 
-            onValueChange={(v) => v && setPeriod(v as PeriodFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values
+            onValueChange={(v) => v && setPeriod(v as PeriodFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
             className="bg-muted/50 rounded-lg p-1"
           >
             {Object.entries(periodLabels).map(([key, label]) => (

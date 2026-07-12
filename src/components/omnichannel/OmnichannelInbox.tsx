@@ -133,7 +133,7 @@ export function OmnichannelInbox() {
       {/* Main Tabs: Channels | Email Chat */}
       <Tabs
         value={activeMainTab}
-        onValueChange={(v) => setActiveMainTab(v as 'channels' | 'email')} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values
+        onValueChange={(v) => setActiveMainTab(v as 'channels' | 'email' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
         className="flex h-full flex-col"
       >
         <div className="border-b px-4">

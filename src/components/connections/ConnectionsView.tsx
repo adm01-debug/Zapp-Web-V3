@@ -140,7 +140,7 @@ export function ConnectionsView() {
                   <Label>Método de conexão</Label>
                   <Select
                     value={newConnection.api_type}
-                    onValueChange={(v) => setNewConnection({ ...newConnection, api_type: v as 'evolution' | 'official' } // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values)}
+                    onValueChange={(v) => setNewConnection({ ...newConnection, api_type: v as 'evolution' | 'official'  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */})}
                   >
                     <SelectTrigger><SelectValue placeholder="Como deseja conectar?" /></SelectTrigger>
                     <SelectContent>

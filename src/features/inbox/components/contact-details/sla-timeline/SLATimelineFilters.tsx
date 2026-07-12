@@ -73,7 +73,7 @@ export function SLATimelineFilters({
         size="sm"
         variant="outline"
         value={statusFilter}
-        onValueChange={(v) => setStatusFilter(v.length ? (v as SLAStatus[]) : ALL_STATUSES)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values
+        onValueChange={(v) => setStatusFilter(v.length ? (v as SLAStatus[]) : ALL_STATUSES /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
         aria-label="Filtrar marcos por status"
         className="flex-wrap justify-start gap-1"
       >
@@ -107,7 +107,7 @@ export function SLATimelineFilters({
         size="sm"
         variant="outline"
         value={periodFilter}
-        onValueChange={(v) => v && setPeriodFilter(v as PeriodFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values
+        onValueChange={(v) => v && setPeriodFilter(v as PeriodFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
         aria-label="Filtrar por período"
         className="flex-wrap justify-start gap-1"
       >
@@ -129,7 +129,7 @@ export function SLATimelineFilters({
         size="sm"
         variant="outline"
         value={scope}
-        onValueChange={(v) => v && setScope(v as SLAScope)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values
+        onValueChange={(v) => v && setScope(v as SLAScope /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
         aria-label="Escopo da regra de SLA"
         className="flex-wrap justify-start gap-1"
       >

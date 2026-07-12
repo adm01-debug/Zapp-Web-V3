@@ -173,7 +173,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Tabs value={mode} onValueChange={(v) => setMode(v as 'select' | 'rpc')} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
+        <Tabs value={mode} onValueChange={(v) => setMode(v as 'select' | 'rpc' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
           <TabsList>
             <TabsTrigger value="select">SELECT tabela</TabsTrigger>
             <TabsTrigger value="rpc">Chamar RPC</TabsTrigger>
@@ -221,7 +221,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                       value={f.column}
                       onChange={(e) => updateFilter(i, { column: e.target.value })}
                     />
-                    <Select value={f.operator} onValueChange={(v) => updateFilter(i, { operator: v as Operator } // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values)}>
+                    <Select value={f.operator} onValueChange={(v) => updateFilter(i, { operator: v as Operator  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */})}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {OPERATORS.map((op) => <SelectItem key={op} value={op}>{op}</SelectItem>)}

@@ -210,7 +210,7 @@ export default function AdminWhatsAppLogsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={mode} onValueChange={(v) => setMode(v as ModeFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
+          <Select value={mode} onValueChange={(v) => setMode(v as ModeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filtrar por modo" />
             </SelectTrigger>

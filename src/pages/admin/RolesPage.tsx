@@ -142,7 +142,7 @@ export default function RolesPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Role</label>
-              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as 'dev' | 'admin' | 'supervisor' | 'agent')} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
+              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as 'dev' | 'admin' | 'supervisor' | 'agent' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROLE_CONFIG).map(([role, config]) => (

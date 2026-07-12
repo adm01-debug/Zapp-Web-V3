@@ -94,7 +94,7 @@ export function AIProviderFormDialog({
             <Label htmlFor="provider-type">Tipo de Provedor *</Label>
             <Select
               value={form.provider_type}
-              onValueChange={v => setForm(p => ({ ...p, provider_type: v as ProviderType } // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values))}
+              onValueChange={v => setForm(p => ({ ...p, provider_type: v as ProviderType  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}
             >
               <SelectTrigger id="provider-type" className="rounded-xl">
                 <SelectValue />
