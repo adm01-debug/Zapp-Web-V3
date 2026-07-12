@@ -147,6 +147,7 @@ export function useMessages(
         p_limit:      PAGE_SIZE,
         p_offset:     offsetRef.current,
       });
+      if (!mountedRef.current) return;
       if (error) throw error;
       const newItems = ((data ?? []) as unknown as Record<string, unknown>[]).map(mapRow);
       const reversed = [...newItems].reverse();
@@ -159,9 +160,9 @@ export function useMessages(
     } catch (err) {
       log.error('loadMore error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
-      setLoadingMore(false);
+      if (mountedRef.current) setLoadingMore(false);
     }
-  }, [remoteJid, loadingMore, hasMore, instanceName]);
+  }, [remoteJid, loadingMore, hasMore, instanceName, mountedRef]);
 
   // ── Realtime (CORRIGIDO: evo.evolution_messages BASE TABLE, não VIEW) ───
 
