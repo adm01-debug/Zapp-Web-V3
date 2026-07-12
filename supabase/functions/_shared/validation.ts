@@ -418,7 +418,11 @@ export function getClientIP(req: Request): string {
   if (raw !== 'unknown' && raw.includes(':')) {
     try {
       // Parse as IPv6 and convert to canonical string representation
-      return new URL(`http://[${raw}]/`).hostname || raw;
+      const hostname = new URL(`http://[${raw}]/`).hostname || raw;
+      // Remove brackets that URL.hostname includes for IPv6 addresses
+      return hostname.startsWith('[') && hostname.endsWith(']')
+        ? hostname.slice(1, -1)
+        : hostname;
     } catch {
       // If parsing fails, return as-is (might be malformed or IPv4)
       return raw;
