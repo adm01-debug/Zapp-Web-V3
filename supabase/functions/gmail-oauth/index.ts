@@ -24,14 +24,37 @@ const GMAIL_SCOPES = [
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-  );
+  const supabaseUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+  const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
+  const supabaseUrl = (typeof supabaseUrlHosted === 'string' && supabaseUrlHosted.length > 0)
+    ? supabaseUrlHosted
+    : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
 
-  const clientId     = Deno.env.get('GOOGLE_CLIENT_ID')!;
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
-  const redirectUri  = Deno.env.get('GMAIL_REDIRECT_URI') ?? `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/gmail-oauth`;
+  const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKey = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
+    ? supabaseServiceKeyHosted
+    : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 503, headers: jsonHeaders });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const clientIdRaw = Deno.env.get('GOOGLE_CLIENT_ID');
+  const clientSecretRaw = Deno.env.get('GOOGLE_CLIENT_SECRET');
+  const clientId = typeof clientIdRaw === 'string' && clientIdRaw.length > 0 ? clientIdRaw : '';
+  const clientSecret = typeof clientSecretRaw === 'string' && clientSecretRaw.length > 0 ? clientSecretRaw : '';
+
+  if (!clientId || !clientSecret) {
+    return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 503, headers: jsonHeaders });
+  }
+
+  const redirectUriRaw = Deno.env.get('GMAIL_REDIRECT_URI');
+  const redirectUri = (typeof redirectUriRaw === 'string' && redirectUriRaw.length > 0)
+    ? redirectUriRaw
+    : `${supabaseUrl}/functions/v1/gmail-oauth`;
 
   try {
     let bodyRaw: unknown;
@@ -236,7 +259,7 @@ serve(async (req) => {
       }
       const tokens = tokensRaw as Record<string, unknown>;
 
-      if (tokens.error) {
+      if (tokens.error && (typeof tokens.error === 'string' || (typeof tokens.error === 'object' && tokens.error !== null))) {
         // Token revogado — marcar conta inativa
         await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
         return new Response(JSON.stringify({ error: 'refresh_token inválido — reconecte a conta' }), { status: 401, headers: jsonHeaders });
@@ -309,15 +332,15 @@ serve(async (req) => {
       const _state = url.searchParams.get('state');
       const errorP = url.searchParams.get('error');
 
-      if (errorP) {
-        const errorMsg = typeof errorP === 'string' ? errorP.replace(/'/g, "\\'") : 'unknown';
+      if (typeof errorP === 'string' && errorP.length > 0) {
+        const errorMsg = errorP.replace(/'/g, "\\'");
         return new Response(
           `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:'${errorMsg}'},'*');window.close()</script>`,
           { headers: { 'Content-Type': 'text/html' } }
         );
       }
 
-      if (!code || typeof code !== 'string') {
+      if (typeof code !== 'string' || code.length === 0) {
         return new Response(
           `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:'No code received'},'*');window.close()</script>`,
           { headers: { 'Content-Type': 'text/html' } }
