@@ -60,11 +60,11 @@ export const whatsappConnectionRepository = {
   },
 
   async insertConnection(data: TablesInsert<'whatsapp_connections'>) {
-    const res = await supabase
-      .from(TABLE)
+    const res = await safeFrom(TABLE)
       .insert(data)
       .select(CANONICAL_SELECT)
       .single();
+
     invalidateWhatsappConnectionsCache();
     const normalized = normalizeConnection(
       res.data as Parameters<typeof normalizeConnection>[0],
