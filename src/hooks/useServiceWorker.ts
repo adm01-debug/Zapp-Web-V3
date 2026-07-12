@@ -81,10 +81,25 @@ export function useServiceWorker() {
         log.debug('[ServiceWorker] Registration successful:', registration.scope);
 
         // Check for updates every 5 minutes (was 1 min — too frequent)
+        let updateFailureCount = 0;
         const intervalId = setInterval(() => {
-          registration.update().catch((err) => {
-            log.debug('[ServiceWorker] Update check failed:', err);
-          });
+          registration
+            .update()
+            .then(() => {
+              updateFailureCount = 0;
+            })
+            .catch((err) => {
+              updateFailureCount++;
+              if (updateFailureCount >= 3) {
+                log.error('[ServiceWorker] Update check failed 3 times consecutively:', err);
+                updateFailureCount = 0;
+              } else {
+                log.debug(
+                  `[ServiceWorker] Update check failed (${updateFailureCount}/3), will retry:`,
+                  err
+                );
+              }
+            });
         }, 300_000);
 
         // Handle service worker updates
