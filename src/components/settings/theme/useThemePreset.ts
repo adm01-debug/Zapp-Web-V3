@@ -24,6 +24,12 @@ export function useThemePreset() {
   const [borderRadius, setBorderRadius] = useState<number>(8);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
+
   const save = useCallback((presetId: string, radius: number) => {
     localStorage.setItem(
       STORAGE_KEY,
