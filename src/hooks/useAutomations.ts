@@ -78,7 +78,7 @@ export function useAutomations({
           .order('name', { ascending: true });
 
         if (error) throw error;
-        if (!cancelled && data) rulesRef.current = data as AutomationRule[];
+        if (!cancelled && data) rulesRef.current = data as AutomationRule[]; // ignore-audit: narrows trigger_config/actions from Supabase Json to Record<string,unknown>
       } catch (err) {
         log.error('Error loading automation rules:', err);
       }
@@ -113,9 +113,8 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...msgs].sort(
-        (a: any, b: any) =>
-          // ignore-audit
+      const sorted = [...(msgs as ExternalMessage[] /* ignore-audit: narrows Supabase query result to local interface */)].sort(
+        (a, b) =>
           new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];

@@ -5,6 +5,11 @@ import { toast } from '@/hooks/use-toast';
 import type { MediaRefreshKey } from '@/types/mediaRefresh';
 import { audioPlaybackBus } from '@/features/inbox';
 
+interface SeekInput {
+  currentTarget: EventTarget & HTMLDivElement;
+  clientX: number;
+}
+
 interface UseAudioPlayerOptions {
   audioUrl: string;
   messageId: string;
@@ -314,7 +319,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
   }, [isPlaying, hasError, audioUrl, resolvedUrl, resolveAudioUrl]);
 
   const handleSeek = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (e: SeekInput) => {
       const audio = audioRef.current;
       if (!audio || !duration) return;
       const rect = e.currentTarget.getBoundingClientRect();

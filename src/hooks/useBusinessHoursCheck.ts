@@ -16,7 +16,7 @@ export function useBusinessHoursCheck(connectionId: string | null | undefined) {
         connection_id: connectionId,
       });
       if (error) return null;
-      return data as boolean;
+      return data as boolean; // ignore-audit: RPC returns unknown, boolean is the documented return type
     },
     enabled: !!connectionId,
     staleTime: 1000 * 60 * 5, // 5 min
