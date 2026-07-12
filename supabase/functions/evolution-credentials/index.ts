@@ -70,13 +70,20 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  const jwt = authHeader.replace('Bearer ', '');
+  const jwtBearer = authHeader.replace('Bearer ', '');
+  const jwt = typeof jwtBearer === 'string' && jwtBearer.length > 0 ? jwtBearer : '';
+  if (!jwt) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized', message: 'Invalid JWT token' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
   // Criar cliente Supabase com JWT do usuário (valida automaticamente)
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const supabaseUrlRaw = Deno.env.get('SUPABASE_URL');
+  const supabaseUrl = typeof supabaseUrlRaw === 'string' && supabaseUrlRaw.length > 0 ? supabaseUrlRaw : '';
 
-  if (!supabaseUrl || typeof supabaseUrl !== 'string' || supabaseUrl.length === 0) {
+  if (!supabaseUrl) {
     console.error('[evolution-credentials] SUPABASE_URL not configured');
     return new Response(
       JSON.stringify({ error: 'Configuration Error', message: 'Server configuration error' }),
@@ -84,7 +91,10 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  if (!supabaseAnonKey || typeof supabaseAnonKey !== 'string' || supabaseAnonKey.length === 0) {
+  const supabaseAnonKeyRaw = Deno.env.get('SUPABASE_ANON_KEY');
+  const supabaseAnonKey = typeof supabaseAnonKeyRaw === 'string' && supabaseAnonKeyRaw.length > 0 ? supabaseAnonKeyRaw : '';
+
+  if (!supabaseAnonKey) {
     console.error('[evolution-credentials] SUPABASE_ANON_KEY not configured');
     return new Response(
       JSON.stringify({ error: 'Configuration Error', message: 'Server configuration error' }),
@@ -108,9 +118,10 @@ Deno.serve(async (req: Request) => {
   }
 
   // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
-  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceRoleKeyRaw = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceRoleKey = typeof supabaseServiceRoleKeyRaw === 'string' && supabaseServiceRoleKeyRaw.length > 0 ? supabaseServiceRoleKeyRaw : '';
 
-  if (!supabaseServiceRoleKey || typeof supabaseServiceRoleKey !== 'string' || supabaseServiceRoleKey.length === 0) {
+  if (!supabaseServiceRoleKey) {
     console.error('[evolution-credentials] SUPABASE_SERVICE_ROLE_KEY not configured');
     return new Response(
       JSON.stringify({ error: 'Configuration Error', message: 'Server configuration error' }),
@@ -137,8 +148,11 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const apiKey = (row && typeof row.api_key === 'string' && row.api_key.length > 0) ? row.api_key : null;
-  const apiUrl = (row && typeof row.api_url === 'string' && row.api_url.length > 0) ? row.api_url : null;
+  const apiKeyRaw = row && typeof row.api_key === 'string' ? row.api_key : '';
+  const apiKey = apiKeyRaw.length > 0 ? apiKeyRaw : null;
+
+  const apiUrlRaw = row && typeof row.api_url === 'string' ? row.api_url : '';
+  const apiUrl = apiUrlRaw.length > 0 ? apiUrlRaw : null;
 
   if (rpcError || !apiKey || !apiUrl) {
     // Nunca logar a key; a mensagem do erro RPC é segura (permission/config).
@@ -154,14 +168,14 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  const instanceName = (row && typeof row.instance_name === 'string' && row.instance_name.length > 0)
-    ? row.instance_name
-    : INSTANCE;
-  const healthStatus = (row && typeof row.health_status === 'string' && row.health_status.length > 0)
-    ? row.health_status
-    : 'unknown';
-  const lastHealthCheck = (row && row.last_health_check) ? row.last_health_check : null;
-  const isActive = (row && typeof row.is_active === 'boolean') ? row.is_active : false;
+  const instanceNameRaw = row && typeof row.instance_name === 'string' ? row.instance_name : '';
+  const instanceName = instanceNameRaw.length > 0 ? instanceNameRaw : INSTANCE;
+
+  const healthStatusRaw = row && typeof row.health_status === 'string' ? row.health_status : '';
+  const healthStatus = healthStatusRaw.length > 0 ? healthStatusRaw : 'unknown';
+
+  const lastHealthCheck = row && typeof row.last_health_check !== 'undefined' ? row.last_health_check : null;
+  const isActive = row && typeof row.is_active === 'boolean' ? row.is_active : false;
 
   // Resposta: api_url no body, api_key no header (evita log no DevTools)
   return new Response(
