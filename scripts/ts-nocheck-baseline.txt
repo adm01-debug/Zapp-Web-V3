@@ -32,7 +32,6 @@ src/features/admin/hooks/useDiagnosticsData.ts
 src/features/connections/data-access/whatsappConnectionRepository.ts
 src/features/connections/hooks/parts/useConnectionsActions.ts
 src/features/connections/hooks/useConnectionsManager.ts
-src/features/contacts/hooks/useContactsSearch.ts
 src/features/inbox/components/AudioMessagePlayer.tsx
 src/features/inbox/components/ChatPanel.tsx
 src/features/inbox/components/ContactDetails.tsx
