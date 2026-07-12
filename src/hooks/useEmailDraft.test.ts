@@ -30,7 +30,7 @@ vi.mock('@/integrations/supabase/safeClient', () => ({
 }));
 
 vi.mock('./gmail/gmailApi', () => ({
-  emailSaveDraft: vi.fn().mockResolvedValue({ draftId: 'external_id' }),
+  emailSaveDraft: vi.fn().mockResolvedValue({ data: { draftId: 'external_id' }, error: null }),
   emailDeleteDraft: vi.fn().mockResolvedValue({ success: true }),
 }));
 
