@@ -51,28 +51,34 @@ function pick<T>(arr: T[], idx: number): T {
 let stickersCache: { id: string; name: string; image_url: string }[] | null = null;
 let memesCache: { id: string; name: string; audio_url: string }[] | null = null;
 
-async function loadStickers() {
+async function loadStickers(): Promise<{ id: string; name: string; image_url: string }[]> {
   if (stickersCache) return stickersCache;
   const { data, error } = await supabase
     .from('stickers')
     .select('id,name,image_url')
     .limit(200);
   if (error) throw new Error(`Falha ao carregar stickers: ${error.message}`);
-  stickersCache = (data ?? []).filter((s) => s.image_url);
-  if (stickersCache.length === 0) throw new Error('Nenhum sticker disponível na biblioteca');
-  return stickersCache;
+  const rows = (data ?? [])
+    .filter((s): s is { id: string; name: string | null; image_url: string } => !!s.image_url)
+    .map((s) => ({ id: s.id, name: s.name ?? 'sticker', image_url: s.image_url }));
+  if (rows.length === 0) throw new Error('Nenhum sticker disponível na biblioteca');
+  stickersCache = rows;
+  return rows;
 }
 
-async function loadMemes() {
+async function loadMemes(): Promise<{ id: string; name: string; audio_url: string }[]> {
   if (memesCache) return memesCache;
   const { data, error } = await supabase
     .from('audio_memes')
     .select('id,name,audio_url')
     .limit(200);
   if (error) throw new Error(`Falha ao carregar áudios memes: ${error.message}`);
-  memesCache = (data ?? []).filter((m) => m.audio_url);
-  if (memesCache.length === 0) throw new Error('Nenhum áudio meme disponível na biblioteca');
-  return memesCache;
+  const rows = (data ?? [])
+    .filter((m): m is { id: string; name: string | null; audio_url: string } => !!m.audio_url)
+    .map((m) => ({ id: m.id, name: m.name ?? 'meme', audio_url: m.audio_url }));
+  if (rows.length === 0) throw new Error('Nenhum áudio meme disponível na biblioteca');
+  memesCache = rows;
+  return rows;
 }
 
 /** Pré-carrega bibliotecas de mídia. Chame antes de iniciar o run pra falhar cedo. */
