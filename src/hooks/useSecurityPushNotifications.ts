@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { toast } from 'sonner';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useSecurityPushNotifications');
 
 interface SecurityAlert {
   id: string;
@@ -96,7 +98,9 @@ export function useSecurityPushNotifications() {
 
     return () => {
       log.debug('Cleaning up security alerts subscription');
-      supabase.removeChannel(channel);
+      void supabase
+        .removeChannel(channel)
+        .catch((err) => log.error('Failed to remove security alerts channel:', err));
     };
   }, [user, sendSecurityNotification]);
 

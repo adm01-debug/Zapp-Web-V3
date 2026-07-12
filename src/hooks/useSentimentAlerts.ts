@@ -4,7 +4,9 @@ import { toast } from 'sonner';
 import { playNotificationSound } from '@/utils/notificationSound';
 import { showBrowserNotification, requestNotificationPermission } from '@/utils/notificationSound';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useSentimentAlerts');
 
 interface SentimentAlertData {
   contactId: string;
