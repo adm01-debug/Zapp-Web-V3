@@ -68,10 +68,14 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
     try {
       setLoading(true);
 
-      // Get contacts in this queue
+      // Get contacts in this queue — capped at 2 000 for in-browser aggregation;
+      // analytics on queues larger than this will be approximate but avoids OOM.
       const { data: contacts, error: contactsError } = await dbFrom('contacts')
         .select('id, assigned_to, created_at')
-        .eq('queue_id', queueId);
+        .eq('queue_id', queueId)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(2_000);
 
       if (contactsError) throw contactsError;
 
@@ -90,14 +94,17 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
         return;
       }
 
-      // Fetch messages for these contacts in the date range
+      // Fetch messages for these contacts in the date range — hard cap at 10 000
+      // to prevent memory exhaustion on high-volume queues; analytics will be
+      // approximate for bursts above this threshold.
       const { data: messages, error: messagesError } = await dbFrom('messages')
         .select('id, contact_id, created_at, sender, agent_id')
         .in('contact_id', contactIds)
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
         .order('created_at', { ascending: true })
-        .order('id', { ascending: true });
+        .order('id', { ascending: true })
+        .limit(10_000);
 
       if (messagesError) throw messagesError;
 
@@ -234,11 +241,12 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
     const agentIds = Object.keys(agentMessages);
     if (agentIds.length === 0) return [];
 
-    // Fetch agent profiles
+    // Fetch agent profiles — agentIds is naturally small (unique agents in sample)
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('id, name')
-      .in('id', agentIds);
+      .in('id', agentIds)
+      .limit(50);
 
     if (error || !profiles) return [];
 

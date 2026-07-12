@@ -53,16 +53,20 @@ export function useTeamConversations() {
 
       const convIds = conversations.map(c => c.id);
 
-      // Fetch memberships and profiles for these conversations
+      // Fetch memberships and profiles for these conversations.
+      // convIds is already bounded by the keyset-paginated conversations fetch above.
+      // These limits are defence-in-depth for unusually large workspaces.
       const [membershipsResult, membersResult] = await Promise.all([
         supabase
           .from('team_conversation_members')
           .select('conversation_id, last_read_at')
           .eq('profile_id', profile.id)
-          .in('conversation_id', convIds),
+          .in('conversation_id', convIds)
+          .limit(5_000),
         safeClient.from('team_conversation_members', q =>
           q.select('*, profile:profiles(id, name, email, avatar_url, is_active)')
            .in('conversation_id', convIds)
+           .limit(10_000)
         ),
       ]);
 

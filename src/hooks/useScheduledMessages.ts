@@ -29,21 +29,23 @@ export function useScheduledMessages(contactId?: string) {
       let query = supabase
         .from('scheduled_messages')
         .select('*')
-        .order('scheduled_at', { ascending: true });
+        .order('scheduled_at', { ascending: true })
+        .order('id', { ascending: true });
 
       if (contactId) {
-        // Contact-scoped: no limit — a single contact has few scheduled messages.
-        query = query.eq('contact_id', contactId);
+        // Contact-scoped: capped at 200 — a single contact rarely schedules more.
+        query = query.eq('contact_id', contactId).limit(200);
       } else {
-        // Calendar view: scope to a rolling window (-30 days … +12 months) so
-        // we never load the full historical backlog of all contacts.
+        // Calendar view: scope to a rolling window (-30 days … +12 months) to
+        // avoid loading the full historical backlog, capped at 1 000 rows.
         const windowStart = new Date();
         windowStart.setDate(windowStart.getDate() - 30);
         const windowEnd = new Date();
-        windowEnd.setFullYear(windowEnd.getFullYear() + 5);
+        windowEnd.setFullYear(windowEnd.getFullYear() + 1);
         query = query
           .gte('scheduled_at', windowStart.toISOString())
-          .lte('scheduled_at', windowEnd.toISOString());
+          .lte('scheduled_at', windowEnd.toISOString())
+          .limit(1_000);
       }
 
       const { data, error } = await query;
