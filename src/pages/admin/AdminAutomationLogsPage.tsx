@@ -33,7 +33,6 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  type LucideIcon,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
