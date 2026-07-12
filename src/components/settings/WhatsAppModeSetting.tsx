@@ -47,7 +47,7 @@ export function WhatsAppModeSetting() {
       setProfileLoadError(error.message);
       return;
     }
-    if (data) setProfile(data as IntegrationProfile);
+    if (data) setProfile(data as IntegrationProfile); // ignore-audit: narrows Supabase query result to local interface
   }, []);
 
   const refresh = useCallback(async () => {
