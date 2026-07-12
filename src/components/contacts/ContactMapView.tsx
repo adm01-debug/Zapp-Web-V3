@@ -111,11 +111,16 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
               transition={{ delay: i * 0.04 }}
             >
               <Card
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-label={region}
                 className={cn(
                   'cursor-pointer transition-all hover:shadow-md border-border/40',
                   isExpanded && 'ring-1 ring-primary/30'
                 )}
                 onClick={() => setExpandedRegion(isExpanded ? null : region)}
+                onKeyDown={(e) => e.key === 'Enter' && setExpandedRegion(isExpanded ? null : region)}
               >
                 <CardContent className="p-3 space-y-2">
                   <div className="flex items-center gap-2">

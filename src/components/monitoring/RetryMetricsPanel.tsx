@@ -295,7 +295,7 @@ export function RetryMetricsPanel() {
                   const isOpen = expanded.has(row.id);
                   return (
                     <>
-                      <TableRow key={row.id} className="cursor-pointer" onClick={() => toggle(row.id)}>
+                      <TableRow key={row.id} role="button" aria-expanded={isOpen} className="cursor-pointer" onClick={() => toggle(row.id)}>
                         <TableCell className="text-xs text-muted-foreground">
                           <span className="inline-flex items-center gap-1">
                             {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
