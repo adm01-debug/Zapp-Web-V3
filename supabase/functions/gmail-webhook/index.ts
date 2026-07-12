@@ -10,31 +10,46 @@ const corsHeaders = {
 };
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
-const PUBSUB_TOPIC = Deno.env.get('GMAIL_PUBSUB_TOPIC') ?? 'projects/your-project/topics/gmail';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-  const supabaseKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !supabaseKey) {
-    const json = (data: unknown, status = 200) =>
-      new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    return json({ error: 'Supabase configuration missing' }, 500);
-  }
+  const supabaseUrlSelfHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+  const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
+  const supabaseUrl = (typeof supabaseUrlSelfHosted === 'string' && supabaseUrlSelfHosted.length > 0)
+    ? supabaseUrlSelfHosted
+    : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKey = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
+    ? supabaseServiceKeyHosted
+    : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return json({ error: 'Supabase configuration missing' }, 500);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
   try {
     // ── Push notification do Google Pub/Sub (POST sem body action) ────
     if (req.method === 'POST') {
-      const body = await req.json().catch(() => ({}));
-      const action = typeof body === 'object' && body !== null && !Array.isArray(body)
-        ? String(body.action ?? '')
-        : '';
+      let bodyRaw: unknown;
+      try {
+        bodyRaw = await req.json();
+      } catch {
+        bodyRaw = null;
+      }
+
+      if (!bodyRaw || typeof bodyRaw !== 'object' || Array.isArray(bodyRaw)) {
+        bodyRaw = {};
+      }
+      const body = bodyRaw as Record<string, unknown>;
+      const action = typeof body.action === 'string' ? body.action : '';
 
       // F2 security fix: fail-closed auth for Pub/Sub push notifications.
       // The 'registerWatch' action uses its own token auth via getValidToken().
@@ -42,7 +57,7 @@ serve(async (req) => {
       if (!action) {
         // F2+vault: read token from vault first (gmail_pubsub_token), env fallback for legacy
         const expectedToken = await getSecret('gmail_pubsub_token') ?? Deno.env.get('GMAIL_PUBSUB_TOKEN');
-        if (!expectedToken) {
+        if (!expectedToken || typeof expectedToken !== 'string' || expectedToken.length === 0) {
           return json({ error: 'Webhook authentication not configured' }, 401);
         }
         const receivedToken = new URL(req.url).searchParams.get('token');
@@ -56,9 +71,7 @@ serve(async (req) => {
         const authed = await requireUser(req);
         if (authed instanceof Response) return authed;
 
-        const accountId = typeof body === 'object' && body !== null && !Array.isArray(body)
-          ? String(body.accountId ?? '')
-          : '';
+        const accountId = typeof body.accountId === 'string' && body.accountId.length > 0 ? body.accountId : '';
         if (!accountId) return json({ error: 'Missing accountId' }, 400);
 
         // Verify the authenticated user owns this gmail_accounts row.
@@ -77,87 +90,159 @@ serve(async (req) => {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            topicName: PUBSUB_TOPIC,
+            topicName: 'projects/your-project/topics/gmail',
             labelIds: ['INBOX'],
             labelFilterBehavior: 'INCLUDE',
           }),
           signal: AbortSignal.timeout(15_000),
         });
-        const watchData = await watchRes.json();
-        if (watchData.error) {
-          console.error('[gmail-webhook] watch setup error', watchData.error);
+
+        let watchData: unknown;
+        try {
+          watchData = await watchRes.json();
+        } catch {
+          console.error('[gmail-webhook] failed to parse watch response');
           return json({ error: 'Failed to setup Gmail watch' }, 400);
         }
 
-        if (!watchRes.ok) return json({ error: 'Watch failed', detail: watchData }, 500);
+        if (!watchData || typeof watchData !== 'object' || Array.isArray(watchData)) {
+          return json({ error: 'Invalid watch response' }, 400);
+        }
+        const watchDataObj = watchData as Record<string, unknown>;
+        if (watchDataObj.error) {
+          console.error('[gmail-webhook] watch setup error', watchDataObj.error);
+          return json({ error: 'Failed to setup Gmail watch' }, 400);
+        }
 
-        const expires = watchData.expiration ? new Date(parseInt(watchData.expiration)).toISOString() : null;
+        if (!watchRes.ok) return json({ error: 'Watch failed', detail: watchDataObj }, 500);
+
+        const expiration = typeof watchDataObj.expiration === 'string' ? watchDataObj.expiration : '';
+        let expires: string | null = null;
+        if (expiration) {
+          const expirationMs = parseInt(expiration, 10);
+          if (Number.isFinite(expirationMs)) {
+            expires = new Date(expirationMs).toISOString();
+          }
+        }
+
+        const historyId = typeof watchDataObj.historyId === 'string' ? watchDataObj.historyId : null;
         await supabase.from('email_watch_history').upsert({
-          account_id: accountId, history_id: watchData.historyId ?? null,
+          account_id: accountId, history_id: historyId,
           expires_at: expires, watch_registered_at: new Date().toISOString(),
           status: 'active',
         }, { onConflict: 'account_id' });
 
-        return json({ ok: true, historyId: watchData.historyId, expiresAt: expires });
+        return json({ ok: true, historyId, expiresAt: expires });
       }
 
       // ── Pub/Sub push: process email notification ────────────────────
-      const message = typeof body === 'object' && body !== null && !Array.isArray(body)
-        ? body.message
-        : null;
-      if (typeof message !== 'object' || message === null || !message.data) {
+      const messageVal = body.message;
+      if (!messageVal || typeof messageVal !== 'object' || Array.isArray(messageVal)) {
+        return json({ ok: true, skipped: 'no_message' });
+      }
+      const message = messageVal as Record<string, unknown>;
+      const messageData = typeof message.data === 'string' ? message.data : '';
+      if (!messageData) {
         return json({ ok: true, skipped: 'no_message' });
       }
 
       let decoded: unknown;
       try {
-        decoded = JSON.parse(atob(message.data));
+        decoded = JSON.parse(atob(messageData));
       } catch {
         return json({ error: 'Bad payload' }, 400);
       }
 
-      const emailAddress = typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)
-        ? String(decoded.emailAddress ?? '')
-        : '';
-      const historyId = typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)
-        ? String(decoded.historyId ?? '')
-        : '';
+      if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) {
+        return json({ ok: true, skipped: 'invalid_payload' });
+      }
+      const decodedObj = decoded as Record<string, unknown>;
+      const emailAddress = typeof decodedObj.emailAddress === 'string' && decodedObj.emailAddress.length > 0 ? decodedObj.emailAddress : '';
+      const historyId = typeof decodedObj.historyId === 'string' && decodedObj.historyId.length > 0 ? decodedObj.historyId : '';
       if (!emailAddress || !historyId) return json({ ok: true, skipped: 'missing_fields' });
 
       const { data: account } = await supabase.from('email_accounts').select('id, access_token, refresh_token, token_expires_at').eq('email', emailAddress).maybeSingle();
-      if (!account) return json({ ok: true, skipped: 'account_not_found' });
+      if (!account || typeof account !== 'object' || Array.isArray(account)) return json({ ok: true, skipped: 'account_not_found' });
 
-      const token = await getValidToken(supabase, account.id);
-      if (!token) return json({ ok: true, skipped: 'invalid_token' });
+      const accountObj = account as Record<string, unknown>;
+      const accountId2 = typeof accountObj.id === 'string' ? accountObj.id : '';
+      if (!accountId2) return json({ ok: true, skipped: 'invalid_account' });
 
-      const { data: watch } = await supabase.from('email_watch_history').select('history_id').eq('account_id', account.id).maybeSingle();
-      const startHistoryId = watch?.history_id ?? historyId;
+      const token2 = await getValidToken(supabase, accountId2);
+      if (!token2) return json({ ok: true, skipped: 'invalid_token' });
+
+      const { data: watch } = await supabase.from('email_watch_history').select('history_id').eq('account_id', accountId2).maybeSingle();
+      let watchHistoryId: string | null = null;
+      if (watch && typeof watch === 'object' && !Array.isArray(watch)) {
+        const watchObj = watch as Record<string, unknown>;
+        watchHistoryId = typeof watchObj.history_id === 'string' ? watchObj.history_id : null;
+      }
+      const startHistoryId = watchHistoryId ?? historyId;
 
       const histRes = await fetch(`${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${token2}` },
       });
-      const histData = await histRes.json();
 
-      const messages = histData.history?.flatMap((h: { messagesAdded?: { message: { id: string } }[] }) =>
-        h.messagesAdded?.map(m => m.message.id) ?? []
-      ) ?? [];
+      let histData: unknown;
+      try {
+        histData = await histRes.json();
+      } catch {
+        return json({ ok: true, skipped: 'bad_history_response' });
+      }
+
+      if (!histData || typeof histData !== 'object' || Array.isArray(histData)) {
+        return json({ ok: true, skipped: 'invalid_history_data' });
+      }
+      const histDataObj = histData as Record<string, unknown>;
+      const historyList = Array.isArray(histDataObj.history) ? histDataObj.history : [];
+
+      const messages: string[] = [];
+      for (const h of historyList) {
+        if (typeof h !== 'object' || h === null || Array.isArray(h)) continue;
+        const hObj = h as Record<string, unknown>;
+        const messagesAdded = Array.isArray(hObj.messagesAdded) ? hObj.messagesAdded : [];
+        for (const added of messagesAdded) {
+          if (typeof added !== 'object' || added === null || Array.isArray(added)) continue;
+          const addedObj = added as Record<string, unknown>;
+          const msg = addedObj.message;
+          if (typeof msg === 'object' && msg !== null && !Array.isArray(msg)) {
+            const msgObj = msg as Record<string, unknown>;
+            const msgId = typeof msgObj.id === 'string' ? msgObj.id : '';
+            if (msgId) messages.push(msgId);
+          }
+        }
+      }
 
       const processed: string[] = [];
       for (const msgId of messages.slice(0, 10)) {
         const msgRes = await fetch(`${GMAIL_API}/messages/${msgId}?format=full`, {
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { 'Authorization': `Bearer ${token2}` },
         });
-        const msg = await msgRes.json();
-        if (!msgRes.ok) continue;
 
-        const headers = Array.isArray(msg.payload?.headers) ? msg.payload.headers : [];
-        const getHeader = (name: string) => {
-          const h = headers.find((h: unknown) =>
-            typeof h === 'object' && h !== null && !Array.isArray(h) &&
-            typeof (h as Record<string, unknown>).name === 'string' &&
-            ((h as Record<string, unknown>).name as string).toLowerCase() === name.toLowerCase()
-          ) as Record<string, unknown> | undefined;
-          return typeof h?.value === 'string' ? h.value : '';
+        let msg: unknown;
+        try {
+          msg = await msgRes.json();
+        } catch {
+          continue;
+        }
+
+        if (!msgRes.ok || !msg || typeof msg !== 'object' || Array.isArray(msg)) continue;
+        const msgObj = msg as Record<string, unknown>;
+
+        const payloadVal = msgObj.payload;
+        const headers = (typeof payloadVal === 'object' && payloadVal !== null && !Array.isArray(payloadVal) && Array.isArray((payloadVal as Record<string, unknown>).headers))
+          ? (payloadVal as Record<string, unknown>).headers as unknown[]
+          : [];
+
+        const getHeader = (name: string): string => {
+          for (const h of headers) {
+            if (typeof h !== 'object' || h === null || Array.isArray(h)) continue;
+            const hObj = h as Record<string, unknown>;
+            if (typeof hObj.name === 'string' && typeof hObj.value === 'string' && hObj.name.toLowerCase() === name.toLowerCase()) {
+              return hObj.value;
+            }
+          }
+          return '';
         };
 
         const subject = getHeader('Subject');
@@ -166,34 +251,43 @@ serve(async (req) => {
         const date = getHeader('Date');
         const messageId = getHeader('Message-Id');
 
-        const getBody = (payload: { mimeType: string; body?: { data?: string }; parts?: unknown[] }): string => {
-          if (payload.mimeType === 'text/plain' && payload.body?.data) return atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-          if (Array.isArray(payload.parts)) {
-            return payload.parts
-              .filter((p): p is { mimeType: string; body?: { data?: string }; parts?: unknown[] } =>
-                typeof p === 'object' && p !== null && !Array.isArray(p) && 'mimeType' in p
-              )
-              .map(p => getBody(p))
-              .join('');
-          }
-          return '';
-        };
+        const threadId = typeof msgObj.threadId === 'string' ? msgObj.threadId : '';
+        const snippet = typeof msgObj.snippet === 'string' ? msgObj.snippet : '';
+        let bodyText = '';
 
-        const body_text = getBody(msg.payload);
+        // Extract body from payload
+        if (typeof payloadVal === 'object' && payloadVal !== null && !Array.isArray(payloadVal)) {
+          const payload = payloadVal as Record<string, unknown>;
+          const bodyVal = payload.body;
+          if (typeof bodyVal === 'object' && bodyVal !== null && !Array.isArray(bodyVal)) {
+            const bodyObj = bodyVal as Record<string, unknown>;
+            const dataStr = typeof bodyObj.data === 'string' ? bodyObj.data : '';
+            if (dataStr) {
+              try {
+                bodyText = atob(dataStr.replace(/-/g, '+').replace(/_/g, '/'));
+              } catch {
+                bodyText = '';
+              }
+            }
+          }
+        }
+
+        const labelIds = Array.isArray(msgObj.labelIds) ? msgObj.labelIds : [];
+        const isRead = !labelIds.includes('UNREAD');
 
         const { error: insertErr } = await supabase.from('email_messages').upsert({
-          account_id: account.id, message_id: msgId, thread_id: msg.threadId,
+          account_id: accountId2, message_id: msgId, thread_id: threadId,
           external_message_id: messageId, subject, from_address: from,
           to_address: to, received_at: date ? new Date(date).toISOString() : null,
-          body_text: body_text.slice(0, 5000), snippet: msg.snippet,
-          labels: msg.labelIds ?? [], is_read: !msg.labelIds?.includes('UNREAD'),
+          body_text: bodyText.slice(0, 5000), snippet,
+          labels: labelIds, is_read: isRead,
         }, { onConflict: 'account_id,message_id' });
 
         if (!insertErr) processed.push(msgId);
       }
 
       await supabase.from('email_watch_history').upsert({
-        account_id: account.id, history_id: historyId,
+        account_id: accountId2, history_id: historyId,
         status: 'active',
       }, { onConflict: 'account_id' });
 
@@ -202,7 +296,9 @@ serve(async (req) => {
 
     // ── GET: status endpoint ────────────────────────────────────────
     if (req.method === 'GET') {
-      const tokenConfigured = !!(await getSecret('gmail_pubsub_token') ?? Deno.env.get('GMAIL_PUBSUB_TOKEN'));
+      const secretToken = await getSecret('gmail_pubsub_token');
+      const envToken = Deno.env.get('GMAIL_PUBSUB_TOKEN');
+      const tokenConfigured = (typeof secretToken === 'string' && secretToken.length > 0) || (typeof envToken === 'string' && envToken.length > 0);
       return json({ service: 'gmail-webhook', status: 'healthy', token_configured: tokenConfigured });
     }
 
@@ -226,36 +322,80 @@ class NonRetryableMessageError extends Error {
 
 async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
   const { data: account, error } = await supabase.from('email_accounts').select('access_token, refresh_token, token_expires_at, client_id, client_secret').eq('id', accountId).maybeSingle();
-  if (error || !account) return null;
+  if (error || !account || typeof account !== 'object' || Array.isArray(account)) return null;
 
-  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at) : null;
-  const isExpired = !expiresAt || expiresAt <= new Date(Date.now() + 60_000);
+  const accountObj = account as Record<string, unknown>;
+  const accessToken = typeof accountObj.access_token === 'string' ? accountObj.access_token : '';
+  const refreshToken = typeof accountObj.refresh_token === 'string' ? accountObj.refresh_token : '';
+  const tokenExpiresAt = typeof accountObj.token_expires_at === 'string' ? accountObj.token_expires_at : '';
+  const clientId = typeof accountObj.client_id === 'string' ? accountObj.client_id : '';
+  const clientSecret = typeof accountObj.client_secret === 'string' ? accountObj.client_secret : '';
 
-  if (!isExpired) return account.access_token;
+  if (!accessToken) return null;
 
-  if (!account.refresh_token) return null;
+  if (tokenExpiresAt) {
+    const expiresAt = new Date(tokenExpiresAt).getTime();
+    if (Number.isFinite(expiresAt) && Date.now() < expiresAt + 60_000) {
+      return accessToken;
+    }
+  }
 
-  const clientId = account.client_id ?? Deno.env.get('GOOGLE_CLIENT_ID')!;
-  const clientSecret = account.client_secret ?? Deno.env.get('GOOGLE_CLIENT_SECRET')!;
+  if (!refreshToken) return null;
 
-  const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: account.refresh_token,
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-    signal: AbortSignal.timeout(10_000),
-  });
+  const finalClientId = clientId || Deno.env.get('GOOGLE_CLIENT_ID');
+  const finalClientSecret = clientSecret || Deno.env.get('GOOGLE_CLIENT_SECRET');
+
+  if (!finalClientId || typeof finalClientId !== 'string' || finalClientId.length === 0) {
+    console.error('[gmail-webhook] GOOGLE_CLIENT_ID not configured');
+    return null;
+  }
+  if (!finalClientSecret || typeof finalClientSecret !== 'string' || finalClientSecret.length === 0) {
+    console.error('[gmail-webhook] GOOGLE_CLIENT_SECRET not configured');
+    return null;
+  }
+
+  let refreshRes;
+  try {
+    refreshRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: finalClientId,
+        client_secret: finalClientSecret,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (fetchErr) {
+    console.error('[gmail-webhook] token refresh fetch failed', fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
+    return null;
+  }
 
   if (!refreshRes.ok) return null;
 
-  const refreshData = await refreshRes.json();
-  const newToken = refreshData.access_token;
-  const newExpiry = new Date(Date.now() + refreshData.expires_in * 1000).toISOString();
+  let refreshData: unknown;
+  try {
+    refreshData = await refreshRes.json();
+  } catch {
+    console.error('[gmail-webhook] failed to parse token response');
+    return null;
+  }
 
+  if (!refreshData || typeof refreshData !== 'object' || Array.isArray(refreshData)) {
+    return null;
+  }
+
+  const refreshDataObj = refreshData as Record<string, unknown>;
+  const newToken = typeof refreshDataObj.access_token === 'string' ? refreshDataObj.access_token : '';
+  const expiresIn = typeof refreshDataObj.expires_in === 'number' ? refreshDataObj.expires_in : 3600;
+
+  if (!newToken) {
+    console.error('[gmail-webhook] no access_token in refresh response');
+    return null;
+  }
+
+  const newExpiry = new Date(Date.now() + expiresIn * 1000).toISOString();
   await supabase.from('email_accounts').update({
     access_token: newToken, token_expires_at: newExpiry,
   }).eq('id', accountId);
@@ -273,13 +413,33 @@ async function processHistory(
     `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
     { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
   );
-  const histData = await histRes.json();
-  if (histData.error) return;
+
+  let histData: unknown;
+  try {
+    histData = await histRes.json();
+  } catch {
+    return;
+  }
+
+  if (!histData || typeof histData !== 'object' || Array.isArray(histData)) return;
+  const histDataObj = histData as Record<string, unknown>;
+  if (histDataObj.error) return;
 
   const addedMessages: string[] = [];
-  for (const record of histData.history ?? []) {
-    for (const added of record.messagesAdded ?? []) {
-      addedMessages.push(added.message.id);
+  const historyList = Array.isArray(histDataObj.history) ? histDataObj.history : [];
+  for (const record of historyList) {
+    if (typeof record !== 'object' || record === null || Array.isArray(record)) continue;
+    const recordObj = record as Record<string, unknown>;
+    const messagesAdded = Array.isArray(recordObj.messagesAdded) ? recordObj.messagesAdded : [];
+    for (const added of messagesAdded) {
+      if (typeof added !== 'object' || added === null || Array.isArray(added)) continue;
+      const addedObj = added as Record<string, unknown>;
+      const msg = addedObj.message;
+      if (typeof msg === 'object' && msg !== null && !Array.isArray(msg)) {
+        const msgObj = msg as Record<string, unknown>;
+        const msgId = typeof msgObj.id === 'string' ? msgObj.id : '';
+        if (msgId) addedMessages.push(msgId);
+      }
     }
   }
 
@@ -320,17 +480,39 @@ async function fetchAndPersistMessage(
     headers: { Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000),
   });
-  const msg = await msgRes.json();
-  if (msg.error) {
+
+  let msg: unknown;
+  try {
+    msg = await msgRes.json();
+  } catch {
+    throw new Error(`Failed to parse message response for ${messageId}`);
+  }
+
+  if (!msg || typeof msg !== 'object' || Array.isArray(msg)) {
+    throw new NonRetryableMessageError(`Invalid message response for ${messageId}`);
+  }
+
+  const msgObj = msg as Record<string, unknown>;
+  if (msgObj.error && typeof msgObj.error === 'object' && msgObj.error !== null && !Array.isArray(msgObj.error)) {
+    const errorObj = msgObj.error as Record<string, unknown>;
+    const errorCode = typeof errorObj.code === 'number' ? errorObj.code : 0;
+
     // 404: message deleted before ingestion — expected and harmless, skip silently.
-    if (msg.error.code === 404) return;
+    if (errorCode === 404) return;
 
     // Inspect the reason/status fields for fine-grained retryability classification.
     // Coarse code-only checks misclassify retryable 401/403 variants as non-retryable,
     // causing processHistory to skip those messages and advance history_id, permanently
     // dropping emails that could have been recovered on the next Pub/Sub retry.
-    const reason = ((msg.error.errors?.[0]?.reason) ?? '').toLowerCase();
-    const status = ((msg.error.status) ?? '').toLowerCase();
+    let reason = '';
+    if (Array.isArray(errorObj.errors) && errorObj.errors.length > 0) {
+      const firstError = errorObj.errors[0];
+      if (typeof firstError === 'object' && firstError !== null && !Array.isArray(firstError)) {
+        const firstErrorObj = firstError as Record<string, unknown>;
+        reason = typeof firstErrorObj.reason === 'string' ? firstErrorObj.reason.toLowerCase() : '';
+      }
+    }
+    const status = typeof errorObj.status === 'string' ? errorObj.status.toLowerCase() : '';
 
     // Transient: hold history_id so Pub/Sub retries and recovers the missed messages.
     // 401 is NOT blanket-transient — only the specific UNAUTHENTICATED status (token-expiry)
@@ -346,82 +528,118 @@ async function fetchAndPersistMessage(
       status === 'resource_exhausted';
 
     if (isTransient) {
-      throw new Error(`Gmail API transient error for message ${messageId}: ${msg.error.code} ${reason || (msg.error.message ?? '')}`);
+      const errorMessage = typeof errorObj.message === 'string' ? errorObj.message : '';
+      throw new Error(`Gmail API transient error for message ${messageId}: ${errorCode} ${reason || errorMessage}`);
     }
 
     // Non-retryable (e.g. insufficientPermissions, badRequest): skip as a poison pill so the
     // account is not permanently stalled by a single bad message.
-    throw new NonRetryableMessageError(`Gmail API non-retryable error for message ${messageId}: ${msg.error.code} ${reason || (msg.error.message ?? '')}`);
+    const errorMessage = typeof errorObj.message === 'string' ? errorObj.message : '';
+    throw new NonRetryableMessageError(`Gmail API non-retryable error for message ${messageId}: ${errorCode} ${reason || errorMessage}`);
   }
 
   const headers: Record<string, string> = {};
-  const payloadHeaders = Array.isArray(msg.payload?.headers) ? msg.payload.headers : [];
-  for (const h of payloadHeaders) {
-    if (typeof h === 'object' && h !== null && !Array.isArray(h)) {
-      const hObj = h as Record<string, unknown>;
-      if (typeof hObj.name === 'string' && typeof hObj.value === 'string') {
-        headers[hObj.name.toLowerCase()] = hObj.value;
+  const payloadVal = msgObj.payload;
+  if (typeof payloadVal === 'object' && payloadVal !== null && !Array.isArray(payloadVal)) {
+    const payload = payloadVal as Record<string, unknown>;
+    const payloadHeaders = Array.isArray(payload.headers) ? payload.headers : [];
+    for (const h of payloadHeaders) {
+      if (typeof h === 'object' && h !== null && !Array.isArray(h)) {
+        const hObj = h as Record<string, unknown>;
+        if (typeof hObj.name === 'string' && typeof hObj.value === 'string') {
+          headers[hObj.name.toLowerCase()] = hObj.value;
+        }
       }
     }
   }
 
-  const threadId   = msg.threadId;
-  const subject    = headers['subject'] ?? '(sem assunto)';
+  const threadId = typeof msgObj.threadId === 'string' ? msgObj.threadId : '';
+  const subject = headers['subject'] ?? '(sem assunto)';
   const fromHeader = headers['from'] ?? '';
-  const toHeader   = (headers['to'] ?? '').split(',').map((e: string) => e.trim());
-  const ccHeader   = (headers['cc'] ?? '').split(',').filter(Boolean).map((e: string) => e.trim());
-  const date       = headers['date'] ? new Date(headers['date']).toISOString() : new Date().toISOString();
-  const snippet    = msg.snippet ?? '';
+  const toHeaderStr = headers['to'] ?? '';
+  const toHeader = toHeaderStr.split(',').map((e: string) => e.trim()).filter((e: string) => e.length > 0);
+  const ccHeaderStr = headers['cc'] ?? '';
+  const ccHeader = ccHeaderStr.split(',').map((e: string) => e.trim()).filter((e: string) => e.length > 0);
+  const dateStr = headers['date'] ?? '';
+  const date = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString();
+  const snippet = typeof msgObj.snippet === 'string' ? msgObj.snippet : '';
 
   // Extrai from_email e from_name
-  const fromMatch  = fromHeader.match(/^(.*?)\s*<(.+?)>$/) ?? [];
-  const fromName   = fromMatch[1]?.trim() ?? fromHeader;
-  const fromEmail  = fromMatch[2] ?? fromHeader;
+  const fromMatch = fromHeader.match(/^(.*?)\s*<(.+?)>$/) ?? [];
+  const fromName = fromMatch[1]?.trim() ?? fromHeader;
+  const fromEmail = fromMatch[2] ?? fromHeader;
 
   // Extrai body
   let bodyPlain = '';
-  let bodyHtml  = '';
+  let bodyHtml = '';
   const extractParts = (parts: unknown[]): void => {
     if (!Array.isArray(parts)) return;
     for (const part of parts) {
       if (typeof part !== 'object' || part === null || Array.isArray(part)) continue;
       const p = part as Record<string, unknown>;
-      if (p.mimeType === 'text/plain' && typeof p.body === 'object' && p.body !== null) {
+      const mimeType = typeof p.mimeType === 'string' ? p.mimeType : '';
+      if (mimeType === 'text/plain' && typeof p.body === 'object' && p.body !== null) {
         const body = p.body as Record<string, unknown>;
         if (typeof body.data === 'string') {
-          bodyPlain = atob(body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          try {
+            bodyPlain = atob(body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          } catch {
+            bodyPlain = '';
+          }
         }
-      } else if (p.mimeType === 'text/html' && typeof p.body === 'object' && p.body !== null) {
+      } else if (mimeType === 'text/html' && typeof p.body === 'object' && p.body !== null) {
         const body = p.body as Record<string, unknown>;
         if (typeof body.data === 'string') {
-          bodyHtml = atob(body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          try {
+            bodyHtml = atob(body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          } catch {
+            bodyHtml = '';
+          }
         }
       } else if (Array.isArray(p.parts)) {
         extractParts(p.parts);
       }
     }
   };
-  const payloadParts = Array.isArray(msg.payload?.parts) ? msg.payload.parts : null;
-  if (payloadParts) {
-    extractParts(payloadParts);
-  } else if (typeof msg.payload?.body === 'object' && msg.payload.body !== null) {
-    const body = msg.payload.body as Record<string, unknown>;
-    if (typeof body.data === 'string') {
-      const data = (body.data as string).replace(/-/g, '+').replace(/_/g, '/');
-      if (msg.payload.mimeType === 'text/html') bodyHtml = atob(data);
-      else bodyPlain = atob(data);
+
+  if (typeof payloadVal === 'object' && payloadVal !== null && !Array.isArray(payloadVal)) {
+    const payload = payloadVal as Record<string, unknown>;
+    const payloadParts = Array.isArray(payload.parts) ? payload.parts : null;
+    if (payloadParts) {
+      extractParts(payloadParts);
+    } else if (typeof payload.body === 'object' && payload.body !== null) {
+      const body = payload.body as Record<string, unknown>;
+      if (typeof body.data === 'string') {
+        try {
+          const data = body.data.replace(/-/g, '+').replace(/_/g, '/');
+          const mimeType = typeof payload.mimeType === 'string' ? payload.mimeType : '';
+          if (mimeType === 'text/html') {
+            bodyHtml = atob(data);
+          } else {
+            bodyPlain = atob(data);
+          }
+        } catch {
+          // continue
+        }
+      }
     }
   }
 
-  const labelIds = Array.isArray(msg.labelIds) ? msg.labelIds : [];
+  const labelIds = Array.isArray(msgObj.labelIds) ? msgObj.labelIds.filter((l: unknown) => typeof l === 'string') : [];
   const isRead = !labelIds.includes('UNREAD');
   const isSent = labelIds.includes('SENT');
-  const payloadPartsForAttach = Array.isArray(msg.payload?.parts) ? msg.payload.parts : [];
-  const hasAttach = payloadPartsForAttach.some((p: unknown) =>
-    typeof p === 'object' && p !== null && !Array.isArray(p) && (p as Record<string, unknown>).filename
-  );
+  let hasAttach = false;
+  if (typeof payloadVal === 'object' && payloadVal !== null && !Array.isArray(payloadVal)) {
+    const payload = payloadVal as Record<string, unknown>;
+    const payloadParts = Array.isArray(payload.parts) ? payload.parts : [];
+    hasAttach = payloadParts.some((p: unknown) =>
+      typeof p === 'object' && p !== null && !Array.isArray(p) && (typeof (p as Record<string, unknown>).filename === 'string')
+    );
+  }
 
   // Step 1: insert the thread row if it doesn't exist yet (no-op on conflict).
+  if (!threadId) return;
+
   await supabase.from('gmail_threads').upsert({
     account_id:      accountId,
     thread_id:       threadId,
@@ -448,27 +666,31 @@ async function fetchAndPersistMessage(
     .eq('thread_id', threadId)
     .single();
 
-  if (!thread) return;
+  if (!thread || typeof thread !== 'object' || Array.isArray(thread)) return;
+
+  const threadObj = thread as Record<string, unknown>;
+  const threadRefId = typeof threadObj.id === 'string' ? threadObj.id : '';
+  if (!threadRefId) return;
 
   // Upsert gmail_messages
   await supabase.from('gmail_messages').upsert({
-    thread_id_ref:  thread.id,
-    account_id:     accountId,
-    message_id:     messageId,
-    from_email:     fromEmail,
-    from_name:      fromName,
-    to_emails:      toHeader,
-    cc_emails:      ccHeader,
-    bcc_emails:     [],
+    thread_id_ref:   threadRefId,
+    account_id:      accountId,
+    message_id:      messageId,
+    from_email:      fromEmail,
+    from_name:       fromName,
+    to_emails:       toHeader,
+    cc_emails:       ccHeader,
+    bcc_emails:      [],
     subject,
-    body_plain:     bodyPlain.substring(0, 50000),
-    body_html:      bodyHtml.substring(0, 200000),
+    body_plain:      bodyPlain.substring(0, 50000),
+    body_html:       bodyHtml.substring(0, 200000),
     snippet,
-    label_ids:      labelIds,
-    is_read:        isRead,
-    is_sent:        isSent,
+    label_ids:       labelIds,
+    is_read:         isRead,
+    is_sent:         isSent,
     has_attachments: hasAttach,
-    internal_date:  date,
+    internal_date:   date,
   }, { onConflict: 'account_id,message_id' });
 
   // Recompute unread_count from actual message records — avoids the literal
@@ -476,12 +698,12 @@ async function fetchAndPersistMessage(
   const { count: unreadCount } = await supabase
     .from('gmail_messages')
     .select('id', { count: 'exact', head: true })
-    .eq('thread_id_ref', thread.id)
+    .eq('thread_id_ref', threadRefId)
     .eq('is_read', false);
 
-  if (unreadCount !== null) {
+  if (unreadCount !== null && unreadCount >= 0) {
     await supabase.from('gmail_threads')
       .update({ unread_count: unreadCount })
-      .eq('id', thread.id);
+      .eq('id', threadRefId);
   }
 }
