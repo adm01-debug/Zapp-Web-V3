@@ -226,8 +226,12 @@ async function callAiWithTimeout<T>(
 // H.15: Memory usage monitoring and enforcement
 function getMemoryUsageMB(): number {
   try {
-    const metrics = Deno.metrics();
-    return metrics.ops.heap?.bytes ? Math.round(metrics.ops.heap.bytes / (1024 * 1024)) : 0;
+    // Deno.metrics() may not be available in all Edge Function runtimes
+    if (typeof (Deno as any).metrics === 'function') {
+      const metrics = (Deno as any).metrics();
+      return metrics.ops.heap?.bytes ? Math.round(metrics.ops.heap.bytes / (1024 * 1024)) : 0;
+    }
+    return 0; // Metrics unavailable in this runtime
   } catch {
     return 0; // Fallback if metrics unavailable
   }
@@ -235,12 +239,14 @@ function getMemoryUsageMB(): number {
 
 function checkMemoryLimit(log: Logger): boolean {
   const memMB = getMemoryUsageMB();
-  if (memMB >= MEMORY_CRITICAL_THRESHOLD_MB) {
-    log.error("Critical memory threshold exceeded", { memMB, threshold: MEMORY_CRITICAL_THRESHOLD_MB });
-    return false; // Reject request
-  }
-  if (memMB >= MEMORY_WARNING_THRESHOLD_MB) {
-    log.warn("Memory warning threshold reached", { memMB, threshold: MEMORY_WARNING_THRESHOLD_MB });
+  if (memMB > 0) { // Only check if metrics are available
+    if (memMB >= MEMORY_CRITICAL_THRESHOLD_MB) {
+      log.error("Critical memory threshold exceeded", { memMB, threshold: MEMORY_CRITICAL_THRESHOLD_MB });
+      return false; // Reject request
+    }
+    if (memMB >= MEMORY_WARNING_THRESHOLD_MB) {
+      log.warn("Memory warning threshold reached", { memMB, threshold: MEMORY_WARNING_THRESHOLD_MB });
+    }
   }
   return true; // Allow request
 }
