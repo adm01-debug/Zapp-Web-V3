@@ -4,19 +4,26 @@ import { useToast } from '@/hooks/use-toast';
 import { whatsappConnectionService } from '../../services/whatsappConnectionService';
 import { getLogger } from '@/lib/logger';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import type { WhatsAppConnection, WhatsAppApiType } from '../useConnectionsManager';
 
 const log = getLogger('useConnectionsActions');
 
+export interface NewConnectionForm {
+  name: string;
+  phone_number: string;
+  api_type: WhatsAppApiType;
+}
+
 export function useConnectionsActions(
-  connections: any[],
-  setConnections: (updater: (prev: any[]) => any[]) => void,
+  connections: WhatsAppConnection[],
+  setConnections: (updater: (prev: WhatsAppConnection[]) => WhatsAppConnection[]) => void,
   setIsCreating: (v: boolean) => void,
   setIsAddDialogOpen: (v: boolean) => void,
-  setNewConnection: (v: any) => void,
-  handleShowQrCode: (conn: any) => void,
-  disconnectInstance: (instance: string) => Promise<any>,
-  deleteInstance: (instance: string) => Promise<any>,
-  newConnection: any
+  setNewConnection: (v: NewConnectionForm) => void,
+  handleShowQrCode: (conn: WhatsAppConnection) => void,
+  disconnectInstance: (instance: string) => Promise<unknown>,
+  deleteInstance: (instance: string) => Promise<unknown>,
+  newConnection: NewConnectionForm
 ) {
   const { toast } = useToast();
 
@@ -56,9 +63,9 @@ export function useConnectionsActions(
       setIsAddDialogOpen(false);
       setNewConnection({ name: '', phone_number: '', api_type: 'evolution' });
       if (data && !isOfficial) handleShowQrCode(data);
-    } catch (error: any) {
+    } catch (error) {
       log.error('Error creating connection:', error);
-      toast({ title: 'Erro ao criar conexão', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao criar conexão', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     } finally {
       setIsCreating(false);
     }
@@ -71,12 +78,12 @@ export function useConnectionsActions(
       if (error) throw error;
       setConnections(prev => prev.map(c => ({ ...c, is_default: c.id === id })));
       toast({ title: 'Conexão padrão atualizada' });
-    } catch (error: any) {
-      toast({ title: 'Erro ao definir padrão', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Erro ao definir padrão', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     }
   }, [setConnections, toast]);
 
-  const handleDelete = useCallback(async (connection: any) => {
+  const handleDelete = useCallback(async (connection: WhatsAppConnection) => {
     try {
       // Evolution roteia por nome de instância — o UUID (instance_id) gera 404.
       const evoName = evolutionInstanceName(connection);
@@ -87,8 +94,8 @@ export function useConnectionsActions(
       if (error) throw error;
       setConnections(prev => prev.filter(c => c.id !== connection.id));
       toast({ title: 'Conexão removida' });
-    } catch (error: any) {
-      toast({ title: 'Erro ao deletar', description: error.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Erro ao deletar', description: error instanceof Error ? error.message : String(error), variant: 'destructive' });
     }
   }, [setConnections, toast, deleteInstance]);
 

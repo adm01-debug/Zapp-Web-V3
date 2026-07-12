@@ -201,8 +201,8 @@ export default function AdminEmailStatusPage() {
         toast.success('RPC de status de token validada com sucesso.');
       }
       await loadHealth();
-    } catch (err: any) {
-      toast.error(`Falha na etapa ${action}: ${err.message || 'Erro desconhecido'}`);
+    } catch (err) {
+      toast.error(`Falha na etapa ${action}: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
     } finally {
       setIsRetrying((prev) => ({ ...prev, [id]: false }));
     }
