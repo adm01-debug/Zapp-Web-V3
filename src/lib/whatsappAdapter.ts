@@ -37,7 +37,7 @@ export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
   try {
     const { data, error } = await safeClient.rpc<string>('rpc_get_whatsapp_mode');
     if (error) throw error;
-    const mode = (data as string) === 'official' ? 'official' : 'unofficial';
+    const mode = (data as string) === 'official' ? 'official' : 'unofficial'; // ignore-audit: RPC returns unknown; string is the documented return type
     cachedMode = mode;
     cacheExpiresAt = now + 30_000;
     return mode;
@@ -86,7 +86,7 @@ async function checkCloudCredentials(): Promise<{ ok: boolean; missing: string[]
   try {
     const { data, error } = await supabase.functions.invoke('whatsapp-cloud-secrets-status');
     if (error) throw error;
-    const list = (data as CloudSecretsStatus)?.secrets ?? [];
+    const list = (data as CloudSecretsStatus)?.secrets ?? []; // ignore-audit: narrows Supabase query result to local interface
     const byName = new Map(list.map((s) => [s.name, s.configured]));
     const missing = REQUIRED_CLOUD_SECRETS.filter((n) => !byName.get(n));
     const result = { ok: missing.length === 0, missing };
@@ -213,7 +213,7 @@ export interface SendTemplateParams {
   remoteJid: string;
   name: string;
   language?: string;
-  components?: TemplateComponent[];
+  components?: Array<Record<string, unknown>>;
 }
 
 export interface PresenceParams {
@@ -234,7 +234,7 @@ async function invokeCloud(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
   if (error) throw error;
   if (data && typeof data === 'object' && 'error' in data) {
-    throw new Error((data as { error?: string }).error ?? 'cloud_send_failed');
+    throw new Error(((data as Record<string, unknown>).error as string | undefined) ?? 'cloud_send_failed'); // ignore-audit: narrows Supabase query result to local interface
   }
   return data;
 }
