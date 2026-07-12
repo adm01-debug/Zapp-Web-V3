@@ -61,13 +61,44 @@ export async function markEventProcessed(supabase: any, eventId: string, instanc
 // must NOT leave the event permanently deduped — otherwise the consumer's re-delivery
 // is short-circuited as "duplicate" and the message is silently lost. Fail-safe:
 // never throws; a failed rollback is logged but does not change the 429 response.
+// CRITICAL: failed rollback writes to DLQ to ensure audit trail (G1 fix 2026-07-12).
 // deno-lint-ignore no-explicit-any
-export async function unmarkEventProcessed(supabase: any, eventId: string): Promise<void> {
+export async function unmarkEventProcessed(supabase: any, eventId: string, instance?: string, eventType?: string): Promise<boolean> {
   try {
     const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
-    if (error) console.error(`[idempotency] rollback failed for ${eventId.slice(0, 48)}…: ${error.message ?? error.code}`);
+    if (error) {
+      console.error(`[idempotency] rollback FAILED for ${eventId.slice(0, 48)}…: ${error.message ?? error.code}`);
+      // Write audit entry so operators can detect this event is permanently deduplicated
+      try {
+        await supabase.from('idempotency_rollback_failures').insert({
+          event_id: eventId,
+          instance: instance || null,
+          event_type: eventType || null,
+          error_code: error.code,
+          error_message: error.message,
+          created_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error(`[idempotency] failed to write audit row for rollback failure: ${e}`);
+      }
+      return false;
+    }
+    return true;
   } catch (e) {
     console.error(`[idempotency] rollback exception for ${eventId.slice(0, 48)}…: ${e instanceof Error ? e.message : String(e)}`);
+    try {
+      await supabase.from('idempotency_rollback_failures').insert({
+        event_id: eventId,
+        instance: instance || null,
+        event_type: eventType || null,
+        error_code: 'EXCEPTION',
+        error_message: e instanceof Error ? e.message : String(e),
+        created_at: new Date().toISOString(),
+      });
+    } catch (ex) {
+      console.error(`[idempotency] failed to write audit row for exception: ${ex}`);
+    }
+    return false;
   }
 }
 

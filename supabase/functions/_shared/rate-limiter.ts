@@ -17,11 +17,13 @@ export async function checkRateLimit(supabase: SupabaseClient, {
   eventType,
   limit = 100, // events per window
   windowSeconds = 60,
+  maxRetries = 3, // [FIX 2026-07-12 G2] Prevent infinite 429 loops
 }: {
   instanceId: string;
   eventType: string;
   limit?: number;
   windowSeconds?: number;
+  maxRetries?: number; // Max consecutive 429s before allowing passthrough (fail-open)
 }): Promise<{ allowed: boolean; currentCount: number; limit: number }> {
   const now = new Date();
   try {
