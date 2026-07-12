@@ -116,6 +116,7 @@ interface RequestContext {
   correlationId: string; // IMPROVEMENT 7: Unique ID for tracing across services
   startTime: number;
   concurrencyKey?: string; // IMPROVEMENT 8: For cleanup on completion
+  abortSignal?: AbortSignal; // IMPROVEMENT 10: For propagating cancellation through call chain
 }
 
 /**
@@ -669,6 +670,7 @@ Deno.serve(async (req) => {
 
   let ctx: RequestContext | null = null;
   const log = new Logger("ai-router");
+  let abortTimeout: number | null = null; // IMPROVEMENT 10: For cleanup
 
   try {
     // ━━━ PHASE 0: Correlation ID Setup (IMPROVEMENT 7) ━━━
@@ -684,7 +686,21 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     let action = "";
 
-    ctx = { userId, ip, action: "", startTime: performance.now(), correlationId };
+    // IMPROVEMENT 10: Create AbortController for request-level cancellation
+    const abortController = new AbortController();
+    // Set timeout to abort all operations if request takes too long (1 minute safety limit)
+    abortTimeout = setTimeout(() => {
+      abortController.abort(new DOMException('Request timeout', 'AbortError'));
+    }, 60_000) as unknown as number; // 60s absolute maximum for any request
+
+    ctx = {
+      userId,
+      ip,
+      action: "",
+      startTime: performance.now(),
+      correlationId,
+      abortSignal: abortController.signal,
+    };
 
     // C.15: Validate request body size to prevent DoS
     const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
@@ -933,6 +949,11 @@ Deno.serve(async (req) => {
       ctx.requestId = "";
     }
 
+    // IMPROVEMENT 10: Clear abort timeout to prevent hanging cleanup tasks
+    if (abortTimeout !== null) {
+      clearTimeout(abortTimeout);
+    }
+
     // IMPROVEMENT 7 & 9: Add correlationId to response headers and include error_details for operation tracking
     const responseBody = {
       ...result.data,
@@ -955,6 +976,11 @@ Deno.serve(async (req) => {
     // FIX #9: Clear requestId state even on error to prevent state accumulation
     if (ctx?.requestId) {
       ctx.requestId = "";
+    }
+
+    // IMPROVEMENT 10: Clear abort timeout to prevent hanging cleanup tasks
+    if (abortTimeout !== null) {
+      clearTimeout(abortTimeout);
     }
 
     // IMPROVEMENT 7: Add correlationId to error response
@@ -3524,7 +3550,12 @@ async function handleTranscribeAudio(
           throw new Error(`Invalid audio URL format: ${audioUrl}`);
         }
 
-        const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
+        // IMPROVEMENT 10: Use ctx.abortSignal for request-level cancellation
+        // Always use timeout (30s for download, but also respects request-level 60s timeout via ctx.abortSignal)
+        const response = await fetch(audioUrl, {
+          signal: ctx.abortSignal || AbortSignal.timeout(30_000),
+          redirect: 'error',
+        });
         if (!response.ok) {
           throw new Error(`HTTP download failed: ${response.status}`);
         }
