@@ -27,7 +27,7 @@ export const useThemeAudit = () => {
   });
 
   useEffect(() => {
-    // Audit logic
+    if (!import.meta.env.DEV) return;
     const runAudit = () => {
       const violations: string[] = [];
       let oledPass = true;

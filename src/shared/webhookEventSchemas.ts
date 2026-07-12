@@ -180,7 +180,7 @@ export const warRoomAlertRowSchema = z.object({
 
 export const evolutionMessageRowSchema = z.object({
   id: z.string(),
-  message_id: z.string(),
+  message_id: z.string().nullable().optional(),
   remote_jid: z.string(),
   from_me: z.boolean(),
   message_type: z.string(),
