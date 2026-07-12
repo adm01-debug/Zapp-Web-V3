@@ -54,7 +54,12 @@ export function useAutomations({
   const loadingRef = useRef(false);
   const evaluatingRef = useRef(false);
   const needsRerunRef = useRef(false);
-  const evaluatingConvRef = useRef<string | null>(null);
+  // Monotonically increasing per-invocation counter. Each evaluate() call that
+  // actually acquires the mutex captures its own generation. State writes and
+  // mutex releases are guarded by myGen === evalGenRef.current so that stale
+  // in-flight evaluations from a previous conversation can never corrupt shared
+  // refs or prematurely release a newer evaluation's lock.
+  const evalGenRef = useRef(0);
 
   useEffect(() => {
     isMounted.current = true;
@@ -63,13 +68,14 @@ export function useAutomations({
     };
   }, []);
 
-  // Reseta snapshot de tags ao trocar de conversa e libera o mutex do avaliador
-  // anterior para que a nova conversa não fique bloqueada por uma avaliação em voo.
+  // Reseta snapshot de tags ao trocar de conversa e invalida qualquer avaliação
+  // em voo da conversa anterior via bump do contador de geração. Avaliações cujo
+  // myGen !== evalGenRef.current não escreverão em prevTagsRef nem liberarão o mutex.
   useEffect(() => {
     prevTagsRef.current = null;
+    evalGenRef.current++;           // invalidate any in-flight evaluation
     evaluatingRef.current = false;
     needsRerunRef.current = false;
-    evaluatingConvRef.current = null;
   }, [remoteJid, instanceName]);
 
   // Carrega regras ativas (refresh a cada 60s)
@@ -121,14 +127,15 @@ export function useAutomations({
   // Avalia gatilhos para a conversa ativa
   const evaluate = useCallback(async () => {
     if (!remoteJid || !isMounted.current) return;
-    const convKey = `${remoteJid}:${instanceName}`;
     if (evaluatingRef.current) {
       // Defer rather than drop: the tick that unblocks will rerun for this conv.
       needsRerunRef.current = true;
       return;
     }
+    // Capture generation AFTER acquiring the mutex so deferred (early-return)
+    // calls don't bump the counter and invalidate the running evaluation.
+    const myGen = ++evalGenRef.current;
     evaluatingRef.current = true;
-    evaluatingConvRef.current = convKey;
     needsRerunRef.current = false;
 
     try {
@@ -174,7 +181,11 @@ export function useAutomations({
           addedTags = currentTags.filter((t) => !prev.includes(t));
           removedTags = prev.filter((t) => !currentTags.includes(t));
         }
-        prevTagsRef.current = currentTags;
+        // Only commit the snapshot if this is still the current generation;
+        // a stale in-flight evaluation must not overwrite the new conversation's tags.
+        if (myGen === evalGenRef.current) {
+          prevTagsRef.current = currentTags;
+        }
       } catch (e) {
         log.warn('[automation] tag snapshot failed', e);
       }
@@ -345,8 +356,10 @@ export function useAutomations({
     } catch (err) {
       log.error('Error evaluating automations:', err);
     } finally {
-      // Only release the lock if we still own it (conversation didn't change mid-flight).
-      if (evaluatingConvRef.current === convKey) {
+      // Only release the lock if this is still the current generation. This
+      // guards against both the A→B→A lock-release collision and any other
+      // scenario where a newer evaluation has already claimed the mutex.
+      if (myGen === evalGenRef.current) {
         evaluatingRef.current = false;
         if (needsRerunRef.current && isMounted.current) {
           needsRerunRef.current = false;
