@@ -97,16 +97,10 @@ src/features/sla/hooks/useSLAAlertPreferences.ts
 src/features/sla/hooks/useSLAMetrics.ts
 src/hooks/__tests__/useExternalCatalog.test.ts
 src/hooks/admin/useAdminQueues.ts
-src/hooks/admin/useRolesPageState.ts
-src/hooks/followup/useFollowUpSequences.ts
 src/hooks/integrations/useEvolutionApiIntegration.ts
-src/hooks/pipeline/useSalesPipeline.ts
 src/hooks/sticker-picker/useStickerPicker.ts
 src/hooks/team-chat/useDepartmentManagement.ts
 src/hooks/useAutomations.ts
-src/hooks/useBusinessHours.ts
-src/hooks/useCSAT.ts
-src/hooks/useClientWallet.ts
 src/hooks/useConversationSLATimeline.ts
 src/hooks/useDeliveryStats.ts
 src/hooks/useEmail.ts
