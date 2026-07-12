@@ -205,7 +205,7 @@ export interface SendTemplateParams {
   remoteJid: string;
   name: string;
   language?: string;
-  components?: any[];
+  components?: Array<Record<string, unknown>>;
 }
 
 export interface PresenceParams {

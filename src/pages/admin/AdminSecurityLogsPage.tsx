@@ -24,7 +24,7 @@ export default function AdminSecurityLogsPage() {
 
   useEffect(() => {
     const fetchLogs = async () => {
-      const { data, error } = await safeClient.from<AuditLog>('security_audit_logs', (q: any) =>
+      const { data, error } = await safeClient.from<AuditLog>('security_audit_logs', (q) =>
         q.select(`*, profiles:user_id (name, email)`)
          .order('created_at', { ascending: false })
          .limit(50)
