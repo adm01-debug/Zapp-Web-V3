@@ -133,7 +133,6 @@ src/hooks/useEmail.ts
 src/hooks/useEmailDraft.ts
 src/hooks/useEmailSLA.ts
 src/hooks/useEmailSearch.ts
-src/hooks/useEmailSignature.ts
 src/hooks/useEvolutionAutoReconnect.ts
 src/hooks/useEvolutionAutoSync.ts
 src/hooks/useExternalCargos.ts
