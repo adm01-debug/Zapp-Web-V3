@@ -225,7 +225,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       await supabase.rpc('rpc_dlq_log_item_action', {
         p_action: action,
         p_ids: ids,
-        p_reason: reason ?? null,
+        p_reason: reason ?? undefined,
       });
       queryClient.invalidateQueries({ queryKey: ['dlq-audit-log'] });
     } catch (logErr) {
@@ -314,7 +314,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_reason: reason,
       });
       if (error) throw error;
-      const affected = (data as number | null) ?? 0;
+      const affected = (data as unknown as number | null) ?? 0;
       if (affected > 0) await logItemAction('bulk_abandon', ids, reason);
       return affected;
     },
