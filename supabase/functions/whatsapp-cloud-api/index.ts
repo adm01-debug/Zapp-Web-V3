@@ -99,8 +99,16 @@ async function persistOutbound(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-  const supabaseAnonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!;
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[whatsapp-cloud-api] missing environment configuration', {
+      url_present: !!supabaseUrl,
+      key_present: !!supabaseAnonKey,
+    });
+    return errorResponse('Supabase configuration missing. Contact administrator.', 500, req);
+  }
 
   try {
     // Basic staff authorization for all actions
@@ -115,10 +123,13 @@ Deno.serve(async (req) => {
   if (!action) return jsonResponse({ error: true, message: 'Missing action' }, 400, req);
   if (!instanceName) return jsonResponse({ error: true, message: 'Missing instanceName' }, 400, req);
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-  );
+  const supabaseServiceRoleKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseServiceRoleKey) {
+    console.error('[whatsapp-cloud-api] missing service role key for admin operations');
+    return errorResponse('Service role key not configured. Contact administrator.', 500, req);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
   const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
   const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
     ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
