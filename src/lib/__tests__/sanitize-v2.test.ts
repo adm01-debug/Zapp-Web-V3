@@ -369,7 +369,7 @@ describe('sanitize-v2: Round 15 Comprehensive Tests', () => {
         .fill(null)
         .map((_, i) => `<b>Item ${i}</b>`);
 
-      const results = inputs.map(sanitizeHtml);
+      const results = inputs.map((h) => sanitizeHtml(h));
       expect(results.every((r) => r.success)).toBe(true);
     });
 
@@ -392,7 +392,7 @@ describe('sanitize-v2: Round 15 Comprehensive Tests', () => {
         '<b>safe <i>nested</i> content</b>',
       ];
 
-      const results = inputs.map(sanitizeHtml);
+      const results = inputs.map((h) => sanitizeHtml(h));
       // Only null byte should fail
       expect(results[4].success).toBe(false);
       // Others should succeed
