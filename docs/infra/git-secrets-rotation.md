@@ -34,6 +34,32 @@ echo -n "<nova-chave>" | docker secret create evolution_api_key_v5_$(date +%Y%m%
 docker secret ls | grep evolution_api_key
 ```
 
+### 2b. Capturar chave antiga ANTES do redeploy (obrigatório)
+
+> ⚠️ **Execute este passo ANTES do Step 3.** Após o Portainer redesployar o stack
+> com o novo secret, o arquivo `/run/secrets/evolution_api_key_v4_20260704` deixa de
+> existir no container. Sem esta captura, o Step 5 não consegue verificar a revogação.
+
+```bash
+# Criar arquivo protegido no host para armazenar a chave antiga
+OLD_KEY_FILE=$(mktemp)
+chmod 600 "$OLD_KEY_FILE"
+trap 'rm -f "$OLD_KEY_FILE"' EXIT  # garante cleanup mesmo em SIGINT/erro
+
+# Capturar a chave diretamente do container ainda rodando com o secret antigo
+docker exec $(docker ps -qf name=evolution_evolution) \
+  bash -c "cat /run/secrets/evolution_api_key_v4_20260704 | tr -d '\n\r'" > "$OLD_KEY_FILE"
+
+# Validar que a captura foi bem-sucedida (32 bytes = chave hex 16 bytes)
+CAPTURED=$(wc -c < "$OLD_KEY_FILE" | tr -d ' ')
+test "$CAPTURED" = "32" || {
+  echo "ERRO: chave antiga capturada com tamanho inesperado ($CAPTURED bytes — esperado 32)" >&2
+  echo "Verifique se o container está rodando e o secret está montado." >&2
+  exit 1
+}
+echo "Chave antiga capturada com sucesso (${CAPTURED} bytes)"
+```
+
 ### 3. Atualizar Stack Evolution no Portainer
 
 No entrypoint do service `evolution_evolution`, trocar:
@@ -62,14 +88,28 @@ SELECT vault.update_secret(
 
 ```bash
 # Verificar que a chave antiga foi revogada (deve retornar 401)
-# Ler a chave antiga do secret file para não expor no histórico do shell
-OLD_APIKEY=$(cat /run/secrets/evolution_api_key_v4_20260704 | tr -d '\n\r')
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "apikey: ${OLD_APIKEY}" \
-  https://evolution.atomicabr.com.br/instance/fetchInstances)
-echo "Status com chave antiga: $STATUS"  # Deve ser 401
-unset OLD_APIKEY
+# Usa $OLD_KEY_FILE capturado no Step 2b — NÃO tenta ler do container (secret já foi removido)
+if [ ! -s "$OLD_KEY_FILE" ]; then
+  echo "[AVISO] Step 2b não foi executado ou falhou — $OLD_KEY_FILE ausente/vazio." >&2
+  echo "[AVISO] Verificação automática impossível. Confirme a revogação manualmente:" >&2
+  echo "  curl -s -o /dev/null -w '%{http_code}' -H 'apikey: <CHAVE-ANTIGA>' \\" >&2
+  echo "    https://evolution.atomicabr.com.br/instance/fetchInstances" >&2
+  echo "  # Deve retornar 401" >&2
+else
+  OLD_APIKEY=$(cat "$OLD_KEY_FILE")
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "apikey: ${OLD_APIKEY}" \
+    https://evolution.atomicabr.com.br/instance/fetchInstances)
+  echo "Status com chave antiga: $STATUS"  # Deve ser 401
+  unset OLD_APIKEY
+  if [ "$STATUS" != "401" ]; then
+    echo "[AVISO] Chave antiga ainda retorna $STATUS — aguardar propagação do redeploy e testar novamente." >&2
+    echo "        NÃO remova o secret antigo até confirmar 401." >&2
+    exit 1
+  fi
+  echo "Revogação confirmada (401). Removendo secret antigo."
+fi
 
-# Remover o secret antigo após confirmar status 401
+# Remover o secret antigo somente após confirmar 401
 docker secret rm evolution_api_key_v4_20260704
 ```
 

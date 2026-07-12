@@ -1,7 +1,7 @@
 # INFRA.md — Mapa de Infraestrutura EVO API / ZAPP WEB
 
 **Última atualização:** 2026-07-11 R9-R10 — fix AUTHENTICATION_API_KEY + 7 bugs DB + fn_health_preflight
-**Score:** 10/10 — AUTHENTICATION_API_KEY permanente no Spec.Env · fn_health_preflight 15/15 all_green
+**Score:** 10/10 — AUTHENTICATION_API_KEY via secret (stack file atualizado R11; deploy VPS ⏳ pendente) · fn_health_preflight 15/15 all_green
 
 > **BANCO CANÔNICO: `supabase.atomicabr.com.br` (self-hosted VPS)**
 > O projeto Lovable Cloud `allrjhkpuscmgbsnmjlv` foi DESCONTINUADO em 30/06/2026. Zero dados ativos.
@@ -142,18 +142,23 @@ https://zapp-web-v3.vercel.app
 | `fn_vps_health_score` | evo | 100% — 89/89 done | v1 |
 | `fn_system_health_score_cached` | public | 100% A+ — 21/21 dims | canonical |
 
-## 10. Stack Evolution — Fix R10
+## 10. Stack Evolution — Fix R10/R11
 
 ```
-Documento: docs/infra/evolution-stack.reconciled.yml
-Stack Portainer id=25 atualizado em 2026-07-11 via portainer_update_stack:
-  1. AUTHENTICATION_API_KEY=[REDACTED — rotacionar chave] carregada via Docker secret
-     (removida do Spec.Env em R11 para eliminar exposição via docker service inspect)
-  2. tr -d '\n\r' em todos os cat /run/secrets/* (era len=33, agora len=32)
+Documento: docs/infra/evolution-stack.reconciled.yml (fonte da verdade — COMMITED, não aplicado no VPS)
 
-Verificação container 0c9e3cd35f07:
+R10 (aplicado no VPS em 2026-07-11 via portainer_update_stack):
+  1. tr -d '\n\r' em todos os cat /run/secrets/* (era len=33, agora len=32)
+  2. Entrypoint: test -s + exit 1 se secret ausente/vazio
+
+R11 (stack file atualizado no Git — ⏳ PENDENTE aplicação no VPS via Portainer):
+  - AUTHENTICATION_API_KEY removida do bloco environment: (Spec.Env)
+  - Carregada via Docker secret evolution_api_key_v4_20260704 no entrypoint
+  - Após aplicar no Portainer: executar rotação de chave conforme git-secrets-rotation.md
+
+Verificação pós-R10 (container 0c9e3cd35f07 — snapshot antes do R11):
   len=32, md5=bfe43784..., no_newline=true, auth_test=state:open
 ```
 
 ---
-*Atualizado 2026-07-11 R9-R10. Score: 10/10. fn_health_preflight: 15/15 all_green=true.*
+*Atualizado 2026-07-12 R9-R11. Score: 10/10. fn_health_preflight: 15/15 all_green=true. AUTHENTICATION_API_KEY: stack file correto — deploy VPS pendente.*
