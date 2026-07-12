@@ -7,6 +7,7 @@ import { FileText, Loader2, CheckCircle2, Clock, AlertCircle, ThumbsUp, ThumbsDo
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { conversationSummary } from '@/integrations/supabase/ai-router';
 import { toast } from 'sonner';
 import { useSummaryTts } from './summary/useSummaryTts';
 import { SummaryResult } from './summary/SummaryResult';
@@ -54,11 +55,12 @@ export function ConversationSummary({ messages, contactName, contactId, initialS
     if (!canGenerateSummary) { toast.error('O período selecionado precisa ter pelo menos 10 mensagens.'); return; }
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-conversation-summary', {
-        body: { messages: filteredMessages.map(m => ({ sender: m.sender, content: m.content, created_at: m.created_at })), contactName, contactId },
+      const data = await conversationSummary({
+        messages: filteredMessages.map(m => ({ role: m.sender, content: m.content, sender: m.sender })),
+        contactName,
+        contactId,
       });
-      if (error) throw error;
-      setSummary(data); setHasGenerated(true); toast.success('Resumo gerado com sucesso!');
+      setSummary(data as any); setHasGenerated(true); toast.success('Resumo gerado com sucesso!');
     } catch (error) { log.error('Error generating summary:', error); toast.error('Erro ao gerar resumo. Tente novamente.'); }
     finally { setIsLoading(false); }
   };
