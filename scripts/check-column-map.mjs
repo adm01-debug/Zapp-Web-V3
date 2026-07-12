@@ -7,8 +7,9 @@
  *   - src/integrations/supabase/columnMap.ts        (fonte da verdade)
  *   - src/integrations/supabase/rowNormalizers.ts   (aliases documentados)
  *   - src/lib/evolutionInstance.ts                  (wrapper de compat)
- *   - **/__tests__/** e *.test.* / *.spec.*         (assertions)
- *   - supabase/functions/**                         (edge functions legadas)
+ *   - arquivos __tests__ / *.test.* / *.spec.*     (assertions)
+ *   - supabase/functions (edge functions legadas)
+
  *
  * Uso: `node scripts/check-column-map.mjs`
  */
