@@ -68,8 +68,7 @@ function ensureExternal() {
 
 /** Call an RPC function not present in the generated external-client types. */
 function callExternalRpc(client: ReturnType<typeof ensureExternal>, fn: string, args: Record<string, unknown>) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (client as any).rpc(fn, args) as ReturnType<typeof client.rpc>;
+  return (client as unknown as { rpc: typeof client.rpc }).rpc(fn, args);
 }
 
 export async function fallbackFindChats(instanceName: string, limit = 200): Promise<unknown[]> {

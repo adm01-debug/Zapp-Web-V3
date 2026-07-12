@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { getLogger } from '@/lib/logger';
 import { useQueryClient } from '@tanstack/react-query';
@@ -175,8 +176,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       }
 
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).rpc('fn_log_reconnection_attempt', {
+        await safeClient.rpc<unknown>('fn_log_reconnection_attempt', {
           p_connection_id:  null,
           p_instance_name:  evoInstanceName,
           p_status:         attemptStatus,

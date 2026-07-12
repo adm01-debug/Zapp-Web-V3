@@ -15,10 +15,10 @@ import {
 
 const log = getLogger('useFailedMessages');
 
+type _SupaRpc = { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }> };
 // Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
-  (supabase as any).rpc(fn, args) as Promise<{ data: T; error: Error | null }>;
+  (supabase as unknown as _SupaRpc).rpc(fn, args) as Promise<{ data: T; error: Error | null }>;
 
 const ADMIN_ONLY_MSG = 'Ação restrita a administradores.';
 
