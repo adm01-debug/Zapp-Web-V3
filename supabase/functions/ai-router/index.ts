@@ -300,16 +300,16 @@ async function handleAutoTag(
       .eq('is_active', true);
 
     const queueList = queues && queues.length > 0
-      ? queues.map((q: any) => `- "${q.name}" (${q.id}): ${q.description || 'No description'}`)
+      ? queues.map((q: any) => `- "${q.name}" (${q.id}): ${q.description || 'Sem descrição'}`)
         .join('\n')
       : '';
 
     log.info("Auto-tagging conversation", { contactId: validContactId, msgCount: conversationMessages.length });
 
-    const timeout = ACTION_TIMEOUTS.auto_tag;
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
+    let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
       const { response: resp, data: d } = await withCircuitBreaker(
@@ -325,7 +325,25 @@ async function handleAutoTag(
               messages: [
                 {
                   role: "system",
-                  content: `Você é um classificador avançado de conversas. Analise a conversa e retorne classificação completa em JSON.\n\n${queueList ? `FILAS DISPONÍVEIS:\n${queueList}` : ''}`,
+                  content: `Você é um classificador avançado de conversas de atendimento ao cliente. Analise a conversa e retorne classificação completa.
+
+Categorias possíveis: suporte_tecnico, vendas, financeiro, reclamacao, elogio, duvida, urgente, cancelamento, troca, entrega, pagamento, produto, servico, feedback, agendamento, orcamento
+
+${queueList ? `FILAS DISPONÍVEIS:\n${queueList}` : ''}
+
+Responda APENAS em JSON:
+{
+  "tags": [{"name": "tag_name", "confidence": 0.95}],
+  "sentiment": "positive|neutral|negative|critical",
+  "priority": "low|normal|high|urgent",
+  "priority_reason": "motivo da prioridade",
+  "summary": "resumo em 1 linha",
+  "suggested_queue_id": "uuid da fila sugerida ou null",
+  "suggested_queue_reason": "motivo da sugestão",
+  "customer_intent": "o que o cliente quer resolver",
+  "requires_immediate_attention": false,
+  "escalation_reason": null
+}`,
                 },
                 { role: "user", content: conversationText }
               ],
@@ -337,51 +355,76 @@ async function handleAutoTag(
       response = resp;
       data = d;
     } catch (err) {
+      const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
+
       if (errMsg.includes('timeout')) {
         metricsStatus = 'timeout';
-        errorMessage = `Auto-tag timeout (30s)`;
-      } else if (errMsg.includes('Circuit breaker')) {
+        errorMessage = `AI API timeout (30s) - ${errMsg}`;
+        metricsMetadata.timeout_duration_ms = durationMs;
+      } else if (errMsg.includes('Circuit breaker OPEN')) {
         metricsStatus = 'circuit_open';
-        errorMessage = `Circuit breaker open`;
+        errorMessage = `Circuit breaker open for lovable-auto-tag - service degraded (${errMsg})`;
+        metricsMetadata.circuit_breaker_state = 'OPEN';
       } else {
         metricsStatus = 'error';
         errorMessage = errMsg;
       }
 
-      return {
-        success: false,
-        error: errorMessage || 'AI call failed',
-        duration_ms: performance.now() - startTime,
-      };
+      try {
+        await supabase.rpc('record_ai_metrics', {
+          p_function_name: 'ai-auto-tag',
+          p_action: 'classification',
+          p_duration_ms: Math.round(durationMs),
+          p_status: metricsStatus,
+          p_user_id: ctx.userId,
+          p_error_message: errorMessage,
+          p_metadata: metricsMetadata,
+        });
+      } catch {
+        // Metrics not critical
+      }
+
+      return { success: false, error: errorMessage || 'AI call failed', duration_ms: durationMs };
     }
 
     if (!response.ok || !data) {
+      const durationMs = performance.now() - startTime;
       if (response.status === 429) {
-        // Rate limit from Lovable — unmark event processed for retry
-        if (requestId) {
+        if (ctx.requestId) {
           try {
-            await supabase.from('webhook_events_processed').delete().eq('event_id', requestId).catch(() => {});
+            await supabase.from('webhook_events_processed').delete().eq('event_id', ctx.requestId).catch(() => {});
           } catch {
             // Graceful degradation
           }
         }
-        return { success: false, error: "AI API rate limited", duration_ms: performance.now() - startTime };
+        return { success: false, error: "Rate limit exceeded", duration_ms: durationMs };
       }
-      return { success: false, error: `AI error: ${response.status}`, duration_ms: performance.now() - startTime };
+      if (response.status === 402) {
+        return { success: false, error: "Payment required", duration_ms: durationMs };
+      }
+      return { success: false, error: `AI error: ${response.status}`, duration_ms: durationMs };
     }
 
     const content = (data.choices as any[])?.[0]?.message?.content;
-    let result = { tags: [], sentiment: 'neutral', priority: 'normal', summary: '' };
+    let result: any = { tags: [], sentiment: 'neutral', priority: 'normal', summary: '' };
 
     try {
       const jsonMatch = content?.match(/\{[\s\S]*\}/);
       result = jsonMatch ? JSON.parse(jsonMatch[0]) : result;
     } catch {
-      // Use default result
+      // Use default
     }
 
-    // Upsert tags atomically
+    if (result.suggested_queue_id && !isValidUUID(result.suggested_queue_id)) {
+      result.suggested_queue_id = null;
+    }
+
+    const validQueueIds = new Set((queues ?? []).map((q: any) => q.id));
+    if (result.suggested_queue_id && !validQueueIds.has(result.suggested_queue_id)) {
+      result.suggested_queue_id = null;
+    }
+
     const tagUpdateResult: Record<string, unknown> = { attempted: false, success: false, error: null };
 
     if (validContactId && result.tags?.length > 0) {
@@ -401,28 +444,164 @@ async function handleAutoTag(
 
         if (atomicErr) {
           tagUpdateResult.error = atomicErr.message;
+          log.warn("Failed to atomically upsert tags", {
+            error: atomicErr.message,
+            contactId: validContactId,
+            tagCount: tagData.length
+          });
         } else if (atomicResult && typeof atomicResult === 'object' && 'success' in atomicResult) {
           tagUpdateResult.success = (atomicResult as any).success === true;
+          if (!(atomicResult as any).success) {
+            tagUpdateResult.error = (atomicResult as any).error || "Unknown error";
+            log.warn("Atomic upsert failed", { error: tagUpdateResult.error, contactId: validContactId });
+          }
         }
-      } catch (err) {
+      } catch (error) {
         tagUpdateResult.attempted = true;
-        tagUpdateResult.error = err instanceof Error ? err.message : String(err);
+        tagUpdateResult.error = error instanceof Error ? error.message : String(error);
+        log.error("Unexpected error during tag upsert", { error: tagUpdateResult.error, contactId: validContactId });
       }
     }
 
-    const durationMs = performance.now() - startTime;
-    log.done(200, { tags: result.tags?.length || 0, duration_ms: durationMs });
+    if (validContactId) {
+      const validSentiments = ['positive', 'neutral', 'negative', 'critical'];
+      const validPriorities = ['low', 'normal', 'high', 'urgent'];
+      const updateData: Record<string, string> = {};
+
+      if (validSentiments.includes(result.sentiment)) updateData.ai_sentiment = result.sentiment;
+      if (validPriorities.includes(result.priority)) updateData.ai_priority = result.priority;
+      if (result.suggested_queue_id && isValidUUID(result.suggested_queue_id)) updateData.queue_id = result.suggested_queue_id;
+
+      if (Object.keys(updateData).length > 0) {
+        try {
+          const { error: updateErr } = await supabase.from('contacts').update(updateData).eq('id', validContactId);
+          if (updateErr) {
+            log.warn("Failed to update contact metadata", {
+              error: updateErr.message,
+              contactId: validContactId,
+              updateFields: Object.keys(updateData)
+            });
+          }
+        } catch (error) {
+          log.error("Unexpected error updating contact", {
+            error: error instanceof Error ? error.message : String(error),
+            contactId: validContactId
+          });
+        }
+      }
+
+      if (result.requires_immediate_attention && result.priority === 'urgent') {
+        try {
+          const { data: admins } = await supabase
+            .from('user_roles')
+            .select('user_id')
+            .in('role', ['admin', 'supervisor'])
+            .limit(5);
+
+          if (admins && Array.isArray(admins) && admins.length > 0) {
+            const { error: insertErr } = await supabase.from('notifications').insert(
+              admins.map((a: any) => ({
+                user_id: a.user_id,
+                type: 'urgent_conversation',
+                title: '🚨 Conversa Urgente Detectada',
+                message: `${sanitizeString(result.summary, 200) || 'Conversa requer atenção imediata'}. Motivo: ${sanitizeString(result.escalation_reason || result.priority_reason, 200) || 'Alta prioridade'}`,
+                metadata: { contact_id: validContactId, priority: result.priority, sentiment: result.sentiment },
+              }))
+            );
+
+            if (insertErr) {
+              log.error("Failed to insert urgent notifications", {
+                error: insertErr.message,
+                contactId: validContactId,
+                adminCount: admins.length
+              });
+            }
+          } else {
+            log.info("No admins found to notify for urgent conversation", { contactId: validContactId });
+          }
+        } catch (error) {
+          log.error("Unexpected error creating urgent notifications", {
+            error: error instanceof Error ? error.message : String(error),
+            contactId: validContactId
+          });
+        }
+      }
+    }
+
+    if (requestId) {
+      try {
+        await supabase.rpc('record_processed_request', {
+          p_request_id: requestId,
+          p_action: 'auto-tag',
+          p_user_id: ctx.userId,
+          p_contact_id: validContactId,
+          p_status_code: 200,
+          p_result_payload: result,
+        }).catch(() => {});
+      } catch {
+        // Not critical
+      }
+    }
+
+    const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
+
+    try {
+      await supabase.rpc('record_ai_metrics', {
+        p_function_name: 'ai-auto-tag',
+        p_action: 'classification',
+        p_duration_ms: Math.round(durationMs),
+        p_status: 'success',
+        p_user_id: ctx.userId,
+        p_error_message: null,
+        p_metadata: {
+          tags_count: result.tags?.length || 0,
+          sentiment: result.sentiment,
+          priority: result.priority,
+          requestId,
+          tag_update_success: tagUpdateResult.success,
+        },
+      }).catch(() => {});
+    } catch {
+      // Metrics not critical
+    }
+
+    log.done(200, { tags: result.tags?.length || 0, durationMs });
+
+    const responsePayload = {
+      ...result,
+      tagUpdateResult: {
+        attempted: tagUpdateResult.attempted,
+        success: tagUpdateResult.success,
+        error: tagUpdateResult.error,
+      }
+    };
 
     return {
       success: true,
-      data: { ...result, tagUpdateResult },
+      data: responsePayload,
       duration_ms: durationMs,
       metrics: { tags_count: result.tags?.length || 0 },
     };
   } catch (err) {
+    const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
-    log.error("Auto-tag handler error", { error: errMsg });
-    return { success: false, error: errMsg, duration_ms: performance.now() - startTime };
+
+    try {
+      await supabase.rpc('record_ai_metrics', {
+        p_function_name: 'ai-auto-tag',
+        p_action: 'classification',
+        p_duration_ms: Math.round(durationMs),
+        p_status: 'error',
+        p_user_id: ctx.userId,
+        p_error_message: errMsg,
+        p_metadata: { requestId: ctx.requestId },
+      }).catch(() => {});
+    } catch {
+      // Metrics not critical
+    }
+
+    log.error("Unhandled error in auto-tag handler", { error: errMsg, duration: durationMs });
+    return { success: false, error: errMsg, duration_ms: durationMs };
   }
 }
 
