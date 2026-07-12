@@ -50,10 +50,23 @@ import { QrTtlBadge } from './QrTtlBadge';
 import { QrAttemptHistory } from './QrAttemptHistory';
 import { RefreshQrButton } from './RefreshQrButton';
 import { IdempotencyMissBanner } from './IdempotencyMissBanner';
-import { useConnectionsManager } from '@/features/connections';
+import { useConnectionsManager, type WhatsAppConnection } from '@/features/connections';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import type { DegradedConnection } from './DegradedQuickActions';
+
+/** Type guard: distingue WhatsAppConnection (payload completo) de DegradedConnection (payload parcial). */
+function isWhatsAppConnection(
+  c: DegradedConnection | WhatsAppConnection
+): c is WhatsAppConnection {
+  return (
+    typeof (c as WhatsAppConnection).phone_number === 'string' &&
+    typeof (c as WhatsAppConnection).status === 'string' &&
+    typeof (c as WhatsAppConnection).is_default === 'boolean' &&
+    'qr_code' in c
+  );
+}
 
 export function ConnectionsView() {
   const [search, setSearch] = useState('');
