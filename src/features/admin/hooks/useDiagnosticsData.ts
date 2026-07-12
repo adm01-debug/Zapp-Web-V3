@@ -127,7 +127,13 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     .order('created_at', { ascending: false })
     .limit(10);
 
-  const recentFailures = [];
+  const recentFailures: Array<{
+    id: string;
+    content: string;
+    status: string;
+    created_at: string;
+    contact_name: string;
+  }> = [];
   if (failedMessages) {
     for (const f of failedMessages) {
       let contactName = 'Desconhecido';
@@ -318,7 +324,7 @@ export function useDiagnosticsData() {
       const health =
         results[2].status === 'fulfilled'
           ? results[2].value
-          : {
+          : ({
               database: 'down',
               storage: 'down',
               realtime: 'down',
@@ -328,7 +334,7 @@ export function useDiagnosticsData() {
               contactsCount: 0,
               messagesCount: 0,
               connectionsCount: 0,
-            };
+            } as SystemHealth);
       const errorLogs = results[3].status === 'fulfilled' ? results[3].value : [];
 
       const failures = results

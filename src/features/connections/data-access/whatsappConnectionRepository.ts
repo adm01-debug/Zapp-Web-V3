@@ -20,7 +20,10 @@ export const whatsappConnectionRepository = {
   },
 
   async updateConnection(id: string, updates: Record<string, unknown>) {
-    const res = await supabase.from('whatsapp_connections').update(updates).eq('id', id);
+    const res = await supabase
+      .from('whatsapp_connections')
+      .update(updates as any)
+      .eq('id', id);
     invalidateWhatsappConnectionsCache();
     return res;
   },
