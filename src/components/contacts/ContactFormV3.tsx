@@ -184,36 +184,6 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
         return;
       }
 
-    await withRetry(async () => {
-      const payload = {
-        name:          sanitizeText(form.name),
-        phone:         form.phone || null,
-        phone_numbers: form.phone_numbers,
-        email:         form.email?.toLowerCase().trim() || null,
-        company:       sanitizeText(form.company) || null,
-        tags:          form.tags,
-        notes:         form.notes || null,
-        workspace_id:  workspaceId,
-        updated_at:    new Date().toISOString(),
-      };
-
-      if (mode === 'edit' && form.id && !forceOverwrite) {
-        // Versioned update (optimistic locking)
-        const { data, error } = await dbRpc(RPC.updateContactVersioned, {
-          p_contact_id:      form.id,
-          p_expected_version: form.version ?? 1,
-          p_updates:         payload,
-        });
-
-        if (error) throw error;
-
-        const result = (data ?? {}) as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
-        if (result?.error === 'CONFLICT') {
-          setConflict(result as ConflictInfo); // ignore-audit: narrows Supabase query result to local interface
-          setConflictOpen(true);
-          return;
-        }
-      }
 
       await withRetry(async () => {
         const payload = {
