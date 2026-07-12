@@ -100,7 +100,7 @@ export function IntegrationKeysSection() {
       } else {
         throw new Error('Resposta inválida da API');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Falha na conexão';
       setTestResult({ success: false, message: msg });
       toast.error(`Falha no teste: ${msg}`);

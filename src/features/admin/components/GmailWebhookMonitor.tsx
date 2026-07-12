@@ -1,7 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
-import type { SupabaseClient } from '@supabase/supabase-js';
-
 const log = getLogger('EmailWebhookMonitor');
 import { Mail, RefreshCw, CheckCircle, AlertCircle, Clock, Wifi, WifiOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,8 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-
-const dynSupabase = supabase as unknown as SupabaseClient;
 
 interface EmailAccount {
   id: string;

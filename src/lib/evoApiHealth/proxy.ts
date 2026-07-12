@@ -109,7 +109,7 @@ class ExternalDbProxyClient {
         data: (okResult?.data ?? null) as T | null,
         schema_unavailable: !!okResult?.schema_unavailable,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       const isTransient =
         errorMsg.includes('PGRST106') ||

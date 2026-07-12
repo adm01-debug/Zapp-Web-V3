@@ -200,11 +200,11 @@ export default function AdminConnectionsPage() {
         variant: 'destructive',
       });
       return false;
-    } catch (e: any) {
+    } catch (e: unknown) {
       // ignore-audit
       toast({
         title: 'Erro de rede',
-        description: e?.message ?? 'falha desconhecida',
+        description: e instanceof Error ? e.message : 'falha desconhecida',
         variant: 'destructive',
       });
       return false;

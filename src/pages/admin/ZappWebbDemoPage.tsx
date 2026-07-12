@@ -14,8 +14,19 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import {
-  Send, Loader2, Wifi, MessageSquare, User, Mic, Image as ImageIcon,
-  Video, FileText, Sticker, Phone, Tag, BarChart3,
+  Send,
+  Loader2,
+  Wifi,
+  MessageSquare,
+  User,
+  Mic,
+  Image as ImageIcon,
+  Video,
+  FileText,
+  Sticker,
+  Phone,
+  Tag,
+  BarChart3,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,19 +48,19 @@ function MediaIcon({ type }: { type: string | null }) {
   switch (type) {
     case 'audioMessage':
     case 'audio':
-      return <Mic className="w-3 h-3" />;
+      return <Mic className="h-3 w-3" />;
     case 'imageMessage':
     case 'image':
-      return <ImageIcon className="w-3 h-3" />;
+      return <ImageIcon className="h-3 w-3" />;
     case 'videoMessage':
     case 'video':
-      return <Video className="w-3 h-3" />;
+      return <Video className="h-3 w-3" />;
     case 'documentMessage':
     case 'document':
-      return <FileText className="w-3 h-3" />;
+      return <FileText className="h-3 w-3" />;
     case 'stickerMessage':
     case 'sticker':
-      return <Sticker className="w-3 h-3" />;
+      return <Sticker className="h-3 w-3" />;
     default:
       return null;
   }
@@ -58,12 +69,13 @@ function MediaIcon({ type }: { type: string | null }) {
 function MessageBubble({ msg }: { msg: EvolutionMessage }) {
   const mine = msg.from_me;
   const status = msg.status;
-  const tick = status === 'read' ? '✓✓' : status === 'delivered' ? '✓✓' : status === 'sent' ? '✓' : '⌛';
+  const tick =
+    status === 'read' ? '✓✓' : status === 'delivered' ? '✓✓' : status === 'sent' ? '✓' : '⌛';
 
   if (msg.deleted_at) {
     return (
       <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-        <div className="text-[11px] italic px-3 py-1.5 rounded-lg bg-muted text-muted-foreground">
+        <div className="rounded-lg bg-muted px-3 py-1.5 text-[11px] italic text-muted-foreground">
           🚫 Mensagem apagada
         </div>
       </div>
@@ -78,17 +90,27 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className={`max-w-[70%] rounded-2xl px-3 py-2 shadow-sm ${
-          mine ? 'bg-whatsapp/10 border border-whatsapp/20' : 'bg-card border'
+          mine ? 'border border-whatsapp/20 bg-whatsapp/10' : 'border bg-card'
         }`}
       >
         {isMedia && msg.media_type === 'image' && (
-          <img src={msg.media_url!} alt="Imagem da mensagem" className="rounded-lg mb-1 max-h-60 object-cover" />
+          <img
+            src={msg.media_url!}
+            alt="Imagem da mensagem"
+            className="mb-1 max-h-60 rounded-lg object-cover"
+          />
         )}
         {isMedia && msg.media_type === 'audio' && (
-          <><audio controls src={msg.media_url!} className="w-56 my-1" /><p className="sr-only">Transcrição de áudio não disponível.</p></>
+          <>
+            <audio controls src={msg.media_url!} className="my-1 w-56" />
+            <p className="sr-only">Transcrição de áudio não disponível.</p>
+          </>
         )}
         {isMedia && msg.media_type === 'video' && (
-          <><video controls src={msg.media_url!} className="rounded-lg mb-1 max-h-60" /><p className="sr-only">Legendas não disponíveis para este vídeo.</p></>
+          <>
+            <video controls src={msg.media_url!} className="mb-1 max-h-60 rounded-lg" />
+            <p className="sr-only">Legendas não disponíveis para este vídeo.</p>
+          </>
         )}
         {isMedia && msg.media_type === 'document' && (
           <a
@@ -97,15 +119,13 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
             rel="noreferrer"
             className="flex items-center gap-2 text-sm underline"
           >
-            <FileText className="w-4 h-4" /> {msg.media_filename || 'Documento'}
+            <FileText className="h-4 w-4" /> {msg.media_filename || 'Documento'}
           </a>
         )}
         {(msg.content || msg.caption) && (
-          <p className="text-sm whitespace-pre-wrap break-words">
-            {msg.content || msg.caption}
-          </p>
+          <p className="whitespace-pre-wrap break-words text-sm">{msg.content || msg.caption}</p>
         )}
-        <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-muted-foreground">
+        <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
           <span>
             {new Date(msg.created_at).toLocaleTimeString('pt-BR', {
               hour: '2-digit',
@@ -127,7 +147,7 @@ export default function ZappWebbDemoPage() {
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? null,
-    [conversations, activeId],
+    [conversations, activeId]
   );
   const { messages, loading: loadingMsgs } = useZappMessages({
     remoteJid: active?.remote_jid ?? null,
@@ -148,7 +168,7 @@ export default function ZappWebbDemoPage() {
     try {
       await sendText(active.remote_jid, draft.trim());
       setDraft('');
-    } catch (err) {
+    } catch (err: unknown) {
       toast.error('Falha ao enviar: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSending(false);
@@ -156,10 +176,10 @@ export default function ZappWebbDemoPage() {
   };
 
   return (
-    <div className="h-screen max-h-screen flex flex-col bg-background">
-      <header className="border-b px-6 py-3 flex items-center gap-3 shrink-0">
-        <div className="w-9 h-9 rounded-lg bg-whatsapp/10 flex items-center justify-center">
-          <Wifi className="w-4 h-4 text-whatsapp" />
+    <div className="flex h-screen max-h-screen flex-col bg-background">
+      <header className="flex shrink-0 items-center gap-3 border-b px-6 py-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-whatsapp/10">
+          <Wifi className="h-4 w-4 text-whatsapp" />
         </div>
         <div className="flex-1">
           <h1 className="font-display font-bold">Zap Webb · Inbox Demo</h1>
@@ -168,19 +188,21 @@ export default function ZappWebbDemoPage() {
           </p>
         </div>
         <Badge variant="outline" className="gap-1">
-          <BarChart3 className="w-3 h-3" /> {conversations.length} conversa(s)
+          <BarChart3 className="h-3 w-3" /> {conversations.length} conversa(s)
         </Badge>
       </header>
 
-      <div className="flex-1 grid grid-cols-12 overflow-hidden">
+      <div className="grid flex-1 grid-cols-12 overflow-hidden">
         {/* Sidebar */}
-        <aside className="col-span-3 border-r flex flex-col">
-          <div className="p-3 border-b">
+        <aside className="col-span-3 flex flex-col border-r">
+          <div className="border-b p-3">
             <Input placeholder="Buscar conversas..." className="h-8 text-sm" />
           </div>
           <ScrollArea className="flex-1">
             {loading ? (
-              <div className="p-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+              <div className="p-6 text-center">
+                <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+              </div>
             ) : conversations.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">
                 Nenhuma conversa aberta na instância <code>{ZAPPWEB_INSTANCE}</code>.
@@ -194,31 +216,29 @@ export default function ZappWebbDemoPage() {
                   <button
                     key={conv.id}
                     onClick={() => handleOpen(conv)}
-                    className={`w-full text-left px-3 py-2.5 border-b hover:bg-muted/50 transition-colors ${
+                    className={`w-full border-b px-3 py-2.5 text-left transition-colors hover:bg-muted/50 ${
                       isActive ? 'bg-muted' : ''
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      <Avatar className="w-9 h-9">
+                      <Avatar className="h-9 w-9">
                         <AvatarImage src={c?.profile_picture_url ?? undefined} alt={name} />
                         <AvatarFallback className="text-[10px]">
                           {name.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium text-sm truncate">{name}</span>
+                          <span className="truncate text-sm font-medium">{name}</span>
                           {conv.unread_count > 0 && (
-                            <Badge className="h-4 min-w-[16px] px-1 bg-whatsapp text-[10px]">
+                            <Badge className="h-4 min-w-[16px] bg-whatsapp px-1 text-[10px]">
                               {conv.unread_count}
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground truncate">
+                        <div className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
                           <MediaIcon type={conv.last_message_type} />
-                          <span className="truncate">
-                            {conv.last_message_content || '—'}
-                          </span>
+                          <span className="truncate">{conv.last_message_content || '—'}</span>
                         </div>
                         {conv.last_message_at && (
                           <span className="text-[10px] text-muted-foreground">
@@ -240,17 +260,20 @@ export default function ZappWebbDemoPage() {
         {/* Chat */}
         <main className="col-span-6 flex flex-col bg-muted/20">
           {!active ? (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="flex flex-1 items-center justify-center text-muted-foreground">
               <div className="text-center">
-                <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <MessageSquare className="mx-auto mb-3 h-12 w-12 opacity-30" />
                 <p className="text-sm">Selecione uma conversa para começar</p>
               </div>
             </div>
           ) : (
             <>
-              <div className="border-b bg-card px-4 py-2.5 flex items-center gap-3">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={contact?.profile_picture_url ?? undefined} alt={contact?.full_name || contact?.push_name || ""} />
+              <div className="flex items-center gap-3 border-b bg-card px-4 py-2.5">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage
+                    src={contact?.profile_picture_url ?? undefined}
+                    alt={contact?.full_name || contact?.push_name || ''}
+                  />
                   <AvatarFallback className="text-[10px]">
                     {(contact?.full_name || contact?.push_name || 'WA').slice(0, 2)}
                   </AvatarFallback>
@@ -268,14 +291,14 @@ export default function ZappWebbDemoPage() {
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-2">
                   {loadingMsgs ? (
-                    <Loader2 className="w-4 h-4 animate-spin mx-auto my-8" />
+                    <Loader2 className="mx-auto my-8 h-4 w-4 animate-spin" />
                   ) : (
                     messages.map((m) => <MessageBubble key={m.id} msg={m} />)
                   )}
                 </div>
               </ScrollArea>
 
-              <div className="border-t bg-card p-3 flex gap-2">
+              <div className="flex gap-2 border-t bg-card p-3">
                 <Input
                   placeholder="Digite uma mensagem..."
                   value={draft}
@@ -289,7 +312,11 @@ export default function ZappWebbDemoPage() {
                   disabled={sending}
                 />
                 <Button onClick={handleSend} disabled={sending || !draft.trim()}>
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {sending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </>
@@ -297,40 +324,41 @@ export default function ZappWebbDemoPage() {
         </main>
 
         {/* Contato */}
-        <aside className="col-span-3 border-l bg-card overflow-hidden">
+        <aside className="col-span-3 overflow-hidden border-l bg-card">
           {!contact ? (
             <div className="p-6 text-center text-muted-foreground">
-              <User className="w-8 h-8 mx-auto opacity-30 mb-2" />
+              <User className="mx-auto mb-2 h-8 w-8 opacity-30" />
               <p className="text-xs">Sem contato selecionado</p>
             </div>
           ) : (
             <ScrollArea className="h-full">
-              <div className="p-4 space-y-4">
+              <div className="space-y-4 p-4">
                 <div className="text-center">
-                  <Avatar className="w-20 h-20 mx-auto mb-2">
-                    <AvatarImage src={contact.profile_picture_url ?? undefined} alt={contact.full_name || contact.push_name || ""} />
+                  <Avatar className="mx-auto mb-2 h-20 w-20">
+                    <AvatarImage
+                      src={contact.profile_picture_url ?? undefined}
+                      alt={contact.full_name || contact.push_name || ''}
+                    />
                     <AvatarFallback>
                       {(contact.full_name || contact.push_name || 'WA').slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
-                  <h3 className="font-bold text-sm">
+                  <h3 className="text-sm font-bold">
                     {contact.full_name || contact.push_name || 'Sem nome'}
                   </h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    {contact.phone_number}
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">{contact.phone_number}</p>
                 </div>
 
                 <Card>
                   <CardHeader className="p-3 pb-1">
-                    <CardTitle className="text-xs flex items-center gap-1">
-                      <Tag className="w-3 h-3" /> Pipeline
+                    <CardTitle className="flex items-center gap-1 text-xs">
+                      <Tag className="h-3 w-3" /> Pipeline
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-3 pt-1 space-y-2">
+                  <CardContent className="space-y-2 p-3 pt-1">
                     <div className="flex justify-between text-[11px]">
                       <span className="text-muted-foreground">Status</span>
-                      <Badge variant="outline" className="text-[10px] h-4">
+                      <Badge variant="outline" className="h-4 text-[10px]">
                         {contact.lead_status}
                       </Badge>
                     </div>
@@ -358,7 +386,7 @@ export default function ZappWebbDemoPage() {
                 )}
 
                 <Button variant="outline" size="sm" className="w-full gap-2">
-                  <Phone className="w-3 h-3" /> Ligar
+                  <Phone className="h-3 w-3" /> Ligar
                 </Button>
               </div>
             </ScrollArea>

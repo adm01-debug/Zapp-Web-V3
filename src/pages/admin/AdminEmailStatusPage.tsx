@@ -201,8 +201,10 @@ export default function AdminEmailStatusPage() {
         toast.success('RPC de status de token validada com sucesso.');
       }
       await loadHealth();
-    } catch (err) {
-      toast.error(`Falha na etapa ${action}: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
+    } catch (err: unknown) {
+      toast.error(
+        `Falha na etapa ${action}: ${err instanceof Error ? err.message : 'Erro desconhecido'}`
+      );
     } finally {
       setIsRetrying((prev) => ({ ...prev, [id]: false }));
     }
@@ -288,7 +290,7 @@ export default function AdminEmailStatusPage() {
           <CardContent>
             <div className="text-2xl font-bold">{getStatusLabel(health?.status)}</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {health && health.source === 'edge_shared_storage'
+              {health && (health as any).source === 'edge_shared_storage'
                 ? 'Telemetria persistida via Cloud Edge.'
                 : 'Telemetria em tempo real (client-side).'}
             </p>
@@ -401,11 +403,21 @@ export default function AdminEmailStatusPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th scope="col" className="px-4 py-2 text-left font-medium">Request ID</th>
-                    <th scope="col" className="px-4 py-2 text-left font-medium">Recurso</th>
-                    <th scope="col" className="px-4 py-2 text-left font-medium">Erro</th>
-                    <th scope="col" className="px-4 py-2 text-left font-medium">Ações</th>
-                    <th scope="col" className="px-4 py-2 text-left font-medium">Horário</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">
+                      Request ID
+                    </th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">
+                      Recurso
+                    </th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">
+                      Erro
+                    </th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">
+                      Ações
+                    </th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">
+                      Horário
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">

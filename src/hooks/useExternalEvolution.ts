@@ -477,7 +477,7 @@ export function useExternalConversations(enabled = true) {
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>
-              queryExternalProxy<unknown>({
+              queryExternalProxy<ContactEnrichmentData>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',
                 params: {
