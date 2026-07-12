@@ -26,7 +26,12 @@ Deno.serve(async (req) => {
     const apiKey = req.headers.get('x-api-key');
     if (!apiKey) return errorResponse('Missing x-api-key header', 401, req);
 
-    const { data: setting } = await supabase.from('global_settings').select('value').eq('key', 'api_token').single();
+    const { data: setting } = await supabase
+      .from('global_settings')
+      .select('value')
+      .eq('key', 'api_token')
+      .single();
+
     if (!setting?.value || !timingSafeStringEqual(setting.value, apiKey)) {
       log.warn('Invalid API token attempt');
       return errorResponse('Invalid API token', 403, req);
@@ -58,7 +63,17 @@ Deno.serve(async (req) => {
       connection = data;
     }
 
-    if (!connection) return errorResponse('No active WhatsApp connection found', 404, req);
+    if (!connection) {
+      return errorResponse('No active WhatsApp connection found', 404, req);
+    }
+
+    // Find or create contact — scoped to the specific connection for tenant isolation.
+    let { data: contact } = await supabase
+      .from('contacts')
+      .select('id')
+      .eq('phone', phone)
+      .eq('whatsapp_connection_id', connection.id)
+      .single();
 
     let { data: contact } = await supabase.from('contacts').select('id').eq('phone', phone).eq('whatsapp_connection_id', connection.id).single();
     if (!contact) {
