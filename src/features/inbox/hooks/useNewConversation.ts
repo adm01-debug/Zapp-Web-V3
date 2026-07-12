@@ -126,7 +126,8 @@ export function useNewConversation(
           throw newContactErr;
         }
         contactId = newContact.id;
-        await supabase.functions.invoke('batch-fetch-avatars');
+        const { error: avatarErr } = await supabase.functions.invoke('batch-fetch-avatars');
+        if (avatarErr) log.warn('Error fetching avatars:', avatarErr);
       }
       if (!contactId) {
         toast.error('Selecione um contato');
@@ -162,7 +163,8 @@ export function useNewConversation(
       });
       if (sendError) throw sendError;
       toast.success('Mensagem enviada!');
-      await supabase.functions.invoke('batch-fetch-avatars');
+      const { error: avatarErr } = await supabase.functions.invoke('batch-fetch-avatars');
+      if (avatarErr) log.warn('Error fetching avatars:', avatarErr);
       onConversationStarted?.(contactId);
       onClose?.();
       resetForm();

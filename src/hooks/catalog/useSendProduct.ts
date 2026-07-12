@@ -45,7 +45,8 @@ export function useContactSearch(step: 'configure' | 'selectContact') {
       .select('id, name, phone, avatar_url')
       .order('updated_at', { ascending: false })
       .limit(15)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { log.error('Error fetching contacts:', error); setSearchingContacts(false); return; }
         if (!contactSearch.trim()) setContactResults(data || []);
         setSearchingContacts(false);
       });
@@ -96,7 +97,7 @@ export function useSendToContact(onSuccess: () => void) {
             .select('id')
             .single();
 
-          const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
+          const { data: apiResult, error: apiErr } = await supabase.functions.invoke('evolution-api', {
             body: {
               action: 'send-media',
               instanceName: connection?.name || 'wpp2',
@@ -106,6 +107,10 @@ export function useSendToContact(onSuccess: () => void) {
               caption: '',
             },
           });
+          if (apiErr) {
+            log.error('Error invoking evolution-api (send-media):', apiErr);
+            throw apiErr;
+          }
 
           const externalId = extractEvolutionMessageId(apiResult);
           if (dbResult?.id && externalId) {
@@ -128,7 +133,7 @@ export function useSendToContact(onSuccess: () => void) {
           .select('id')
           .single();
 
-        const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
+        const { data: textApiResult, error: textApiErr } = await supabase.functions.invoke('evolution-api', {
           body: {
             action: 'send-text',
             instanceName: connection?.name || 'wpp2',
@@ -136,6 +141,10 @@ export function useSendToContact(onSuccess: () => void) {
             text: message,
           },
         });
+        if (textApiErr) {
+          log.error('Error invoking evolution-api (send-text):', textApiErr);
+          throw textApiErr;
+        }
 
         const textExternalId = extractEvolutionMessageId(textApiResult);
         if (textDbResult?.id && textExternalId) {

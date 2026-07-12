@@ -182,10 +182,11 @@ export function useTalkX() {
     async (campaignId: string) => {
       const trace = newRequestId('talkx-pause');
       try {
-        await supabase.functions.invoke('talkx-send', {
+        const { error } = await supabase.functions.invoke('talkx-send', {
           body: { campaignId, action: 'pause' },
           headers: trace.headers,
         });
+        if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
         toast.info('Campanha pausada');
       } catch (e: unknown) {
@@ -200,10 +201,11 @@ export function useTalkX() {
     async (campaignId: string) => {
       const trace = newRequestId('talkx-cancel');
       try {
-        await supabase.functions.invoke('talkx-send', {
+        const { error } = await supabase.functions.invoke('talkx-send', {
           body: { campaignId, action: 'cancel' },
           headers: trace.headers,
         });
+        if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
         toast.info('Campanha cancelada');
       } catch (e: unknown) {
