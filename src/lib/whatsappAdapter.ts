@@ -22,6 +22,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 const log = getLogger('whatsappAdapter');
 
@@ -54,7 +55,7 @@ export function invalidateWhatsAppModeCache() {
   cloudCredsCache = null;
 }
 
-const DEFAULT_INSTANCE = 'wpp2';
+const DEFAULT_INSTANCE = ACTIVE_WHATSAPP_INSTANCE;
 
 export type WhatsAppTransport = 'cloud' | 'evolution';
 

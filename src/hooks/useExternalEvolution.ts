@@ -3,7 +3,7 @@
  * Replaces the local DB reads for the Inbox when external DB is the source of truth.
  *
  * Pagination strategy (post-incremental refactor):
- * - Sidebar list: only last N days, capped at 200, with instance_name filter.
+ * - Sidebar list: only last N days, capped at 200, across all instances.
  * - Per-conversation: 100 messages by jid, with cursor-based loadOlder().
  * - Polling: cursor-forward (created_at > lastSeen) instead of full re-fetch.
  */
@@ -19,7 +19,7 @@ import {
 import type { EvolutionMessage } from '@/types/evolutionExternal';
 import type { RealtimeMessage } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
-import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { dedupedFetch, subscribeDedupe } from '@/lib/realtime/crossTabDedupe';
 import { playerStateStore } from '@/features/inbox';
 import { recordMatch } from '@/features/inbox';
@@ -277,7 +277,10 @@ export function applyReconciliation(
 }
 
 const POLL_INTERVAL = 5000; // 5s polling
-const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
+// Inbox queries intentionally omit the instance_name filter so messages from
+// ALL instances (wpp2 historical + wpp_pink_test current) are visible.
+// ACTIVE_WHATSAPP_INSTANCE is used only for write operations (send/enrich).
+const ACTIVE_INSTANCE = ACTIVE_WHATSAPP_INSTANCE;
 const SIDEBAR_DAYS_BACK = 7;
 const SIDEBAR_LIMIT = 200;
 const CONVERSATION_PAGE_SIZE = 100;
@@ -327,10 +330,7 @@ async function fetchRecentMessagesWindow(
   const result = await queryExternalProxy<EvolutionMessage>({
     table: 'evolution_messages',
     select: SLIM_MESSAGE_COLUMNS,
-    filters: [
-      { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
-      { column: 'created_at', operator: 'gte', value: since },
-    ],
+    filters: [{ column: 'created_at', operator: 'gte', value: since }],
     order: { column: 'created_at', ascending: false },
     limit,
   });
@@ -346,7 +346,6 @@ async function fetchMessagesByJid(
 ): Promise<EvolutionMessage[]> {
   const filters: { column: string; operator: string; value: unknown }[] = [
     { column: 'remote_jid', operator: 'eq', value: remoteJid },
-    { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
   ];
   if (beforeDate) {
     filters.push({ column: 'created_at', operator: 'lt', value: beforeDate });
@@ -376,7 +375,6 @@ async function fetchMessagesAfter(
     select: SLIM_MESSAGE_COLUMNS,
     filters: [
       { column: 'remote_jid', operator: 'eq', value: remoteJid },
-      { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
       { column: 'created_at', operator: 'gt', value: afterDate },
     ],
     order: { column: 'created_at', ascending: true },
@@ -404,7 +402,10 @@ interface ContactEnrichmentData {
   [key: string]: unknown;
 }
 // ─── Global Enrichment Cache to avoid redundant RPC calls ──────────
-const contactEnrichmentCache = new Map<string, { data: ContactEnrichmentData; timestamp: number }>();
+const contactEnrichmentCache = new Map<
+  string,
+  { data: ContactEnrichmentData; timestamp: number }
+>();
 const CACHE_TTL = 300_000; // 5 minutes
 
 // Enrichment `tags` may arrive as a JSON array string, a plain comma-separated
@@ -421,7 +422,10 @@ function safeParseTags(raw: string): string[] {
       return [];
     }
   }
-  return trimmed.split(',').map(t => t.trim()).filter(Boolean);
+  return trimmed
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
 }
 
 // ─── Hook: External Conversations (list for sidebar) ──────────
@@ -432,7 +436,7 @@ export function useExternalConversations(enabled = true) {
       'conversations',
       SIDEBAR_DAYS_BACK,
       SIDEBAR_LIMIT,
-      DEFAULT_INSTANCE,
+      'all-instances',
     ],
     queryFn: async () => {
       if (USE_MOCKS) {
@@ -442,7 +446,7 @@ export function useExternalConversations(enabled = true) {
       }
 
       const messages = await dedupedFetch(
-        `inbox:sidebar:${SIDEBAR_DAYS_BACK}:${SIDEBAR_LIMIT}:${DEFAULT_INSTANCE}`,
+        `inbox:sidebar:${SIDEBAR_DAYS_BACK}:${SIDEBAR_LIMIT}:${'all'}`,
         () => fetchRecentMessagesWindow(),
         { lockTtl: 8_000, resultTtl: POLL_INTERVAL - 500, waitTimeout: 6_000 }
       );
@@ -476,7 +480,7 @@ export function useExternalConversations(enabled = true) {
                 rpc: 'rpc_get_contact',
                 params: {
                   p_remote_jid: jid,
-                  p_instance: DEFAULT_INSTANCE,
+                  p_instance: ACTIVE_INSTANCE,
                 },
               })
                 .then((res) => ({ jid, res }))
@@ -596,7 +600,7 @@ export function useExternalMessages(remoteJid: string | null) {
       // Dedupe cross-aba: trocar para o mesmo contato em N abas só dispara
       // 1 fetch — as demais reaproveitam via BroadcastChannel/cache.
       const evoMessages = await dedupedFetch(
-        `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`,
+        `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${'all'}`,
         () => fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE),
         { lockTtl: 10_000, resultTtl: 15_000, waitTimeout: 8_000 }
       );
@@ -652,7 +656,7 @@ export function useExternalMessages(remoteJid: string | null) {
       // Dedupe: várias abas pollando o mesmo jid+cursor compartilham 1 fetch
       // (TTL curto = poll seguinte ainda dispara normalmente).
       const newOnes = await dedupedFetch(
-        `inbox:poll:${remoteJid}:${afterDate}:${DEFAULT_INSTANCE}:${jidToPhone(remoteJid)}`,
+        `inbox:poll:${remoteJid}:${afterDate}:${'all'}:${jidToPhone(remoteJid)}`,
         () => fetchMessagesAfter(remoteJid, afterDate),
         { lockTtl: 4_000, resultTtl: POLL_INTERVAL - 1_000, waitTimeout: 3_000 }
       );
@@ -695,7 +699,7 @@ export function useExternalMessages(remoteJid: string | null) {
       // Dedupe cross-aba: mesma janela (jid + cursor) compartilhada via
       // localStorage lock + BroadcastChannel. Evita N abas chamando o mesmo
       // page de mensagens antigas em paralelo.
-      const dedupeKey = `older:${remoteJid}:${oldest}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`;
+      const dedupeKey = `older:${remoteJid}:${oldest}:${CONVERSATION_PAGE_SIZE}:${'all'}`;
       const older = await dedupedFetch(
         dedupeKey,
         () => fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE, oldest, controller.signal),
@@ -752,7 +756,7 @@ export function useExternalMessages(remoteJid: string | null) {
   useEffect(() => {
     if (!remoteJid) return;
     const jidPrefixes = [
-      `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`,
+      `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${'all'}`,
       `inbox:poll:${remoteJid}:`,
       `older:${remoteJid}:`,
     ];

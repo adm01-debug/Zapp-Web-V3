@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
 // Resolve at call time so module import never crashes the inbox.
@@ -45,7 +46,7 @@ const POLL_MS = 20_000;
 
 export function useAutomations({
   remoteJid,
-  instanceName = 'wpp2',
+  instanceName = ACTIVE_WHATSAPP_INSTANCE,
   assignedTo = null,
 }: UseAutomationsArgs) {
   const rulesRef = useRef<AutomationRule[]>([]);
@@ -112,7 +113,8 @@ export function useAutomations({
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
       const sorted = [...msgs].sort(
-        (a: any, b: any) => // ignore-audit
+        (a: any, b: any) =>
+          // ignore-audit
           new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
@@ -249,7 +251,8 @@ export function useAutomations({
                 })
                 .eq('id', execId)
             );
-          } catch (e: any) { // ignore-audit
+          } catch (e: any) {
+            // ignore-audit
             log.warn('[automation] apply_tags/escalate failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
@@ -295,7 +298,8 @@ export function useAutomations({
                 );
               }
             }
-          } catch (e: any) { // ignore-audit
+          } catch (e: any) {
+            // ignore-audit
             log.warn('[automation] suggest_reply failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,

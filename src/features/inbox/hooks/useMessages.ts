@@ -19,6 +19,9 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const previousContactIdRef = useRef<string | null>(null);
+  // Tracks the contactId of the most-recently-started fetch so stale in-flight
+  // responses from a previous contact are discarded when the user switches fast.
+  const latestFetchContactIdRef = useRef<string | null>(null);
   const mountedRef = useMountedRef();
 
   // Fetch messages for contact
@@ -32,19 +35,25 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
       return;
     }
 
+    const thisContactId = contactId;
+    latestFetchContactIdRef.current = thisContactId;
+
     try {
       setLoading(true);
       setError(null);
 
-      const mappedMessages = await messageService.getAllMessagesForContact(contactId);
+      const mappedMessages = await messageService.getAllMessagesForContact(thisContactId);
 
-      if (mountedRef.current) setMessages(mappedMessages as Message[]);
+      // Discard response if a newer fetch for a different contact has started.
+      if (mountedRef.current && latestFetchContactIdRef.current === thisContactId)
+        setMessages(mappedMessages as Message[]);
     } catch (err) {
       log.error('Error fetching messages:', err);
-      if (mountedRef.current)
+      if (mountedRef.current && latestFetchContactIdRef.current === thisContactId)
         setError(err instanceof Error ? err.message : 'Failed to fetch messages');
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && latestFetchContactIdRef.current === thisContactId)
+        setLoading(false);
     }
   }, [contactId]);
 

@@ -21,9 +21,9 @@ import { parseEvolutionError } from '@/features/inbox';
 import { dbInsert } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { buildFileHash as calculateFileHash } from '@/lib/crypto';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 const log = getLogger('externalMessageSender');
-const DEFAULT_INSTANCE = 'wpp2';
 
 // Audit helper — fire-and-forget but surfaces failures to the logger instead of silently dropping them.
 const logAudit = (def, params) =>
@@ -100,7 +100,7 @@ export async function sendExternalText(
 ): Promise<SendExternalResult> {
   const phone = jidToPhone(remoteJid);
   if (!phone) throw new Error('Contato sem JID válido para envio.');
-  const instance = opts.instanceName || DEFAULT_INSTANCE;
+  const instance = opts.instanceName || ACTIVE_WHATSAPP_INSTANCE;
 
   const optimistic = makeOptimisticBubble(remoteJid, content, {
     contactAvatar: opts.contactAvatar,
@@ -198,7 +198,7 @@ export async function sendExternalAudio(
   const phone = jidToPhone(remoteJid);
   if (!phone) throw new Error('Contato sem JID válido para envio.');
 
-  const instance = opts.instanceName || opts.conversationInstance || DEFAULT_INSTANCE;
+  const instance = opts.instanceName || opts.conversationInstance || ACTIVE_WHATSAPP_INSTANCE;
   const localAudioUrl = URL.createObjectURL(blob);
   const convId = opts.conversationId || opts.conversation_id;
 
@@ -321,7 +321,7 @@ export async function sendExternalMedia(
 ): Promise<SendExternalResult> {
   const phone = jidToPhone(remoteJid);
   if (!phone) throw new Error('Contato sem JID válido para envio.');
-  const instance = opts.instanceName || DEFAULT_INSTANCE;
+  const instance = opts.instanceName || ACTIVE_WHATSAPP_INSTANCE;
 
   const safeKey = remoteJid.replace(/[^a-zA-Z0-9._-]/g, '_');
   const fileName = `${safeKey}/${Date.now()}_${file.name}`;
@@ -403,7 +403,7 @@ export async function sendExternalPtv(
   const startTime = Date.now();
   const phone = jidToPhone(remoteJid);
   if (!phone) throw new Error('Contato sem JID válido para envio.');
-  const instance = opts.instanceName || opts.conversationInstance || DEFAULT_INSTANCE;
+  const instance = opts.instanceName || opts.conversationInstance || ACTIVE_WHATSAPP_INSTANCE;
 
   const localVideoUrl = URL.createObjectURL(blob);
   const optimistic = makeOptimisticBubble(remoteJid, '[Vídeo-nota]', {

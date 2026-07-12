@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { useAuth } from '@/features/auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -184,7 +185,7 @@ export function RealtimeInboxView() {
   }, [saveWidth]);
 
   // Monitora a conexão com o provedor e reconecta automaticamente se necessário
-  useEvolutionAutoReconnect('wpp2');
+  useEvolutionAutoReconnect(ACTIVE_WHATSAPP_INSTANCE);
 
   useSLAAlerts({
     contactId: inbox.selectedContactId,
@@ -199,7 +200,7 @@ export function RealtimeInboxView() {
     deliveryDelayMs: inbox.deliveryAlert?.delay,
     customMessage: inbox.deliveryAlert?.message,
   });
-  useRealtimeContacts({ instance: 'wpp2' });
+  useRealtimeContacts({ instance: ACTIVE_WHATSAPP_INSTANCE });
   useRealtimeFallbackRefetch();
   const inboxFilters = useInboxFilters({
     conversations: inbox.cachedConversations,
@@ -361,7 +362,9 @@ export function RealtimeInboxView() {
               <MessageSquarePlus className="h-6 w-6" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="left" sideOffset={8}>Nova Conversa</TooltipContent>
+          <TooltipContent side="left" sideOffset={8}>
+            Nova Conversa
+          </TooltipContent>
         </Tooltip>
       )}
 

@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Activity, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { queryExternalProxy } from '@/lib/externalProxy';
 import { getLogger } from '@/lib/logger';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
 const log = getLogger('AdminExternalDbExplorer.Health');
 
@@ -32,7 +33,7 @@ export function HealthCheckBlock() {
         const res = await queryExternalProxy({
           action: 'rpc',
           rpc: 'rpc_dashboard_home',
-          params: { p_instance: 'wpp2', p_assigned_to: null },
+          params: { p_instance: ACTIVE_WHATSAPP_INSTANCE, p_assigned_to: null },
         });
         return { ok: !res.error, ms: Math.round(performance.now() - t0), error: res.error };
       } catch (e) {
@@ -45,7 +46,7 @@ export function HealthCheckBlock() {
       const res = await queryExternalProxy({
         action: 'rpc',
         rpc: 'rpc_dashboard_home',
-        params: { p_instance: 'wpp2', p_assigned_to: null },
+        params: { p_instance: ACTIVE_WHATSAPP_INSTANCE, p_assigned_to: null },
       });
       lastPayload = res.data;
     } catch (e) {
@@ -60,7 +61,9 @@ export function HealthCheckBlock() {
   const latencies = state.pings.filter((p) => p.ok).map((p) => p.ms);
   const min = latencies.length ? Math.min(...latencies) : null;
   const max = latencies.length ? Math.max(...latencies) : null;
-  const avg = latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : null;
+  const avg = latencies.length
+    ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
+    : null;
 
   return (
     <Card>
@@ -84,20 +87,24 @@ export function HealthCheckBlock() {
             <div className="flex flex-wrap items-center gap-2">
               {allOk ? (
                 <Badge className="bg-success text-success-foreground">
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Saudável
+                  <CheckCircle2 className="mr-1 h-3 w-3" /> Saudável
                 </Badge>
               ) : anyOk ? (
                 <Badge variant="secondary">
-                  <AlertTriangle className="h-3 w-3 mr-1" /> Instável ({okCount}/{state.pings.length})
+                  <AlertTriangle className="mr-1 h-3 w-3" /> Instável ({okCount}/
+                  {state.pings.length})
                 </Badge>
               ) : (
                 <Badge variant="destructive">
-                  <AlertTriangle className="h-3 w-3 mr-1" /> Falha ({okCount}/{state.pings.length})
+                  <AlertTriangle className="mr-1 h-3 w-3" /> Falha ({okCount}/{state.pings.length})
                 </Badge>
               )}
               {avg !== null && (
                 <span className="text-sm text-muted-foreground">
-                  latência min/avg/max: <strong>{min}/{avg}/{max} ms</strong>
+                  latência min/avg/max:{' '}
+                  <strong>
+                    {min}/{avg}/{max} ms
+                  </strong>
                 </span>
               )}
             </div>
@@ -108,12 +115,18 @@ export function HealthCheckBlock() {
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Ping {i + 1}</span>
                     {p.ok ? (
-                      <Badge variant="outline" className="text-success border-success/30">{p.ms} ms</Badge>
+                      <Badge variant="outline" className="border-success/30 text-success">
+                        {p.ms} ms
+                      </Badge>
                     ) : (
                       <Badge variant="destructive">{p.ms} ms</Badge>
                     )}
                   </div>
-                  {p.error && <p className="mt-1 text-destructive truncate" title={p.error}>{p.error}</p>}
+                  {p.error && (
+                    <p className="mt-1 truncate text-destructive" title={p.error}>
+                      {p.error}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
@@ -123,16 +136,21 @@ export function HealthCheckBlock() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Conexão com instabilidade</AlertTitle>
                 <AlertDescription>
-                  Verifique <code>EXTERNAL_SUPABASE_URL</code>/<code>EXTERNAL_SUPABASE_ANON_KEY</code> nos secrets
-                  e os logs da edge function <code>external-db-proxy</code>.
+                  Verifique <code>EXTERNAL_SUPABASE_URL</code>/
+                  <code>EXTERNAL_SUPABASE_ANON_KEY</code> nos secrets e os logs da edge function{' '}
+                  <code>external-db-proxy</code>.
                 </AlertDescription>
               </Alert>
             )}
 
             {state.lastPayload != null && (
               <details className="rounded-md border bg-muted/30 p-2 text-xs">
-                <summary className="cursor-pointer text-muted-foreground">Ver payload de exemplo</summary>
-                <pre className="mt-2 overflow-auto max-h-72">{JSON.stringify(state.lastPayload, null, 2)}</pre>
+                <summary className="cursor-pointer text-muted-foreground">
+                  Ver payload de exemplo
+                </summary>
+                <pre className="mt-2 max-h-72 overflow-auto">
+                  {JSON.stringify(state.lastPayload, null, 2)}
+                </pre>
               </details>
             )}
           </>

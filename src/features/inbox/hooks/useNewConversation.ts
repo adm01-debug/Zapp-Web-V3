@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { toast } from 'sonner';
 import { newRequestId } from '@/lib/withRequestId';
 import { z } from 'zod';
@@ -138,7 +139,8 @@ export function useNewConversation(
       });
       if (msgError) throw msgError;
       const rawSendPayload = {
-        instanceName: connections.find((c) => c.id === selectedConnection)?.name || 'wpp2',
+        instanceName:
+          connections.find((c) => c.id === selectedConnection)?.name || ACTIVE_WHATSAPP_INSTANCE,
         number: selectedContact?.phone || newPhone,
         text: messageText.trim(),
       };

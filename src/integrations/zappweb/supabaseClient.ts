@@ -17,8 +17,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+
 export const ZAPPWEB_INSTANCE = (import.meta.env.VITE_ZAPPWEB_INSTANCE ||
-  'wpp2') as string;
+  ACTIVE_WHATSAPP_INSTANCE) as string;
 
 /** Client autenticado compartilhado (sessão do usuário logado). */
 export const zappSupabase: SupabaseClient = supabase as unknown as SupabaseClient;
