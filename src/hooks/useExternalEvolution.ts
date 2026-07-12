@@ -53,6 +53,16 @@ const OPTIMISTIC_PREFIX = 'optimistic:';
 const OPTIMISTIC_FALLBACK_WINDOW_MS = 120_000;
 const MEDIA_TYPES = new Set(['audio', 'image', 'video', 'document', 'sticker']);
 
+// Optimistic messages may carry extra fields not in RealtimeMessage (set by useChatMediaSending).
+type WithOptimisticExtras = { media_meta?: { ptt?: boolean } | null; audio_meme_id?: string | null };
+
+function resolveAudioSubtype(m: RealtimeMessage): string {
+  const extra = m as RealtimeMessage & WithOptimisticExtras;
+  const isPtt = extra.media_meta?.ptt === true;
+  const isMeme = !!extra.audio_meme_id;
+  return isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
+}
+
 /**
  * Hierarquia oficial de status do envio. Reconciliação NUNCA regride —
  * se a otimista já foi promovida a `delivered` localmente (ACK 2-step),
@@ -141,18 +151,9 @@ export function reconcileOptimistic(
         if (!can.media_url && m.media_url) patch.media_url = m.media_url;
         if (can.reactions && can.reactions.length > 0) patch.reactions = can.reactions;
 
-        // Telemetria enriquecida para áudio (PTT vs Gravado vs Meme)
-        let messageType = m.message_type;
-        if (messageType === 'audio') {
-          const mExt = m as Record<string, unknown>;
-          const isPtt = (mExt.media_meta as Record<string, unknown> | undefined)?.ptt === true;
-          const isMeme = !!(mExt.audio_meme_id);
-          messageType = isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
-        }
-
         recordMatch({
           strategy: 'external_id',
-          messageType,
+          messageType: m.message_type === 'audio' ? resolveAudioSubtype(m) : m.message_type,
           optimisticId: m.id,
           canonicalId: can.id,
         });
@@ -182,18 +183,9 @@ export function reconcileOptimistic(
         if (!match.media_url && m.media_url) patch.media_url = m.media_url;
         if (match.reactions && match.reactions.length > 0) patch.reactions = match.reactions;
 
-        // Telemetria enriquecida para áudio fallback (PTT vs Gravado vs Meme)
-        let messageType = m.message_type;
-        if (messageType === 'audio') {
-          const mExt = m as Record<string, unknown>;
-          const isPtt = (mExt.media_meta as Record<string, unknown> | undefined)?.ptt === true;
-          const isMeme = !!(mExt.audio_meme_id);
-          messageType = isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
-        }
-
         recordMatch({
           strategy: 'media_fallback',
-          messageType,
+          messageType: m.message_type === 'audio' ? resolveAudioSubtype(m) : m.message_type,
           optimisticId: m.id,
           canonicalId: match.id,
           deltaMs: Math.abs(new Date(match.created_at).getTime() - optTime),
@@ -473,7 +465,7 @@ export function useExternalConversations(enabled = true) {
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>
-              queryExternalProxy<ContactEnrichmentData>({
+              queryExternalProxy<any>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',
                 params: {
@@ -610,10 +602,9 @@ export function useExternalMessages(remoteJid: string | null) {
       // Mantemos quaisquer otimistas que ainda não foram reconciliadas.
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens
-        type WithAvatar = { avatar_url?: string | null };
         const currentAvatar =
-          queryClient.getQueryData<WithAvatar>(['contact', remoteJid])?.avatar_url ||
-          queryClient.getQueryData<WithAvatar>(['external-evolution', 'contact', remoteJid])?.avatar_url;
+          queryClient.getQueryData<{ avatar_url?: string | null }>(['contact', remoteJid])?.avatar_url ||
+          queryClient.getQueryData<{ avatar_url?: string | null }>(['external-evolution', 'contact', remoteJid])?.avatar_url;
 
         // Propaga o avatar para todas as mensagens (canônicas e otimistas remanescentes)
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
@@ -663,10 +654,9 @@ export function useExternalMessages(remoteJid: string | null) {
       const mapped = newOnes.map(evolutionToRealtimeMessage);
       applyReconciliation(setMessages, mapped, (filteredPrev, additions) => {
         // Encontra o avatar do contato atual para propagar nas mensagens poladas
-        type WithAvatar = { avatar_url?: string | null };
         const currentAvatar =
-          queryClient.getQueryData<WithAvatar>(['contact', remoteJid])?.avatar_url ||
-          queryClient.getQueryData<WithAvatar>(['external-evolution', 'contact', remoteJid])?.avatar_url;
+          queryClient.getQueryData<{ avatar_url?: string | null }>(['contact', remoteJid])?.avatar_url ||
+          queryClient.getQueryData<{ avatar_url?: string | null }>(['external-evolution', 'contact', remoteJid])?.avatar_url;
 
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
         return [...filteredPrev, ...additionsWithAvatar];
