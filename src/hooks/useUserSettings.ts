@@ -102,17 +102,26 @@ export function useUserSettings() {
       return;
     }
 
+    let isMounted = true;
+    const abortController = new AbortController();
+
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
+        if (!isMounted || abortController.signal.aborted) return;
+
         if (!safeClient) {
           log.error('Error in fetchSettings: safeClient is not initialized');
-          setIsLoading(false);
+          if (isMounted) setIsLoading(false);
           return;
         }
+
         const { data: rows, error } = await safeClient.from<UserSettings>('user_settings', (q) =>
           q.select('*').eq('user_id', user.id).limit(1)
         );
+
+        if (!isMounted || abortController.signal.aborted) return;
+
         const data = rows?.[0] ?? null;
 
         if (error) {
@@ -120,7 +129,7 @@ export function useUserSettings() {
           return;
         }
 
-        if (data) {
+        if (data && isMounted && !abortController.signal.aborted) {
           setSettings({
             id: data.id,
             user_id: data.user_id,
@@ -163,13 +172,21 @@ export function useUserSettings() {
           });
         }
       } catch (err) {
+        if (!isMounted || abortController.signal.aborted) return;
         log.error('Error in fetchSettings:', err);
       } finally {
-        setIsLoading(false);
+        if (isMounted && !abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     void fetchSettings();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [user?.id]);
 
   // Update settings locally
