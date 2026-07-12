@@ -98,6 +98,19 @@ Deno.serve(async (req) => {
   let _bodyCache: Record<string, unknown> | null = null;
   let _formDataCache: FormData | null = null;
 
+  // Safe JSON parser: validates parsed result is an object before returning
+  const safeJsonParse = (text: string): Record<string, unknown> => {
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+      return { raw: text, _parseError: 'result_not_an_object' };
+    } catch (e) {
+      return { raw: text, _parseError: e instanceof Error ? e.message : 'parse_error' };
+    }
+  };
+
   const getParsedBody = async () => {
     const contentType = req.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
@@ -112,6 +125,9 @@ Deno.serve(async (req) => {
     }
     if (_bodyCache !== null) return { isMultipart: false, data: _bodyCache };
     try { _bodyCache = await req.json(); } catch { _bodyCache = {}; }
+    if (typeof _bodyCache !== 'object' || _bodyCache === null || Array.isArray(_bodyCache)) {
+      _bodyCache = {};
+    }
     return { isMultipart: false, data: _bodyCache! };
   };
 
@@ -136,6 +152,14 @@ Deno.serve(async (req) => {
       return (data as Record<string, unknown>)[key];
     }
     return undefined;
+  };
+
+  // Safely extract body as Record when not multipart
+  const ensureBodyIsRecord = (data: unknown): Record<string, unknown> => {
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      return data as Record<string, unknown>;
+    }
+    return {};
   };
 
   const buildCreateInstancePayload = (data: unknown, isFormData: boolean) => ({
@@ -312,8 +336,7 @@ Deno.serve(async (req) => {
       const doConnect = async () => {
         const response = await fetch(connectUrl, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
         const text = await response.text();
-        let data: Record<string, unknown> = {};
-        try { data = text ? JSON.parse(text) as Record<string, unknown> : {}; } catch { data = { raw: text }; }
+        const data = text ? safeJsonParse(text) : {};
         return { response, data };
       };
 
@@ -462,8 +485,7 @@ Deno.serve(async (req) => {
     if (action === 'status') {
       const response = await fetch(`${evolutionApiUrl}/instance/connectionState/${instance}`, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
       const text = await response.text();
-      let data: Record<string, unknown> = {};
-      try { data = text ? JSON.parse(text) as Record<string, unknown> : {}; } catch { data = { raw: text }; }
+      const data = text ? safeJsonParse(text) : {};
 
       if (response.status === 401 || response.status === 403) {
         recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'status' });
@@ -613,16 +635,19 @@ Deno.serve(async (req) => {
         if (audioFile) evolutionFormData.append('audio', audioFile);
         return await proxy(`/message/sendWhatsAppAudio/${instance}`, 'POST', evolutionFormData);
       }
-      const jsonBody = body as Record<string, unknown>;
-      const rawAudio = jsonBody.audio ?? jsonBody.audioUrl ?? jsonBody.mediaUrl;
+      const jsonBody = ensureBodyIsRecord(body);
+      const rawAudio = safeGetAny(jsonBody, 'audio', false) ?? safeGetAny(jsonBody, 'audioUrl', false) ?? safeGetAny(jsonBody, 'mediaUrl', false);
       let audioSource: unknown = typeof rawAudio === 'string'
         ? rawAudio.trim().replace(/^"+|"+$/g, '').replace(/\.supabase\.co"\//, '.supabase.co/')
         : rawAudio;
       if (typeof audioSource === 'string') audioSource = await resolvePrivateBucketUrl(supabase, audioSource);
-      const audioPayload: Record<string, unknown> = { number: jsonBody.number, audio: audioSource };
-      if (jsonBody.delay) audioPayload.delay = jsonBody.delay;
-      if (jsonBody.encoding !== undefined) audioPayload.encoding = jsonBody.encoding;
-      if (jsonBody.isPtt !== undefined) audioPayload.ptt = jsonBody.isPtt; 
+      const audioPayload: Record<string, unknown> = { number: safeGet(jsonBody, 'number', false), audio: audioSource };
+      const delay = safeGetAny(jsonBody, 'delay', false);
+      if (delay !== undefined) audioPayload.delay = delay;
+      const encoding = safeGetAny(jsonBody, 'encoding', false);
+      if (encoding !== undefined) audioPayload.encoding = encoding;
+      const isPtt = safeGetAny(jsonBody, 'isPtt', false);
+      if (isPtt !== undefined) audioPayload.ptt = isPtt;
       return await proxy(`/message/sendWhatsAppAudio/${instance}`, 'POST', audioPayload);
     }
 
