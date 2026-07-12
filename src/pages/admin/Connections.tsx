@@ -626,10 +626,10 @@ export default function AdminConnectionsPage() {
                     <table className="w-full text-sm">
                       <thead className="border-b bg-muted/50">
                         <tr>
-                          <th className="px-4 py-3 text-left">Nome do App</th>
-                          <th className="px-4 py-3 text-left">Eventos</th>
-                          <th className="px-4 py-3 text-left">Status</th>
-                          <th className="px-4 py-3 text-right">Ações</th>
+                          <th scope="col" className="px-4 py-3 text-left">Nome do App</th>
+                          <th scope="col" className="px-4 py-3 text-left">Eventos</th>
+                          <th scope="col" className="px-4 py-3 text-left">Status</th>
+                          <th scope="col" className="px-4 py-3 text-right">Ações</th>
                         </tr>
                       </thead>
                       <tbody>

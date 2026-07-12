@@ -276,6 +276,7 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
                           {EXPECTED_COLUMNS.map((c) => (
                             <th
                               key={c}
+                              scope="col"
                               className="px-2 py-1 text-left font-medium text-muted-foreground"
                             >
                               {c}

@@ -56,6 +56,7 @@ function SortableHeader({ label, field, sortField, sortDir, onSort }: {
   const isActive = sortField === field;
   return (
     <th
+      scope="col"
       className="text-left p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors group"
       onClick={() => onSort(field)}
     >
@@ -109,7 +110,7 @@ export function ContactsTable({
       <table className="w-full" role="grid" aria-label="Lista de contatos">
         <thead>
           <tr className="border-b border-border/20 bg-muted/20">
-            <th className="p-3 w-10">
+            <th scope="col" className="p-3 w-10">
               <Checkbox
                 checked={selectedIds.length === contacts.length && contacts.length > 0}
                 onCheckedChange={(checked) => onSelectIds(checked ? contacts.map(c => c.id) : [])}
@@ -122,9 +123,9 @@ export function ContactsTable({
             <SortableHeader label="Email" field="email" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
             <SortableHeader label="Empresa" field="company" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
             <SortableHeader label="Cargo" field="job_title" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
-            <th className="text-left p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Etiquetas</th>
-            <th className="text-center p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Saúde</th>
-            <th className="text-right p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
+            <th scope="col" className="text-left p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Etiquetas</th>
+            <th scope="col" className="text-center p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Saúde</th>
+            <th scope="col" className="text-right p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
           </tr>
         </thead>
         <tbody>

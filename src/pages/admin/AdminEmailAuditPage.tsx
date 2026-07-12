@@ -153,11 +153,11 @@ export default function AdminEmailAuditPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium">Job ID</th>
-                    <th className="px-4 py-3 text-left font-medium">Status</th>
-                    <th className="px-4 py-3 text-left font-medium">Solicitado em</th>
-                    <th className="px-4 py-3 text-left font-medium">Usuário</th>
-                    <th className="px-4 py-3 text-right font-medium">Ações</th>
+                    <th scope="col" className="px-4 py-3 text-left font-medium">Job ID</th>
+                    <th scope="col" className="px-4 py-3 text-left font-medium">Status</th>
+                    <th scope="col" className="px-4 py-3 text-left font-medium">Solicitado em</th>
+                    <th scope="col" className="px-4 py-3 text-left font-medium">Usuário</th>
+                    <th scope="col" className="px-4 py-3 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">

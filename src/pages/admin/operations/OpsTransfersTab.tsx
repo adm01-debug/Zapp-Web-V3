@@ -110,12 +110,12 @@ export function OpsTransfersTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4">Contato</th>
-                  <th className="py-2 pr-4">Origem → Destino</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Prioridade</th>
-                  <th className="py-2 pr-4">SLA</th>
-                  <th className="py-2 pr-4">Criada</th>
+                  <th scope="col" className="py-2 pr-4">Contato</th>
+                  <th scope="col" className="py-2 pr-4">Origem → Destino</th>
+                  <th scope="col" className="py-2 pr-4">Status</th>
+                  <th scope="col" className="py-2 pr-4">Prioridade</th>
+                  <th scope="col" className="py-2 pr-4">SLA</th>
+                  <th scope="col" className="py-2 pr-4">Criada</th>
                 </tr>
               </thead>
               <tbody>

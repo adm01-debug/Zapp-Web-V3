@@ -318,7 +318,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                   <thead className="bg-muted sticky top-0">
                     <tr>
                       {columns.map((c) => (
-                        <th key={c} className="text-left p-2 font-medium whitespace-nowrap">{c}</th>
+                        <th key={c} scope="col" className="text-left p-2 font-medium whitespace-nowrap">{c}</th>
                       ))}
                     </tr>
                   </thead>

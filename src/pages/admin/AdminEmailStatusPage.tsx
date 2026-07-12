@@ -401,11 +401,11 @@ export default function AdminEmailStatusPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-4 py-2 text-left font-medium">Request ID</th>
-                    <th className="px-4 py-2 text-left font-medium">Recurso</th>
-                    <th className="px-4 py-2 text-left font-medium">Erro</th>
-                    <th className="px-4 py-2 text-left font-medium">Ações</th>
-                    <th className="px-4 py-2 text-left font-medium">Horário</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Request ID</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Recurso</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Erro</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Ações</th>
+                    <th scope="col" className="px-4 py-2 text-left font-medium">Horário</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">

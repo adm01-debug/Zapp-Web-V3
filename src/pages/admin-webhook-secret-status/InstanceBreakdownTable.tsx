@@ -80,20 +80,20 @@ export function InstanceBreakdownTable({ stats, onSelectInstance }: InstanceBrea
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                  <th className="py-2 pr-4">
+                  <th scope="col" className="py-2 pr-4">
                     <SortButton label="Instância" onClick={() => toggleSort('instance')} active={sortKey === 'instance'} dir={sortDir} />
                   </th>
-                  <th className="py-2 pr-4 text-right">
+                  <th scope="col" className="py-2 pr-4 text-right">
                     <SortButton label="Total 24h" onClick={() => toggleSort('total')} active={sortKey === 'total'} dir={sortDir} />
                   </th>
-                  <th className="py-2 pr-4 text-right">Validados</th>
-                  <th className="py-2 pr-4 text-right">
+                  <th scope="col" className="py-2 pr-4 text-right">Validados</th>
+                  <th scope="col" className="py-2 pr-4 text-right">
                     <SortButton label="% Válido" onClick={() => toggleSort('validationRate')} active={sortKey === 'validationRate'} dir={sortDir} />
                   </th>
-                  <th className="py-2 pr-4">
+                  <th scope="col" className="py-2 pr-4">
                     <SortButton label="Último evento" onClick={() => toggleSort('lastEventAt')} active={sortKey === 'lastEventAt'} dir={sortDir} />
                   </th>
-                  <th className="py-2 pr-4">Status</th>
+                  <th scope="col" className="py-2 pr-4">Status</th>
                 </tr>
               </thead>
               <tbody>

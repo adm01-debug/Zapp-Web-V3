@@ -145,20 +145,20 @@ export const QueueSlaPanel = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" aria-label="Painel de SLA das filas">
                 <thead className="text-xs uppercase text-muted-foreground border-b">
                   <tr className="[&>th]:py-2 [&>th]:px-2 text-left">
-                    <th>Fila</th>
-                    <th>Prioridade</th>
-                    <th>Peso</th>
-                    <th>Auto</th>
-                    <th>Agentes</th>
-                    <th>Aguardando</th>
-                    <th>Em atend.</th>
-                    <th>Em risco</th>
-                    <th>Estourados</th>
-                    <th>+ tempo (min)</th>
-                    <th>Último roteamento</th>
+                    <th scope="col">Fila</th>
+                    <th scope="col">Prioridade</th>
+                    <th scope="col">Peso</th>
+                    <th scope="col">Auto</th>
+                    <th scope="col">Agentes</th>
+                    <th scope="col">Aguardando</th>
+                    <th scope="col">Em atend.</th>
+                    <th scope="col">Em risco</th>
+                    <th scope="col">Estourados</th>
+                    <th scope="col">+ tempo (min)</th>
+                    <th scope="col">Último roteamento</th>
                   </tr>
                 </thead>
                 <tbody>

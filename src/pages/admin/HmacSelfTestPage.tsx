@@ -245,11 +245,11 @@ export default function HmacSelfTestPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40 text-muted-foreground text-xs">
                       <tr>
-                        <th className="text-left px-3 py-2 font-medium">Cenário</th>
-                        <th className="text-left px-3 py-2 font-medium">Esperado</th>
-                        <th className="text-left px-3 py-2 font-medium">Resultado</th>
-                        <th className="text-left px-3 py-2 font-medium">Fase</th>
-                        <th className="text-left px-3 py-2 font-medium">Detalhe</th>
+                        <th scope="col" className="text-left px-3 py-2 font-medium">Cenário</th>
+                        <th scope="col" className="text-left px-3 py-2 font-medium">Esperado</th>
+                        <th scope="col" className="text-left px-3 py-2 font-medium">Resultado</th>
+                        <th scope="col" className="text-left px-3 py-2 font-medium">Fase</th>
+                        <th scope="col" className="text-left px-3 py-2 font-medium">Detalhe</th>
                       </tr>
                     </thead>
                     <tbody>

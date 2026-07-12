@@ -389,12 +389,12 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 text-muted-foreground">
                       <tr>
-                        <th className="px-2 py-1.5 text-left font-medium">Cenário</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Esperado</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Resultado</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Fase</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Idade</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Detalhe</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Cenário</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Esperado</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Resultado</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Fase</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Idade</th>
+                        <th scope="col" className="px-2 py-1.5 text-left font-medium">Detalhe</th>
                       </tr>
                     </thead>
                     <tbody>
