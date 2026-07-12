@@ -1039,26 +1039,29 @@ async function handleConversationSummary(
 
     let contactContext = '';
     if (validContactId) {
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('name, company, tags, ai_priority, ai_sentiment, notes')
-        .eq('id', validContactId)
-        .maybeSingle();
+      // PERF #1 (Improvement 3): Parallelize independent queries to reduce latency
+      const [contactResult, analysesResult] = await Promise.all([
+        supabase
+          .from('contacts')
+          .select('name, company, tags, ai_priority, ai_sentiment, notes')
+          .eq('id', validContactId)
+          .maybeSingle(),
+        supabase
+          .from('conversation_analyses')
+          .select('sentiment, summary, created_at')
+          .eq('contact_id', validContactId)
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
 
-      if (contact) {
+      if (contactResult.data) {
+        const contact = contactResult.data;
         // FIX #7 (C.40): Sanitize contact data to prevent oversized context
         contactContext = `\nContexto: ${sanitizeString(String(contact.name || 'Cliente'), 100)}, Empresa: ${sanitizeString(String(contact.company || 'N/A'), 100)}, Tags: ${sanitizeString((contact.tags as any)?.join(', ') || 'Nenhuma', 100)}`;
       }
 
-      const { data: prevAnalyses } = await supabase
-        .from('conversation_analyses')
-        .select('sentiment, summary, created_at')
-        .eq('contact_id', validContactId)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (prevAnalyses && Array.isArray(prevAnalyses) && prevAnalyses.length > 0) {
-        const historyStr = prevAnalyses.map((a: any) => `[${a.sentiment}] ${sanitizeString(String(a.summary || ''), 100)}`).join(' | ').slice(0, 500);
+      if (analysesResult.data && Array.isArray(analysesResult.data) && analysesResult.data.length > 0) {
+        const historyStr = analysesResult.data.map((a: any) => `[${a.sentiment}] ${sanitizeString(String(a.summary || ''), 100)}`).join(' | ').slice(0, 500);
         contactContext += `\nHistórico: ${historyStr}`;
       }
     }
@@ -2394,13 +2397,23 @@ async function handleConversationAnalysis(
 
     let contactContext = '';
     if (validContactId) {
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('name, company, tags, ai_priority, ai_sentiment, notes, contact_type')
-        .eq('id', validContactId)
-        .maybeSingle();
+      // PERF #2 (Improvement 3): Parallelize independent queries to reduce latency
+      const [contactResult, analysesResult] = await Promise.all([
+        supabase
+          .from('contacts')
+          .select('name, company, tags, ai_priority, ai_sentiment, notes, contact_type')
+          .eq('id', validContactId)
+          .maybeSingle(),
+        supabase
+          .from('conversation_analyses')
+          .select('sentiment, sentiment_score, summary, urgency, created_at')
+          .eq('contact_id', validContactId)
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
 
-      if (contact) {
+      if (contactResult.data) {
+        const contact = contactResult.data;
         // FIX #7 (C.40): Sanitize contact data to prevent oversized context
         contactContext = `\nContexto do cliente: ${sanitizeString(String(contact.name || 'Cliente'), 100)}`;
         if (contact.company) contactContext += `, Empresa: ${sanitizeString(String(contact.company), 100)}`;
@@ -2409,15 +2422,8 @@ async function handleConversationAnalysis(
         if (contact.ai_sentiment) contactContext += `, Sentimento anterior: ${sanitizeString(String(contact.ai_sentiment), 50)}`;
       }
 
-      const { data: prevAnalyses } = await supabase
-        .from('conversation_analyses')
-        .select('sentiment, sentiment_score, summary, urgency, created_at')
-        .eq('contact_id', validContactId)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (prevAnalyses && Array.isArray(prevAnalyses) && prevAnalyses.length > 0) {
-        const analysisStr = prevAnalyses.map((a: any) => `[${a.sentiment} ${a.sentiment_score}%] ${sanitizeString(a.summary, 80)}`).join(' | ').slice(0, 500);
+      if (analysesResult.data && Array.isArray(analysesResult.data) && analysesResult.data.length > 0) {
+        const analysisStr = analysesResult.data.map((a: any) => `[${a.sentiment} ${a.sentiment_score}%] ${sanitizeString(a.summary, 80)}`).join(' | ').slice(0, 500);
         contactContext += `\nAnálises anteriores: ${analysisStr}`;
       }
     }
@@ -2827,28 +2833,30 @@ async function handleSuggestReply(
       }
 
       if (validContactId) {
-        const { data: notes } = await supabase
-          .from('contact_notes')
-          .select('content')
-          .eq('contact_id', validContactId)
-          .order('created_at', { ascending: false })
-          .limit(5);
+        // PERF #3 (Improvement 3): Parallelize independent queries to reduce latency
+        const [notesResult, customFieldsResult] = await Promise.all([
+          supabase
+            .from('contact_notes')
+            .select('content')
+            .eq('contact_id', validContactId)
+            .order('created_at', { ascending: false })
+            .limit(5),
+          supabase
+            .from('contact_custom_fields')
+            .select('field_name, field_value')
+            .eq('contact_id', validContactId)
+            .limit(100), // FIX #7 (C.40): Bound custom fields to prevent memory exhaustion
+        ]);
 
-        if (notes && Array.isArray(notes) && notes.length > 0) {
+        if (notesResult.data && Array.isArray(notesResult.data) && notesResult.data.length > 0) {
           // FIX #7 (C.40): Limit total note context size to prevent prompt explosion
-          const notesContent = notes.map((n: any) => sanitizeString(n.content, 200)).join('\n').slice(0, 2000);
+          const notesContent = notesResult.data.map((n: any) => sanitizeString(n.content, 200)).join('\n').slice(0, 2000);
           knowledgeContext += `\n\nNOTAS DO CONTATO:\n${notesContent}`;
         }
 
-        const { data: customFields } = await supabase
-          .from('contact_custom_fields')
-          .select('field_name, field_value')
-          .eq('contact_id', validContactId)
-          .limit(100); // FIX #7 (C.40): Bound custom fields to prevent memory exhaustion
-
-        if (customFields && Array.isArray(customFields) && customFields.length > 0) {
+        if (customFieldsResult.data && Array.isArray(customFieldsResult.data) && customFieldsResult.data.length > 0) {
           // FIX #7 (C.40): Sanitize custom field values to prevent oversized context strings
-          const sanitizedFields = customFields.map((f: any) => `${sanitizeString(f.field_name, 100)}: ${sanitizeString(String(f.field_value), 200)}`).join('\n');
+          const sanitizedFields = customFieldsResult.data.map((f: any) => `${sanitizeString(f.field_name, 100)}: ${sanitizeString(String(f.field_value), 200)}`).join('\n');
           knowledgeContext += `\n\nDADOS DO CONTATO:\n${sanitizedFields}`;
         }
       }
