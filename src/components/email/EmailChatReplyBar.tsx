@@ -101,7 +101,7 @@ export function EmailChatReplyBar({
     });
 
   const handleSend = async () => {
-    const plainText = bodyHtml.replace(/<[^>]*>/g, '').trim();
+    const plainText = DOMPurify.sanitize(bodyHtml, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }).trim();
     if (!plainText && attachments.length === 0) {
       toast.error('Escreva uma resposta ou anexe um arquivo');
       return;
@@ -302,7 +302,7 @@ export function EmailChatReplyBar({
             {/* Template picker */}
             <MessageTemplates
               onSelectTemplate={(content) => {
-                const el = bodyHtml.replace(/<[^>]*>/g, '');
+                const el = DOMPurify.sanitize(bodyHtml, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
                 const newContent = el ? el + '\n\n' + content : content;
                 setBody(newContent);
               }}
