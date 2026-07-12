@@ -116,7 +116,7 @@ export function useTypingPresence({
       Object.entries(state).forEach(([key, presences]) => {
         if (key !== currentUserId && Array.isArray(presences)) {
           presences.forEach((presence) => {
-            const p = presence as unknown as PresenceState;
+            const p = presence as PresenceState;
             if (p.isTyping) {
               users.push({
                 oderId: p.oderId || key,

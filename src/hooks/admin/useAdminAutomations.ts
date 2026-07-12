@@ -98,7 +98,7 @@ export function useAdminAutomations() {
     ]);
     if (!mountedRef.current) return;
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    setRules((rulesData ?? []) as unknown as Rule[] /* Rule inclui campos de form (priority etc.) além do Row real — ver decisão de produto */);
+    setRules((rulesData ?? []) as Rule[] /* Rule inclui campos de form (priority etc.) além do Row real — ver decisão de produto */);
     setChannels((chs ?? []) as Channel[]);
     setDepartments((deps ?? []) as Department[]);
     setLoading(false);

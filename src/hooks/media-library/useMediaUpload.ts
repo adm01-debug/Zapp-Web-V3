@@ -94,13 +94,8 @@ export function useMediaUpload(type: MediaType, onComplete: () => void) {
           };
           if (type === 'audio_memes') insertData.audio_url = urlData.publicUrl;
           else insertData.image_url = urlData.publicUrl;
-          const { error: insertError } = await (
-            supabase as unknown as {
-              from: (t: string) => {
-                insert: (d: Record<string, unknown>) => Promise<{ error: unknown }>;
-              };
-            }
-          )
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: insertError } = await (supabase as any)
             .from(type)
             .insert(insertData);
           if (!insertError) successCount++;

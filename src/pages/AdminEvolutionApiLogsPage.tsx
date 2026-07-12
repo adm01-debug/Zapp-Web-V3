@@ -109,7 +109,7 @@ export default function AdminEvolutionApiLogsPage() {
 
       const { data, error } = await q;
       if (error) throw error;
-      return (data as unknown as RetryMetric[]) ?? [];
+      return (data as RetryMetric[]) ?? [];
     },
     refetchInterval: 15_000,
     staleTime: 10_000,

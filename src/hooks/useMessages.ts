@@ -118,7 +118,7 @@ export function useMessages(
       });
       if (ctrl.signal.aborted || !mountedRef.current) return;
       if (error) throw error;
-      const items = ((data ?? []) as unknown as Record<string, unknown>[]).map(mapRow);
+      const items = ((data ?? []) as Record<string, unknown>[]).map(mapRow);
       const reversed = [...items].reverse();
       setMessages(reversed);
       setHasMore(items.length === PAGE_SIZE);
@@ -148,7 +148,7 @@ export function useMessages(
         p_offset:     offsetRef.current,
       });
       if (error) throw error;
-      const newItems = ((data ?? []) as unknown as Record<string, unknown>[]).map(mapRow);
+      const newItems = ((data ?? []) as Record<string, unknown>[]).map(mapRow);
       const reversed = [...newItems].reverse();
       setMessages((prev) => {
         const uniqueNew = deduplicateMessages(prev, reversed);
