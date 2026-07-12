@@ -55,7 +55,10 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         () => queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] })
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [conversationId, queryClient]);
 
   const toggle = useMutation({

@@ -112,7 +112,10 @@ export function useTeamConversations() {
         queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [profile, queryClient]);
 
   return query;

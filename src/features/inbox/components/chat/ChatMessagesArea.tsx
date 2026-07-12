@@ -88,7 +88,10 @@ export const ChatMessagesArea = memo(forwardRef<ChatMessagesAreaRef, ChatMessage
         }
       })
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
+    };
   }, [messages, queryClient]);
 
   // Realtime de reações: 1 canal por conversa, invalida apenas IDs visíveis

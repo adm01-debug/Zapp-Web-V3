@@ -88,7 +88,10 @@ export function WhisperMode({ contactId, targetAgentId, className, defaultExpand
         setIsExpanded(true);
       })
       .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
+    };
   }, [contactId, queryClient, contactIsUUID]);
 
   useEffect(() => {

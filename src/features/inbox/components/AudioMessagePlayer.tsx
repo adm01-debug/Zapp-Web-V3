@@ -56,7 +56,10 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
           if (newData.transcription) { setTranscription(newData.transcription); setShowTranscription(true); }
         })
       ).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [messageId]);
 
   // Realtime subscription for voice conversion status
@@ -102,7 +105,10 @@ export function AudioMessagePlayer({ audioUrl, messageId, isSent, existingTransc
     
     fetchStatus();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [messageId, onVoiceChange]);
 
   const handleTranscribe = async () => {

@@ -94,7 +94,10 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
       })
       .subscribe();
 
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
+    };
   }, [conversationId, queryClient, searchQuery]);
 
   return {
