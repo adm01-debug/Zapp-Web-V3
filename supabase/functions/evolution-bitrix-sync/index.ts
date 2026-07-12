@@ -1,3 +1,44 @@
+/**
+ * Edge Function: Evolution Bitrix24 Batch Sync (v3.0)
+ *
+ * Processes asynchronous queue of WhatsApp contact and deal creation/updates to Bitrix24 CRM.
+ * Enables offline-first contact sync: local changes queued, then delivered to Bitrix24 via
+ * webhook URL with automatic retry and backoff on transient failures.
+ *
+ * Queue Model:
+ * - evolution_bitrix_queue table: pending sync operations with status, attempts, next_attempt_at
+ * - Atomic claiming: UPDATE with WHERE status='pending' to atomically transition to 'processing'
+ * - Batch processing: Up to 20 pending items per invocation; controlled backoff between items
+ * - Max attempts: 3 retries per item (default); exhausted items marked status='failed'
+ *
+ * Operations Supported:
+ * - create/contact: POST crm.contact.add, update evolution_contacts.bitrix_id on success
+ * - create/deal: POST crm.deal.add, update evolution_deals.bitrix_id on success
+ * - update/contact: POST crm.contact.update with bitrix_id
+ * - update/deal: POST crm.deal.update with bitrix_id
+ *
+ * Retry Strategy:
+ * - Exponential backoff: 5 * 2^(attempts-1) minutes per retry (capped at 60 minutes)
+ * - Transient failures (network, HTTP 5xx): Retry scheduled
+ * - Fatal failures (missing bitrix_id, Bitrix API error): Exhausted immediately or after max attempts
+ * - Between-item delay: 500ms to throttle Bitrix24 API load
+ *
+ * Stage Mapping:
+ * WhatsApp deal stages map to Bitrix24 pipeline stages:
+ * - novo_cliente → NEW, novo_pedido → PREPARATION, orcamento_enviado → PREPAYMENT_INVOICE,
+ *   pagamento_pendente → EXECUTING, pago → FINAL_INVOICE, pedido_finalizado → WON, perdido → LOSE
+ *
+ * Telemetry:
+ * - Inserts metrics into evolution_performance_metrics (processed count, success, failed, duration_ms)
+ * - Used for monitoring queue throughput and sync health
+ *
+ * Authentication: Service-role or cron-triggered only (requireServiceRoleOrCron).
+ * Configuration: BITRIX_WEBHOOK_URL from Supabase vault (getSecret, cached in _bitrixUrl).
+ *
+ * Response: { success, version: "v3", processed, success, failed, duration_ms, timestamp }
+ * Error Responses: 503 if Bitrix24 not configured, 500 on unhandled errors
+ */
+
 // Evolution Bitrix24 Sync v3.0 (2026-04-26)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
@@ -19,6 +60,17 @@ async function getBitrixUrl(): Promise<string | null> {
   return _bitrixUrl;
 }
 
+/**
+ * Invokes Bitrix24 API method via webhook POST.
+ *
+ * Sends JSON payload to configured Bitrix24 webhook URL with 20-second timeout.
+ * Handles HTTP errors, JSON parse errors, and Bitrix API errors uniformly.
+ * Response object contains either success=true+result or success=false+error message.
+ *
+ * @param method - Bitrix24 API method name (e.g., "crm.contact.add", "crm.deal.update")
+ * @param params - API request parameters as Record; converted to JSON body
+ * @returns BitrixResult with success flag, error message (on failure), or result data (on success)
+ */
 async function bitrixCall(method: string, params: Record<string, unknown>): Promise<BitrixResult> {
   const url = await getBitrixUrl();
   if (!url) return { success: false, error: "BITRIX_WEBHOOK_URL não configurada" };
@@ -50,6 +102,26 @@ function toBitrixDeal(d: QueuePayload, contactId?: number): Record<string, unkno
   return bd;
 }
 
+/**
+ * Processes pending queue items for Bitrix24 sync.
+ *
+ * Workflow:
+ * 1. Query evolution_bitrix_queue: select up to 20 pending items (status='pending')
+ *    where next_attempt_at is null or <= NOW (ready for retry)
+ * 2. Filter exhausted items (attempts >= max_attempts); mark status='failed'
+ * 3. For each remaining item:
+ *    a. Atomically claim: UPDATE status='processing', increment attempts
+ *    b. Invoke appropriate Bitrix API (create/update, contact/deal)
+ *    c. On success: mark status='completed', update local bitrix_id
+ *    d. On failure: schedule retry with exponential backoff OR mark exhausted
+ *    e. Throttle with 500ms delay between items (API rate limiting)
+ *
+ * Exponential Backoff Formula:
+ * - backoff_minutes = min(60, 5 * 2^(attempts-1))
+ * - next_attempt_at = NOW + backoff_minutes minutes
+ *
+ * @returns {{ processed, success, failed }} - Statistics for telemetry
+ */
 async function processQueue() {
   let processed = 0, success = 0, failed = 0;
   const { data, error: selErr } = await supabase.from("evolution_bitrix_queue").select("*").eq("status", "pending").or(`next_attempt_at.is.null,next_attempt_at.lte.${new Date().toISOString()}`).order("created_at").limit(20);
