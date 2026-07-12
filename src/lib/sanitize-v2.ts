@@ -1,6 +1,9 @@
-// Round 14 Fix P5: DOMPurify hook safety & input validation (MEDIUM)
+// Round 14-15 Fix: DOMPurify hook safety, input validation, unicode normalization (MEDIUM)
 // Gap 3.1: DOMPurify hook cleanup exception safety
 // Gap 6.1: sanitizeHtml() null coercion
+// Gap 9.1: Unicode normalization (NFKC) + entity decoding
+// Gap 9.2: HTML entity bypass prevention
+// Gap 9.3: Control character detection
 
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -22,6 +25,105 @@ const SANITIZE_CONFIG = {
   },
 };
 
+// Unicode normalization cache (Gap 9.1: NFKC normalization)
+const normalizationCache = new Map<string, string>();
+
+/**
+ * Normalize text using NFKC form (most restrictive Unicode normalization).
+ * Prevents unicode-based bypasses of sanitization rules.
+ *
+ * @param text - Input text to normalize
+ * @returns NFKC-normalized text
+ */
+function normalizeUnicodeNFKC(text: string): string {
+  if (!text) return text;
+
+  // Check cache
+  if (normalizationCache.has(text)) {
+    return normalizationCache.get(text)!;
+  }
+
+  try {
+    // Use NFKC normalization (most restrictive)
+    const normalized = text.normalize('NFKC');
+
+    // Cache result (limit cache size to 1000 entries)
+    if (normalizationCache.size >= 1000) {
+      const firstKey = normalizationCache.keys().next().value;
+      normalizationCache.delete(firstKey);
+    }
+    normalizationCache.set(text, normalized);
+
+    return normalized;
+  } catch (err) {
+    console.warn(`[normalizeUnicodeNFKC] Normalization failed: ${err}`);
+    return text;
+  }
+}
+
+/**
+ * Decode HTML entities that can bypass sanitization.
+ * Called BEFORE DOMPurify to catch entity-based bypasses.
+ *
+ * @param html - HTML string with entities
+ * @returns HTML with entities decoded
+ */
+function decodeHtmlEntities(html: string): string {
+  if (!html) return html;
+
+  let decoded = html;
+
+  // Decode named entities
+  const entityMap: Record<string, string> = {
+    '&lt;': '<',
+    '&gt;': '>',
+    '&amp;': '&',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&nbsp;': ' ',
+    '&copy;': '©',
+  };
+
+  Object.entries(entityMap).forEach(([entity, char]) => {
+    decoded = decoded.replace(new RegExp(entity, 'g'), char);
+  });
+
+  // Decode numeric entities (&#123;)
+  decoded = decoded.replace(/&#(\d+);/g, (_match, charCode) => {
+    try {
+      return String.fromCharCode(parseInt(charCode, 10));
+    } catch {
+      return _match;
+    }
+  });
+
+  // Decode hex entities (&#x7B;)
+  decoded = decoded.replace(/&#x([0-9a-fA-F]+);/gi, (_match, charCode) => {
+    try {
+      return String.fromCharCode(parseInt(charCode, 16));
+    } catch {
+      return _match;
+    }
+  });
+
+  return decoded;
+}
+
+/**
+ * Detect and reject control characters that can bypass sanitization.
+ * Throws if invalid characters found.
+ *
+ * @param text - Text to validate
+ * @throws If control characters detected
+ */
+function validateNoControlCharacters(text: string): void {
+  // Check for null bytes and control characters (Gap 9.3)
+  if (/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/.test(text)) {
+    throw new Error('Input contains invalid control characters');
+  }
+}
+
 export interface SanitizeResult {
   success: boolean;
   html: string;
@@ -31,14 +133,17 @@ export interface SanitizeResult {
 
 /**
  * Sanitizes HTML with strict validation and error handling.
- * 
+ *
+ * Pipeline: validate → normalize unicode → decode entities → detect control chars → DOMPurify
+ *
  * @param html - Input to sanitize (must be non-null string)
  * @param options - Optional sanitization config overrides
  * @returns SanitizeResult with success flag and sanitized HTML
- * 
+ *
  * Throws on:
  * - null/undefined input
  * - non-string input
+ * - control characters detected
  * - DOMPurify errors during sanitization
  */
 export function sanitizeHtml(
@@ -67,8 +172,20 @@ export function sanitizeHtml(
       };
     }
 
+    let processed = html;
+
+    // Step 1: Normalize unicode using NFKC (Gap 9.1)
+    processed = normalizeUnicodeNFKC(processed);
+
+    // Step 2: Decode HTML entities before sanitization (Gap 9.2)
+    processed = decodeHtmlEntities(processed);
+
+    // Step 3: Detect and reject control characters (Gap 9.3)
+    validateNoControlCharacters(processed);
+
+    // Step 4: Apply DOMPurify sanitization
     const config = { ...SANITIZE_CONFIG, ...options };
-    const sanitized = DOMPurify.sanitize(html, config);
+    const sanitized = DOMPurify.sanitize(processed, config);
 
     // Post-sanitization validation
     if (!sanitized || typeof sanitized !== 'string') {
