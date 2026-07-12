@@ -194,11 +194,17 @@ Deno.serve(async (req) => {
 
         let updated = 0;
         for (const r of batchResults) {
-          if (r.status === 'fulfilled' && !r.value.error) {
-            updated += 1;  // count individual updates, not batch chunks
+          // Only count as updated if:
+          // 1. Promise fulfilled (no rejection)
+          // 2. No error from Supabase
+          // 3. At least one row was actually updated (not rejected by WHERE filter)
+          //    If pii_masked_at was set after our SELECT but before UPDATE, the
+          //    filter rejects it: data=[], error=null. We must check data.length > 0
+          if (r.status === 'fulfilled' && !r.value.error && r.value.data?.length > 0) {
+            updated += 1;
           } else {
             const msg = r.status === 'rejected' ? String(r.reason) : r.value.error?.message;
-            console.error('[lgpd] dedup hash update error', msg);
+            if (msg) console.error('[lgpd] dedup hash update error', msg);
           }
         }
 
