@@ -13,7 +13,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
-import { sanitizeText } from '@/lib/sanitize';
+import { sanitizeText, sanitizeUrl } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
 import { dbList, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
@@ -61,7 +61,7 @@ const mapRow = (row: Record<string, unknown>): Message => ({
   from_me:           Boolean(row.from_me ?? false),
   message_type:      String(row.message_type ?? 'text'),
   content:           row.content ? sanitizeText(row.content as string) : null,
-  media_url:         row.media_url as string | null,
+  media_url:         row.media_url ? sanitizeUrl(row.media_url as string) || null : null,
   media_mimetype:    row.media_mimetype as string | null,
   quoted_message_id: row.quoted_message_id as string | null,
   is_starred:        Boolean(row.is_starred ?? false),
