@@ -83,6 +83,7 @@ interface ActionResult {
   error?: string;
   duration_ms: number;
   metrics?: Record<string, unknown>;
+  isValidationError?: boolean; // C.16: Track if error is validation (422) vs internal (500)
 }
 
 // Circuit breaker state for external APIs (per provider)
@@ -400,7 +401,9 @@ Deno.serve(async (req) => {
     }
 
     if (!result.success) {
-      return errorResponse(result.error || "Action failed", 500, req);
+      // C.16: Return 422 for validation errors, 500 for internal errors
+      const statusCode = result.isValidationError ? 422 : 500;
+      return errorResponse(result.error || "Action failed", statusCode, req);
     }
 
     // ━━━ PHASE 6: Record Result for Idempotency ━━━
@@ -451,7 +454,7 @@ async function handleAutoTag(
   try {
     const parsed = parseBody(AiAutoTagSchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { contactId, messages: inputMessages, requestId } = parsed.data;
@@ -807,7 +810,7 @@ async function handleConversationSummary(
   try {
     const parsed = parseBody(AiConversationSummarySchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { messages, contactName, contactId, requestId } = parsed.data;
@@ -1202,7 +1205,7 @@ async function handleEnhanceMessage(
   try {
     const parsed = parseBody(AiEnhanceMessageSchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { message, tone, contactName, requestId } = parsed.data;
@@ -1398,7 +1401,7 @@ async function handleClassifyEmoji(
   try {
     const parsed = parseBody(ClassifyEmojiSchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { image_url, file_name, requestId } = parsed.data;
@@ -1588,7 +1591,7 @@ async function handleClassifySticker(
   try {
     const parsed = parseBody(ClassifyStickerSchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { image_url, requestId } = parsed.data;
@@ -1778,7 +1781,7 @@ async function handleChurnAnalysis(
   try {
     const parsed = parseBody(AiChurnAnalysisSchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { contactIds, requestId } = parsed.data;
@@ -2032,7 +2035,7 @@ async function handleConversationAnalysis(
   try {
     const parsed = parseBody(AiConversationAnalysisSchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { messages, contactName, contactId, requestId } = parsed.data;
@@ -2417,7 +2420,7 @@ async function handleSuggestReply(
   try {
     const parsed = parseBody(AiSuggestReplySchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { conversationHistory, contactName, contactId, context, requestId } = parsed.data;
@@ -2687,7 +2690,7 @@ async function handleTranscribeAudio(
   try {
     const parsed = parseBody(TranscribeAudioSchema, body);
     if (!parsed.success) {
-      return { success: false, error: parsed.error, duration_ms: 0 };
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
     }
 
     const { audioUrl, messageId, languageCode, enableDiarization, tagAudioEvents, requestId } = parsed.data;
