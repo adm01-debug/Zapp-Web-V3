@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const log = getLogger('useQueuesComparison');
 
 interface QueuePerformance {
   id: string;

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useOnboarding');
 
 const ONBOARDING_KEY = 'onboarding_completed';
 
