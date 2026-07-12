@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import {
-  type ConversationWithMessages,
-  type ConversationContact,
-  type RealtimeMessage,
-} from '@/features/inbox';
+import type {
+  ConversationWithMessages,
+  ConversationContact,
+  RealtimeMessage,
+} from './realtime/types';
+import { seedAvatarCache } from './realtime/avatarBatchStore';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
-import { seedAvatarCache } from '@/features/inbox';
 import { isValidUUID } from '@/utils/uuid';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -277,7 +277,8 @@ export function useRealtimeInbox() {
     }
 
     if (USE_EXTERNAL_DB) {
-      const { sendExternalText, sendExternalMedia, sendExternalAudio } = await import('..');
+      const { sendExternalText, sendExternalMedia, sendExternalAudio } =
+        await import('./realtime/externalMessageSender');
       const currentAvatar = resolvedSelectedConversation?.contact.avatar_url;
 
       try {
