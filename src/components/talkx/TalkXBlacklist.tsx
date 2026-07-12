@@ -77,6 +77,7 @@ export function TalkXBlacklist() {
       if (error) throw error;
       return (data ?? []) as BlacklistEntry[];
     },
+    staleTime: Infinity,
   });
 
   const { data: availableContacts = [] } = useQuery({
@@ -90,6 +91,7 @@ export function TalkXBlacklist() {
       return data || [];
     },
     enabled: showAddDialog,
+    staleTime: 300_000,
   });
 
   const blacklistedIds = useMemo(() => new Set(blacklist.map((b) => b.contact_id)), [blacklist]);

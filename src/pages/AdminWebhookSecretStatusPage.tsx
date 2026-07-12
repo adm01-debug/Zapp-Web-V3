@@ -67,14 +67,17 @@ export default function AdminWebhookSecretStatusPage() {
   }, [filters]); // refresh when other filters change too
   void instance;
 
-  const setInstance = useCallback((next: string | null) => {
-    const url = new URL(window.location.href);
-    if (next) url.searchParams.set('instance', next);
-    else url.searchParams.delete('instance');
-    window.history.replaceState({}, '', url.toString());
-    // Force re-render by touching useUrlFilters
-    setFilters({ search: filters.search });
-  }, [filters.search, setFilters]);
+  const setInstance = useCallback(
+    (next: string | null) => {
+      const url = new URL(window.location.href);
+      if (next) url.searchParams.set('instance', next);
+      else url.searchParams.delete('instance');
+      window.history.replaceState({}, '', url.toString());
+      // Force re-render by touching useUrlFilters
+      setFilters({ search: filters.search });
+    },
+    [filters.search, setFilters]
+  );
 
   // 1. Secret status (no value exposed)
   const secretQuery = useQuery({
@@ -92,9 +95,7 @@ export default function AdminWebhookSecretStatusPage() {
     queryKey: ['webhook-recent-events', selectedInstance],
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const filtersArr = [
-        { column: 'created_at', operator: 'gte', value: since },
-      ];
+      const filtersArr = [{ column: 'created_at', operator: 'gte', value: since }];
       if (selectedInstance) {
         filtersArr.push({ column: 'instance_name', operator: 'eq', value: selectedInstance });
       }
@@ -130,9 +131,9 @@ export default function AdminWebhookSecretStatusPage() {
   });
 
   const refetchAll = () => {
-    secretQuery.refetch();
-    eventsQuery.refetch();
-    instancesQuery.refetch();
+    void secretQuery.refetch();
+    void eventsQuery.refetch();
+    void instancesQuery.refetch();
   };
 
   const events = eventsQuery.data ?? [];
@@ -154,7 +155,7 @@ export default function AdminWebhookSecretStatusPage() {
         processed_at: null,
         error_message: null,
         created_at: '',
-      })),
+      }))
     );
     // Always include current selection so it stays selectable when filtered.
     if (selectedInstance && !fromList.includes(selectedInstance)) fromList.push(selectedInstance);
@@ -164,11 +165,13 @@ export default function AdminWebhookSecretStatusPage() {
   // Live status / latency for the selected instance (or global).
   const liveStatus = useMemo(
     () => computeInstanceStatus(events, selectedInstance),
-    [events, selectedInstance],
+    [events, selectedInstance]
   );
   const latency = useMemo(() => {
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    return computeLatencyStats(events.filter((e) => new Date(e.created_at).getTime() >= oneHourAgo));
+    return computeLatencyStats(
+      events.filter((e) => new Date(e.created_at).getTime() >= oneHourAgo)
+    );
   }, [events]);
 
   // Per-instance breakdown only relevant when no instance selected.
@@ -283,24 +286,25 @@ export default function AdminWebhookSecretStatusPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
             <Webhook className="h-6 w-6 text-primary" />
             Status do Webhook & Secret
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Monitoramento do <code>WEBHOOK_SECRET</code> e da saúde do recebimento — sem expor o valor.
-            Escopo atual: <span className="font-medium text-foreground">{scopeLabel}</span>.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Monitoramento do <code>WEBHOOK_SECRET</code> e da saúde do recebimento — sem expor o
+            valor. Escopo atual: <span className="font-medium text-foreground">{scopeLabel}</span>.
           </p>
         </div>
         <div className="flex items-center gap-2">
           {activeBreaches.length > 0 && (
             <Badge variant="destructive" className="gap-1">
               <ShieldAlert className="h-3 w-3" />
-              {activeBreaches.length} alerta{activeBreaches.length > 1 ? 's' : ''} ativo{activeBreaches.length > 1 ? 's' : ''}
+              {activeBreaches.length} alerta{activeBreaches.length > 1 ? 's' : ''} ativo
+              {activeBreaches.length > 1 ? 's' : ''}
             </Badge>
           )}
           <InstanceFilterSelect
@@ -315,7 +319,7 @@ export default function AdminWebhookSecretStatusPage() {
               to={`/admin/hmac-selftest?instance=${encodeURIComponent(selectedInstance ?? DEFAULT_WHATSAPP_INSTANCE)}`}
               aria-label="Abrir página do HMAC self-test"
             >
-              <ExternalLink className="h-4 w-4 mr-1" />
+              <ExternalLink className="mr-1 h-4 w-4" />
               Abrir página
             </Link>
           </Button>
@@ -326,7 +330,7 @@ export default function AdminWebhookSecretStatusPage() {
             disabled={secretQuery.isFetching || eventsQuery.isFetching}
           >
             <RefreshCw
-              className={`h-4 w-4 mr-2 ${
+              className={`mr-2 h-4 w-4 ${
                 secretQuery.isFetching || eventsQuery.isFetching ? 'animate-spin' : ''
               }`}
             />
@@ -344,11 +348,11 @@ export default function AdminWebhookSecretStatusPage() {
       />
 
       {/* KPI cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {/* Secret card */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <KeyRound className="h-4 w-4" />
               WEBHOOK_SECRET
             </CardTitle>
@@ -362,7 +366,7 @@ export default function AdminWebhookSecretStatusPage() {
                   <ShieldCheck className="h-5 w-5 text-success" />
                   <Badge variant="success">Configurado</Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2 ">
+                <div className="mt-2 text-xs text-muted-foreground">
                   {secret.length} chars · #{secret.hashPrefix}
                 </div>
               </>
@@ -372,7 +376,7 @@ export default function AdminWebhookSecretStatusPage() {
                   <ShieldAlert className="h-5 w-5 text-destructive" />
                   <Badge variant="destructive">Ausente</Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">Modo não-strict ativo</div>
+                <div className="mt-2 text-xs text-muted-foreground">Modo não-strict ativo</div>
               </>
             )}
           </CardContent>
@@ -381,7 +385,7 @@ export default function AdminWebhookSecretStatusPage() {
         {/* Webhook enabled */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Activity className="h-4 w-4" />
               Webhook
             </CardTitle>
@@ -401,7 +405,7 @@ export default function AdminWebhookSecretStatusPage() {
                     {enabled ? 'Habilitado' : 'Inativo'}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">
+                <div className="mt-2 text-xs text-muted-foreground">
                   {total24h} eventos / 24h ({scopeLabel})
                 </div>
               </>
@@ -412,7 +416,7 @@ export default function AdminWebhookSecretStatusPage() {
         {/* Last received */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Clock className="h-4 w-4" />
               Último recebimento
             </CardTitle>
@@ -428,7 +432,7 @@ export default function AdminWebhookSecretStatusPage() {
                     locale: ptBR,
                   })}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1 truncate">
+                <div className="mt-1 truncate text-xs text-muted-foreground">
                   {lastEvent.event_type}
                   {lastEvent.instance_name ? ` · ${lastEvent.instance_name}` : ''}
                 </div>
@@ -442,7 +446,7 @@ export default function AdminWebhookSecretStatusPage() {
         {/* Signature validation rate */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <ShieldCheck className="h-4 w-4" />
               Assinatura validada — {scopeLabel}
             </CardTitle>
@@ -456,7 +460,7 @@ export default function AdminWebhookSecretStatusPage() {
                   {validationRate}
                   <span className="text-base text-muted-foreground">%</span>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="mt-1 text-xs text-muted-foreground">
                   {validSigned} válidas · {invalidSigned} inválidas · {unsigned} sem
                 </div>
               </>
@@ -480,8 +484,8 @@ export default function AdminWebhookSecretStatusPage() {
           <AlertTitle>Secret não configurado</AlertTitle>
           <AlertDescription>
             O <code>WEBHOOK_SECRET</code> não está definido. Webhooks são aceitos sem validação HMAC
-            (modo não-strict). Configure o secret nas variáveis de ambiente da Lovable Cloud para ativar
-            a validação criptográfica.
+            (modo não-strict). Configure o secret nas variáveis de ambiente da Lovable Cloud para
+            ativar a validação criptográfica.
           </AlertDescription>
         </Alert>
       )}
@@ -504,7 +508,7 @@ export default function AdminWebhookSecretStatusPage() {
           <CardDescription>Informações coletadas sem exposição do segredo.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
             <div className="flex justify-between border-b pb-2">
               <span className="text-muted-foreground">Modo strict</span>
               <span className="font-medium">
@@ -562,7 +566,7 @@ export default function AdminWebhookSecretStatusPage() {
       {/* Recent events table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             Últimos eventos recebidos — {scopeLabel}
             {activeFilterCount > 0 && (
               <Badge variant="secondary">
@@ -570,7 +574,9 @@ export default function AdminWebhookSecretStatusPage() {
               </Badge>
             )}
           </CardTitle>
-          <CardDescription>Top 20 eventos das últimas 24 horas — atualiza a cada 30s.</CardDescription>
+          <CardDescription>
+            Top 20 eventos das últimas 24 horas — atualiza a cada 30s.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {eventsQuery.isLoading ? (
@@ -580,11 +586,11 @@ export default function AdminWebhookSecretStatusPage() {
               ))}
             </div>
           ) : events.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
+            <p className="py-8 text-center text-sm text-muted-foreground">
               Nenhum webhook recebido nas últimas 24h.
             </p>
           ) : filteredEvents.length === 0 ? (
-            <div className="py-8 text-center space-y-3">
+            <div className="space-y-3 py-8 text-center">
               <p className="text-sm text-muted-foreground">
                 Nenhum evento corresponde aos filtros atuais.
               </p>
@@ -601,19 +607,43 @@ export default function AdminWebhookSecretStatusPage() {
               >
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    {prefs.visibleColumns.when && <th scope="col" className="py-2 pr-4">Quando</th>}
-                    {prefs.visibleColumns.event && <th scope="col" className="py-2 pr-4">Evento</th>}
-                    {prefs.visibleColumns.instance && <th scope="col" className="py-2 pr-4">Instância</th>}
-                    {prefs.visibleColumns.signature && <th scope="col" className="py-2 pr-4">Assinatura</th>}
-                    {prefs.visibleColumns.status && <th scope="col" className="py-2 pr-4">Status</th>}
-                    {prefs.visibleColumns.action && <th scope="col" className="py-2 pr-4 text-right">Ação</th>}
+                    {prefs.visibleColumns.when && (
+                      <th scope="col" className="py-2 pr-4">
+                        Quando
+                      </th>
+                    )}
+                    {prefs.visibleColumns.event && (
+                      <th scope="col" className="py-2 pr-4">
+                        Evento
+                      </th>
+                    )}
+                    {prefs.visibleColumns.instance && (
+                      <th scope="col" className="py-2 pr-4">
+                        Instância
+                      </th>
+                    )}
+                    {prefs.visibleColumns.signature && (
+                      <th scope="col" className="py-2 pr-4">
+                        Assinatura
+                      </th>
+                    )}
+                    {prefs.visibleColumns.status && (
+                      <th scope="col" className="py-2 pr-4">
+                        Status
+                      </th>
+                    )}
+                    {prefs.visibleColumns.action && (
+                      <th scope="col" className="py-2 pr-4 text-right">
+                        Ação
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredEvents.slice(0, 20).map((e) => (
                     <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
                       {prefs.visibleColumns.when && (
-                        <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
+                        <td className="whitespace-nowrap py-2 pr-4 text-muted-foreground">
                           {formatDistanceToNow(new Date(e.created_at), {
                             addSuffix: true,
                             locale: ptBR,
@@ -621,7 +651,7 @@ export default function AdminWebhookSecretStatusPage() {
                         </td>
                       )}
                       {prefs.visibleColumns.event && (
-                        <td className="py-2 pr-4  text-xs">{e.event_type}</td>
+                        <td className="py-2 pr-4 text-xs">{e.event_type}</td>
                       )}
                       {prefs.visibleColumns.instance && (
                         <td className="py-2 pr-4 text-xs">{e.instance_name ?? '—'}</td>

@@ -27,10 +27,13 @@ export function useAutoCloseConversations() {
       if (error) throw error;
       return data;
     },
+    staleTime: Infinity,
   });
 
   const updateConfig = useMutation({
-    mutationFn: async (updates: Partial<Pick<AutoCloseConfig, 'inactivity_hours' | 'is_enabled' | 'close_message'>>) => {
+    mutationFn: async (
+      updates: Partial<Pick<AutoCloseConfig, 'inactivity_hours' | 'is_enabled' | 'close_message'>>
+    ) => {
       const config = configQuery.data;
       if (!config) throw new Error('Config not found');
 
@@ -43,7 +46,10 @@ export function useAutoCloseConversations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auto-close-config'] });
-      toast({ title: 'Configuração salva', description: 'Auto-fechamento atualizado com sucesso.' });
+      toast({
+        title: 'Configuração salva',
+        description: 'Auto-fechamento atualizado com sucesso.',
+      });
     },
     onError: () => {
       toast({ title: 'Erro ao salvar', variant: 'destructive' });

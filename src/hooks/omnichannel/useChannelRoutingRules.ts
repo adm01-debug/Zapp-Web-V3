@@ -42,6 +42,7 @@ export function useChannelRoutingRules() {
       if (error) throw error;
       return (data ?? []) as RoutingRule[];
     },
+    staleTime: 600_000,
   });
 
   const { data: queues = [] } = useQuery({
@@ -55,6 +56,7 @@ export function useChannelRoutingRules() {
       if (error) throw error;
       return data || [];
     },
+    staleTime: 600_000,
   });
 
   const toggleRule = useMutation({
