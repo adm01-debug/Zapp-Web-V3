@@ -381,6 +381,13 @@ export function useRealtimeMessages() {
     return unsub;
   }, []);
 
+  // Cleanup lastSeenTimerRef on unmount to prevent callbacks firing on unmounted component
+  useEffect(() => {
+    return () => {
+      if (lastSeenTimerRef.current) clearTimeout(lastSeenTimerRef.current);
+    };
+  }, []);
+
   // Derive per-contact send state (transient bus + last DB status)
   const conversationSendState: Record<string, ConversationSendState> = {};
   for (const c of conversations) {

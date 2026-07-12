@@ -163,6 +163,7 @@ Se não houver objeções, retorne []`,
             model: 'google/gemini-3-flash-preview',
           },
         });
+        if (response.error) throw new Error(response.error.message || 'Erro na API');
         const content = response.data?.content || response.data?.choices?.[0]?.message?.content;
         if (content) {
           setObjections((prev) =>
