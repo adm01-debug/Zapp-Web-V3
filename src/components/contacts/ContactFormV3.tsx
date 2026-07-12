@@ -510,6 +510,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
             email: form.email,
             company: form.company,
             tags: form.tags,
+            notes: form.notes || null,
             channel: null,
             avatar_url: null,
             created_at: new Date().toISOString(),
