@@ -27,7 +27,6 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
 import { getLogger } from '@/lib/logger';
@@ -37,6 +36,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
   'development' | 'staging' | 'production';
+
+interface SystemConnection {
+  id: string;
+  name: string;
+  provider: string;
+  config: { url?: string; anon_key?: string; [key: string]: unknown };
+  is_active: boolean;
+  created_at?: string;
+  created_by?: string | null;
+}
+
+interface SystemConnectionPayload {
+  name: string;
+  provider: string;
+  config: { url: string; anon_key: string };
+  is_active: boolean;
+}
 
 const getInitialConfig = () => {
   switch (APP_ENV) {
@@ -71,7 +87,7 @@ const MCP_SERVER_URL = 'https://supabase.atomicabr.com.br/functions/v1/mcp-serve
 
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
-  const [connections, setConnections] = useState<any[]>([]);
+  const [connections, setConnections] = useState<SystemConnection[]>([]);
   const [_loading, setLoading] = useState(true);
 
   const [externalUrl, setExternalUrl] = useState(DEFAULT_EXTERNAL_URL);
@@ -117,7 +133,7 @@ export default function AdminConnectionsPage() {
       setIsAdmin(false);
       toast({
         title: 'Erro de Conexão ou Acesso',
-        description: `Não foi possível validar seu nível de acesso: ${e?.message ?? 'Banco indisponível'}.`,
+        description: `Não foi possível validar seu nível de acesso: ${e instanceof Error ? e.message : 'Banco indisponível'}.`,
         variant: 'destructive',
       });
     }
@@ -141,14 +157,14 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
-    const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+    const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
       q.select('*').order('created_at', { ascending: false })
     );
 
     if (!error && data) {
-      setConnections(data as any[]);
-      const fatorX: any = (data as any[]).find( // ignore-audit
-        (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
+      setConnections(data as SystemConnection[]);
+      const fatorX = (data as SystemConnection[]).find(
+        (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
         setExternalUrl(fatorX.config.url);
@@ -192,10 +208,10 @@ export default function AdminConnectionsPage() {
         variant: 'destructive',
       });
       return false;
-    } catch (e: any) { // ignore-audit
+    } catch (e: unknown) {
       toast({
         title: 'Erro de rede',
-        description: e?.message ?? 'falha desconhecida',
+        description: e instanceof Error ? e.message : 'falha desconhecida',
         variant: 'destructive',
       });
       return false;
@@ -234,12 +250,12 @@ export default function AdminConnectionsPage() {
     };
 
     try {
-      const existing: any = connections.find( // ignore-audit
-        (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
+      const existing = connections.find(
+        (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
-      const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+      const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
         existing
           ? q.update(payload).eq('id', existing.id).select()
           : q.insert(insertPayload).select()
@@ -269,7 +285,7 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      const { data: verify, error: verifyError } = await safeClient.from<any>(
+      const { data: verify, error: verifyError } = await safeClient.from<SystemConnection>(
         'system_connections',
         (q) =>
           q

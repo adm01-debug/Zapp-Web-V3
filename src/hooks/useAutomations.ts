@@ -19,6 +19,22 @@ interface SlaEscalate {
   reason?: string | null;
 }
 
+// Minimal shapes for rows returned by the external (FATOR X) RPCs.
+// These functions exist only in the external DB schema and are not in ExtendedDatabase.Functions.
+interface ExternalMessage {
+  message_timestamp: string;
+  created_at: string;
+  from_me: boolean;
+  content: unknown;
+}
+
+interface ExternalContact {
+  tags?: unknown[];
+}
+
+// Typed shim for external RPC calls not present in ExtendedDatabase.Functions.
+type ExtRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+
 interface AutomationRule {
   id: string;
   name: string;
@@ -106,8 +122,8 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...msgs].sort(
-        (a: any, b: any) => // ignore-audit
+      const sorted = [...(msgs as ExternalMessage[])].sort(
+        (a, b) =>
           new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
@@ -121,11 +137,11 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        const { data: contact } = await (client as any).rpc('rpc_get_contact', {
+        const { data: contact } = await (client.rpc as unknown as ExtRpc)('rpc_get_contact', {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
-        const c = (Array.isArray(contact) ? contact[0] : contact) as { tags?: unknown[] } | null;
+        const c = (Array.isArray(contact) ? contact[0] : contact) as ExternalContact | null;
         currentTags = Array.isArray(c?.tags) ? c.tags.map((t: unknown) => String(t)) : [];
         if (prevTagsRef.current !== null) {
           const prev = prevTagsRef.current;
@@ -226,7 +242,7 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            await (client as any).rpc('rpc_upsert_contact', {
+            await (client.rpc as unknown as ExtRpc)('rpc_upsert_contact', {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
@@ -244,11 +260,11 @@ export function useAutomations({
                 })
                 .eq('id', execId)
             );
-          } catch (e: any) { // ignore-audit
+          } catch (e: unknown) {
             log.warn('[automation] apply_tags/escalate failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: e instanceof Error ? e.message : String(e),
               p_context: { stage: 'apply_tags_or_escalate', tags: allTags },
             });
           }
@@ -277,7 +293,7 @@ export function useAutomations({
               );
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
-                await (client as any).rpc('rpc_insert_message', {
+                await (client.rpc as unknown as ExtRpc)('rpc_insert_message', {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
@@ -290,11 +306,11 @@ export function useAutomations({
                 );
               }
             }
-          } catch (e: any) { // ignore-audit
+          } catch (e: unknown) {
             log.warn('[automation] suggest_reply failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: e instanceof Error ? e.message : String(e),
               p_context: { stage: 'suggest_reply_or_autosend' },
             });
           }
