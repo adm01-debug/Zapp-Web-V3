@@ -33,25 +33,26 @@ SET deadlock_timeout = '500ms';
 LOCK TABLE public.campaign_contacts IN SHARE ROW EXCLUSIVE MODE;
 
 -- ── 2. Archive full table state before any destructive operation ────────────
--- Creates a point-in-time snapshot. If a rollback is needed post-migration the
--- DBA can restore from this table. IF NOT EXISTS makes the step idempotent on
--- re-runs after a partial failure.
+-- Creates a point-in-time snapshot in a private schema (_backups). If a rollback
+-- is needed post-migration the DBA can restore from this table.
+-- IF NOT EXISTS makes the step idempotent on re-runs after a partial failure.
 --
--- RLS is enabled BEFORE data is inserted so the table is deny-all from the
--- moment it first becomes visible — no window where PostgREST can auto-expose
--- the rows, even in non-transactional execution environments.
+-- Stored in _backups schema (not public) to prevent PostgREST introspection from
+-- leaking table names and column lists to authenticated users. The schema itself
+-- is not exported to PostgREST, so the backup table is invisible to API clients.
 -- Scheduled for DROP on 2026-08-12 once the migration is confirmed stable:
---   DROP TABLE IF EXISTS public._backup_campaign_contacts_20260712;
-CREATE TABLE IF NOT EXISTS public._backup_campaign_contacts_20260712
+--   DROP TABLE IF EXISTS _backups._backup_campaign_contacts_20260712;
+--   DROP SCHEMA IF EXISTS _backups;
+CREATE SCHEMA IF NOT EXISTS _backups;
+CREATE TABLE IF NOT EXISTS _backups._backup_campaign_contacts_20260712
   (LIKE public.campaign_contacts INCLUDING ALL);
-ALTER TABLE public._backup_campaign_contacts_20260712 ENABLE ROW LEVEL SECURITY;
 -- Guard: skip if the backup table already has rows so a partial-run retry does
 -- not violate the primary/unique keys cloned from campaign_contacts by LIKE…ALL,
 -- and so the original point-in-time snapshot is preserved unchanged.
-INSERT INTO public._backup_campaign_contacts_20260712
+INSERT INTO _backups._backup_campaign_contacts_20260712
   SELECT * FROM public.campaign_contacts
   WHERE NOT EXISTS (
-    SELECT 1 FROM public._backup_campaign_contacts_20260712
+    SELECT 1 FROM _backups._backup_campaign_contacts_20260712
   );
 
 -- ── 3. De-duplicate existing rows ───────────────────────────────────────────
@@ -76,7 +77,7 @@ SET    total_contacts = (
 )
 WHERE  c.id IN (
   SELECT campaign_id
-  FROM   public._backup_campaign_contacts_20260712
+  FROM   _backups._backup_campaign_contacts_20260712
   GROUP  BY campaign_id, contact_id
   HAVING COUNT(*) > 1
 );
