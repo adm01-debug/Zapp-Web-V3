@@ -2929,7 +2929,9 @@ async function handleTranscribeAudio(
         }
 
         const contentLength = response.headers.get("content-length");
-        if (contentLength && parseInt(contentLength) > MAX_AUDIO_SIZE) {
+        // C.32: Safe parsing of numeric headers - validate parseInt result is not NaN
+        const contentLengthNum = parseInt(contentLength || '0', 10);
+        if (!isNaN(contentLengthNum) && contentLengthNum > MAX_AUDIO_SIZE) {
           await response.body?.cancel().catch(() => {});
           throw new Error("Audio file too large (max 25MB)");
         }
