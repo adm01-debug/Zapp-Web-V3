@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { z } from 'zod';
 
 // ─────────────────────────────────────────────
@@ -16,13 +15,17 @@ export enum ContractErrorCode {
 
 type ParseErrorDetail = { path: string; message: string };
 type ParseOk<T> = { ok: true; data: T; error?: never };
-type ParseFail = { ok: false; data?: never; error: { code: ContractErrorCode; details: ParseErrorDetail[] } };
+type ParseFail = {
+  ok: false;
+  data?: never;
+  error: { code: ContractErrorCode; details: ParseErrorDetail[] };
+};
 type ParseResult<T> = ParseOk<T> | ParseFail;
 
 export function safeParseEvent<T>(
   schema: z.ZodType<T>,
   raw: unknown,
-  code: ContractErrorCode = ContractErrorCode.INVALID_PAYLOAD,
+  code: ContractErrorCode = ContractErrorCode.INVALID_PAYLOAD
 ): ParseResult<T> {
   const result = schema.safeParse(raw);
   if (result.success) {
@@ -148,14 +151,14 @@ export const whatsappCloudWebhookSchema = z.object({
                       id: z.string(),
                       status: z.enum(['sent', 'delivered', 'read', 'failed']),
                       timestamp: z.string(),
-                    }),
+                    })
                   )
                   .optional(),
               })
               .passthrough(),
-          }),
+          })
         ),
-      }),
+      })
     )
     .min(1),
 });
@@ -279,25 +282,27 @@ export const conversationSlaRowSchema = z.object({
 // Evolution message row (evo.evolution_messages)
 // ─────────────────────────────────────────────
 
-export const evolutionMessageRowSchema = z.object({
-  id: z.string(),
-  message_id: z.string().nullable().optional(),
-  remote_jid: z.string().nullable().optional(),
-  instance_name: z.string().nullable().optional(),
-  from_me: z.boolean(), // required — always present in full row UPDATE payloads
-  message_type: z.string().nullable().optional(),
-  content: z.string().nullable(),
-  media_url: z.string().nullable(),
-  status: z.string().nullable(),
-  created_at: z.string().nullable(),
-  deleted_at: z.string().nullable().optional(),
-  contact_id: z.string().nullable(),
-  conversation_id: z.string().nullable().optional(),
-  transcription_status: z.string().nullable().optional(),
-  transcription: z.string().nullable().optional(),
-  instance_id: z.string().nullable().optional(),
-  updated_at: z.string().nullable().optional(),
-}).passthrough();
+export const evolutionMessageRowSchema = z
+  .object({
+    id: z.string(),
+    message_id: z.string().nullable().optional(),
+    remote_jid: z.string().nullable().optional(),
+    instance_name: z.string().nullable().optional(),
+    from_me: z.boolean(), // required — always present in full row UPDATE payloads
+    message_type: z.string().nullable().optional(),
+    content: z.string().nullable(),
+    media_url: z.string().nullable(),
+    status: z.string().nullable(),
+    created_at: z.string().nullable(),
+    deleted_at: z.string().nullable().optional(),
+    contact_id: z.string().nullable(),
+    conversation_id: z.string().nullable().optional(),
+    transcription_status: z.string().nullable().optional(),
+    transcription: z.string().nullable().optional(),
+    instance_id: z.string().nullable().optional(),
+    updated_at: z.string().nullable().optional(),
+  })
+  .passthrough();
 
 export type EvolutionMessageRow = z.infer<typeof evolutionMessageRowSchema>;
 

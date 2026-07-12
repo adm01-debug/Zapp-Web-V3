@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -37,6 +36,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
   'development' | 'staging' | 'production';
+
+const toErrMsg = (e: unknown, fallback = 'Erro desconhecido'): string => {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null && 'message' in e)
+    return String((e as { message: unknown }).message);
+  return fallback;
+};
+
+interface SystemConnection {
+  id: string;
+  name: string;
+  provider: string;
+  config: { url?: string; anon_key?: string; [key: string]: unknown };
+  is_active: boolean;
+  created_at?: string;
+  created_by?: string | null;
+}
+
+interface SystemConnectionPayload {
+  name: string;
+  provider: string;
+  config: { url: string; anon_key: string };
+  is_active: boolean;
+}
 
 const getInitialConfig = () => {
   switch (APP_ENV) {

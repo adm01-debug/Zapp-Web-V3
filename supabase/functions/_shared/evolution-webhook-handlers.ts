@@ -279,7 +279,7 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
     } catch (_e) {
       // best-effort: não quebrar o webhook se broadcast falhar
     } finally {
-      supabase.removeChannel(ch1);
+      ch1.unsubscribe();
     }
 
     // Legacy (Lovable Cloud contact.id) — mantém compat durante migração.
@@ -297,7 +297,7 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
             } catch (_e) {
               // best-effort
             } finally {
-              supabase.removeChannel(ch2);
+              ch2.unsubscribe();
             }
           }
         }
@@ -458,7 +458,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
           wa_call_id: (callData.id as string) ?? null,
         },
       });
-      await externalAdmin.removeChannel(bcastChannel);
+      await bcastChannel.unsubscribe();
     }
   } catch (err) {
     console.warn('[handleCallEvent] broadcast emit failed', err);
