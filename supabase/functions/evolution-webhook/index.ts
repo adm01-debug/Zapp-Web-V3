@@ -5,7 +5,7 @@ import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
-  sha256Hex, markEventProcessed, auditWebhookEvent,
+  sha256Hex, markEventProcessed, unmarkEventProcessed, auditWebhookEvent,
   routeToDeadLetter, instanceOrFilter,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
@@ -106,7 +106,7 @@ serve(async (req) => {
       // Auto-pause: conta invalid_signature na janela e persiste o evento
       recordAuthFailureAndMaybePause(supabase, headerInstance ?? 'unknown', 'invalid_signature', 'webhook', { message: result.error ?? 'invalid_signature' });
       await auditWebhookEvent(supabase, {
-        request_id: requestId, status: 'rejected',
+        request_id: requestId, status: 'rejected', status_code: 401,
         error_message: result.error ?? 'invalid_signature',
         duration_ms: Date.now() - startedAt,
       });
@@ -117,21 +117,24 @@ serve(async (req) => {
     }
     rawBody = result.payload ?? '';
   } else if (STRICT_MODE) {
-    // Fail-closed: sem secret configurado no servidor, um POST anônimo não pode ser
-    // autenticado — rejeita em vez de processar (antes era fail-open, processava
-    // qualquer requisição com service_role). Para dev/local, defina
-    // EVOLUTION_WEBHOOK_STRICT=false explicitamente. Auditoria 2026-07-12.
-    console.error(redactSecrets(`[webhook][${requestId}] rejected: nenhum webhook secret configurado (EVOLUTION_WEBHOOK_SECRETS/SECRET) e STRICT_MODE ativo`));
+    // [A-1 FIX 2026-07-12] Fail-CLOSED: sem nenhum secret configurado, o webhook
+    // ficava público (aceitava qualquer POST). Um deploy sem o secret provisionado
+    // deixava qualquer um injetar eventos/mensagens falsas, criar contatos e
+    // disparar alertas. Em modo estrito (default), rejeitamos com 503 até que o
+    // secret esteja presente — nunca aceitamos tráfego não autenticado.
+    console.error(redactSecrets(`[webhook][${requestId}] NO webhook secret configured and STRICT_MODE=on — refusing (fail-closed)`));
     await auditWebhookEvent(supabase, {
-      request_id: requestId, status: 'rejected', error_message: 'webhook_secret_not_configured',
+      request_id: requestId, status: 'rejected', status_code: 503,
+      error_message: 'webhook_secret_unconfigured',
       duration_ms: Date.now() - startedAt,
     });
     return new Response(
-      JSON.stringify({ error: 'unauthorized', reason: 'webhook_secret_not_configured', requestId }),
-      { status: 401, headers: corsHeaders },
+      JSON.stringify({ error: 'webhook_misconfigured', reason: 'no_secret_configured', requestId }),
+      { status: 503, headers: { ...corsHeaders, 'Retry-After': '120' } },
     );
   } else {
-    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped (STRICT_MODE=false)`));
+    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured and STRICT_MODE=off — signature validation skipped`));
+
     rawBody = await req.text();
   }
 
@@ -142,7 +145,7 @@ serve(async (req) => {
     if (!parsed.success) {
       console.warn(`[webhook][${requestId}] contract_violation:`, parsed.error.issues);
       await auditWebhookEvent(supabase, {
-        request_id: requestId, status: 'rejected', error_message: 'contract_violation',
+        request_id: requestId, status: 'rejected', status_code: 422, error_message: 'contract_violation',
         duration_ms: Date.now() - startedAt,
       });
       return contractErrorResponse(
@@ -156,7 +159,7 @@ serve(async (req) => {
     payload = parsed.data as WebhookPayload;
   } catch {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, status: 'rejected', error_message: 'invalid_json',
+      request_id: requestId, status: 'rejected', status_code: 400, error_message: 'invalid_json',
       duration_ms: Date.now() - startedAt,
     });
     return new Response(JSON.stringify({ error: 'invalid_json', requestId }), { status: 400, headers: corsHeaders });
@@ -172,7 +175,7 @@ serve(async (req) => {
   // janela de pausa preferimos isso a continuar processando lixo.
   if (await isInstancePaused(supabase, instance)) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 503,
       error_message: 'instance_paused',
       duration_ms: Date.now() - startedAt,
     });
@@ -189,7 +192,7 @@ serve(async (req) => {
   const __knownInstance = await isKnownInstance(supabase, instance);
   if (__knownInstance === false) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 200,
       error_message: 'unknown_instance',
       duration_ms: Date.now() - startedAt,
     });
@@ -207,7 +210,7 @@ serve(async (req) => {
   const isNew = await markEventProcessed(supabase, eventId, instance, event);
   if (!isNew) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'duplicate',
+      request_id: requestId, instance, event_type: event, status: 'duplicate', status_code: 200,
       duration_ms: Date.now() - startedAt,
     });
     console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
@@ -229,15 +232,22 @@ serve(async (req) => {
     limit: EVENT_RATE_LIMITS[event] ?? 300,
   });
   if (!rateLimit.allowed) {
+    // [C-1 FIX 2026-07-12] Roll back the idempotency mark so this 429'd event stays
+    // re-deliverable. Idempotency is marked BEFORE the rate-limit check (so genuine
+    // retries don't reconsume quota), but without this rollback a burst-throttled
+    // event would be permanently deduped: the consumer's requeue/redelivery would
+    // short-circuit as "duplicate" at markEventProcessed() and the message would be
+    // silently lost — the exact wpp2 data-loss class this pipeline guards against.
+    await unmarkEventProcessed(supabase, eventId);
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 429,
       error_message: 'rate_limit_exceeded',
       duration_ms: Date.now() - startedAt,
     });
-    console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit})`);
+    console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit}) — idempotency rolled back for redelivery`);
     return new Response(
       JSON.stringify({ error: 'rate_limit_exceeded', instance, requestId }),
-      { status: 429, headers: corsHeaders }
+      { status: 429, headers: { ...corsHeaders, 'Retry-After': '30' } }
     );
   }
 
@@ -255,14 +265,26 @@ serve(async (req) => {
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
           .or(instanceOrFilter(instance));
       }
-      // [FIX 2026-07-06] QR alert: notificar admin via n8n (fire-and-forget, nao bloqueia)
-      const _n8nQrUrl = 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
-      fetch(_n8nQrUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
-        signal: AbortSignal.timeout(4000),
-      }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
+      // [M-6 FIX 2026-07-12] QR alert via n8n (fire-and-forget). URL agora é
+      // sobrescrevível por env (QR_ALERT_WEBHOOK_URL) em vez de fixa/acoplada a
+      // wpp2, com header de auth opcional (QR_ALERT_WEBHOOK_TOKEN) para que a URL
+      // não seja disparável por qualquer um que a conheça. Mantemos o valor atual
+      // como default explícito para NÃO desligar um alerta vivo caso a env não
+      // esteja provisionada.
+      const _n8nQrUrl = Deno.env.get('QR_ALERT_WEBHOOK_URL') ?? 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
+      if (_n8nQrUrl) {
+        const _qrHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        const _qrToken = Deno.env.get('QR_ALERT_WEBHOOK_TOKEN');
+        if (_qrToken) _qrHeaders['x-webhook-token'] = _qrToken;
+        fetch(_n8nQrUrl, {
+          method: 'POST',
+          headers: _qrHeaders,
+          body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
+          signal: AbortSignal.timeout(4000),
+        }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
+      } else {
+        console.warn(`[qr-alert] QR_ALERT_WEBHOOK_URL not set — skipping QR alert for instance=${instance}`);
+      }
     }
 
     if (event === 'messages.upsert') {
@@ -367,7 +389,7 @@ serve(async (req) => {
     if (event === 'messages.edited' || event === 'messages.edit') await handleMessagesEdited(supabase, instance, data, baseData);
 
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'processed',
+      request_id: requestId, instance, event_type: event, status: 'processed', status_code: 200,
       duration_ms: Date.now() - startedAt,
     });
     return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: corsHeaders });
@@ -386,7 +408,7 @@ serve(async (req) => {
       request_id: requestId,
     });
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'error',
+      request_id: requestId, instance, event_type: event, status: 'error', status_code: 200,
       duration_ms: Date.now() - startedAt, error_message: detail.slice(0, 500),
     });
     return new Response(
