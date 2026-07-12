@@ -37,6 +37,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
   'development' | 'staging' | 'production';
 
+const toErrMsg = (e: unknown, fallback = 'Erro desconhecido'): string => {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null && 'message' in e) return String((e as { message: unknown }).message);
+  return fallback;
+};
+
 interface SystemConnection {
   id: string;
   name: string;
@@ -133,7 +139,7 @@ export default function AdminConnectionsPage() {
       setIsAdmin(false);
       toast({
         title: 'Erro de Conexão ou Acesso',
-        description: `Não foi possível validar seu nível de acesso: ${e instanceof Error ? e.message : 'Banco indisponível'}.`,
+        description: `Não foi possível validar seu nível de acesso: ${toErrMsg(e, 'Banco indisponível')}.`,
         variant: 'destructive',
       });
     }
@@ -211,7 +217,7 @@ export default function AdminConnectionsPage() {
     } catch (e: unknown) {
       toast({
         title: 'Erro de rede',
-        description: e instanceof Error ? e.message : 'falha desconhecida',
+        description: toErrMsg(e, 'falha desconhecida'),
         variant: 'destructive',
       });
       return false;
