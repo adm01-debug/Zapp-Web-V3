@@ -1,13 +1,23 @@
 import { safeClient } from "@/integrations/supabase/safeClient";
 import { supabase } from "@/integrations/supabase/client";
 import { getLogger } from "@/lib/logger";
-import { jwtDecode } from "jwt-decode";
+
 import {
   systemConnectionSchema,
   SystemConnectionForm,
 } from "@/types/system-connections";
 
 const log = getLogger("diagnostics");
+
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const b64url = token.split('.')[1];
+    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64)) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
 
 type SystemConnectionRow = {
   id: string;
@@ -30,7 +40,7 @@ export async function runSupabaseDiagnostics() {
     results.userEmail = session?.user?.email ?? null;
 
     if (session?.access_token) {
-      const decoded: Record<string, unknown> = jwtDecode(session.access_token);
+      const decoded = decodeJwtPayload(session.access_token);
       results.tokenRole = decoded?.role ?? null;
       results.tokenExp = decoded?.exp ?? null;
     }
