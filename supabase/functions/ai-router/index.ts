@@ -871,61 +871,64 @@ Responda APENAS em JSON:
       if (validPriorities.includes(result.priority)) updateData.ai_priority = result.priority;
       if (result.suggested_queue_id && isValidUUID(result.suggested_queue_id)) updateData.queue_id = result.suggested_queue_id;
 
-      if (Object.keys(updateData).length > 0) {
-        try {
-          const { error: updateErr } = await supabase.from('contacts').update(updateData).eq('id', validContactId);
-          if (updateErr) {
-            log.warn("Failed to update contact metadata", {
-              error: updateErr.message,
-              contactId: validContactId,
-              updateFields: Object.keys(updateData)
+      try {
+        // PERF #6 (Improvement 3): Parallelize independent contact update with admin fetch for urgent escalation
+        const requiresAttention = result.requires_immediate_attention === true;
+        const needsUrgentNotification = requiresAttention && result.priority === 'urgent';
+
+        const [updateResult, adminsResult] = await Promise.all([
+          Object.keys(updateData).length > 0
+            ? supabase.from('contacts').update(updateData).eq('id', validContactId).catch(() => ({}))
+            : Promise.resolve(null),
+          needsUrgentNotification
+            ? supabase.from('user_roles').select('user_id').in('role', ['admin', 'supervisor']).limit(5).catch(() => ({ data: null }))
+            : Promise.resolve(null),
+        ]);
+
+        if (updateResult && updateResult.error) {
+          log.warn("Failed to update contact metadata", {
+            error: updateResult.error.message,
+            contactId: validContactId,
+            updateFields: Object.keys(updateData)
+          });
+        }
+
+        if (needsUrgentNotification && adminsResult) {
+          try {
+            const admins = adminsResult.data;
+            if (admins && Array.isArray(admins) && admins.length > 0) {
+              const { error: insertErr } = await supabase.from('notifications').insert(
+                admins.map((a: any) => ({
+                  user_id: a.user_id,
+                  type: 'urgent_conversation',
+                  title: '🚨 Conversa Urgente Detectada',
+                  message: `${sanitizeString(result.summary, 200) || 'Conversa requer atenção imediata'}. Motivo: ${sanitizeString(result.escalation_reason || result.priority_reason, 200) || 'Alta prioridade'}`,
+                  metadata: { contact_id: validContactId, priority: result.priority, sentiment: result.sentiment },
+                }))
+              );
+
+              if (insertErr) {
+                log.error("Failed to insert urgent notifications", {
+                  error: insertErr.message,
+                  contactId: validContactId,
+                  adminCount: admins.length
+                });
+              }
+            } else {
+              log.info("No admins found to notify for urgent conversation", { contactId: validContactId });
+            }
+          } catch (error) {
+            log.error("Unexpected error creating urgent notifications", {
+              error: error instanceof Error ? error.message : String(error),
+              contactId: validContactId
             });
           }
-        } catch (error) {
-          log.error("Unexpected error updating contact", {
-            error: error instanceof Error ? error.message : String(error),
-            contactId: validContactId
-          });
         }
-      }
-
-      // C.28: Validate requires_immediate_attention is a boolean before using in conditional
-      const requiresAttention = result.requires_immediate_attention === true;
-      if (requiresAttention && result.priority === 'urgent') {
-        try {
-          const { data: admins } = await supabase
-            .from('user_roles')
-            .select('user_id')
-            .in('role', ['admin', 'supervisor'])
-            .limit(5);
-
-          if (admins && Array.isArray(admins) && admins.length > 0) {
-            const { error: insertErr } = await supabase.from('notifications').insert(
-              admins.map((a: any) => ({
-                user_id: a.user_id,
-                type: 'urgent_conversation',
-                title: '🚨 Conversa Urgente Detectada',
-                message: `${sanitizeString(result.summary, 200) || 'Conversa requer atenção imediata'}. Motivo: ${sanitizeString(result.escalation_reason || result.priority_reason, 200) || 'Alta prioridade'}`,
-                metadata: { contact_id: validContactId, priority: result.priority, sentiment: result.sentiment },
-              }))
-            );
-
-            if (insertErr) {
-              log.error("Failed to insert urgent notifications", {
-                error: insertErr.message,
-                contactId: validContactId,
-                adminCount: admins.length
-              });
-            }
-          } else {
-            log.info("No admins found to notify for urgent conversation", { contactId: validContactId });
-          }
-        } catch (error) {
-          log.error("Unexpected error creating urgent notifications", {
-            error: error instanceof Error ? error.message : String(error),
-            contactId: validContactId
-          });
-        }
+      } catch (error) {
+        log.error("Unexpected error updating contact", {
+          error: error instanceof Error ? error.message : String(error),
+          contactId: validContactId
+        });
       }
     }
 
@@ -1310,59 +1313,63 @@ Foque em:
       if (validSentiments.includes(analysisData.sentiment)) updateData.ai_sentiment = analysisData.sentiment;
       if (validUrgencies.includes(analysisData.urgency)) updateData.ai_priority = analysisData.urgency;
 
-      if (Object.keys(updateData).length > 0) {
-        try {
-          const { error: updateErr } = await supabase.from('contacts').update(updateData).eq('id', validContactId);
-          if (updateErr) {
-            log.warn("Failed to update contact metadata", {
-              error: updateErr.message,
-              contactId: validContactId,
-              updateFields: Object.keys(updateData)
+      try {
+        // PERF #6 (Improvement 3): Parallelize independent contact update with admin fetch for escalation
+        const needsEscalation = analysisData.urgency === 'critica' && analysisData.status === 'escalado';
+
+        const [updateResult, adminsResult] = await Promise.all([
+          Object.keys(updateData).length > 0
+            ? supabase.from('contacts').update(updateData).eq('id', validContactId).catch(() => ({}))
+            : Promise.resolve(null),
+          needsEscalation
+            ? supabase.from('user_roles').select('user_id').in('role', ['admin', 'supervisor']).limit(5).catch(() => ({ data: null }))
+            : Promise.resolve(null),
+        ]);
+
+        if (updateResult && updateResult.error) {
+          log.warn("Failed to update contact metadata", {
+            error: updateResult.error.message,
+            contactId: validContactId,
+            updateFields: Object.keys(updateData)
+          });
+        }
+
+        if (needsEscalation && adminsResult) {
+          try {
+            const admins = adminsResult.data;
+            if (admins && Array.isArray(admins) && admins.length > 0) {
+              const { error: insertErr } = await supabase.from('notifications').insert(
+                admins.map((a: any) => ({
+                  user_id: a.user_id,
+                  type: 'conversation_escalated',
+                  title: '🚨 Conversa Crítica Detectada',
+                  message: `${sanitizeString(analysisData.summary, 200)}. Ação: Análise requerida.`,
+                  metadata: { contact_id: validContactId, sentiment: analysisData.sentiment, urgency: analysisData.urgency },
+                }))
+              );
+
+              if (insertErr) {
+                log.error("Failed to insert escalation notifications", {
+                  error: insertErr.message,
+                  contactId: validContactId,
+                  adminCount: admins.length
+                });
+              }
+            } else {
+              log.info("No admins found to notify for critical conversation", { contactId: validContactId });
+            }
+          } catch (error) {
+            log.error("Unexpected error creating escalation notifications", {
+              error: error instanceof Error ? error.message : String(error),
+              contactId: validContactId
             });
           }
-        } catch (error) {
-          log.error("Unexpected error updating contact", {
-            error: error instanceof Error ? error.message : String(error),
-            contactId: validContactId
-          });
         }
-      }
-
-      if (analysisData.urgency === 'critica' && analysisData.status === 'escalado') {
-        try {
-          const { data: admins } = await supabase
-            .from('user_roles')
-            .select('user_id')
-            .in('role', ['admin', 'supervisor'])
-            .limit(5);
-
-          if (admins && Array.isArray(admins) && admins.length > 0) {
-            const { error: insertErr } = await supabase.from('notifications').insert(
-              admins.map((a: any) => ({
-                user_id: a.user_id,
-                type: 'conversation_escalated',
-                title: '🚨 Conversa Crítica Detectada',
-                message: `${sanitizeString(analysisData.summary, 200)}. Ação: Análise requerida.`,
-                metadata: { contact_id: validContactId, sentiment: analysisData.sentiment, urgency: analysisData.urgency },
-              }))
-            );
-
-            if (insertErr) {
-              log.error("Failed to insert escalation notifications", {
-                error: insertErr.message,
-                contactId: validContactId,
-                adminCount: admins.length
-              });
-            }
-          } else {
-            log.info("No admins found to notify for critical conversation", { contactId: validContactId });
-          }
-        } catch (error) {
-          log.error("Unexpected error creating escalation notifications", {
-            error: error instanceof Error ? error.message : String(error),
-            contactId: validContactId
-          });
-        }
+      } catch (error) {
+        log.error("Unexpected error updating contact", {
+          error: error instanceof Error ? error.message : String(error),
+          contactId: validContactId
+        });
       }
     }
 
