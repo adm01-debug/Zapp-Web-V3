@@ -30,14 +30,21 @@ export async function resolveSendFunction(
   if (cached && cached.expiresAt > Date.now()) return cached.fn;
 
   try {
-    // Escape backslashes and double-quotes so PostgREST parses the .or()
-    // filter correctly when instanceName contains reserved characters.
-    const esc = instanceName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    const { data, error } = await supabase
+    // Use two sequential exact queries instead of interpolated .or() to avoid
+    // PostgREST filter injection when instanceName contains reserved characters.
+    let { data, error } = await supabase
       .from('whatsapp_connections')
       .select('api_type, status')
-      .or(`instance_name.eq."${esc}",instance_id.eq."${esc}"`)
+      .eq('instance_name', instanceName)
       .maybeSingle();
+
+    if (!data && !error) {
+      ({ data, error } = await supabase
+        .from('whatsapp_connections')
+        .select('api_type, status')
+        .eq('instance_id', instanceName)
+        .maybeSingle());
+    }
 
     if (error) {
       // Do not cache on DB error — let next call retry.

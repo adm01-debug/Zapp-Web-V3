@@ -3,7 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { newRequestId } from '@/lib/withRequestId';
 import { z } from 'zod';
-import { createCriticalPayloadSchemas, mapValidationIssuesToContractError } from '@/shared/criticalPayloadSchemas';
+import {
+  createCriticalPayloadSchemas,
+  mapValidationIssuesToContractError,
+} from '@/shared/criticalPayloadSchemas';
 import { dbFrom } from '@/integrations/datasource/db';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
@@ -17,7 +20,7 @@ interface ContactResult {
 export function useNewConversation(
   open: boolean,
   onConversationStarted?: (contactId: string) => void,
-  onClose?: () => void,
+  onClose?: () => void
 ) {
   const { sendTextPayloadSchema } = createCriticalPayloadSchemas(z);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,7 +32,7 @@ export function useNewConversation(
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [mode, setMode] = useState<'search' | 'new'>('search');
-  const [connections, setConnections] = useState<{ id: string; name: string }[]>([]);
+  const [connections, setConnections] = useState<{ id: string; name: string; instance_id: string | null; instance_name: string | null }[]>([]);
   const [selectedConnection, setSelectedConnection] = useState('');
 
   useEffect(() => {
@@ -44,10 +47,14 @@ export function useNewConversation(
   }, [open]);
 
   useEffect(() => {
-    if (!searchQuery.trim() || mode !== 'search') { setContacts([]); return; }
+    if (!searchQuery.trim() || mode !== 'search') {
+      setContacts([]);
+      return;
+    }
     const timeout = setTimeout(async () => {
       setIsLoading(true);
-      const { data, error } = await supabase.from('contacts')
+      const { data, error } = await supabase
+        .from('contacts')
         .select('id, name, phone, avatar_url')
         .or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`)
         .limit(10);
@@ -58,26 +65,52 @@ export function useNewConversation(
   }, [searchQuery, mode]);
 
   const resetForm = () => {
-    setSearchQuery(''); setSelectedContact(null); setNewPhone(''); setNewName('');
-    setMessageText(''); setMode('search');
+    setSearchQuery('');
+    setSelectedContact(null);
+    setNewPhone('');
+    setNewName('');
+    setMessageText('');
+    setMode('search');
   };
 
   const handleSend = async () => {
-    if (!messageText.trim()) { toast.error('Digite uma mensagem'); return; }
+    if (!messageText.trim()) {
+      toast.error('Digite uma mensagem');
+      return;
+    }
     setIsSending(true);
     try {
       let contactId = selectedContact?.id;
       if (mode === 'new' && !contactId) {
-        if (!newPhone.trim()) { toast.error('Informe o número do telefone'); setIsSending(false); return; }
+        if (!newPhone.trim()) {
+          toast.error('Informe o número do telefone');
+          setIsSending(false);
+          return;
+        }
         const cleanedNewPhone = newPhone.trim().replace(/\D/g, '');
-        const { data: existing } = await dbFrom('contacts').select('id, name').eq('phone', cleanedNewPhone).maybeSingle();
-        if (existing) { toast.error(`Já existe um contato com este número: ${existing.name}`); setIsSending(false); return; }
-        const { data: newContact, error: newContactErr } = await dbFrom('contacts').insert({
-          name: newName.trim() || cleanedNewPhone, phone: cleanedNewPhone,
-          whatsapp_connection_id: selectedConnection || null,
-        }).select('id').single();
+        const { data: existing } = await dbFrom('contacts')
+          .select('id, name')
+          .eq('phone', cleanedNewPhone)
+          .maybeSingle();
+        if (existing) {
+          toast.error(`Já existe um contato com este número: ${existing.name}`);
+          setIsSending(false);
+          return;
+        }
+        const { data: newContact, error: newContactErr } = await dbFrom('contacts')
+          .insert({
+            name: newName.trim() || cleanedNewPhone,
+            phone: cleanedNewPhone,
+            whatsapp_connection_id: selectedConnection || null,
+          })
+          .select('id')
+          .single();
         if (newContactErr) {
-          if (newContactErr.code === '23505') { toast.error('Já existe um contato com este número de telefone.'); setIsSending(false); return; }
+          if (newContactErr.code === '23505') {
+            toast.error('Já existe um contato com este número de telefone.');
+            setIsSending(false);
+            return;
+          }
           throw newContactErr;
         }
         contactId = newContact.id;
@@ -119,14 +152,33 @@ export function useNewConversation(
       onConversationStarted?.(contactId);
       onClose?.();
       resetForm();
-    } catch { toast.error('Erro ao enviar mensagem'); }
-    finally { setIsSending(false); }
+    } catch {
+      toast.error('Erro ao enviar mensagem');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return {
-    searchQuery, setSearchQuery, contacts, selectedContact, setSelectedContact,
-    newPhone, setNewPhone, newName, setNewName, messageText, setMessageText,
-    isLoading, isSending, mode, setMode, connections, selectedConnection,
-    setSelectedConnection, handleSend, resetForm,
+    searchQuery,
+    setSearchQuery,
+    contacts,
+    selectedContact,
+    setSelectedContact,
+    newPhone,
+    setNewPhone,
+    newName,
+    setNewName,
+    messageText,
+    setMessageText,
+    isLoading,
+    isSending,
+    mode,
+    setMode,
+    connections,
+    selectedConnection,
+    setSelectedConnection,
+    handleSend,
+    resetForm,
   };
 }
