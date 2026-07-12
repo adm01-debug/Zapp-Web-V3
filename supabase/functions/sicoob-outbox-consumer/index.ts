@@ -10,11 +10,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const sicoobGiftsUrl = Deno.env.get("SICOOB_GIFTS_URL");
     const bridgeSecret = Deno.env.get("SICOOB_GIFTS_BRIDGE_SECRET");
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("[sicoob-outbox-consumer] missing Supabase configuration");
+      return json({ error: "Supabase configuration missing" }, 500);
+    }
     if (!sicoobGiftsUrl || !bridgeSecret) {
+      console.error("[sicoob-outbox-consumer] missing Sicoob configuration");
       return json({ error: "SICOOB_GIFTS_URL/SECRET not configured" }, 500);
     }
 
@@ -102,14 +108,50 @@ async function processBatch(
         continue;
       }
 
-      await supabase
-        .from("sicoob_reply_outbox")
-        .update({ status: "sent", processed_at: new Date().toISOString(), last_error: null })
-        .eq("id", item.id);
-      sent++;
+      try {
+        const { error: updateErr } = await supabase
+          .from("sicoob_reply_outbox")
+          .update({ status: "sent", processed_at: new Date().toISOString(), last_error: null })
+          .eq("id", item.id);
+        if (updateErr) {
+          console.error("[sicoob-outbox-consumer] failed to mark item as sent", {
+            item_id: item.id,
+            error: updateErr.message,
+          });
+          await markFailed(supabase, item, `Database error: ${updateErr.message}`, false);
+          failed++;
+        } else {
+          sent++;
+        }
+      } catch (updateErr) {
+        console.error("[sicoob-outbox-consumer] exception marking item as sent", {
+          item_id: item.id,
+          error: updateErr instanceof Error ? updateErr.message : String(updateErr),
+        });
+        try {
+          await markFailed(supabase, item, updateErr instanceof Error ? updateErr.message : String(updateErr), false);
+        } catch (markErr) {
+          console.error("[sicoob-outbox-consumer] failed to mark item as failed after update error", {
+            item_id: item.id,
+            error: markErr instanceof Error ? markErr.message : String(markErr),
+          });
+        }
+        failed++;
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      await markFailed(supabase, item, msg, false);
+      console.error("[sicoob-outbox-consumer] exception in item processing", {
+        item_id: item.id,
+        error: msg,
+      });
+      try {
+        await markFailed(supabase, item, msg, false);
+      } catch (markErr) {
+        console.error("[sicoob-outbox-consumer] failed to mark item as failed after exception", {
+          item_id: item.id,
+          error: markErr instanceof Error ? markErr.message : String(markErr),
+        });
+      }
       failed++;
     }
   }
@@ -128,15 +170,30 @@ async function markFailed(
   const backoffMin = Math.min(Math.pow(2, nextAttempts), 60);
   const nextAt = new Date(Date.now() + backoffMin * 60_000).toISOString();
 
-  await supabase
-    .from("sicoob_reply_outbox")
-    .update({
-      status: abandon ? "abandoned" : "failed",
-      attempts: nextAttempts,
-      last_error: error,
-      next_attempt_at: nextAt,
-    })
-    .eq("id", item.id);
+  try {
+    const { error: updateErr } = await supabase
+      .from("sicoob_reply_outbox")
+      .update({
+        status: abandon ? "abandoned" : "failed",
+        attempts: nextAttempts,
+        last_error: error,
+        next_attempt_at: nextAt,
+      })
+      .eq("id", item.id);
+
+    if (updateErr) {
+      console.error("[sicoob-outbox-consumer] failed to mark item as failed", {
+        item_id: item.id,
+        intended_status: abandon ? "abandoned" : "failed",
+        update_error: updateErr.message,
+      });
+    }
+  } catch (e) {
+    console.error("[sicoob-outbox-consumer] exception marking item as failed", {
+      item_id: item.id,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
 }
 
 function json(body: unknown, status = 200) {
