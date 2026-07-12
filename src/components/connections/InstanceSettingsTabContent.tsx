@@ -32,7 +32,7 @@ export function SettingsTabContent({ settingsData, settingsItems, onChange, onSa
       {settingsData.rejectCall && (
         <div className="p-3 rounded-lg border border-border/20">
           <Label>Mensagem ao rejeitar</Label>
-          <Input value={settingsData.msgCall as string} onChange={(e) => onChange('msgCall', e.target.value)} placeholder="Não posso atender. Envie mensagem." className="mt-1" />
+          <Input aria-label="Mensagem ao rejeitar chamadas" value={settingsData.msgCall as string} onChange={(e) => onChange('msgCall', e.target.value)} placeholder="Não posso atender. Envie mensagem." className="mt-1" />
         </div>
       )}
       <Button onClick={onSave} disabled={isLoading} className="w-full">

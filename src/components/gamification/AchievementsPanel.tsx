@@ -64,7 +64,7 @@ export function AchievementsPanel() {
         <AchievementsStatsHeader achievements={achievements} stats={stats} />
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Buscar conquistas..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div>
+          <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input aria-label="Buscar conquistas" placeholder="Buscar conquistas..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><Filter className="w-4 h-4" />{filterBy === 'all' ? 'Todas' : filterBy === 'today' ? 'Hoje' : filterBy === 'week' ? 'Última Semana' : 'Último Mês'}<ChevronDown className="w-3 h-3" /></Button></DropdownMenuTrigger>
             <DropdownMenuContent><DropdownMenuItem onClick={() => setFilterBy('all')}>Todas</DropdownMenuItem><DropdownMenuItem onClick={() => setFilterBy('today')}>Hoje</DropdownMenuItem><DropdownMenuItem onClick={() => setFilterBy('week')}>Última Semana</DropdownMenuItem><DropdownMenuItem onClick={() => setFilterBy('month')}>Último Mês</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
           <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><Calendar className="w-4 h-4" />{sortBy === 'recent' ? 'Mais Recentes' : sortBy === 'xp' ? 'Maior XP' : 'Por Tipo'}<ChevronDown className="w-3 h-3" /></Button></DropdownMenuTrigger>
