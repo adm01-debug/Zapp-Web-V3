@@ -218,7 +218,7 @@ export function useMessages(
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [remoteJid]);
+  }, [remoteJid, instanceName]);
 
   // Reload após reconexão
   useEffect(() => {

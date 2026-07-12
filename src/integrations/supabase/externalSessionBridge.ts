@@ -15,10 +15,10 @@
  *  - Falhas do external NUNCA bloqueiam o principal (catch silencioso + log).
  */
 import type { AuthError } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 import { supabase } from './client';
 import { externalSupabase, isExternalConfigured } from './externalClient';
 import { createLogger } from '@/lib/logger';
-import { eventBus } from '@/lib/eventBus';
 
 const log = createLogger('externalSessionBridge');
 
@@ -71,10 +71,8 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
           '(habilite VITE_EXTERNAL_SESSION_BRIDGE_AUTO_PROVISION=true)',
           { email },
         );
-        eventBus.emit('notification:show', {
-          title: 'Sessão dual indisponível',
-          body: 'Usuário não encontrado no servidor externo. Contate o administrador.',
-          type: 'warning',
+        toast.warning('Sessão dual indisponível', {
+          description: 'Usuário não encontrado no servidor externo. Contate o administrador.',
         });
         return;
       }
@@ -87,20 +85,16 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
       });
       if (signUpErr) {
         log.warn('external auto-signup falhou', { message: signUpErr.message });
-        eventBus.emit('notification:show', {
-          title: 'Falha ao provisionar sessão externa',
-          body: signUpErr.message,
-          type: 'error',
+        toast.error('Falha ao provisionar sessão externa', {
+          description: signUpErr.message,
         });
         return;
       }
       const { error: retryErr } = await externalSupabase.auth.signInWithPassword({ email, password });
       if (retryErr) {
         log.warn('external sign-in após provisionamento falhou', { message: retryErr.message });
-        eventBus.emit('notification:show', {
-          title: 'Sessão externa indisponível',
-          body: retryErr.message,
-          type: 'warning',
+        toast.warning('Sessão externa indisponível', {
+          description: retryErr.message,
         });
       } else {
         log.info('external provisionado e autenticado', { email });
@@ -109,10 +103,8 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
     }
 
     log.warn('external mirror sign-in falhou', { message: error.message });
-    eventBus.emit('notification:show', {
-      title: 'Sessão externa indisponível',
-      body: 'Falha ao sincronizar com o servidor externo. Funcionalidades offline podem ser afetadas.',
-      type: 'warning',
+    toast.warning('Sessão externa indisponível', {
+      description: 'Falha ao sincronizar com o servidor externo. Funcionalidades offline podem ser afetadas.',
     });
   } catch (e) {
     log.warn('external mirror sign-in exception', { err: (e as Error).message });

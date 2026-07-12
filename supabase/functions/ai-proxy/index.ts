@@ -136,7 +136,10 @@ Deno.serve(async (req) => {
             global: { headers: { Authorization: `Bearer ${bearerToken}` } },
           })
         : supabase;
-      provider = await getProvider(userSupabase, use_for as string, provider_id);
+      // If RLS denies the user-scoped lookup (non-admin), fall back to the
+      // service-role default so the request still gets a working provider.
+      provider = (await getProvider(userSupabase, use_for as string, provider_id))
+        ?? await getProvider(supabase, use_for as string);
     } else {
       provider = await getProvider(supabase, use_for as string);
     }
