@@ -4,6 +4,17 @@
 
 import { handleCors, errorResponse, getCorsHeaders } from "../_shared/validation.ts";
 
+/**
+ * Edge Function: Comprehensive AI Conversation Analysis
+ *
+ * Performs deep analysis of customer/contact conversations across multiple business departments.
+ * Evaluates sentiment, urgency, satisfaction, agent performance, churn risk, and business opportunities.
+ * Aggregates contact context (history, metadata) for richer AI analysis and persists findings to database.
+ *
+ * Security: RLS-enforced queries prevent cross-tenant data access; service role bypasses for admin context only.
+ * Error Handling: Two-tier JSON parsing with regex fallback ensures graceful degradation on malformed AI responses.
+ * Persistence: Atomically updates both conversation_analyses table and contacts record (ai_sentiment, ai_priority).
+ */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;

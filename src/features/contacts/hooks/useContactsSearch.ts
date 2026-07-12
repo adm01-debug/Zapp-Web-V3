@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -160,11 +159,11 @@ export function useContactsSearch() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('search_contacts', {
         search_term: debouncedSearch || '',
-        contact_type_filter: activeTab === 'all' ? null : activeTab,
-        company_filter: filterCompany || null,
-        job_title_filter: filterJobTitle || null,
-        tag_filter: filterTag || null,
-        date_from: dateFrom,
+        contact_type_filter: activeTab === 'all' ? undefined : activeTab,
+        company_filter: filterCompany || undefined,
+        job_title_filter: filterJobTitle || undefined,
+        tag_filter: filterTag || undefined,
+        date_from: dateFrom ?? undefined,
         sort_field: sortField,
         sort_direction: sortDirection,
         page_size: PAGE_SIZE,

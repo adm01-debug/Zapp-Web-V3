@@ -19,13 +19,28 @@ interface SpeechToTextReturn {
   toggleListening: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SpeechRecognitionInstance = any;
+interface SpeechResultItem { transcript: string }
+interface SpeechResult { isFinal: boolean; [index: number]: SpeechResultItem }
+interface SpeechResultList { length: number; [index: number]: SpeechResult }
+interface SpeechRecognitionEvent { resultIndex: number; results: SpeechResultList }
+interface SpeechRecognitionErrorEvent { error: string }
+
+interface SpeechRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
 type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
 
 function getSpeechRecognition(): SpeechRecognitionCtor | null {
   if (typeof window === 'undefined') return null;
-  const w = window as unknown as Record<string, unknown>;
+  const w = window as unknown as Record<string, unknown>; // ignore-audit — accessing vendor-prefixed SpeechRecognition/webkitSpeechRecognition not in standard lib
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as SpeechRecognitionCtor | null;
 }
 
@@ -37,8 +52,12 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
   const onResultRef = useRef(onResult);
   const onEndRef = useRef(onEnd);
 
-  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
-  useEffect(() => { onEndRef.current = onEnd; }, [onEnd]);
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+  useEffect(() => {
+    onEndRef.current = onEnd;
+  }, [onEnd]);
 
   const Ctor = getSpeechRecognition();
   const isSupported = !!Ctor;
@@ -52,7 +71,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
     recognition.continuous = continuous;
     recognition.interimResults = true;
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
       let interimTranscript = '';
 
@@ -78,7 +97,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
       onEndRef.current?.();
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       log.warn('Speech recognition error:', event.error);
       setIsListening(false);
     };

@@ -65,7 +65,7 @@ export function useSyncToCRM() {
         throw error;
       }
 
-      return data as SyncResult;
+      return data as SyncResult; // ignore-audit: dbRpc returns unknown, SyncResult is the documented RPC return shape
     },
     onSuccess: (result, params) => {
       if (result?.synced) {

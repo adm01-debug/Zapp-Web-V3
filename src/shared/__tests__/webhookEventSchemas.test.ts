@@ -96,7 +96,7 @@ describe('row schemas — tolerância a null', () => {
       _custom: 'preservado',
     });
     expect(r.success).toBe(true);
-    if (r.success) expect((r.data as Record<string, unknown>)._custom).toBe('preservado');
+    if (r.success) expect((r.data as Record<string, unknown>)._custom).toBe('preservado'); // ignore-audit: narrows Supabase query result to local interface
   });
 
   it('contactRowSchema aceita phone null e queue_id null', () => {

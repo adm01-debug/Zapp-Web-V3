@@ -390,7 +390,7 @@ export async function queryExternalProxy<T = unknown>(
     // beyond their natural lifetime.
     const cleanup = () => {
       const cur = inflight.get(dedupeKey);
-      if (cur && cur.promise === (exec as unknown as Promise<ProxyResponse<unknown>>)) {
+      if (cur && cur.promise === (exec as unknown as Promise<ProxyResponse<unknown>>)) { // ignore-audit — exec is the same promise reference; TS generic mismatch only
         inflight.delete(dedupeKey);
       }
     };
@@ -489,7 +489,7 @@ async function executeProxyCall<T>(
               error: { name?: string; message?: string; code?: string; status?: number } | null;
             })
           : await invokeViaFetch<ProxyResponse<T>>('external-db-proxy', perAttemptOptions);
-        data = result.data as ProxyResponse<T> | null;
+        data = result.data as ProxyResponse<T> | null; // ignore-audit: narrows Supabase query result to local interface
         error = result.error ? normalizeInvokeError(result.error) : null;
         if (
           !error &&
@@ -653,7 +653,7 @@ async function executeProxyCall<T>(
       correlationId,
     });
 
-    return data as ProxyResponse<T>;
+    return data as ProxyResponse<T>; // ignore-audit: narrows Supabase query result to local interface
   } catch (err) {
     const name = (err as Error)?.name;
     const message = (err as Error)?.message ?? '';

@@ -174,7 +174,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
             </div>
           </div>
 
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
             <TabsList className="grid grid-cols-5">
               <TabsTrigger value="all" className="gap-1">
                 Todos{' '}

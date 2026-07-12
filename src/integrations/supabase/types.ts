@@ -2928,6 +2928,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          slug: string
           updated_at: string | null
           whatsapp_api_key: string | null
           whatsapp_instance_id: string | null
@@ -2939,6 +2940,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          slug: string
           updated_at?: string | null
           whatsapp_api_key?: string | null
           whatsapp_instance_id?: string | null
@@ -2950,6 +2952,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          slug?: string
           updated_at?: string | null
           whatsapp_api_key?: string | null
           whatsapp_instance_id?: string | null

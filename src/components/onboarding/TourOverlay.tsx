@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { X, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useTour } from './OnboardingTour';
+import { useTour } from './tourContext';
 
 export function TourOverlay() {
   const { isActive, currentStep, steps, nextStep, prevStep, endTour, goToStep } = useTour();
@@ -88,10 +88,16 @@ export function TourOverlay() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
-        case 'Escape': endTour(); break;
+        case 'Escape':
+          endTour();
+          break;
         case 'ArrowRight':
-        case 'Enter': nextStep(); break;
-        case 'ArrowLeft': prevStep(); break;
+        case 'Enter':
+          nextStep();
+          break;
+        case 'ArrowLeft':
+          prevStep();
+          break;
       }
     };
 
@@ -112,7 +118,7 @@ export function TourOverlay() {
         className="fixed inset-0 z-[10000]"
       >
         {/* Dark overlay with spotlight cutout */}
-        <svg className="absolute inset-0 w-full h-full">
+        <svg className="absolute inset-0 h-full w-full">
           <defs>
             <mask id="spotlight-mask">
               <rect x="0" y="0" width="100%" height="100%" fill="white" />
@@ -128,14 +134,21 @@ export function TourOverlay() {
               />
             </mask>
           </defs>
-          <rect x="0" y="0" width="100%" height="100%" fill="rgba(0, 0, 0, 0.75)" mask="url(#spotlight-mask)" />
+          <rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="rgba(0, 0, 0, 0.75)"
+            mask="url(#spotlight-mask)"
+          />
         </svg>
 
         {/* Spotlight border/glow */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="absolute rounded-xl pointer-events-none"
+          className="pointer-events-none absolute rounded-xl"
           style={{
             left: targetRect.left - padding,
             top: targetRect.top - padding,
@@ -147,7 +160,7 @@ export function TourOverlay() {
 
         {/* Pulsing ring */}
         <motion.div
-          className="absolute rounded-xl pointer-events-none border-2 border-primary/50"
+          className="pointer-events-none absolute rounded-xl border-2 border-primary/50"
           style={{
             left: targetRect.left - padding,
             top: targetRect.top - padding,
@@ -162,28 +175,42 @@ export function TourOverlay() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute w-80 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
-          style={{ left: tooltipPosition.x, top: tooltipPosition.y, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+          className="absolute w-80 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+          style={{
+            left: tooltipPosition.x,
+            top: tooltipPosition.y,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          }}
         >
-          <div className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 border-b border-border/50">
+          <div className="border-b border-border/50 bg-gradient-to-r from-primary/10 to-secondary/10 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/20">
-                  <Sparkles className="w-4 h-4 text-primary" />
+                <div className="rounded-lg bg-primary/20 p-1.5">
+                  <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 <span className="text-xs font-medium text-muted-foreground">
                   Passo {currentStep + 1} de {steps.length}
                 </span>
               </div>
-              <Button aria-label="Encerrar tour" variant="ghost" size="icon" className="h-7 w-7 -mr-1" onClick={endTour}>
-                <X className="w-4 h-4" />
+              <Button
+                aria-label="Encerrar tour"
+                variant="ghost"
+                size="icon"
+                className="-mr-1 h-7 w-7"
+                onClick={endTour}
+              >
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
           <div className="p-4">
-            <h3 className="font-display font-semibold text-lg text-foreground mb-2">{currentStepData.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{currentStepData.description}</p>
+            <h3 className="mb-2 font-display text-lg font-semibold text-foreground">
+              {currentStepData.title}
+            </h3>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {currentStepData.description}
+            </p>
           </div>
 
           <div className="flex justify-center gap-1.5 pb-3">
@@ -191,8 +218,12 @@ export function TourOverlay() {
               <motion.div
                 key={index}
                 className={cn(
-                  'w-2 h-2 rounded-full transition-all cursor-pointer',
-                  index === currentStep ? 'bg-primary w-4' : index < currentStep ? 'bg-primary/50' : 'bg-muted-foreground/30'
+                  'h-2 w-2 cursor-pointer rounded-full transition-all',
+                  index === currentStep
+                    ? 'w-4 bg-primary'
+                    : index < currentStep
+                      ? 'bg-primary/50'
+                      : 'bg-muted-foreground/30'
                 )}
                 whileHover={{ scale: 1.2 }}
                 onClick={() => goToStep(index)}
@@ -200,13 +231,19 @@ export function TourOverlay() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between p-4 pt-2 border-t border-border/50">
-            <Button variant="ghost" size="sm" onClick={prevStep} disabled={currentStep === 0} className="gap-1">
-              <ChevronLeft className="w-4 h-4" /> Anterior
+          <div className="flex items-center justify-between border-t border-border/50 p-4 pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" /> Anterior
             </Button>
             <Button size="sm" onClick={nextStep} className="gap-1">
               {currentStep === steps.length - 1 ? 'Concluir' : 'Próximo'}
-              {currentStep < steps.length - 1 && <ChevronRight className="w-4 h-4" />}
+              {currentStep < steps.length - 1 && <ChevronRight className="h-4 w-4" />}
             </Button>
           </div>
         </motion.div>

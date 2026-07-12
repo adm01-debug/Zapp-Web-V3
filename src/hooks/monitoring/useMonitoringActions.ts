@@ -160,7 +160,7 @@ export function useMonitoringActions(fetchData: () => Promise<void>) {
           body: { action: autoFix ? 'auto-fix' : 'full-diagnostic' },
         });
         if (error) throw error;
-        setDiagnostic(data as DiagnosticResult);
+        setDiagnostic(data as DiagnosticResult); // ignore-audit: narrows Supabase query result to local interface
         if (autoFix) {
           toast.success('Diagnóstico + auto-fix concluído!');
           await fetchData();

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
-import { WhatsAppConnection, QrCodeDialogState } from '../useConnectionsManager';
+import type { WhatsAppConnection, QrCodeDialogState } from '../types';
 
 /**
  * Realtime das conexões WhatsApp.
@@ -48,14 +48,14 @@ export function useConnectionsRealtime(
     const channelName = `whatsapp-connections-changes:${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
       .channel(channelName)
-      .on(
+      .on<WhatsAppConnection>(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'whatsapp_connections' },
         (payload) => {
           log.debug('Connection update:', payload);
           if (payload.eventType === 'UPDATE') {
-            const newConn = payload.new as WhatsAppConnection;
-            const oldConn = payload.old as Partial<WhatsAppConnection> | null;
+            const newConn = payload.new;
+            const oldConn = payload.old;
             setConnections((prev) =>
               prev.map((conn) => (conn.id === newConn.id ? newConn : conn))
             );
@@ -67,7 +67,12 @@ export function useConnectionsRealtime(
             const dialog = qrCodeDialogRef.current;
             if (dialog.open && dialog.connectionId === newConn.id) {
               if (newConn.status === 'connected') {
-                setQrCodeDialog((prev) => ({ ...prev, status: 'connected', qrCode: null, expiresAt: null }));
+                setQrCodeDialog((prev) => ({
+                  ...prev,
+                  status: 'connected',
+                  qrCode: null,
+                  expiresAt: null,
+                }));
               } else if (newConn.qr_code) {
                 setQrCodeDialog((prev) => ({
                   ...prev,
@@ -78,9 +83,9 @@ export function useConnectionsRealtime(
               }
             }
           } else if (payload.eventType === 'INSERT') {
-            setConnections((prev) => [payload.new as WhatsAppConnection, ...prev]);
+            setConnections((prev) => [payload.new, ...prev]);
           } else if (payload.eventType === 'DELETE') {
-            setConnections((prev) => prev.filter((conn) => conn.id !== (payload.old as { id: string }).id));
+            setConnections((prev) => prev.filter((conn) => conn.id !== payload.old.id));
           }
         }
       )

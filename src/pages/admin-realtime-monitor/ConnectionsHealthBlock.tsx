@@ -103,7 +103,7 @@ export function ConnectionsHealthBlock() {
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {data!.map((c) => {
+            {(data ?? []).map((c) => {
               const meta = STATUS_META[(c.status ?? '').toLowerCase()] ?? {
                 label: c.status ?? 'desconhecido',
                 tone: 'info' as const,

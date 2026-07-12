@@ -12,7 +12,7 @@ export const TONE_OPTIONS = [
 export type ToneKey = typeof TONE_OPTIONS[number]['key'];
 
 export function getTonePrompt(tone: ToneKey): string {
-  return TONE_OPTIONS.find(t => t.key === tone)!.prompt;
+  return TONE_OPTIONS.find(t => t.key === tone)?.prompt ?? TONE_OPTIONS[0].prompt;
 }
 
 interface ToneSelectorProps {

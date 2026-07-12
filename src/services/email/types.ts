@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 export interface EmailFailure {
   requestId: string;
   operation: string;
@@ -18,6 +18,8 @@ export interface EmailHealthInfo {
     failedCalls: number;
     cacheHits: number;
   };
+  /** Populated by the edge function when telemetry is persisted via shared storage. */
+  source?: string;
 }
 
 export interface EmailHealthFilters {

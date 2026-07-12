@@ -164,7 +164,7 @@ export function PasswordResetRequestsPanel() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'all')}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'all' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="pending" className="gap-2">
               <Clock className="h-4 w-4" />

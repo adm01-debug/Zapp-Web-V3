@@ -4,6 +4,17 @@
 
 import { handleCors, errorResponse, getCorsHeaders } from "../_shared/validation.ts";
 
+/**
+ * Edge Function: AI Conversation Summary Generator
+ *
+ * Generates AI-powered summaries and analyses of customer/contact conversations.
+ * Extracts conversation context (contact info, historical analyses), sends to AI API,
+ * and persists results to Supabase database. Implements rate limiting, user authentication,
+ * and dual-tier JSON parsing to handle AI response variations gracefully.
+ *
+ * Security: Uses RLS-enforced callerClient for writes to prevent cross-tenant data access.
+ * Error Handling: Protected JSON parsing with regex fallback prevents production crashes.
+ */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;

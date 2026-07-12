@@ -92,7 +92,7 @@ interface ChatHeaderProps {
   onSpeedChange: (speed: number) => void;
   onBack?: () => void;
   onCloseConversation?: () => void;
-  onGenerateSummary?: (tool?: any) => void;
+  onGenerateSummary?: (tool?: string) => void;
   failuresOnly?: boolean;
   onToggleFailuresOnly?: () => void;
   failuresCount?: number;
@@ -419,7 +419,7 @@ export const ChatHeader = memo(function ChatHeader({
               Agendar mensagem
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onGenerateSummary}>
+            <DropdownMenuItem onClick={() => onGenerateSummary?.()}>
               <Brain className="mr-2 h-4 w-4" />
               Gerar Resumo
             </DropdownMenuItem>
