@@ -99,10 +99,11 @@ export default function QueueDetails() {
       const lastMessageMap = new Map<string, string>();
       const countMap = new Map<string, number>();
       if (contactIds.length > 0) {
-        const { data: allMessages } = await dbFrom('messages')
+        const { data: allMessages, error: msgsError } = await dbFrom('messages')
           .select('contact_id, created_at')
           .in('contact_id', contactIds)
           .order('created_at', { ascending: false });
+        if (msgsError) throw msgsError;
         for (const msg of (allMessages || []) as Array<{ contact_id: string; created_at: string }>) {
           if (!lastMessageMap.has(msg.contact_id)) lastMessageMap.set(msg.contact_id, msg.created_at);
           countMap.set(msg.contact_id, (countMap.get(msg.contact_id) ?? 0) + 1);
@@ -113,10 +114,11 @@ export default function QueueDetails() {
       const assignedToIds = [...new Set(contacts.filter(c => c.assigned_to).map(c => c.assigned_to as string))];
       const agentMap = new Map<string, { name: string; avatar_url: string | null }>();
       if (assignedToIds.length > 0) {
-        const { data: agents } = await supabase
+        const { data: agents, error: agentsError } = await supabase
           .from('profiles')
           .select('id, name, avatar_url')
           .in('id', assignedToIds);
+        if (agentsError) throw agentsError;
         for (const a of (agents || []) as Array<{ id: string; name: string; avatar_url: string | null }>) {
           agentMap.set(a.id, { name: a.name, avatar_url: a.avatar_url });
         }

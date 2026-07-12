@@ -114,11 +114,13 @@ export function useThemePreset() {
       } catch {
         setActivePreset(DEFAULT_PRESET_ID);
         setBorderRadius(8);
+        applyBorderRadius(8);
         save(DEFAULT_PRESET_ID, 8);
       }
     } else {
       setActivePreset(DEFAULT_PRESET_ID);
       setBorderRadius(8);
+      applyBorderRadius(8);
       save(DEFAULT_PRESET_ID, 8);
     }
   }, [applyBorderRadius, save]);
