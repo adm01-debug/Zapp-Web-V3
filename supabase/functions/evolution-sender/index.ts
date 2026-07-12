@@ -1,4 +1,4 @@
-// Evolution API Message Sender v6.0 (2026-04-26) — current version v8
+// Evolution API Message Sender v7.0 (2026-07-12) — fast-fail terminal + jittered backoff + circuit breaker
 // CRÍTICO v6+: Refactor para Vault-based config
 //   - URL/key/instance lidos do Vault via fn_get_vault_secret
 //   - Hardcoded fallback REMOVIDO (era ponto de falha em sessões passadas)
