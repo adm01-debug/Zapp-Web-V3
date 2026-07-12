@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
@@ -36,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { runEvolutionDiagnostics, DiagnosticResult } from '@/lib/evolutionDiagnostics';
+import type { ActiveAlert } from '@/lib/evoApiHealth/types';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,25 @@ const log = getLogger('AdminBridgeStatusPage');
 
 type BridgeStatus = 'online' | 'degraded' | 'offline' | 'loading';
 
+interface HealthIncident {
+  id: string;
+  started_at: string;
+  resolved_at?: string | null;
+  title: string;
+  description?: string | null;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+}
+
+interface RecentTraffic {
+  count: number;
+  last_at: string | null;
+}
+
+interface StatusConfig {
+  color: string;
+  label: string;
+  description: string;
+}
 
 export default function BridgeStatusPage() {
   const { toast } = useToast();
@@ -62,10 +81,10 @@ export default function BridgeStatusPage() {
   const [lovableDb, setLovableDb] = useState<boolean | null>(null);
   const [externalDb, setExternalDb] = useState<boolean | null>(null);
   const [whatsappTransport, setWhatsappTransport] = useState<string>('...');
-  const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
-  const [incidents, setIncidents] = useState<any[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<ActiveAlert[]>([]);
+  const [incidents, setIncidents] = useState<HealthIncident[]>([]);
   const [instanceCount, _setInstanceCount] = useState<number>(0);
-  const [recentTraffic, setRecentTraffic] = useState<{ count: number; last_at: string | null }>({
+  const [recentTraffic, setRecentTraffic] = useState<RecentTraffic>({
     count: 0,
     last_at: null,
   });
@@ -88,9 +107,13 @@ export default function BridgeStatusPage() {
         description: `Finalizado com ${results.filter((r) => r.status === 'fail').length} falhas.`,
       });
     } catch (e: unknown) {
+      const errorMessage =
+        typeof e === 'object' && e !== null && 'message' in e
+          ? String((e as { message: unknown }).message)
+          : 'Erro desconhecido ao executar diagnóstico.';
       toast({
         title: 'Erro no Diagnóstico',
-        description: e.message,
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -104,9 +127,8 @@ export default function BridgeStatusPage() {
 
     try {
       // 1. Check Lovable DB (Internal)
-      const { error: internalError } = await safeClient.from<{ id: string }>(
-        'profiles',
-        q => q.select('id').limit(1)
+      const { error: internalError } = await safeClient.from<{ id: string }>('profiles', (q) =>
+        q.select('id').limit(1)
       );
       if (mountedRef.current) setLovableDb(!internalError);
 
@@ -169,9 +191,13 @@ export default function BridgeStatusPage() {
       if (!mountedRef.current) return;
       log.error('Health check failed', error);
       setStatus('offline');
+      const errorMessage =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message: unknown }).message)
+          : 'Não foi possível validar todos os serviços.';
       toast({
         title: 'Erro na verificação',
-        description: error.message || 'Não foi possível validar todos os serviços.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -240,8 +266,8 @@ export default function BridgeStatusPage() {
     };
   }, [fetchIncidents, checkHealth, autoRefresh, refreshInterval]);
 
-  const statusConfig = useMemo(() => {
-    const config = {
+  const statusConfig = useMemo((): StatusConfig => {
+    const config: Record<BridgeStatus, StatusConfig> = {
       online: {
         color: 'bg-success text-success-foreground border-success/20',
         label: 'SISTEMA OPERACIONAL',

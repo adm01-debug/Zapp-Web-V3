@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -40,7 +39,8 @@ const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
 
 const toErrMsg = (e: unknown, fallback = 'Erro desconhecido'): string => {
   if (e instanceof Error) return e.message;
-  if (typeof e === 'object' && e !== null && 'message' in e) return String((e as { message: unknown }).message);
+  if (typeof e === 'object' && e !== null && 'message' in e)
+    return String((e as { message: unknown }).message);
   return fallback;
 };
 
@@ -588,11 +588,18 @@ export default function AdminConnectionsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="bitrix24-webhook-url">Webhook URL (Inbound)</Label>
-                    <Input id="bitrix24-webhook-url" placeholder="https://sua-empresa.bitrix24.com.br/rest/1/abc..." />
+                    <Input
+                      id="bitrix24-webhook-url"
+                      placeholder="https://sua-empresa.bitrix24.com.br/rest/1/abc..."
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bitrix24-access-token">Access Token / Key</Label>
-                    <Input id="bitrix24-access-token" type="password" placeholder="Digite o token de acesso" />
+                    <Input
+                      id="bitrix24-access-token"
+                      type="password"
+                      placeholder="Digite o token de acesso"
+                    />
                   </div>
                   <Button className="w-full gap-2">
                     <Save className="h-4 w-4" /> Salvar Integração Bitrix
@@ -615,11 +622,18 @@ export default function AdminConnectionsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="n8n-production-url">URL de Produção</Label>
-                    <Input id="n8n-production-url" placeholder="https://n8n.sua-vps.com/webhook/..." />
+                    <Input
+                      id="n8n-production-url"
+                      placeholder="https://n8n.sua-vps.com/webhook/..."
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="n8n-auth-header">Auth Header (API Key)</Label>
-                    <Input id="n8n-auth-header" type="password" placeholder="Header X-N8N-API-KEY" />
+                    <Input
+                      id="n8n-auth-header"
+                      type="password"
+                      placeholder="Header X-N8N-API-KEY"
+                    />
                   </div>
                   <Button className="w-full gap-2" variant="secondary">
                     <Save className="h-4 w-4" /> Conectar n8n
@@ -651,10 +665,18 @@ export default function AdminConnectionsPage() {
                     <table className="w-full text-sm">
                       <thead className="border-b bg-muted/50">
                         <tr>
-                          <th scope="col" className="px-4 py-3 text-left">Nome do App</th>
-                          <th scope="col" className="px-4 py-3 text-left">Eventos</th>
-                          <th scope="col" className="px-4 py-3 text-left">Status</th>
-                          <th scope="col" className="px-4 py-3 text-right">Ações</th>
+                          <th scope="col" className="px-4 py-3 text-left">
+                            Nome do App
+                          </th>
+                          <th scope="col" className="px-4 py-3 text-left">
+                            Eventos
+                          </th>
+                          <th scope="col" className="px-4 py-3 text-left">
+                            Status
+                          </th>
+                          <th scope="col" className="px-4 py-3 text-right">
+                            Ações
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -677,7 +699,12 @@ export default function AdminConnectionsPage() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-2">
-                              <Button aria-label="Configurações da conexão" variant="ghost" size="icon" className="h-8 w-8">
+                              <Button
+                                aria-label="Configurações da conexão"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
                                 <Settings className="h-4 w-4" />
                               </Button>
                               <Button
@@ -754,7 +781,12 @@ export default function AdminConnectionsPage() {
                     <div className="space-y-2">
                       <Label htmlFor="mcp-security-token">Token de Segurança MCP</Label>
                       <div className="flex gap-2">
-                        <Input id="mcp-security-token" type="password" placeholder="Clique em 'Regerar' para criar um token" readOnly />
+                        <Input
+                          id="mcp-security-token"
+                          type="password"
+                          placeholder="Clique em 'Regerar' para criar um token"
+                          readOnly
+                        />
                         <Button variant="outline">Regerar</Button>
                       </div>
                     </div>
