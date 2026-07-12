@@ -42,6 +42,7 @@ export type LogicalEntity =
   | 'team_conversations'
   | 'evolution_contacts'
   | 'evolution_messages'
+  | 'whisper_messages'
   | 'provider_configs'
   | 'automation_executions';
 
