@@ -15,11 +15,11 @@ import { toast } from 'sonner';
 import { useAuth } from '@/features/auth';
 import { MentionInput } from './MentionInput';
 
-interface InternalNote {
+interface NoteRow {
   id: string;
   content: string;
   created_at: string;
-  author?: { id: string; name: string | null; avatar_url: string | null } | null;
+  author?: { id?: string; name?: string; avatar_url?: string } | null;
 }
 
 export function InternalNotesPanel({ contactId }: { contactId: string }) {
@@ -27,18 +27,17 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: notes, isLoading } = useQuery({
+  const { data: notes, isLoading } = useQuery<NoteRow[]>({
     queryKey: ['internal-notes', contactId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<InternalNote>('contact_notes', (q) =>
-        q
-          .select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
-          .eq('contact_id', contactId)
-          .order('created_at', { ascending: false })
-          .limit(50)
+      const { data, error } = await safeClient.from<NoteRow>('contact_notes', q =>
+        q.select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
+         .eq('contact_id', contactId)
+         .order('created_at', { ascending: false })
+         .limit(50)
       );
       if (error) throw error;
-      return data || [];
+      return (data || []) as NoteRow[];
     },
   });
 
