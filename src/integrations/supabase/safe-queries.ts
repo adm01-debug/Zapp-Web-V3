@@ -81,6 +81,19 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
   },
 
   /**
+   * Get multiple connections by IDs (RLS enforced)
+   * Safe for: lookups, joins, data enrichment
+   */
+  getByIds: async (ids: string[]) => {
+    if (ids.length === 0) return { data: [], error: null };
+    return supabase
+      .from('whatsapp_connections')
+      .select('id, name, phone_number, status, is_default, health_status, health_response_ms, last_health_check, updated_at')
+      .in('id', ids)
+      .order('name', { ascending: true });
+  },
+
+  /**
    * Subscribe to connection changes (RLS enforced)
    * Safe for: realtime updates with masking
    */
