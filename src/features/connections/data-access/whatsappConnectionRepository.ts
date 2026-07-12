@@ -44,11 +44,11 @@ export const whatsappConnectionRepository = {
   async fetchConnectionByIdCanonical(
     id: string,
   ): Promise<{ data: WhatsAppConnectionCanonical | null; error: Error | null }> {
-    const { data, error } = await supabase
-      .from(TABLE)
+    const { data, error } = await safeFrom(TABLE)
       .select(CANONICAL_SELECT)
       .eq('id', id)
       .maybeSingle();
+
     if (error) return { data: null, error: error as unknown as Error };
     return { data: normalizeConnection(data as Parameters<typeof normalizeConnection>[0]), error: null };
   },
