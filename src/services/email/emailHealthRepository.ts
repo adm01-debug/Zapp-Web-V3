@@ -30,13 +30,6 @@ export class EmailHealthRepository {
       size: 0
     };
   }
-
-  async forceRevalidation(resources: string[]) {
-    safeClient.clearCache('email_');
-    safeClient.clearCache('rpc_email_');
-    
-    for (const res of resources) {
-      await safeClient.validateResource(res, res.startsWith('rpc_') ? 'function' : 'table');
-    }
-  }
 }
+
+export const emailHealthRepository = new EmailHealthRepository();
