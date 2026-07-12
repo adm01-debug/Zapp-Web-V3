@@ -74,7 +74,7 @@ async function loadMemes(): Promise<{ id: string; name: string; audio_url: strin
     .limit(200);
   if (error) throw new Error(`Falha ao carregar áudios memes: ${error.message}`);
   const rows = (data ?? [])
-    .filter((m): m is { id: string; name: string | null; audio_url: string } => !!m.audio_url)
+    .filter((m) => !!m.audio_url)
     .map((m) => ({ id: m.id, name: m.name ?? 'meme', audio_url: m.audio_url }));
   if (rows.length === 0) throw new Error('Nenhum áudio meme disponível na biblioteca');
   memesCache = rows;
