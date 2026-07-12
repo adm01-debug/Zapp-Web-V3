@@ -176,7 +176,7 @@ export async function sendMessageToContact(
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+    .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
     .single();
 
   // If we already have an optimisticId (local bubble already created), we don't insert yet.
