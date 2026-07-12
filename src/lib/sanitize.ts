@@ -45,15 +45,19 @@ export function sanitizeHtml(html: unknown): string {
       node.setAttribute('target', '_blank');
     }
   });
-  const sanitized = DOMPurify.sanitize(str, {
-    ALLOWED_TAGS:  RICH_ALLOWED_TAGS,
-    ALLOWED_ATTR:  RICH_ALLOWED_ATTR,
-    // Event handlers and style are still explicitly forbidden as defense-in-depth.
-    // href/src removed from FORBID_ATTR — the ALLOWED_ATTR whitelist already
-    // restricts them; re-forbidding href blocked legitimate <a> links in notes.
-    FORBID_ATTR:   ['onerror','onload','onclick','onmouseover','onfocus','onblur','onchange','onsubmit','style','src'],
-  }).trim();
-  DOMPurify.removeHook('afterSanitizeAttributes');
+  let sanitized: string;
+  try {
+    sanitized = DOMPurify.sanitize(str, {
+      ALLOWED_TAGS:  RICH_ALLOWED_TAGS,
+      ALLOWED_ATTR:  RICH_ALLOWED_ATTR,
+      // Event handlers and style are still explicitly forbidden as defense-in-depth.
+      // href/src removed from FORBID_ATTR — the ALLOWED_ATTR whitelist already
+      // restricts them; re-forbidding href blocked legitimate <a> links in notes.
+      FORBID_ATTR:   ['onerror','onload','onclick','onmouseover','onfocus','onblur','onchange','onsubmit','style','src'],
+    }).trim();
+  } finally {
+    DOMPurify.removeHook('afterSanitizeAttributes');
+  }
   return sanitized;
 }
 

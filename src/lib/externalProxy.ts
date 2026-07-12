@@ -298,7 +298,11 @@ function recordBreakerSuccess(target: string): void {
     breaker.delete(target);
   }
   authLockUntil.delete(target);
-  configAuthLockUntil = 0;
+  // configAuthLockUntil is intentionally NOT cleared here. A session-wide
+  // service_role/JWT_SECRET mismatch affects every target equally; a successful
+  // response from one table/RPC does not mean the config error is resolved. The
+  // lock expires naturally after CONFIG_LOCK_MS, or is reset by
+  // __resetBreakerAndCoalesce in tests.
 }
 
 // Internal reset — only used via the __testing namespace in non-production builds.

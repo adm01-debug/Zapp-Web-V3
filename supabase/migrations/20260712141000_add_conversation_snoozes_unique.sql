@@ -33,3 +33,28 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- Add UPDATE policy so the upsert ON CONFLICT path can write through RLS.
+--
+-- Without this, an upsert that hits the unique constraint triggers the UPDATE
+-- branch internally, but RLS has no matching UPDATE policy — the write is
+-- silently blocked and the caller gets back an empty result set instead of an
+-- error, making re-snooze appear to succeed but actually do nothing.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'conversation_snoozes'
+      AND policyname = 'Users can update their own snoozes'
+  ) THEN
+    EXECUTE $p$
+      CREATE POLICY "Users can update their own snoozes"
+        ON public.conversation_snoozes
+        FOR UPDATE
+        USING (snoozed_by = auth.uid())
+        WITH CHECK (snoozed_by = auth.uid());
+    $p$;
+  END IF;
+END;
+$$;

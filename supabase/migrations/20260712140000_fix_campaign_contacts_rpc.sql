@@ -7,10 +7,32 @@
 --        needs UNIQUE (campaign_id, contact_id) + ON CONFLICT DO NOTHING.
 --   P1 – total_contacts recount races with concurrent inserts because the
 --        campaigns row is not locked before the INSERT; needs SELECT … FOR UPDATE.
-
--- ── 1. De-duplicate existing rows before adding the constraint ──────────────
 --
--- If dupes already exist we remove the older copy (lowest ctid).
+-- Round-3 cubic fixes:
+--   P2 – Hold SHARE ROW EXCLUSIVE lock on campaign_contacts through dedup +
+--        ADD CONSTRAINT to prevent concurrent writers recreating a duplicate
+--        in the window between DELETE and the constraint going live.
+--   P2 – Archive full table state to _backup_campaign_contacts_20260712 before
+--        any destructive DELETE so rows can be restored if needed.
+--   P1 – total_contacts stays inflated for campaigns that had duplicate rows;
+--        recounted for every affected campaign right after the DELETE.
+
+-- ── 1. Lock against concurrent writers ─────────────────────────────────────
+-- SHARE ROW EXCLUSIVE blocks concurrent INSERT/UPDATE/DELETE on campaign_contacts
+-- but allows reads. Held for the entire migration transaction, so no concurrent
+-- writer can slip in a duplicate between the DELETE and ADD CONSTRAINT.
+LOCK TABLE public.campaign_contacts IN SHARE ROW EXCLUSIVE MODE;
+
+-- ── 2. Archive full table state before any destructive operation ────────────
+-- Creates a point-in-time snapshot. If a rollback is needed post-migration the
+-- DBA can restore from this table. IF NOT EXISTS makes the step idempotent on
+-- re-runs after a partial failure.
+CREATE TABLE IF NOT EXISTS public._backup_campaign_contacts_20260712
+  AS SELECT * FROM public.campaign_contacts;
+
+-- ── 3. De-duplicate existing rows ───────────────────────────────────────────
+-- Keep the oldest copy (min ctid) of each (campaign_id, contact_id) pair and
+-- remove all others. The lock above ensures no new duplicates arrive during this.
 DELETE FROM public.campaign_contacts
 WHERE ctid NOT IN (
   SELECT min(ctid)
@@ -18,7 +40,22 @@ WHERE ctid NOT IN (
   GROUP  BY campaign_id, contact_id
 );
 
--- ── 2. Add UNIQUE constraint (idempotent via IF NOT EXISTS on the index) ────
+-- ── 4. Recount total_contacts for every campaign that held duplicate rows ────
+-- The backup captures the pre-dedup state; any campaign present there may have
+-- had duplicates inflating its count. We recount using the live (post-DELETE)
+-- campaign_contacts table so the stored total is now accurate.
+UPDATE public.campaigns c
+SET    total_contacts = (
+  SELECT COUNT(*)
+  FROM   public.campaign_contacts cc
+  WHERE  cc.campaign_id = c.id
+)
+WHERE  c.id IN (
+  SELECT DISTINCT campaign_id
+  FROM   public._backup_campaign_contacts_20260712
+);
+
+-- ── 5. Add UNIQUE constraint (idempotent) ───────────────────────────────────
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -34,7 +71,7 @@ BEGIN
 END;
 $$;
 
--- ── 3. Replace function with secured, race-free version ─────────────────────
+-- ── 6. Replace function with secured, race-free version ─────────────────────
 CREATE OR REPLACE FUNCTION public.add_contacts_to_campaign(
   p_campaign_id uuid,
   p_contact_ids uuid[]
