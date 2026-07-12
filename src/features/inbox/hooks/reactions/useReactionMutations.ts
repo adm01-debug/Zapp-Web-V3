@@ -100,7 +100,7 @@ export function useReactionMutations(
       const previous = queryClient.getQueryData(['message-reactions', messageId]);
       
       if (profileId) {
-        queryClient.setQueryData(['message-reactions', messageId], (old: any) => [
+        queryClient.setQueryData(['message-reactions', messageId], (old: Record<string, unknown>[] | undefined) => [
           ...(old || []),
           {
             id: 'temp-' + Date.now(),
@@ -116,15 +116,15 @@ export function useReactionMutations(
     },
     onSuccess: (data, emoji) => {
       queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-      toast.dismiss(`reaction-error-${messageId}`); // Clear any previous errors on success
+      toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('add', { messageId, emoji, status: 'success' });
     },
-    onError: (error: any, emoji, context) => {
+    onError: (error: { status?: number | string; code?: number | string; message?: string }, emoji, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['message-reactions', messageId], context.previous);
       }
       mutationLog.error('Failed to add reaction', error);
-      
+
       const status = error?.status || error?.code || (error?.message?.includes('401') ? 401 : 500);
       let errorMsg = 'Erro interno no servidor (500)';
       
@@ -176,8 +176,8 @@ export function useReactionMutations(
       const previous = queryClient.getQueryData(['message-reactions', messageId]);
       
       if (profileId) {
-        queryClient.setQueryData(['message-reactions', messageId], (old: any) => 
-          (old || []).filter((r: any) => !(r.user_id === profileId && r.emoji === emoji))
+        queryClient.setQueryData(['message-reactions', messageId], (old: Array<{ user_id: string; emoji: string }> | undefined) =>
+          (old || []).filter((r) => !(r.user_id === profileId && r.emoji === emoji))
         );
       }
       return { previous };
@@ -187,7 +187,7 @@ export function useReactionMutations(
       toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('remove', { messageId, emoji, status: 'success' });
     },
-    onError: (error: any, emoji, context) => {
+    onError: (error: { status?: number | string; code?: number | string }, emoji, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['message-reactions', messageId], context.previous);
       }

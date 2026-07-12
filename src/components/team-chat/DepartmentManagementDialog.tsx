@@ -255,7 +255,7 @@ export function DepartmentManagementDialog({
               </div>
               <ScrollArea className="flex-1">
                 <div className="space-y-3">
-                  {invitations.map((inv: any) => (
+                  {invitations.map((inv) => (
                     <div key={inv.id} className="space-y-3 rounded-xl border bg-card p-4">
                       <div className="flex items-center justify-between">
                         <code className="rounded bg-muted px-2 py-1 text-sm font-bold">

@@ -17,7 +17,7 @@ export const emailMappers = {
   /**
    * Mapeia uma linha da tabela 'email_accounts'
    */
-  account: (data: any): EmailAccount => ({
+  account: (data: Record<string, unknown>): EmailAccount => ({
     id:            data.id,
     user_id:       data.user_id,
     email:         data.email,
@@ -32,7 +32,7 @@ export const emailMappers = {
   /**
    * Mapeia o retorno do RPC 'rpc_email_token_status'
    */
-  tokenInfo: (data: any): EmailTokenInfo => ({
+  tokenInfo: (data: Record<string, unknown>): EmailTokenInfo => ({
     account_id:            data.account_id,
     email:                 data.email,
     is_active:             data.is_active ?? true,
@@ -46,7 +46,7 @@ export const emailMappers = {
   /**
    * Mapeia uma linha da tabela 'email_threads' ou retorno de rpc_email_search_threads
    */
-  thread: (data: any): EmailThread => ({
+  thread: (data: Record<string, unknown>): EmailThread => ({
     id:              data.id,
     account_id:      data.account_id,
     email_thread_id: data.email_thread_id || data.thread_id,
@@ -73,7 +73,7 @@ export const emailMappers = {
   /**
    * Mapeia uma linha da tabela 'email_daily_metrics'
    */
-  metric: (data: any): EmailDayMetric => ({
+  metric: (data: Record<string, unknown>): EmailDayMetric => ({
     date:                    data.date,
     threads_received:        data.threads_received || 0,
     threads_replied:         data.threads_replied || 0,
@@ -85,7 +85,7 @@ export const emailMappers = {
   /**
    * Mapeia uma linha da tabela 'email_labels'
    */
-  label: (data: any): EmailLabelInfo => ({
+  label: (data: Record<string, unknown>): EmailLabelInfo => ({
     id:             data.id,
     account_id:     data.account_id,
     email_label_id: data.email_label_id,
@@ -99,7 +99,7 @@ export const emailMappers = {
   /**
    * Mapeia uma linha da view 'v_email_accounts_unified'
    */
-  unifiedAccount: (data: any): UnifiedEmailAccount => ({
+  unifiedAccount: (data: Record<string, unknown>): UnifiedEmailAccount => ({
     account_id:      data.account_id,
     user_id:         data.user_id,
     email:           data.email,
@@ -116,10 +116,10 @@ export const emailMappers = {
   /**
    * Helpers para arrays
    */
-  accounts: (data: any[]): EmailAccount[] => (data || []).map(emailMappers.account),
-  tokenInfos: (data: any[]): EmailTokenInfo[] => (data || []).map(emailMappers.tokenInfo),
-  threads: (data: any[]): EmailThread[] => (data || []).map(emailMappers.thread),
-  metrics: (data: any[]): EmailDayMetric[] => (data || []).map(emailMappers.metric),
-  labels: (data: any[]): EmailLabelInfo[] => (data || []).map(emailMappers.label),
-  unifiedAccounts: (data: any[]): UnifiedEmailAccount[] => (data || []).map(emailMappers.unifiedAccount),
+  accounts: (data: Record<string, unknown>[]): EmailAccount[] => (data || []).map(emailMappers.account),
+  tokenInfos: (data: Record<string, unknown>[]): EmailTokenInfo[] => (data || []).map(emailMappers.tokenInfo),
+  threads: (data: Record<string, unknown>[]): EmailThread[] => (data || []).map(emailMappers.thread),
+  metrics: (data: Record<string, unknown>[]): EmailDayMetric[] => (data || []).map(emailMappers.metric),
+  labels: (data: Record<string, unknown>[]): EmailLabelInfo[] => (data || []).map(emailMappers.label),
+  unifiedAccounts: (data: Record<string, unknown>[]): UnifiedEmailAccount[] => (data || []).map(emailMappers.unifiedAccount),
 };
