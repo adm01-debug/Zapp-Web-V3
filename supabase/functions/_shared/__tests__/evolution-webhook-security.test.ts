@@ -60,6 +60,20 @@ function makeSupabaseMock(insertError: unknown = null, deleteError: unknown = nu
         },
       };
     },
+    rpc(fnName: string, params: Record<string, unknown>) {
+      // Mock RPC for idempotency audit logging
+      if (fnName === 'fn_insert_idempotency_failure_audit') {
+        auditInserted.push({
+          event_id: params.p_event_id,
+          instance: params.p_instance,
+          event_type: params.p_event_type,
+          error_code: params.p_error_code,
+          error_message: params.p_error_message,
+        });
+        return Promise.resolve({ error: null });
+      }
+      return Promise.resolve({ error: null });
+    },
   };
   return api;
 }
