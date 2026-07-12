@@ -550,7 +550,11 @@ async function handleAutoTag(
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      message_count: conversationMessages.length || 0,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -815,6 +819,12 @@ Responda APENAS em JSON:
 
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Populate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.tags_count = result.tags?.length || 0;
+    metricsMetadata.sentiment = result.sentiment;
+    metricsMetadata.priority = result.priority;
+    metricsMetadata.tag_update_success = tagUpdateResult.success;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-auto-tag',
@@ -823,13 +833,7 @@ Responda APENAS em JSON:
         p_status: 'success',
         p_user_id: ctx.userId,
         p_error_message: null,
-        p_metadata: {
-          tags_count: result.tags?.length || 0,
-          sentiment: result.sentiment,
-          priority: result.priority,
-          requestId,
-          tag_update_success: tagUpdateResult.success,
-        },
+        p_metadata: metricsMetadata,
       }).catch(() => {});
     } catch {
       // Metrics not critical
@@ -961,7 +965,11 @@ Foque em:
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      message_count: messages.length || 0,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -1241,6 +1249,11 @@ Foque em:
 
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.sentiment = analysisData.sentiment;
+    metricsMetadata.urgency = analysisData.urgency;
+    metricsMetadata.analysis_persisted = persistenceResult.success;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-conversation-summary',
@@ -1249,12 +1262,7 @@ Foque em:
         p_status: 'success',
         p_user_id: ctx.userId,
         p_error_message: null,
-        p_metadata: {
-          sentiment: analysisData.sentiment,
-          urgency: analysisData.urgency,
-          requestId,
-          analysis_persisted: persistenceResult.success,
-        },
+        p_metadata: metricsMetadata,
       }).catch(() => {});
     } catch {
       // Metrics not critical
@@ -1406,19 +1414,16 @@ Regras importantes:
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-enhance-message',
-          p_action: 'enhancement',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-enhance-message',
+        action: 'enhancement',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -1470,6 +1475,10 @@ Regras importantes:
 
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.original_length = message.length;
+    metricsMetadata.enhanced_length = enhancedMessage.length;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-enhance-message',
@@ -1478,12 +1487,7 @@ Regras importantes:
         p_status: 'success',
         p_user_id: ctx.userId,
         p_error_message: null,
-        p_metadata: {
-          tone,
-          original_length: message.length,
-          enhanced_length: enhancedMessage.length,
-          requestId,
-        },
+        p_metadata: metricsMetadata,
       }).catch(() => {});
     } catch {
       // Metrics not critical
@@ -1551,7 +1555,11 @@ async function handleClassifyEmoji(
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      file_name: file_name || null,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -1687,6 +1695,10 @@ async function handleClassifyEmoji(
 
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.category = result.category;
+    metricsMetadata.confidence = result.confidence;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-classify-emoji',
@@ -1695,11 +1707,7 @@ async function handleClassifyEmoji(
         p_status: 'success',
         p_user_id: ctx.userId,
         p_error_message: null,
-        p_metadata: {
-          category: result.category,
-          confidence: result.confidence,
-          requestId,
-        },
+        p_metadata: metricsMetadata,
       }).catch(() => {});
     } catch {
       // Metrics not critical
@@ -1767,6 +1775,7 @@ async function handleClassifySticker(
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
+    // C.39: Standardize metadata logging with handler-specific context fields
     let metricsMetadata: Record<string, unknown> = { requestId };
 
     try {
@@ -1823,19 +1832,16 @@ async function handleClassifySticker(
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-classify-sticker',
-          p_action: 'classification',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-classify-sticker',
+        action: 'classification',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -1903,6 +1909,10 @@ async function handleClassifySticker(
 
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.category = result.category;
+    metricsMetadata.confidence = result.confidence;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-classify-sticker',
@@ -1911,11 +1921,7 @@ async function handleClassifySticker(
         p_status: 'success',
         p_user_id: ctx.userId,
         p_error_message: null,
-        p_metadata: {
-          category: result.category,
-          confidence: result.confidence,
-          requestId,
-        },
+        p_metadata: metricsMetadata,
       }).catch(() => {});
     } catch {
       // Metrics not critical
@@ -2310,7 +2316,11 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      message_count: messages.length || 0,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -2580,6 +2590,12 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
 
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.sentiment = analysisData.sentiment;
+    metricsMetadata.urgency = analysisData.urgency;
+    metricsMetadata.department = analysisData.department;
+    metricsMetadata.analysis_persisted = persistenceResult.success;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-conversation-analysis',
@@ -2588,12 +2604,7 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
         p_status: 'success',
         p_user_id: ctx.userId,
         p_error_message: null,
-        p_metadata: {
-          sentiment: analysisData.sentiment,
-          urgency: analysisData.urgency,
-          department: analysisData.department,
-          requestId,
-        },
+        p_metadata: metricsMetadata,
       }).catch(() => {});
     } catch {
       // Metrics not critical
@@ -2759,7 +2770,11 @@ Responda APENAS em formato JSON com a seguinte estrutura:
     let response, data;
     let metricsStatus = 'success';
     let errorMessage: string | null = null;
-    let metricsMetadata: Record<string, unknown> = { requestId };
+    // C.39: Standardize metadata logging with handler-specific context fields
+    let metricsMetadata: Record<string, unknown> = {
+      requestId,
+      history_length: normalizedHistory.length || 0,
+    };
 
     try {
       const result = await withCircuitBreaker(
@@ -2890,6 +2905,9 @@ Responda APENAS em formato JSON com a seguinte estrutura:
 
     const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+    // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+    metricsMetadata.suggestions_count = suggestions.suggestions?.length || 0;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-suggest-reply',
@@ -2898,10 +2916,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         p_status: 'success',
         p_user_id: ctx.userId,
         p_error_message: null,
-        p_metadata: {
-          suggestions_count: suggestions.suggestions?.length || 0,
-          requestId,
-        },
+        p_metadata: metricsMetadata,
       }).catch(() => {});
     } catch {
       // Metrics not critical
@@ -2919,19 +2934,16 @@ Responda APENAS em formato JSON com a seguinte estrutura:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-suggest-reply',
-        p_action: 'suggestion',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-suggest-reply',
+      action: 'suggestion',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
     // C.30: Sanitize error messages before returning to clients (prevent info leakage)
     const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
@@ -3218,6 +3230,12 @@ async function handleTranscribeAudio(
 
       const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
 
+      // C.39: Accumulate result-specific fields into metricsMetadata for consistent logging
+      metricsMetadata.transcript_length = transcript.length;
+      metricsMetadata.words_count = words.length;
+      metricsMetadata.audio_events_count = audioEvents.length;
+      metricsMetadata.speakers_count = speakers.length;
+
       try {
         await supabase.rpc('record_ai_metrics', {
           p_function_name: 'ai-transcribe-audio',
@@ -3226,12 +3244,7 @@ async function handleTranscribeAudio(
           p_status: 'success',
           p_user_id: ctx.userId,
           p_error_message: null,
-          p_metadata: {
-            transcript_length: transcript.length,
-            words_count: words.length,
-            language: languageCode,
-            requestId,
-          },
+          p_metadata: metricsMetadata,
         }).catch(() => {});
       } catch {
         // Metrics not critical
