@@ -68,6 +68,10 @@ export interface RealtimeMessage {
   /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
   contactAvatar?: string | null;
   reactions?: any[] | null;
+  /** PTT/meme metadata from Evolution webhook. Optional — only present on audio messages. */
+  media_meta?: { ptt?: boolean; [key: string]: unknown } | null;
+  /** Links an optimistic audio bubble to its meme record in the external DB. */
+  audio_meme_id?: string | null;
 }
 
 export interface ConversationContact {
