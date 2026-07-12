@@ -809,6 +809,13 @@ Responda APENAS em JSON:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-auto-tag',
@@ -824,7 +831,7 @@ Responda APENAS em JSON:
     }
 
     log.error("Unhandled error in auto-tag handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
 
@@ -1221,6 +1228,13 @@ Foque em:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     try {
       await supabase.rpc('record_ai_metrics', {
         p_function_name: 'ai-conversation-summary',
@@ -1236,7 +1250,7 @@ Foque em:
     }
 
     log.error("Unhandled error in conversation-summary handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
 
@@ -1436,8 +1450,15 @@ Regras importantes:
       // Metrics not critical
     }
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     log.error("Unhandled error in enhance-message handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
 
@@ -1636,8 +1657,15 @@ async function handleClassifyEmoji(
       // Metrics not critical
     }
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     log.error("Unhandled error in classify-emoji handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
 
@@ -1836,8 +1864,15 @@ async function handleClassifySticker(
       // Metrics not critical
     }
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     log.error("Unhandled error in classify-sticker handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
 
@@ -2090,8 +2125,15 @@ async function handleChurnAnalysis(
       // Metrics not critical
     }
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     log.error("Unhandled error in churn-analysis handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
 
@@ -2492,8 +2534,15 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       // Metrics not critical
     }
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     log.error("Unhandled error in conversation-analysis handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
 
@@ -2774,8 +2823,15 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       // Metrics not critical
     }
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     log.error("Unhandled error in suggest-reply handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
 
@@ -3129,7 +3185,14 @@ async function handleTranscribeAudio(
       // Metrics not critical
     }
 
+    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
+    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
+      ? 'Service temporarily unavailable. Please try again.'
+      : errMsg.length > 200
+      ? errMsg.substring(0, 200)
+      : errMsg;
+
     log.error("Unhandled error in transcribe-audio handler", { error: errMsg, duration: durationMs });
-    return { success: false, error: errMsg, duration_ms: durationMs };
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
