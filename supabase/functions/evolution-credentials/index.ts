@@ -28,6 +28,7 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 
 const INSTANCE = 'wpp2';
 
@@ -38,32 +39,14 @@ Deno.serve(async (req: Request) => {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  // Verificar autenticação JWT
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized', message: 'JWT Bearer token required' }),
-      { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const jwt = authHeader.replace('Bearer ', '');
-
-  // Criar cliente Supabase com JWT do usuário (valida automaticamente)
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: `Bearer ${jwt}` } } }
-  );
-
-  // Verificar autenticidade do JWT
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized', message: 'Invalid JWT' }),
-      { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
-    );
-  }
+  // [C-2 2026-07-12] Least-privilege gate: a Evolution `api_key` é a chave GLOBAL de
+  // admin da instância (cria/deleta instâncias, lê todas as conversas, envia para
+  // qualquer número). Antes qualquer JWT autenticado (inclusive agente de baixo
+  // privilégio) recebia a key no header X-Evolution-Key — bastava abrir o DevTools.
+  // Agora exige role admin OU supervisor via RPC is_admin_or_supervisor; qualquer
+  // outro papel recebe 403 ANTES de tocarmos no Vault.
+  const authed = await requireAdminOrSupervisor(req);
+  if (authed instanceof Response) return authed;
 
   // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
   const supabaseAdmin = createClient(
