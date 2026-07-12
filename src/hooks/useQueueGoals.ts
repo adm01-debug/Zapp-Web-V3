@@ -6,11 +6,31 @@ import { log } from '@/lib/logger';
 export interface QueueGoal {
   id: string;
   queue_id: string;
-  max_waiting_contacts: number | null;
-  max_avg_wait_minutes: number | null;
-  min_assignment_rate: number | null;
-  max_messages_pending: number | null;
-  alerts_enabled: boolean | null;
+  max_waiting_contacts: number;
+  max_avg_wait_minutes: number;
+  min_assignment_rate: number;
+  max_messages_pending: number;
+  alerts_enabled: boolean;
+}
+
+const DEFAULT_GOAL_VALUES = {
+  max_waiting_contacts: 10,
+  max_avg_wait_minutes: 15,
+  min_assignment_rate: 80,
+  max_messages_pending: 50,
+  alerts_enabled: true,
+} as const;
+
+function normalizeQueueGoal(row: Record<string, unknown>): QueueGoal {
+  return {
+    id: String(row.id ?? ''),
+    queue_id: String(row.queue_id ?? ''),
+    max_waiting_contacts: (row.max_waiting_contacts as number | null) ?? DEFAULT_GOAL_VALUES.max_waiting_contacts,
+    max_avg_wait_minutes: (row.max_avg_wait_minutes as number | null) ?? DEFAULT_GOAL_VALUES.max_avg_wait_minutes,
+    min_assignment_rate: (row.min_assignment_rate as number | null) ?? DEFAULT_GOAL_VALUES.min_assignment_rate,
+    max_messages_pending: (row.max_messages_pending as number | null) ?? DEFAULT_GOAL_VALUES.max_messages_pending,
+    alerts_enabled: (row.alerts_enabled as boolean | null) ?? DEFAULT_GOAL_VALUES.alerts_enabled,
+  };
 }
 
 export interface QueueAlert {
