@@ -29,7 +29,11 @@ export default defineTool({
     }
     const sb = supabaseForUser(ctx);
     // Strip PostgREST .or() metacharacters to prevent filter injection (no DOMPurify in Node context)
-    const safeQuery = String(query ?? '').replace(/[,"()\\]/g, '').replace(/[*%_]/g, '\\$&').slice(0, 200); // * is PostgREST alias for %
+    const safeQuery = String(query ?? '')
+      .replace(/[,"()]/g, '')         // strip PostgREST .or() metacharacters
+      .replace(/\\/g, '\\\\')        // escape backslash first (complete encoding)
+      .replace(/[*%_]/g, '\\$&')    // escape SQL LIKE wildcards (* is PostgREST alias for %)
+      .slice(0, 200);
     const { data, error } = await sb
       .from('contacts')
       .select('id, name, phone_number, email, assigned_to, created_at')

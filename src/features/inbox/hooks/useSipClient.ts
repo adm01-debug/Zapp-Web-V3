@@ -54,10 +54,12 @@ export function useSipClient() {
     try {
       const n = phone.replace(/[-\s()]/g, '');
       const safeN = sanitizePostgrestFilter(n);
+      // Slice raw n before sanitizing so escape sequences aren't split by the slice
+      const safeSuffix = sanitizePostgrestFilter(n.slice(-8));
       const { data } = await supabase
         .from('contacts')
         .select('id')
-        .or(`phone.eq.${safeN},phone.eq.+${safeN},phone.ilike.%${safeN.slice(-8)}%`)
+        .or(`phone.eq.${safeN},phone.eq.+${safeN},phone.ilike.%${safeSuffix}%`)
         .limit(1)
         .maybeSingle();
       return data?.id || null;

@@ -253,7 +253,25 @@ export interface FailureRecord {
 }
 
 const CACHE_TTL = 300000; // 5 minutes
+const CACHE_MAX_SIZE = 500;
 const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+
+function pruneResourceCache(): void {
+  const now = Date.now();
+  for (const [key, val] of resourceCache) {
+    if (val.expires <= now) resourceCache.delete(key);
+  }
+  // If still over cap, evict oldest entries (Map preserves insertion order)
+  if (resourceCache.size > CACHE_MAX_SIZE) {
+    const overflow = resourceCache.size - CACHE_MAX_SIZE;
+    let evicted = 0;
+    for (const key of resourceCache.keys()) {
+      if (evicted >= overflow) break;
+      resourceCache.delete(key);
+      evicted++;
+    }
+  }
+}
 let lastValidation: Date | null = null;
 const recentFailures: FailureRecord[] = [];
 const stats = { totalCalls: 0, failedCalls: 0, cacheHits: 0 };
@@ -387,9 +405,12 @@ export const safeClient = {
   async validateResource(name: string, type: 'function' | 'table' = 'table'): Promise<boolean> {
     const cacheKey = `${type}:${name}`;
     const cached = resourceCache.get(cacheKey);
-    if (cached && cached.expires > Date.now()) {
-      stats.cacheHits++;
-      return cached.exists;
+    if (cached) {
+      if (cached.expires > Date.now()) {
+        stats.cacheHits++;
+        return cached.exists;
+      }
+      resourceCache.delete(cacheKey); // evict stale entry immediately
     }
 
     lastValidation = new Date();
@@ -440,6 +461,7 @@ export const safeClient = {
           exists = isPermissionError || !isNotFound;
         }
       }
+      if (resourceCache.size >= CACHE_MAX_SIZE) pruneResourceCache();
       resourceCache.set(cacheKey, { exists, expires: Date.now() + CACHE_TTL });
       return exists;
     } catch {

@@ -112,19 +112,20 @@ export function sanitizeForSearch(input: unknown): string {
  * Without escaping, a user supplying `,phone.eq.admin` as their search term would
  * inject an extra filter clause, bypassing intended query logic.
  *
- * Characters removed:
+ * Characters stripped:
  *   , → separates clauses in .or()
  *   ( ) → enable grouped sub-filters
  *   " → string quoting in PostgREST filter syntax
- *   \ → escape character
  *
- * The escaped % and _ are still required so LIKE wildcards in the user input
- * do not produce unintended broad matches.
+ * Characters escaped:
+ *   \ → doubled to \\ so it is literal in SQL LIKE (must be escaped first)
+ *   * % _ → prefixed with \ to suppress LIKE wildcard behaviour
  */
 export function sanitizePostgrestFilter(input: unknown): string {
   if (!input) return '';
   return sanitizeText(input)
-    .replace(/[,"()\\]/g, '')       // strip PostgREST filter metacharacters
+    .replace(/[,"()]/g, '')          // strip PostgREST filter metacharacters
+    .replace(/\\/g, '\\\\')         // escape backslash BEFORE adding other escape sequences
     .replace(/[*%_]/g, '\\$&')     // escape SQL LIKE wildcards (PostgREST * is alias for %)
     .slice(0, 200);
 }
