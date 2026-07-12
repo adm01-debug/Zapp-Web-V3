@@ -140,7 +140,7 @@ export default function AdminAlertHistoryPage() {
         if (debounceRef.current) window.clearTimeout(debounceRef.current);
         // Debounce 250ms: várias mudanças em sequência viram 1 refetch.
         debounceRef.current = window.setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ['admin-alert-history'] });
+          void queryClient.invalidateQueries({ queryKey: ['admin-alert-history'] });
         }, 250);
       })
       .subscribe((status) => {

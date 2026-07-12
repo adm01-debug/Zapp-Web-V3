@@ -61,9 +61,12 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
       if (instance) params.set('instance', instance);
       if (status) params.set('status', status);
 
-      const { data, error } = await supabase.functions.invoke(`evolution-retry-metrics?${params.toString()}`, {
-        method: 'GET',
-      });
+      const { data, error } = await supabase.functions.invoke(
+        `evolution-retry-metrics?${params.toString()}`,
+        {
+          method: 'GET',
+        }
+      );
       if (error) throw error;
       return data as RetryMetricsResponse; // ignore-audit: narrows Supabase query result to local interface
     },
@@ -84,14 +87,22 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
     const out: InstanceMetrics[] = [];
     for (const [instance, list] of map.entries()) {
       const total = list.length;
-      const successAfterRetry = list.filter(r => r.final_status === 'success').length;
-      const failed = list.filter(r => r.final_status === 'failed').length;
-      const exhausted = list.filter(r => r.final_status === 'exhausted').length;
-      const attempts = list.map(r => r.attempt_count).sort((a, b) => a - b);
+      const successAfterRetry = list.filter((r) => r.final_status === 'success').length;
+      const failed = list.filter((r) => r.final_status === 'failed').length;
+      const exhausted = list.filter((r) => r.final_status === 'exhausted').length;
+      const attempts = list.map((r) => r.attempt_count).sort((a, b) => a - b);
       const idx = Math.max(0, Math.ceil(attempts.length * 0.95) - 1);
       const p95Attempts = attempts.length ? attempts[idx] : 0;
       const failureRatePct = total > 0 ? Math.round(((failed + exhausted) / total) * 100) : 0;
-      out.push({ instance, total, successAfterRetry, failed, exhausted, p95Attempts, failureRatePct });
+      out.push({
+        instance,
+        total,
+        successAfterRetry,
+        failed,
+        exhausted,
+        p95Attempts,
+        failureRatePct,
+      });
     }
     return out.sort((a, b) => b.total - a.total);
   }, [query.data?.rows]);
@@ -104,7 +115,7 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
         'postgres_changes',
         { event: 'INSERT', schema: 'evo', table: 'evolution_retry_metrics' },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['evolution-retry-metrics'] });
+          void queryClient.invalidateQueries({ queryKey: ['evolution-retry-metrics'] });
         }
       )
       .subscribe();

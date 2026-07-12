@@ -194,8 +194,8 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
         () => {
           if (debounceRef.current) window.clearTimeout(debounceRef.current);
           debounceRef.current = window.setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit'] });
-            queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit-instances'] });
+            void queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit'] });
+            void queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit-instances'] });
           }, 300);
         }
       )
