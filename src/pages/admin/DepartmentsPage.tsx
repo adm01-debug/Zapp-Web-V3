@@ -151,8 +151,13 @@ export default function DepartmentsPage() {
                     </CardTitle>
                     <CardDescription className="flex items-center gap-2">
                       <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{dept.slug}</code>
-                      <span className="text-xs">
-                        {dept.member_count ?? 0} {dept.member_count === 1 ? 'membro' : 'membros'}
+                      <span
+                        className="text-xs"
+                        title={dept.member_count === undefined ? 'Não foi possível carregar a contagem de membros' : undefined}
+                      >
+                        {dept.member_count === undefined
+                          ? '— membros'
+                          : `${dept.member_count} ${dept.member_count === 1 ? 'membro' : 'membros'}`}
                       </span>
                     </CardDescription>
                   </div>
