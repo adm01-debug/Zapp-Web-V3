@@ -27,14 +27,17 @@ LOCK TABLE public.campaign_contacts IN SHARE ROW EXCLUSIVE MODE;
 -- Creates a point-in-time snapshot. If a rollback is needed post-migration the
 -- DBA can restore from this table. IF NOT EXISTS makes the step idempotent on
 -- re-runs after a partial failure.
-CREATE TABLE IF NOT EXISTS public._backup_campaign_contacts_20260712
-  AS SELECT * FROM public.campaign_contacts;
-
--- RLS deny-all: PostgREST auto-exposes every public-schema table; enabling RLS
--- with zero policies is a complete read/write denial for all roles.
+--
+-- RLS is enabled BEFORE data is inserted so the table is deny-all from the
+-- moment it first becomes visible — no window where PostgREST can auto-expose
+-- the rows, even in non-transactional execution environments.
 -- Scheduled for DROP on 2026-08-12 once the migration is confirmed stable:
 --   DROP TABLE IF EXISTS public._backup_campaign_contacts_20260712;
+CREATE TABLE IF NOT EXISTS public._backup_campaign_contacts_20260712
+  (LIKE public.campaign_contacts INCLUDING ALL);
 ALTER TABLE public._backup_campaign_contacts_20260712 ENABLE ROW LEVEL SECURITY;
+INSERT INTO public._backup_campaign_contacts_20260712
+  SELECT * FROM public.campaign_contacts;
 
 -- ── 3. De-duplicate existing rows ───────────────────────────────────────────
 -- Keep the oldest copy (min ctid) of each (campaign_id, contact_id) pair and

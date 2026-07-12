@@ -114,8 +114,8 @@ Deno.serve(async (req) => {
 
     // ── Job 2: Deletar dados antigos de webhook ───────────────────────────
     if (!job || job === 'delete_expired') {
-      const _parsed = parseInt(await getConfig(supabase, 'lgpd.data_retention_days', '730'), 10);
-      const retentionDays = Number.isFinite(_parsed) && _parsed > 0 ? _parsed : 730;
+      const parsed = parseInt(await getConfig(supabase, 'lgpd.data_retention_days', '730'), 10);
+      const retentionDays = Number.isFinite(parsed) && parsed > 0 ? parsed : 730;
       const expirationDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
 
       const { count: countBefore } = await supabase
