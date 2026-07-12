@@ -10,6 +10,7 @@ import {
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { toast } from 'sonner';
 import { SessionCard, DeviceCard } from './DeviceCard';
+import { normalizeUserDevice, normalizeUserSession } from '@/lib/normalizers';
 
 export function DevicesPanel() {
   const { devices, sessions, loading, currentDeviceId, trustDevice, removeDevice, endSession, endAllOtherSessions } = useDeviceDetection();

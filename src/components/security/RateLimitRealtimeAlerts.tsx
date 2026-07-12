@@ -43,7 +43,7 @@ export function RateLimitRealtimeAlerts() {
         log.error('Failed to fetch security_alerts', error);
         return;
       }
-      if (data) setAlerts(data);
+      if (data) setAlerts(data.map((row) => normalizeSecurityAlert(row as unknown as Record<string, unknown>)));
     };
 
     void fetchAlerts();
@@ -55,7 +55,7 @@ export function RateLimitRealtimeAlerts() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'security_alerts' },
         (payload) => {
-          const newAlert = payload.new as SecurityAlert;
+          const newAlert = normalizeSecurityAlert(payload.new as unknown as Record<string, unknown>);
           setAlerts(prev => [newAlert, ...prev].slice(0, 10));
           
           // Play sound for critical alerts
