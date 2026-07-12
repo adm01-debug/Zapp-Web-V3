@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * sanitize.ts — v2.1
  * XSS prevention utilities using DOMPurify (OWASP A03:2021).

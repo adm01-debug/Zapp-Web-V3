@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * AuditLogPanel.tsx — v2.0
  * LGPD Art.37 audit history using contact_audit_log table.

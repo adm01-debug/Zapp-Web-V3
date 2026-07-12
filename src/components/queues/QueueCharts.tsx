@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

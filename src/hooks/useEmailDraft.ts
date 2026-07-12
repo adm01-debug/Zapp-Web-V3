@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailSaveDraft, emailDeleteDraft } from './gmail/gmailApi';
