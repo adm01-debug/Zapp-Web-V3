@@ -50,10 +50,23 @@ import { QrTtlBadge } from './QrTtlBadge';
 import { QrAttemptHistory } from './QrAttemptHistory';
 import { RefreshQrButton } from './RefreshQrButton';
 import { IdempotencyMissBanner } from './IdempotencyMissBanner';
-import { useConnectionsManager } from '@/features/connections';
+import { useConnectionsManager, type WhatsAppConnection } from '@/features/connections';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import type { DegradedConnection } from './DegradedQuickActions';
+
+/** Type guard: distingue WhatsAppConnection (payload completo) de DegradedConnection (payload parcial). */
+function isWhatsAppConnection(
+  c: DegradedConnection | WhatsAppConnection
+): c is WhatsAppConnection {
+  return (
+    typeof (c as WhatsAppConnection).phone_number === 'string' &&
+    typeof (c as WhatsAppConnection).status === 'string' &&
+    typeof (c as WhatsAppConnection).is_default === 'boolean' &&
+    'qr_code' in c
+  );
+}
 
 export function ConnectionsView() {
   const [search, setSearch] = useState('');
@@ -528,7 +541,27 @@ export function ConnectionsView() {
         ))}
       </div>
 
-      <DegradedQuickActions connections={connections} onShowQrCode={handleShowQrCode} />
+      <DegradedQuickActions
+        connections={connections}
+        onShowQrCode={(c) => {
+          // Type-guard: WhatsAppConnection completa segue direto; DegradedConnection
+          // é resolvida no array de conexões antes de invocar (evita chamar com payload incompleto).
+          if (isWhatsAppConnection(c)) {
+            void handleShowQrCode(c);
+            return;
+          }
+          const full = connections.find((conn) => conn.id === c.id);
+          if (full) {
+            void handleShowQrCode(full);
+            return;
+          }
+          toast({
+            title: 'Conexão não encontrada',
+            description: 'Não foi possível localizar a instância na lista atual.',
+            variant: 'destructive',
+          });
+        }}
+      />
 
       {/* Connections List */}
       {loading ? (

@@ -8,8 +8,9 @@ import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import type { WhatsAppConnection } from '@/features/connections';
 
-interface DegradedConnection {
+export interface DegradedConnection {
   id: string;
   instance_id?: string | null;
   instance_name?: string | null;
@@ -22,7 +23,7 @@ interface DegradedConnection {
 
 interface Props {
   connections: DegradedConnection[];
-  onShowQrCode: (connection: DegradedConnection) => void;
+  onShowQrCode: (connection: DegradedConnection | WhatsAppConnection) => void;
 }
 
 /** Latency tier helper for the chip color. */
