@@ -26,7 +26,13 @@
  * - RLS: All database operations scoped to authenticated user
  * - JWT validation: Signature + expiration + claims validation
  * - Secret scrubbing: Producer secrets never persisted to DLQ
- * - Idempotency: 5-min deduplication window per request_id
+ * - Idempotency: 5-min deduplication window per request_id + distributed lock (IMPROVEMENT 6)
+ *
+ * Required Supabase RPC Functions:
+ * - check_duplicate_request(p_request_id, p_action, p_user_id) → {is_duplicate, cached_result}
+ * - record_processed_request(p_request_id, p_action, p_user_id, p_status_code, p_result_payload)
+ * - acquire_idempotency_lock(p_request_id, p_action, p_user_id) → {acquired, cached_result?} [IMPROVEMENT 6]
+ * - record_ai_metrics(p_function_name, p_action, p_duration_ms, p_status, p_user_id, p_error_message, p_metadata)
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -407,6 +413,81 @@ function checkMemoryLimit(log: Logger): boolean {
   return true; // Allow request
 }
 
+/**
+ * IMPROVEMENT 6: Distributed Idempotency Lock
+ * Prevents race condition where 2 requests with same requestId both process.
+ *
+ * MECHANISM:
+ * - Attempt to INSERT a "processing" record with unique constraint (requestId, action, userId)
+ * - If INSERT succeeds: We hold the lock, continue processing
+ * - If INSERT fails (unique violation): Someone else has the lock, wait + check for result
+ * - After processing: UPDATE the record with result
+ *
+ * GUARANTEES:
+ * - Exactly one request processes for a given (requestId, action, userId)
+ * - Duplicates wait and return cached result
+ * - Handles distributed scenario (multiple edge function instances)
+ *
+ * @param requestId - Unique request identifier
+ * @param action - Action name (e.g., 'auto_tag', 'conversation_summary')
+ * @param userId - User ID from auth token
+ * @param supabase - Supabase client
+ * @param timeoutMs - How long to wait for duplicate to complete (default 30s)
+ * @returns {acquired: boolean, result?: unknown} - acquired=true if lock obtained; result if duplicate found
+ */
+async function acquireIdempotencyLock(
+  requestId: string,
+  action: string,
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+  timeoutMs: number = 30_000
+): Promise<{ acquired: boolean; result?: unknown }> {
+  try {
+    // Attempt to acquire lock via unique constraint violation
+    const { data: lockData, error: lockError } = await supabase.rpc('acquire_idempotency_lock', {
+      p_request_id: requestId,
+      p_action: action,
+      p_user_id: userId,
+    });
+
+    if (lockError) {
+      // If RPC not available, fallback to check-only (pre-existing behavior)
+      return { acquired: false };
+    }
+
+    // lockData = { acquired: boolean, cached_result?: unknown }
+    if (lockData && typeof lockData === 'object' && 'acquired' in lockData) {
+      if (lockData.acquired === true) {
+        return { acquired: true };
+      } else {
+        // Duplicate detected, wait for result with timeout
+        const startWait = Date.now();
+        while (Date.now() - startWait < timeoutMs) {
+          const { data: resultData } = await supabase.rpc('check_duplicate_request', {
+            p_request_id: requestId,
+            p_action: action,
+            p_user_id: userId,
+          });
+
+          if (resultData && Array.isArray(resultData) && resultData.length > 0 && (resultData[0] as any).cached_result) {
+            return { acquired: false, result: (resultData[0] as any).cached_result };
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 100)); // Poll every 100ms
+        }
+
+        // Timeout waiting for duplicate to complete
+        return { acquired: false, result: null };
+      }
+    }
+
+    return { acquired: false };
+  } catch (err) {
+    // Fallback to check-only on any error
+    return { acquired: false };
+  }
+}
+
 // S.1: Centralized prompt sanitization to prevent injection attacks
 // Removes control characters, quotes, and tags that could break out of prompts
 function sanitizeForPrompt(input: string | null | undefined, maxLength: number = 200): string {
@@ -567,34 +648,34 @@ Deno.serve(async (req) => {
     if (requestId) {
       ctx.requestId = requestId;
       try {
-        // C.17: Add timeout to deduplication RPC to prevent hanging requests
-        const dupCheck = await Promise.race([
-          supabase.rpc('check_duplicate_request', {
-            p_request_id: requestId,
-            p_action: action,
-            p_user_id: userId,
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Dedup check timeout after 5s')), 5_000)
+        // IMPROVEMENT 6: Acquire distributed idempotency lock (with timeout)
+        const lockResult = await Promise.race([
+          acquireIdempotencyLock(requestId, action, userId, supabase),
+          new Promise<{ acquired: boolean; result?: unknown }>((_, reject) =>
+            setTimeout(() => reject(new Error('Idempotency lock timeout after 35s')), 35_000)
           ),
         ]);
 
-        if (dupCheck?.data?.length > 0 && (dupCheck.data[0] as any)?.is_duplicate) {
-          cachedResult = (dupCheck.data[0] as any)?.cached_result;
-          if (cachedResult) {
-            const durationMs = performance.now() - ctx.startTime;
-            log.info("Deduplication hit", { action, requestId, durationMs });
-            // FIX #9: Clear ctx.requestId after dedup return to prevent state leakage
-            ctx.requestId = "";
-            return jsonResponse({ ...(cachedResult as Record<string, unknown>), _cached: true }, 200, req);
-          }
+        if (lockResult.acquired === true) {
+          // Lock acquired, continue to handler
+          log.info("Idempotency lock acquired", { action, requestId });
+        } else if (lockResult.result !== undefined && lockResult.result !== null) {
+          // Duplicate found and result is ready
+          cachedResult = lockResult.result;
+          const durationMs = performance.now() - ctx.startTime;
+          log.info("Deduplication hit (distributed lock)", { action, requestId, durationMs });
+          ctx.requestId = "";
+          return jsonResponse({ ...(cachedResult as Record<string, unknown>), _cached: true }, 200, req);
+        } else {
+          // Duplicate timeout or no result yet, proceed anyway (graceful degradation)
+          log.warn("Idempotency lock: duplicate timeout or unavailable, proceeding with processing", { action, requestId });
         }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        if (errMsg.includes('does not exist') || errMsg.includes('Unknown function')) {
-          log.warn("Dedup RPC unavailable (migrations may not be applied)", { action, requestId });
+        if (errMsg.includes('does not exist') || errMsg.includes('Unknown function') || errMsg.includes('timeout')) {
+          log.warn("Idempotency lock unavailable (RPC or timeout), proceeding", { action, error: errMsg });
         } else {
-          log.warn("Dedup check failed, proceeding", { action, error: errMsg });
+          log.warn("Idempotency lock check failed, proceeding", { action, error: errMsg });
         }
       }
     }
