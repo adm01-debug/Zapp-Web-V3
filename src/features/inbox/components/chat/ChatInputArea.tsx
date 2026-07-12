@@ -560,7 +560,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               </AnimatePresence>
 
               <textarea
-                ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                ref={asRef(inputRef)}
                 value={inputValue}
                 onChange={(e) => {
                   onInputChange(e);
