@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEmail.ts — Hook principal de gerenciamento Email
  *
@@ -47,12 +46,21 @@ const supabase = _supabase;
  */
 const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
 
+interface BaseThreadRow {
+  id: string;
+  gmail_thread_id?: string | null;
+  gmail_account_id: string;
+  is_unread?: boolean;
+  message_count?: number;
+  [key: string]: unknown;
+}
+
 /**
  * A tabela-base email_app.email_threads não possui as colunas derivadas da view
  * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
  * replica exatamente as expressões da view para payloads de realtime.
  */
-const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
+const mapBaseThreadRow = (row: BaseThreadRow): EmailThread =>
   emailMappers.thread({
     ...row,
     thread_id: row.id,
@@ -660,7 +668,7 @@ export function useEmail() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [activeAccountId]);
 
