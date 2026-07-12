@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useUserSettings');
 
 // Default ElevenLabs voice: Custom system voice
 const DEFAULT_TTS_VOICE_ID = 'TY3h8ANhQUsJaa0Bga5F';
