@@ -538,7 +538,8 @@ async function handleAutoTag(
     const { data: queues } = await supabase
       .from('queues')
       .select('id, name, description')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .limit(50); // FIX #7 (C.40): Bound queue listing to prevent memory exhaustion
 
     const queueList = queues && queues.length > 0
       ? queues.map((q: any) => `- "${q.name}" (${q.id}): ${q.description || 'Sem descrição'}`)
@@ -1673,7 +1674,8 @@ async function handleClassifyEmoji(
     if (typeof result.description !== 'string') result.description = 'Unknown emoji';
     if (!Array.isArray(result.alternatives)) result.alternatives = [];
     // C.29: Validate alternatives array items have required fields with correct types
-    result.alternatives = result.alternatives.map((alt: any) => ({
+    // FIX #7 (C.40): Limit alternatives to max 5 items to prevent memory exhaustion
+    result.alternatives = result.alternatives.slice(0, 5).map((alt: any) => ({
       category: typeof alt?.category === 'string' ? alt.category : 'other',
       confidence: typeof alt?.confidence === 'number' ? Math.max(0, Math.min(1, alt.confidence)) : 0,
     }));
@@ -1887,7 +1889,8 @@ async function handleClassifySticker(
     if (typeof result.description !== 'string') result.description = 'Unknown sticker';
     if (!Array.isArray(result.alternatives)) result.alternatives = [];
     // C.29: Validate alternatives array items have required fields with correct types
-    result.alternatives = result.alternatives.map((alt: any) => ({
+    // FIX #7 (C.40): Limit alternatives to max 5 items to prevent memory exhaustion
+    result.alternatives = result.alternatives.slice(0, 5).map((alt: any) => ({
       category: typeof alt?.category === 'string' ? alt.category : 'other',
       confidence: typeof alt?.confidence === 'number' ? Math.max(0, Math.min(1, alt.confidence)) : 0,
     }));
@@ -2708,7 +2711,8 @@ async function handleSuggestReply(
         const { data: customFields } = await supabase
           .from('contact_custom_fields')
           .select('field_name, field_value')
-          .eq('contact_id', validContactId);
+          .eq('contact_id', validContactId)
+          .limit(100); // FIX #7 (C.40): Bound custom fields to prevent memory exhaustion
 
         if (customFields && Array.isArray(customFields) && customFields.length > 0) {
           knowledgeContext += `\n\nDADOS DO CONTATO:\n${customFields.map((f: any) => `${f.field_name}: ${f.field_value}`).join('\n')}`;
@@ -2875,7 +2879,8 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         const parsed = JSON.parse(jsonMatch[0]);
         if (parsed && parsed.suggestions && Array.isArray(parsed.suggestions)) {
           // C.26: Validate suggestion items have required fields with correct types
-          const validatedSuggestions = parsed.suggestions.map((s: any) => ({
+          // FIX #7 (C.40): Limit suggestions to max 3 items to prevent memory exhaustion
+          const validatedSuggestions = parsed.suggestions.slice(0, 3).map((s: any) => ({
             type: typeof s?.type === 'string' ? s.type : 'direct',
             text: typeof s?.text === 'string' ? s.text : 'Unable to generate suggestion',
             emoji: typeof s?.emoji === 'string' ? s.emoji : '💬',
