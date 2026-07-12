@@ -35,7 +35,7 @@ const sentimentConfig: Record<string, { label: string; color: string; emoji: str
   },
   negative: {
     label: 'Negativo',
-    color: 'bg-warning/15 text-warning border-warning/30',
+    color: 'bg-warning/15 text-warning-accessible border-warning/30',
     emoji: '😟',
   },
   critical: {
@@ -47,18 +47,18 @@ const sentimentConfig: Record<string, { label: string; color: string; emoji: str
 
 const priorityConfig: Record<string, { label: string; color: string }> = {
   high: { label: 'Alta', color: 'bg-destructive/15 text-destructive border-destructive/30' },
-  medium: { label: 'Média', color: 'bg-warning/15 text-warning border-warning/30' },
-  low: { label: 'Baixa', color: 'bg-success/15 text-success border-success/30' },
+  medium: { label: 'Média', color: 'bg-warning/15 text-warning-accessible border-warning/30' },
+  low: { label: 'Baixa', color: 'bg-success/15 text-success-accessible border-success/30' },
 };
 
 const contactTypeConfig: Record<string, { label: string; color: string }> = {
-  customer: { label: 'Cliente', color: 'bg-primary/15 text-primary border-primary/30' },
-  cliente: { label: 'Cliente', color: 'bg-primary/15 text-primary border-primary/30' },
-  lead: { label: 'Lead', color: 'bg-info/15 text-info border-info/30' },
-  employee: { label: 'Colaborador', color: 'bg-success/15 text-success border-success/30' },
-  colaborador: { label: 'Colaborador', color: 'bg-success/15 text-success border-success/30' },
-  supplier: { label: 'Fornecedor', color: 'bg-warning/15 text-warning border-warning/30' },
-  fornecedor: { label: 'Fornecedor', color: 'bg-warning/15 text-warning border-warning/30' },
+  customer: { label: 'Cliente', color: 'bg-primary/15 text-primary-accessible border-primary/30' },
+  cliente: { label: 'Cliente', color: 'bg-primary/15 text-primary-accessible border-primary/30' },
+  lead: { label: 'Lead', color: 'bg-info/15 text-info-accessible border-info/30' },
+  employee: { label: 'Colaborador', color: 'bg-success/15 text-success-accessible border-success/30' },
+  colaborador: { label: 'Colaborador', color: 'bg-success/15 text-success-accessible border-success/30' },
+  supplier: { label: 'Fornecedor', color: 'bg-warning/15 text-warning-accessible border-warning/30' },
+  fornecedor: { label: 'Fornecedor', color: 'bg-warning/15 text-warning-accessible border-warning/30' },
 };
 
 interface ContactHeaderSectionProps {
@@ -223,7 +223,7 @@ export function ContactHeaderSection({
           </p>
         )}
         {nomeTratamento && (
-          <p className="mt-0.5 text-[10px] italic text-primary/70">"{nomeTratamento}"</p>
+          <p className="mt-0.5 text-[10px] italic text-muted-foreground">"{nomeTratamento}"</p>
         )}
         {enrichedData?.job_title && (
           <p

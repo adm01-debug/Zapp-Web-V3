@@ -41,7 +41,7 @@ export function QueueContactsTable({ contacts }: { contacts: QueueContact[] }) {
                   <TableRow key={contact.id} className="border-border/20 hover:bg-muted/10">
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Avatar className="w-8 h-8"><AvatarImage src={contact.avatar_url || undefined} alt={contact.name} /><AvatarFallback className="bg-primary/10 text-primary text-xs">{contact.name[0]}</AvatarFallback></Avatar>
+                        <Avatar className="w-8 h-8"><AvatarImage src={contact.avatar_url || undefined} alt={contact.name} /><AvatarFallback className="bg-primary text-primary-foreground text-xs">{contact.name[0]}</AvatarFallback></Avatar>
                         <div><p className="font-medium text-foreground">{contact.name}</p><p className="text-xs text-muted-foreground">{contact.phone}</p></div>
                       </div>
                     </TableCell>
@@ -51,14 +51,14 @@ export function QueueContactsTable({ contacts }: { contacts: QueueContact[] }) {
                           <Avatar className="w-6 h-6"><AvatarImage src={contact.assigned_agent.avatar_url || undefined} alt={contact.assigned_agent.name} /><AvatarFallback className="text-xs">{contact.assigned_agent.name[0]}</AvatarFallback></Avatar>
                           <span className="text-sm">{contact.assigned_agent.name}</span>
                         </div>
-                      ) : <Badge variant="outline" className="text-warning border-warning/30">Aguardando</Badge>}
+                      ) : <Badge variant="outline" className="text-warning-accessible border-warning/30">Aguardando</Badge>}
                     </TableCell>
                     <TableCell><Badge variant="secondary" className="bg-muted/30">{contact.messages_count}</Badge></TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {contact.last_message_at ? formatDistanceToNow(new Date(contact.last_message_at), { addSuffix: true, locale: ptBR }) : format(new Date(contact.created_at), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={contact.assigned_to ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
+                      <Badge variant="secondary" className={contact.assigned_to ? 'bg-success/10 text-success-accessible' : 'bg-warning/10 text-warning-accessible'}>
                         {contact.assigned_to ? 'Em atendimento' : 'Na fila'}
                       </Badge>
                     </TableCell>

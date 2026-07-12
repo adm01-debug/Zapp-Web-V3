@@ -4,7 +4,7 @@
  */
 
 const AVATAR_PALETTES = [
-  { bg: 'bg-primary/15', text: 'text-primary' },
+  { bg: 'bg-primary/10', text: 'text-primary-accessible' },
   { bg: 'bg-[hsl(200_80%_92%)]', text: 'text-[hsl(200_80%_35%)]' },
   { bg: 'bg-[hsl(340_70%_92%)]', text: 'text-[hsl(340_70%_40%)]' },
   { bg: 'bg-[hsl(160_60%_90%)]', text: 'text-[hsl(160_60%_30%)]' },
