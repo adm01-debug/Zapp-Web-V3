@@ -80,7 +80,9 @@ export function useMediaUpload(type: MediaType, onComplete: () => void) {
               type === 'audio_memes'
                 ? { audio_url: urlData.publicUrl, file_name: file.name }
                 : { image_url: urlData.publicUrl };
-            const { data: classifyData, error: _error } = await supabase.functions.invoke(fnName, { body });
+            const { data: classifyData, error: _error } = await supabase.functions.invoke(fnName, {
+              body,
+            });
             if (classifyData?.category) aiCategory = classifyData.category;
           } catch (err) {
             log.error('Unexpected error in useMediaUpload:', err);
@@ -94,10 +96,11 @@ export function useMediaUpload(type: MediaType, onComplete: () => void) {
           };
           if (type === 'audio_memes') insertData.audio_url = urlData.publicUrl;
           else insertData.image_url = urlData.publicUrl;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { error: insertError } = await (supabase as any)
-            .from(type)
-            .insert(insertData);
+          interface DynamicClient {
+            from(table: string): { insert(data: unknown): Promise<{ error: unknown }> };
+          }
+          const dynamicSupabase = supabase as unknown as DynamicClient;
+          const { error: insertError } = await dynamicSupabase.from(type).insert(insertData);
           if (!insertError) successCount++;
         } catch (err) {
           log.error(`Unexpected error uploading ${file.name}:`, err);

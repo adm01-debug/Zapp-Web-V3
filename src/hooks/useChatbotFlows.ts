@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -66,13 +65,20 @@ export function useChatbotFlows() {
   const createFlow = useMutation({
     mutationFn: async (flow: Partial<ChatbotFlow>) => {
       const insertData = {
-          ...flow,
-          nodes: JSON.stringify(flow.nodes ?? [
-            { id: 'start-1', type: 'start', data: { label: 'Início' }, position: { x: 250, y: 50 } },
-          ]),
-          edges: JSON.stringify(flow.edges ?? []),
-          variables: JSON.stringify(flow.variables ?? {}),
-        };
+        ...flow,
+        nodes: JSON.stringify(
+          flow.nodes ?? [
+            {
+              id: 'start-1',
+              type: 'start',
+              data: { label: 'Início' },
+              position: { x: 250, y: 50 },
+            },
+          ]
+        ),
+        edges: JSON.stringify(flow.edges ?? []),
+        variables: JSON.stringify(flow.variables ?? {}),
+      };
       const { data, error } = await supabase
         .from('chatbot_flows')
         .insert(insertData as ChatbotFlowInsert)
@@ -113,10 +119,7 @@ export function useChatbotFlows() {
 
   const deleteFlow = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('chatbot_flows')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('chatbot_flows').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -128,10 +131,7 @@ export function useChatbotFlows() {
 
   const toggleFlow = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
-        .from('chatbot_flows')
-        .update({ is_active })
-        .eq('id', id);
+      const { error } = await supabase.from('chatbot_flows').update({ is_active }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: (_, { is_active }) => {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -193,13 +192,16 @@ export function useDepartmentManagement(
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      void supabase.from('audit_logs').insert({
-        action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
-        entity_id: initialDepartment.id,
-        entity_type: 'department',
-        user_id: user?.id,
-        details: { profile_id: profileId },
-      }).catch((err: unknown) => log.warn('[audit] department member change log failed', err));
+      void supabase
+        .from('audit_logs')
+        .insert({
+          action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
+          entity_id: initialDepartment.id,
+          entity_type: 'department',
+          user_id: user?.id,
+          details: { profile_id: profileId },
+        })
+        .catch((err: unknown) => log.warn('[audit] department member change log failed', err));
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['dept-profiles', initialDepartment.id] });
