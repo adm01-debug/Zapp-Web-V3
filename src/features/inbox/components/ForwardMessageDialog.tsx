@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { motion, AnimatePresence } from 'framer-motion';
 import { Forward, Search, Users, User, Check, MessageSquare, Phone, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

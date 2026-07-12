@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState, useCallback } from 'react';
 import { zappSupabase, ZAPPWEB_INSTANCE } from '../supabaseClient';
 import type { EvolutionConversation } from '../types';

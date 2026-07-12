@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';

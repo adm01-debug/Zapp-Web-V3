@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * ContactFormV3.tsx
  * Complete contact form integrating ALL v3.0 improvements:
