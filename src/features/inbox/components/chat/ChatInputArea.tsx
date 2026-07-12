@@ -34,6 +34,12 @@ import { InputPreviewBars } from './InputPreviewBars';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
+import {
+  getQueueLength,
+  normalizeAttempts,
+  getLastAttemptDuration,
+} from './chatInputGuards';
+import { asRef } from '@/lib/react-refs';
 
 interface QuickReplyItem {
   id: string;
