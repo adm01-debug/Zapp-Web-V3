@@ -77,10 +77,19 @@ async function callEvolution(endpoint: string, body: Record<string, any>, instan
       return { success: false, error: `HTTP ${response.status}: ${text.slice(0, 250)}`, http_status: response.status };
     }
     let result: Record<string, unknown> = {};
-    try { result = JSON.parse(text) as Record<string, unknown>; } catch { /* manter success se 2xx */ }
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        result = parsed;
+      }
+    } catch { /* manter success se 2xx */ }
+    const key = result.key;
+    const messageId = (typeof key === 'object' && key !== null && !Array.isArray(key) && typeof key.id === 'string' ? key.id : null)
+      || (typeof result.messageId === 'string' ? result.messageId : null)
+      || (typeof result.id === 'string' ? result.id : null);
     return {
       success: true,
-      messageId: (result?.key as Record<string, unknown> | undefined)?.id || result?.messageId || result?.id,
+      messageId: messageId || undefined,
       http_status: response.status,
     };
   } catch (error) {
