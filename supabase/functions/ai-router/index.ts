@@ -197,6 +197,15 @@ function addMetricsToBuffer(entry: MetricsEntry): void {
  * Each provider (lovable-auto-tag, lovable-conversation-summary, etc.) has independent state
  * to prevent one service's outage from blocking another's recovery.
  *
+ * ⚠️ SECURITY NOTE (S.4): In a distributed system with multiple edge function instances,
+ * circuit breaker state is per-instance (not shared). This means:
+ * - Each instance independently detects outages and opens its own circuit
+ * - Instances don't know about failures detected by other instances
+ * - RECOMMENDATION: For production high-traffic deployments, migrate to shared state
+ *   (Redis/KV store) to coordinate circuit breaker across all instances
+ * - CURRENT RISK LEVEL: Low (single instance handles each request; probabilistic
+ *   circuit opening across fleet provides redundancy)
+ *
  * @param key - Service identifier (e.g., 'lovable-auto-tag', 'lovable-suggest-reply')
  * @returns CircuitBreakerState object (creates fresh state if missing)
  */

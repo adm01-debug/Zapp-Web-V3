@@ -32,10 +32,11 @@ export const AiConversationSummarySchema = z.object({
 export const AiSuggestReplySchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
   contactName: z.string().max(200).optional().nullable(),
+  // S.5: Require at least one message in conversation history to prevent empty payload attacks
   conversationHistory: z.array(z.object({
     role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
     content: z.string().max(10000),
-  })).max(50),
+  })).min(1, "Conversation history cannot be empty").max(50),
   context: z.string().max(2000).optional(),
   requestId: z.string().max(256), // For idempotency deduplication (P1-FIX-008) - REQUIRED for idempotency enforcement
 });
