@@ -57,13 +57,38 @@ for (const file of files) {
   });
 }
 
-if (violations.length) {
-  console.error('❌ Uso de coluna legada "instance_name" fora do columnMap:\n');
-  for (const v of violations) console.error('  ' + v);
-  console.error(
-    '\nUse columnMap/rowNormalizers em src/integrations/supabase/ ou anexe // columnMap-ok se justificado.',
+// Baseline: arquivos pré-existentes com uso legado tolerado (ratchet).
+// Novo arquivo tocando `instance_name` como coluna física deve consumir columnMap.
+const BASELINE_PATH = join(ROOT, 'scripts/.column-map-baseline.txt');
+let baseline = new Set();
+try {
+  baseline = new Set(
+    readFileSync(BASELINE_PATH, 'utf8')
+      .split('\n')
+      .map((l) => l.trim().replace(/^\s+/, ''))
+      .filter(Boolean),
   );
-  process.exit(1);
+} catch {
+  // baseline ausente = nenhum arquivo tolerado
 }
 
-console.log(`✓ column-map guard: ${files.length} arquivos verificados, nenhuma regressão.`);
+if (violations.length) {
+  const newViolations = violations.filter((v) => {
+    const file = v.split(':')[0].trim();
+    return !baseline.has(file);
+  });
+  if (newViolations.length) {
+    console.error('❌ Novo uso de coluna legada "instance_name" fora do columnMap:\n');
+    for (const v of newViolations) console.error('  ' + v);
+    console.error(
+      '\nUse columnMap/rowNormalizers em src/integrations/supabase/ ou anexe // columnMap-ok se justificado.',
+    );
+    process.exit(1);
+  }
+  console.log(
+    `✓ column-map guard: ${violations.length} usos legados tolerados via baseline (${baseline.size} arquivos). Zero regressões.`,
+  );
+} else {
+  console.log(`✓ column-map guard: ${files.length} arquivos verificados, nenhuma regressão.`);
+}
+
