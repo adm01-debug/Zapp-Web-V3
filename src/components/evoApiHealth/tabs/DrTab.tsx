@@ -7,7 +7,7 @@ import { Shield } from 'lucide-react';
 import { DrRunbookStep } from '@/lib/evoApiHealth/types';
 
 interface DrTabProps {
-  drHealth?: any;
+  drHealth?: Record<string, unknown> | null;
   runbook?: DrRunbookStep[];
 }
 
@@ -17,7 +17,7 @@ export const DrTab = React.memo(({ drHealth, runbook }: DrTabProps) => {
       {drHealth && (
         <Alert>
           <Shield className="h-4 w-4" />
-          <AlertTitle>{(drHealth as { overall?: string }).overall ?? 'DR Health'}</AlertTitle>
+          <AlertTitle>{String(drHealth?.['overall'] ?? 'DR Health')}</AlertTitle>
           <AlertDescription>
             <pre className="text-xs bg-muted p-2 rounded overflow-x-auto mt-2">
               {JSON.stringify(drHealth, null, 2)}
