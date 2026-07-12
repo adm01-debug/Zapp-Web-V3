@@ -154,15 +154,15 @@ Deno.serve(async (req) => {
       }
 
       if (!hashFetchErr && contacts?.length) {
-        // Compute all hashes in memory (synchronous), then bulk-upsert in parallel batches of 500
-        const toUpdate = contacts.map(c => ({
+        // Compute all hashes in memory, then bulk-upsert in parallel batches of 500
+        const toUpdate = await Promise.all(contacts.map(async c => ({
           id: c.id,
-          dedup_hash: simpleHash(
+          dedup_hash: await sha256Hex(
             (c.phone_number ?? '').replace(/\D/g, '').toLowerCase() + '|' +
             (c.email ?? '').toLowerCase() + '|' +
             (c.full_name ?? '').toLowerCase()
           ),
-        }));
+        })));
 
         const CHUNK = 500;
         const chunks: typeof toUpdate[] = [];
@@ -262,12 +262,10 @@ async function getConfig(
   }
 }
 
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
+async function sha256Hex(str: string): Promise<string> {
+  const data = new TextEncoder().encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
