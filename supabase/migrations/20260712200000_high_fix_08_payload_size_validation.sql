@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.payload_size_config (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   created_by UUID,
   updated_by UUID,
-  FOREIGN KEY (instance_id) REFERENCES public.evolution_api_instances(id) ON DELETE CASCADE
+  FOREIGN KEY (instance_id) REFERENCES public.whatsapp_instances(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_payload_size_config_instance ON public.payload_size_config(instance_id);
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS public.payload_size_violation_audit (
   request_headers JSONB,
   error_details TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  FOREIGN KEY (instance_id) REFERENCES public.evolution_api_instances(id) ON DELETE CASCADE
+  FOREIGN KEY (instance_id) REFERENCES public.whatsapp_instances(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_payload_violation_instance ON public.payload_size_violation_audit(instance_id);
@@ -374,16 +374,16 @@ ALTER TABLE public.payload_size_violation_audit ENABLE ROW LEVEL SECURITY;
 CREATE POLICY payload_size_config_tenant_isolation ON public.payload_size_config
   FOR ALL USING (
     instance_id IN (
-      SELECT id FROM public.evolution_api_instances
-      WHERE tenant_id = auth.jwt() ->> 'tenant_id'
+      SELECT id FROM public.whatsapp_instances
+      WHERE owner_id = auth.uid()
     )
   );
 
 CREATE POLICY payload_violation_audit_tenant_isolation ON public.payload_size_violation_audit
   FOR ALL USING (
     instance_id IN (
-      SELECT id FROM public.evolution_api_instances
-      WHERE tenant_id = auth.jwt() ->> 'tenant_id'
+      SELECT id FROM public.whatsapp_instances
+      WHERE owner_id = auth.uid()
     )
   );
 
