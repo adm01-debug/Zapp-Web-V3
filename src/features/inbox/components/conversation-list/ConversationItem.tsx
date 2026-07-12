@@ -217,8 +217,14 @@ export const ConversationItem = memo(function ConversationItem({
           data-testid="conversation-item"
           data-density="compact"
           onClick={() => onSelect(conversation)}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onSelect(conversation))}
-          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            // Guard against bubbled events from nested focusable elements (e.g. checkbox).
+            if (e.target !== e.currentTarget) return;
+            e.preventDefault();
+            onSelect(conversation);
+          }}
+          tabIndex={isSelected ? 0 : -1}
           whileHover={{ scale: 1.02, x: 4 }}
           whileTap={{ scale: 0.98 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
@@ -443,8 +449,13 @@ export const ConversationItem = memo(function ConversationItem({
           data-testid="conversation-item"
           data-density="comfortable"
           onClick={() => onSelect(conversation)}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(conversation)}
-          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            if (e.target !== e.currentTarget) return;
+            e.preventDefault();
+            onSelect(conversation);
+          }}
+          tabIndex={isSelected ? 0 : -1}
           aria-selected={isSelected}
           role="option"
           className={cn(

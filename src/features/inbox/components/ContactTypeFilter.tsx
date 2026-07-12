@@ -109,10 +109,11 @@ export function ContactTypeFilter({ value, onChange, conversations }: ContactTyp
   const TriggerIcon = activeOption.icon;
 
   const moveFocus = useCallback((idx: number) => {
-    const clamped = Math.max(0, Math.min(idx, FILTER_OPTIONS.length - 1));
-    focusedIdxRef.current = clamped;
-    setFocusedIdx(clamped);
-    requestAnimationFrame(() => optionRefs.current[clamped]?.focus());
+    const n = FILTER_OPTIONS.length;
+    const wrapped = ((idx % n) + n) % n;
+    focusedIdxRef.current = wrapped;
+    setFocusedIdx(wrapped);
+    requestAnimationFrame(() => optionRefs.current[wrapped]?.focus());
   }, []);
 
   const handleSelect = useCallback((next: string) => {
@@ -135,6 +136,9 @@ export function ContactTypeFilter({ value, onChange, conversations }: ContactTyp
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { setOpen(false); return; }
+      // Only handle navigation keys when focus is inside the dropdown container,
+      // otherwise arrow keys would be intercepted even when focus is elsewhere.
+      if (!containerRef.current?.contains(document.activeElement)) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); moveFocus(focusedIdxRef.current + 1); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); moveFocus(focusedIdxRef.current - 1); return; }
       if (e.key === 'Home') { e.preventDefault(); moveFocus(0); return; }
@@ -173,7 +177,6 @@ export function ContactTypeFilter({ value, onChange, conversations }: ContactTyp
         <div
           role="listbox"
           aria-label="Tipos de contato"
-          aria-activedescendant={focusedIdx >= 0 ? `ctf-opt-${FILTER_OPTIONS[focusedIdx]?.value}` : undefined}
           className={cn(
             'absolute z-50 mt-1 left-0 min-w-[220px] max-h-[360px] overflow-y-auto',
             'rounded-md border bg-popover text-popover-foreground shadow-md p-1',
@@ -192,6 +195,7 @@ export function ContactTypeFilter({ value, onChange, conversations }: ContactTyp
                   type="button"
                   role="option"
                   aria-selected={selected}
+                  tabIndex={idx === focusedIdx ? 0 : -1}
                   onClick={() => handleSelect(opt.value)}
                   className={cn(
                     'w-full flex items-center gap-2 px-2 rounded-sm text-left transition-all',

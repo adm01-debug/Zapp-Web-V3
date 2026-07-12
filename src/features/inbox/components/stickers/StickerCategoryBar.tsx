@@ -42,6 +42,10 @@ export function StickerCategoryBar({
   }, [totalTabs]);
 
   const isAll = !activeCategory && !showFavorites && !showRecent;
+  // Roving tabindex invariant: at least one tab must have tabIndex=0. If
+  // activeCategory references a category that no longer exists (stale state),
+  // every computed tabIndex would be -1, locking keyboard users out of the bar.
+  const hasActiveTab = isAll || showFavorites || showRecent || categories.includes(activeCategory as string);
 
   const tabClass = (selected: boolean) => cn(
     'px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-primary',
@@ -57,7 +61,7 @@ export function StickerCategoryBar({
             role="tab"
             aria-selected={isAll}
             aria-controls={panelId}
-            tabIndex={isAll ? 0 : -1}
+            tabIndex={isAll || !hasActiveTab ? 0 : -1}
             onClick={() => onCategoryChange(null)}
             onKeyDown={e => handleKeyDown(e, 0)}
             className={tabClass(isAll)}
