@@ -45,7 +45,7 @@ export function sanitizeHtml(html: unknown): string {
   // position, not by reference; if multiple hooks are active, removeHook pops the
   // wrong one and leaves orphaned hooks active.
   const HOOK_NAME = 'afterSanitizeAttributes_sanitizeHtml';
-  DOMPurify.addHook(HOOK_NAME as never, (node) => {
+  DOMPurify.addHook(HOOK_NAME, (node) => {
     if (node.tagName === 'A') {
       node.setAttribute('rel', 'noopener noreferrer');
       node.setAttribute('target', '_blank');

@@ -1,8 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
-import {
-  mirrorExternalSignIn,
-  mirrorExternalSignOut,
-} from '@/integrations/supabase/externalSessionBridge';
+import { mirrorExternalSignIn, mirrorExternalSignOut } from '@/integrations/supabase/externalSessionBridge';
+import { log } from '@/lib/logger';
 import { Session } from '@supabase/supabase-js';
 import type { PostgrestError } from '@supabase/supabase-js';
 
@@ -31,6 +29,7 @@ export const authService = {
     const result = await supabase.auth.signInWithPassword({ email, password });
     if (!result.error) {
       // dual-session: replica login no self-hosted com as mesmas credenciais
+      // mirrorExternalSignIn has an internal try/catch and never rejects — .catch() is dead code
       void mirrorExternalSignIn(email, password);
     }
     return result;

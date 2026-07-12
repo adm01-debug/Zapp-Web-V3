@@ -5,7 +5,7 @@
 // Gap 9.2: HTML entity bypass prevention
 // Gap 9.3: Control character detection
 
-import DOMPurify from 'dompurify';
+import DOMPurify from 'isomorphic-dompurify';
 
 // Use immutable config instead of mutable hooks (prevents Gap 3.2 recursive collision)
 const SANITIZE_CONFIG = {
@@ -50,7 +50,7 @@ function normalizeUnicodeNFKC(text: string): string {
     // Cache result (limit cache size to 1000 entries)
     if (normalizationCache.size >= 1000) {
       const firstKey = normalizationCache.keys().next().value;
-      if (firstKey !== undefined) normalizationCache.delete(firstKey);
+      normalizationCache.delete(firstKey);
     }
     normalizationCache.set(text, normalized);
 
