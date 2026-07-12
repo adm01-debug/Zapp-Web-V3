@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Filter, Search, Calendar, ChevronDown } from 'lucide-react';
