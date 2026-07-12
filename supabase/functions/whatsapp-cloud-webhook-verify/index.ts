@@ -70,6 +70,17 @@ const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
 const SERVICE_ROLE = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 
+/**
+ * Formats a response as JSON with CORS headers and specified HTTP status.
+ *
+ * Used throughout the verification endpoint to ensure consistent response formatting
+ * and CORS compliance for browser-based diagnostics. All responses (success, error,
+ * partial results) go through this wrapper.
+ *
+ * @param data - Response body (any serializable value; typically { status, results, error })
+ * @param status - HTTP status code (default 200 for success; 401 for auth errors, 500 for failures)
+ * @returns Response with JSON body, CORS headers, and specified status
+ */
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
