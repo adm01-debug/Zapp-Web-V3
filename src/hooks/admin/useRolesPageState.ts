@@ -42,9 +42,9 @@ export function useRolesPageState() {
     );
     const rows = (data ?? null) as RoleRow[] | null;
 
-    if (!error && data) {
+    if (!error && rows) {
       setUsers(
-        data.map((u) => {
+        rows.map((u) => {
           const ref = normalizeProfileRef(u.profiles as never);
           return {
             id: u.id,
