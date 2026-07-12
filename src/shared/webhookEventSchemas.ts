@@ -192,7 +192,7 @@ export const conversationEventRowSchema = z.object({
   id: z.string().uuid(),
   contact_id: z.string().uuid(), // non-nullable per DB constraint
   event_type: z.string().min(1), // any non-empty string (tolerates future event types)
-  from_agent_id: z.string().nullable(),
+  from_agent_id: z.string().uuid().nullable(),
   to_agent_id: z.string().nullable(),
   from_queue_id: z.string().nullable(),
   to_queue_id: z.string().nullable(),
