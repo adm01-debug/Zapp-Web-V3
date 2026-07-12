@@ -322,10 +322,11 @@ async function runScenario(sc: Scenario): Promise<ScenarioResult> {
     const fastFailed = rows.every((r) => r.status === "failed" && r.attempts === 1);
     if (!fastFailed && anyConsumedAllRetries) violations.push("no-fast-fail-on-auth-error");
   }
-  if (sc.failure === "http_429") {
-    // Se não houve backoff registrado, é gap.
+  if (sc.failure === "http_429" && sc.max_attempts > 1) {
+    // Só se aplica se houver espaço para retry. max_attempts=1 = fast-fail sem backoff faz sentido.
     if (backoffUntil.size === 0) violations.push("no-explicit-backoff-on-429");
   }
+
   if (sc.failure === "vault_missing") {
     // Circuit-breaker OK: apenas 1 mensagem consumida antes de abrir o circuito.
     if (!circuitOpen && failed === rows.length && rows.length > 0) {
