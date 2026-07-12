@@ -7,7 +7,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 
 interface SLAIndicatorForContactProps {
-  conversation: any; // Allow flexibility for mapped types
+  conversation: Conversation;
   compact?: boolean;
   className?: string;
 }

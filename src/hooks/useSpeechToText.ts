@@ -19,6 +19,12 @@ interface SpeechToTextReturn {
   toggleListening: () => void;
 }
 
+interface SpeechResultItem { transcript: string }
+interface SpeechResult { isFinal: boolean; [index: number]: SpeechResultItem }
+interface SpeechResultList { length: number; [index: number]: SpeechResult }
+interface SpeechRecognitionEvent { resultIndex: number; results: SpeechResultList }
+interface SpeechRecognitionErrorEvent { error: string }
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SpeechRecognitionInstance = any;
 type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
@@ -52,7 +58,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
     recognition.continuous = continuous;
     recognition.interimResults = true;
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
       let interimTranscript = '';
 
@@ -78,7 +84,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
       onEndRef.current?.();
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       log.warn('Speech recognition error:', event.error);
       setIsListening(false);
     };

@@ -3,8 +3,8 @@ import type { HttpMethod, CallApiOptions } from './useEvolutionApiCore';
 import type { SendMessageParams, SendTextOptions, ContactCard, PollParams, ListSection, ButtonItem } from '../evolutionApi.types';
 
 export function useEvolutionMessaging(
-  callApi: (action: string, body?: object, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<any>,
-  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<any>
+  callApi: (action: string, body?: object, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>,
+  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>
 ) {
   // ============================================================
   // SEND MESSAGES

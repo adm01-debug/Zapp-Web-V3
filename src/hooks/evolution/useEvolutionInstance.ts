@@ -3,8 +3,8 @@ import type { HttpMethod } from './useEvolutionApiCore';
 import type { CreateInstanceParams, SettingsConfig, WebhookConfig } from '../evolutionApi.types';
 
 export function useEvolutionInstance(
-  callApi: (action: string, body?: object, method?: HttpMethod) => Promise<any>,
-  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<any>
+  callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
+  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
 ) {
   const createInstance = useCallback((params: CreateInstanceParams) =>
     withToast('create-instance', params, 'Instância criada com sucesso', 'Erro ao criar instância'), [withToast]);
