@@ -130,17 +130,25 @@ export function useAdminAutomations() {
   };
 
   const toggleActive = async (r: Rule) => {
-    await supabase
+    const { error } = await supabase
       .from('automations')
       .update({ is_active: !r.is_active })
       .eq("id", r.id);
+    if (error) {
+      toast({ title: "Erro ao alterar status", description: error.message, variant: "destructive" });
+      return;
+    }
     load();
   };
 
   const adjustPriority = async (r: Rule, delta: number) => {
     const newPriority = Math.min(999, Math.max(1, (r.priority ?? 100) + delta));
     const { error } = await supabase.from('automations').update({ priority: newPriority }).eq('id', r.id);
-    if (!error) load();
+    if (error) {
+      toast({ title: "Erro ao ajustar prioridade", description: error.message, variant: "destructive" });
+      return;
+    }
+    load();
   };
 
   const channelMap = useMemo(() => Object.fromEntries(channels.map((c) => [c.id, c.name])), [channels]);
