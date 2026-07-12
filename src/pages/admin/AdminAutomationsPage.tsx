@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useState } from 'react';
 import {
   useAdminAutomations,
@@ -134,7 +133,9 @@ export default function AdminAutomationsPage() {
       {/* Filtros */}
       <Card className="mb-4 flex flex-wrap items-end gap-3 p-3">
         <div className="min-w-[180px]">
-          <Label className="text-xs" htmlFor="filter-channel">Canal</Label>
+          <Label className="text-xs" htmlFor="filter-channel">
+            Canal
+          </Label>
           <Select value={filterChannel} onValueChange={setFilterChannel}>
             <SelectTrigger id="filter-channel">
               <SelectValue />
@@ -151,7 +152,9 @@ export default function AdminAutomationsPage() {
           </Select>
         </div>
         <div className="min-w-[180px]">
-          <Label className="text-xs" htmlFor="filter-department">Filial / Departamento</Label>
+          <Label className="text-xs" htmlFor="filter-department">
+            Filial / Departamento
+          </Label>
           <Select value={filterDepartment} onValueChange={setFilterDepartment}>
             <SelectTrigger id="filter-department">
               <SelectValue />
@@ -168,7 +171,9 @@ export default function AdminAutomationsPage() {
           </Select>
         </div>
         <div className="min-w-[140px]">
-          <Label className="text-xs" htmlFor="filter-status">Status</Label>
+          <Label className="text-xs" htmlFor="filter-status">
+            Status
+          </Label>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger id="filter-status">
               <SelectValue />
@@ -186,7 +191,11 @@ export default function AdminAutomationsPage() {
       </Card>
 
       <div className="space-y-3">
-        {loading && <p role="status" aria-live="polite" className="text-muted-foreground">Carregando…</p>}
+        {loading && (
+          <p role="status" aria-live="polite" className="text-muted-foreground">
+            Carregando…
+          </p>
+        )}
         {!loading && filtered.length === 0 && (
           <Card className="p-8 text-center text-muted-foreground">
             Nenhuma regra com esses filtros.
@@ -270,10 +279,20 @@ export default function AdminAutomationsPage() {
                   ↓
                 </Button>
                 <Switch checked={r.is_active} onCheckedChange={() => toggleActive(r)} />
-                <Button aria-label="Editar regra" size="icon" variant="ghost" onClick={() => startEdit(r)}>
+                <Button
+                  aria-label="Editar regra"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => startEdit(r)}
+                >
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button aria-label="Remover regra" size="icon" variant="ghost" onClick={() => (confirm("Remover esta regra?") && remove(r.id))}>
+                <Button
+                  aria-label="Remover regra"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => confirm('Remover esta regra?') && remove(r.id)}
+                >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
@@ -461,7 +480,9 @@ export default function AdminAutomationsPage() {
               {(editing.trigger_type === 'tag_applied' ||
                 editing.trigger_type === 'tag_removed') && (
                 <div>
-                  <Label htmlFor="auto-trigger-tags">Etiquetas alvo (separadas por vírgula — vazio = qualquer)</Label>
+                  <Label htmlFor="auto-trigger-tags">
+                    Etiquetas alvo (separadas por vírgula — vazio = qualquer)
+                  </Label>
                   <Input
                     id="auto-trigger-tags"
                     value={
@@ -558,7 +579,9 @@ export default function AdminAutomationsPage() {
                   {editing.actions.escalate_sla?.enabled && (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-xs" htmlFor="escalate-level">Novo nível</Label>
+                        <Label className="text-xs" htmlFor="escalate-level">
+                          Novo nível
+                        </Label>
                         <Select
                           value={editing.actions.escalate_sla?.level ?? 'high'}
                           onValueChange={(v) =>
@@ -587,7 +610,9 @@ export default function AdminAutomationsPage() {
                         </Select>
                       </div>
                       <div>
-                        <Label className="text-xs" htmlFor="escalate-reason">Motivo (opcional)</Label>
+                        <Label className="text-xs" htmlFor="escalate-reason">
+                          Motivo (opcional)
+                        </Label>
                         <Input
                           id="escalate-reason"
                           value={editing.actions.escalate_sla?.reason ?? ''}

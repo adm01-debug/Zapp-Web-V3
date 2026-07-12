@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * sanitize.ts — v2.1
  * XSS prevention utilities using DOMPurify (OWASP A03:2021).
@@ -54,12 +53,23 @@ export function sanitizeHtml(html: unknown): string {
   let sanitized = '';
   try {
     sanitized = DOMPurify.sanitize(str, {
-      ALLOWED_TAGS:  RICH_ALLOWED_TAGS,
-      ALLOWED_ATTR:  RICH_ALLOWED_ATTR,
+      ALLOWED_TAGS: RICH_ALLOWED_TAGS,
+      ALLOWED_ATTR: RICH_ALLOWED_ATTR,
       // Event handlers and style are still explicitly forbidden as defense-in-depth.
       // href removed from FORBID_ATTR so <a> links in notes work; src kept because
       // <img> is not in RICH_ALLOWED_TAGS so src on any surviving element is harmless.
-      FORBID_ATTR:   ['onerror','onload','onclick','onmouseover','onfocus','onblur','onchange','onsubmit','style','src'],
+      FORBID_ATTR: [
+        'onerror',
+        'onload',
+        'onclick',
+        'onmouseover',
+        'onfocus',
+        'onblur',
+        'onchange',
+        'onsubmit',
+        'style',
+        'src',
+      ],
     }).trim();
   } finally {
     DOMPurify.removeHook(HOOK_NAME);
@@ -76,10 +86,24 @@ export function sanitizeContactFields<T extends Record<string, unknown>>(contact
 
   // Plain text fields (evolution_contacts schema)
   const textFields = [
-    'full_name', 'push_name', 'phone_number', 'email', 'company', 'role_title',
-    'assigned_to', 'lead_status', 'instance_name', 'remote_jid',
+    'full_name',
+    'push_name',
+    'phone_number',
+    'email',
+    'company',
+    'role_title',
+    'assigned_to',
+    'lead_status',
+    'instance_name',
+    'remote_jid',
     // Generic aliases (for compatibility)
-    'name', 'phone', 'address', 'city', 'state', 'country', 'channel',
+    'name',
+    'phone',
+    'address',
+    'city',
+    'state',
+    'country',
+    'channel',
   ];
 
   // Rich HTML fields (only notes)
@@ -128,7 +152,7 @@ export function sanitizeForSearch(input: unknown): string {
   const raw = (typeof input === 'string' ? input : String(input)).slice(0, 200);
   return sanitizeText(raw)
     .replace(/[%_\\]/g, '\\$&') // escape SQL LIKE special chars
-    .slice(0, 200);              // safety net after escaping
+    .slice(0, 200); // safety net after escaping
 }
 
 /**
@@ -153,10 +177,10 @@ export function sanitizePostgrestFilter(input: unknown): string {
   // Worst-case expansion after escape chains: 2× → 200 chars; final .slice is a safety net.
   const raw = (typeof input === 'string' ? input : String(input)).slice(0, 100);
   return sanitizeText(raw)
-    .replace(/[,"()]/g, '')          // strip PostgREST filter metacharacters
-    .replace(/\\/g, '\\\\')         // escape backslash BEFORE adding other escape sequences
-    .replace(/[*%_]/g, '\\$&')     // escape SQL LIKE wildcards (PostgREST * is alias for %)
-    .slice(0, 200);                  // safety net
+    .replace(/[,"()]/g, '') // strip PostgREST filter metacharacters
+    .replace(/\\/g, '\\\\') // escape backslash BEFORE adding other escape sequences
+    .replace(/[*%_]/g, '\\$&') // escape SQL LIKE wildcards (PostgREST * is alias for %)
+    .slice(0, 200); // safety net
 }
 
 /**
