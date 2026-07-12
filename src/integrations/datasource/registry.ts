@@ -75,6 +75,7 @@ export const ENTITY_MAP = {
   imap_smtp_accounts:   { client: 'lovable', table: 'imap_smtp_accounts' },
   provider_configs:        { client: 'lovable', table: 'provider_configs' },
   automation_executions:   { client: 'lovable', table: 'automation_executions' },
+  whisper_messages:        { client: 'lovable', table: 'whisper_messages' },
 } as const satisfies Record<LogicalEntity, EntityMapping>;
 
 export function getEntityMapping(entity: LogicalEntity): EntityMapping {
