@@ -68,16 +68,19 @@ export async function unmarkEventProcessed(supabase: any, eventId: string, insta
     const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
     if (error) {
       console.error(`[idempotency] rollback FAILED for ${eventId.slice(0, 48)}…: ${error.message ?? error.code}`);
-      // Write audit entry so operators can detect this event is permanently deduplicated
+      // [FIX-08 2026-07-12 S11] Write audit entry using SECURITY DEFINER RPC to bypass RLS
+      // so operators can detect this event is permanently deduplicated
       try {
-        await supabase.from('idempotency_rollback_failures').insert({
-          event_id: eventId,
-          instance: instance || null,
-          event_type: eventType || null,
-          error_code: error.code,
-          error_message: error.message,
-          created_at: new Date().toISOString(),
+        const { error: auditError } = await supabase.rpc('fn_insert_idempotency_failure_audit', {
+          p_event_id: eventId,
+          p_instance: instance || null,
+          p_event_type: eventType || null,
+          p_error_code: error.code,
+          p_error_message: error.message,
         });
+        if (auditError) {
+          console.error(`[idempotency] audit RPC failed: ${auditError.message ?? auditError.code}`);
+        }
       } catch (e) {
         console.error(`[idempotency] failed to write audit row for rollback failure: ${e}`);
       }
@@ -86,15 +89,18 @@ export async function unmarkEventProcessed(supabase: any, eventId: string, insta
     return true;
   } catch (e) {
     console.error(`[idempotency] rollback exception for ${eventId.slice(0, 48)}…: ${e instanceof Error ? e.message : String(e)}`);
+    // [FIX-08 2026-07-12 S11] Write audit entry using SECURITY DEFINER RPC
     try {
-      await supabase.from('idempotency_rollback_failures').insert({
-        event_id: eventId,
-        instance: instance || null,
-        event_type: eventType || null,
-        error_code: 'EXCEPTION',
-        error_message: e instanceof Error ? e.message : String(e),
-        created_at: new Date().toISOString(),
+      const { error: auditError } = await supabase.rpc('fn_insert_idempotency_failure_audit', {
+        p_event_id: eventId,
+        p_instance: instance || null,
+        p_event_type: eventType || null,
+        p_error_code: 'EXCEPTION',
+        p_error_message: e instanceof Error ? e.message : String(e),
       });
+      if (auditError) {
+        console.error(`[idempotency] audit RPC failed: ${auditError.message ?? auditError.code}`);
+      }
     } catch (ex) {
       console.error(`[idempotency] failed to write audit row for exception: ${ex}`);
     }
