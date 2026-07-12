@@ -200,14 +200,14 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
       // After success, clear states
       setAudioBlob(null);
       setIsConfirming(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error(`Audio send failed (attempt ${retryCount + 1}):`, error);
       const canRetry = retryCount < 3; // Allowing up to 3 retries as requested
 
       toast({
         title: 'Erro no envio',
         description: canRetry
-          ? `Falha técnica (${error.message || 'Erro desconhecido'}). Tentando novamente em breve (Tentativa ${retryCount + 1}/4)...`
+          ? `Falha técnica (${error instanceof Error ? error.message : 'Erro desconhecido'}). Tentando novamente em breve (Tentativa ${retryCount + 1}/4)...`
           : 'Não foi possível enviar o áudio após várias tentativas. Verifique sua conexão.',
         variant: 'destructive',
         action: (
@@ -445,7 +445,8 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                 onKeyDown={(e) => {
                   const audio = audioRef.current;
                   if (!audio || !audio.duration) return;
-                  if (e.key === 'ArrowRight') audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+                  if (e.key === 'ArrowRight')
+                    audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
                   if (e.key === 'ArrowLeft') audio.currentTime = Math.max(0, audio.currentTime - 5);
                 }}
               >

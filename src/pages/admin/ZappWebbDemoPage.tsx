@@ -162,8 +162,8 @@ export default function ZappWebbDemoPage() {
     try {
       await sendText(active.remote_jid, draft.trim());
       setDraft('');
-    } catch (err: any) {
-      toast.error('Falha ao enviar: ' + err.message);
+    } catch (err: unknown) {
+      toast.error('Falha ao enviar: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSending(false);
     }

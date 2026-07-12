@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback, ReactNode, memo } from 'react';
+import type { Conversation } from '@/types/chat';
 import { cn } from '@/lib/utils';
 import { useDensity } from '@/hooks/useDensity';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -107,9 +108,9 @@ function TruncatedTooltip({
 }
 
 interface ConversationItemProps {
-  conversation: any;
+  conversation: Conversation;
   isSelected: boolean;
-  onSelect: (conversation: any) => void;
+  onSelect: (conversation: Conversation) => void;
   compact?: boolean;
   selectionMode?: boolean;
   isMultiSelected?: boolean;
@@ -117,7 +118,7 @@ interface ConversationItemProps {
   isPinned?: boolean;
 }
 
-function buildPrimaryLabel(conversation: any): string {
+function buildPrimaryLabel(conversation: Conversation): string {
   const name = (
     conversation.contact?.name ||
     conversation.contact?.pushName ||
@@ -133,11 +134,11 @@ function buildPrimaryLabel(conversation: any): string {
   return safeName;
 }
 
-function buildFullPrimaryLabel(conversation: any): string {
+function buildFullPrimaryLabel(conversation: Conversation): string {
   return buildPrimaryLabel(conversation);
 }
 
-function buildSecondaryLabel(conversation: any): string | null {
+function buildSecondaryLabel(conversation: Conversation): string | null {
   const jobTitle =
     conversation.contact?.job_title?.trim() ||
     conversation.contact?.jobTitle?.trim() ||
@@ -324,7 +325,9 @@ export const ConversationItem = memo(function ConversationItem({
                     <span
                       className={cn(
                         'h-4.5 flex min-w-[18px] animate-bounce-in items-center justify-center rounded-full px-1 text-[10px] font-black tabular-nums shadow-md',
-                        isSelected ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
+                        isSelected
+                          ? 'bg-primary-foreground text-primary'
+                          : 'bg-primary text-primary-foreground'
                       )}
                     >
                       {unreadCount}
@@ -558,7 +561,9 @@ export const ConversationItem = memo(function ConversationItem({
                     <span
                       className={cn(
                         'flex h-5 min-w-[20px] animate-bounce-in items-center justify-center rounded-full px-1.5 text-[11px] font-black tabular-nums shadow-lg',
-                        isSelected ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
+                        isSelected
+                          ? 'bg-primary-foreground text-primary'
+                          : 'bg-primary text-primary-foreground'
                       )}
                     >
                       {unreadCount}

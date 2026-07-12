@@ -18,34 +18,31 @@ export const whatsappConnectionRepository = {
     }
   },
 
-  async updateConnection(id: string, updates: any) {
-    const res = await supabase
-      .from('whatsapp_connections')
-      .update(updates)
-      .eq('id', id);
+  async updateConnection(id: string, updates: Record<string, unknown>) {
+    const res = await supabase.from('whatsapp_connections').update(updates).eq('id', id);
     invalidateWhatsappConnectionsCache();
     return res;
   },
 
-  async insertConnection(data: any) {
+  async insertConnection(data: Record<string, unknown>) {
     const res = await supabase.from('whatsapp_connections').insert(data).select().single();
     invalidateWhatsappConnectionsCache();
     return res;
   },
 
-  async logQrAttempt(data: any) {
+  async logQrAttempt(data: Record<string, unknown>) {
     return supabase.from('qr_attempts').insert(data).select('id').single();
   },
 
-  async updateQrAttempt(id: string, updates: any) {
+  async updateQrAttempt(id: string, updates: Record<string, unknown>) {
     return supabase.from('qr_attempts').update(updates).eq('id', id);
   },
 
-  async callEvolutionApi(body: any) {
+  async callEvolutionApi(body: Record<string, unknown>) {
     return supabase.functions.invoke('evolution-api', { body });
   },
 
-  async callEvolutionApiV2(path: string, options: any) {
+  async callEvolutionApiV2(path: string, options: Record<string, unknown>) {
     return supabase.functions.invoke(path, options);
-  }
+  },
 };
