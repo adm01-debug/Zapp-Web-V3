@@ -60,10 +60,44 @@ const UserSettingsSchema = z.object({
   { message: 'Quiet hours: start and end times must be different', path: ['quiet_hours_end'] }
 );
 
+// Exponential backoff retry helper for optimistic locking conflicts
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelayMs: number = 100
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+
+      // Check if it's a version conflict (retryable)
+      if (
+        lastError.message.includes('CONFLICT') ||
+        lastError.message.includes('version')
+      ) {
+        if (attempt < maxRetries - 1) {
+          const delayMs = initialDelayMs * Math.pow(2, attempt);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
+      }
+
+      throw err;
+    }
+  }
+
+  throw lastError || new Error('Retry failed');
+}
+
 export interface UserSettings {
   id?: string;
   user_id?: string;
-  
+  version?: number;
+
   // Business hours
   business_hours_enabled: boolean;
   business_hours_start: string;
@@ -107,6 +141,7 @@ export interface UserSettings {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
+  version: 1,
   business_hours_enabled: true,
   business_hours_start: '09:00',
   business_hours_end: '18:00',
@@ -182,6 +217,7 @@ export function useUserSettings() {
           setSettings({
             id: data.id,
             user_id: data.user_id,
+            version: data.version ?? DEFAULT_SETTINGS.version,
             business_hours_enabled: data.business_hours_enabled ?? DEFAULT_SETTINGS.business_hours_enabled,
             business_hours_start: data.business_hours_start ?? DEFAULT_SETTINGS.business_hours_start,
             business_hours_end: data.business_hours_end ?? DEFAULT_SETTINGS.business_hours_end,
@@ -319,26 +355,80 @@ export function useUserSettings() {
         return true;
       }
 
-      const { error } = await safeClient.from('user_settings', q =>
-        q.upsert(validationResult.data, { onConflict: 'user_id' })
-      );
+      // Implement optimistic locking with retry logic
+      const attemptSave = async () => {
+        // Call RPC function with optimistic locking
+        const { data, error } = await safeClient.single<{
+          success: boolean;
+          version: number;
+          error_code: string | null;
+        }>(
+          'user_settings',
+          (q: any) =>
+            q.rpc('upsert_user_settings', {
+              _user_id: user.id,
+              _data: validationResult.data,
+              _expected_version: settings.version ?? 1,
+            })
+        );
 
-      if (error) {
-        log.error('Error saving settings', {
+        if (error) {
+          log.error('RPC error in upsert_user_settings', {
+            userId: user.id,
+            saveId,
+            correlationId,
+            error: error.message,
+          });
+          throw error;
+        }
+
+        if (!data) {
+          throw new Error('No response from upsert_user_settings');
+        }
+
+        // Check if update succeeded or hit version conflict
+        if (!data.success && data.error_code === 'CONFLICT') {
+          const conflictError = new Error(
+            'Version conflict: settings were modified. Reloading and retrying...'
+          );
+          (conflictError as any).code = 'CONFLICT';
+          throw conflictError;
+        }
+
+        if (!data.success) {
+          throw new Error(
+            `Save failed: ${data.error_code || 'unknown error'}`
+          );
+        }
+
+        return data;
+      };
+
+      // Execute with retry logic for version conflicts
+      let saveResult: { success: boolean; version: number; error_code: string | null };
+      try {
+        saveResult = await retryWithBackoff(attemptSave, 3, 100);
+      } catch (err) {
+        log.error('Settings save failed after retries', {
           userId: user.id,
           saveId,
           correlationId,
-          error: error.message,
-          code: (error as any).code,
+          error: err instanceof Error ? err.message : String(err),
         });
 
         toast({
           title: 'Erro ao salvar',
-          description: 'Não foi possível salvar as configurações.',
+          description:
+            err instanceof Error && err.message.includes('Version conflict')
+              ? 'Suas configurações foram modificadas. Recarregando...'
+              : 'Não foi possível salvar as configurações.',
           variant: 'destructive',
         });
         return false;
       }
+
+      // Update local state with new version
+      setSettings((prev) => ({ ...prev, version: saveResult.version }));
 
       // Mark this save as successful
       setLastSaveId(saveId);
