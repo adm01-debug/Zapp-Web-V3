@@ -15,7 +15,11 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
       const { data: ruleRows } = await safeClient.from('sla_delivery_rules', (q) =>
         q.select('*').eq('contact_id', contactId).eq('is_active', true).limit(1)
       );
-      const customRule = ruleRows?.[0] ?? null;
+      const customRule = (ruleRows?.[0] ?? null) as {
+        warning_threshold_minutes?: number | null;
+        breach_threshold_minutes?: number | null;
+        custom_message?: string | null;
+      } | null;
 
       const WARNING_THRESHOLD = (customRule?.warning_threshold_minutes || 30) * 60 * 1000;
       const BREACH_THRESHOLD = (customRule?.breach_threshold_minutes || 60) * 60 * 1000;
@@ -41,7 +45,7 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
 
       if (!lastOutbound) return;
 
-      const deliveredAt = new Date(lastOutbound.updated_at).getTime();
+      const deliveredAt = new Date(lastOutbound.updated_at ?? Date.now()).getTime();
       const delay = Date.now() - deliveredAt;
 
       if (delay >= BREACH_THRESHOLD) {
