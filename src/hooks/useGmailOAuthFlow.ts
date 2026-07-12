@@ -92,7 +92,20 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     const statuses: Record<string, TokenStatus> = {};
 
     for (const acc of accs) {
+      // Guard against null/invalid token_expiry values
+      if (!acc.token_expiry) {
+        statuses[acc.id] = 'expired';
+        continue;
+      }
+
       const expiry = new Date(acc.token_expiry).getTime();
+      // Guard against NaN from invalid date parsing
+      if (isNaN(expiry)) {
+        log.warn(`Invalid token_expiry format for account ${acc.id}: ${acc.token_expiry}`);
+        statuses[acc.id] = 'expired';
+        continue;
+      }
+
       if (expiry < now) {
         statuses[acc.id] = 'expired';
       } else if (expiry - now < REFRESH_AHEAD_MS) {
@@ -118,15 +131,31 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       const result = await emailRefreshToken(accountId);
       if (result.error) throw new Error(result.error.message);
 
-      // Atualiza token_expiry local com o campo correto do retorno da API
+      // Validate API response shape — handle both camelCase and snake_case variants
+      let expiresAt: string | null = null;
+      if (result.data) {
+        expiresAt = (result.data as any).expiresAt ?? (result.data as any).expires_at ?? null;
+      }
+
+      if (!expiresAt) {
+        throw new Error('API response missing expiration timestamp (expiresAt or expires_at)');
+      }
+
+      // Validate expiration timestamp format
+      const expiryTime = new Date(expiresAt).getTime();
+      if (isNaN(expiryTime)) {
+        throw new Error(`Invalid expiration timestamp format: ${expiresAt}`);
+      }
+
+      // Atualiza token_expiry local com o campo validado
       setAccounts((prev) =>
         prev.map((a) =>
-          a.id === accountId ? { ...a, token_expiry: result.data?.expiresAt ?? null } : a
+          a.id === accountId ? { ...a, token_expiry: expiresAt } : a
         )
       );
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
 
-      log.info(`Token refreshed for account ${accountId}, expires at ${result.data?.expiresAt}`);
+      log.info(`Token refreshed for account ${accountId}, expires at ${expiresAt}`);
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));
@@ -162,8 +191,16 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       const acc = accounts.find((a) => a.id === accountId);
       if (!acc) return;
 
+      // Guard against invalid watch_expiry
+      let watchExpiry = 0;
+      if (acc.watch_expiry) {
+        const expiryTime = new Date(acc.watch_expiry).getTime();
+        if (!isNaN(expiryTime)) {
+          watchExpiry = expiryTime;
+        }
+      }
+
       // Renova watch se faltam menos de 24h para expirar
-      const watchExpiry = acc.watch_expiry ? new Date(acc.watch_expiry).getTime() : 0;
       const renewThreshold = 24 * 60 * 60 * 1000;
 
       if (!acc.watch_expiry || watchExpiry - Date.now() < renewThreshold) {
@@ -173,13 +210,28 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
             log.warn(`Não foi possível renovar watch para ${accountId}`, result.error);
             return;
           }
-          // Atualiza watch_expiry local com o campo correto do retorno da API
+
+          // Validate API response shape — handle both camelCase and snake_case
+          let watchExpiryValue: string | null = null;
+          if (result.data) {
+            watchExpiryValue = (result.data as any).watchExpiry ?? (result.data as any).watch_expiry ?? null;
+          }
+
+          if (watchExpiryValue) {
+            const expiryTime = new Date(watchExpiryValue).getTime();
+            if (isNaN(expiryTime)) {
+              log.warn(`Invalid watch_expiry format for account ${accountId}: ${watchExpiryValue}`);
+              return;
+            }
+          }
+
+          // Atualiza watch_expiry local com o campo validado
           setAccounts((prev) =>
             prev.map((a) =>
-              a.id === accountId ? { ...a, watch_expiry: result.data?.watchExpiry ?? null } : a
+              a.id === accountId ? { ...a, watch_expiry: watchExpiryValue } : a
             )
           );
-          log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${result.data?.watchExpiry}`);
+          log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${watchExpiryValue}`);
         } catch (err) {
           log.warn(`Não foi possível renovar watch para ${accountId}`, err);
         }

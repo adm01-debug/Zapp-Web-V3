@@ -17,15 +17,22 @@ export function supabaseForUser(ctx: ToolContext) {
     return _cachedClient;
   }
 
+  // Validate required environment variables at runtime
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('SUPABASE_URL environment variable is not set');
+  }
+  if (!supabaseKey) {
+    throw new Error('SUPABASE_PUBLISHABLE_KEY or SUPABASE_ANON_KEY must be set');
+  }
+
   // Create new client with current token (or without if token is null/undefined)
-  _cachedClient = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY!,
-    {
-      global: { headers: token ? { Authorization: `Bearer ${token}` } : {} },
-      auth: { persistSession: false, autoRefreshToken: false },
-    }
-  );
+  _cachedClient = createClient(supabaseUrl, supabaseKey, {
+    global: { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   _cachedToken = token;
   _cacheInitialized = true;
   return _cachedClient;

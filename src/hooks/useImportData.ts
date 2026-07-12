@@ -50,7 +50,13 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
 
   // Parsear CSV usando xlsx (carregado sob demanda — ~600KB fora do bundle principal)
   const parseCSV = useCallback(async (file: File): Promise<unknown[]> => {
-    const XLSX = await import(/* webpackChunkName: "vendor-xlsx" */ 'xlsx');
+    let XLSX;
+    try {
+      XLSX = await import(/* webpackChunkName: "vendor-xlsx" */ 'xlsx');
+    } catch (error) {
+      throw new Error(`Falha ao carregar biblioteca xlsx: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -58,7 +64,16 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
         try {
           const text = e.target?.result as string;
           const workbook = XLSX.read(text, { type: 'string' });
+
+          if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+            throw new Error('Nenhuma aba encontrada no arquivo CSV');
+          }
+
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          if (!sheet) {
+            throw new Error('Erro ao ler primeira aba do arquivo');
+          }
+
           const jsonData = XLSX.utils.sheet_to_json(sheet, {
             defval: '',
             raw: false,
@@ -80,7 +95,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
 
           resolve(normalized);
         } catch (error) {
-          reject(error);
+          reject(error instanceof Error ? error : new Error(String(error)));
         }
       };
 
@@ -91,7 +106,13 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
 
   // Parsear Excel (carregado sob demanda — ~600KB fora do bundle principal)
   const parseExcel = useCallback(async (file: File): Promise<unknown[]> => {
-    const XLSX = await import(/* webpackChunkName: "vendor-xlsx" */ 'xlsx');
+    let XLSX;
+    try {
+      XLSX = await import(/* webpackChunkName: "vendor-xlsx" */ 'xlsx');
+    } catch (error) {
+      throw new Error(`Falha ao carregar biblioteca xlsx: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -99,7 +120,16 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
+
+          if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+            throw new Error('Nenhuma aba encontrada no arquivo Excel');
+          }
+
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          if (!sheet) {
+            throw new Error('Erro ao ler primeira aba do arquivo');
+          }
+
           const jsonData = XLSX.utils.sheet_to_json(sheet, {
             defval: '',
             raw: false,
@@ -121,7 +151,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
 
           resolve(normalized);
         } catch (error) {
-          reject(error);
+          reject(error instanceof Error ? error : new Error(String(error)));
         }
       };
 
@@ -148,6 +178,14 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
               message: err.message,
               value: (row as Record<string, unknown>)[err.path[0] as string],
             });
+          });
+        } else {
+          // Captura erros não-Zod (ex.: exceções durante transform)
+          errors.push({
+            row: index + 2,
+            field: 'unknown',
+            message: error instanceof Error ? error.message : String(error),
+            value: row,
           });
         }
       }
