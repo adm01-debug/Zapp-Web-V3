@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +33,7 @@ export function ConnectionAuditDialog({
 }: ConnectionAuditDialogProps) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     if (open && instanceId) {
@@ -49,6 +51,7 @@ export function ConnectionAuditDialog({
         .order('created_at', { ascending: false })
         .limit(50);
 
+      if (!mountedRef.current) return;
       if (error) throw error;
       const normalized: AuditLog[] = (data ?? []).map((row) => ({
         id: row.id,
@@ -63,7 +66,7 @@ export function ConnectionAuditDialog({
     } catch (err) {
       log.error('Failed to fetch connection audit logs', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

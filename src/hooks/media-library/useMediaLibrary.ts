@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 const log = getLogger('useMediaLibrary');
 
@@ -131,6 +132,7 @@ export function useMediaLibrary(type: MediaType) {
 
   const categories = getCategoriesForType(type);
   const bucket = getBucket(type);
+  const mountedRef = useMountedRef();
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -142,6 +144,7 @@ export function useMediaLibrary(type: MediaType) {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1000);
+      if (!mountedRef.current) return;
       if (error) {
         log.error(`Error fetching ${type}:`, error);
         toast.error(
@@ -151,9 +154,9 @@ export function useMediaLibrary(type: MediaType) {
       setItems((data as MediaItem[]) || []);
     } catch (err) {
       log.error(`Unexpected error fetching ${type}:`, err);
-      setItems([]);
+      if (mountedRef.current) setItems([]);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [type]);
 
