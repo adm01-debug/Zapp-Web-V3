@@ -32,13 +32,19 @@ export function WhatsAppModeSetting() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<IntegrationProfile | null>(null);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
 
   const loadProfile = useCallback(async () => {
+    setProfileLoadError(null);
     const { data, error } = await safeClient.rpc<IntegrationProfile>(
       'rpc_get_active_integration_profile'
     );
-    if (error) console.warn('[WhatsAppModeSetting] loadProfile failed:', error.message);
+    if (error) {
+      console.warn('[WhatsAppModeSetting] loadProfile failed:', error.message);
+      setProfileLoadError(error.message);
+      return;
+    }
     if (data) setProfile(data as IntegrationProfile);
   }, []);
 
@@ -134,6 +140,12 @@ export function WhatsAppModeSetting() {
       <p className="pl-7 text-[11px] text-muted-foreground/80">
         Preferência salva por workspace. Alterações afetam todos os usuários imediatamente.
       </p>
+
+      {profileLoadError && !profile && (
+        <p className="pl-7 text-[11px] text-destructive/80">
+          Perfil de integração indisponível — tente recarregar.
+        </p>
+      )}
 
       {profile && (
         <div className="ml-7 mt-2 space-y-1 rounded-md border border-border/30 bg-muted/20 p-2 text-xs">

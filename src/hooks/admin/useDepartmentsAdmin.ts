@@ -40,20 +40,25 @@ export function useDepartmentsAdmin() {
     // Count members per department
     const ids = (data ?? []).map((d) => d.id);
     let counts: Record<string, number> = {};
+    let countsFailed = false;
     if (ids.length) {
       const { data: profilesByDept, error: profilesByDeptErr } = await supabase
         .from('profiles')
         .select('department_id')
         .in('department_id', ids);
-      if (profilesByDeptErr) console.warn('[useDepartmentsAdmin] member-count fetch failed:', profilesByDeptErr.message);
-      counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {
-        if (p.department_id) acc[p.department_id] = (acc[p.department_id] ?? 0) + 1;
-        return acc;
-      }, {});
+      if (profilesByDeptErr) {
+        console.warn('[useDepartmentsAdmin] member-count fetch failed:', profilesByDeptErr.message);
+        countsFailed = true;
+      } else {
+        counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {
+          if (p.department_id) acc[p.department_id] = (acc[p.department_id] ?? 0) + 1;
+          return acc;
+        }, {});
+      }
     }
 
     setDepartments(
-      (data ?? []).map((d) => ({ ...d, member_count: counts[d.id] ?? 0 })),
+      (data ?? []).map((d) => ({ ...d, member_count: countsFailed ? undefined : (counts[d.id] ?? 0) })),
     );
     setLoading(false);
   }, []);
