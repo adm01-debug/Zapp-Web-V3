@@ -11,8 +11,11 @@
  * hooks, and message senders remain agnostic.
  */
 import { supabase as _sb } from '@/integrations/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getLogger } from '@/lib/logger';
-const supabase: any = _sb;
+// whatsapp_connections is not in the generated schema; cast to bare SupabaseClient
+// so we keep Supabase API method types while allowing the unregistered table name.
+const supabase = _sb as SupabaseClient;
 const log = getLogger('sendFunctionRouter');
 
 type FnName = 'evolution-api' | 'whatsapp-cloud-api';

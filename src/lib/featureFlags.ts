@@ -8,8 +8,11 @@
  */
 
 import { supabase as _sb } from '@/integrations/supabase/client';
-const supabase: any = _sb;
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { log } from '@/lib/logger';
+// app_settings is not in the generated schema; cast to bare SupabaseClient
+// so we keep Supabase API method types while allowing the unregistered table name.
+const supabase = _sb as SupabaseClient;
 
 type FeatureFlag =
   | 'ai_agents'
