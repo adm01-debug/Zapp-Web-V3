@@ -216,7 +216,10 @@ serve(async (req) => {
         .single();
 
       if (error) {
-        console.error('[email-imap-bridge] upsert error', error.message);
+        const errMsg = typeof error === 'object' && error !== null && 'message' in error && typeof (error as Record<string, unknown>).message === 'string'
+          ? (error as Record<string, unknown>).message
+          : 'Internal server error';
+        console.error('[email-imap-bridge] upsert error', errMsg);
         return json({ error: 'Internal server error' }, 500);
       }
 
@@ -286,12 +289,17 @@ serve(async (req) => {
     // ── listProviders — lista provedores suportados ───────────────────────
     if (action === 'listProviders') {
       return json({
-        providers: Object.entries(PROVIDER_CONFIGS).map(([key, config]) => ({
-          id:    key,
-          name:  key.charAt(0).toUpperCase() + key.slice(1),
-          imap_host: config.imap_host,
-          smtp_host: config.smtp_host,
-        })),
+        providers: Object.entries(PROVIDER_CONFIGS).map(([key, config]) => {
+          const configObj = config as Record<string, unknown>;
+          const imapHost = typeof configObj.imap_host === 'string' ? configObj.imap_host : '';
+          const smtpHost = typeof configObj.smtp_host === 'string' ? configObj.smtp_host : '';
+          return {
+            id:    key,
+            name:  key.charAt(0).toUpperCase() + key.slice(1),
+            imap_host: imapHost,
+            smtp_host: smtpHost,
+          };
+        }),
         note: 'Para Gmail, use a Edge Function gmail-oauth para autenticação OAuth2 (recomendado)',
       });
     }
