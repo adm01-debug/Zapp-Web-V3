@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useMonitoringNotifications');
 import type { ConnectionInfo } from './types';
 
 export function useMonitoringNotifications() {
@@ -29,7 +32,7 @@ export function useMonitoringNotifications() {
               icon: '/favicon.ico',
               tag: `disconnect-${conn.instance_id}`,
             });
-          } catch { /* silent */ }
+          } catch (e) { log.warn('Browser notification failed', e); }
         }
       });
     }

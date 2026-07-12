@@ -281,15 +281,20 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Dependency audit diagnostics
+      - name: Dependency audit (blocking on high/critical)
+        # Fail the build if any HIGH or CRITICAL severity CVE is detected.
+        # Moderate/low vulnerabilities are reported as warnings only.
+        # If bun audit exits non-zero here, pin or replace the offending package.
         run: |
           set +e
           bun audit --audit-level=high
           status=$?
+          set -e
           if [ "$status" -ne 0 ]; then
-            echo "::warning title=Dependency audit::Dependency audit reported findings or the command failed; review logs."
+            echo "::error title=Dependency audit::HIGH or CRITICAL severity vulnerabilities found. Pin or replace the offending packages before merging."
+            exit "$status"
           fi
-          exit 0
+          echo "Dependency audit passed — no high/critical CVEs found."
 
       - name: Check for obvious secrets in code
         run: |
