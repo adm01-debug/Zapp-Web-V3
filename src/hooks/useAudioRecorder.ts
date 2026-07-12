@@ -296,7 +296,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   }, [onRecordingComplete]);
 
   const uploadAudio = useCallback(async (blob: Blob, conversationId: string) => {
-    const fileName = `${conversationId}/${Date.now()}.webm`;
+    const fileName = `${conversationId}/${crypto.randomUUID()}.webm`;
 
     const { error } = await supabase.storage.from('audio-messages').upload(fileName, blob, {
       contentType: 'audio/webm',
