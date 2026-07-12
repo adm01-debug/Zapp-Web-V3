@@ -69,9 +69,15 @@ services:
         let out=src.replace(t1,r1).replace(t2,'');
         console.log('[logpatch] T1+T2 OK: '+src.length+'->'+out.length+' bytes');
         const t3o='Lr.DSN&&Br.init({dsn:Lr.DSN,environment:process.env.NODE_ENV||"development",tracesSampleRate:1,profilesSampleRate:1})';
-        const t3n='Lr.DSN&&Br.init({dsn:Lr.DSN,environment:"production",tracesSampleRate:0.05,profilesSampleRate:0,beforeSend:(event,hint)=>{try{const e=hint&&hint.originalException;if(e){if(e.response&&[401,403].includes(e.response.status))return null;if(e.message&&(e.message.includes("DEVICE_REMOVED")||e.message.includes("Request failed with status code 401")||e.message.includes("status code 403")||e.message.includes("makeBucket")))return null;}}catch(_){}return event;}})';
+        // [FIX OBS-2 2026-07-12] Removed 401 suppression from beforeSend.
+        // Previously: [401,403].includes(e.response.status) filtered BOTH 401 and 403.
+        // 401 = caller using a stale/rotated API key — this is a real signal that must reach
+        // GlitchTip so operators can identify and fix the misconfigured consumer.
+        // 403 = CDN/firewall rejection (legitimate noise) — still suppressed.
+        // Also removed: e.message.includes("Request failed with status code 401") for same reason.
+        const t3n='Lr.DSN&&Br.init({dsn:Lr.DSN,environment:"production",tracesSampleRate:0.05,profilesSampleRate:0,beforeSend:(event,hint)=>{try{const e=hint&&hint.originalException;if(e){if(e.response&&e.response.status===403)return null;if(e.message&&(e.message.includes("DEVICE_REMOVED")||e.message.includes("status code 403")||e.message.includes("makeBucket")))return null;}}catch(_){}return event;}})';
         const c3=out.split(t3o).length-1;
-        if(c3===1){out=out.replace(t3o,t3n);console.log('[logpatch] T3 OK: Sentry+makeBucket+traces5%');} else {console.warn('[logpatch] T3 SKIP: count='+c3);}
+        if(c3===1){out=out.replace(t3o,t3n);console.log('[logpatch] T3 OK: Sentry+makeBucket+traces5% (401-visible)');} else {console.warn('[logpatch] T3 SKIP: count='+c3);}
         var T4='';
         try{T4=fs.readFileSync('/evolution/t4_prologue.cjs','utf8');if(T4.length>50 && T4.indexOf('MASKED')>-1){out=T4+'\n'+out;console.log('[logpatch] T4 OK');} else {console.warn('[logpatch] T4 SKIP');}}
         catch(e){console.warn('[logpatch] T4 SKIP: '+e.message);}
