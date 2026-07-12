@@ -1041,6 +1041,18 @@ Foque em:
     const validSentiments = ['positivo', 'neutro', 'negativo', 'critico'];
     const validUrgencies = ['baixa', 'media', 'alta', 'critica'];
 
+    // C.23: Validate nested agentPerformance numeric fields (1-10 scale)
+    const agentPerf = analysisData.agentPerformance && typeof analysisData.agentPerformance === 'object' ? analysisData.agentPerformance : null;
+    const validatedAgentPerformance = agentPerf ? {
+      empathy: typeof agentPerf.empathy === 'number' ? Math.max(1, Math.min(10, agentPerf.empathy)) : 5,
+      clarity: typeof agentPerf.clarity === 'number' ? Math.max(1, Math.min(10, agentPerf.clarity)) : 5,
+      efficiency: typeof agentPerf.efficiency === 'number' ? Math.max(1, Math.min(10, agentPerf.efficiency)) : 5,
+      knowledge: typeof agentPerf.knowledge === 'number' ? Math.max(1, Math.min(10, agentPerf.knowledge)) : 5,
+    } : null;
+
+    // C.24: Validate churnRisk against valid enum values
+    const validChurnRisks = ['low', 'medium', 'high'];
+
     analysisData = {
       summary: sanitizeString(String(analysisData.summary || 'Resumo não disponível'), 500),
       status: validStatuses.includes(analysisData.status) ? analysisData.status : 'pendente',
@@ -1049,8 +1061,8 @@ Foque em:
       sentiment: validSentiments.includes(analysisData.sentiment) ? analysisData.sentiment : 'neutro',
       sentimentScore: typeof analysisData.sentimentScore === 'number' ? Math.max(0, Math.min(100, analysisData.sentimentScore)) : 50,
       customerSatisfaction: typeof analysisData.customerSatisfaction === 'number' ? Math.max(1, Math.min(5, analysisData.customerSatisfaction)) : 3,
-      agentPerformance: analysisData.agentPerformance && typeof analysisData.agentPerformance === 'object' ? analysisData.agentPerformance : null,
-      churnRisk: analysisData.churnRisk || 'low',
+      agentPerformance: validatedAgentPerformance,
+      churnRisk: validChurnRisks.includes(analysisData.churnRisk) ? analysisData.churnRisk : 'low',
       salesOpportunity: analysisData.salesOpportunity ? sanitizeString(String(analysisData.salesOpportunity), 300) : null,
       topics: Array.isArray(analysisData.topics) ? analysisData.topics.slice(0, 10).map((t: any) => sanitizeString(String(t), 100)) : [],
       urgency: validUrgencies.includes(analysisData.urgency) ? analysisData.urgency : 'media',
@@ -2288,6 +2300,18 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
     const validSentiments = ['positivo', 'neutro', 'negativo', 'critico'];
     const validUrgencies = ['baixa', 'media', 'alta', 'critica'];
 
+    // C.23: Validate nested agentPerformance numeric fields (1-10 scale)
+    const agentPerfAnal = analysisData.agentPerformance && typeof analysisData.agentPerformance === 'object' ? analysisData.agentPerformance : null;
+    const validatedAgentPerformanceAnal = agentPerfAnal ? {
+      empathy: typeof agentPerfAnal.empathy === 'number' ? Math.max(1, Math.min(10, agentPerfAnal.empathy)) : 5,
+      clarity: typeof agentPerfAnal.clarity === 'number' ? Math.max(1, Math.min(10, agentPerfAnal.clarity)) : 5,
+      efficiency: typeof agentPerfAnal.efficiency === 'number' ? Math.max(1, Math.min(10, agentPerfAnal.efficiency)) : 5,
+      knowledge: typeof agentPerfAnal.knowledge === 'number' ? Math.max(1, Math.min(10, agentPerfAnal.knowledge)) : 5,
+    } : null;
+
+    // C.24: Validate churnRisk against valid enum values
+    const validChurnRisksAnal = ['low', 'medium', 'high'];
+
     analysisData = {
       department: ['vendas', 'compras', 'logistica', 'rh', 'financeiro', 'sac', 'outros'].includes(analysisData.department) ? analysisData.department : 'outros',
       relationshipType: analysisData.relationshipType ? sanitizeString(String(analysisData.relationshipType), 200) : 'não identificado',
@@ -2298,8 +2322,8 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       sentiment: validSentiments.includes(analysisData.sentiment) ? analysisData.sentiment : 'neutro',
       sentimentScore: typeof analysisData.sentimentScore === 'number' ? Math.max(0, Math.min(100, analysisData.sentimentScore)) : 50,
       customerSatisfaction: typeof analysisData.customerSatisfaction === 'number' ? Math.max(1, Math.min(5, analysisData.customerSatisfaction)) : 3,
-      agentPerformance: analysisData.agentPerformance && typeof analysisData.agentPerformance === 'object' ? analysisData.agentPerformance : null,
-      churnRisk: analysisData.churnRisk || 'low',
+      agentPerformance: validatedAgentPerformanceAnal,
+      churnRisk: validChurnRisksAnal.includes(analysisData.churnRisk) ? analysisData.churnRisk : 'low',
       salesOpportunity: analysisData.salesOpportunity ? sanitizeString(String(analysisData.salesOpportunity), 300) : null,
       topics: Array.isArray(analysisData.topics) ? analysisData.topics.slice(0, 10).map((t: any) => sanitizeString(String(t), 100)) : [],
       urgency: validUrgencies.includes(analysisData.urgency) ? analysisData.urgency : 'media',
