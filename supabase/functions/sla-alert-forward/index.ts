@@ -10,8 +10,8 @@
 // `SLA_ALERT_WEBHOOK_SECRET` in Lovable Cloud (no code changes needed).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
-import { corsHeaders } from 'https://esm.sh/@supabase/supabase-js@2.95.0/cors';
 import { z } from 'https://esm.sh/zod@3.23.8';
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 
 const PayloadSchema = z.object({
   contact_id: z.string().min(1),
@@ -41,30 +41,28 @@ async function hmacSha256Hex(secret: string, body: string): Promise<string> {
     .join('');
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
     const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
     const SERVICE_ROLE = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     const ANON = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'));
     if (!SUPABASE_URL || !SERVICE_ROLE || !ANON) {
-      return jsonResponse({ error: 'Missing Supabase environment' }, 500);
+      return jsonResponse(req, { error: 'Missing Supabase environment' }, 500);
     }
 
     // 1. Auth — caller must be a logged-in user.
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
+      return jsonResponse(req, { error: 'Unauthorized' }, 401);
     }
     const userClient = createClient(SUPABASE_URL, ANON, {
       global: { headers: { Authorization: authHeader } },
@@ -72,14 +70,14 @@ Deno.serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
     if (claimsErr || !claims?.claims) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
+      return jsonResponse(req, { error: 'Unauthorized' }, 401);
     }
 
     // 2. Validate payload.
     const json = await req.json().catch(() => null);
     const parsed = PayloadSchema.safeParse(json);
     if (!parsed.success) {
-      return jsonResponse({ error: parsed.error.flatten().fieldErrors }, 400);
+      return jsonResponse(req, { error: parsed.error.flatten().fieldErrors }, 400);
     }
     const payload: AlertPayload = {
       ...parsed.data,
@@ -95,7 +93,7 @@ Deno.serve(async (req) => {
 
     if (settingsErr) {
       console.error('[sla-alert-forward] DB error reading settings:', settingsErr.message);
-      return jsonResponse({ error: 'Internal server error' }, 500);
+      return jsonResponse(req, { error: 'Internal server error' }, 500);
     }
 
     const map = new Map((settings ?? []).map((r) => [r.key, r.value]));
@@ -104,13 +102,13 @@ Deno.serve(async (req) => {
 
     if (!url) {
       // Not configured — caller treats this as a no-op success.
-      return jsonResponse({ forwarded: false, reason: 'webhook_not_configured' }, 200);
+      return jsonResponse(req, { forwarded: false, reason: 'webhook_not_configured' }, 200);
     }
     if (!/^https:\/\//i.test(url)) {
-      return jsonResponse({ forwarded: false, reason: 'webhook_url_must_be_https' }, 422);
+      return jsonResponse(req, { forwarded: false, reason: 'webhook_url_must_be_https' }, 422);
     }
     if (!['POST', 'PUT'].includes(method)) {
-      return jsonResponse({ forwarded: false, reason: 'invalid_method' }, 422);
+      return jsonResponse(req, { forwarded: false, reason: 'invalid_method' }, 422);
     }
 
     // 4. Forward (best-effort, with timeout).
@@ -127,18 +125,15 @@ Deno.serve(async (req) => {
       const res = await fetch(url, { method, headers, body, signal: ctrl.signal });
       const ok = res.ok;
       const text = await res.text().catch(() => '');
-      return jsonResponse(
-        { forwarded: ok, status: res.status, response: text.slice(0, 500) },
-        ok ? 200 : 502,
-      );
+      return jsonResponse(req, { forwarded: ok, status: res.status, response: text.slice(0, 500) }, ok ? 200 : 502);
     } catch (err) {
       console.error('[sla-alert-forward] fetch failed', err instanceof Error ? err.message : String(err));
-      return jsonResponse({ forwarded: false, reason: 'fetch_failed', error: 'Network error forwarding alert' }, 502);
+      return jsonResponse(req, { forwarded: false, reason: 'fetch_failed', error: 'Network error forwarding alert' }, 502);
     } finally {
       clearTimeout(timer);
     }
   } catch (err) {
     console.error('[sla-alert-forward]', err instanceof Error ? err.message : String(err));
-    return jsonResponse({ error: 'Internal server error' }, 500);
+    return jsonResponse(req, { error: 'Internal server error' }, 500);
   }
 });
