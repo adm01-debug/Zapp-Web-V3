@@ -78,7 +78,8 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
         const { data: users } = await supabase
           .from('profiles')
           .select('id, name')
-          .in('id', userIds);
+          .in('id', userIds)
+          .limit(userIds.length);
         usersMap = new Map(users?.map((u) => [u.id, u.name]) || []);
       }
 

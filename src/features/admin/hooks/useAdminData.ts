@@ -92,7 +92,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         ];
         const { data: profiles } =
           userIds.length > 0
-            ? await supabase.from('profiles').select('user_id, name, email').in('user_id', userIds)
+            ? await supabase.from('profiles').select('user_id, name, email').in('user_id', userIds).limit(userIds.length)
             : { data: [] };
 
         const logsWithUsers: AuditLog[] = logs.map((log) => ({

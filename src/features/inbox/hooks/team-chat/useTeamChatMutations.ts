@@ -219,7 +219,8 @@ export function useCreateTeamConversation() {
             .from('team_conversation_members')
             .select('conversation_id')
             .eq('profile_id', otherId)
-            .in('conversation_id', myConvIds);
+            .in('conversation_id', myConvIds)
+            .limit(myConvIds.length);
           if (sharedErr) throw sharedErr;
           const sharedIds = (shared ?? []).map((m) => m.conversation_id);
           if (sharedIds.length > 0) {

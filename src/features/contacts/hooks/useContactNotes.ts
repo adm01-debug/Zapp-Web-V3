@@ -65,7 +65,8 @@ export function useContactNotes(contactId: string) {
       const { data: authors } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
-        .in('id', authorIds);
+        .in('id', authorIds)
+        .limit(authorIds.length);
 
       const authorsMap = new Map(authors?.map(a => [a.id, a]) || []);
 
