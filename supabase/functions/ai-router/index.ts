@@ -220,13 +220,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ━━━ PHASE 2: Rate Limiting (IP-based DOS protection) ━━━
-    const rateLimitKey = `ai_router:${action}:${ip}`;
+    // ━━━ PHASE 2: Rate Limiting (Per-user + IP-based DOS protection) ━━━
+    const rateLimitKey = `ai_router:${action}:${userId}:${ip}`;
     const rateLimit = ACTION_RATE_LIMITS[action];
     const { allowed } = checkRateLimit(rateLimitKey, rateLimit, 60_000);
 
     if (!allowed) {
-      log.warn("Rate limit exceeded", { action, ip });
+      log.warn("Rate limit exceeded", { action, userId, ip });
       return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
     }
 
