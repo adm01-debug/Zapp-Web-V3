@@ -67,10 +67,12 @@ export function useWhatsAppTemplates() {
       setLoading(true);
       const PAGE = 1000;
       const all: WhatsAppTemplate[] = [];
-      // Keyset/cursor pagination on (updated_at DESC, id DESC) so rows that are
-      // updated or inserted while we're loading pages cannot shift across page
-      // boundaries and cause duplicates or skips — unlike offset pagination where
-      // a row update moves the row to the front and bumps everything else down.
+      // Keyset/cursor pagination on (updated_at DESC, id DESC) reduces boundary
+      // skips compared to offset pagination, but because updated_at is mutable a
+      // concurrent write can still move a row past the cursor (omission) or
+      // back into an already-fetched range (duplication).  We deduplicate by id
+      // after accumulation to eliminate the duplication case; rare omissions are
+      // acceptable and self-heal on the next fetchTemplates() call.
       let cursor: { updatedAt: string; id: string } | null = null;
       while (true) {
         let query = supabase
@@ -99,7 +101,9 @@ export function useWhatsAppTemplates() {
       }
       // Guard against a slower earlier fetch overwriting a newer result.
       if (fetchSeqRef.current !== seq) return;
-      setTemplates(all);
+      // Deduplicate by id to drop any rows duplicated by concurrent updated_at mutations.
+      const seen = new Set<string>();
+      setTemplates(all.filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true; }));
     } catch (err) {
       log.error('Error fetching templates:', err);
       toast.error('Erro ao carregar templates');
