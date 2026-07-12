@@ -191,7 +191,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       currentDisconnected.forEach((id) => {
         if (!prevDisconnectedRef.current.has(id)) {
           const row = rowByInstanceId.get(id);
-          const displayName = row?.instance_name || row?.name || id;
+          const displayName = (row ? evolutionInstanceName(row) : null) ?? row?.name ?? id;
           newlyDown.push({ instance_id: id, instance_name: row?.instance_name ?? null, name: row?.name ?? null, at: Date.now() });
           toast.warning(`Conexão "${displayName}" caiu`, {
             description: 'Mensagens podem não ser entregues. Clique no indicador para reconectar.',

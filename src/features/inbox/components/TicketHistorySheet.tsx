@@ -124,7 +124,7 @@ function describeAudit(e: any): UnifiedEvent {
   const attemptNumber: number | undefined = details.attempt_number ?? e.attempt_number;
 
   let label = 'Evento de Outbound';
-  let detail = e.status;
+  let detail = status;
 
   if (action === 'send_attempt') {
     label = 'Tentativa de Envio';
