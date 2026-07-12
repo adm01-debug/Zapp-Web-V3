@@ -427,8 +427,34 @@ async function handleAutoTag(
   const parsed = parseBody(AiAutoTagSchema, body);
   if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
-  const { contactId, messages: inputMessages } = parsed.data;
+  const { contactId, messages: inputMessages, requestId } = parsed.data;
   const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
+
+  // P1-FIX-008: Idempotency check - prevent duplicate processing of retried requests
+  if (requestId) {
+    try {
+      const { data: dupCheck } = await supabase.rpc('check_duplicate_request', {
+        p_request_id: requestId,
+        p_action: 'auto_tag',
+        p_user_id: userId,
+      });
+
+      if (dupCheck && dupCheck.length > 0 && dupCheck[0].is_duplicate) {
+        log.info('Duplicate request detected, returning cached result', { requestId });
+        return jsonResponse(
+          dupCheck[0].cached_result || { tags: [], status: 'duplicate' },
+          dupCheck[0].status_code || 200,
+          req
+        );
+      }
+    } catch (e) {
+      // Log but continue - dedup is an optimization, not a blocker
+      log.warn('Dedup check failed, proceeding with processing', {
+        error: e instanceof Error ? e.message : String(e),
+        requestId,
+      });
+    }
+  }
 
   let conversationMessages = inputMessages;
   if (!conversationMessages && validContactId) {
@@ -591,6 +617,25 @@ Responda APENAS em JSON:
           }))
         );
       }
+    }
+  }
+
+  // P1-FIX-008: Cache the result for idempotency on retries
+  if (requestId) {
+    try {
+      await supabase.rpc('record_processed_request', {
+        p_request_id: requestId,
+        p_action: 'auto_tag',
+        p_user_id: userId,
+        p_contact_id: validContactId,
+        p_status_code: 200,
+        p_result_payload: result,
+      });
+    } catch (e) {
+      log.warn('Failed to cache request for dedup', {
+        error: e instanceof Error ? e.message : String(e),
+        requestId,
+      });
     }
   }
 

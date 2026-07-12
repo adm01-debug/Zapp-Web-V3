@@ -110,6 +110,7 @@ export const AiAutoTagSchema = z.object({
     content: z.string(),
     message_type: z.string().optional(),
   })).optional().nullable(),
+  requestId: z.string().optional(), // For idempotency deduplication (P1-FIX-008)
 });
 
 /** Schema para análise de churn (ai-churn-analysis) */
