@@ -350,6 +350,22 @@ Deno.serve(async (req) => {
     const params = { ...(body.params ?? {}) };
     delete params.__cid;
 
+    // Validate parameters: reject if not plain object or contains untrusted types
+    if (typeof params !== "object" || params === null || Array.isArray(params)) {
+      console.warn('[external-db-proxy] rpc validation: invalid params type', { rpc, cid, type: typeof params });
+      return jsonResponse(req, { error: "Invalid rpc parameters", cid, rid }, 400);
+    }
+
+    // Sanitize: remove any keys with null/undefined/function values to prevent injection
+    for (const [key, value] of Object.entries(params)) {
+      if (typeof value === "function" || typeof value === "symbol" || typeof value === "undefined") {
+        console.warn('[external-db-proxy] rpc validation: unsafe param type rejected', { rpc, cid, key, value_type: typeof value });
+        return jsonResponse(req, { error: "Invalid rpc parameter value type", cid, rid }, 400);
+      }
+    }
+
+    console.log('[external-db-proxy] rpc call', { rpc, cid, param_count: Object.keys(params).length });
+
     try {
       const { data, error } = await supabase.rpc(rpc, params);
       if (error) {
