@@ -279,10 +279,10 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      // safeClient.from() sempre retorna T[] (coage qualquer resultado não-array
-      // para []), então um `.maybeSingle()` "não encontrado" (null) virava [] —
-      // truthy — e a verificação abaixo nunca detectava a ausência do registro.
-      // safeClient.single() é o método correto para leitura de linha única.
+      // Exige exatamente uma configuração correspondente antes de concluir o
+      // salvamento — safeClient.single() é o método correto para leitura de
+      // linha única (retorna null quando não encontrado, ao contrário de
+      // safeClient.from(), que sempre resolve para um array).
       const { data: verify, error: verifyError } = await safeClient.single<any>(
         'system_connections',
         (q) => q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X')

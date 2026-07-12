@@ -218,10 +218,16 @@ serve(async (req) => {
 
       // Interpolação de query params direto em <script> permite reflected XSS
       // (ex.: ?error='});alert(document.cookie);// escaparia da string literal).
-      // JSON.stringify() produz um literal JS seguro para embutir inline.
+      // JSON.stringify() sozinho não basta: ele escapa a sintaxe de string JS mas
+      // NÃO escapa a sequência literal `</script>`, que fecharia a tag e injetaria
+      // HTML/script arbitrário mesmo dentro de um literal JSON válido. Escapamos
+      // `<` para `<` em todo valor antes de embutir inline.
+      const safeJsonForScript = (value: unknown): string =>
+        JSON.stringify(value).replace(/</g, '\\u003c');
+
       if (errorP) {
         return new Response(
-          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:${JSON.stringify(errorP)},state:${JSON.stringify(state)}},'*');window.close()</script>`,
+          `<script>window.opener?.postMessage({type:'gmail-oauth-error',error:${safeJsonForScript(errorP)},state:${safeJsonForScript(state)}},'*');window.close()</script>`,
           { headers: { 'Content-Type': 'text/html' } }
         );
       }
@@ -233,7 +239,7 @@ serve(async (req) => {
       // com o user.id da vítima (account-linking hijack).
       return new Response(
         `<script>
-          window.opener?.postMessage({type:'gmail-oauth-code',code:${JSON.stringify(code)},state:${JSON.stringify(state)}},'*');
+          window.opener?.postMessage({type:'gmail-oauth-code',code:${safeJsonForScript(code)},state:${safeJsonForScript(state)}},'*');
           window.close();
         </script>`,
         { headers: { 'Content-Type': 'text/html' } }

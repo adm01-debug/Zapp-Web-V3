@@ -70,9 +70,14 @@ function writeDedupeStore(store: DedupeStore): void {
   }
 }
 
-function alreadyFiredLocal(key: string): boolean {
+/** Retorna o `firedAt` (ms) armazenado para `key`, ou `null` se não disparou
+ *  localmente dentro do TTL. Preservar o timestamp real (em vez de apenas
+ *  um boolean) permite ao chamador hidratar `firedRef` sem resetar o relógio
+ *  do TTL para agora — o mesmo motivo pelo qual a hidratação via DB preserva
+ *  `persistedAt` em vez de usar `Date.now()`. */
+function alreadyFiredLocal(key: string): number | null {
   const store = readDedupeStore();
-  return key in store;
+  return key in store ? store[key] : null;
 }
 
 /** `firedAt` opcional: usado na hidratação a partir do banco, para preservar
@@ -168,8 +173,12 @@ export function useSLAAlerts(params: SLAAlertParams) {
       if (inMemoryFresh || inflightRef.current.has(key)) return;
 
       // Layer 2: localStorage (sync, survives refresh) — instant skip without network round-trip.
-      if (alreadyFiredLocal(key)) {
-        firedRef.current.set(key, Date.now());
+      // Preserva o horário REAL armazenado (não Date.now()) — mesma razão da
+      // hidratação via DB abaixo: resetar o relógio aqui estenderia a supressão
+      // local por +24h completas a cada re-render/remontagem do componente.
+      const localFiredAt = alreadyFiredLocal(key);
+      if (localFiredAt !== null) {
+        firedRef.current.set(key, localFiredAt);
         return;
       }
 
