@@ -41,12 +41,12 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
     const { data } = await supabase
       .from('whatsapp_connections')
       .select(
-        'id, name, instance_id, instance_name, health_status, health_response_ms, last_health_check, degraded_at'
+        'id, name, instance_id, health_status, health_response_ms, last_health_check, degraded_at'
       )
       .eq('health_status', 'degraded')
       .gte('last_health_check', since);
     if (!mountedRef.current) return;
-    setDegraded(Array.isArray(data) ? (data as DegradedInstance[]) : []);
+    setDegraded(Array.isArray(data) ? (data as unknown as DegradedInstance[]) : []);
   }, [recentWindowMs]);
 
   useEffect(() => {

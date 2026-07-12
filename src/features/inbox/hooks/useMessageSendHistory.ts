@@ -83,7 +83,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         };
       }
       const supa = supabase as unknown as UntypedClient;
-      const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
+      const results = await Promise.allSettled([
         supa
           .from('evolution_retry_metrics')
           .select('*')
@@ -105,6 +105,23 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
           .order('created_at', { ascending: false })
           .limit(10),
       ]);
+
+      const metricRes =
+        results[0].status === 'fulfilled' ? results[0].value : { data: null, error: null };
+      const auditRes =
+        results[1].status === 'fulfilled' ? results[1].value : { data: [], error: null };
+      const outboundAuditRes =
+        results[2].status === 'fulfilled' ? results[2].value : { data: [], error: null };
+
+      const failures = results
+        .map((r, i) => (r.status === 'rejected' ? i : -1))
+        .filter((i) => i >= 0);
+      if (failures.length > 0) {
+        const labels = ['retryMetrics', 'auditLogs', 'outboundAudit'];
+        console.warn(
+          `useMessageSendHistory(${messageId}): Failed to load ${failures.map((i) => labels[i]).join(', ')}`
+        );
+      }
 
       const auditEntries = (auditRes.data ?? []).map((e) => ({
         id: e.id,

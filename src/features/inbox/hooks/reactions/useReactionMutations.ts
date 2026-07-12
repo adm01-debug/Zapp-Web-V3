@@ -36,20 +36,24 @@ const trackReactionEvent = (
   mutationLog.info(`[Analytics] Reaction Event: ${action}`, { ...data, eventKey });
 
   // Forward to Operations Audit Log (audit_logs table)
-  void supabase
-    .from('audit_logs')
-    .insert({
-      action: `Reaction Event: ${action}`,
-      entity_type: 'message_reaction',
-      entity_id: data.messageId,
-      details: {
-        emoji: data.emoji,
-        status: data.status,
-        code: data.code,
-        event_key: eventKey,
-      },
-    })
-    .catch((err: unknown) => mutationLog.warn('[audit] reaction event log failed', err));
+  void supabase;
+  void (async () => {
+    try {
+      await supabase.from('audit_logs').insert({
+        action: `Reaction Event: ${action}`,
+        entity_type: 'message_reaction',
+        entity_id: data.messageId,
+        details: {
+          emoji: data.emoji,
+          status: data.status,
+          code: data.code,
+          event_key: eventKey,
+        },
+      });
+    } catch (err: unknown) {
+      mutationLog.warn('[audit] reaction event log failed', err);
+    }
+  })();
 };
 
 export function useReactionMutations(

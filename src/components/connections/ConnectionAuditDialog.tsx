@@ -129,11 +129,14 @@ export function ConnectionAuditDialog({
 
                     {log.details && (
                       <div className="mt-2 rounded border bg-card p-2 text-xs text-muted-foreground">
-                        {log.details.cause && (
-                          <p className="mb-1 font-medium text-destructive">
-                            Motivo: {log.details.cause}
-                          </p>
-                        )}
+                        {typeof log.details === 'object' &&
+                          log.details !== null &&
+                          'cause' in log.details &&
+                          typeof (log.details as Record<string, unknown>).cause === 'string' && (
+                            <p className="mb-1 font-medium text-destructive">
+                              Motivo: {(log.details as Record<string, unknown>).cause}
+                            </p>
+                          )}
                         <pre className="overflow-x-auto whitespace-pre-wrap font-mono">
                           {JSON.stringify(log.details, null, 2)}
                         </pre>

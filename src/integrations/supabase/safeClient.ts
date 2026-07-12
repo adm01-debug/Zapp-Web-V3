@@ -293,8 +293,7 @@ export const safeClient = {
       } else {
         type RpcRequest = Parameters<typeof supabase.rpc>[0];
         const rpcCall = supabase.rpc(name as RpcRequest);
-        type RpcResult = ReturnType<typeof rpcCall>;
-        const { error } = await (rpcCall as RpcResult).limit(0);
+        const { error } = await rpcCall.limit(0);
         if (!error) {
           exists = true;
         } else {

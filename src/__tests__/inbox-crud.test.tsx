@@ -32,7 +32,7 @@ describe('Inbox CRUD Flows', () => {
         timestamp: new Date(),
         conversationId: 'contact-1',
         type: 'text',
-        status: 'received',
+        status: 'delivered',
       },
     ];
     vi.mocked(messageService.getAllMessagesForContact).mockResolvedValueOnce(mockMessages);
@@ -77,7 +77,7 @@ describe('Inbox CRUD Flows', () => {
         timestamp: new Date(),
         conversationId: 'contact-1',
         type: 'text',
-        status: 'received',
+        status: 'delivered',
       },
     ];
     vi.mocked(messageService.getAllMessagesForContact).mockResolvedValueOnce(mockMessages);

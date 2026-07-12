@@ -32,9 +32,9 @@ export function EmailWebhookMonitor() {
       // Best-effort load: mirrors legacy behavior — failures degrade to empty data
       // (the panel renders an empty state rather than surfacing an error).
       try {
-        const { data: emailAccounts } = await safeClient.rpc('get_own_email_accounts');
-        const accounts = (emailAccounts || []).map((a: any) => ({
-          // ignore-audit
+        const { data: emailAccounts } =
+          await safeClient.rpc<EmailAccount[]>('get_own_email_accounts');
+        const accounts = (Array.isArray(emailAccounts) ? emailAccounts : []).map((a) => ({
           ...a,
           history_id: null,
         })) as EmailAccount[];
