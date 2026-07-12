@@ -136,13 +136,20 @@ export function ConnectionAuditDialog({
                       </span>
                     </div>
 
-                    {log.details && (
+                    {Object.keys(log.details).length > 0 && (
                       <div className="mt-2 rounded border bg-card p-2 text-xs text-muted-foreground">
-                        {log.details.cause ? (
-                          <p className="mb-1 font-medium text-destructive">
-                            Motivo: {String(log.details.cause)}
-                          </p>
-                        ) : null}
+                        {(() => {
+                          const raw = log.details.cause;
+                          const cause: string | number | boolean | null =
+                            typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean'
+                              ? raw
+                              : raw == null
+                                ? null
+                                : JSON.stringify(raw);
+                          return cause !== null && cause !== '' ? (
+                            <p className="mb-1 font-medium text-destructive">Motivo: {cause}</p>
+                          ) : null;
+                        })()}
                         <pre className="overflow-x-auto whitespace-pre-wrap font-mono">
                           {JSON.stringify(log.details, null, 2)}
                         </pre>
