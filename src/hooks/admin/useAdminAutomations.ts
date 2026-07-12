@@ -134,7 +134,18 @@ export function useAdminAutomations() {
   };
 
   const toggleActive = async (r: Rule) => {
-    await supabase.from('automations').update({ is_active: !r.is_active }).eq('id', r.id);
+    const { error } = await supabase
+      .from('automations')
+      .update({ is_active: !r.is_active })
+      .eq('id', r.id);
+    if (error) {
+      toast({
+        title: 'Erro ao alterar status',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
     load();
   };
 
