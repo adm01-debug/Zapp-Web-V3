@@ -255,8 +255,77 @@ function jsonResponse(req: Request, payload: Record<string, unknown>, status: nu
   });
 }
 
+// ─────────────────────────────────────────────────────────────
+// MED-8 · Observabilidade in-memory (Prometheus text exposition)
+// Zero-dep. Reset a cada cold start (aceito — cardinalidade baixa).
+// ─────────────────────────────────────────────────────────────
+type MetricLabels = Record<string, string | number | undefined>;
+const metricCounters = new Map<string, number>();
+const metricLatencyBuckets: number[] = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
+const metricLatency = new Map<string, { buckets: number[]; sum: number; count: number }>();
+const bootAt = Date.now();
+
+function labelKey(name: string, labels?: MetricLabels): string {
+  if (!labels) return name;
+  const parts = Object.entries(labels)
+    .filter(([, v]) => v !== undefined && v !== "")
+    .map(([k, v]) => `${k}="${String(v).replace(/[\\"\n]/g, "_")}"`);
+  return parts.length ? `${name}{${parts.join(",")}}` : name;
+}
+function inc(name: string, labels?: MetricLabels, delta = 1): void {
+  const k = labelKey(name, labels);
+  metricCounters.set(k, (metricCounters.get(k) ?? 0) + delta);
+}
+function observeMs(name: string, ms: number, labels?: MetricLabels): void {
+  const k = labelKey(name, labels);
+  let h = metricLatency.get(k);
+  if (!h) {
+    h = { buckets: metricLatencyBuckets.map(() => 0), sum: 0, count: 0 };
+    metricLatency.set(k, h);
+  }
+  for (let i = 0; i < metricLatencyBuckets.length; i++) {
+    if (ms <= metricLatencyBuckets[i]) h.buckets[i] += 1;
+  }
+  h.sum += ms;
+  h.count += 1;
+}
+function renderPrometheus(): string {
+  const lines: string[] = [];
+  lines.push("# HELP proxy_uptime_seconds Seconds since edge cold start");
+  lines.push("# TYPE proxy_uptime_seconds gauge");
+  lines.push(`proxy_uptime_seconds ${((Date.now() - bootAt) / 1000).toFixed(1)}`);
+  lines.push("# HELP proxy_requests_total Total proxy requests by method and status");
+  lines.push("# TYPE proxy_requests_total counter");
+  for (const [k, v] of metricCounters) lines.push(`${k} ${v}`);
+  lines.push("# HELP proxy_request_duration_ms Latency histogram (ms)");
+  lines.push("# TYPE proxy_request_duration_ms histogram");
+  for (const [k, h] of metricLatency) {
+    const base = k.includes("{") ? k.slice(0, -1) + "," : k + "{";
+    for (let i = 0; i < metricLatencyBuckets.length; i++) {
+      lines.push(`${base}le="${metricLatencyBuckets[i]}"} ${h.buckets[i]}`);
+    }
+    lines.push(`${base}le="+Inf"} ${h.count}`);
+    lines.push(`${k.replace(/proxy_request_duration_ms/, "proxy_request_duration_ms_sum")} ${h.sum}`);
+    lines.push(`${k.replace(/proxy_request_duration_ms/, "proxy_request_duration_ms_count")} ${h.count}`);
+  }
+  return lines.join("\n") + "\n";
+}
+
 Deno.serve(async (req) => {
+  const _t0 = Date.now();
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
+
+  // Métricas Prometheus (sem auth — só contadores agregados, sem PII)
+  {
+    const u = new URL(req.url);
+    if (req.method === "GET" && u.pathname.endsWith("/metrics")) {
+      return new Response(renderPrometheus(), {
+        status: 200,
+        headers: { ...getCorsHeaders(req), "Content-Type": "text/plain; version=0.0.4" },
+      });
+    }
+  }
+
 
   // Health GET does not require auth; all data-access paths (POST + health=1) do
   const url = new URL(req.url);
