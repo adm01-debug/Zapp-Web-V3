@@ -41,14 +41,14 @@ export function QueueContactsTable({ contacts }: { contacts: QueueContact[] }) {
                   <TableRow key={contact.id} className="border-border/20 hover:bg-muted/10">
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Avatar className="w-8 h-8"><AvatarImage src={contact.avatar_url || undefined} /><AvatarFallback className="bg-primary/10 text-primary text-xs">{contact.name[0]}</AvatarFallback></Avatar>
+                        <Avatar className="w-8 h-8"><AvatarImage src={contact.avatar_url || undefined} alt={contact.name} /><AvatarFallback className="bg-primary/10 text-primary text-xs">{contact.name[0]}</AvatarFallback></Avatar>
                         <div><p className="font-medium text-foreground">{contact.name}</p><p className="text-xs text-muted-foreground">{contact.phone}</p></div>
                       </div>
                     </TableCell>
                     <TableCell>
                       {contact.assigned_agent ? (
                         <div className="flex items-center gap-2">
-                          <Avatar className="w-6 h-6"><AvatarImage src={contact.assigned_agent.avatar_url || undefined} /><AvatarFallback className="text-xs">{contact.assigned_agent.name[0]}</AvatarFallback></Avatar>
+                          <Avatar className="w-6 h-6"><AvatarImage src={contact.assigned_agent.avatar_url || undefined} alt={contact.assigned_agent.name} /><AvatarFallback className="text-xs">{contact.assigned_agent.name[0]}</AvatarFallback></Avatar>
                           <span className="text-sm">{contact.assigned_agent.name}</span>
                         </div>
                       ) : <Badge variant="outline" className="text-warning border-warning/30">Aguardando</Badge>}

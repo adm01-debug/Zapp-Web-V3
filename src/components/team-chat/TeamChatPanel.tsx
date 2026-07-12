@@ -308,7 +308,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                           <div 
                             className={cn("flex gap-2 py-0.5 relative", isMine ? "justify-end" : "justify-start")}
                           >
-                            {!isMine && <Avatar className="w-7 h-7 mt-1 shrink-0"><AvatarImage src={msg.sender?.avatar_url || undefined} /><AvatarFallback className="text-[10px] bg-muted">{msg.sender?.name?.charAt(0) || '?'}</AvatarFallback></Avatar>}
+                            {!isMine && <Avatar className="w-7 h-7 mt-1 shrink-0"><AvatarImage src={msg.sender?.avatar_url || undefined} alt={msg.sender?.name || ""} /><AvatarFallback className="text-[10px] bg-muted">{msg.sender?.name?.charAt(0) || '?'}</AvatarFallback></Avatar>}
                             
                             <div className={cn("max-w-[70%] space-y-1 relative")}>
                               <TeamQuickReactionBar 

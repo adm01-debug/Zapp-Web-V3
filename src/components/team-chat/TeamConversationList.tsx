@@ -182,7 +182,7 @@ export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function T
                 )}
               >
                 <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarImage src={conv.avatar_url || undefined} />
+                  <AvatarImage src={conv.avatar_url || undefined} alt={conv.name || ""} />
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {conv.type === 'department' ? (
                       <Building2 className="h-4 w-4" />

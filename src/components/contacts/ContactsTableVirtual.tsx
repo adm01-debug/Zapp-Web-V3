@@ -98,7 +98,7 @@ const ContactRow = memo(
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="relative shrink-0">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={contact.avatar_url || undefined} />
+              <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
               <AvatarFallback
                 className={cn('text-xs font-semibold', avatarColors.bg, avatarColors.text)}
               >

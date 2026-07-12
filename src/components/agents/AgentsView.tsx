@@ -179,7 +179,7 @@ export function AgentsView() {
                             agent.status === 'away' && 'ring-status-away/50',
                             agent.status === 'offline' && 'ring-border/30'
                           )}>
-                            <AvatarImage src={agent.avatar_url || undefined} />
+                            <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />
                             <AvatarFallback className={cn('font-semibold', getAvatarColor(agent.name).bg, getAvatarColor(agent.name).text)}>
                               {getInitials(agent.name)}
                             </AvatarFallback>

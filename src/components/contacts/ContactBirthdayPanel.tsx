@@ -93,7 +93,7 @@ export function ContactBirthdayPanel({ contacts, onContactClick }: ContactBirthd
                   )}
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={item.contact.avatar_url || undefined} />
+                    <AvatarImage src={item.contact.avatar_url || undefined} alt={item.contact.name} />
                     <AvatarFallback className={cn(colors.bg, colors.text, 'text-[10px]')}>
                       {getInitials(item.contact.name)}
                     </AvatarFallback>

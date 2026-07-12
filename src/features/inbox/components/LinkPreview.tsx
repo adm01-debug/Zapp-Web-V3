@@ -89,7 +89,7 @@ export function LinkPreview({ url, className, compact = false, showRemove, onRem
       className={cn("block rounded-xl overflow-hidden border border-border/50 bg-card hover:border-primary/30 transition-all group", className)}>
       {metadata.image && !imageError && (
         <div className="relative aspect-video bg-muted overflow-hidden">
-          <img src={metadata.image} alt={metadata.title || ''} onError={() => setImageError(true)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <img src={metadata.image} alt={metadata.title || metadata.siteName || getDomain(url)} onError={() => setImageError(true)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           {metadata.type === 'video' && <div className="absolute inset-0 flex items-center justify-center bg-background/30"><div className="p-3 rounded-full bg-background/90 group-hover:scale-110 transition-transform"><Play className="w-6 h-6 text-foreground fill-black" /></div></div>}
         </div>
       )}

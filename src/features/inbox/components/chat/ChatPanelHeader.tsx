@@ -113,6 +113,7 @@ export function ChatPanelHeader({
           <Avatar className="h-9 w-9 border border-border/50 shadow-sm md:h-11 md:w-11">
             <AvatarImage
               src={avatarUrl || undefined}
+              alt={conversation.contact.name}
               referrerPolicy="no-referrer"
               onError={(e) => {
                 (e.target as HTMLImageElement).removeAttribute('src');

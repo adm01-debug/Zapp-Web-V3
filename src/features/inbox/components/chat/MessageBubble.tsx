@@ -182,6 +182,7 @@ export const MessageBubble = memo(function MessageBubble({
               <Avatar className="h-[36px] w-[36px] border border-border/10 shadow-sm ring-2 ring-background">
                 <AvatarImage
                   src={avatarUrl || undefined}
+                  alt={senderName}
                   referrerPolicy="no-referrer"
                   onError={(e) => (e.target as HTMLImageElement).removeAttribute('src')}
                 />

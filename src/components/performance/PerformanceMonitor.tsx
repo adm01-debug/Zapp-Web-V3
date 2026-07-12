@@ -172,7 +172,7 @@ export function PerformanceMonitor() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-6">
             <div className="relative">
-              <svg className="w-24 h-24 -rotate-90" viewBox="0 0 36 36">
+              <svg className="w-24 h-24 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={overallScore >= 80 ? 'hsl(var(--primary))' : overallScore >= 50 ? 'hsl(40, 100%, 50%)' : 'hsl(var(--destructive))'} strokeWidth="3" strokeDasharray={`${overallScore}, 100`} />
               </svg>

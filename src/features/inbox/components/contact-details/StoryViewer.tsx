@@ -166,7 +166,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
                 mediaLoading ? (
                   <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" /><p className="text-sm">Carregando imagem...</p></div>
                 ) : resolvedMedia.src ? (
-                  <img src={resolvedMedia.src} alt="Status" className="max-w-full max-h-[65vh] object-contain rounded-lg" loading="eager" />
+                  <img src={resolvedMedia.src} alt={textContent ? `Status de ${pushName || 'Contato'}: ${textContent}` : `Status de ${pushName || 'Contato'}`} className="max-w-full max-h-[65vh] object-contain rounded-lg" loading="eager" />
                 ) : (
                   <div className="text-center text-foreground/70 space-y-2"><ImageIcon className="w-8 h-8 mx-auto" /><p className="text-sm">{mediaError || 'Imagem indisponível'}</p></div>
                 )

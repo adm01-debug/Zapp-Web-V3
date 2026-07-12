@@ -293,7 +293,7 @@ export function BehaviorRadar({ decisionPower, formalityLevel, discProfile }: { 
   const gridPoly = gridPoints.map(p => `${p.x},${p.y}`).join(' ');
 
   return (
-    <svg viewBox="0 0 96 96" className="w-full h-full">
+    <svg viewBox="0 0 96 96" className="w-full h-full" aria-hidden="true">
       <polygon points={gridPoly} fill="none" stroke="hsl(var(--muted))" strokeWidth="0.5" opacity="0.4" />
       {axes.map((a) => { const ep = getPoint(a.angle, 1); return <line key={a.label} x1={cx} y1={cy} x2={ep.x} y2={ep.y} stroke="hsl(var(--muted))" strokeWidth="0.5" opacity="0.3" />; })}
       <motion.polygon points={poly} fill="hsl(var(--primary))" fillOpacity="0.15" stroke="hsl(var(--primary))" strokeWidth="1.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }} />

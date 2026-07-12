@@ -19,7 +19,7 @@ export function CompactContactHeader({ contact, isVip, companyName, firstName }:
       className="flex items-center gap-3 px-4 py-2.5 border-b border-border/10 bg-background">
       <div className="relative">
         <Avatar className="w-[44px] h-[44px] ring-1 ring-border/20 shadow-sm">
-          <AvatarImage src={contact.avatar} />
+          <AvatarImage src={contact.avatar} alt={contact.name} />
           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
             {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
           </AvatarFallback>

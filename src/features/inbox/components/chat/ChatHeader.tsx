@@ -165,6 +165,7 @@ export const ChatHeader = memo(function ChatHeader({
           <Avatar className="h-[44px] w-[44px] border border-border/10 shadow-xl ring-2 ring-background transition-shadow group-hover:shadow-primary/20">
             <AvatarImage
               src={avatarUrl || undefined}
+              alt={conversation.contact.name}
               referrerPolicy="no-referrer"
               className="h-full w-full object-cover"
               onError={(e) => {

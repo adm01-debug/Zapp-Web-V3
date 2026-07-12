@@ -48,7 +48,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
           <div className="flex items-start justify-between">
             <motion.div layoutId={`avatar-${contact.id}`}>
               <Avatar className="w-20 h-20 border-4 border-background shadow-xl">
-                <AvatarImage src={contact.avatar_url || ''} />
+                <AvatarImage src={contact.avatar_url || ''} alt={contact.name} />
                 <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
                   {initials}
                 </AvatarFallback>

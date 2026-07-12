@@ -169,6 +169,7 @@ export function ContactHeaderSection({
             >
               <AvatarImage
                 src={contact.avatar}
+                alt={contact.name}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   (e.target as HTMLImageElement).removeAttribute('src');
