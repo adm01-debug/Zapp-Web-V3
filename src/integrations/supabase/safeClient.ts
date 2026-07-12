@@ -181,7 +181,7 @@ export const maskSensitiveData = (
 async function executeQuery<T>(
   operation: string,
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
+  callback: (q: SafeQueryBuilder) => AnyQueryResult
 ): Promise<SafeResponse<T>> {
   const requestId = generateRequestId();
   telemetry.stats.totalCalls++;
@@ -209,7 +209,7 @@ async function executeQuery<T>(
 
 async function executeSingle<T>(
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
+  callback: (q: SafeQueryBuilder) => AnyQueryResult
 ): Promise<SafeResponse<T>> {
   return executeQuery<T>('single', table, (q) => {
     const query = callback(q) as AnyQueryBuilderResult;
@@ -219,7 +219,7 @@ async function executeSingle<T>(
 
 async function executeFrom<T>(
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
+  callback: (q: SafeQueryBuilder) => AnyQueryResult
 ): Promise<SafeResponse<T[]>> {
   const result = await executeQuery<T[]>('from', table, callback);
   return result;
