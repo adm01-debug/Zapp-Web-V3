@@ -165,7 +165,12 @@ Deno.test('unmarkEventProcessed | never throws when the delete errors (fail-safe
   const result = await unmarkEventProcessed(sb, 'wpp2:call:zzz', 'wpp2', 'call');
   assertEquals(sb._rec.op, 'delete');
   assertEquals(result, false, 'failed unmark returns false');
+  // Audit entry is written in background (async try/catch); test that it was attempted
   assertEquals(sb._auditInserted.length, 1, 'audit entry written on delete error');
-  assertEquals(sb._auditInserted[0].event_id, 'wpp2:call:zzz');
-  assertEquals(sb._auditInserted[0].error_code, 'XX000');
+  // Verify audit entry contains the failure details
+  const auditRow = sb._auditInserted[0] as any;
+  assertEquals(auditRow.event_id, 'wpp2:call:zzz');
+  assertEquals(auditRow.error_code, 'XX000');
+  assertEquals(auditRow.instance, 'wpp2');
+  assertEquals(auditRow.event_type, 'call');
 });

@@ -64,7 +64,6 @@ export async function markEventProcessed(supabase: any, eventId: string, instanc
 // CRITICAL: failed rollback writes to DLQ to ensure audit trail (G1 fix 2026-07-12).
 // deno-lint-ignore no-explicit-any
 export async function unmarkEventProcessed(supabase: any, eventId: string, instance?: string, eventType?: string): Promise<boolean> {
-  const success = true;
   try {
     const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
     if (error) {
