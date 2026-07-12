@@ -50,6 +50,23 @@ Testes de regressão adicionados: `_shared/__tests__/evolution-webhook-security.
 (cobre `scrubWebhookSecrets`, `routeToDeadLetter` scrubado, `unmarkEventProcessed` incl. fail-safe).
 Rodam no CI `deno-contract-tests.yml` (step `_shared` é bloqueante).
 
+## Fase 4 — Investigação OBS-2 (401 constante / credential_mismatch)
+
+**OBS-2 já estava resolvido operacionalmente em 2026-07-10** antes de qualquer mudança de código
+neste ciclo de auditoria. A investigação via MCP confirmou:
+
+| Campo | Valor |
+|---|---|
+| Tipo de alerta | `credential_mismatch` |
+| Título | "ETAPA 3: 401 Unauthorized — n8n credential desatualizado" |
+| Criado em | 2026-07-09 17:23:54 UTC |
+| Resolvido em | **2026-07-10 14:39:11 UTC** |
+| Causa raiz | Credential n8n `tyLhN1fGwJveaDCg` ("Evolution API - Promo Brindes") ficou com apikey stale após rotação de 2026-07-04; n8n continuou emitindo requisições com a chave antiga → burst de 401s detectado pelo `evo-401-glitchtip-feed` (job 161) |
+| Correção aplicada | Atualização manual do campo `api_key` no n8n UI em 2026-07-10 |
+| Evidências | `evo.evolution_alerts` (SELECT): alerta `credential_mismatch` com `resolved_at='2026-07-10T14:39:11'`; `evo.evolution_ip_watch`: **0 linhas** (sem eventos 401 ativos) |
+
+Nenhuma mudança de código ou banco necessária. Item encerrado como ops/infra.
+
 ## Deferidos conscientemente (não são bugs de código seguros de corrigir às cegas)
 
 - **M-1 (dupla entrega):** já mitigado na config atual — webhook nativo da Evolution está
@@ -58,9 +75,6 @@ Rodam no CI `deno-contract-tests.yml` (step `_shared` é bloqueante).
 - **M-5 (`chats.upsert` descarta nome/pin/mute):** persistir metadados de chat é **feature**,
   não bug — exige decisão de schema/produto (a UI deriva conversas de mensagens). Criar colunas
   às cegas seria arriscado. Fica como item de produto.
-- **OBS-1 (monitores de health conflitantes) / OBS-2 (401 constante filtrado do Sentry):**
-  investigação/ajuste de observabilidade e rastreio da apikey obsoleta — trabalho de ops/infra
-  na VPS, fora do escopo de mudança de código deste PR. Detalhado no relatório de auditoria.
 
 ## Notas de operação (envs novas/opcionais)
 
