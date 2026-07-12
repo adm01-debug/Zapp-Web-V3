@@ -8,7 +8,6 @@ src/components/chatbot/ChatbotExecutionsDashboard.tsx
 src/components/compliance/LGPDComplianceView.tsx
 src/components/connections/ConnectionsView.tsx
 src/components/connections/InstanceSettingsDialog.tsx
-src/components/contacts/AuditLogPanel.tsx
 src/components/contacts/ContactContentArea.tsx
 src/components/contacts/__tests__/ExternalDataIntegration.test.tsx
 src/components/contacts/useContactDuplicateDetector.ts
@@ -99,7 +98,6 @@ src/hooks/admin/useAdminQueues.ts
 src/hooks/admin/useHmacSelfTest.ts
 src/hooks/followup/useFollowUpSequences.ts
 src/hooks/integrations/useEvolutionApiIntegration.ts
-src/hooks/monitoring/useMonitoringData.ts
 src/hooks/sla/useSLAScopeOptions.ts
 src/hooks/sticker-picker/useStickerPicker.ts
 src/hooks/team-chat/useDepartmentManagement.ts
@@ -119,7 +117,6 @@ src/hooks/useEmail.ts
 src/hooks/useEmailDraft.ts
 src/hooks/useEmailSLA.ts
 src/hooks/useEmailSearch.ts
-src/hooks/useEmailSignature.ts
 src/hooks/useEvolutionAutoReconnect.ts
 src/hooks/useEvolutionAutoSync.ts
 src/hooks/useExternalCargos.ts
@@ -129,7 +126,6 @@ src/hooks/useForwardMessage.ts
 src/hooks/useGmailLabels.ts
 src/hooks/useGmailOAuthFlow.ts
 src/hooks/useGoalsDashboard.ts
-src/hooks/useGroupsManager.ts
 src/hooks/useKnowledgeBase.ts
 src/hooks/useProviderPanel.ts
 src/hooks/useQueueSlaPanel.ts
