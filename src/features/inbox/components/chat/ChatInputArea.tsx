@@ -320,7 +320,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
       </AnimatePresence>
 
       <AnimatePresence>
-        {(isSending || (props.queue?.length ?? 0) > 0) && (
+        {(isSending || getQueueLength(props.queue) > 0) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
