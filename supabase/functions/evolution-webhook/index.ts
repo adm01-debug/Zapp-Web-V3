@@ -77,8 +77,18 @@ serve(async (req) => {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
-  const supabaseServiceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const supabaseUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+  const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
+  const supabaseUrl = (typeof supabaseUrlHosted === 'string' && supabaseUrlHosted.length > 0)
+    ? supabaseUrlHosted
+    : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
+
+  const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKey = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
+    ? supabaseServiceKeyHosted
+    : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
+
   // FIX B5: falhar com 503 legível em vez de crashar (BOOT_ERROR 500) quando env está incompleta.
   if (!supabaseUrl || !supabaseServiceKey) {
     return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'SUPABASE_URL/SERVICE_ROLE ausentes' }),
@@ -90,7 +100,8 @@ serve(async (req) => {
   let rawBody: string;
   // Tenta extrair instância do header (alguns webhooks Evolution mandam) p/ contar falhas
   // antes mesmo de parsear o body. Cai em 'unknown' se não houver.
-  const headerInstance = req.headers.get('x-evolution-instance') || req.headers.get('x-instance') || null;
+  const headerInstanceVal = req.headers.get('x-evolution-instance') || req.headers.get('x-instance');
+  const headerInstance = typeof headerInstanceVal === 'string' && headerInstanceVal.length > 0 ? headerInstanceVal : null;
 
   // [PATCH 2026-07-03] Auth por secret estatico: Evolution API envia header fixo x-webhook-secret,
   // nao assina HMAC por payload. Comparacao timing-safe contra os secrets configurados.
@@ -123,7 +134,8 @@ serve(async (req) => {
 
   let payload: WebhookPayload;
   try {
-    const json = JSON.parse(rawBody);
+    const jsonRaw = JSON.parse(rawBody);
+    const json = (typeof jsonRaw === 'object' && jsonRaw !== null && !Array.isArray(jsonRaw)) ? jsonRaw : {};
     const parsed = WebhookPayloadSchema.safeParse(json);
     if (!parsed.success) {
       console.warn(`[webhook][${requestId}] contract_violation:`, parsed.error.issues);
@@ -235,8 +247,9 @@ serve(async (req) => {
     if (event === 'logout.instance') await handleLogoutInstance(supabase, instance, baseData);
 
     if (event === 'qrcode.updated') {
-      const qrCode = isRecord(baseData.qrcode) ? baseData.qrcode.base64 : undefined;
-      if (typeof qrCode === 'string') {
+      const qrcodeObj = isRecord(baseData.qrcode) ? baseData.qrcode : null;
+      const qrCode = (qrcodeObj && typeof qrcodeObj.base64 === 'string') ? qrcodeObj.base64 : undefined;
+      if (typeof qrCode === 'string' && qrCode.length > 0) {
         await supabase.from('whatsapp_connections')
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
           .or(instanceOrFilter(instance));
@@ -248,7 +261,10 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
         signal: AbortSignal.timeout(4000),
-      }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
+      }).catch((e: unknown) => {
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        console.warn('[qr-alert] n8n call failed:', errorMsg);
+      });
     }
 
     if (event === 'messages.upsert') {
@@ -318,10 +334,11 @@ serve(async (req) => {
           }
         } catch (entryError: unknown) {
           const entryDetail = entryError instanceof Error ? entryError.message : String(entryError);
+          const entryStack = entryError instanceof Error ? (entryError.stack ?? null) : null;
           console.error(redactSecrets(`[webhook][${requestId}][msg.upsert] entry_error instance=${instance}: ${entryDetail}`));
           await routeToDeadLetter(supabase, {
             event_type: event, instance, payload: entry,
-            error_message: entryDetail, error_stack: entryError instanceof Error ? entryError.stack ?? null : null,
+            error_message: entryDetail, error_stack: entryStack,
             request_id: requestId,
           });
         }
@@ -366,15 +383,17 @@ serve(async (req) => {
     // evolution-webhook/__tests__/contract.test.ts). Route to the DLQ before auditing so
     // the loss is recoverable even if the audit insert itself fails.
     const detail = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? (error.stack ?? null) : null;
     console.error(redactSecrets(`[webhook][${requestId}] handler_error event=${event} instance=${instance}: ${detail}`));
     await routeToDeadLetter(supabase, {
       event_type: event, instance, payload,
-      error_message: detail, error_stack: error instanceof Error ? error.stack ?? null : null,
+      error_message: detail, error_stack: errorStack,
       request_id: requestId,
     });
+    const detailTruncated = typeof detail === 'string' ? detail.slice(0, 500) : '';
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'error',
-      duration_ms: Date.now() - startedAt, error_message: detail.slice(0, 500),
+      duration_ms: Date.now() - startedAt, error_message: detailTruncated,
     });
     return new Response(
       JSON.stringify({ success: false, error: 'internal_error', requestId }),
