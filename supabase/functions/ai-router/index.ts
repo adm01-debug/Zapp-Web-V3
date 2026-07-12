@@ -248,27 +248,51 @@ function getCircuitBreakerState(key: string): CircuitBreakerState {
  * @throws Error with "Circuit breaker OPEN" message when circuit is open and cooldown active
  * @throws Propagates any error from fn()
  */
+/**
+ * IMPROVEMENT 5: Jittered Circuit Breaker Recovery
+ * Prevents thundering herd problem when circuit breaker opens.
+ *
+ * BEHAVIOR:
+ * - Base cooldown: 90s × 2^cycleCount (exponential backoff)
+ * - Jitter: ±(cycleCount × 5) seconds to spread retry attempts
+ * - Result: Requests retry at staggered intervals, not all at once
+ *
+ * EXAMPLE:
+ * Cycle 0: 90s ± 0s   = 90s (no jitter, fresh outage)
+ * Cycle 1: 180s ± 5s  = 175-185s (small spread)
+ * Cycle 2: 360s ± 10s = 350-370s (larger spread)
+ * Cycle 3: 600s ± 15s = 585-615s (maxed out with jitter)
+ */
+function calculateJitteredRetryAfter(cycleCount: number): { baseMs: number; jitterMs: number; totalMs: number } {
+  const baseMs = Math.min(
+    CIRCUIT_BREAKER_COOLDOWN_MS * Math.pow(2, cycleCount),
+    600_000 // 10 minute cap
+  );
+  // Jitter: ±(cycleCount × 5000) ms (increases with retry cycles)
+  const maxJitterMs = cycleCount * 5000;
+  const jitterMs = Math.random() * maxJitterMs - (maxJitterMs / 2);
+  const totalMs = Math.max(baseMs + jitterMs, 1000); // Minimum 1s
+  return { baseMs, jitterMs, totalMs };
+}
+
 async function withCircuitBreaker<T extends { response: { ok?: boolean; status?: number }; data?: unknown }>(
   fn: () => Promise<T>,
   key: string = 'default'
 ): Promise<T> {
   const breaker = getCircuitBreakerState(key);
 
-  // FIX #8: If open, check if exponential backoff cool-down period has passed (D.9)
+  // IMPROVEMENT 5: If open, check if exponential backoff cool-down period has passed with jitter
   if (breaker.state === 'OPEN') {
     const now = Date.now();
-    // Exponential backoff: 90s * 2^cycleCount, capped at 10 minutes
-    const exponentialCooldown = Math.min(
-      CIRCUIT_BREAKER_COOLDOWN_MS * Math.pow(2, breaker.cycleCount),
-      600_000 // 10 minute cap
-    );
-    if (breaker.lastFailureTime && now - breaker.lastFailureTime > exponentialCooldown) {
+    const { baseMs, totalMs } = calculateJitteredRetryAfter(breaker.cycleCount);
+
+    if (breaker.lastFailureTime && now - breaker.lastFailureTime > totalMs) {
       breaker.state = 'HALF_OPEN';
       breaker.successCount = 0;
     } else {
       const remainingMs = breaker.lastFailureTime
-        ? exponentialCooldown - (now - breaker.lastFailureTime)
-        : exponentialCooldown;
+        ? totalMs - (now - breaker.lastFailureTime)
+        : totalMs;
       throw new Error(`Circuit breaker OPEN for ${key}, retry after ${Math.ceil(remainingMs / 1000)}s`);
     }
   }
@@ -476,16 +500,22 @@ Deno.serve(async (req) => {
 
     if (!allowed) {
       log.warn("Rate limit exceeded", { action, userId, ip });
-      // HIGH PRIORITY GAP C.6: Add Retry-After header to 429 responses
+      // IMPROVEMENT 5: Add Jittered Retry-After header to 429 responses to prevent thundering herd
       const corsHeaders = req ? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } : {};
+
+      // Apply jitter: 60s base ± 10s (prevents synchronized retries)
+      const baseRetryAfter = 60;
+      const jitter = Math.floor(Math.random() * 20) - 10; // ±10 seconds
+      const retryAfter = Math.max(baseRetryAfter + jitter, 30); // Minimum 30s
+
       return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later.", retry_after_seconds: retryAfter }),
         {
           status: 429,
           headers: {
             ...corsHeaders,
             'Content-Type': 'application/json',
-            'Retry-After': '60', // Standard HTTP header - retry after 60 seconds
+            'Retry-After': String(retryAfter), // Standard HTTP header with jitter
           }
         }
       );
