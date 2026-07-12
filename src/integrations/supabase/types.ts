@@ -5259,6 +5259,7 @@ export type Database = {
           max_chats: number | null
           name: string
           nickname: string | null
+          onboarding_status: string
           online_status: string | null
           permissions: Json | null
           phone: string | null
@@ -5285,6 +5286,7 @@ export type Database = {
           max_chats?: number | null
           name: string
           nickname?: string | null
+          onboarding_status?: string
           online_status?: string | null
           permissions?: Json | null
           phone?: string | null
@@ -5311,6 +5313,7 @@ export type Database = {
           max_chats?: number | null
           name?: string
           nickname?: string | null
+          onboarding_status?: string
           online_status?: string | null
           permissions?: Json | null
           phone?: string | null
@@ -8681,21 +8684,14 @@ export type Database = {
       }
       decrypt_gmail_token: { Args: { p_encrypted: string }; Returns: string }
       encrypt_gmail_token: { Args: { p_token: string }; Returns: string }
-      fn_accept_transfer:
-        | {
-            Args: { p_agent_id: string; p_transfer_id: string }
-            Returns: boolean
-          }
-        | {
-            Args: { p_operator: string; p_transfer_id: string }
-            Returns: boolean
-          }
-      fn_complete_transfer:
-        | { Args: { p_transfer_id: string }; Returns: boolean }
-        | {
-            Args: { p_notes: string; p_transfer_id: string; p_type?: string }
-            Returns: boolean
-          }
+      fn_accept_transfer: {
+        Args: { p_agent_id: string; p_transfer_id: string }
+        Returns: boolean
+      }
+      fn_complete_transfer: {
+        Args: { p_notes: string; p_transfer_id: string; p_type?: string }
+        Returns: boolean
+      }
       fn_create_transfer:
         | {
             Args: {
@@ -8757,24 +8753,10 @@ export type Database = {
         Args: { p_meme_id: string }
         Returns: boolean
       }
-      fn_transfer_comment:
-        | {
-            Args: {
-              p_agent_id: string
-              p_content: string
-              p_transfer_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_author: string
-              p_content: string
-              p_instance: string
-              p_transfer_id: string
-            }
-            Returns: string
-          }
+      fn_transfer_comment: {
+        Args: { p_agent_id: string; p_content: string; p_transfer_id: string }
+        Returns: string
+      }
       generate_transfer_ticket: { Args: never; Returns: string }
       get_channel_credentials: {
         Args: { _connection_id: string }
@@ -8974,14 +8956,6 @@ export type Database = {
           }
         | {
             Args: {
-              p_action: string
-              p_department_id: string
-              p_profile_id: string
-            }
-            Returns: boolean
-          }
-        | {
-            Args: {
               _admin_user_id?: string
               p_action: string
               p_department_id: string
@@ -9012,9 +8986,10 @@ export type Database = {
           locked_until: string
         }[]
       }
-      rpc_dlq_abandon:
-        | { Args: { p_item_id: string }; Returns: boolean }
-        | { Args: { p_id?: string; p_item_id?: string }; Returns: boolean }
+      rpc_dlq_abandon: {
+        Args: { p_id?: string; p_item_id?: string }
+        Returns: boolean
+      }
       rpc_dlq_bulk_abandon: { Args: { p_ids: string[] }; Returns: boolean }
       rpc_dlq_list_audit:
         | {
@@ -9061,9 +9036,10 @@ export type Database = {
             Args: { p_action: string; p_item_id: string; p_reason?: string }
             Returns: boolean
           }
-      rpc_dlq_retry_now:
-        | { Args: { p_item_id: string }; Returns: boolean }
-        | { Args: { p_id?: string; p_item_id?: string }; Returns: boolean }
+      rpc_dlq_retry_now: {
+        Args: { p_id?: string; p_item_id?: string }
+        Returns: boolean
+      }
       rpc_instance_auth_event_summary: {
         Args: { p_instance: string }
         Returns: {
@@ -9172,7 +9148,6 @@ export type Database = {
           transfer_type: string
         }[]
       }
-      rpc_migrate_whatsapp_integration: { Args: never; Returns: Json }
       rpc_upsert_contact: {
         Args: { p_instance: string; p_push_name?: string; p_remote_jid: string }
         Returns: string
