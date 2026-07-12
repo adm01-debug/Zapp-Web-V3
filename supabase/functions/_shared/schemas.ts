@@ -37,7 +37,7 @@ export const AiSuggestReplySchema = z.object({
     content: z.string().max(10000),
   })).max(50),
   context: z.string().max(2000).optional(),
-  requestId: z.string().max(256).optional(), // For idempotency deduplication (P1-FIX-008)
+  requestId: z.string().max(256), // For idempotency deduplication (P1-FIX-008) - REQUIRED for idempotency enforcement
 });
 
 /** Schema para detecção de novo dispositivo (detect-new-device) */
@@ -110,7 +110,7 @@ const messageItemSchema = z.object({
 export const AiAutoTagSchema = z.object({
   contactId: z.string().uuid(),
   messages: z.array(messageItemSchema).min(1).max(200),
-  requestId: z.string().max(256).optional(), // For idempotency deduplication (P1-FIX-008)
+  requestId: z.string().max(256), // For idempotency deduplication (P1-FIX-008) - REQUIRED for idempotency enforcement
 });
 
 /** ai-churn-analysis */

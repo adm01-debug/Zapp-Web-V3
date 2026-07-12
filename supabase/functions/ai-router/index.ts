@@ -40,7 +40,7 @@ import {
   AiConversationAnalysisSchema, AiSuggestReplySchema, TranscribeAudioSchema,
   parseBody
 } from "../_shared/schemas.ts";
-import { callAiWithTracking } from "../_shared/ai-usage.ts";
+import { callAiWithTracking, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 // Action-specific timeouts (milliseconds)
@@ -561,6 +561,11 @@ Responda APENAS em JSON:
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -985,6 +990,11 @@ Foque em:
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1345,6 +1355,11 @@ Regras importantes:
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1544,6 +1559,11 @@ async function handleClassifyEmoji(
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1758,6 +1778,11 @@ async function handleClassifySticker(
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2334,6 +2359,11 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2743,6 +2773,11 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       );
       response = result.response;
       data = result.data;
+      // C.34: Extract and track token usage from AI response for billing/quota
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
     } catch (err) {
       const durationMs = performance.now() - startTime;
       const errMsg = err instanceof Error ? err.message : String(err);
