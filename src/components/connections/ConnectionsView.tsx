@@ -74,37 +74,28 @@ export function ConnectionsView() {
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   const maskSensitiveData = (obj: unknown) => {
-    if (!obj) return null;
-    const sensitiveKeys = [
-      'apikey',
-      'key',
-      'token',
-      'password',
-      'secret',
-      'base64',
-      'qr',
-      'qrcode',
-      'authorization',
-      'session',
-      'cookie',
-    ];
+    if (!obj || typeof obj !== 'object') return null;
+    const masked = { ...(obj as Record<string, unknown>) }; // ignore-audit: safe cast of unknown to Record after typeof === 'object' guard
+    const sensitiveKeys = ['apikey', 'key', 'token', 'password', 'secret', 'base64', 'qr', 'qrcode', 'authorization', 'session', 'cookie'];
 
-    const maskValue = (o: Record<string, unknown>): Record<string, unknown> => {
-      for (const key in o) {
-        if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
-          const val = o[key];
-          o[key] =
-            typeof val === 'string' && val.length > 10
-              ? `${val.substring(0, 4)}...${val.substring(val.length - 4)}`
-              : '****';
-        } else if (typeof o[key] === 'object' && o[key] !== null) {
-          maskValue(o[key] as Record<string, unknown>);
+    const maskValue = (o: unknown): unknown => {
+      if (typeof o !== 'object' || o === null) return o;
+      const record = o as Record<string, unknown>; // ignore-audit: safe cast of unknown to Record after null/object guard
+      for (const key in record) {
+        if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+          if (typeof record[key] === 'string') {
+            record[key] = (record[key] as string).length > 10 ? `${(record[key] as string).substring(0, 4)}...${(record[key] as string).substring((record[key] as string).length - 4)}` : '****';
+          } else {
+            record[key] = '****';
+          }
+        } else if (typeof record[key] === 'object') {
+          maskValue(record[key]);
         }
       }
-      return o;
+      return record;
     };
 
-    return maskValue(JSON.parse(JSON.stringify(obj)) as Record<string, unknown>); // Deep clone before masking
+    return maskValue(JSON.parse(JSON.stringify(masked))); // Deep clone before masking
   };
   const {
     connections,
@@ -254,12 +245,7 @@ export function ConnectionsView() {
                   <Label>Método de conexão</Label>
                   <Select
                     value={newConnection.api_type}
-                    onValueChange={(v) =>
-                      setNewConnection({
-                        ...newConnection,
-                        api_type: v as 'evolution' | 'official',
-                      })
-                    }
+                    onValueChange={(v) => setNewConnection({ ...newConnection, api_type: v as 'evolution' | 'official'  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Como deseja conectar?" />

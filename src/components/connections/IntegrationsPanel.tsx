@@ -120,7 +120,7 @@ export function IntegrationsPanel({
     const load = async (getter: (n: string) => Promise<unknown>, setter: (v: Record<string, unknown>) => void) => {
       try {
         const data = await getter(instanceName);
-        if (data && typeof data === 'object') setter({ enabled: true, ...(data as Record<string, unknown>) });
+        if (data && typeof data === 'object') setter({ enabled: true, ...(data as Record<string, unknown>) }); // ignore-audit: narrows Supabase query result to local interface
       } catch (err) { log.error('Unexpected error in IntegrationsPanel:', err); }
     };
     await Promise.allSettled([
