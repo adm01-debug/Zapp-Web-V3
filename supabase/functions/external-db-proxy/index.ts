@@ -205,6 +205,44 @@ const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
   evo: EVOLUTION_TABLES,
 };
 
+
+// Allowlist de RPCs invocáveis por este proxy. Como o proxy executa com
+// service_role, permitir qualquer identificador (o comportamento anterior)
+// deixava qualquer usuário autenticado invocar QUALQUER função do banco —
+// escalonamento de privilégio. Esta lista é a união do catálogo canônico
+// (src/integrations/datasource/rpcCatalog.ts) com os RPCs efetivamente
+// chamados no frontend. Ao adicionar um RPC novo, inclua-o aqui também.
+// Auditoria 2026-07-12.
+const ALLOWED_RPCS = new Set<string>([
+  'add_contact_note', 'bulk_add_tag', 'bulk_auto_merge_duplicates',
+  'bulk_soft_delete_contacts', 'bulk_update_lead_status', 'contacts_count_by_type',
+  'find_duplicate_contacts', 'fn_increment_meme_use', 'fn_safe_audit_log',
+  'fn_test_alert_channel', 'fn_toggle_user_meme_favorite', 'get_avatars_by_jids_batch',
+  'get_companies_by_phones_batch', 'get_contact_360_by_phone', 'get_contact_conversations',
+  'get_contact_intelligence_by_phone', 'get_contact_notes', 'get_contact_stats',
+  'get_csat_stats', 'get_duplicate_report', 'get_lgpd_compliance_stats',
+  'get_own_email_accounts', 'get_team_profiles', 'get_visible_agent_ids',
+  'grant_lgpd_consent', 'has_role', 'is_admin_or_supervisor', 'is_within_business_hours',
+  'log_audit_event', 'log_security_event', 'mark_follow_up_done', 'merge_contacts',
+  'reassign_absent_agents', 'reassign_overloaded_agents', 'record_voice_telemetry',
+  'restore_contact', 'revoke_lgpd_consent', 'rpc_dashboard_home', 'rpc_delete_contact',
+  'rpc_dlq_abandon', 'rpc_dlq_bulk_abandon', 'rpc_dlq_list_audit', 'rpc_dlq_log_item_action',
+  'rpc_dlq_retry_now', 'rpc_email_archive_thread', 'rpc_email_assign_thread',
+  'rpc_email_mark_thread_read', 'rpc_email_search_threads', 'rpc_email_star_thread',
+  'rpc_email_token_status', 'rpc_get_contact', 'rpc_get_email_health_summary',
+  'rpc_global_search', 'rpc_insert_message', 'rpc_instance_auth_event_summary',
+  'rpc_instance_auth_event_trend', 'rpc_list_audit_log', 'rpc_list_calls',
+  'rpc_list_contacts', 'rpc_list_conversations', 'rpc_list_dispatch_error_logs',
+  'rpc_list_failed_messages', 'rpc_list_messages', 'rpc_list_messages_lite',
+  'rpc_list_transfers_paginated', 'rpc_log_outbound_event', 'rpc_log_search_event',
+  'rpc_log_service_event', 'rpc_migrate_whatsapp_integration', 'rpc_provider_panel',
+  'rpc_provider_session_timeline', 'rpc_record_automation_error', 'rpc_record_search_click',
+  'rpc_schedule_follow_up', 'rpc_set_whatsapp_mode', 'rpc_toggle_message_important',
+  'rpc_toggle_message_star', 'rpc_upsert_contact', 'search_contacts',
+  'search_contacts_advanced', 'search_knowledge_base', 'send_message_v2',
+  'soft_delete_contact', 'sync_interaction_from_zapp', 'update_contact_versioned',
+  'update_own_profile', 'user_has_permission',
+]);
 function resolveSchema(schema: string, table: string): string {
   if (schema === "public" && EVO_TABLE_RE.test(table)) return "evo";
   return schema;
@@ -342,6 +380,11 @@ Deno.serve(async (req) => {
 
   if (action === "rpc" && rpc) {
     if (!isSafeIdent(rpc)) return jsonResponse(req, { error: "Invalid rpc identifier", cid, rid }, 400);
+    if (!ALLOWED_RPCS.has(rpc)) {
+      console.warn('[external-db-proxy] rpc bloqueado (fora do allowlist)', { rpc, cid, rid });
+      return jsonResponse(req, { error: `RPC '${rpc}' não permitido`, cid, rid, data: null }, 403);
+    }
+
 
     const params = { ...(body.params ?? {}) };
     delete params.__cid;
