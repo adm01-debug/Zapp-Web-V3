@@ -2,8 +2,10 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { eventBus } from '@/lib/eventBus';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+
+const log = getLogger('useMessageQueue');
 
 export interface PendingMessage {
   id: string;
