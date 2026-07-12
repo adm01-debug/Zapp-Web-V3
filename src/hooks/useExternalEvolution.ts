@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useExternalEvolution — Hooks for reading evolution_messages from external FATOR X DB
  * Replaces the local DB reads for the Inbox when external DB is the source of truth.
@@ -511,7 +510,7 @@ export function useExternalConversations(enabled = true) {
           const extra = cached.data;
           if (extra.tags)
             conv.contact.tags = Array.isArray(extra.tags)
-              ? extra.tags
+              ? (extra.tags as string[])
               : typeof extra.tags === 'string'
                 ? safeParseTags(extra.tags)
                 : [];
