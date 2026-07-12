@@ -72,38 +72,43 @@ export const messageRepository = {
       onDelete: (payload: RealtimePostgresChangesPayload<Message>) => void;
     }
   ) {
+    // Wrap callbacks para normalizar new/old rows via normalizeMessage antes de
+    // entregar ao consumidor — garante shape canônico (agent_id, external_id)
+    // mesmo quando a tabela-fonte emite aliases legados (sender_id, external_message_id).
+    const wrap = (
+      cb: (payload: RealtimePostgresChangesPayload<Message>) => void,
+    ) =>
+      (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+        const normNew = payload.new && Object.keys(payload.new).length
+          ? normalizeMessage(payload.new as never)
+          : null;
+        const normOld = payload.old && Object.keys(payload.old).length
+          ? normalizeMessage(payload.old as never)
+          : null;
+        cb({
+          ...payload,
+          new: (normNew ?? payload.new) as Message,
+          old: (normOld ?? payload.old) as Message,
+        } as RealtimePostgresChangesPayload<Message>);
+      };
+
     // FATOR X v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
     // A view compat `public.messages` nao emite eventos postgres_changes.
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'evo',
-          table: 'evolution_messages',
-          filter: `contact_id=eq.${contactId}`,
-        },
-        callbacks.onInsert
+        { event: 'INSERT', schema: 'evo', table: 'evolution_messages', filter: `contact_id=eq.${contactId}` },
+        wrap(callbacks.onInsert),
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'evo',
-          table: 'evolution_messages',
-          filter: `contact_id=eq.${contactId}`,
-        },
-        callbacks.onUpdate
+        { event: 'UPDATE', schema: 'evo', table: 'evolution_messages', filter: `contact_id=eq.${contactId}` },
+        wrap(callbacks.onUpdate),
       )
       .on(
         'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'evo',
-          table: 'evolution_messages',
-          filter: `contact_id=eq.${contactId}`,
-        },
-        callbacks.onDelete
+        { event: 'DELETE', schema: 'evo', table: 'evolution_messages', filter: `contact_id=eq.${contactId}` },
+        wrap(callbacks.onDelete),
       )
       .subscribe();
 
