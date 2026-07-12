@@ -286,11 +286,30 @@ function getCacheInfo(): CacheInfo {
   return { ...cache };
 }
 
+/**
+ * safeFrom — acesso direto (síncrono) ao query builder do Supabase para uma
+ * tabela dinâmica, sem passar pela união gigante de string-literals gerada em
+ * `types.ts`. Uso: `safeFrom('minha_tabela').select('*').eq(...)`.
+ *
+ * Motivação: `supabase.from<T>()` dispara TS2589 (deep instantiation) quando o
+ * chamador encadeia .select/.eq/.in em tabelas ausentes dos types ou em views
+ * `_safe`. Este helper devolve o builder como `SafeQueryBuilder` (any), o que
+ * corta a recursão sem sacrificar o runtime — as chamadas continuam usando o
+ * cliente oficial e passam por RLS/policies normalmente.
+ *
+ * Para leituras via callback com tratamento uniforme de erro + telemetria +
+ * timeout, prefira `safeClient.from(table, cb)` / `safeClient.single(...)`.
+ */
+export function safeFrom(table: string): SafeQueryBuilder {
+  return (supabase as unknown as DynamicSupabaseClient).from(table);
+}
+
 export const safeClient = {
   from: executeFrom,
   single: executeSingle,
   rpc: executeRpc,
   invoke: invokeFunction,
+  safeFrom,
   maskSensitiveData,
   maskEmail,
   getTelemetry,
