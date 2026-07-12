@@ -92,34 +92,42 @@ export default function QueueDetails() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      const contactsWithDetails = await Promise.all(
-        (contactsData || []).map(async (contact) => {
-          const { count } = await dbFrom('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('contact_id', contact.id);
-          const { data: lastMessage } = await dbFrom('messages')
-            .select('created_at')
-            .eq('contact_id', contact.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          let assignedAgent = null;
-          if (contact.assigned_to) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('name, avatar_url')
-              .eq('id', contact.assigned_to)
-              .maybeSingle();
-            assignedAgent = data;
-          }
-          return {
-            ...contact,
-            messages_count: count || 0,
-            last_message_at: lastMessage?.created_at || null,
-            assigned_agent: assignedAgent,
-          };
-        })
-      );
+      const contacts = contactsData || [];
+      const contactIds = contacts.map(c => c.id);
+
+      // Batch all message data in a single query instead of N+1 round-trips
+      const lastMessageMap = new Map<string, string>();
+      const countMap = new Map<string, number>();
+      if (contactIds.length > 0) {
+        const { data: allMessages } = await dbFrom('messages')
+          .select('contact_id, created_at')
+          .in('contact_id', contactIds)
+          .order('created_at', { ascending: false });
+        for (const msg of (allMessages || []) as Array<{ contact_id: string; created_at: string }>) {
+          if (!lastMessageMap.has(msg.contact_id)) lastMessageMap.set(msg.contact_id, msg.created_at);
+          countMap.set(msg.contact_id, (countMap.get(msg.contact_id) ?? 0) + 1);
+        }
+      }
+
+      // Batch all agent profile lookups in a single query
+      const assignedToIds = [...new Set(contacts.filter(c => c.assigned_to).map(c => c.assigned_to as string))];
+      const agentMap = new Map<string, { name: string; avatar_url: string | null }>();
+      if (assignedToIds.length > 0) {
+        const { data: agents } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url')
+          .in('id', assignedToIds);
+        for (const a of (agents || []) as Array<{ id: string; name: string; avatar_url: string | null }>) {
+          agentMap.set(a.id, { name: a.name, avatar_url: a.avatar_url });
+        }
+      }
+
+      const contactsWithDetails = contacts.map(contact => ({
+        ...contact,
+        messages_count: countMap.get(contact.id) ?? 0,
+        last_message_at: lastMessageMap.get(contact.id) ?? null,
+        assigned_agent: contact.assigned_to ? (agentMap.get(contact.assigned_to) ?? null) : null,
+      }));
       setContacts(contactsWithDetails);
 
       const totalContacts = contactsWithDetails.length;
