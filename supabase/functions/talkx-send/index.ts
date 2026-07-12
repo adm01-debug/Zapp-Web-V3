@@ -77,10 +77,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
+    const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) {
+      return new Response(JSON.stringify({ error: "Supabase configuration missing" }), { status: 500, headers });
+    }
     const evolutionUrl = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
-    const evolutionKey = Deno.env.get("EVOLUTION_API_KEY")!;
+    const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
+    if (!evolutionKey) {
+      return new Response(JSON.stringify({ error: "Evolution API configuration missing" }), { status: 500, headers });
+    }
 
     const supabase = createClient(supabaseUrl, serviceKey);
     // Contrato talkx-send@v1 (estrito): campaignId UUID + action enum.
@@ -102,81 +108,128 @@ Deno.serve(async (req) => {
     const { data: campaign, error: campErr } = await supabase
       .from("talkx_campaigns").select("*").eq("id", campaignId).single();
 
-    if (campErr || !campaign) {
+    if (campErr || !campaign || typeof campaign !== 'object' || Array.isArray(campaign)) {
       return new Response(JSON.stringify({ error: "Campaign not found" }), { status: 404, headers });
+    }
+
+    const campaignObj = campaign as Record<string, unknown>;
+    if (typeof campaignObj.id !== 'string' || typeof campaignObj.whatsapp_connection_id !== 'string' || typeof campaignObj.message_template !== 'string') {
+      return new Response(JSON.stringify({ error: "Invalid campaign data" }), { status: 400, headers });
     }
 
     // Get WhatsApp connection instance
     const { data: connection } = await supabase
-      .from("whatsapp_connections").select("instance_id").eq("id", campaign.whatsapp_connection_id).single();
+      .from("whatsapp_connections").select("instance_id").eq("id", campaignObj.whatsapp_connection_id).single();
 
-    if (!connection?.instance_id) {
+    if (!connection || typeof connection !== 'object' || Array.isArray(connection) || typeof connection.instance_id !== 'string') {
       return new Response(JSON.stringify({ error: "WhatsApp connection not found" }), { status: 400, headers });
     }
+    const connObj = connection as Record<string, unknown>;
 
     // Mark as sending
     await supabase.from("talkx_campaigns")
-      .update({ status: "sending", started_at: new Date().toISOString() }).eq("id", campaignId);
+      .update({ status: "sending", started_at: new Date().toISOString() }).eq("id", campaignObj.id);
 
     // Get pending recipients with contact info
     const { data: recipients } = await supabase
       .from("talkx_recipients")
       .select("*, contacts:contact_id(name, nickname, phone, company)")
-      .eq("campaign_id", campaignId)
+      .eq("campaign_id", campaignObj.id)
       .in("status", ["pending", "sending"])
       .order("created_at");
 
     // Get blacklisted contact IDs
     const { data: blacklisted } = await supabase.from("talkx_blacklist").select("contact_id");
-    const blacklistSet = new Set((blacklisted || []).map((b: Record<string, unknown>) => b.contact_id));
+    const blacklistArray = Array.isArray(blacklisted) ? blacklisted : [];
+    const blacklistSet = new Set(
+      blacklistArray
+        .filter((b): b is { contact_id: string } =>
+          typeof b === 'object' && b !== null && typeof b.contact_id === 'string'
+        )
+        .map(b => b.contact_id)
+    );
 
     // Filter out blacklisted recipients
-    const eligibleRecipients = (recipients || []).filter((r: Record<string, unknown>) => {
-      if (blacklistSet.has(r.contact_id)) {
-        supabase.from("talkx_recipients")
-          .update({ status: "skipped", error_message: "Contato na lista negra (opt-out)" }).eq("id", r.id);
-        return false;
-      }
-      return true;
-    });
+    const recipientArray = Array.isArray(recipients) ? recipients : [];
+    const eligibleRecipients = recipientArray
+      .filter((r): r is Record<string, unknown> =>
+        typeof r === 'object' && r !== null && !Array.isArray(r)
+      )
+      .filter((r: Record<string, unknown>) => {
+        if (blacklistSet.has(r.contact_id)) {
+          supabase.from("talkx_recipients")
+            .update({ status: "skipped", error_message: "Contato na lista negra (opt-out)" })
+            .eq("id", typeof r.id === 'string' ? r.id : '');
+          return false;
+        }
+        return true;
+      });
 
     if (eligibleRecipients.length === 0) {
       await supabase.from("talkx_campaigns")
-        .update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", campaignId);
+        .update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", campaignObj.id);
       return new Response(JSON.stringify({ success: true, message: "No eligible recipients to send" }), { headers });
     }
 
-    let sentCount = campaign.sent_count || 0;
-    let failedCount = campaign.failed_count || 0;
-    const hasMedia = !!campaign.media_url && !!campaign.media_type;
+    const sentCount_ = typeof campaignObj.sent_count === 'number' ? campaignObj.sent_count : 0;
+    const failedCount_ = typeof campaignObj.failed_count === 'number' ? campaignObj.failed_count : 0;
+    let sentCount = sentCount_;
+    let failedCount = failedCount_;
+    const hasMedia = typeof campaignObj.media_url === 'string' && typeof campaignObj.media_type === 'string';
 
     for (const recipient of eligibleRecipients) {
       // Check if campaign was paused/cancelled
       const { data: currentCampaign } = await supabase
-        .from("talkx_campaigns").select("status").eq("id", campaignId).single();
+        .from("talkx_campaigns").select("status").eq("id", campaignObj.id).single();
 
-      if (currentCampaign?.status === "paused" || currentCampaign?.status === "cancelled") break;
+      if (currentCampaign && typeof currentCampaign === 'object' && !Array.isArray(currentCampaign)) {
+        const ccObj = currentCampaign as Record<string, unknown>;
+        if (ccObj.status === "paused" || ccObj.status === "cancelled") break;
+      }
 
-      const contact = recipient.contacts as Record<string, unknown>;
-      if (!contact?.phone) {
-        await supabase.from("talkx_recipients")
-          .update({ status: "skipped", error_message: "Sem número de telefone" }).eq("id", recipient.id);
+      const contact = recipient.contacts;
+      if (typeof contact !== 'object' || contact === null || Array.isArray(contact)) {
+        const recipId = typeof recipient.id === 'string' ? recipient.id : '';
+        if (recipId) {
+          await supabase.from("talkx_recipients")
+            .update({ status: "skipped", error_message: "Contato inválido" }).eq("id", recipId);
+        }
+        continue;
+      }
+      const contactObj = contact as Record<string, unknown>;
+      const phone = typeof contactObj.phone === 'string' ? contactObj.phone : null;
+      if (!phone) {
+        const recipId = typeof recipient.id === 'string' ? recipient.id : '';
+        if (recipId) {
+          await supabase.from("talkx_recipients")
+            .update({ status: "skipped", error_message: "Sem número de telefone" }).eq("id", recipId);
+        }
         continue;
       }
 
-      const personalizedMsg = personalize(campaign.message_template, contact as { name: string; nickname?: string; company?: string });
-      await supabase.from("talkx_recipients")
-        .update({ personalized_message: personalizedMsg, status: "sending", request_id: requestId }).eq("id", recipient.id);
+      const contactForPersonalize = {
+        name: typeof contactObj.name === 'string' ? contactObj.name : '',
+        nickname: typeof contactObj.nickname === 'string' ? contactObj.nickname : undefined,
+        company: typeof contactObj.company === 'string' ? contactObj.company : undefined,
+      };
+      const personalizedMsg = personalize(campaignObj.message_template, contactForPersonalize);
+      const recipId = typeof recipient.id === 'string' ? recipient.id : '';
+      if (recipId) {
+        await supabase.from("talkx_recipients")
+          .update({ personalized_message: personalizedMsg, status: "sending", request_id: requestId }).eq("id", recipId);
+      }
 
       try {
-        const phone = (contact.phone as string).replace(/\D/g, "");
-        const typingDelay = randomBetween(campaign.typing_delay_min, campaign.typing_delay_max);
+        const cleanPhone = phone.replace(/\D/g, "");
+        const typingDelayMin = typeof campaignObj.typing_delay_min === 'number' ? campaignObj.typing_delay_min : 1000;
+        const typingDelayMax = typeof campaignObj.typing_delay_max === 'number' ? campaignObj.typing_delay_max : 3000;
+        const typingDelay = randomBetween(typingDelayMin, typingDelayMax);
 
         try {
-          await fetch(`${evolutionUrl}/chat/updatePresence/${connection.instance_id}`, {
+          await fetch(`${evolutionUrl}/chat/updatePresence/${connObj.instance_id}`, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: evolutionKey },
-            body: JSON.stringify({ number: phone, presence: "composing" }),
+            body: JSON.stringify({ number: cleanPhone, presence: "composing" }),
             signal: AbortSignal.timeout(5_000),
           });
         } catch { /* Presence update is best-effort */ }
@@ -184,70 +237,108 @@ Deno.serve(async (req) => {
         await sleep(typingDelay);
 
         let sendResponse: Response;
-        let sendResult: Record<string, unknown>;
+        let sendResult: unknown;
 
         if (hasMedia) {
-          const mediaEndpoint = getMediaEndpoint(campaign.media_type);
+          const mediaType = campaignObj.media_type as string;
+          const mediaEndpoint = getMediaEndpoint(mediaType);
           sendResponse = await fetchWithRetry(
-            `${evolutionUrl}/message/${mediaEndpoint}/${connection.instance_id}`,
+            `${evolutionUrl}/message/${mediaEndpoint}/${connObj.instance_id}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: evolutionKey },
-              body: JSON.stringify({ number: phone, mediatype: campaign.media_type, media: campaign.media_url, caption: personalizedMsg, delay: 0 }),
+              body: JSON.stringify({
+                number: cleanPhone,
+                mediatype: mediaType,
+                media: campaignObj.media_url,
+                caption: personalizedMsg,
+                delay: 0,
+              }),
             }
           );
-          sendResult = await sendResponse.json();
+          try {
+            sendResult = await sendResponse.json();
+          } catch {
+            sendResult = {};
+          }
         } else {
           sendResponse = await fetchWithRetry(
-            `${evolutionUrl}/message/sendText/${connection.instance_id}`,
+            `${evolutionUrl}/message/sendText/${connObj.instance_id}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: evolutionKey },
-              body: JSON.stringify({ number: phone, text: personalizedMsg, delay: 0 }),
+              body: JSON.stringify({ number: cleanPhone, text: personalizedMsg, delay: 0 }),
             }
           );
-          sendResult = await sendResponse.json();
+          try {
+            sendResult = await sendResponse.json();
+          } catch {
+            sendResult = {};
+          }
         }
 
-        if (sendResponse.ok && !sendResult.error) {
+        const hasError = typeof sendResult === 'object' && sendResult !== null && !Array.isArray(sendResult)
+          ? (sendResult as Record<string, unknown>).error
+          : true;
+
+        if (sendResponse.ok && !hasError) {
           sentCount++;
-          await supabase.from("talkx_recipients")
-            .update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", recipient.id);
+          if (recipId) {
+            await supabase.from("talkx_recipients")
+              .update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", recipId);
+          }
         } else {
           failedCount++;
-          await supabase.from("talkx_recipients")
-            .update({ status: "failed", error_message: (sendResult?.message || sendResult?.error || "Erro ao enviar") as string }).eq("id", recipient.id);
+          let errorMsg = "Erro ao enviar";
+          if (typeof sendResult === 'object' && sendResult !== null && !Array.isArray(sendResult)) {
+            const srObj = sendResult as Record<string, unknown>;
+            errorMsg = (typeof srObj.message === 'string' ? srObj.message : null)
+              || (typeof srObj.error === 'string' ? srObj.error : "Erro ao enviar");
+          }
+          if (recipId) {
+            await supabase.from("talkx_recipients")
+              .update({ status: "failed", error_message: errorMsg }).eq("id", recipId);
+          }
         }
       } catch (err) {
         failedCount++;
-        await supabase.from("talkx_recipients")
-          .update({ status: "failed", error_message: err instanceof Error ? err.message : "Erro desconhecido" }).eq("id", recipient.id);
+        const errorMsg = err instanceof Error ? err.message : "Erro desconhecido";
+        if (recipId) {
+          await supabase.from("talkx_recipients")
+            .update({ status: "failed", error_message: errorMsg }).eq("id", recipId);
+        }
       }
 
       await supabase.from("talkx_campaigns")
-        .update({ sent_count: sentCount, failed_count: failedCount }).eq("id", campaignId);
+        .update({ sent_count: sentCount, failed_count: failedCount }).eq("id", campaignObj.id);
 
-      const sendInterval = randomBetween(campaign.send_interval_min, campaign.send_interval_max);
+      const sendIntervalMin = typeof campaignObj.send_interval_min === 'number' ? campaignObj.send_interval_min : 1000;
+      const sendIntervalMax = typeof campaignObj.send_interval_max === 'number' ? campaignObj.send_interval_max : 3000;
+      const sendInterval = randomBetween(sendIntervalMin, sendIntervalMax);
       await sleep(sendInterval);
     }
 
     // Check final status
     const { data: finalCampaign } = await supabase
-      .from("talkx_campaigns").select("status").eq("id", campaignId).single();
+      .from("talkx_campaigns").select("status").eq("id", campaignObj.id).single();
 
-    if (finalCampaign?.status === "sending") {
-      await supabase.from("talkx_campaigns")
-        .update({ status: "completed", completed_at: new Date().toISOString(), sent_count: sentCount, failed_count: failedCount })
-        .eq("id", campaignId);
+    if (finalCampaign && typeof finalCampaign === 'object' && !Array.isArray(finalCampaign)) {
+      const fcObj = finalCampaign as Record<string, unknown>;
+      if (fcObj.status === "sending") {
+        await supabase.from("talkx_campaigns")
+          .update({ status: "completed", completed_at: new Date().toISOString(), sent_count: sentCount, failed_count: failedCount })
+          .eq("id", campaignObj.id);
+      }
     }
 
     log.done(200, { sent: sentCount, failed: failedCount, requestId });
 
+    const blacklistedCount = recipientArray.length - eligibleRecipients.length;
     return new Response(
       JSON.stringify({
         success: true, sent: sentCount, failed: failedCount,
         total: eligibleRecipients.length,
-        blacklisted: (recipients || []).length - eligibleRecipients.length,
+        blacklisted: blacklistedCount,
         requestId,
       }),
       { headers }
