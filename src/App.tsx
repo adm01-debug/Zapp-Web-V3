@@ -11,7 +11,7 @@ import { InAppNotificationProvider } from '@/components/notifications/InAppNotif
 
 // Lazy imports for code splitting (non-critical paths)
 const Index = lazy(() => import('./pages/Index'));
-const Login = lazy(() => import('./pages/Login'));
+const Login = lazy(() => import('./pages/Auth'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const AccessDenied = lazy(() => import('./pages/AccessDenied'));
