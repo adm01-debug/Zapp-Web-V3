@@ -121,7 +121,7 @@ export function DLQAuditHistory() {
             {entries.map(entry => {
               const isOpen = expandedId === entry.id;
               const detailIds = entry.details?.ids;
-              const ids = Array.isArray(detailIds) ? (detailIds as string[]) : [];
+              const ids = Array.isArray(detailIds) ? (detailIds as string[]) : []; // ignore-audit: Json column array narrowed after Array.isArray guard
               const hasDetails = ids.length > 0 || (entry.details && Object.keys(entry.details).length > 0);
               return (
                 <li key={entry.id} className="bg-card">

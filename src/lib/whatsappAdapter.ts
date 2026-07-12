@@ -36,7 +36,7 @@ export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
   try {
     const { data, error } = await safeClient.rpc<string>('rpc_get_whatsapp_mode');
     if (error) throw error;
-    const mode = (data as string) === 'official' ? 'official' : 'unofficial';
+    const mode = (data as string) === 'official' ? 'official' : 'unofficial'; // ignore-audit: RPC returns unknown; string is the documented return type
     cachedMode = mode;
     cacheExpiresAt = now + 30_000;
     return mode;

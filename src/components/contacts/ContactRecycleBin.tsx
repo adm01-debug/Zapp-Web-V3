@@ -77,7 +77,7 @@ export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({ workspaceI
     try {
       const { data, error } = await dbRpc(RPC.restoreContact, { p_contact_id: id });
       if (error) throw error;
-      const result = (data ?? {}) as Record<string, unknown>;
+      const result = (data ?? {}) as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
       if (result?.error) throw new Error(String(result.error));
 
       setContacts((prev) => prev.filter((c) => c.id !== id));

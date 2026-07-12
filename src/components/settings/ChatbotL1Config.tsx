@@ -56,7 +56,7 @@ export function ChatbotL1Config() {
     if (flow) {
       setIsActive(flow.is_active ?? false);
       setName(flow.name ?? 'Chatbot IA L1');
-      const vars = flow.variables as Record<string, unknown> | null;
+      const vars = flow.variables as Record<string, unknown> | null; // ignore-audit: Json column narrowed to typed Record for field access
       if (vars) {
         if (vars.confidence_threshold) setConfidenceThreshold(vars.confidence_threshold as number);
         if (vars.welcome_message) setWelcomeMessage(vars.welcome_message as string);

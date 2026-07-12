@@ -46,12 +46,12 @@ export function ConnectionsView() {
 
   const maskSensitiveData = (obj: unknown) => {
     if (!obj || typeof obj !== 'object') return null;
-    const masked = { ...(obj as Record<string, unknown>) };
+    const masked = { ...(obj as Record<string, unknown>) }; // ignore-audit: safe cast of unknown to Record after typeof === 'object' guard
     const sensitiveKeys = ['apikey', 'key', 'token', 'password', 'secret', 'base64', 'qr', 'qrcode', 'authorization', 'session', 'cookie'];
 
     const maskValue = (o: unknown): unknown => {
       if (typeof o !== 'object' || o === null) return o;
-      const record = o as Record<string, unknown>;
+      const record = o as Record<string, unknown>; // ignore-audit: safe cast of unknown to Record after null/object guard
       for (const key in record) {
         if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
           if (typeof record[key] === 'string') {
