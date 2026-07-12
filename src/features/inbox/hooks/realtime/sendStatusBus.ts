@@ -130,15 +130,13 @@ export function clearSendStatusHistory() {
 }
 
 export function subscribeSendStatus(messageId: string, cb: Listener): () => void {
-  let set = listeners.get(messageId);
-  if (!set) {
-    set = new Set();
-    listeners.set(messageId, set);
-  }
+  const existing = listeners.get(messageId);
+  const set = existing ?? new Set<Listener>();
+  if (!existing) listeners.set(messageId, set);
   set.add(cb);
   return () => {
-    set!.delete(cb);
-    if (set!.size === 0) listeners.delete(messageId);
+    set.delete(cb);
+    if (set.size === 0) listeners.delete(messageId);
   };
 }
 

@@ -67,29 +67,27 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
     if (!conversationId) return;
     const channel = supabase
       .channel(`team-messages-${conversationId}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
+      .on<TeamMessage>('postgres_changes', {
+        event: 'INSERT',
         schema: 'zapp', // Wave 1: team_messages is a view in public — zapp is base table
-        table: 'team_messages', 
-        filter: `conversation_id=eq.${conversationId}` 
+        table: 'team_messages',
+        filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
-        const newMessage = payload.new as TeamMessage;
-        
         if (!searchQuery.trim()) {
           queryClient.setQueryData(['team-messages', conversationId, ''], (oldData: { pages: { messages: TeamMessage[] }[] } | undefined) => {
             if (!oldData || !oldData.pages) return oldData;
-            
+
             const newPages = [...oldData.pages];
             if (newPages.length > 0) {
               newPages[0] = {
                 ...newPages[0],
-                messages: [...newPages[0].messages, newMessage]
+                messages: [...newPages[0].messages, payload.new]
               };
             }
             return { ...oldData, pages: newPages };
           });
         }
-        
+
         queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
       })
       .subscribe();

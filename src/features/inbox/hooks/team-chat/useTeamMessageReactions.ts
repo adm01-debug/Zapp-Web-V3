@@ -109,7 +109,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
     },
-    onError: (err: unknown, variables, context) => {
+    onError: (err: { status?: number; code?: string | number } & Error, variables, context) => {
       if (context?.previousReactions) {
         queryClient.setQueryData(['team-reactions', conversationId], context.previousReactions);
       }
