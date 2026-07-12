@@ -104,6 +104,9 @@ const ACTION_RATE_LIMITS: Record<string, number> = {
 /**
  * IMPROVEMENT 7: Correlation ID for distributed tracing
  * Enables tracking requests across multiple services (ai-router → handlers → AI Gateway → External APIs)
+ *
+ * IMPROVEMENT 8: Per-user concurrency tracking
+ * Tracks concurrent requests per user to prevent single user starving others
  */
 interface RequestContext {
   userId: string;
@@ -112,6 +115,7 @@ interface RequestContext {
   requestId?: string; // Scoped to current request; cleared before response
   correlationId: string; // IMPROVEMENT 7: Unique ID for tracing across services
   startTime: number;
+  concurrencyKey?: string; // IMPROVEMENT 8: For cleanup on completion
 }
 
 interface ActionResult {
@@ -175,6 +179,10 @@ const MAX_METRICS_BUFFER_SIZE = 10000; // Circular buffer limit
 const MEMORY_WARNING_THRESHOLD_MB = 250; // H.15: Warn at 250MB
 const MEMORY_CRITICAL_THRESHOLD_MB = 350; // H.15: Reject requests at 350MB
 const MAX_REQUEST_BODY_SIZE = 1 * 1024 * 1024; // C.15: Max request body 1MB to prevent DoS via payload size
+
+// IMPROVEMENT 8: Per-user concurrency limits (per action + per user)
+const PER_USER_CONCURRENT_LIMIT = 5; // Max 5 concurrent requests per user per action
+const userConcurrencyCounters = new Map<string, number>(); // key: `${userId}:${action}`
 
 let activeTranscodeCount = 0;
 
@@ -540,6 +548,36 @@ function addCorrelationIdHeader(response: Response, correlationId: string): Resp
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+/**
+ * IMPROVEMENT 8: Per-user concurrency tracking
+ * Prevents single user from starving others with burst requests
+ *
+ * MECHANISM:
+ * - Track concurrent requests per (userId, action) pair
+ * - Reject if concurrent count >= limit
+ * - Decrement on completion
+ */
+function checkAndIncrementConcurrency(userId: string, action: string): { allowed: boolean; currentCount: number; concurrencyKey: string } {
+  const concurrencyKey = `${userId}:${action}`;
+  const currentCount = userConcurrencyCounters.get(concurrencyKey) || 0;
+
+  if (currentCount >= PER_USER_CONCURRENT_LIMIT) {
+    return { allowed: false, currentCount, concurrencyKey };
+  }
+
+  userConcurrencyCounters.set(concurrencyKey, currentCount + 1);
+  return { allowed: true, currentCount: currentCount + 1, concurrencyKey };
+}
+
+function decrementConcurrency(concurrencyKey: string): void {
+  const current = userConcurrencyCounters.get(concurrencyKey) || 0;
+  if (current > 1) {
+    userConcurrencyCounters.set(concurrencyKey, current - 1);
+  } else {
+    userConcurrencyCounters.delete(concurrencyKey);
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -622,8 +660,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ━━━ PHASE 2B: Memory Check (H.15 - Reject if critical) ━━━
+    // ━━━ PHASE 2B: Per-User Concurrency Check (IMPROVEMENT 8 - Prevent user starvation) ━━━
+    const { allowed: concurrencyAllowed, currentCount, concurrencyKey } = checkAndIncrementConcurrency(userId, action);
+    if (!concurrencyAllowed) {
+      log.warn("Per-user concurrency limit exceeded", { action, userId, currentCount, limit: PER_USER_CONCURRENT_LIMIT });
+      const corsHeaders = req ? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } : {};
+      return new Response(
+        JSON.stringify({ error: `Maximum ${PER_USER_CONCURRENT_LIMIT} concurrent requests per action. Please wait.` }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': '5', // Retry sooner (5s) for concurrency limit vs rate limit
+          }
+        }
+      );
+    }
+    ctx.concurrencyKey = concurrencyKey; // Store for cleanup
+
+    // ━━━ PHASE 2C: Memory Check (H.15 - Reject if critical) ━━━
     if (!checkMemoryLimit(log)) {
+      decrementConcurrency(concurrencyKey);
       return errorResponse("Server overloaded. Please retry shortly.", 503, req);
     }
 
