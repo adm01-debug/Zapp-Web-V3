@@ -31,14 +31,24 @@ export function useNPSSurveys() {
   const fetchSurveys = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('nps_surveys')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(500);
-
-      if (error) throw error;
-      setSurveys((data as NPSSurvey[]) || []);
+      // Paginate to guarantee correct NPS metrics — a fixed .limit() causes
+      // score/totalResponses to be wrong whenever the count exceeds that cap.
+      const PAGE = 1000;
+      const allSurveys: NPSSurvey[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('nps_surveys')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allSurveys.push(...(data as NPSSurvey[]));
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      setSurveys(allSurveys);
     } catch (err) {
       log.error('Error fetching NPS surveys:', err);
     } finally {

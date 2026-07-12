@@ -135,20 +135,29 @@ export function useMediaLibrary(type: MediaType) {
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from(
-          type as 'stickers'
-        ) /* união MediaType explode inferência no schema 678; shapes compatíveis */
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1000);
-      if (error) {
-        log.error(`Error fetching ${type}:`, error);
-        toast.error(
-          `Erro ao carregar ${type === 'stickers' ? 'figurinhas' : type === 'audio_memes' ? 'áudios' : 'emojis'}`
-        );
+      // Paginate so the library is never silently truncated by PostgREST max_rows.
+      const PAGE = 1000;
+      const allItems: MediaItem[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from(type as 'stickers') /* união MediaType explode inferência no schema 678; shapes compatíveis */
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) {
+          log.error(`Error fetching ${type}:`, error);
+          toast.error(
+            `Erro ao carregar ${type === 'stickers' ? 'figurinhas' : type === 'audio_memes' ? 'áudios' : 'emojis'}`
+          );
+          break;
+        }
+        if (!data || data.length === 0) break;
+        allItems.push(...(data as MediaItem[]));
+        if (data.length < PAGE) break;
+        from += PAGE;
       }
-      setItems((data as MediaItem[]) || []);
+      setItems(allItems);
     } catch (err) {
       log.error(`Unexpected error fetching ${type}:`, err);
       setItems([]);

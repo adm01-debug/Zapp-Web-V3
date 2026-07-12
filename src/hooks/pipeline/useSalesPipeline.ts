@@ -35,16 +35,32 @@ export function useSalesPipeline() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([
+    const [stagesRes, dealsRes, agentsRes] = await Promise.all([
       supabase.from('sales_pipeline_stages').select('*').order('position'),
       safeClient.from<Deal & { contacts: { name: string; phone: string } | null; profiles: { name: string } | null }>('sales_deals', q => q.select('*, contacts(name, phone), profiles!sales_deals_assigned_to_fkey(name)').order('created_at', { ascending: false })),
-      dbFrom('contacts').select('id, name, phone').limit(200),
       supabase.from('profiles').select('id, name').eq('is_active', true),
     ]);
+
+    // Paginate contacts so the deal-assignment picker is never silently truncated.
+    const PAGE = 1000;
+    const allContacts: { id: string; name: string; phone: string }[] = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await dbFrom('contacts')
+        .select('id, name, phone')
+        .order('name', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) break;
+      if (!data || data.length === 0) break;
+      allContacts.push(...data);
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+
     if (!mountedRef.current) return;
     if (stagesRes.data) setStages(stagesRes.data);
     if (dealsRes.data) setDeals(dealsRes.data.map((d) => ({ ...d, tags: d.tags || [], contact: d.contacts, assignee: d.profiles })));
-    if (contactsRes.data) setContacts(contactsRes.data);
+    setContacts(allContacts);
     if (agentsRes.data) setAgents(agentsRes.data);
     setLoading(false);
   }, [mountedRef]);
