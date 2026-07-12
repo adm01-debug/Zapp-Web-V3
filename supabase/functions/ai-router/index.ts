@@ -257,7 +257,19 @@ Deno.serve(async (req) => {
 
     if (!allowed) {
       log.warn("Rate limit exceeded", { action, userId, ip });
-      return errorResponse("Rate limit exceeded. Please try again later.", 429, req);
+      // HIGH PRIORITY GAP C.6: Add Retry-After header to 429 responses
+      const corsHeaders = req ? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } : {};
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': '60', // Standard HTTP header - retry after 60 seconds
+          }
+        }
+      );
     }
 
     // ━━━ PHASE 3: Supabase Setup ━━━
@@ -2678,6 +2690,13 @@ async function handleTranscribeAudio(
       }
 
       if (!audioBuffer) {
+        // HIGH PRIORITY GAP E.9: Validate audio URL format before fetch
+        try {
+          new URL(audioUrl); // Throws if URL is invalid
+        } catch {
+          throw new Error(`Invalid audio URL format: ${audioUrl}`);
+        }
+
         const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
         if (!response.ok) {
           throw new Error(`HTTP download failed: ${response.status}`);
