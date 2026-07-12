@@ -40,7 +40,7 @@ export function useScheduledMessages(contactId?: string) {
         const windowStart = new Date();
         windowStart.setDate(windowStart.getDate() - 30);
         const windowEnd = new Date();
-        windowEnd.setFullYear(windowEnd.getFullYear() + 1);
+        windowEnd.setFullYear(windowEnd.getFullYear() + 5);
         query = query
           .gte('scheduled_at', windowStart.toISOString())
           .lte('scheduled_at', windowEnd.toISOString());
