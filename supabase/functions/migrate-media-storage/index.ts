@@ -3,6 +3,48 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { handleCors, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
+/**
+ * Edge Function: WhatsApp Media Migration Service
+ *
+ * Migrates media attachments from temporary WhatsApp CDN URLs to permanent Supabase Storage.
+ * WhatsApp CDN URLs expire after 24-72 hours; permanent storage ensures messages remain queryable.
+ *
+ * Security & Authorization:
+ * - Service-role or cron-triggered only (no user access)
+ * - Prevents unauthorized bulk media downloads/storage abuse
+ * - Scheduled via pg_cron for periodic batch processing
+ *
+ * Migration Strategy:
+ * 1. Query messages table for rows with WhatsApp CDN URLs (mmg.whatsapp.net, pps.whatsapp.net)
+ * 2. For each message:
+ *    a. Fetch media from CDN using stored auth_token (expires soon)
+ *    b. Upload to Supabase Storage (permanent, never expires)
+ *    c. Update messages.media_url to new storage path (gs://bucket/object)
+ *    d. Log success/failure to query_telemetry
+ * 3. Return summary: processed, migrated, failed count
+ *
+ * Failure Handling:
+ * - Transient errors (network timeout, CDN 502): Logged, skipped (retry on next run)
+ * - Permanent errors (CDN 404, invalid auth): Logged, not retried
+ * - If messages query fails: Fall back to simpler migration logic (see migrateSimple)
+ * - Returns 200 even on partial failures (idempotent; next run catches remainder)
+ *
+ * Storage Path Format:
+ * - Input: https://mmg.whatsapp.net/d/f/Ad12345abcdef... (WhatsApp CDN)
+ * - Output: gs://zapp-web-v3-bucket/whatsapp-media/2026/07/message-uuid-image.jpg
+ * - Preserves media type (image, video, audio, document) in path for organization
+ *
+ * Performance:
+ * - Batch size: 50 messages per run (prevents timeout, manageable API load)
+ * - Ordered by created_at DESC (migrates newest first; older media already likely expired)
+ * - Parallel downloads + uploads (not sequential per message)
+ * - Rate limit: 60 requests/60s per service (respects API quotas)
+ *
+ * Monitoring:
+ * - Logs to query_telemetry (one row per run: count, duration, error_count)
+ * - Alert on high failure rate (> 20% failures → possible auth revocation)
+ * - Tracks storage usage growth (how much data moved to permanent storage)
+ */
 serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;

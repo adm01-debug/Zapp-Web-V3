@@ -31,12 +31,27 @@ type RequestBody = {
 const PLACEHOLDER_RE = /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i;
 const EVO_TABLE_RE = /^evolution_/;
 const SAFE_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+/**
+ * Safely retrieves environment variable, filtering out placeholder values.
+ * Rejects common placeholder patterns (PLACEHOLDER, REPLACE_ME, YOUR_*, etc.) to prevent misconfiguration.
+ * Used for both URLs and keys; returns undefined if missing or placeholder, never empty string.
+ * @param name - Environment variable name
+ * @returns Trimmed value or undefined if absent/placeholder
+ */
 function pickEnv(name: string): string | undefined {
   const value = Deno.env.get(name)?.trim();
   if (!value || PLACEHOLDER_RE.test(value)) return undefined;
   return value;
 }
 
+/**
+ * Retrieves first non-empty environment variable from priority list with source tracking.
+ * Allows fallback between self-hosted and cloud configuration (e.g., SELFHOSTED_* → EXTERNAL_*).
+ * Returns both value and source variable name for debugging misconfiguration.
+ * @param names - Environment variable names in priority order
+ * @returns { value, source } or empty object if all missing/placeholder
+ */
 function pickEnvWithSource(names: string[]): { value?: string; source?: string } {
   for (const name of names) {
     const v = pickEnv(name);
@@ -45,6 +60,13 @@ function pickEnvWithSource(names: string[]): { value?: string; source?: string }
   return {};
 }
 
+/**
+ * Retrieves and validates Supabase URL from environment with automatic protocol normalization.
+ * Ensures https:// protocol and extracts origin (protocol + hostname + port).
+ * Silently skips malformed URLs and tries next priority candidate.
+ * @param names - URL environment variable names in priority order
+ * @returns { value: origin, source: variable_name } or empty object if all invalid
+ */
 function pickUrlWithSource(names: string[]): { value?: string; source?: string } {
   for (const name of names) {
     const raw = pickEnv(name);
@@ -59,10 +81,25 @@ function pickUrlWithSource(names: string[]): { value?: string; source?: string }
   return {};
 }
 
+/**
+ * Validates SQL identifiers (table/schema names) against injection attacks.
+ * Allows only: [a-zA-Z_][a-zA-Z0-9_]* pattern. Prevents SQL injection via dynamic table/schema names.
+ * Used before building dynamic queries: e.g., supabase.schema(schema).from(table)
+ * @param value - Identifier to validate (schema name, table name, column name)
+ * @returns true if safe to use in dynamic query construction
+ */
 function isSafeIdent(value: string): boolean {
   return SAFE_IDENT_RE.test(value);
 }
 
+/**
+ * Decodes unsigned JWT payload without verification (diagnostic use only).
+ * Handles base64url padding variations from JWT libraries and browsers.
+ * Used for extracting token claims (role, iss, ref, exp) before auth verification.
+ * Returns null on any parse error; caller must verify signature elsewhere if needed.
+ * @param token - JWT token string (any format with 2+ dot-separated segments)
+ * @returns Decoded payload object or null if malformed
+ */
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const parts = token.split(".");
@@ -75,6 +112,14 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * Retrieves first service_role JWT key from priority list with role validation and diagnostics.
+ * Rejects anon keys and tracks all rejected candidates for debugging (e.g., if cloud key found instead of self-hosted).
+ * Critical for security: service_role is required for proxy operations; anon keys must be rejected.
+ * Used in initialization to validate configuration before boot.
+ * @param names - JWT key environment variable names in priority order
+ * @returns { value: jwt_key, source, rejected: [{source, role}, ...] } or { rejected: [...] } if none valid
+ */
 function pickServiceRoleKeyWithSource(names: string[]): { value?: string; source?: string; rejected?: Array<{ source: string; role: string }> } {
   const rejected: Array<{ source: string; role: string }> = [];
   for (const name of names) {
@@ -206,11 +251,29 @@ const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
   evo: EVOLUTION_TABLES,
 };
 
+/**
+ * Automatically maps tables to correct schema based on naming convention.
+ * Evolution tables (evolution_*) must live in 'evo' schema, not 'public' (backward-compatibility mapping).
+ * Caller may request schema='public' but code redirects evolution_* tables to evo schema.
+ * Prevents accidental cross-schema confusion when querying dynamic table names.
+ * @param schema - Requested schema ('public', 'evo', etc.)
+ * @param table - Table name being queried
+ * @returns Corrected schema (e.g., 'evo' for evolution_* tables even if 'public' requested)
+ */
 function resolveSchema(schema: string, table: string): string {
   if (schema === "public" && EVO_TABLE_RE.test(table)) return "evo";
   return schema;
 }
 
+/**
+ * Wraps response payload in JSON with proper CORS and content-type headers.
+ * Always includes CORS headers from request (prevents CORS-related failures).
+ * Sets Content-Type: application/json for consistency with API contract.
+ * @param req - HTTP request (used to derive origin for CORS headers)
+ * @param payload - Response body object (automatically JSON-stringified)
+ * @param status - HTTP status code (200, 400, 401, 403, 404, 500, 503)
+ * @returns Response object ready to send
+ */
 function jsonResponse(req: Request, payload: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(payload), {
     status,
@@ -218,6 +281,44 @@ function jsonResponse(req: Request, payload: Record<string, unknown>, status: nu
   });
 }
 
+/**
+ * Edge Function: External Database Proxy (Supabase to Evolution/FATOR X)
+ *
+ * Securely proxies authenticated queries to external Supabase self-hosted instance (Evolution/FATOR X).
+ * Acts as a bridge between authenticated frontend/edge functions and isolated database.
+ * Enforces schema+table whitelists, validates identifiers, requires authentication for data access.
+ *
+ * Security Model:
+ * - GET without ?health: unauthenticated health check (returns 200 or { error, status, config })
+ * - All data queries (POST, GET ?health, GET ?check): require valid JWT auth
+ * - Whitelist enforcement: only evolution_* and select operational tables accessible
+ * - SQL injection prevention: isSafeIdent() validates table/schema/column names before dynamic query
+ * - Service-role key: uses SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY for proxy (never anon key)
+ *
+ * Configuration:
+ * - SELFHOSTED_SUPABASE_URL or EXTERNAL_SUPABASE_URL: target database origin
+ * - SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY or EXTERNAL_SUPABASE_SERVICE_ROLE_KEY: service-role JWT
+ * - Fails on boot if URL missing, key missing, or key not service_role (audit-logged)
+ *
+ * Supported Actions (via POST body):
+ * - read: SELECT with filters, order, limit, offset; returns rows array
+ * - insert: INSERT rows; validates schema+table+keys before insert
+ * - update: UPDATE rows by ID; validates before update
+ * - delete: DELETE rows by ID; logs deletion for audit trail
+ * - rpc: Execute Postgres function (RPC); caller specifies function + params
+ *
+ * Error Handling:
+ * - 400 Bad Request: missing required params, unsafe identifiers, invalid filter format
+ * - 401 Unauthorized: missing/invalid JWT (health checks bypass this)
+ * - 403 Forbidden: table not in whitelist
+ * - 500 Internal Server Error: Supabase query failure, database error
+ * - 503 Service Unavailable: configuration missing (URL/key), bootstrap error
+ *
+ * Diagnostics:
+ * - JWT payload decoded before auth verification (role, iss, ref, exp, sub, aud)
+ * - Tracks which config sources used (SELFHOSTED_* vs EXTERNAL_* vs none)
+ * - Logs key role/ref/iss for debugging misconfiguration (wrong anon key, expired token)
+ */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 

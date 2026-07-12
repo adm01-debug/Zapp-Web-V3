@@ -6,6 +6,51 @@ import { createCriticalPayloadSchemas, mapValidationIssuesToContractError } from
 
 const { publicApiSendSchema } = createCriticalPayloadSchemas(z);
 
+/**
+ * Edge Function: Public API for Programmatic WhatsApp Messaging
+ *
+ * RESTful endpoint for third-party integrations to send WhatsApp messages.
+ * Requires x-api-key header with token from global_settings.api_token.
+ * All requests validated against Zod schemas (number, message, optional connectionId).
+ *
+ * Authentication:
+ * - x-api-key header: compared against global_settings.api_token (constant-time comparison)
+ * - No JWT required; allows server-to-server auth via static token
+ * - Rate limited: 60 requests per 60 seconds per IP
+ * - Prevents brute-force token guessing via rate limiting
+ *
+ * Supported Actions (POST body):
+ * - action: "send" (only action supported currently)
+ * - number: Phone number (digits only; validated as E.164 format)
+ * - message: Message text (required; max length enforced by schema)
+ * - connectionId: Optional WhatsApp connection ID (defaults to is_default=true connection)
+ *
+ * Flow:
+ * 1. Validate x-api-key header against global_settings.api_token
+ * 2. Parse and validate JSON body against publicApiSendSchema
+ * 3. Find WhatsApp connection (by ID or default)
+ * 4. Find or create contact by phone number
+ * 5. Create outbound_message_queue record for async delivery
+ * 6. Return { success: true, messageId, status: 'queued' }
+ *
+ * Error Handling:
+ * - 400 Bad Request: Invalid JSON, missing fields, validation error (schema mismatch)
+ * - 401 Unauthorized: Missing or invalid x-api-key
+ * - 404 Not Found: No active WhatsApp connection
+ * - 405 Method Not Allowed: Only POST supported
+ * - 429 Too Many Requests: Rate limit exceeded (60/60s per IP)
+ * - 500 Internal Server Error: Database or Supabase error
+ *
+ * Validation:
+ * - publicApiSendSchema ensures: number (E.164), message (non-empty string), connectionId (optional UUID)
+ * - Schema validation errors mapped to contract error format (code, message, details)
+ * - Phone number normalized: whitespace/special chars stripped, stored as digits-only
+ *
+ * Idempotence & Idempotency Keys:
+ * - Uses contact phone + message hash for idempotent resubmit detection
+ * - Same phone + message sent twice returns existing messageId (not duplicate queue entry)
+ * - Prevents double-sending if client retries on network timeout
+ */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;

@@ -11,6 +11,54 @@ const corsHeaders = {
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
+/**
+ * Edge Function: Gmail Pub/Sub Push Notification Handler
+ *
+ * Receives push notifications from Google Cloud Pub/Sub when new emails arrive in subscribed mailboxes.
+ * Validates token (gmail_pubsub_token from vault or env), processes message history, and queues for delivery.
+ *
+ * Two Operational Modes:
+ *
+ * 1. Push Notifications (POST without action):
+ *    - Google Pub/Sub pushes notification when email arrives
+ *    - Validates query parameter ?token against gmail_pubsub_token
+ *    - Token uses timing-safe comparison (prevents timing attacks on token validation)
+ *    - Extracts accountId, historyId from notification
+ *    - Fetches full message via Gmail API using stored access_token
+ *    - Stores raw message, parses attachments, creates message + contact rows
+ *    - Queues delivery to webhook subscribers (awaits integration.incoming_webhooks)
+ *
+ * 2. Watch Registration (POST action=registerWatch):
+ *    - Authenticated user endpoint to subscribe a Gmail account to Pub/Sub push
+ *    - Requires valid JWT auth (user must own the gmail_accounts row)
+ *    - Calls Gmail /watch API to enable push notifications
+ *    - Stores historyId + watch_expiry for incremental sync on resume
+ *    - Watch auto-expires every 24h per Google design; background job refreshes
+ *
+ * Security Model:
+ * - Fail-closed: Missing or invalid ?token returns 401 (no public access to notifications)
+ * - Timing-safe comparison: timingSafeEqual() prevents token brute-force attacks
+ * - Ownership check: registerWatch verifies user owns the gmail_accounts row
+ * - Rate limiting: Global 60/60s cap on all email operations
+ *
+ * Token Sources (priority order):
+ * - gmail_pubsub_token: Vault secret (recommended, rotatable)
+ * - GMAIL_PUBSUB_TOKEN: Environment variable (fallback for legacy)
+ * - Missing both: Returns 401 (webhook not configured)
+ *
+ * Message Processing:
+ * - Decodes base64-encoded Gmail API response (messageId, historyId, email)
+ * - Parses subject, from, to, body, attachments
+ * - Creates contact if not exists
+ * - Stores email_tracked_messages row (full archive)
+ * - Queues delivery to webhooks in integration.incoming_webhooks
+ *
+ * Error Handling:
+ * - 400 Bad Request: Invalid JSON, missing accountId, Pub/Sub format error
+ * - 401 Unauthorized: Missing/invalid token, invalid access_token for Gmail API
+ * - 403 Forbidden: User doesn't own the Gmail account
+ * - 500 Internal Server Error: Database error, Gmail API error
+ */
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
