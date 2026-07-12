@@ -40,10 +40,10 @@ WHERE ctid NOT IN (
   GROUP  BY campaign_id, contact_id
 );
 
--- ── 4. Recount total_contacts for every campaign that held duplicate rows ────
--- The backup captures the pre-dedup state; any campaign present there may have
--- had duplicates inflating its count. We recount using the live (post-DELETE)
--- campaign_contacts table so the stored total is now accurate.
+-- ── 4. Recount total_contacts — only for campaigns that had duplicate rows ───
+-- Filter to campaigns where at least one (campaign_id, contact_id) pair
+-- appeared more than once in the backup. This prevents touching updated_at on
+-- campaigns whose data was already clean (no duplicates existed for them).
 UPDATE public.campaigns c
 SET    total_contacts = (
   SELECT COUNT(*)
@@ -51,8 +51,10 @@ SET    total_contacts = (
   WHERE  cc.campaign_id = c.id
 )
 WHERE  c.id IN (
-  SELECT DISTINCT campaign_id
+  SELECT campaign_id
   FROM   public._backup_campaign_contacts_20260712
+  GROUP  BY campaign_id, contact_id
+  HAVING COUNT(*) > 1
 );
 
 -- ── 5. Add UNIQUE constraint (idempotent) ───────────────────────────────────
