@@ -89,8 +89,9 @@ export function InviteAgentDialog({ open, onOpenChange }: InviteAgentDialogProps
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Nome</Label>
+            <Label htmlFor="invite-name">Nome</Label>
             <Input
+              id="invite-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nome do agente"
@@ -98,8 +99,9 @@ export function InviteAgentDialog({ open, onOpenChange }: InviteAgentDialogProps
           </div>
 
           <div className="space-y-2">
-            <Label>Email *</Label>
+            <Label htmlFor="invite-email">Email *</Label>
             <Input
+              id="invite-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -108,9 +110,9 @@ export function InviteAgentDialog({ open, onOpenChange }: InviteAgentDialogProps
           </div>
 
           <div className="space-y-2">
-            <Label>Cargo</Label>
+            <Label htmlFor="invite-role">Cargo</Label>
             <Select value={role} onValueChange={setRole}>
-              <SelectTrigger>
+              <SelectTrigger id="invite-role">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

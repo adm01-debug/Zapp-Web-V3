@@ -311,10 +311,10 @@ export function VoIPPanel() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Habilitar VoIP</Label>
+                  <Label htmlFor="voip-enabled">Habilitar VoIP</Label>
                   <p className="text-xs text-muted-foreground">Ativar chamadas via SIP</p>
                 </div>
-                <Switch checked={sipEnabled} onCheckedChange={setSipEnabled} />
+                <Switch id="voip-enabled" checked={sipEnabled} onCheckedChange={setSipEnabled} />
               </div>
 
               {sipEnabled && (
@@ -324,8 +324,9 @@ export function VoIPPanel() {
                   className="space-y-3"
                 >
                   <div className="space-y-2">
-                    <Label>Servidor SIP</Label>
+                    <Label htmlFor="voip-sip-server">Servidor SIP</Label>
                     <Input
+                      id="voip-sip-server"
                       value={sipServer}
                       onChange={(e) => setSipServer(e.target.value)}
                       placeholder="sip.provedor.com.br"
@@ -333,8 +334,9 @@ export function VoIPPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Usuário SIP</Label>
+                    <Label htmlFor="voip-sip-user">Usuário SIP</Label>
                     <Input
+                      id="voip-sip-user"
                       value={sipUser}
                       onChange={(e) => setSipUser(e.target.value)}
                       placeholder="ramal@sip.provedor.com.br"
@@ -342,8 +344,9 @@ export function VoIPPanel() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Porta WebSocket</Label>
+                    <Label htmlFor="voip-ws-port">Porta WebSocket</Label>
                     <Input
+                      id="voip-ws-port"
                       type="number"
                       value={wsPort}
                       onChange={(e) => setWsPort(parseInt(e.target.value) || 8089)}
