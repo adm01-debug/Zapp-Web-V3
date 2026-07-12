@@ -62,7 +62,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
       }
       
       if (memberIds.length === 0) return [];
-      const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').in('id', memberIds);
+      const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').in('id', memberIds).limit(memberIds.length);
       if (error) throw error;
       return (data || []) as MemberProfile[];
     },

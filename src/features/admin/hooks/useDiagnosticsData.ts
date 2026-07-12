@@ -93,16 +93,20 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
 
   const recentFailures = [];
   if (failures) {
-    for (const f of failures) {
-      let contactName = 'Desconhecido';
-      if (f.contact_id) {
-        const { data: contact } = await supabase
-          .from('contacts')
-          .select('name')
-          .eq('id', f.contact_id)
-          .single();
-        if (contact) contactName = contact.name;
+    const contactIds = failures.map((f) => f.contact_id).filter(Boolean) as string[];
+    let contactsMap = new Map<string, string>();
+    if (contactIds.length > 0) {
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('id, name')
+        .in('id', contactIds)
+        .limit(contactIds.length);
+      if (contacts) {
+        contactsMap = new Map(contacts.map((c) => [c.id, c.name]));
       }
+    }
+    for (const f of failures) {
+      const contactName = f.contact_id && contactsMap.has(f.contact_id) ? contactsMap.get(f.contact_id)! : 'Desconhecido';
       recentFailures.push({
         id: f.id,
         content: f.content,

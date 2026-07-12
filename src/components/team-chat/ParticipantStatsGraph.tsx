@@ -46,11 +46,11 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
       if (!messages || messages.length === 0) return [];
 
       const messageIds = messages.map(m => m.id);
-      
+
       type ReceiptRow = { status: string; profile_id: string | null; profiles: { name: string | null } | null };
       const { data: allReceipts, error: recError } = await safeClient.from<ReceiptRow>(
         'team_message_receipts',
-        q => q.select('status, profile_id, profiles(name)').in('message_id', messageIds),
+        q => q.select('status, profile_id, profiles(name)').in('message_id', messageIds).limit(messageIds.length),
       );
 
       if (recError) throw recError;

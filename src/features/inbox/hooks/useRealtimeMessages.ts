@@ -125,8 +125,9 @@ export function useRealtimeMessages() {
     for (const idsChunk of chunkArray(uniqueIds, CONTACT_FETCH_CHUNK_SIZE)) {
       const { data, error: contactsError } = await dbFrom('contacts')
         .select('*')
-        .in('id', idsChunk);
-        
+        .in('id', idsChunk)
+        .limit(idsChunk.length);
+
       if (contactsError) throw contactsError;
       fetchedContacts.push(...((data ?? []) as ConversationContact[]));
     }

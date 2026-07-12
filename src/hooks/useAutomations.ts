@@ -316,7 +316,7 @@ export function useAutomations({
         // Pedir sugestão de IA
         if (actions.suggest_reply || actions.auto_send) {
           try {
-            await supabase.functions.invoke('automation-suggest-reply', {
+            const { error: fnErr } = await supabase.functions.invoke('automation-suggest-reply', {
               body: {
                 executionId: execId,
                 ruleId: rule.id,
@@ -327,6 +327,7 @@ export function useAutomations({
                 })),
               },
             });
+            if (fnErr) throw fnErr;
 
             // Auto envio
             if (actions.auto_send) {
