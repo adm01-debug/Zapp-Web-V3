@@ -27,15 +27,18 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [hasSession, setHasSession] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const [redirectCancelled, setRedirectCancelled] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!success) return;
-    timerRef.current = setTimeout(() => navigate('/auth'), 3000);
+    if (!success || redirectCancelled) return;
+    if (countdown <= 0) { navigate('/auth'); return; }
+    timerRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [success, navigate]);
+  }, [success, countdown, redirectCancelled, navigate]);
 
   useEffect(() => {
     // Check if user came from password reset email
@@ -128,9 +131,20 @@ export default function ResetPassword() {
               </motion.div>
               <CardTitle>Senha Alterada!</CardTitle>
               <CardDescription>
-                Sua senha foi alterada com sucesso. Redirecionando para login...
+                Sua senha foi alterada com sucesso.{' '}
+                {redirectCancelled
+                  ? 'Redirecionamento cancelado.'
+                  : `Redirecionando em ${countdown}s...`}
               </CardDescription>
             </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Button onClick={() => navigate('/auth')}>Ir para login</Button>
+              {!redirectCancelled && (
+                <Button variant="ghost" onClick={() => { setRedirectCancelled(true); if (timerRef.current) clearTimeout(timerRef.current); }}>
+                  Cancelar redirecionamento
+                </Button>
+              )}
+            </CardContent>
           </Card>
         </motion.div>
       </div>

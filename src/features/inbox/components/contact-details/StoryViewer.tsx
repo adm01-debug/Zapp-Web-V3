@@ -174,7 +174,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
                 mediaLoading ? (
                   <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" /><p className="text-sm">Carregando vídeo...</p></div>
                 ) : resolvedMedia.src ? (
-                  <video src={resolvedMedia.src} controls autoPlay className="max-w-full max-h-[65vh] object-contain rounded-lg" />
+                  <video src={resolvedMedia.src} controls autoPlay className="max-w-full max-h-[65vh] object-contain rounded-lg" /><p className="sr-only">Legendas não disponíveis para este vídeo.</p>
                 ) : (
                   <div className="text-center text-foreground/70 space-y-2"><Video className="w-8 h-8 mx-auto" /><p className="text-sm">{mediaError || 'Vídeo indisponível'}</p></div>
                 )

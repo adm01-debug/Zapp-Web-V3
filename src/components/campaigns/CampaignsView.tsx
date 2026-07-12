@@ -98,7 +98,7 @@ export function CampaignsView() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <Input placeholder="Buscar campanha..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
+        <Input aria-label="Buscar campanha" placeholder="Buscar campanha..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>

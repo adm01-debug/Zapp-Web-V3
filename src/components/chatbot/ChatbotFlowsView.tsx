@@ -279,13 +279,13 @@ export function ChatbotFlowsView() {
 
           <div className="space-y-4">
             <div>
-              <Label>Nome do fluxo</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              <Label htmlFor="flow-name">Nome do fluxo</Label>
+              <Input id="flow-name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="Ex: Boas-vindas" />
             </div>
             <div>
-              <Label>Descrição</Label>
-              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              <Label htmlFor="flow-description">Descrição</Label>
+              <Textarea id="flow-description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="O que este fluxo faz..." rows={2} />
             </div>
             <div>
@@ -303,8 +303,8 @@ export function ChatbotFlowsView() {
             </div>
             {form.trigger_type === 'keyword' && (
               <div>
-                <Label>Palavra-chave</Label>
-                <Input value={form.trigger_value} onChange={e => setForm(f => ({ ...f, trigger_value: e.target.value }))}
+                <Label htmlFor="flow-trigger-value">Palavra-chave</Label>
+                <Input id="flow-trigger-value" value={form.trigger_value} onChange={e => setForm(f => ({ ...f, trigger_value: e.target.value }))}
                   placeholder="Ex: menu, ajuda, oi" />
               </div>
             )}

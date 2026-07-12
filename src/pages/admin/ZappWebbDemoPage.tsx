@@ -85,10 +85,10 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
           <img src={msg.media_url!} alt="Imagem da mensagem" className="rounded-lg mb-1 max-h-60 object-cover" />
         )}
         {isMedia && msg.media_type === 'audio' && (
-          <audio controls src={msg.media_url!} className="w-56 my-1" />
+          <><audio controls src={msg.media_url!} className="w-56 my-1" /><p className="sr-only">Transcrição de áudio não disponível.</p></>
         )}
         {isMedia && msg.media_type === 'video' && (
-          <video controls src={msg.media_url!} className="rounded-lg mb-1 max-h-60" />
+          <><video controls src={msg.media_url!} className="rounded-lg mb-1 max-h-60" /><p className="sr-only">Legendas não disponíveis para este vídeo.</p></>
         )}
         {isMedia && msg.media_type === 'document' && (
           <a

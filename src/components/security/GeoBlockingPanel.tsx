@@ -120,7 +120,7 @@ export function GeoBlockingPanel() {
               <TabsTrigger value="blacklist" className="gap-2"><Shield className="w-4 h-4" />Blacklist ({blockedCountries.length})</TabsTrigger>
             </TabsList>
             <div className="mt-4">
-              <div className="relative mb-4"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Buscar país..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" /></div>
+              <div className="relative mb-4"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input aria-label="Buscar país" placeholder="Buscar país..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" /></div>
               {loading ? <div className="text-center py-8 text-muted-foreground">Carregando...</div> :
                filteredCountries.length === 0 ? (
                 <div className="text-center py-8"><Globe className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" /><p className="text-muted-foreground">{search ? 'Nenhum país encontrado' : `Nenhum país na ${activeTab}`}</p>

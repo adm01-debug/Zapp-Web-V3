@@ -140,6 +140,7 @@ export function DialPad({
                     <PhoneOff className="w-6 h-6" />
                   </Button>
                 </div>
+                <p className="mt-3 text-[10px] text-muted-foreground/60">Legendas em tempo real não disponíveis nesta chamada.</p>
               </CardContent>
             </Card>
           </motion.div>
