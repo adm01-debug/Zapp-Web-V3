@@ -7,6 +7,7 @@ import { dbFrom } from '@/integrations/datasource/db';
 export const useAgentsQuery = (agentId?: string | null) =>
   useQuery({
     queryKey: ['dashboard-agents', agentId],
+    staleTime: 28_000,
     queryFn: async () => {
       let query = supabase
         .from('profiles')
@@ -27,6 +28,7 @@ export const useAgentsQuery = (agentId?: string | null) =>
 export const useContactsQuery = (filters: DashboardFilters) =>
   useQuery({
     queryKey: ['dashboard-contacts', filters.queueId, filters.agentId, filters.dateRange?.from?.toISOString(), filters.dateRange?.to?.toISOString()],
+    staleTime: 13_000,
     queryFn: async () => {
       let query = dbFrom('contacts')
         .select('id, name, phone, avatar_url, queue_id, assigned_to, created_at, updated_at', { count: 'exact' })
@@ -45,6 +47,7 @@ export const useContactsQuery = (filters: DashboardFilters) =>
 export const useMessagesQuery = (filters: DashboardFilters) =>
   useQuery({
     queryKey: ['dashboard-messages', filters.dateRange?.from?.toISOString(), filters.dateRange?.to?.toISOString(), filters.agentId],
+    staleTime: 8_000,
     queryFn: async () => {
       let query = dbFrom('messages')
         .select(`id, contact_id, content, sender, created_at, is_read, agent_id, contacts (id, name, phone, avatar_url, queue_id)`, { count: 'exact' })
@@ -69,6 +72,7 @@ export const useMessagesQuery = (filters: DashboardFilters) =>
 export const useQueuesQuery = () =>
   useQuery({
     queryKey: ['dashboard-queues'],
+    staleTime: 28_000,
     queryFn: async () => {
       const { data, error } = await safeClient.from<{
         id: string; name: string; color: string;
@@ -86,6 +90,7 @@ export const useQueuesQuery = () =>
 export const useContactsPerQueueQuery = () =>
   useQuery({
     queryKey: ['dashboard-contacts-per-queue'],
+    staleTime: 13_000,
     queryFn: async () => {
       const { data, error } = await dbFrom('contacts')
         .select('id, queue_id, assigned_to', { count: 'exact' });
@@ -104,6 +109,7 @@ export const useContactsPerQueueQuery = () =>
 export const useSlaQuery = () =>
   useQuery({
     queryKey: ['dashboard-sla'],
+    staleTime: 55_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('conversation_sla')

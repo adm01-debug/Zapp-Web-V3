@@ -48,6 +48,7 @@ export function useSLARules(scope?: SLARuleScope) {
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey,
+    staleTime: 60_000,
     queryFn: async () => {
       let query = supabase.from('sla_rules').select('*').order('priority', { ascending: false });
 
