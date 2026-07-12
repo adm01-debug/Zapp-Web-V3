@@ -19,6 +19,7 @@ import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { useUserRole } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { SecurityAlertsPanel, SecurityDevicesPanel } from './SecurityPanels';
+import { normalizeUserDevice } from '@/lib/normalizers';
 
 interface SecurityScore {
   total: number;
@@ -327,7 +328,7 @@ export function SecurityOverview() {
       </motion.div>
 
       <SecurityAlertsPanel alerts={securityAlerts} loading={loadingAlerts} />
-      <SecurityDevicesPanel devices={devices} loading={devicesLoading} />
+      <SecurityDevicesPanel devices={devices.map((d) => normalizeUserDevice(d as unknown as Record<string, unknown>))} loading={devicesLoading} />
     </div>
   );
 }
