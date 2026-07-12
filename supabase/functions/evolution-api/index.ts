@@ -7,7 +7,78 @@ import { mapFetchInstancesToProfile, shouldFallbackForProfile } from "../_shared
 import { isInstancePaused, recordAuthFailureAndMaybePause } from "../_shared/instance-pause.ts";
 import { WEBHOOK_EVENTS } from "../_shared/evolution-sync-actions.ts";
 
-
+/**
+ * Edge Function: Evolution API Proxy — Multi-Instance WhatsApp Provider Router
+ *
+ * Central proxy for Evolution API (self-hosted WhatsApp provider) supporting:
+ * - Multiple instance management (create, connect, disconnect, restart)
+ * - Message sending (text, media, audio, PTV, location, buttons, templates, stickers, polls, lists)
+ * - Chat/Contact management (find, archive, delete, mark read/unread)
+ * - Group operations (create, invite, update settings, manage participants)
+ * - Profile management (name, status, picture, privacy settings)
+ * - Integration configuration (Chatwoot, Typebot, OpenAI, Dify, Flowise, n8n, webhooks, proxies)
+ *
+ * Authentication & Authorization:
+ * - Requires valid JWT in Authorization header (Bearer token)
+ * - Tries self-hosted backend first, then Cloud Supabase for multi-tenant compatibility
+ * - Both endpoints must be configured (SELFHOSTED_SUPABASE_URL + SUPABASE_URL)
+ * - Returns 401 if JWT invalid or expired; 503 if backend unavailable
+ *
+ * Rate Limiting:
+ * - Separates read-only polling (status, list-instances, instance-info: 600/60s per IP)
+ *   from write operations (send, create, config: 120/60s per IP) to prevent rate limit
+ *   starvation on high-frequency polling scenarios (useEvolutionAutoReconnect/useEvolutionAutoSync)
+ * - Per-instance send rate limit: configurable via EVOLUTION_SEND_RATE_PER_INSTANCE (default 60/min)
+ * - Returns 429 if limit exceeded with Retry-After header
+ *
+ * Instance Validation & Safety:
+ * - Instance names must match /^[a-zA-Z0-9_-]{1,128}$/ (prevents path traversal)
+ * - Detects and rejects UUIDs as instance names (prevents "phantom instance" bug: accidental
+ *   instance creation with UUID name sequesters phone pairing outside pipeline)
+ * - Paused instances (excessive auth failures) reject sends immediately with 503 + INSTANCE_PAUSED
+ * - Tracks auth failures (401/403) and auto-pauses after threshold to prevent lockout loops
+ *
+ * Failure Handling & Resilience:
+ * - Missing instances on connect: auto-create if not a UUID, then retry connect
+ * - Auth failures: record attempt + pause instance, return 503 to client for retry
+ * - Transient errors (502/503/504) on disconnect: retry up to 2 times with 500ms backoff
+ * - Webhook reprocessing: admin-only action to retry failed webhook delivery attempts
+ *
+ * Payload Normalization:
+ * - Supports both JSON and FormData (multipart) request bodies
+ * - Validates all payloads before forwarding to Evolution API
+ * - Filters and normalizes response objects (e.g., normalize chat/contact lists, profiles)
+ *
+ * Configuration Sources:
+ * - Evolution API: EVOLUTION_API_URL (validated URL), EVOLUTION_API_KEY (apikey header)
+ * - Supabase: SELFHOSTED_SUPABASE_URL → SUPABASE_URL (priority order)
+ * - Supabase auth keys: SELFHOSTED_SUPABASE_ANON_KEY → SUPABASE_ANON_KEY
+ * - Send rate limit: EVOLUTION_SEND_RATE_PER_INSTANCE env var
+ *
+ * Response Format:
+ * - Success (200): { ...data, status, state } with CORS headers
+ * - Errors: { version, error: true, status, code, message, details? } with appropriate HTTP status
+ * - Both use application/json content type
+ *
+ * Supported Actions (30+):
+ * Instance mgmt: create-instance, list-instances, instance-info, connect, disconnect, delete-instance,
+ *                restart-instance, reprocess-failed-webhooks, status
+ * Messaging: send-text, send-media, send-audio, send-ptv, send-location, send-contact, send-reaction,
+ *            send-poll, send-sticker, send-list, send-buttons, send-status, send-template, mark-read,
+ *            mark-unread, read-messages, archive-chat, delete-message, update-message
+ * Chat/Contact: find-chats, find-messages, find-status-messages, find-contacts, check-numbers,
+ *               get-media-base64, delete-for-everyone, edit-message
+ * Groups: create-group, list-groups, group-info, group-participants, update-group-name,
+ *         update-group-description, update-participants, update-group-setting, group-invite-code,
+ *         revoke-invite-code, invite-info, accept-invite, leave-group, update-group-picture, toggle-ephemeral
+ * Profile: fetch-profile, update-profile-name, update-profile-status, update-profile-picture,
+ *          remove-profile-picture, fetch-profile-picture, fetch-business-profile, update-privacy
+ * Labels: find-labels, handle-label
+ * Integrations: set/get/delete-{chatwoot, typebot, openai, dify, flowise, evolution-bot, evoai, n8n, proxy, kafka, nats, pusher}
+ * Settings: set-presence, set-settings, get-settings, set-webhook, get-webhook, set-{rabbitmq, sqs}
+ * Templates: create-template, find-templates, delete-template
+ * Misc: update-block-status, offer-call, send-chat-presence, get-{catalog, collections}
+ */
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -98,7 +169,11 @@ Deno.serve(async (req) => {
   let _bodyCache: Record<string, unknown> | null = null;
   let _formDataCache: FormData | null = null;
 
-  // Safe JSON parser: validates parsed result is an object before returning
+  /**
+   * Safely parses JSON string, validating result is object (not array, null, or primitive).
+   * Returns { raw, _parseError } on failure to distinguish parse errors from valid non-object responses.
+   * Prevents downstream code from assuming parsed value is a Record<string, unknown>.
+   */
   const safeJsonParse = (text: string): Record<string, unknown> => {
     try {
       const parsed = JSON.parse(text);
@@ -111,6 +186,11 @@ Deno.serve(async (req) => {
     }
   };
 
+  /**
+   * Retrieves parsed request body (JSON or FormData), caching to prevent multiple parses.
+   * Returns { isMultipart, data } where data is FormData or cached Record<string, unknown>.
+   * Handles Content-Type parsing and graceful fallback to empty object on error.
+   */
   const getParsedBody = async () => {
     const contentType = req.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
@@ -132,7 +212,11 @@ Deno.serve(async (req) => {
     return { isMultipart: false, data: _bodyCache! };
   };
 
-  // Safe extraction helpers: validate type at runtime before accessing properties
+  /**
+   * Safely extracts string value from JSON object or FormData by key.
+   * Returns undefined if data is invalid type or key value is non-string.
+   * Prevents runtime errors from accessing properties on null/array/primitive values.
+   */
   const safeGet = (data: unknown, key: string, isFormData: boolean): string | undefined => {
     if (isFormData && data instanceof FormData) {
       const val = data.get(key);
@@ -145,6 +229,10 @@ Deno.serve(async (req) => {
     return undefined;
   };
 
+  /**
+   * Extracts any value (not just strings) from JSON object or FormData by key.
+   * Returns undefined if data is invalid type. Allows callers to handle type conversion themselves.
+   */
   const safeGetAny = (data: unknown, key: string, isFormData: boolean): unknown => {
     if (isFormData && data instanceof FormData) {
       return data.get(key);
@@ -155,7 +243,10 @@ Deno.serve(async (req) => {
     return undefined;
   };
 
-  // Safely extract body as Record when not multipart
+  /**
+   * Coerces unknown data to Record<string, unknown>, returning empty object if type is invalid.
+   * Used after getParsedBody to guarantee caller can safely call safeGet on the result.
+   */
   const ensureBodyIsRecord = (data: unknown): Record<string, unknown> => {
     if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
       return data as Record<string, unknown>;
@@ -163,6 +254,11 @@ Deno.serve(async (req) => {
     return {};
   };
 
+  /**
+   * Normalizes and validates create-instance request into Evolution API payload format.
+   * Extracts: qrcode (boolean), integration, token, number, businessId, wabaId, phoneNumberId,
+   *           webhook, chatwoot, typebot, proxy — all strings except qrcode (defaults to true).
+   */
   const buildCreateInstancePayload = (data: unknown, isFormData: boolean) => ({
     qrcode: (() => {
       const val = safeGetAny(data, 'qrcode', isFormData);
@@ -180,6 +276,11 @@ Deno.serve(async (req) => {
     proxy: safeGet(data, 'proxy', isFormData) || undefined,
   });
 
+  /**
+   * Normalizes instance settings request into Evolution API payload.
+   * Extracts: rejectCall, msgCall (strings), groupsIgnore, alwaysOnline, readMessages,
+   *           readStatus, syncFullHistory (any type for flexibility).
+   */
   const buildSettingsPayload = (data: unknown, isFormData: boolean) => ({
     rejectCall: safeGetAny(data, 'rejectCall', isFormData),
     msgCall: safeGet(data, 'msgCall', isFormData),
@@ -190,6 +291,11 @@ Deno.serve(async (req) => {
     syncFullHistory: safeGetAny(data, 'syncFullHistory', isFormData),
   });
 
+  /**
+   * Normalizes webhook configuration into Evolution API format.
+   * Supports both nested { webhook: { url, ... } } and flat { url, ... } request formats.
+   * Defaults: enabled=true, webhookByEvents=false, webhookBase64=true, events=[all WEBHOOK_EVENTS].
+   */
   const buildWebhookPayload = (data: unknown, isFormData: boolean) => {
     // Support both nested { webhook: { url, ... } } and flat { url, ... } formats
     const webhookObj = safeGetAny(data, 'webhook', isFormData);
@@ -206,6 +312,10 @@ Deno.serve(async (req) => {
     return { webhook: { enabled: webhookEnabled, url: webhookUrl, webhookByEvents, webhookBase64, events: webhookEvents } };
   };
 
+  /**
+   * Normalizes text message request into Evolution API send-text payload.
+   * Required: number, text. Optional: delay, quoted, mentionsEveryOne, mentioned, linkPreview (all pass-through).
+   */
   const buildSendTextPayload = (data: unknown, isFormData: boolean) => {
     const payload: Record<string, unknown> = {
       number: safeGet(data, 'number', isFormData),
@@ -224,6 +334,11 @@ Deno.serve(async (req) => {
     return payload;
   };
 
+  /**
+   * Normalizes media message request into Evolution API send-media payload.
+   * Supports: mediaType/mediatype (type alias), mimetype, caption, media/mediaUrl, fileName, delay.
+   * Flexible to support different field-naming conventions from clients.
+   */
   const buildSendMediaPayload = (data: unknown, isFormData: boolean) => ({
     number: safeGet(data, 'number', isFormData),
     mediatype: safeGet(data, 'mediaType', isFormData) || safeGet(data, 'mediatype', isFormData),
@@ -246,6 +361,11 @@ Deno.serve(async (req) => {
     || (isMultipart ? (bodyForAction instanceof FormData ? bodyForAction.get('__idemKey') : undefined) : safeGet(bodyForAction, '__idemKey', false))
     || '').toString().trim() || undefined;
 
+  /**
+   * Proxies normalized request to Evolution API via proxyToEvolution helper.
+   * Includes idempotency key for request deduplication and CORS headers.
+   * Handles Evolution apikey authentication and response normalization.
+   */
   const proxy = (path: string, method = 'POST', proxyBody?: unknown) =>
     proxyToEvolution(evolutionApiUrl, evolutionApiKey, corsHeaders, path, method, proxyBody, undefined, idemKey);
 
@@ -268,6 +388,13 @@ Deno.serve(async (req) => {
     // "nome" sequestra o pareamento do telefone para fora do pipeline.
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const instanceLooksLikeUuid = (v: unknown): boolean => typeof v === 'string' && UUID_RE.test(v.trim());
+
+    /**
+     * Resolves Evolution API internal UUID to actual instance name.
+     * Prevents "phantom instance" bug: when client sends internal instance_id (UUID) instead of name,
+     * auto-creating with that name would sequest phone pairing outside pipeline.
+     * Queries /instance/fetchInstances, returns null if id not found or name is also a UUID.
+     */
     const resolveInstanceNameById = async (id: string): Promise<string | null> => {
       try {
         const r = await fetch(`${evolutionApiUrl}/instance/fetchInstances`, { headers: { apikey: evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
