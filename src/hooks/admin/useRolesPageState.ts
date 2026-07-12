@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -43,7 +42,7 @@ export function useRolesPageState() {
           id: u.id,
           user_id: u.user_id,
           role: u.role as RoleType,
-          profile: Array.isArray(u.profiles) ? u.profiles[0] : u.profiles,
+          profile: (Array.isArray(u.profiles) ? u.profiles[0] : u.profiles) ?? undefined,
         }))
       );
     }

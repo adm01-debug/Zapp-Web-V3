@@ -71,10 +71,7 @@ src/hooks/__tests__/useExternalCatalog.test.ts
 src/hooks/__tests__/useMFA.test.tsx
 src/hooks/admin/useAdminAutomations.ts
 src/hooks/admin/useDepartmentsAdmin.ts
-src/hooks/admin/useRolesPageState.ts
-src/hooks/catalog/useSendProduct.ts
 src/hooks/integrations/useEvolutionApiIntegration.ts
-src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/monitoring/useMonitoringData.ts
 src/hooks/sla/useSLAScopeOptions.ts
 src/hooks/sticker-picker/useStickerPicker.ts
@@ -120,4 +117,3 @@ src/pages/admin/Connections.tsx
 src/services/email/emailHealthService.ts
 src/shared/webhookEventSchemas.ts
 supabase/functions/connection-health-check/index.ts
-supabase/functions/node_modules/.deno/openai@4.104.0/node_modules/openai/src/_vendor/zod-to-json-schema/parsers/string.ts
