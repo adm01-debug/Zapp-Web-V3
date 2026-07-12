@@ -50,7 +50,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [lastSendError, setLastSendError] = useState<string | null>(null);
   const [lastSendErrorDetail, setLastSendErrorDetail] = useState<string | null>(null);
-  const lastFailedPayloadRef = useRef<string | null>(null);
+  // Guarda content + attachments juntos (não só o texto): um envio só-mídia
+  // falho tem messageContent === '' (falsy), então checar `!payload` sozinho
+  // fazia retryLastSend virar no-op silencioso para esse caso.
+  const lastFailedSendRef = useRef<{ content: string; attachments?: File[] } | null>(null);
   const lastFailedAudioRef = useRef<{
     blob: Blob;
     onSendAudio: (blob: Blob) => Promise<void>;
@@ -104,7 +107,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       // enviado sem texto — nada era enviado e nenhum erro era mostrado. O bypass
       // só vale para envio novo: em modo de edição, texto vazio deve continuar
       // bloqueado (senão apagaria o conteúdo da mensagem ao invés de editá-la).
-      const bypassEmptyText = hasAttachments && !currentEditing;
+      // Também exclui modo sussurro: whisper_messages não suporta anexos (ver
+      // toast "Arquivos nao sao suportados" abaixo), então liberar o bypass aqui
+      // criava uma nota interna vazia após mostrar o aviso de "não suportado".
+      const bypassEmptyText = hasAttachments && !currentEditing && !isWhisperRef.current;
       if ((!currentInput.trim() && !bypassEmptyText) || isSendingRef.current) return;
 
       if (currentEditing) {
@@ -198,7 +204,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           );
           setSendProgress(100);
         }
-        lastFailedPayloadRef.current = null;
+        lastFailedSendRef.current = null;
         undoToast({
           message: 'Mensagem enviada',
           icon: 'ok',
@@ -217,7 +223,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         log.error('Failed to send message:', err);
         const msg = err?.message || 'Falha ao invocar a funcao de envio.';
         const detail = typeof err?.detail === 'string' ? err.detail : null;
-        lastFailedPayloadRef.current = messageContent;
+        lastFailedSendRef.current = { content: messageContent, attachments };
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         setInputValue(messageContent);
@@ -254,14 +260,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       }
       return;
     }
-    const payload = lastFailedPayloadRef.current;
-    if (!payload) return;
+    const failedSend = lastFailedSendRef.current;
+    if (!failedSend) return;
     setIsSending(true);
     setLastSendError(null);
     setLastSendErrorDetail(null);
     try {
-      await Promise.resolve(onSendMessage(payload));
-      lastFailedPayloadRef.current = null;
+      await Promise.resolve(onSendMessage(failedSend.content, failedSend.attachments));
+      lastFailedSendRef.current = null;
       toast({ title: 'Reenviado', description: 'A mensagem foi enviada com sucesso.' });
     } catch (err: any) {
       // ignore-audit
@@ -279,7 +285,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const dismissSendError = useCallback(() => {
     setLastSendError(null);
     setLastSendErrorDetail(null);
-    lastFailedPayloadRef.current = null;
+    lastFailedSendRef.current = null;
     lastFailedAudioRef.current = null;
   }, []);
   const handleReplyToMessage = useCallback((message: Message) => {
@@ -498,7 +504,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         const msg = err?.message || 'Falha ao enviar audio.';
         const detail = typeof err?.detail === 'string' ? err.detail : null;
         lastFailedAudioRef.current = { blob: audioBlob, onSendAudio };
-        lastFailedPayloadRef.current = null;
+        lastFailedSendRef.current = null;
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         toast({
