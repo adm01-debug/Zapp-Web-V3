@@ -92,6 +92,7 @@ export function MFAVerify({
           />
           {error && (
             <motion.p
+              role="alert"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center text-sm text-destructive"
