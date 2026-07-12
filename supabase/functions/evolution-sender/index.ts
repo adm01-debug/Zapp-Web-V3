@@ -243,13 +243,18 @@ async function markFailed(messageId: string, result: SendResult): Promise<void> 
   if (error) console.error(`[markFailed] ${messageId}:`, error.message);
 }
 
-async function markPending(messageId: string, lastError?: string): Promise<void> {
-  // v6: preserva error_message no retry pra debug
+async function markPending(messageId: string, lastError?: string, backoffMs?: number, httpStatus?: number): Promise<void> {
+  // v7: preserva error_message + agenda scheduled_at com jitter para evitar tempestades de retry
   const update: Record<string, any> = { status: "pending" };
   if (lastError) update.error_message = lastError.slice(0, 1000);
+  if (typeof httpStatus === "number") update.last_http_status = httpStatus;
+  if (backoffMs && backoffMs > 0) {
+    update.scheduled_at = new Date(Date.now() + backoffMs).toISOString();
+  }
   const { error } = await supabase.from("evolution_message_queue").update(update).eq("id", messageId);
   if (error) console.error(`[markPending] ${messageId}:`, error.message);
 }
+
 
 async function processQueue(): Promise<{
   processed: number; sent: number; failed: number; retried: number;
