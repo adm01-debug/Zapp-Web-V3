@@ -225,7 +225,7 @@ export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function T
                               name: conv.name || 'Departamento',
                             });
                           }}
-                          title="Gerenciar membros"
+                          aria-label="Gerenciar membros"
                         >
                           <Settings2 className="h-3.5 w-3.5" />
                         </Button>

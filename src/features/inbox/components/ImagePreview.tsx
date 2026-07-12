@@ -60,6 +60,7 @@ export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(functi
               e.stopPropagation();
               setIsZoomed(!isZoomed);
             }}
+            aria-label={isZoomed ? 'Diminuir zoom' : 'Ampliar imagem'}
           >
             {isZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
           </Button>

@@ -255,6 +255,7 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
                     handleSearch('');
                     setResults([]);
                   }}
+                  aria-label="Limpar busca"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -264,6 +265,7 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
                 size="icon"
                 className="relative h-8 w-8"
                 onClick={() => setShowFilters(!showFilters)}
+                aria-label={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
               >
                 <Filter className="h-4 w-4" />
                 {activeFiltersCount > 0 && (
@@ -298,6 +300,7 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
                       size="icon"
                       className="ml-0.5 h-4 w-4 hover:bg-transparent"
                       onClick={() => removeTag(tagId)}
+                      aria-label={`Remover etiqueta ${tag.name}`}
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -395,6 +398,7 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
                         e.stopPropagation();
                         removeFromHistory(item.query);
                       }}
+                      aria-label="Remover do histórico"
                     >
                       <X className="h-3 w-3" />
                     </Button>

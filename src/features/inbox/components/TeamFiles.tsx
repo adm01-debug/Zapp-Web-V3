@@ -286,6 +286,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                   size="icon"
                   className="h-7 w-7 text-warning-foreground hover:bg-warning"
                   asChild
+                  aria-label="Baixar arquivo"
                 >
                   <a
                     href={file.file_url}
@@ -301,6 +302,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                   size="icon"
                   className="h-7 w-7 text-destructive hover:bg-destructive/10"
                   onClick={() => deleteMutation.mutate(file.id)}
+                  aria-label="Excluir arquivo"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

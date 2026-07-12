@@ -173,7 +173,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
                     variant="secondary"
                     className="h-8 w-8 p-0 rounded-full"
                     onClick={() => window.open(`tel:${contact.phone}`)}
-                    title="Ligar"
+                    aria-label="Ligar"
                   >
                     <Phone className="w-4 h-4" />
                   </Button>
@@ -201,7 +201,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
                     variant="secondary"
                     className="h-8 w-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => window.open(`mailto:${contact.email}`)}
-                    title="Enviar e-mail"
+                    aria-label="Enviar e-mail"
                   >
                     <Mail className="w-4 h-4" />
                   </Button>
