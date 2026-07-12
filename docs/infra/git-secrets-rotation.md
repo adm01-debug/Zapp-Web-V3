@@ -152,20 +152,18 @@ REMOTE_URL=$(git remote get-url origin)  # salvar URL canônica ANTES de entrar 
 git clone --no-local /caminho/para/zapp-web-v3 /tmp/zapp-fresh
 cd /tmp/zapp-fresh
 # (executar TMPFILE + filter-repo dentro do /tmp/zapp-fresh — veja abaixo)
-# Após o filter-repo, o remote 'origin' é removido automaticamente. Re-adicionar:
-#   git remote add origin "$REMOTE_URL"
-# Depois execute o force-push a partir do clone temporário e remova-o.
+# Após o filter-repo, o remote 'origin' é removido automaticamente — será restaurado abaixo.
 #
 # Opção B (avançado): use --force se já estiver no clone correto e souber o que está fazendo.
-#   Lembre-se de salvar e re-adicionar o remote da mesma forma (filter-repo também o remove).
+#   Salve REMOTE_URL antes do filter-repo e re-adicione o remote da mesma forma.
 #
 # Nota: NÃO use trap … EXIT aqui — o trap de $OLD_KEY_FILE já está registrado no Step 2b.
 # Este bloco usa cleanup explícito para evitar sobreescrever o trap anterior.
 TMPFILE=$(mktemp)
 echo "<CHAVE-ANTIGA>==>REDACTED_ROTATED" > "$TMPFILE"
 git filter-repo --replace-text "$TMPFILE" && rm -f "$TMPFILE" || { rm -f "$TMPFILE"; exit 1; }
-# Se usar Opção A, re-adicionar o remote antes do force-push:
-#   git remote add origin "$REMOTE_URL"
+# Re-adicionar o remote (filter-repo o remove automaticamente após reescrever o histórico):
+git remote add origin "$REMOTE_URL"
 
 # Force-push (coordenar com a equipe — reescreve histórico)
 git push --force-with-lease origin main
