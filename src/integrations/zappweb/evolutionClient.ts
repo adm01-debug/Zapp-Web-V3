@@ -27,6 +27,11 @@
  *  - GET  /instance/connectionState/{instance}
  */
 import { safeClient } from '@/integrations/supabase/safeClient';
+import {
+  supabase,
+  SUPABASE_RESOLVED_URL,
+  SUPABASE_RESOLVED_ANON_KEY,
+} from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
 export interface EvolutionCredentials {
