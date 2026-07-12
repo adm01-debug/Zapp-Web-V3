@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
@@ -34,12 +35,16 @@ interface ExternalContact {
 
 // Typed shim for external RPC calls not present in ExtendedDatabase.Functions.
 // Usage: (client as unknown as { rpc: ExtRpc }).rpc(fn, args) — preserves `this` binding.
-type ExtRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+type ExtRpc = (
+  fn: string,
+  args: Record<string, unknown>
+) => Promise<{ data: unknown; error: { message: string } | null }>;
 
 // Handles Supabase/PostgREST errors (plain objects with .message) and standard Errors.
 const toErrMsg = (e: unknown): string => {
   if (e instanceof Error) return e.message;
-  if (typeof e === 'object' && e !== null && 'message' in e) return String((e as { message: unknown }).message);
+  if (typeof e === 'object' && e !== null && 'message' in e)
+    return String((e as { message: unknown }).message);
   return String(e);
 };
 
@@ -53,7 +58,6 @@ interface AutomationRule {
   priority: number;
 }
 
-
 interface UseAutomationsArgs {
   remoteJid: string | null;
   instanceName?: string;
@@ -64,7 +68,7 @@ const POLL_MS = 20_000;
 
 export function useAutomations({
   remoteJid,
-  instanceName = 'wpp2',
+  instanceName = ACTIVE_WHATSAPP_INSTANCE,
   assignedTo = null,
 }: UseAutomationsArgs) {
   const rulesRef = useRef<AutomationRule[]>([]);
@@ -131,8 +135,7 @@ export function useAutomations({
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
       const sorted = [...(msgs as ExternalMessage[])].sort(
-        (a, b) =>
-          new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
+        (a, b) => new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
       if (!last) return;
@@ -145,10 +148,13 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        const { data: contact } = await (client as unknown as { rpc: ExtRpc }).rpc('rpc_get_contact', {
-          p_remote_jid: remoteJid,
-          p_instance: instanceName,
-        });
+        const { data: contact } = await (client as unknown as { rpc: ExtRpc }).rpc(
+          'rpc_get_contact',
+          {
+            p_remote_jid: remoteJid,
+            p_instance: instanceName,
+          }
+        );
         const c = (Array.isArray(contact) ? contact[0] : contact) as ExternalContact | null;
         currentTags = Array.isArray(c?.tags) ? c.tags.map((t: unknown) => String(t)) : [];
         if (prevTagsRef.current !== null) {

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Database, RefreshCw, Webhook } from 'lucide-react';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useBridgeHealth } from '@/hooks/connections/useBridgeHealth';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { BridgeStatusBadge } from './bridge/BridgeStatusBadge';
 import { BridgeInfoRow } from './bridge/BridgeInfoRow';
 import { BridgeStatCard } from './bridge/BridgeStatCard';
@@ -16,29 +17,26 @@ export function BridgeSupabaseView() {
   const externalUrl = import.meta.env.VITE_EXTERNAL_SUPABASE_URL as string | undefined;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-4 p-6">
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Database className="w-5 h-5 text-primary" />
+              <div className="rounded-lg bg-primary/10 p-2">
+                <Database className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <CardTitle className="text-lg">Ponte Supabase ↔ Evolution API</CardTitle>
                 <CardDescription>
-                  Backend externo (FATOR X) que recebe webhooks da Evolution API e
-                  persiste todas as mensagens, contatos e conversas.
+                  Backend externo (FATOR X) que recebe webhooks da Evolution API e persiste todas as
+                  mensagens, contatos e conversas.
                 </CardDescription>
               </div>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={runCheck}
-              disabled={status === 'checking'}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${status === 'checking' ? 'animate-spin' : ''}`} />
+            <Button size="sm" variant="outline" onClick={runCheck} disabled={status === 'checking'}>
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${status === 'checking' ? 'animate-spin' : ''}`}
+              />
               Testar
             </Button>
           </div>
@@ -53,14 +51,14 @@ export function BridgeSupabaseView() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
             <BridgeInfoRow label="Endpoint" value={externalUrl ?? '—'} mono />
             <BridgeInfoRow
               label="Webhook Evolution"
               value={externalUrl ? `${externalUrl}/functions/v1/evolution-webhook` : '—'}
               mono
             />
-            <BridgeInfoRow label="Instância" value="wpp2" />
+            <BridgeInfoRow label="Instância" value={ACTIVE_WHATSAPP_INSTANCE} />
             <BridgeInfoRow
               label="Auth"
               value={isExternalConfigured ? 'Anon key configurada' : 'Faltando'}
@@ -68,7 +66,10 @@ export function BridgeSupabaseView() {
           </div>
 
           {error && (
-            <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <div
+              role="alert"
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
               {error}
             </div>
           )}
@@ -78,8 +79,8 @@ export function BridgeSupabaseView() {
       {health && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Webhook className="w-4 h-4" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Webhook className="h-4 w-4" />
               Saúde do Webhook
             </CardTitle>
             <CardDescription>
@@ -87,14 +88,16 @@ export function BridgeSupabaseView() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <BridgeStatCard label="Janela" value={health.window_label ?? '—'} />
               <BridgeStatCard label="Total" value={fmt(health.events_total)} />
               <BridgeStatCard label="OK" value={fmt(health.events_ok)} tone="success" />
               <BridgeStatCard label="Falhas" value={fmt(health.events_failed)} tone="error" />
               <BridgeStatCard
                 label="Latência média"
-                value={health.avg_latency_ms != null ? `${Math.round(health.avg_latency_ms)} ms` : '—'}
+                value={
+                  health.avg_latency_ms != null ? `${Math.round(health.avg_latency_ms)} ms` : '—'
+                }
               />
               <BridgeStatCard
                 label="Último evento"
