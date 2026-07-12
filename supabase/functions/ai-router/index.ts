@@ -91,13 +91,16 @@ interface CircuitBreakerState {
   failureCount: number;
   lastFailureTime?: number;
   successCount: number;
+  cycleCount: number; // D.9: Track open-close cycles for exponential backoff
 }
 
 const circuitBreakerStates = new Map<string, CircuitBreakerState>();
 const CIRCUIT_BREAKER_THRESHOLD = 5;
-const CIRCUIT_BREAKER_COOLDOWN_MS = 60_000; // 1 minute
+const CIRCUIT_BREAKER_COOLDOWN_MS = 90_000; // D.13: 90 seconds base (tuned for AI API recovery + exponential backoff)
 const CONCURRENT_UPLOAD_LIMIT = 3; // Max concurrent transcribe_audio operations
 const MAX_METRICS_BUFFER_SIZE = 10000; // Circular buffer limit
+const MEMORY_WARNING_THRESHOLD_MB = 250; // H.15: Warn at 250MB
+const MEMORY_CRITICAL_THRESHOLD_MB = 350; // H.15: Reject requests at 350MB
 
 let activeTranscodeCount = 0;
 
@@ -132,6 +135,7 @@ function getCircuitBreakerState(key: string): CircuitBreakerState {
       state: 'CLOSED',
       failureCount: 0,
       successCount: 0,
+      cycleCount: 0,
     });
   }
   return circuitBreakerStates.get(key)!;
@@ -143,14 +147,22 @@ async function withCircuitBreaker<T extends { response: { ok?: boolean; status?:
 ): Promise<T> {
   const breaker = getCircuitBreakerState(key);
 
-  // If open, check if cool-down period has passed
+  // If open, check if exponential backoff cool-down period has passed (D.9)
   if (breaker.state === 'OPEN') {
     const now = Date.now();
-    if (breaker.lastFailureTime && now - breaker.lastFailureTime > CIRCUIT_BREAKER_COOLDOWN_MS) {
+    // Exponential backoff: 60s * 2^cycleCount, capped at 10 minutes
+    const exponentialCooldown = Math.min(
+      CIRCUIT_BREAKER_COOLDOWN_MS * Math.pow(2, breaker.cycleCount),
+      600_000 // 10 minute cap
+    );
+    if (breaker.lastFailureTime && now - breaker.lastFailureTime > exponentialCooldown) {
       breaker.state = 'HALF_OPEN';
       breaker.successCount = 0;
     } else {
-      throw new Error(`Circuit breaker OPEN for ${key}, retry after ${CIRCUIT_BREAKER_COOLDOWN_MS}ms`);
+      const remainingMs = breaker.lastFailureTime
+        ? exponentialCooldown - (now - breaker.lastFailureTime)
+        : exponentialCooldown;
+      throw new Error(`Circuit breaker OPEN for ${key}, retry after ${Math.ceil(remainingMs / 1000)}s`);
     }
   }
 
@@ -166,6 +178,7 @@ async function withCircuitBreaker<T extends { response: { ok?: boolean; status?:
       if (breaker.state === 'HALF_OPEN') {
         breaker.state = 'CLOSED';
         breaker.successCount = 0;
+        breaker.cycleCount = 0; // D.9: Reset exponential backoff cycle on recovery
       }
       return result;
     } else {
@@ -175,6 +188,7 @@ async function withCircuitBreaker<T extends { response: { ok?: boolean; status?:
 
       if (breaker.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
         breaker.state = 'OPEN';
+        breaker.cycleCount++; // D.9: Increment cycle for exponential backoff
         throw new Error(`Circuit breaker opened for ${key} after ${breaker.failureCount} failures`);
       }
       return result;
@@ -186,6 +200,7 @@ async function withCircuitBreaker<T extends { response: { ok?: boolean; status?:
 
     if (breaker.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {
       breaker.state = 'OPEN';
+      breaker.cycleCount++; // D.9: Increment cycle for exponential backoff
     }
     throw err;
   }
@@ -206,6 +221,28 @@ async function callAiWithTimeout<T>(
       setTimeout(() => reject(new Error(errorMsg)), timeoutMs);
     }),
   ]);
+}
+
+// H.15: Memory usage monitoring and enforcement
+function getMemoryUsageMB(): number {
+  try {
+    const metrics = Deno.metrics();
+    return metrics.ops.heap?.bytes ? Math.round(metrics.ops.heap.bytes / (1024 * 1024)) : 0;
+  } catch {
+    return 0; // Fallback if metrics unavailable
+  }
+}
+
+function checkMemoryLimit(log: Logger): boolean {
+  const memMB = getMemoryUsageMB();
+  if (memMB >= MEMORY_CRITICAL_THRESHOLD_MB) {
+    log.error("Critical memory threshold exceeded", { memMB, threshold: MEMORY_CRITICAL_THRESHOLD_MB });
+    return false; // Reject request
+  }
+  if (memMB >= MEMORY_WARNING_THRESHOLD_MB) {
+    log.warn("Memory warning threshold reached", { memMB, threshold: MEMORY_WARNING_THRESHOLD_MB });
+  }
+  return true; // Allow request
 }
 
 Deno.serve(async (req) => {
@@ -270,6 +307,11 @@ Deno.serve(async (req) => {
           }
         }
       );
+    }
+
+    // ━━━ PHASE 2B: Memory Check (H.15 - Reject if critical) ━━━
+    if (!checkMemoryLimit(log)) {
+      return errorResponse("Server overloaded. Please retry shortly.", 503, req);
     }
 
     // ━━━ PHASE 3: Supabase Setup ━━━
