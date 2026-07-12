@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * HmacSelfTestButton
  * Aciona a edge function `webhook-hmac-selftest` e mostra a resposta detalhada
