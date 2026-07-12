@@ -7,6 +7,63 @@ import { createCriticalPayloadSchemas, mapValidationIssuesToContractError } from
 
 const { publicApiSendSchema } = createCriticalPayloadSchemas(z);
 
+/**
+ * Edge Function: Public API for External Message Sending
+ *
+ * HTTP API endpoint for external systems to send WhatsApp messages via authenticated token.
+ * Acts as a bridge between third-party integrations and the Evolution API, handling contact
+ * management, message persistence, and delivery coordination.
+ *
+ * Security Model:
+ * - API Token Authentication: x-api-key header must match global_settings key='api_token'
+ *   Uses timing-safe comparison (timingSafeStringEqual) to prevent timing attacks.
+ *   Token stored encrypted at rest in Supabase; never logged or exposed.
+ * - Rate Limiting: 60 requests per minute per IP address; enforced before auth check (fail-fast)
+ * - CORS: Handled via handleCors; allows cross-origin requests from configured origins
+ * - Schema Validation: Request payload validated against publicApiSendSchema (Zod);
+ *   failures return contract-based error responses with detailed field issues
+ *
+ * Request Format (POST application/json):
+ * {
+ *   "action": "send" (required, must be "send"),
+ *   "number": "+55 11 99999-9999" (required, phone number; non-digits stripped),
+ *   "message": "Hello" (required, text content ≤160 chars per schema),
+ *   "connectionId": "uuid" (optional, defaults to is_default=true connection)
+ * }
+ *
+ * Workflow:
+ * 1. Rate limit check (60/min per IP)
+ * 2. API key validation (timing-safe against global_settings)
+ * 3. Schema validation (publicApiSendSchema)
+ * 4. Connection lookup: By connectionId if provided, else default; must have status='connected'
+ * 5. Contact resolution: Look up by phone+connectionId, create if missing
+ * 6. Message persistence: Insert into messages table with status='sending'
+ * 7. Evolution delivery: Invoke evolution-api (async; non-blocking if failure)
+ *    - On success: Update message.external_id and status='sent'
+ *    - On failure: Update message.status='failed', log error, continue
+ * 8. Response: { success, messageId, contactId, requestId }
+ *
+ * Error Responses:
+ * - 400: Invalid JSON, missing action, unknown action, schema validation failure
+ * - 401: Missing x-api-key header
+ * - 403: Invalid API token
+ * - 404: No active WhatsApp connection found
+ * - 405: Method not allowed (must be POST)
+ * - 429: Rate limit exceeded (60/min per IP)
+ * - 500: Database insert/update failure, unhandled exception
+ *
+ * Side Effects:
+ * - Creates contact if missing (with name=phone, whatsapp_connection_id)
+ * - Inserts message record in status='sending' (persisted regardless of Evolution outcome)
+ * - Updates message.status and external_id based on Evolution API response
+ * - Logs all operations via Logger (requestId for tracing)
+ *
+ * Reliability:
+ * - Message persistence is atomic before Evolution send attempt (ensures durability)
+ * - Evolution send failures do not fail the API response (graceful degradation)
+ * - Message status updated async; can be retried independently if needed
+ * - All errors logged with requestId for audit trail
+ */
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
