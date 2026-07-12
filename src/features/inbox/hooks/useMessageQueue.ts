@@ -57,13 +57,14 @@ export function useMessageQueue(
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const isProcessingRef = useRef<Record<string, boolean>>({});
   const activeTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const processedDeliveriesRef = useRef<Set<string>>(new Set());
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    return () => {
       activeTimersRef.current.forEach(clearTimeout);
-    },
-    []
-  );
+      processedDeliveriesRef.current.clear();
+    };
+  }, []);
   const QUEUE_STORAGE_KEY = 'chat_message_queue';
 
   const getConfig = useCallback(
@@ -373,6 +374,13 @@ export function useMessageQueue(
 
   const reconcileWithDelivery = useCallback(
     (contactId: string, externalId: string, status: 'confirmed' | 'failed') => {
+      const dedupeKey = `${contactId}:${externalId}:${status}`;
+      if (processedDeliveriesRef.current.has(dedupeKey)) {
+        log.debug('[dedup] Already processed delivery event', { contactId, externalId, status });
+        return;
+      }
+      processedDeliveriesRef.current.add(dedupeKey);
+
       setQueue((prev) => {
         const item = prev.find(
           (i) =>
@@ -383,8 +391,9 @@ export function useMessageQueue(
         if (status === 'confirmed') {
           return prev.filter((i) => i.id !== item.id);
         } else {
-          // Apenas marca como falha se não houver mais tentativas automáticas
-          return prev.map((i) => (i.id === item.id ? { ...i, status: 'failed' } : i));
+          return prev.map((i) =>
+            i.id === item.id ? { ...i, status: 'failed', completedAt: Date.now() } : i
+          );
         }
       });
     },

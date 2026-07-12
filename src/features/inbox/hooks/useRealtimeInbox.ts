@@ -188,16 +188,20 @@ export function useRealtimeInbox() {
     });
   }, [selectedMessages, selectedContactId]);
 
-  // Listen for SLA alerts
+  // Listen for SLA alerts — bound by selectedContactId to avoid memory leak
   useEffect(() => {
+    if (!selectedContactId) return;
+
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail && detail.contactId === selectedContactId) {
+      if (detail?.contactId === selectedContactId) {
         setDeliveryAlert({ status: detail.status, delay: detail.delay, message: detail.message });
       }
     };
     window.addEventListener('sla-delivery-alert', handler);
-    return () => window.removeEventListener('sla-delivery-alert', handler);
+    return () => {
+      window.removeEventListener('sla-delivery-alert', handler);
+    };
   }, [selectedContactId]);
 
   // Whisper count
@@ -231,30 +235,46 @@ export function useRealtimeInbox() {
         .select('*', { count: 'exact', head: true })
         .eq('contact_id', selectedContactId)
         .eq('is_read', false);
-      if (!cancelled && !error && count !== null) setWhisperCount(count);
+      if (!cancelled && !error && count !== null) {
+        setWhisperCount(count);
+      }
     };
     void fetchWhisperCount();
 
-    // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
-    // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
-    const channel = supabase
-      .channel(`whisper-count-${selectedContactId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'zapp',
-          table: 'whisper_messages',
-          filter: `contact_id=eq.${selectedContactId}`,
-        },
-        () => {
-          void fetchWhisperCount();
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const subscribeToWhisperUpdates = async () => {
+      channel = supabase
+        .channel(`whisper-count-${selectedContactId}`, {
+          config: { broadcast: { self: true } },
+        })
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'zapp',
+            table: 'whisper_messages',
+            filter: `contact_id=eq.${selectedContactId}`,
+          },
+          () => {
+            if (!cancelled) {
+              void fetchWhisperCount();
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIPTION_ERROR' && !cancelled) {
+            log.warn('[whisperCount] Subscription failed, will retry on next interval', { status });
+          }
+        });
+    };
+
+    void subscribeToWhisperUpdates();
+
     return () => {
       cancelled = true;
-      channel.unsubscribe();
+      if (channel) {
+        void channel.unsubscribe();
+      }
     };
   }, [selectedContactId, profile?.id]);
 
@@ -334,10 +354,16 @@ export function useRealtimeInbox() {
         throw err;
       }
 
-      clearTimeout(postSendTimerRef.current);
+      if (postSendTimerRef.current) {
+        clearTimeout(postSendTimerRef.current);
+      }
       postSendTimerRef.current = setTimeout(() => {
-        void refetchSelectedMessages();
-        void refetch();
+        void refetchSelectedMessages().catch((err) => {
+          log.error('[postSend] refetchSelectedMessages failed:', err);
+        });
+        void refetch().catch((err) => {
+          log.error('[postSend] refetch failed:', err);
+        });
       }, 1500);
       return;
     }

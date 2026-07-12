@@ -113,6 +113,11 @@ export function useRealtimeMessages() {
 
   const conversationsRef = useRef<ConversationWithMessages[]>([]);
 
+  // Cache para evitar N+1 queries em contactos
+  const contactsCacheRef = useRef<Map<string, ConversationContact>>(new Map());
+  const contactBatchRef = useRef<Set<string>>(new Set());
+  const contactBatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const {
     newMessageNotification,
     notifyAboutIncomingMessage,
@@ -120,6 +125,17 @@ export function useRealtimeMessages() {
     setSelectedContact,
     setSoundEnabled,
   } = useRealtimeNotifications();
+
+  // Cleanup cache on unmount
+  useEffect(() => {
+    return () => {
+      if (contactBatchTimerRef.current) {
+        clearTimeout(contactBatchTimerRef.current);
+      }
+      contactsCacheRef.current.clear();
+      contactBatchRef.current.clear();
+    };
+  }, []);
 
   const commitConversations = useCallback(
     (
@@ -142,17 +158,32 @@ export function useRealtimeMessages() {
   const fetchContactsByIds = useCallback(async (contactIds: string[]) => {
     const uniqueIds = Array.from(new Set(contactIds.filter(Boolean)));
     if (uniqueIds.length === 0) return [] as ConversationContact[];
+
+    const missingIds = uniqueIds.filter((id) => !contactsCacheRef.current.has(id));
+    if (missingIds.length === 0) {
+      return uniqueIds.map((id) => contactsCacheRef.current.get(id)!);
+    }
+
     const fetchedContacts: ConversationContact[] = [];
 
-    for (const idsChunk of chunkArray(uniqueIds, CONTACT_FETCH_CHUNK_SIZE)) {
+    for (const idsChunk of chunkArray(missingIds, CONTACT_FETCH_CHUNK_SIZE)) {
       const { data, error: contactsError } = await dbFrom('contacts')
         .select('*')
         .in('id', idsChunk);
 
       if (contactsError) throw contactsError;
-      fetchedContacts.push(...((data ?? []) as ConversationContact[]));
+      const contacts = (data ?? []) as ConversationContact[];
+      contacts.forEach((c) => {
+        contactsCacheRef.current.set(c.id, c);
+      });
+      fetchedContacts.push(...contacts);
     }
-    return dedupeContacts(fetchedContacts);
+
+    const allContacts = [
+      ...fetchedContacts,
+      ...uniqueIds.map((id) => contactsCacheRef.current.get(id)!).filter(Boolean),
+    ];
+    return dedupeContacts(allContacts);
   }, []);
 
   const hydrateConversationForMessage = useCallback(
