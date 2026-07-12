@@ -50,9 +50,10 @@ export function AIAutoTagsConfig() {
       let processed = 0;
       for (const contact of contacts) {
         try {
-          await supabase.functions.invoke('ai-auto-tag', {
+          const { error } = await supabase.functions.invoke('ai-auto-tag', {
             body: { contactId: contact.id },
           });
+          if (error) throw error;
           processed++;
         } catch (e) {
           log.error('Error tagging contact:', contact.id, e);

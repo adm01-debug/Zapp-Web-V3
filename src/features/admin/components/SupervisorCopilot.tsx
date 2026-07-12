@@ -68,6 +68,7 @@ Agentes: ${agentData.data?.map((a) => `${a.name} (${a.role})`).join(', ') || 'ne
         },
       });
 
+      if (response.error) throw new Error(response.error.message || 'Erro na API');
       const answer =
         response.data?.content ||
         response.data?.choices?.[0]?.message?.content ||

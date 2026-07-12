@@ -99,9 +99,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           if (transcription.trim() === '' && audioBlob.size > 1000) {
             try {
               setIsTranscribing(true);
-              const { data } = await supabase.functions.invoke('speech-to-text', {
+              const { data, error } = await supabase.functions.invoke('speech-to-text', {
                 body: { audio: await blobToBase64(audioBlob) },
               });
+              if (error) throw error;
               if (data?.text) {
                 setTranscription(data.text);
               }

@@ -111,6 +111,7 @@ export function useDeviceDetection() {
         },
       });
 
+      if (response.error) throw response.error;
       if (response.data) {
         setCurrentDeviceId(response.data.device_id);
         log.debug('Device check result:', response.data);
