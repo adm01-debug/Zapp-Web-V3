@@ -20,6 +20,8 @@
 --   5. String de conexão dblink inclui lock_timeout e statement_timeout para que
 --      travamentos de partição disparem exceção que o handler por-partição pode capturar.
 
+CREATE EXTENSION IF NOT EXISTS dblink;
+
 CREATE OR REPLACE FUNCTION ops.fn_analytics_log_retention(p_days int DEFAULT 14)
 RETURNS jsonb
 LANGUAGE plpgsql

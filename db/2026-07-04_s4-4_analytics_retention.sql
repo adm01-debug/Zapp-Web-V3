@@ -50,16 +50,10 @@ BEGIN
 
 EXCEPTION WHEN OTHERS THEN
   -- Falha crítica (ex: socket indisponível, sem permissão no dblink).
-  -- Retorna jsonb de erro em vez de propagar exceção: o pg_cron marca o job como
+  -- Re-levanta a exceção após registrar WARNING: pg_cron marca o job como
   -- 'failed' apenas quando a função levanta, não quando retorna resultado de erro.
   RAISE WARNING '[analytics_retention] falha critica: % (SQLSTATE %)', SQLERRM, SQLSTATE;
-  RETURN jsonb_build_object(
-    'error',          SQLERRM,
-    'sqlstate',       SQLSTATE,
-    'retention_days', p_days,
-    'executed_at',    now(),
-    'tables',         v_result
-  );
+  RAISE;
 END $$;
 
 ALTER FUNCTION ops.fn_analytics_log_retention(int) OWNER TO supabase_admin;

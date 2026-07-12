@@ -214,7 +214,7 @@ export const sentimentAlertAuditRowSchema = z.object({
       type: z.string().optional(),
       contact_id: z.string().optional(),
       contact_name: z.string().optional(),
-      contact_phone: z.string().optional(),
+      contact_phone: z.string().nullable().optional(),
       sentiment_score: z.number().optional(),
       consecutive_low: z.number().optional(),
       agent_name: z.string().optional(),
