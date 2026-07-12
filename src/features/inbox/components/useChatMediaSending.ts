@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useChatMediaSending');
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { normalizeMediaUrl } from '@/utils/normalizeMediaUrl';

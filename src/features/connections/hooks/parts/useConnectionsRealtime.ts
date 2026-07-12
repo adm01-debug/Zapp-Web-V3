@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useConnectionsRealtime');
 import { WhatsAppConnection, QrCodeDialogState } from '../useConnectionsManager';
 
 /**

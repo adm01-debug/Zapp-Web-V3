@@ -1,7 +1,9 @@
 import { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, AlertTriangle, Shield, ShieldCheck, ShieldAlert, Loader2 } from 'lucide-react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('PasswordStrengthMeter');
 
 interface PasswordStrengthMeterProps {
   password: string;

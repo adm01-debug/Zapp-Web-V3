@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 're
 import { User, Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 import { authService, Profile } from '@/features/auth/services/authService';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { AuthContext } from '@/features/auth/context/AuthContext';
+
+const log = getLogger('AuthProvider');
 import { supabase } from '@/integrations/supabase/client';
 
 

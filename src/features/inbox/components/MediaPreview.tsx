@@ -1,6 +1,8 @@
 import { useState, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('MediaPreview');
 import { Download, Play, FileText, File, FileSpreadsheet,
   FileImage, FileArchive, Maximize, Loader2, VideoOff, RotateCw
 } from 'lucide-react';

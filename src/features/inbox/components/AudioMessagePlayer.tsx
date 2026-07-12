@@ -7,7 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('AudioMessagePlayer');
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
 import { AudioVolumeControl } from './AudioVolumeControl';
