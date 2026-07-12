@@ -50,7 +50,7 @@ export function ConnectionAuditDialog({
         .limit(50);
 
       if (error) throw error;
-      setLogs(data || []);
+      setLogs(Array.isArray(data) ? (data as AuditLog[]) : []);
     } catch (err) {
       log.error('Failed to fetch connection audit logs', err);
     } finally {

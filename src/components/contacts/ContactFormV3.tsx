@@ -171,18 +171,19 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
 
           if (error) throw error;
 
-          const result = (data ?? {}) as Record<string, unknown>;
-          if (result?.error === 'CONFLICT') {
-            setConflict(result as ConflictInfo);
+          if (data && typeof data === 'object' && 'error' in data && data.error === 'CONFLICT') {
+            setConflict(data as ConflictInfo);
             setConflictOpen(true);
             return;
           }
 
           // Update local version
-          setForm((prev) => ({
-            ...prev,
-            version: (result?.version as number | undefined) ?? prev.version,
-          }));
+          if (data && typeof data === 'object' && 'version' in data) {
+            setForm((prev) => ({
+              ...prev,
+              version: (data.version as number | undefined) ?? prev.version,
+            }));
+          }
         } else if (mode === 'edit' && form.id && forceOverwrite) {
           // Force overwrite after conflict resolution
           const { error } = await dbFrom('contacts').update(payload).eq('id', form.id);
