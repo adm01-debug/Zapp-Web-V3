@@ -119,7 +119,7 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     );
   }
 
-  const { data: failures } = await supabase
+  const { data: failedMessages } = await supabase
     .from('messages')
     .select('id, content, status, created_at, contact_id')
     .eq('sender', 'agent')
@@ -128,8 +128,8 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     .limit(10);
 
   const recentFailures = [];
-  if (failures) {
-    for (const f of failures) {
+  if (failedMessages) {
+    for (const f of failedMessages) {
       let contactName = 'Desconhecido';
       if (f.contact_id) {
         const { data: contact } = await supabase
