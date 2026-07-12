@@ -26,7 +26,8 @@ type OAuthNs = {
 };
 
 function oauth(): OAuthNs {
-  return (supabase.auth as unknown as { oauth: OAuthNs }).oauth;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase.auth as unknown as { oauth: OAuthNs }).oauth; // ignore-audit — supabase.auth.oauth is beta, not in generated TS types
 }
 
 export default function OAuthConsent() {
