@@ -6,7 +6,7 @@
  * `undefined` de forma segura e devolvem strings estáveis para os tooltips.
  */
 
-type ValueType = string | number | Array<string | number> | undefined;
+type ValueType = string | number | ReadonlyArray<string | number> | undefined;
 
 /** Converte value do Recharts em número, com fallback 0. */
 export function toNumber(v: ValueType): number {
