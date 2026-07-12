@@ -187,7 +187,8 @@ export default function BridgeStatusPage() {
       setStatus('offline');
       toast({
         title: 'Erro na verificação',
-        description: error.message || 'Não foi possível validar todos os serviços.',
+        description:
+          error instanceof Error ? error.message : 'Não foi possível validar todos os serviços.',
         variant: 'destructive',
       });
     } finally {

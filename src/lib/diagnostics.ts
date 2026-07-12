@@ -11,26 +11,17 @@ interface DiagStep {
 }
 
 interface SystemConnectionRow {
-  id: string;
-  name: string;
-  provider: string;
-  config: Record<string, unknown>;
-  is_active: boolean;
-  created_by: string;
-}
-
-interface DiagResult {
-  timestamp: string;
-  steps: DiagStep[];
-}
-
-interface SystemConnectionRow {
   id?: string;
   name?: string;
   provider?: string;
   config?: { url?: string; anon_key?: string; [key: string]: unknown };
   is_active?: boolean;
   created_by?: string;
+}
+
+interface DiagResult {
+  timestamp: string;
+  steps: DiagStep[];
 }
 
 /**
