@@ -19,15 +19,19 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const MAX_RETRIES = 3;
 
   // Memoize QueryClient to prevent recreation on re-renders
-  const queryClient = useMemo(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
-        retry: (failureCount, error: { status?: number; code?: string }) => {
-          // Don't retry for 401/403 errors (authentication/authorization)
-          if (error?.status === 401 || error?.status === 403 || error?.code === 'PGRST301') return false;
-          return failureCount < 2;
+  const queryClient = useMemo(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60 * 5, // 5 minutes
+            gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
+            retry: (failureCount, error: { status?: number; code?: string }) => {
+              // Don't retry for 401/403 errors (authentication/authorization)
+              if (error?.status === 401 || error?.status === 403 || error?.code === 'PGRST301') return false;
+              return failureCount < 2;
+            },
+          },
         },
       }),
     []
