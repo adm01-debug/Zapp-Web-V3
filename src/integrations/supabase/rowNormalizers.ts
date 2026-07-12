@@ -87,3 +87,25 @@ export function normalizeContact(row: ContactRow | null | undefined): ContactCan
     updated_at: row.updated_at ?? null,
   };
 }
+
+// -----------------------------------------------------------------------------
+// messages
+// -----------------------------------------------------------------------------
+
+type MessageRow = Partial<MessageCanonical> & {
+  sender_id?: string | null; // alias legado
+};
+
+export function normalizeMessage(row: MessageRow | null | undefined): MessageCanonical | null {
+  if (!row || typeof row !== 'object' || typeof row.id !== 'string') return null;
+  return {
+    id: row.id,
+    contact_id: row.contact_id ?? null,
+    agent_id: row.agent_id ?? row.sender_id ?? null,
+    content: row.content ?? null,
+    sender: row.sender ?? null,
+    channel_type: row.channel_type ?? null,
+    external_message_id: row.external_message_id ?? null,
+    created_at: row.created_at ?? null,
+  };
+}
