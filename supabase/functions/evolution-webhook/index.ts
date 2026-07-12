@@ -235,8 +235,8 @@ serve(async (req) => {
     if (event === 'logout.instance') await handleLogoutInstance(supabase, instance, baseData);
 
     if (event === 'qrcode.updated') {
-      const qrCode = (baseData.qrcode as Record<string, string>)?.base64;
-      if (qrCode) {
+      const qrCode = isRecord(baseData.qrcode) ? baseData.qrcode.base64 : undefined;
+      if (typeof qrCode === 'string') {
         await supabase.from('whatsapp_connections')
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
           .or(instanceOrFilter(instance));
@@ -300,13 +300,14 @@ serve(async (req) => {
               (typeof keySource?.participantAlt === 'string' ? keySource.participantAlt : undefined),
           };
 
-          const hasReaction = !!(entry.message as Record<string,unknown>)?.reactionMessage
-            || !!(baseData.message as Record<string,unknown>)?.reactionMessage;
+          const hasReaction = (isRecord(entry.message) && !!entry.message.reactionMessage)
+            || (isRecord(baseData.message) && !!baseData.message.reactionMessage);
           console.log(`[webhook][${requestId}][msg.upsert] id=${externalId} fromMe=${key.fromMe} jid=${redactJid(key.remoteJid)} reaction=${hasReaction}`);
 
-          const msg = (entry.message || baseData.message) as Record<string, unknown> | undefined;
-          if (msg?.reactionMessage) {
-            await handleReactionEvent(supabase, instance, msg.reactionMessage as Record<string, unknown>, !!key.fromMe);
+          const msgObj = entry.message || baseData.message;
+          const msg = isRecord(msgObj) ? msgObj : undefined;
+          if (msg && isRecord(msg.reactionMessage)) {
+            await handleReactionEvent(supabase, instance, msg.reactionMessage, !!key.fromMe);
             continue;
           }
 
