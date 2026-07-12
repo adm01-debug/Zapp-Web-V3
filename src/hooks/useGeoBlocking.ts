@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { toast } from 'sonner';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 interface Country {
   id: string;
@@ -27,6 +28,7 @@ export function useGeoBlocking() {
   const [selectedCountry, setSelectedCountry] = useState('');
   const [countryToRemove, setCountryToRemove] = useState<Country | null>(null);
   const [activeTab, setActiveTab] = useState<'whitelist' | 'blacklist'>('whitelist');
+  const mountedRef = useMountedRef();
 
   const fetchData = async () => {
     try {
@@ -35,24 +37,26 @@ export function useGeoBlocking() {
         .select('*')
         .limit(1)
         .single();
-      if (settingsData) setSettings(settingsData as GeoSettings);
 
       const { data: allowedData } = await supabase
         .from('allowed_countries')
         .select('*')
         .order('created_at', { ascending: false });
-      setAllowedCountries(allowedData || []);
 
       const { data: blockedData } = await supabase
         .from('blocked_countries')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (!mountedRef.current) return;
+      if (settingsData) setSettings(settingsData as GeoSettings);
+      setAllowedCountries(allowedData || []);
       setBlockedCountries(blockedData || []);
     } catch (error) {
       log.error('Error fetching geo data:', error);
-      toast.error('Erro ao carregar dados');
+      if (mountedRef.current) toast.error('Erro ao carregar dados');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
@@ -94,13 +98,11 @@ export function useGeoBlocking() {
           ? await supabase
               .from('allowed_countries')
               .insert({ country_code: countryCode, country_name: countryName, added_by: user?.id })
-          : await supabase
-              .from('blocked_countries')
-              .insert({
-                country_code: countryCode,
-                country_name: countryName,
-                blocked_by: user?.id,
-              });
+          : await supabase.from('blocked_countries').insert({
+              country_code: countryCode,
+              country_name: countryName,
+              blocked_by: user?.id,
+            });
       if (error) {
         if (error.code === '23505') {
           toast.error('Este país já está na lista');

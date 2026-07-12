@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { LogPayload, QueryLogContext, QueryOutcome, MetricSample } from './types.ts'
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { getCorsHeaders, handleCorsPreflight } from '../../_shared/cors.ts';
 export function shortRid(): string {
   try {
     return crypto.randomUUID().slice(0, 8)

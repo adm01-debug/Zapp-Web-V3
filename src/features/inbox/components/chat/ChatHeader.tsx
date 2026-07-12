@@ -419,7 +419,7 @@ export const ChatHeader = memo(function ChatHeader({
               Agendar mensagem
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onGenerateSummary}>
+            <DropdownMenuItem onClick={() => onGenerateSummary?.()}>
               <Brain className="mr-2 h-4 w-4" />
               Gerar Resumo
             </DropdownMenuItem>

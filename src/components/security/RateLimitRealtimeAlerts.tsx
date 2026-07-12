@@ -6,19 +6,9 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getLogger } from '@/lib/logger';
+import { normalizeSecurityAlert, type NormalizedSecurityAlert as SecurityAlert } from '@/lib/normalizers';
 
 const log = getLogger('RateLimitRealtimeAlerts');
-
-interface SecurityAlert {
-  id: string;
-  alert_type: string;
-  severity: string;
-  title: string;
-  description: string | null;
-  ip_address: string | null;
-  created_at: string;
-  is_resolved: boolean;
-}
 
 const ALERT_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   rate_limit: { icon: Clock, color: 'text-warning', bg: 'bg-warning/10 dark:bg-warning/20/30' },
@@ -52,7 +42,7 @@ export function RateLimitRealtimeAlerts() {
         log.error('Failed to fetch security_alerts', error);
         return;
       }
-      if (data) setAlerts(data);
+      if (data) setAlerts(data.map((row) => normalizeSecurityAlert(row as unknown as Record<string, unknown>)));
     };
 
     void fetchAlerts();

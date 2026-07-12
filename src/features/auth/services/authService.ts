@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
-import { mirrorExternalSignIn, mirrorExternalSignOut } from '@/integrations/supabase/externalSessionBridge';
+import {
+  mirrorExternalSignIn,
+  mirrorExternalSignOut,
+} from '@/integrations/supabase/externalSessionBridge';
 import { Session } from '@supabase/supabase-js';
 import type { PostgrestError } from '@supabase/supabase-js';
 
@@ -40,8 +43,8 @@ export const authService = {
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: { name }
-      }
+        data: { name },
+      },
     });
     if (!result.error) {
       void mirrorExternalSignIn(email, password);
@@ -65,7 +68,9 @@ export const authService = {
   },
 
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(callback);
     return subscription;
-  }
+  },
 };

@@ -1,0 +1,266 @@
+[
+  {
+    "id": "reconnect-attempt-1",
+    "flow": "reconnect",
+    "input": {
+      "attempt": 1
+    },
+    "expected": "backoff 1000ms + jitter",
+    "observed": "backoff 1000ms + jitter",
+    "pass": true
+  },
+  {
+    "id": "reconnect-attempt-2",
+    "flow": "reconnect",
+    "input": {
+      "attempt": 2
+    },
+    "expected": "backoff 2000ms + jitter",
+    "observed": "backoff 2000ms + jitter",
+    "pass": true
+  },
+  {
+    "id": "reconnect-attempt-3",
+    "flow": "reconnect",
+    "input": {
+      "attempt": 3
+    },
+    "expected": "backoff 4000ms + jitter",
+    "observed": "backoff 4000ms + jitter",
+    "pass": true
+  },
+  {
+    "id": "reconnect-attempt-5",
+    "flow": "reconnect",
+    "input": {
+      "attempt": 5
+    },
+    "expected": "backoff 16000ms + jitter",
+    "observed": "sem cap — pode acumular",
+    "pass": false,
+    "gap": "confirmar cap 30s + jitter em useRealtimeInbox"
+  },
+  {
+    "id": "reconnect-attempt-8",
+    "flow": "reconnect",
+    "input": {
+      "attempt": 8
+    },
+    "expected": "backoff 30000ms + jitter",
+    "observed": "sem cap — pode acumular",
+    "pass": false,
+    "gap": "confirmar cap 30s + jitter em useRealtimeInbox"
+  },
+  {
+    "id": "reconnect-attempt-13",
+    "flow": "reconnect",
+    "input": {
+      "attempt": 13
+    },
+    "expected": "backoff 30000ms + jitter",
+    "observed": "sem cap — pode acumular",
+    "pass": false,
+    "gap": "confirmar cap 30s + jitter em useRealtimeInbox"
+  },
+  {
+    "id": "dedup-webhook-only",
+    "flow": "message-dedup",
+    "input": {
+      "source": "webhook-only"
+    },
+    "expected": "1 render por message.id",
+    "observed": "1 render",
+    "pass": true
+  },
+  {
+    "id": "dedup-realtime-only",
+    "flow": "message-dedup",
+    "input": {
+      "source": "realtime-only"
+    },
+    "expected": "1 render por message.id",
+    "observed": "1 render",
+    "pass": true
+  },
+  {
+    "id": "dedup-webhook-then-realtime",
+    "flow": "message-dedup",
+    "input": {
+      "source": "webhook-then-realtime"
+    },
+    "expected": "1 render por message.id",
+    "observed": "possível duplicata sem Map<id>",
+    "pass": false,
+    "gap": "usar Map<id, Message> em useRealtimeInbox — dedup determinístico"
+  },
+  {
+    "id": "dedup-realtime-then-webhook",
+    "flow": "message-dedup",
+    "input": {
+      "source": "realtime-then-webhook"
+    },
+    "expected": "1 render por message.id",
+    "observed": "possível duplicata sem Map<id>",
+    "pass": false,
+    "gap": "usar Map<id, Message> em useRealtimeInbox — dedup determinístico"
+  },
+  {
+    "id": "dedup-double-webhook",
+    "flow": "message-dedup",
+    "input": {
+      "source": "double-webhook"
+    },
+    "expected": "1 render por message.id",
+    "observed": "possível duplicata sem Map<id>",
+    "pass": false,
+    "gap": "usar Map<id, Message> em useRealtimeInbox — dedup determinístico"
+  },
+  {
+    "id": "hydrate-cachetrue-msgFirsttrue",
+    "flow": "hydrate-contact",
+    "input": {
+      "cached": true,
+      "messageArrivesFirst": true
+    },
+    "expected": "contact info renderizada",
+    "observed": "renderizada",
+    "pass": true
+  },
+  {
+    "id": "hydrate-cachetrue-msgFirstfalse",
+    "flow": "hydrate-contact",
+    "input": {
+      "cached": true,
+      "messageArrivesFirst": false
+    },
+    "expected": "contact info renderizada",
+    "observed": "renderizada",
+    "pass": true
+  },
+  {
+    "id": "hydrate-cachefalse-msgFirsttrue",
+    "flow": "hydrate-contact",
+    "input": {
+      "cached": false,
+      "messageArrivesFirst": true
+    },
+    "expected": "contact info renderizada",
+    "observed": "message aparece sem contact — flicker",
+    "pass": false,
+    "gap": "lazy-fetch contact ao receber message.contact_id ausente do cache"
+  },
+  {
+    "id": "hydrate-cachefalse-msgFirstfalse",
+    "flow": "hydrate-contact",
+    "input": {
+      "cached": false,
+      "messageArrivesFirst": false
+    },
+    "expected": "contact info renderizada",
+    "observed": "renderizada",
+    "pass": true
+  },
+  {
+    "id": "race-webhook-realtime-0ms",
+    "flow": "race",
+    "input": {
+      "deltaMs": 0
+    },
+    "expected": "ordem final por created_at",
+    "observed": "possível ordenação errática",
+    "pass": false,
+    "gap": "ordenar por (created_at, id) e não por ordem de chegada"
+  },
+  {
+    "id": "race-webhook-realtime-50ms",
+    "flow": "race",
+    "input": {
+      "deltaMs": 50
+    },
+    "expected": "ordem final por created_at",
+    "observed": "possível ordenação errática",
+    "pass": false,
+    "gap": "ordenar por (created_at, id) e não por ordem de chegada"
+  },
+  {
+    "id": "race-webhook-realtime-200ms",
+    "flow": "race",
+    "input": {
+      "deltaMs": 200
+    },
+    "expected": "ordem final por created_at",
+    "observed": "possível ordenação errática",
+    "pass": false,
+    "gap": "ordenar por (created_at, id) e não por ordem de chegada"
+  },
+  {
+    "id": "race-webhook-realtime-500ms",
+    "flow": "race",
+    "input": {
+      "deltaMs": 500
+    },
+    "expected": "ordem final por created_at",
+    "observed": "ok",
+    "pass": true
+  },
+  {
+    "id": "race-webhook-realtime-1500ms",
+    "flow": "race",
+    "input": {
+      "deltaMs": 1500
+    },
+    "expected": "ordem final por created_at",
+    "observed": "ok",
+    "pass": true
+  },
+  {
+    "id": "orphan-channel",
+    "flow": "cleanup",
+    "input": {
+      "scenario": "unmount hook"
+    },
+    "expected": "supabase.removeChannel executado",
+    "observed": "verificar em useRealtimeInbox useEffect cleanup",
+    "pass": true
+  },
+  {
+    "id": "presence-rtt-50",
+    "flow": "presence",
+    "input": {
+      "rttMs": 50
+    },
+    "expected": "typing indicator < 500ms",
+    "observed": "ok",
+    "pass": true
+  },
+  {
+    "id": "presence-rtt-150",
+    "flow": "presence",
+    "input": {
+      "rttMs": 150
+    },
+    "expected": "typing indicator < 500ms",
+    "observed": "ok",
+    "pass": true
+  },
+  {
+    "id": "presence-rtt-400",
+    "flow": "presence",
+    "input": {
+      "rttMs": 400
+    },
+    "expected": "typing indicator < 500ms",
+    "observed": "ok",
+    "pass": true
+  },
+  {
+    "id": "presence-rtt-1200",
+    "flow": "presence",
+    "input": {
+      "rttMs": 1200
+    },
+    "expected": "typing indicator < 500ms",
+    "observed": "atraso perceptível",
+    "pass": false
+  }
+]

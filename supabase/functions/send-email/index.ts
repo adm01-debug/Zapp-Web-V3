@@ -23,56 +23,120 @@ serve(async (req) => {
     if (authed instanceof Response) return authed;
 
     // Contrato send-email@v1: accountId OU (to+subject+html). 422 unificado.
-    const raw = await req.json().catch(() => null);
+    let raw: unknown;
+    try {
+      raw = await req.json();
+    } catch {
+      raw = null;
+    }
     const parsed = parseOrReject('send-email', { v1: SendEmailV1Schema }, req, raw, { extraHeaders: corsHeaders });
     if (!parsed.ok) return parsed.response;
-    const body = parsed.data as Record<string, unknown> & { accountId?: string; action?: string; to?: string | string[]; subject?: string; html?: string };
+
+    if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
+      return json({ error: 'Invalid parsed data' }, 400);
+    }
+    const body = parsed.data as Record<string, unknown>;
+    const accountId = typeof body.accountId === 'string' && body.accountId.length > 0 ? body.accountId : null;
 
     // Verifica se há accountId para usar gmail-send
-    if (body.accountId) {
+    if (accountId) {
       // Delega para gmail-send usando o token do usuário (não service role),
       // para que gmail-send possa verificar a propriedade da conta Gmail.
-      const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+      const supabaseUrlSelfHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+      const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
+      const supabaseUrl = (typeof supabaseUrlSelfHosted === 'string' && supabaseUrlSelfHosted.length > 0)
+        ? supabaseUrlSelfHosted
+        : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
 
-      const res = await fetch(`${supabaseUrl}/functions/v1/gmail-send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': req.headers.get('Authorization') || '',
-        },
-        body: JSON.stringify({ ...body, action: body.action ?? 'send' }),
-        signal: AbortSignal.timeout(15_000),
-      });
+      if (!supabaseUrl) {
+        return json({ error: 'Supabase URL not configured' }, 503);
+      }
 
-      const data = await res.json();
-      return json(data, res.status);
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader || typeof authHeader !== 'string' || authHeader.length === 0) {
+        return json({ error: 'Missing authorization header' }, 401);
+      }
+
+      const actionStr = typeof body.action === 'string' ? body.action : 'send';
+      let resData: unknown;
+      try {
+        const res = await fetch(`${supabaseUrl}/functions/v1/gmail-send`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({ ...body, action: actionStr }),
+          signal: AbortSignal.timeout(15_000),
+        });
+
+        resData = await res.json();
+      } catch (fetchErr) {
+        console.error('[send-email] gmail-send fetch error:', fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
+        return json({ error: 'Failed to delegate to gmail-send' }, 502);
+      }
+
+      if (!resData || typeof resData !== 'object') {
+        return json({ error: 'Invalid response from gmail-send' }, 502);
+      }
+      return json(resData, 200);
     }
 
     // Fallback: Resend / SMTP genérico (para emails transacionais sem conta Gmail)
     const resendKey = Deno.env.get('RESEND_API_KEY');
-    if (!resendKey) {
+    if (!resendKey || typeof resendKey !== 'string' || resendKey.length === 0) {
       return json({ error: 'Nenhum provedor de email configurado. Forneça accountId para usar Gmail ou configure RESEND_API_KEY.' }, 503);
     }
 
-    const { to, subject, html } = body; // presença garantida pelo contrato v1
-    const from = 'noreply@zappweb.app';
+    const toVal = body.to;
+    const subjectVal = typeof body.subject === 'string' ? body.subject : '';
+    const htmlVal = typeof body.html === 'string' ? body.html : '';
 
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${resendKey}`,
-      },
-      body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html }),
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    const resendData = await resendRes.json();
-    if (!resendRes.ok) {
-      return json({ error: resendData.message ?? 'Erro no Resend' }, resendRes.status);
+    if (!toVal || !subjectVal || !htmlVal) {
+      return json({ error: 'Missing required fields: to, subject, html' }, 400);
     }
 
-    return json({ messageId: resendData.id, provider: 'resend' });
+    const toArray = Array.isArray(toVal) ? toVal : (typeof toVal === 'string' ? [toVal] : []);
+    if (toArray.length === 0 || !toArray.every(t => typeof t === 'string' && t.length > 0)) {
+      return json({ error: 'Invalid to field' }, 400);
+    }
+
+    const from = 'noreply@zappweb.app';
+
+    let resendData: unknown;
+    try {
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resendKey}`,
+        },
+        body: JSON.stringify({ from, to: toArray, subject: subjectVal, html: htmlVal }),
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      resendData = await resendRes.json();
+      if (!resendData || typeof resendData !== 'object') {
+        return json({ error: 'Invalid Resend response' }, 502);
+      }
+
+      if (!resendRes.ok) {
+        const resendDataObj = resendData as Record<string, unknown>;
+        const errorMsg = typeof resendDataObj.message === 'string' ? resendDataObj.message : 'Erro no Resend';
+        return json({ error: errorMsg }, resendRes.status);
+      }
+
+      const resendDataObj = resendData as Record<string, unknown>;
+      const messageId = typeof resendDataObj.id === 'string' ? resendDataObj.id : null;
+      if (!messageId) {
+        return json({ error: 'No message ID returned from Resend' }, 502);
+      }
+
+      return json({ messageId, provider: 'resend' }, 200);
+    } catch (resendErr) {
+      console.error('[send-email] Resend error:', resendErr instanceof Error ? resendErr.message : String(resendErr));
+      return json({ error: 'Failed to send email via Resend' }, 502);
+    }
 
   } catch (err) {
     console.error('[send-email]', err instanceof Error ? err.message : String(err));

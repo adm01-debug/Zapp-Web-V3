@@ -36,17 +36,18 @@ export interface EvolutionInvokeResult<T = unknown> {
 
 const TRANSIENT_PATTERNS = [
   'fetch', 'network', 'timeout', 'aborted', 'econnreset',
-  'enotfound', '502', '503', '504', '429', 'unavailable',
-  'temporarily', 'gateway',
+  'enotfound', 'unavailable', 'temporarily', 'gateway',
 ];
+// Word-boundary regex avoids false matches like '5024' or URLs containing these codes.
+const TRANSIENT_STATUS_IN_MSG_RE = /\b(429|502|503|504)\b/;
 
 function isTransient(err: unknown): boolean {
   if (!err) return false;
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
-    const status = (err as { status?: number }).status;
-    if (typeof status === 'number' && status >= 500) return true;
-    return TRANSIENT_PATTERNS.some((p) => msg.includes(p));
+    const status = (err as unknown as { status?: number }).status;
+    if (typeof status === 'number' && (status >= 500 || status === 429)) return true;
+    return TRANSIENT_PATTERNS.some((p) => msg.includes(p)) || TRANSIENT_STATUS_IN_MSG_RE.test(msg);
   }
   if (typeof err === 'object') {
     const anyErr = err as { status?: number; message?: string };
@@ -54,7 +55,7 @@ function isTransient(err: unknown): boolean {
     if (anyErr.status === 429) return true;
     if (anyErr.message) {
       const msg = anyErr.message.toLowerCase();
-      return TRANSIENT_PATTERNS.some((p) => msg.includes(p));
+      return TRANSIENT_PATTERNS.some((p) => msg.includes(p)) || TRANSIENT_STATUS_IN_MSG_RE.test(msg);
     }
   }
   return false;

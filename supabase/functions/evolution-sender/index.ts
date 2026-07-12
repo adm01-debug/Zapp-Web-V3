@@ -78,14 +78,23 @@ async function callEvolution(endpoint: string, body: Record<string, any>, instan
       return { success: false, error: `HTTP ${response.status}: ${text.slice(0, 250)}`, http_status: response.status };
     }
     let result: Record<string, unknown> = {};
-    try { result = JSON.parse(text) as Record<string, unknown>; } catch { /* manter success se 2xx */ }
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        result = parsed;
+      }
+    } catch { /* manter success se 2xx */ }
+    const key = result.key;
+    const messageId = (typeof key === 'object' && key !== null && !Array.isArray(key) && typeof key.id === 'string' ? key.id : null)
+      || (typeof result.messageId === 'string' ? result.messageId : null)
+      || (typeof result.id === 'string' ? result.id : null);
     return {
       success: true,
-      messageId: (result?.key as Record<string, unknown> | undefined)?.id || result?.messageId || result?.id,
+      messageId: messageId || undefined,
       http_status: response.status,
     };
   } catch (error) {
-    return { success: false, error: (error as Error).message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -194,7 +203,7 @@ async function processMessage(message: QueuedMessage): Promise<SendResult> {
         const obj = typeof message.content === "string" ? JSON.parse(message.content!) : message.content;
         return sendButtonMessage(message.remote_jid, obj as Record<string, any>, instance);
       } catch (e) {
-        return { success: false, error: `invalid buttons JSON: ${(e as Error).message}` };
+        return { success: false, error: `invalid buttons JSON: ${e instanceof Error ? e.message : String(e)}` };
       }
     case "template":
       return sendTemplateMessage(message, instance);
@@ -274,7 +283,7 @@ async function processQueue(): Promise<{
       result = await processMessage(m);
     } catch (e) {
       // Unexpected exception — return row to pending so the next cycle can retry
-      const msg = (e as Error).message;
+      const msg = e instanceof Error ? e.message : String(e);
       console.error(`[processQueue] unexpected error processing ${m.id}:`, msg);
       await markPending(m.id, msg);
       retried++;
@@ -298,7 +307,7 @@ async function processQueue(): Promise<{
 }
 
 Deno.serve(async (request: Request) => {
-    if (request.method === "OPTIONS") return handleCorsPreflight(req);
+  if (request.method === "OPTIONS") return handleCorsPreflight(request);
 
   // Internal cron endpoint — require service role or cron secret
   const authErr = requireServiceRoleOrCron(request);
@@ -319,11 +328,11 @@ Deno.serve(async (request: Request) => {
     }).then(() => {}, () => {});
     return new Response(JSON.stringify({
       success: true, version: "v6", ...result, timestamp: new Date().toISOString(),
-    }), { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    }), { status: 200, headers: { ...getCorsHeaders(request), "Content-Type": "application/json" } });
   } catch (error) {
     console.error("evolution-sender v6 error:", error);
     return new Response(JSON.stringify({
       error: "Internal server error",
-    }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    }), { status: 500, headers: { ...getCorsHeaders(request), "Content-Type": "application/json" } });
   }
 });

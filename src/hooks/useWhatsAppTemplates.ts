@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
@@ -34,16 +34,32 @@ export const TEMPLATE_LANGUAGES = [
   { value: 'es', label: 'Español' },
 ];
 
-export const STATUS_BADGES: Record<string, { label: string; className: string; iconName: string }> = {
-  approved: { label: 'Aprovado', className: 'bg-success/20 text-success', iconName: 'CheckCircle2' },
-  pending: { label: 'Pendente', className: 'bg-warning/20 text-warning', iconName: 'Clock' },
-  rejected: { label: 'Rejeitado', className: 'bg-destructive/20 text-destructive', iconName: 'XCircle' },
-  draft: { label: 'Rascunho', className: 'bg-muted text-muted-foreground', iconName: 'FileText' },
-};
+export const STATUS_BADGES: Record<string, { label: string; className: string; iconName: string }> =
+  {
+    approved: {
+      label: 'Aprovado',
+      className: 'bg-success/20 text-success',
+      iconName: 'CheckCircle2',
+    },
+    pending: { label: 'Pendente', className: 'bg-warning/20 text-warning', iconName: 'Clock' },
+    rejected: {
+      label: 'Rejeitado',
+      className: 'bg-destructive/20 text-destructive',
+      iconName: 'XCircle',
+    },
+    draft: { label: 'Rascunho', className: 'bg-muted text-muted-foreground', iconName: 'FileText' },
+  };
 
 export const EMPTY_TEMPLATE: Partial<WhatsAppTemplate> = {
-  name: '', category: 'utility', language: 'pt_BR', content: '',
-  header_text: '', footer_text: '', buttons: [], variables: [], status: 'draft',
+  name: '',
+  category: 'utility',
+  language: 'pt_BR',
+  content: '',
+  header_text: '',
+  footer_text: '',
+  buttons: [],
+  variables: [],
+  status: 'draft',
 };
 
 export function useWhatsAppTemplates() {
@@ -59,21 +75,38 @@ export function useWhatsAppTemplates() {
   const [previewTemplate, setPreviewTemplate] = useState<WhatsAppTemplate | null>(null);
   const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('whatsapp_templates').select('*').order('updated_at', { ascending: false });
+        .from('whatsapp_templates')
+        .select('*')
+        .order('updated_at', { ascending: false });
       if (error) throw error;
-      setTemplates((data || []) as WhatsAppTemplate[]);
+      if (mountedRef.current) {
+        setTemplates((data || []) as unknown as WhatsAppTemplate[]);
+      }
     } catch (err) {
-      log.error('Error fetching templates:', err);
-      toast.error('Erro ao carregar templates');
-    } finally { setLoading(false); }
-  }, []);
+      if (mountedRef.current) {
+        log.error('Error fetching templates:', err);
+        toast.error('Erro ao carregar templates');
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, [mountedRef]);
 
-  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   const extractVariables = (text: string): string[] => {
     const matches = text.match(/\{\{(\d+)\}\}/g);
@@ -81,12 +114,13 @@ export function useWhatsAppTemplates() {
   };
 
   const handleContentChange = useCallback((content: string) => {
-    setEditingTemplate(prev => ({ ...prev, content, variables: extractVariables(content) }));
+    setEditingTemplate((prev) => ({ ...prev, content, variables: extractVariables(content) }));
   }, []);
 
   const handleSave = useCallback(async () => {
     if (!editingTemplate.name?.trim() || !editingTemplate.content?.trim()) {
-      toast.error('Nome e conteúdo são obrigatórios'); return;
+      toast.error('Nome e conteúdo são obrigatórios');
+      return;
     }
     setIsSaving(true);
     try {
@@ -103,7 +137,10 @@ export function useWhatsAppTemplates() {
         created_by: user?.id || null,
       };
       if (editingTemplate.id) {
-        const { error } = await supabase.from('whatsapp_templates').update(templateData).eq('id', editingTemplate.id);
+        const { error } = await supabase
+          .from('whatsapp_templates')
+          .update(templateData)
+          .eq('id', editingTemplate.id);
         if (error) throw error;
         toast.success('Template atualizado!');
       } else {
@@ -111,24 +148,43 @@ export function useWhatsAppTemplates() {
         if (error) throw error;
         toast.success('Template criado!');
       }
-      setIsDialogOpen(false);
-      setEditingTemplate(EMPTY_TEMPLATE);
-      fetchTemplates();
+      if (mountedRef.current) {
+        setIsDialogOpen(false);
+        setEditingTemplate(EMPTY_TEMPLATE);
+        fetchTemplates();
+      }
     } catch (err) {
-      log.error('Error saving template:', err); toast.error('Erro ao salvar template');
-    } finally { setIsSaving(false); }
-  }, [editingTemplate, user, fetchTemplates]);
+      if (mountedRef.current) {
+        log.error('Error saving template:', err);
+        toast.error('Erro ao salvar template');
+      }
+    } finally {
+      if (mountedRef.current) setIsSaving(false);
+    }
+  }, [editingTemplate, user, fetchTemplates, mountedRef]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    try {
-      const { error } = await supabase.from('whatsapp_templates').delete().eq('id', id);
-      if (error) throw error;
-      toast.success('Template removido!'); fetchTemplates();
-    } catch (err) { log.error('Error deleting:', err); toast.error('Erro ao remover template'); }
-  }, [fetchTemplates]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        const { error } = await supabase.from('whatsapp_templates').delete().eq('id', id);
+        if (error) throw error;
+        toast.success('Template removido!');
+        fetchTemplates();
+      } catch (err) {
+        log.error('Error deleting:', err);
+        toast.error('Erro ao remover template');
+      }
+    },
+    [fetchTemplates]
+  );
 
   const handleDuplicate = useCallback((template: WhatsAppTemplate) => {
-    setEditingTemplate({ ...template, id: undefined, name: `${template.name}_copy`, status: 'draft' });
+    setEditingTemplate({
+      ...template,
+      id: undefined,
+      name: `${template.name}_copy`,
+      status: 'draft',
+    });
     setIsDialogOpen(true);
   }, []);
 
@@ -150,22 +206,53 @@ export function useWhatsAppTemplates() {
     return rendered;
   }, []);
 
-  const filteredTemplates = templates.filter(t => {
-    if (search && !t.name.includes(search.toLowerCase()) && !t.content.toLowerCase().includes(search.toLowerCase())) return false;
+  const filteredTemplates = templates.filter((t) => {
+    if (
+      search &&
+      !t.name.includes(search.toLowerCase()) &&
+      !t.content.toLowerCase().includes(search.toLowerCase())
+    )
+      return false;
     if (filterCategory !== 'all' && t.category !== filterCategory) return false;
     if (filterStatus !== 'all' && t.status !== filterStatus) return false;
     return true;
   });
 
-  const openNew = useCallback(() => { setEditingTemplate(EMPTY_TEMPLATE); setIsDialogOpen(true); }, []);
-  const openEdit = useCallback((t: WhatsAppTemplate) => { setEditingTemplate(t); setIsDialogOpen(true); }, []);
+  const openNew = useCallback(() => {
+    setEditingTemplate(EMPTY_TEMPLATE);
+    setIsDialogOpen(true);
+  }, []);
+  const openEdit = useCallback((t: WhatsAppTemplate) => {
+    setEditingTemplate(t);
+    setIsDialogOpen(true);
+  }, []);
 
   return {
-    templates: filteredTemplates, loading, search, setSearch,
-    filterCategory, setFilterCategory, filterStatus, setFilterStatus,
-    isDialogOpen, setIsDialogOpen, isPreviewOpen, setIsPreviewOpen,
-    editingTemplate, setEditingTemplate, previewTemplate, previewVariables, setPreviewVariables,
-    isSaving, handleContentChange, handleSave, handleDelete, handleDuplicate,
-    handlePreview, renderPreviewContent, openNew, openEdit,
+    templates: filteredTemplates,
+    loading,
+    search,
+    setSearch,
+    filterCategory,
+    setFilterCategory,
+    filterStatus,
+    setFilterStatus,
+    isDialogOpen,
+    setIsDialogOpen,
+    isPreviewOpen,
+    setIsPreviewOpen,
+    editingTemplate,
+    setEditingTemplate,
+    previewTemplate,
+    previewVariables,
+    setPreviewVariables,
+    isSaving,
+    handleContentChange,
+    handleSave,
+    handleDelete,
+    handleDuplicate,
+    handlePreview,
+    renderPreviewContent,
+    openNew,
+    openEdit,
   };
 }

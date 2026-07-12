@@ -3,6 +3,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('AIAutoTagsConfig');
 import { supabase } from '@/integrations/supabase/client';
+import { autoTag } from '@/integrations/supabase/ai-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,9 +51,7 @@ export function AIAutoTagsConfig() {
       let processed = 0;
       for (const contact of contacts) {
         try {
-          await supabase.functions.invoke('ai-auto-tag', {
-            body: { contactId: contact.id },
-          });
+          await autoTag({ contactId: contact.id });
           processed++;
         } catch (e) {
           log.error('Error tagging contact:', contact.id, e);

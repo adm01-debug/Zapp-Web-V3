@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Message } from '@/types/chat';

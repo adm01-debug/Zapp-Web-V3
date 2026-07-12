@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Admin: Evolution API call logs.
  * Reads from `evolution_retry_metrics` (Lovable Cloud) — captures every

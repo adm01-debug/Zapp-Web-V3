@@ -135,6 +135,25 @@ export async function callAiWithTracking(params: {
       return { response, data: null, durationMs };
     }
 
+    // C.20: Validate response body size before parsing to prevent memory exhaustion
+    const contentLength = response.headers.get('content-length');
+    const MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB max response
+    if (contentLength) {
+      const size = parseInt(contentLength, 10);
+      if (isNaN(size) || size > MAX_RESPONSE_SIZE) {
+        const err = `Response too large: ${size} bytes (max ${MAX_RESPONSE_SIZE})`;
+        logAiUsage({
+          functionName: params.functionName,
+          userId: params.userId,
+          model: params.body.model as string || null,
+          durationMs,
+          status: 'error',
+          errorMessage: err,
+        });
+        throw new Error(err);
+      }
+    }
+
     const data = await response.json();
     const { inputTokens, outputTokens, model } = extractTokenUsage(data);
 

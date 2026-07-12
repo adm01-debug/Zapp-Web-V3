@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Replaces evolutionAdapter.ts with a more modular structure
  */

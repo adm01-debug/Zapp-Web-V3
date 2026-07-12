@@ -168,7 +168,7 @@ export function DepartmentManagementDialog({
                           >
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9">
-                                <AvatarImage src={p.avatar_url || undefined} alt={p.name || ""} />
+                                <AvatarImage src={p.avatar_url || undefined} alt={p.name || ''} />
                                 <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <div>
@@ -204,7 +204,7 @@ export function DepartmentManagementDialog({
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                              <AvatarImage src={p.avatar_url || undefined} alt={p.name || ""} />
+                              <AvatarImage src={p.avatar_url || undefined} alt={p.name || ''} />
                               <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
@@ -285,10 +285,6 @@ export function DepartmentManagementDialog({
                           </Button>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Expira em: {format(new Date(inv.expires_at), 'dd/MM/yy')}</span>
-                        <span>Usos: {inv.uses}</span>
-                      </div>
                     </div>
                   ))}
                   {invitations.length === 0 && (
@@ -357,7 +353,9 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card'
                   )}
                   onClick={() => setWhatsappMode('evolution')}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('evolution')}
+                  onKeyDown={(e) =>
+                    (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('evolution')
+                  }
                 >
                   <div
                     className={cn(
@@ -389,7 +387,9 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card'
                   )}
                   onClick={() => setWhatsappMode('official')}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('official')}
+                  onKeyDown={(e) =>
+                    (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('official')
+                  }
                 >
                   <div
                     className={cn(

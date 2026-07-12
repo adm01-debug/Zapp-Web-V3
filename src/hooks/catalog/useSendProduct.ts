@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
@@ -78,7 +79,7 @@ export function useSendToContact(onSuccess: () => void) {
       try {
         const { data: connections, error: connError } = await supabase
           .from('whatsapp_connections')
-          .select('id, name, instance_id, instance_name')
+          .select('id, name, instance_id')
           .eq('status', 'connected')
           .limit(1);
         if (connError) {
@@ -87,11 +88,14 @@ export function useSendToContact(onSuccess: () => void) {
         }
 
         const connection = connections?.[0];
-        const evoName = connection ? evolutionInstanceName(connection) : null;
+        const evoName = connection
+          ? evolutionInstanceName({ instance_name: connection.name, instance_id: connection.instance_id })
+          : null;
         if (!evoName) {
-          toast.error('Nenhuma conexão WhatsApp ativa com nome de instância válido.');
+          toast({ title: 'Nenhuma conexão WhatsApp ativa com nome de instância válido.', variant: 'destructive' });
           return;
         }
+
 
         for (const imgUrl of imageUrls) {
           const { data: dbResult } = await supabase

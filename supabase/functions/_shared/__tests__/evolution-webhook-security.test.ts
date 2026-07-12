@@ -31,14 +31,21 @@ interface Recorded {
 }
 function makeSupabaseMock(insertError: unknown = null, deleteError: unknown = null) {
   const rec: Recorded = { table: '', op: null };
+  const auditInserted: Record<string, unknown>[] = [];
   const api = {
     _rec: rec,
+    _auditInserted: auditInserted,
     from(table: string) {
       rec.table = table;
       return {
         insert(row: Record<string, unknown>) {
           rec.op = 'insert';
           rec.row = row;
+          // Track audit table inserts separately
+          if (table === 'idempotency_rollback_failures') {
+            auditInserted.push(row);
+            return Promise.resolve({ error: null });
+          }
           return Promise.resolve({ error: insertError });
         },
         delete() {
@@ -52,6 +59,20 @@ function makeSupabaseMock(insertError: unknown = null, deleteError: unknown = nu
           };
         },
       };
+    },
+    rpc(fnName: string, params: Record<string, unknown>) {
+      // Mock RPC for idempotency audit logging
+      if (fnName === 'fn_insert_idempotency_failure_audit') {
+        auditInserted.push({
+          event_id: params.p_event_id,
+          instance: params.p_instance,
+          event_type: params.p_event_type,
+          error_code: params.p_error_code,
+          error_message: params.p_error_message,
+        });
+        return Promise.resolve({ error: null });
+      }
+      return Promise.resolve({ error: null });
     },
   };
   return api;
@@ -144,16 +165,26 @@ Deno.test('routeToDeadLetter | null payload stays null (no crash)', async () => 
 
 Deno.test('unmarkEventProcessed | deletes the dedup row by event_id', async () => {
   const sb = makeSupabaseMock();
-  await unmarkEventProcessed(sb, 'wpp2:messages.upsert:abcdef');
+  const result = await unmarkEventProcessed(sb, 'wpp2:messages.upsert:abcdef');
   assertEquals(sb._rec.table, 'webhook_events_processed');
   assertEquals(sb._rec.op, 'delete');
   assertEquals(sb._rec.eqField, 'event_id');
   assertEquals(sb._rec.eqValue, 'wpp2:messages.upsert:abcdef');
+  assertEquals(result, true, 'successful unmark returns true');
 });
 
 Deno.test('unmarkEventProcessed | never throws when the delete errors (fail-safe)', async () => {
   const sb = makeSupabaseMock(null, { message: 'delete failed', code: 'XX000' });
   // Must resolve without throwing — a failed rollback cannot change the 429 response.
-  await unmarkEventProcessed(sb, 'wpp2:call:zzz');
-  assertEquals(sb._rec.op, 'delete');
+  const result = await unmarkEventProcessed(sb, 'wpp2:call:zzz', 'wpp2', 'call');
+  assertEquals(sb._rec.op, 'delete', 'should call delete operation');
+  assertEquals(result, false, 'failed unmark returns false');
+  // Audit entry is written in background (async try/catch); test that it was attempted
+  assertEquals(sb._auditInserted.length, 1, `audit entry written on delete error (got ${sb._auditInserted.length})`);
+  // Verify audit entry contains the failure details
+  const auditRow = sb._auditInserted[0] as Record<string, unknown>;
+  assertEquals(auditRow.event_id, 'wpp2:call:zzz', 'audit event_id matches');
+  assertEquals(auditRow.error_code, 'XX000', 'audit error_code matches');
+  assertEquals(auditRow.instance, 'wpp2', 'audit instance matches');
+  assertEquals(auditRow.event_type, 'call', 'audit event_type matches');
 });

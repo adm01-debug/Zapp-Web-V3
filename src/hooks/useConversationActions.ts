@@ -75,6 +75,8 @@ export function useConversationActions() {
       if (!error) {
         setPinnedIds((prev) => new Set([...prev, contactId]));
         toast.success('Conversa fixada');
+      } else {
+        toast.error(`Erro ao fixar conversa: ${error.message}`);
       }
     },
     [profileId]
@@ -95,6 +97,8 @@ export function useConversationActions() {
           return n;
         });
         toast.success('Conversa desafixada');
+      } else {
+        toast.error(`Erro ao desafixar conversa: ${error.message}`);
       }
     },
     [profileId]
@@ -111,6 +115,8 @@ export function useConversationActions() {
     if (!error) {
       setFavoriteIds((prev) => new Set([...prev, contactId]));
       toast.success('Contato favoritado');
+    } else {
+      toast.error(`Erro ao favoritar contato: ${error.message}`);
     }
   }, []);
 
@@ -131,6 +137,8 @@ export function useConversationActions() {
         return n;
       });
       toast.success('Favorito removido');
+    } else {
+      toast.error(`Erro ao remover favorito: ${error.message}`);
     }
   }, []);
 
@@ -149,27 +157,33 @@ export function useConversationActions() {
         case 'tomorrow':
           snoozeUntil = setHours(startOfTomorrow(), 9);
           break;
-        case 'nextweek':
-          snoozeUntil = setHours(addDays(now, 7 - now.getDay() + 1), 9);
+        case 'nextweek': {
+          // Days until next Monday: getDay()=0(Sun)→1, 1(Mon)→7, 2(Tue)→6, ...
+          // Formula: ((1 - getDay() + 7) % 7) || 7  avoids landing on same day
+          const daysUntilMonday = ((1 - now.getDay() + 7) % 7) || 7;
+          snoozeUntil = setHours(addDays(now, daysUntilMonday), 9);
           break;
+        }
         default:
           snoozeUntil = addHours(now, 1);
       }
 
-      await supabase
+      // Atomic upsert: ON CONFLICT (contact_id, snoozed_by) DO UPDATE
+      const { error } = await supabase
         .from('conversation_snoozes')
-        .delete()
-        .eq('contact_id', contactId)
-        .eq('snoozed_by', profileId);
-
-      const { error } = await supabase.from('conversation_snoozes').insert({
-        contact_id: contactId,
-        snoozed_by: profileId,
-        snooze_until: snoozeUntil.toISOString(),
-      });
+        .upsert(
+          {
+            contact_id: contactId,
+            snoozed_by: profileId,
+            snooze_until: snoozeUntil.toISOString(),
+          },
+          { onConflict: 'contact_id,snoozed_by' }
+        );
       if (!error) {
         setSnoozedIds((prev) => new Set([...prev, contactId]));
         toast.success('Conversa adiada');
+      } else {
+        toast.error(`Erro ao adiar conversa: ${error.message}`);
       }
     },
     [profileId]

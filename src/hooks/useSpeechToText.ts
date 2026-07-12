@@ -52,8 +52,12 @@ export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToT
   const onResultRef = useRef(onResult);
   const onEndRef = useRef(onEnd);
 
-  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
-  useEffect(() => { onEndRef.current = onEnd; }, [onEnd]);
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+  useEffect(() => {
+    onEndRef.current = onEnd;
+  }, [onEnd]);
 
   const Ctor = getSpeechRecognition();
   const isSupported = !!Ctor;

@@ -22,6 +22,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
+import { toPhone } from '@/lib/jid';
 
 const log = getLogger('whatsappAdapter');
 
@@ -201,6 +202,13 @@ export interface SendContactParams {
   instance?: string;
 }
 
+export interface TemplateComponent {
+  type: 'header' | 'body' | 'button' | string;
+  sub_type?: string;
+  index?: number;
+  parameters?: Array<{ type: string; text?: string; payload?: string; [key: string]: unknown }>;
+}
+
 export interface SendTemplateParams {
   remoteJid: string;
   name: string;
@@ -221,10 +229,6 @@ export interface MarkAsReadParams {
 }
 
 // ----- Helpers --------------------------------------------------------------
-
-function jidToPhone(remoteJid: string): string {
-  return String(remoteJid).split('@')[0].replace(/\D/g, '');
-}
 
 async function invokeCloud(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
@@ -249,14 +253,14 @@ export async function sendText(params: SendTextParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
-      to: jidToPhone(params.remoteJid),
+      to: toPhone(params.remoteJid),
       type: 'text',
       text: params.text,
     });
   }
   return invokeEvolution('send-text', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
-    number: jidToPhone(params.remoteJid),
+    number: toPhone(params.remoteJid),
     text: params.text,
     quoted: params.quotedMessageId ? { key: { id: params.quotedMessageId } } : undefined,
     mentioned: params.mentions,
@@ -267,7 +271,7 @@ export async function sendMedia(params: SendMediaParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
-      to: jidToPhone(params.remoteJid),
+      to: toPhone(params.remoteJid),
       type: params.type,
       mediaUrl: params.mediaUrl,
       caption: params.caption,
@@ -276,7 +280,7 @@ export async function sendMedia(params: SendMediaParams) {
   }
   return invokeEvolution('send-media', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
-    number: jidToPhone(params.remoteJid),
+    number: toPhone(params.remoteJid),
     mediaUrl: params.mediaUrl,
     mediaType: params.type,
     mimetype: params.mimetype,
@@ -289,14 +293,14 @@ export async function sendAudio(params: SendAudioParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
-      to: jidToPhone(params.remoteJid),
+      to: toPhone(params.remoteJid),
       type: 'audio',
       mediaUrl: params.audioUrl,
     });
   }
   return invokeEvolution('send-audio', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
-    number: jidToPhone(params.remoteJid),
+    number: toPhone(params.remoteJid),
     audio: params.audioUrl,
     ptt: params.ptt ?? true,
   });
@@ -306,14 +310,14 @@ export async function sendSticker(params: SendStickerParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
-      to: jidToPhone(params.remoteJid),
+      to: toPhone(params.remoteJid),
       type: 'sticker',
       mediaUrl: params.stickerUrl,
     });
   }
   return invokeEvolution('send-sticker', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
-    number: jidToPhone(params.remoteJid),
+    number: toPhone(params.remoteJid),
     sticker: params.stickerUrl,
   });
 }
@@ -322,7 +326,7 @@ export async function sendReaction(params: SendReactionParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
-      to: jidToPhone(params.remoteJid),
+      to: toPhone(params.remoteJid),
       type: 'reaction',
       messageId: params.messageId,
       emoji: params.reaction,
@@ -343,7 +347,7 @@ export async function sendLocation(params: SendLocationParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
-      to: jidToPhone(params.remoteJid),
+      to: toPhone(params.remoteJid),
       type: 'location',
       latitude: params.latitude,
       longitude: params.longitude,
@@ -353,7 +357,7 @@ export async function sendLocation(params: SendLocationParams) {
   }
   return invokeEvolution('send-location', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
-    number: jidToPhone(params.remoteJid),
+    number: toPhone(params.remoteJid),
     latitude: params.latitude,
     longitude: params.longitude,
     locationName: params.name,
@@ -365,14 +369,14 @@ export async function sendContact(params: SendContactParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
-      to: jidToPhone(params.remoteJid),
+      to: toPhone(params.remoteJid),
       type: 'contacts',
       contacts: [{ name: { formatted_name: params.fullName }, phones: [{ phone: params.phone }] }],
     });
   }
   return invokeEvolution('send-contact', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
-    number: jidToPhone(params.remoteJid),
+    number: toPhone(params.remoteJid),
     contact: [{ fullName: params.fullName, phoneNumber: params.phone }],
   });
 }
@@ -387,7 +391,7 @@ export async function sendTemplate(params: SendTemplateParams) {
     );
   }
   return invokeCloud({
-    to: jidToPhone(params.remoteJid),
+    to: toPhone(params.remoteJid),
     type: 'template',
     template: {
       name: params.name,
@@ -406,7 +410,7 @@ export async function sendPresence(params: PresenceParams) {
   }
   return invokeEvolution('send-presence', {
     instanceName: params.instance ?? DEFAULT_INSTANCE,
-    number: jidToPhone(params.remoteJid),
+    number: toPhone(params.remoteJid),
     presence: params.presence,
   });
 }
@@ -415,7 +419,7 @@ export async function markAsRead(params: MarkAsReadParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
     return invokeCloud({
-      to: jidToPhone(params.remoteJid),
+      to: toPhone(params.remoteJid),
       type: 'read',
       messageIds: params.messageIds,
     });

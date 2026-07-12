@@ -70,10 +70,11 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     return { muted: false, volume: restored };
   }, [volume, setVolume]);
 
-  // Apply volume whenever audio element re-mounts or volume changes
+  // Apply volume to audio element. HTML5 audio maintains volume independently
+  // of src, so we only need to re-run when volume state changes.
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume, resolvedUrl]);
+  }, [volume]);
 
   /**
    * Registra/desregistra este player no `audioPlaybackBus` enquanto está

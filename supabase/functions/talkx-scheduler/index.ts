@@ -18,8 +18,12 @@ Deno.serve(async (req) => {
   const log = new Logger("talkx-scheduler");
 
   try {
-    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
+    const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) {
+      log.error('Missing Supabase configuration');
+      return new Response(JSON.stringify({ error: 'Supabase configuration missing' }), { status: 503, headers });
+    }
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const now = new Date().toISOString();

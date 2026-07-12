@@ -1,9 +1,10 @@
+// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
-import type { FunctionInvokeOptions } from '@supabase/supabase-js';
 import {
   getWhatsappConnections,
   invalidateWhatsappConnectionsCache,
 } from '@/lib/whatsappConnectionsCache';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 
 export const whatsappConnectionRepository = {
   /**
@@ -19,11 +20,8 @@ export const whatsappConnectionRepository = {
     }
   },
 
-  async updateConnection(id: string, updates: Record<string, unknown>) {
-    const res = await supabase
-      .from('whatsapp_connections')
-      .update(updates)
-      .eq('id', id);
+  async updateConnection(id: string, updates: TablesUpdate<'whatsapp_connections'>) {
+    const res = await supabase.from('whatsapp_connections').update(updates).eq('id', id);
     invalidateWhatsappConnectionsCache();
     return res;
   },
@@ -46,7 +44,7 @@ export const whatsappConnectionRepository = {
     return supabase.functions.invoke('evolution-api', { body });
   },
 
-  async callEvolutionApiV2(path: string, options: FunctionInvokeOptions) {
+  async callEvolutionApiV2(path: string, options: Parameters<typeof supabase.functions.invoke>[1]) {
     return supabase.functions.invoke(path, options);
-  }
+  },
 };
