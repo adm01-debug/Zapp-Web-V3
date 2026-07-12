@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BridgeService } from '@/services/connections/BridgeService';
 import { HealthRow, BridgeStatus } from '@/components/connections/types';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useBridgeHealth');
 
 /**
  * Hook para gerenciar o estado de saúde da Ponte Supabase.
@@ -14,13 +17,18 @@ export function useBridgeHealth() {
   const runCheck = useCallback(async () => {
     setStatus('checking');
     setError(null);
-    
-    const result = await BridgeService.checkHealth();
-    
-    setHealth(result.health);
-    setError(result.error);
-    setStatus(result.status);
-    setCheckedAt(new Date());
+
+    try {
+      const result = await BridgeService.checkHealth();
+      setHealth(result.health);
+      setError(result.error);
+      setStatus(result.status);
+      setCheckedAt(new Date());
+    } catch (err) {
+      log.error('Bridge health check failed:', err);
+      setError(err instanceof Error ? err.message : 'Health check failed');
+      setStatus('error');
+    }
   }, []);
 
   useEffect(() => {
