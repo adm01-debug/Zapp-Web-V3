@@ -1,7 +1,62 @@
-// Edge Function: provider-router
-// Roteia chamadas (sendText / sendMedia / getStatus) para o provedor preferido
-// do canal, com failover automático para fallback. Registra sessão + logs.
-
+/**
+ * Edge Function: Provider Router — Multi-Channel Message Routing
+ *
+ * Intelligent message routing layer supporting multiple WhatsApp API providers
+ * (Evolution, WPPConnect, Baileys, Custom) with automatic failover to fallback provider.
+ *
+ * Core Functions:
+ * - sendText: Send text message to contact via primary/fallback provider
+ * - sendMedia: Send image, video, audio, or document via provider
+ * - getStatus: Query connection state (connected/disconnected/QR-waiting)
+ * - ping: Health check for provider availability
+ *
+ * Provider Selection:
+ * 1. Query channel_routes table to get primary + fallback provider for channel
+ * 2. Try primary provider first (if active)
+ * 3. On failure: Automatically failover to fallback provider
+ * 4. Log which provider succeeded/failed for debugging
+ * 5. Update channel_routes.current_provider_id with successful provider
+ *
+ * Supported Provider Types:
+ * - evolution: Evolution API (most common; features: webhooks, media, advanced)
+ * - wppconnect: WPPConnect (self-hosted, REST API)
+ * - baileys: Baileys library wrapper (Puppeteer-based, lightest)
+ * - custom: Admin-defined custom HTTP endpoints (flexible)
+ *
+ * Endpoint Routing:
+ * Each provider type has provider-specific endpoint paths:
+ * - Evolution:  POST /message/sendText/{instance}, GET /instance/connectionState/{instance}
+ * - WPPConnect: POST /api/{instance}/send-message, GET /api/{instance}/status-session
+ * - Baileys:    POST /sessions/{instance}/messages/text, GET /sessions/{instance}/status
+ * - Custom:     POST /sendText, /sendMedia, GET /status (admin-configured)
+ *
+ * Authentication:
+ * - Requires admin/supervisor role (no user-level access)
+ * - Provider auth_token stored in database (encrypted at rest in Supabase)
+ * - Evolution uses apikey header; others use Bearer token
+ *
+ * Failure Handling:
+ * - Primary provider timeout (10s) or HTTP error: Failover to fallback
+ * - Both providers fail: Return 500 with combined error details
+ * - Invalid provider configuration: Return 400 (missing auth_token, bad URL)
+ * - Instance not found: Return 404
+ *
+ * Latency Tracking:
+ * - Measures time from request to response receipt
+ * - Logs latency for each provider (helps identify slow endpoints)
+ * - Used for provider performance monitoring and failover decisions
+ *
+ * Payload Handling:
+ * - sendText: { phone, message, instance? }
+ * - sendMedia: { phone, media_url, caption?, type, instance? }
+ * - getStatus: { instance? } - defaults to 'default' instance if omitted
+ * - All payloads forwarded to provider as-is (no transformation)
+ *
+ * Instance Multiplexing:
+ * - Multiple WhatsApp accounts per provider via 'instance' parameter
+ * - Default instance used if not specified
+ * - Allows single provider to manage multiple business accounts
+ */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
@@ -67,6 +122,55 @@ const ENDPOINTS: Record<string, Record<Action, { method: string; path: string }>
   },
 };
 
+/**
+ * Makes HTTP call to a WhatsApp provider with timeout, error handling, and latency tracking.
+ *
+ * Provider Endpoint Resolution:
+ * - Maps action (sendText, sendMedia, getStatus, ping) to provider-specific endpoint
+ * - Falls back to generic custom endpoint if provider type not in ENDPOINTS map
+ * - Substitutes {instance} placeholder with instance from payload or provider config
+ * - Builds full URL: provider.base_url + computed path
+ *
+ * Authentication:
+ * - Evolution: apikey header (provider.auth_token)
+ * - Others: Authorization: Bearer {auth_token}
+ * - Missing auth_token: Request still sent (provider may not require auth)
+ *
+ * Request Execution:
+ * - GET requests: No body
+ * - POST requests: Payload serialized as JSON body
+ * - 10-second timeout per request (prevents hanging)
+ * - AbortController cleanup: Clears timeout on completion
+ *
+ * Response Parsing:
+ * - Text response decoded as UTF-8
+ * - If response is valid JSON: Parsed; otherwise kept as text
+ * - HTTP errors (4xx, 5xx) not re-thrown; client decides handling
+ *
+ * Latency Measurement:
+ * - Captures wall-clock time from start of fetch to response body received
+ * - Includes network RTT + provider processing time
+ * - Used for provider performance monitoring
+ *
+ * Error Handling (caught, not re-thrown):
+ * - Fetch timeout (AbortError): Returns {ok: false, status: 0, error: "timeout"}
+ * - Network error (DNS, connection refused): Returns {ok: false, status: 0, error message}
+ * - JSON parse error: Kept as text (non-fatal)
+ *
+ * Return Format:
+ * {
+ *   ok: boolean (HTTP 2xx-3xx),
+ *   status: HTTP status code,
+ *   body: parsed JSON or text string,
+ *   latencyMs: elapsed time in milliseconds,
+ *   error?: error message if exception occurred
+ * }
+ *
+ * @param provider - ProviderConfig with base_url, auth_token, type
+ * @param action - sendText, sendMedia, getStatus, or ping
+ * @param payload - Request body (optional; combined with instance from provider config)
+ * @returns Result object with status, body, latency, and optional error message
+ */
 async function callProvider(
   provider: ProviderConfig,
   action: Action,

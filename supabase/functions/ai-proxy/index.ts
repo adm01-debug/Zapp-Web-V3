@@ -1,6 +1,80 @@
 /**
- * AI Proxy Edge Function
- * Routes AI calls through admin-configured provider with automatic fallback to Lovable AI.
+ * Edge Function: AI Provider Proxy Router
+ *
+ * Flexible AI provider abstraction layer supporting multiple backend implementations.
+ * Routes requests to admin-configured provider (OpenAI, Lovable, custom webhooks) with
+ * automatic fallback to default Lovable AI if primary provider unavailable.
+ *
+ * Authentication & Authorization:
+ * - Requires user JWT (via requireUser)
+ * - Rate limit: 100 requests per minute per user (checkRateLimit per user ID)
+ * - Logs all AI usage to ai_usage table for cost tracking and audit
+ *
+ * Provider Selection:
+ * 1. If provider_id specified: Use exact provider (or fail if not found)
+ * 2. Otherwise: Use default provider for requested use_for category
+ *    (e.g., use_for='copilot' → default copilot provider)
+ * 3. Fallback: If provider fails or unavailable, auto-fallback to Lovable AI
+ *
+ * Supported Providers:
+ * - lovable: Lovable AI (default fallback, built-in)
+ * - openai_compatible: OpenAI API-compatible endpoints (Azure, local LM Studio, etc.)
+ * - custom_webhook: Admin-defined custom HTTP endpoints (flexible, on-prem support)
+ *
+ * Provider Configuration:
+ * - api_endpoint: Base URL for API calls (null for Lovable)
+ * - api_key_secret_name: Supabase secret name for credentials (e.g., "OPENAI_KEY")
+ * - model: Model identifier (e.g., "gpt-4", "claude-3-opus"; ignored if provider specifies)
+ * - system_prompt: Optional override prepended to messages (injected before first call)
+ * - config: JSON object with provider-specific settings (temperature, max_tokens, etc.)
+ * - is_active/is_default: Enable/disable and set as fallback
+ *
+ * Use Cases (use_for categories):
+ * - copilot: General assistant chat (default for most requests)
+ * - analysis: Deep content analysis (conversation sentiment, entity extraction)
+ * - summary: Message/document summarization
+ * - tagging: Automatic tagging/classification
+ * - auto_reply: Suggested response generation
+ *
+ * Request Schema:
+ * - messages: Array of {role, content} (OpenAI format, max 100 messages)
+ * - model: Override provider's default model (optional)
+ * - use_for: Category hint for provider selection (default: copilot)
+ * - provider_id: Force specific provider by UUID (bypasses use_for routing)
+ * - tools: Function tools for tool_use capability (passed through)
+ * - tool_choice: Tool selection strategy (auto/none/specific)
+ * - stream: Enable response streaming (pass-through, not supported in this function)
+ *
+ * System Prompt Injection:
+ * - If provider has system_prompt configured: Prepended to messages
+ * - If messages already contain system role: Merged with existing (new + \n\n + existing)
+ * - Otherwise: Inserted as first message with role=system
+ * - Allows per-provider custom instructions without client knowledge
+ *
+ * Error Handling:
+ * - Provider not found: 404 (invalid provider_id)
+ * - All providers unavailable: Falls back to Lovable (fail-open)
+ * - Lovable AI unavailable: Returns 503 (critical failure)
+ * - Invalid schema/messages: 400 Bad Request
+ * - Rate limit exceeded: 429 Too Many Requests
+ * - Unexpected errors: 500 with redacted error message (logs full details)
+ *
+ * Token Usage Tracking:
+ * - Automatically extracts token counts from provider response
+ * - Logs to ai_usage table: model, tokens_in, tokens_out, cost estimate, provider name
+ * - Tracks per-user for billing and quota management
+ *
+ * Fallback Strategy:
+ * - Primary provider fails → Auto-fallback to Lovable AI (transparent to client)
+ * - Both fail → Return 503 Service Unavailable
+ * - Logs which provider succeeded for debugging (especially fallback cases)
+ *
+ * Security:
+ * - API keys stored in Supabase secrets (never logged or exposed in responses)
+ * - Custom webhook URLs validated against admin-configured allowlist (prevent injection)
+ * - User authentication required (prevents anonymous AI usage)
+ * - Rate limiting per user (prevents abuse/cost overruns)
+ * - Token usage logging prevents unaccounted API calls
  */
 import { handleCors, errorResponse, jsonResponse, Logger, requireEnv, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { z, parseBody } from "../_shared/schemas.ts";
@@ -34,6 +108,34 @@ interface AiProvider {
   is_active: boolean;
 }
 
+/**
+ * Retrieves AI provider configuration from ai_providers table with type validation.
+ *
+ * Selection Strategy:
+ * - If providerId specified: Return exact provider by UUID (or null if not found)
+ * - Otherwise: Return default provider for use_for category
+ *
+ * Type Validation (fail-safe):
+ * - Validates all string fields are actually strings (prevents prototype pollution)
+ * - Validates provider_type, id, name are non-empty
+ * - Extracts config as object (or {} if missing/invalid)
+ * - Returns null on any parsing error (prevents downstream crashes)
+ *
+ * Provider Fields:
+ * - id, name: Provider identifier and display name
+ * - provider_type: 'lovable', 'openai_compatible', 'custom_webhook', etc.
+ * - api_endpoint: Base URL (null for Lovable); validated via URL parsing on use
+ * - api_key_secret_name: Reference to Supabase secret (e.g., 'OPENAI_API_KEY')
+ * - model: Override model identifier (e.g., 'gpt-4', 'claude-3-opus')
+ * - system_prompt: Optional instruction to prepend to all messages
+ * - config: Provider-specific JSON (temperature, max_tokens, etc.)
+ * - is_active, is_default: Enable flag and category default marker
+ *
+ * @param supabase - Supabase client for database queries
+ * @param useFor - Category hint ('copilot', 'analysis', 'summary', 'tagging', 'auto_reply')
+ * @param providerId - Optional UUID to fetch specific provider (bypasses category matching)
+ * @returns AiProvider object if found, null if not found or validation failed
+ */
 async function getProvider(supabase: ReturnType<typeof createClient>, useFor: string, providerId?: string): Promise<AiProvider | null> {
   let query = supabase.from('ai_providers').select('*').eq('is_active', true);
   if (providerId) {
@@ -70,6 +172,34 @@ async function getProvider(supabase: ReturnType<typeof createClient>, useFor: st
   };
 }
 
+/**
+ * Injects or merges provider-configured system prompt into message array.
+ *
+ * Merge Strategy:
+ * - If messages already contain a system message: Prepend provider prompt + "\n\n" + existing
+ *   (Allows provider instructions to take precedence while preserving original)
+ * - Otherwise: Insert provider prompt as first message with role='system'
+ * - Non-destructive: Returns new array, preserves original message order
+ *
+ * Use Case:
+ * - Each AI provider can have custom instructions (e.g., tone, output format, constraints)
+ * - System prompts configured in admin UI are transparently injected before calling API
+ * - Client-provided system messages not overwritten (merged instead)
+ *
+ * Example:
+ * ```
+ * Input messages: [{role: 'user', content: 'hello'}]
+ * Provider system_prompt: "You are a helpful assistant in Portuguese."
+ * Output: [
+ *   {role: 'system', content: 'You are a helpful assistant in Portuguese.'},
+ *   {role: 'user', content: 'hello'}
+ * ]
+ * ```
+ *
+ * @param messages - Original message array (not modified)
+ * @param systemPrompt - Provider-configured system instructions to inject
+ * @returns New array with system prompt injected/merged
+ */
 function injectSystemPrompt(messages: Array<{ role: string; content: string }>, systemPrompt: string) {
   const result = [...messages];
   const sysIdx = result.findIndex(m => m.role === 'system');
