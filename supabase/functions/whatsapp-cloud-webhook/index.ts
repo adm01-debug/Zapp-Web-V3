@@ -12,6 +12,7 @@ import { contractErrorResponse } from "../_shared/validation.ts";
 import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import { markEventProcessed } from "../_shared/evolution-helpers.ts";
 
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface MetaWAMessage {
   from: string;
   id: string;
@@ -28,46 +29,14 @@ interface MetaWAContact {
   profile?: { name?: string };
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-hub-signature-256",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
-
-const verifyTokenRaw = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN");
-const VERIFY_TOKEN = typeof verifyTokenRaw === 'string' && verifyTokenRaw.length > 0 ? verifyTokenRaw : '';
-
-const appSecretRaw = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET");
-const APP_SECRET = typeof appSecretRaw === 'string' && appSecretRaw.length > 0 ? appSecretRaw : '';
-
-const strictModeEnvRaw = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_STRICT");
-const STRICT_MODE_ENV = typeof strictModeEnvRaw === 'string' && strictModeEnvRaw.length > 0 ? strictModeEnvRaw : 'true';
-const STRICT_MODE = STRICT_MODE_ENV.toLowerCase() !== "false";
-
-const externalUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-const externalUrlDefault = Deno.env.get('EXTERNAL_SUPABASE_URL');
-const EXTERNAL_URL = (typeof externalUrlHosted === 'string' && externalUrlHosted.length > 0)
-  ? externalUrlHosted
-  : (typeof externalUrlDefault === 'string' && externalUrlDefault.length > 0 ? externalUrlDefault : '');
-
-const externalKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY');
-const externalKeyDefault = Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
-const EXTERNAL_KEY = (typeof externalKeyHosted === 'string' && externalKeyHosted.length > 0)
-  ? externalKeyHosted
-  : (typeof externalKeyDefault === 'string' && externalKeyDefault.length > 0 ? externalKeyDefault : '');
-
-const supabaseUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
-const SUPABASE_URL = (typeof supabaseUrlHosted === 'string' && supabaseUrlHosted.length > 0)
-  ? supabaseUrlHosted
-  : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
-
-const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
-const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-const SUPABASE_SERVICE_ROLE_KEY = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
-  ? supabaseServiceKeyHosted
-  : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
+const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
+const APP_SECRET = Deno.env.get("WHATSAPP_CLOUD_APP_SECRET") ?? "";
+const STRICT_MODE =
+  (Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_STRICT") ?? "true").toLowerCase() !== "false";
+const EXTERNAL_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL')) ?? "";
+const EXTERNAL_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')) ?? "";
+const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? "";
 
 // FIX B4: NÃO criar clients em module scope com `!` — se qualquer env var faltar,
 // o `createClient` explode no boot e a função retorna 500 BOOT_ERROR em tudo,
@@ -99,8 +68,7 @@ async function recordPing(
     if (!localClient) return;
     await localClient.from("whatsapp_cloud_webhook_pings").insert({ kind, meta });
   } catch (e) {
-    const errorMsg = e instanceof Error ? e.message : String(e);
-    console.warn(`[whatsapp-cloud-webhook] ping insert failed: ${errorMsg}`);
+    console.warn(`[whatsapp-cloud-webhook] ping insert failed: ${(e as Error).message}`);
   }
 }
 
@@ -117,50 +85,28 @@ async function isDuplicate(messageId: string): Promise<boolean> {
 async function persistInbound(message: MetaWAMessage, contact: MetaWAContact | undefined) {
   if (!externalClient) return;
   const remoteJid = jidFromPhone(message.from);
-
-  const textBody = (message && typeof message.text === 'object' && message.text !== null && !Array.isArray(message.text))
-    ? (message.text as Record<string, unknown>)
-    : null;
-  const textBodyStr = textBody && typeof textBody.body === 'string' ? textBody.body : undefined;
-
-  const imageCaption = (message && typeof message.image === 'object' && message.image !== null && !Array.isArray(message.image))
-    ? (message.image as Record<string, unknown>)
-    : null;
-  const imageCaptionStr = imageCaption && typeof imageCaption.caption === 'string' ? imageCaption.caption : undefined;
-
-  const videoCaption = (message && typeof message.video === 'object' && message.video !== null && !Array.isArray(message.video))
-    ? (message.video as Record<string, unknown>)
-    : null;
-  const videoCaptionStr = videoCaption && typeof videoCaption.caption === 'string' ? videoCaption.caption : undefined;
-
-  const docFilename = (message && typeof message.document === 'object' && message.document !== null && !Array.isArray(message.document))
-    ? (message.document as Record<string, unknown>)
-    : null;
-  const docFilenameStr = docFilename && typeof docFilename.filename === 'string' ? docFilename.filename : undefined;
-
-  const content = textBodyStr ?? imageCaptionStr ?? videoCaptionStr ?? docFilenameStr ?? `[${message.type ?? 'unknown'}]`;
-
-  const contactProfile = contact && typeof contact.profile === 'object' && contact.profile !== null && !Array.isArray(contact.profile)
-    ? (contact.profile as Record<string, unknown>)
-    : null;
-  const contactName = contactProfile && typeof contactProfile.name === 'string' ? contactProfile.name : null;
+  const content =
+    message.text?.body ??
+    message.image?.caption ??
+    message.video?.caption ??
+    message.document?.filename ??
+    `[${message.type}]`;
 
   try {
     await externalClient.rpc("rpc_upsert_contact", {
       p_remote_jid: remoteJid,
       p_instance: "wpp2",
-      p_push_name: contactName,
+      p_push_name: contact?.profile?.name ?? null,
     });
   } catch (_e) {
     // ignore — contact may already exist
   }
 
-  const messageType = typeof message.type === 'string' && message.type.length > 0 ? message.type : "text";
   await externalClient.rpc("rpc_insert_message", {
     p_remote_jid: remoteJid,
     p_content: content,
     p_message_id: message.id,
-    p_message_type: messageType,
+    p_message_type: message.type ?? "text",
     p_from_me: false,
   });
 }
@@ -169,7 +115,7 @@ Deno.serve(async (req) => {
   const rid = reqId();
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   const url = new URL(req.url);
@@ -182,15 +128,15 @@ Deno.serve(async (req) => {
     if (mode === "subscribe" && token && VERIFY_TOKEN && token === VERIFY_TOKEN) {
       console.log(`[whatsapp-cloud-webhook][${rid}] verification ok`);
       void recordPing("handshake", { rid, mode, source: req.headers.get("user-agent") ?? null });
-      return new Response(challenge ?? "", { status: 200, headers: corsHeaders });
+      return new Response(challenge ?? "", { status: 200, headers: getCorsHeaders(req) });
     }
     console.warn(`[whatsapp-cloud-webhook][${rid}] verification failed mode=${mode}`);
     void recordPing("invalid_token", { rid, mode, hadToken: !!token });
-    return new Response("forbidden", { status: 403, headers: corsHeaders });
+    return new Response("forbidden", { status: 403, headers: getCorsHeaders(req) });
   }
 
   if (req.method !== "POST") {
-    return new Response("method not allowed", { status: 405, headers: corsHeaders });
+    return new Response("method not allowed", { status: 405, headers: getCorsHeaders(req) });
   }
 
   // POST: lê raw body para validar assinatura
@@ -209,7 +155,7 @@ Deno.serve(async (req) => {
       if (STRICT_MODE) {
         return new Response(
           JSON.stringify({ error: "invalid_signature", requestId: rid }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
         );
       }
     }
@@ -222,7 +168,7 @@ Deno.serve(async (req) => {
     void recordPing("invalid_signature", { rid, reason: "no_secret_configured", strict: true });
     return new Response(
       JSON.stringify({ error: "webhook_not_configured", requestId: rid }),
-      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   } else {
     console.warn(
@@ -236,7 +182,7 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(
       JSON.stringify({ error: "invalid_json", requestId: rid }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
@@ -257,73 +203,37 @@ Deno.serve(async (req) => {
   // If we reach here, it's valid.
 
   try {
-    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-      return new Response(
-        JSON.stringify({ error: "invalid_body_type", requestId: rid }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    const bodyObj = body as Record<string, unknown>;
-    const entries = Array.isArray(bodyObj.entry) ? bodyObj.entry : [];
+    const entries = body?.entry ?? [];
     let processed = 0;
     let duplicates = 0;
     let ignoredFields = 0;
 
-    for (const entryRaw of entries) {
-      if (typeof entryRaw !== 'object' || entryRaw === null || Array.isArray(entryRaw)) continue;
-      const entry = entryRaw as Record<string, unknown>;
-      const changes = Array.isArray(entry.changes) ? entry.changes : [];
-
-      for (const changeRaw of changes) {
-        if (typeof changeRaw !== 'object' || changeRaw === null || Array.isArray(changeRaw)) continue;
-        const change = changeRaw as Record<string, unknown>;
-
-        const field = typeof change.field === 'string' ? change.field : '';
+    for (const entry of entries) {
+      const changes = entry?.changes ?? [];
+      for (const change of changes) {
+        const field = change?.field;
         if (!SUPPORTED_FIELDS.has(field)) {
           ignoredFields++;
           console.log(`[whatsapp-cloud-webhook][${rid}] ignored field=${field}`);
           continue;
         }
-
-        const value = typeof change.value === 'object' && change.value !== null && !Array.isArray(change.value)
-          ? (change.value as Record<string, unknown>)
-          : {};
-
-        const messages = Array.isArray(value.messages) ? value.messages : [];
-        const contacts = Array.isArray(value.contacts) ? value.contacts : [];
-
-        for (const msgRaw of messages) {
-          if (typeof msgRaw !== 'object' || msgRaw === null || Array.isArray(msgRaw)) continue;
-          const msg = msgRaw as MetaWAMessage;
-
-          if (typeof msg.id !== 'string' || !msg.id) continue;
+        const value = change?.value ?? {};
+        const messages = value?.messages ?? [];
+        const contacts = value?.contacts ?? [];
+        for (const msg of messages) {
           if (await isDuplicate(msg.id)) {
             duplicates++;
             continue;
           }
-
-          let contact: MetaWAContact | undefined;
-          if (typeof msg.from === 'string' && msg.from) {
-            for (const contactRaw of contacts) {
-              if (typeof contactRaw !== 'object' || contactRaw === null || Array.isArray(contactRaw)) continue;
-              const c = contactRaw as Record<string, unknown>;
-              if (typeof c.wa_id === 'string' && c.wa_id === msg.from) {
-                contact = c as MetaWAContact;
-                break;
-              }
-            }
-          }
-
+          const contact = (contacts as MetaWAContact[]).find((c) => c?.wa_id === msg?.from);
           try {
             await persistInbound(msg, contact);
             processed++;
           } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
-            console.error(`[whatsapp-cloud-webhook][${rid}] persist error:`, errorMsg);
+            console.error(`[whatsapp-cloud-webhook][${rid}] persist error:`, e);
           }
         }
-
-        const statuses = Array.isArray(value.statuses) ? value.statuses : [];
+        const statuses = value?.statuses ?? [];
         if (statuses.length) {
           console.log(
             `[whatsapp-cloud-webhook][${rid}] statuses count=${statuses.length}:`,
@@ -336,16 +246,15 @@ Deno.serve(async (req) => {
     void recordPing("event", { rid, processed, duplicates, ignoredFields });
     return new Response(
       JSON.stringify({ ok: true, processed, duplicates, ignoredFields, requestId: rid }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   } catch (e) {
-    const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error(`[whatsapp-cloud-webhook][${rid}] error`, errorMsg);
+    console.error(`[whatsapp-cloud-webhook][${rid}] error`, e);
     return new Response(
       JSON.stringify({ ok: false, requestId: rid }),
       {
         status: 200, // ack para evitar retry-storm da Meta
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       },
     );
   }
