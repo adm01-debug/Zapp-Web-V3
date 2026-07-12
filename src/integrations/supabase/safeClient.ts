@@ -121,7 +121,8 @@ let _healthLogInProgress = false;
 export const safeClient = {
   async from<T = unknown>(
     table: string,
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => PromiseLike<{ data: unknown; error: unknown }>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryBuilder: (query: any) => PromiseLike<{ data: unknown; error: unknown }>
   ): Promise<SafeResponse<T[]>> {
     const requestId = crypto.randomUUID();
     stats.totalCalls++;
