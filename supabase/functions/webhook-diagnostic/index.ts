@@ -3,6 +3,54 @@ import { WEBHOOK_EVENTS } from '../_shared/evolution-sync-actions.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 
+/**
+ * Edge Function: WhatsApp Connection Health Diagnostic and Auto-Repair
+ *
+ * Performs multi-layer diagnostic checks on Evolution API instances, verifying connectivity,
+ * webhook registration, and message flow health. Supports admin-triggered auto-repair of
+ * misconfigured webhooks to restore message synchronization.
+ *
+ * Diagnostic Layers:
+ * 1. **Connection State**: Fetches current instance state from Evolution API (open/closed/error);
+ *    falls back to database status if API unavailable; detects connection problems early.
+ * 2. **Webhook Registration**: Verifies webhook URL (must match Supabase edge function endpoint),
+ *    event subscription (checks for critical events: MESSAGES_UPSERT, CONNECTION_UPDATE, QRCODE_UPDATED,
+ *    CONTACTS_UPSERT, SEND_MESSAGE), and enabled status.
+ *    Severity levels: critical (URL mismatch), warning (missing critical events), ok (all subscribed).
+ * 3. **Message Flow**: Counts incoming (contact) and outgoing (agent) messages in last 60 minutes;
+ *    classifies flow as healthy/outbound-only/no-traffic.
+ * 4. **Auto-Fix (Optional)**: If action=auto-fix and webhook has critical/warning issue,
+ *    posts corrected webhook config to Evolution API with all canonical WEBHOOK_EVENTS.
+ *
+ * Health Scoring (per-instance):
+ * - Base: 100 points
+ * - Connection not "open": -40 points
+ * - Webhook critical: -40 points; warning: -20 points
+ * - Message flow not healthy: -20 points
+ * - Overall status: healthy (all scores ≥80), degraded (any score <80), critical (any score <40)
+ *
+ * Authentication: Admin or supervisor only (RLS enforced via requireAdminOrSupervisor).
+ *
+ * Request Body: { action: "full-diagnostic"|"auto-fix", instanceName?: string (optional, defaults to all) }
+ *
+ * Response: {
+ *   connections: Array<{ instance, dbStatus, healthStatus, phone, lastCheck }>,
+ *   diagnostics: Array<{
+ *     instance, connectionState, statusOk, statusError?,
+ *     webhook: { url, urlCorrect, expectedUrl, eventsCount, events, missingCritical, missingFromCanonical, enabled },
+ *     webhookSeverity: "ok"|"warning"|"critical"|"error", webhookIssue?, webhookBase64?, webhookByEvents?,
+ *     messageFlow: { lastHour: { incoming, outgoing, total }, incomingOk, flowHealth },
+ *     autoFix?: { applied, status, error? }
+ *   }>,
+ *   overallHealth: { score: 0-100, status: "healthy"|"degraded"|"critical" }
+ * }
+ *
+ * Error Handling:
+ * - Evolution API timeouts (10s AbortSignal): Caught, logged as statusError/webhookSeverity=error
+ * - Invalid instanceName (regex /^[a-zA-Z0-9_-]{1,64}$/): Returns 400 Bad Request
+ * - Database query failures: Logged, continue with available data (graceful degradation)
+ * - Auto-fix failures: Logged in autoFix.error, does not block response
+ */
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
