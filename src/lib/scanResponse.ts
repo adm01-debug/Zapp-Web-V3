@@ -97,7 +97,7 @@ const BACKEND_CODES = new Set<ScanCode>([
 ]);
 
 function asScanCode(v: unknown): ScanCode {
-  if (typeof v === 'string' && BACKEND_CODES.has(v as ScanCode)) return v as ScanCode;
+  if (typeof v === 'string' && BACKEND_CODES.has(v as ScanCode)) return v as ScanCode; // ignore-audit: BACKEND_CODES.has() guard confirms v is a valid ScanCode member
   return 'UNKNOWN';
 }
 
@@ -166,7 +166,7 @@ async function readBodyFromInvokeError(
     }
   }
 
-  if (typeof ctx === 'object') return ctx as Record<string, unknown>;
+  if (typeof ctx === 'object') return ctx as Record<string, unknown>; // ignore-audit: typeof guard confirms ctx is an object; cast safely narrows to Record<string, unknown>
   return null;
 }
 

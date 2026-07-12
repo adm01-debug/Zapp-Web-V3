@@ -173,7 +173,7 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
       }
     });
     
-    return res as FieldResolution;
+    return res as FieldResolution; // ignore-audit: object built by iterating fields with string values; cast narrows to typed interface
   });
 
   const pick = useCallback((field: keyof FieldResolution): string => {

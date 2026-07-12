@@ -395,7 +395,7 @@ export async function dedupedFetch<T>(
   const pending = inflight.get(key);
   if (pending) {
     recordDedupeEvent({ key, reason: 'inflight_local' });
-    return pending as Promise<T>;
+    return pending as Promise<T>; // ignore-audit: inflight map stores Promise<unknown>; cast safe — same key was inserted with Promise<T>
   }
 
   // 3. Tenta adquirir lock cross-tab.

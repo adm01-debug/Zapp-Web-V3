@@ -53,7 +53,7 @@ export function dbClient(entity: LogicalEntity): SupabaseClient {
       `[datasource] Cliente "${mapping.client}" para entidade "${entity}" não está configurado.`,
     );
   }
-  return target as SupabaseClient;
+  return target as SupabaseClient; // ignore-audit: null check threw above; target is confirmed non-null SupabaseClient
 }
 
 export function dbTable(entity: LogicalEntity): string {
@@ -99,7 +99,7 @@ function rpcClient(client: DatasourceClient): SupabaseClient {
   if (!target) {
     throw new Error(`[datasource] cliente "${client}" indisponível para RPC.`);
   }
-  return target as SupabaseClient;
+  return target as SupabaseClient; // ignore-audit: null check threw above; target is confirmed non-null SupabaseClient
 }
 
 export async function dbRpc<P extends object, R>(

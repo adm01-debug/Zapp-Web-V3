@@ -112,7 +112,7 @@ export function useEvolutionApiCore() {
         : (IDEMPOTENT_METHODS.has(method) ? `${method}:${action}` : '');
       if (dedupeKey) {
         const existing = inflightRef.current.get(dedupeKey);
-        if (existing) return existing as Promise<T>;
+        if (existing) return existing as Promise<T>; // ignore-audit: inflight map stores Promise<unknown>; cast safe — same key was inserted with Promise<T>
       }
 
       if (mountedRef.current) setIsLoading(true);

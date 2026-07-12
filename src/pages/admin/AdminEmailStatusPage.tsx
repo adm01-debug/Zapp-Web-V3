@@ -35,7 +35,7 @@ const log = getLogger('AdminEmailStatusPage');
 
 const castStatus = (status: string | null): EmailHealthInfo['status'] => {
   if (status && ['healthy', 'degraded', 'error'].includes(status)) {
-    return status as EmailHealthInfo['status'];
+    return status as EmailHealthInfo['status']; // ignore-audit: includes guard above confirms status is a valid union member
   }
   return 'error';
 };
