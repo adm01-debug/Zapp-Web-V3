@@ -1,4 +1,4 @@
-// @ts-nocheck
+import type { Json } from '@/integrations/supabase/types';
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 
