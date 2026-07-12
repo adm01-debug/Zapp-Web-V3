@@ -72,8 +72,11 @@ export default function QueueDetails() {
     if (!id) return;
     try {
       setLoading(true);
-      // Clear stale data from the previously-viewed queue immediately so that
-      // partial state (new header + old contacts) is never visible during load.
+      // Clear ALL stale data from the previously-viewed queue immediately so
+      // that on any failure (not-found, RLS, network) the user sees a consistent
+      // empty/error state rather than a blend of old queue A data and new data.
+      setQueue(null);
+      setMembers([]);
       setContacts([]);
       setMetrics(null);
       const { data: queueData, error: queueError } = await supabase
