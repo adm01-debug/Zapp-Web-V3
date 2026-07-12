@@ -225,6 +225,31 @@ async function callAiWithTimeout<T>(
   ]);
 }
 
+// C.38: Flatten dual-catch error handling pattern — consolidate metrics logging
+async function logAiMetrics(params: {
+  functionName: string;
+  action: string;
+  durationMs: number;
+  status: string;
+  userId: string | null;
+  errorMessage: string | null;
+  metadata: Record<string, unknown>;
+}, supabase: ReturnType<typeof createClient>): Promise<void> {
+  try {
+    await supabase.rpc('record_ai_metrics', {
+      p_function_name: params.functionName,
+      p_action: params.action,
+      p_duration_ms: Math.round(params.durationMs),
+      p_status: params.status,
+      p_user_id: params.userId,
+      p_error_message: params.errorMessage,
+      p_metadata: params.metadata,
+    });
+  } catch {
+    // Metrics logging is non-critical, do not propagate errors
+  }
+}
+
 // H.15: Memory usage monitoring and enforcement
 function getMemoryUsageMB(): number {
   try {
@@ -838,19 +863,16 @@ Responda APENAS em JSON:
       ? errMsg.substring(0, 200)
       : errMsg;
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-auto-tag',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-auto-tag',
+      action: 'classification',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
     log.error("Unhandled error in auto-tag handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -1022,19 +1044,16 @@ Foque em:
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-conversation-summary',
-          p_action: 'analysis',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-conversation-summary',
+        action: 'analysis',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -1482,19 +1501,16 @@ Regras importantes:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-enhance-message',
-        p_action: 'enhancement',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-enhance-message',
+      action: 'enhancement',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
     // C.30: Sanitize error messages before returning to clients (prevent info leakage)
     const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
@@ -1701,19 +1717,16 @@ async function handleClassifyEmoji(
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-classify-emoji',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-classify-emoji',
+      action: 'classification',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
     // C.30: Sanitize error messages before returning to clients (prevent info leakage)
     const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
@@ -1920,19 +1933,16 @@ async function handleClassifySticker(
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-classify-sticker',
-        p_action: 'classification',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-classify-sticker',
+      action: 'classification',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
     // C.30: Sanitize error messages before returning to clients (prevent info leakage)
     const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
@@ -2171,19 +2181,16 @@ async function handleChurnAnalysis(
       metricsStatus = 'error';
       errorMessage = errMsg;
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-churn-analysis',
-          p_action: 'analysis',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-churn-analysis',
+        action: 'analysis',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -2198,19 +2205,16 @@ async function handleChurnAnalysis(
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-churn-analysis',
-        p_action: 'analysis',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-churn-analysis',
+      action: 'analysis',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
     // C.30: Sanitize error messages before returning to clients (prevent info leakage)
     const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
@@ -2391,19 +2395,16 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-conversation-analysis',
-          p_action: 'analysis',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-conversation-analysis',
+        action: 'analysis',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -2806,19 +2807,16 @@ Responda APENAS em formato JSON com a seguinte estrutura:
         errorMessage = errMsg;
       }
 
-      try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-suggest-reply',
-          p_action: 'suggestion',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+      // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+      await logAiMetrics({
+        functionName: 'ai-suggest-reply',
+        action: 'suggestion',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrorMsg = errorMessage.includes('database') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')
@@ -3149,19 +3147,16 @@ async function handleTranscribeAudio(
 
         if (transcriptionResponse.status === 400) {
           const durationMs = Math.round((performance.now() - startTime) * 100) / 100;
-          try {
-            await supabase.rpc('record_ai_metrics', {
-              p_function_name: 'ai-transcribe-audio',
-              p_action: 'transcription',
-              p_duration_ms: Math.round(durationMs),
-              p_status: metricsStatus,
-              p_user_id: ctx.userId,
-              p_error_message: errorMessage,
-              p_metadata: metricsMetadata,
-            });
-          } catch {
-            // Metrics not critical
-          }
+          // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+          await logAiMetrics({
+            functionName: 'ai-transcribe-audio',
+            action: 'transcription',
+            durationMs,
+            status: metricsStatus,
+            userId: ctx.userId,
+            errorMessage,
+            metadata: metricsMetadata,
+          }, supabase);
           return {
             success: true,
             data: {
@@ -3266,18 +3261,16 @@ async function handleTranscribeAudio(
       }
 
       try {
-        await supabase.rpc('record_ai_metrics', {
-          p_function_name: 'ai-transcribe-audio',
-          p_action: 'transcription',
-          p_duration_ms: Math.round(durationMs),
-          p_status: metricsStatus,
-          p_user_id: ctx.userId,
-          p_error_message: errorMessage || errMsg,
-          p_metadata: metricsMetadata,
-        });
-      } catch {
-        // Metrics not critical
-      }
+        // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+        await logAiMetrics({
+          functionName: 'ai-transcribe-audio',
+          action: 'transcription',
+          durationMs,
+          status: metricsStatus,
+          userId: ctx.userId,
+          errorMessage: errorMessage || errMsg,
+          metadata: metricsMetadata,
+        }, supabase);
 
       // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
       const clientErrMsg = (errorMessage || errMsg).includes('database') || (errorMessage || errMsg).includes('ECONNREFUSED') || (errorMessage || errMsg).includes('ENOTFOUND')
@@ -3296,19 +3289,16 @@ async function handleTranscribeAudio(
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    try {
-      await supabase.rpc('record_ai_metrics', {
-        p_function_name: 'ai-transcribe-audio',
-        p_action: 'transcription',
-        p_duration_ms: Math.round(durationMs),
-        p_status: 'error',
-        p_user_id: ctx.userId,
-        p_error_message: errMsg,
-        p_metadata: { requestId: ctx.requestId },
-      }).catch(() => {});
-    } catch {
-      // Metrics not critical
-    }
+    // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
+    await logAiMetrics({
+      functionName: 'ai-transcribe-audio',
+      action: 'transcription',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
 
     // C.30: Sanitize error messages before returning to clients (prevent info leakage)
     const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
