@@ -156,6 +156,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
           `).eq('contact_id', contactId)
             .in('event_type', ['close', 'reopen', 'assign'])
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(50),
         );
 

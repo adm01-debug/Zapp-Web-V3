@@ -49,6 +49,7 @@ export const useMessagesQuery = (filters: DashboardFilters) =>
       let query = dbFrom('messages')
         .select(`id, contact_id, content, sender, created_at, is_read, agent_id, contacts (id, name, phone, avatar_url, queue_id)`, { count: 'exact' })
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(100);
       if (filters.dateRange?.from) query = query.gte('created_at', filters.dateRange.from.toISOString());
       if (filters.dateRange?.to) query = query.lte('created_at', filters.dateRange.to.toISOString());
