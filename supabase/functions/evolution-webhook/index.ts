@@ -229,7 +229,21 @@ serve(async (req) => {
   // no dedup record, so Evolution retries reach here cleanly after the window resets.
   const bodyHash = await sha256Hex(rawBody);
   const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
-  const isNew = await markEventProcessed(supabase, eventId, instance, event);
+  // M-3: secondary dedup by WAMID for single-message messages.upsert batches.
+  // Catches same WhatsApp message arriving via two paths (native webhook + RabbitMQ consumer)
+  // even when byte sequences differ (different sha256). Multi-message batches use sha256 only.
+  let messageKeyId: string | null = null;
+  if (event === 'messages.upsert') {
+    const entries = toEventRecords(data, ['messages']);
+    if (entries.length === 1) {
+      const entry = entries[0];
+      const keySource = isRecord(entry.key) ? entry.key : null;
+      const wamid = (typeof entry.id === 'string' && entry.id) ||
+                    (typeof keySource?.id === 'string' && keySource.id) || null;
+      if (wamid) messageKeyId = wamid;
+    }
+  }
+  const isNew = await markEventProcessed(supabase, eventId, instance, event, messageKeyId);
   if (!isNew) {
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'duplicate', status_code: 200,

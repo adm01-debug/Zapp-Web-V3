@@ -44,11 +44,13 @@ export async function sha256Hex(input: string): Promise<string> {
 // Marks an event as processed. Returns true if this is the first time (caller should process),
 // false if a prior row already exists (caller should treat as duplicate). Non-unique errors are
 // treated as "new" so the handler is never blocked by audit-infra failure.
+// messageKeyId: WhatsApp WAMID (key.id) for messages.upsert events — enables secondary dedup
+// by (instance, message_key_id) even when raw body bytes differ (M-3 2026-07-12).
 // deno-lint-ignore no-explicit-any
-export async function markEventProcessed(supabase: any, eventId: string, instance: string, eventType: string): Promise<boolean> {
-  const { error } = await supabase.from('webhook_events_processed').insert({
-    event_id: eventId, instance, event_type: eventType,
-  });
+export async function markEventProcessed(supabase: any, eventId: string, instance: string, eventType: string, messageKeyId?: string | null): Promise<boolean> {
+  const row: Record<string, unknown> = { event_id: eventId, instance, event_type: eventType };
+  if (messageKeyId) row.message_key_id = messageKeyId;
+  const { error } = await supabase.from('webhook_events_processed').insert(row);
   if (!error) return true;
   if (error.code === '23505') return false;
   console.warn('[idempotency] insert failed, proceeding as new:', error.message ?? error.code);
