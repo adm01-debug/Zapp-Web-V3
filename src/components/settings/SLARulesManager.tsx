@@ -14,11 +14,18 @@ export function SLARulesManager() {
   const { data: ruleCounts = {} } = useQuery({
     queryKey: ['sla-rules-counts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('sla_rules').select('contact_id, company, job_title, contact_type, queue_id, agent_id');
+      const { data, error } = await supabase
+        .from('sla_rules')
+        .select('contact_id, company, job_title, contact_type, queue_id, agent_id');
       if (error) throw error;
 
       const counts: Record<SLARuleScope, number> = {
-        contact: 0, company: 0, job_title: 0, contact_type: 0, queue: 0, agent: 0,
+        contact: 0,
+        company: 0,
+        job_title: 0,
+        contact_type: 0,
+        queue: 0,
+        agent: 0,
       };
 
       for (const row of data || []) {
@@ -32,7 +39,7 @@ export function SLARulesManager() {
 
       return counts;
     },
-    staleTime: 10000,
+    staleTime: 300_000,
   });
 
   return (
@@ -41,32 +48,35 @@ export function SLARulesManager() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="bg-card/50 border-border/50 rounded-2xl overflow-hidden">
+      <Card className="overflow-hidden rounded-2xl border-border/50 bg-card/50">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-extrabold flex items-center gap-2">
-            <LayoutGrid className="w-5 h-5 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-base font-extrabold">
+            <LayoutGrid className="h-5 w-5 text-primary" />
             Regras Granulares de SLA
           </CardTitle>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Configure prazos específicos por cliente, empresa, cargo, tipo, fila ou agente.
-            Regras mais específicas sobrescrevem as genéricas automaticamente.
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Configure prazos específicos por cliente, empresa, cargo, tipo, fila ou agente. Regras
+            mais específicas sobrescrevem as genéricas automaticamente.
           </p>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="contact" className="w-full">
-            <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1 rounded-xl">
-              {SCOPE_TABS.map(tab => {
+            <TabsList className="flex h-auto w-full flex-wrap gap-1 rounded-xl bg-muted/50 p-1">
+              {SCOPE_TABS.map((tab) => {
                 const count = ruleCounts[tab.value] || 0;
                 return (
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="flex items-center gap-1.5 text-xs rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    className="flex items-center gap-1.5 rounded-lg text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
                   >
-                    <tab.icon className="w-3.5 h-3.5" />
+                    <tab.icon className="h-3.5 w-3.5" />
                     {tab.label}
                     {count > 0 && (
-                      <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[9px] font-bold rounded-full">
+                      <Badge
+                        variant="secondary"
+                        className="h-4 min-w-4 rounded-full px-1 text-[9px] font-bold"
+                      >
                         {count}
                       </Badge>
                     )}
@@ -74,7 +84,7 @@ export function SLARulesManager() {
                 );
               })}
             </TabsList>
-            {SCOPE_TABS.map(tab => (
+            {SCOPE_TABS.map((tab) => (
               <TabsContent key={tab.value} value={tab.value}>
                 <ScopeRulesList scope={tab.value} />
               </TabsContent>

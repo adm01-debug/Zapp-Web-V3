@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Drawer com histórico do atendimento.
  *
@@ -131,9 +130,12 @@ function describeAudit(e: AuditLogRow): UnifiedEvent {
   // de `details`. Retrocompatível com o shape antigo `conversation_audit_logs`.
   const details = (e.details ?? {}) as Record<string, unknown>;
   const action: string = e.action ?? e.event_type ?? 'audit';
-  const _status: string | undefined = (details['status'] as string | undefined) ?? e.status ?? undefined;
-  const errorMessage: string | undefined = (details['error_message'] as string | undefined) ?? e.error_message ?? undefined;
-  const attemptNumber: number | undefined = (details['attempt_number'] as number | undefined) ?? e.attempt_number ?? undefined;
+  const _status: string | undefined =
+    (details['status'] as string | undefined) ?? e.status ?? undefined;
+  const errorMessage: string | undefined =
+    (details['error_message'] as string | undefined) ?? e.error_message ?? undefined;
+  const attemptNumber: number | undefined =
+    (details['attempt_number'] as number | undefined) ?? e.attempt_number ?? undefined;
 
   let label = 'Evento de Outbound';
   let detail = status;

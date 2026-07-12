@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
@@ -7,9 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2, PlayCircle, RefreshCw, Server, Shield } from 'lucide-react';
 import {
-  useEvoApiDashboard, useActiveAlerts, useAcknowledgeAlert,
-  useHealthHistory, useAlertChannels, useTestAlertChannel,
-  useDrRunbook, useDrHealth, useRunTestSuite,
+  useEvoApiDashboard,
+  useActiveAlerts,
+  useAcknowledgeAlert,
+  useHealthHistory,
+  useAlertChannels,
+  useTestAlertChannel,
+  useDrRunbook,
+  useDrHealth,
+  useRunTestSuite,
 } from '@/lib/evoApiHealth/hooks';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { HealthTab } from '@/components/evoApiHealth/tabs/HealthTab';
@@ -31,50 +36,57 @@ export default function AdminEvoApiHealthPage() {
   const runTests = useRunTestSuite();
 
   // Memoized values to prevent unnecessary re-renders of the large layout
-  const { schemaUnavailable, dashboardData, alertsData, runTestsData, readiness } = useMemo(() => ({
-    schemaUnavailable: dash.data?.schema_unavailable || alerts.data?.schema_unavailable,
-    dashboardData: dash.data?.data,
-    alertsData: alerts.data?.data,
-    runTestsData: runTests.data?.data,
-    readiness: dash.data?.data?.readiness
-  }), [dash.data, alerts.data, runTests.data]);
+  const { schemaUnavailable, dashboardData, alertsData, runTestsData, readiness } = useMemo(
+    () => ({
+      schemaUnavailable: dash.data?.schema_unavailable || alerts.data?.schema_unavailable,
+      dashboardData: dash.data?.data,
+      alertsData: alerts.data?.data,
+      runTestsData: runTests.data?.data,
+      readiness: dash.data?.data?.readiness,
+    }),
+    [dash.data, alerts.data, runTests.data]
+  );
 
   const handleRefresh = async () => {
     await qc.invalidateQueries({ queryKey: ['evo-api-health'] });
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6 max-w-7xl">
+    <div className="container mx-auto max-w-7xl space-y-6 p-6">
       {schemaUnavailable && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Schema <code>evo_api</code> não está exposto no PostgREST</AlertTitle>
+          <AlertTitle>
+            Schema <code>evo_api</code> não está exposto no PostgREST
+          </AlertTitle>
           <AlertDescription>
             Para esta página funcionar, o admin do FATOR X precisa adicionar
-            <code className="mx-1">evo_api</code> em <strong>Settings → API → Exposed schemas</strong>
+            <code className="mx-1">evo_api</code> em{' '}
+            <strong>Settings → API → Exposed schemas</strong>
             (ou ajustar <code>db-schemas</code> em <code>postgrest</code>) e reiniciar o PostgREST.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
             <Server className="h-7 w-7 text-primary" />
             Evolution API · FATOR X
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Saúde, alertas e integridade do schema <code className="text-xs bg-muted px-1.5 py-0.5 rounded">evo_api</code>
+          <p className="mt-1 text-muted-foreground">
+            Saúde, alertas e integridade do schema{' '}
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">evo_api</code>
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleRefresh} disabled={dash.isFetching}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${dash.isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${dash.isFetching ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
           <Button onClick={() => runTests.mutate()} disabled={runTests.isPending}>
-            <PlayCircle className="h-4 w-4 mr-2" />
+            <PlayCircle className="mr-2 h-4 w-4" />
             {runTests.isPending ? 'Rodando 50 testes…' : 'Run test suite'}
           </Button>
         </div>
@@ -98,8 +110,8 @@ export default function AdminEvoApiHealthPage() {
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle>{runTestsData.overall}</AlertTitle>
             <AlertDescription>
-              {runTestsData.passed}/{runTestsData.total_tests} testes passando
-              {' '}({runTestsData.pass_rate_pct}%)
+              {runTestsData.passed}/{runTestsData.total_tests} testes passando (
+              {runTestsData.pass_rate_pct}%)
             </AlertDescription>
           </Alert>
         )}
@@ -118,9 +130,7 @@ export default function AdminEvoApiHealthPage() {
           <TabsTrigger value="health">Saúde</TabsTrigger>
           <TabsTrigger value="alerts" className="gap-2">
             Alertas
-            {alertsData?.length ? (
-              <Badge variant="destructive">{alertsData.length}</Badge>
-            ) : null}
+            {alertsData?.length ? <Badge variant="destructive">{alertsData.length}</Badge> : null}
           </TabsTrigger>
           <TabsTrigger value="channels">Canais</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>

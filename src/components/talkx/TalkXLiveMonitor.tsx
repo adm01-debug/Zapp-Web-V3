@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState, useMemo } from 'react';
 import { Users, CheckCircle2, XCircle, Clock, Loader2, Send, Download, Timer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -112,8 +111,15 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
     if (rows.length === 0) return;
     // Use a static header list instead of Object.keys(rows[0]) to avoid a
     // TypeError crash if rows is ever empty (e.g., after future filtering).
-    const headers: (keyof typeof rows[0])[] = [
-      'Nome', 'Apelido', 'Telefone', 'Empresa', 'Status', 'Mensagem', 'Erro', 'Enviada em',
+    const headers: (keyof (typeof rows)[0])[] = [
+      'Nome',
+      'Apelido',
+      'Telefone',
+      'Empresa',
+      'Status',
+      'Mensagem',
+      'Erro',
+      'Enviada em',
     ];
     const csv = [
       headers.join(','),
@@ -257,7 +263,13 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
         >
           <Card className="border-border/50">
             <CardContent className="flex items-center gap-2 p-3">
-              <svg width="40" height="40" viewBox="0 0 44 44" className="shrink-0" aria-hidden="true">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 44 44"
+                className="shrink-0"
+                aria-hidden="true"
+              >
                 <circle
                   cx="22"
                   cy="22"

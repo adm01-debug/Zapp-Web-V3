@@ -61,7 +61,12 @@ export function useKnowledgeBase() {
     ]);
     if (!mountedRef.current) return;
     if (articlesRes.data)
-      setArticles(articlesRes.data.map((a: any) => ({ ...a, tags: a.tags || [] })));
+      setArticles(
+        articlesRes.data.map((a: Record<string, unknown>) => ({
+          ...a,
+          tags: (a.tags as string[]) || [],
+        }))
+      );
     if (filesRes.data) setFiles(filesRes.data);
     setLoading(false);
   }, []);

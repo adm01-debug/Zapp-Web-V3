@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEvolutionApiIntegration — Wave 3 (2026-07-06)
  * Camada de dados extraída de EvolutionApiIntegrationView (componente ficou 100% UI).
@@ -110,7 +109,9 @@ export function useEvolutionApiIntegration() {
         const data = await response.json();
         const instances = Array.isArray(data) ? data : [];
         totalCount = instances.length;
-        onlineCount = instances.filter((i: { connectionStatus?: string }) => i.connectionStatus === 'open').length;
+        onlineCount = instances.filter(
+          (i: { connectionStatus?: string }) => i.connectionStatus === 'open'
+        ).length;
         toast.success(`Teste bem-sucedido para ${creds.instance_name || 'nova config'}`);
       } else {
         errorMsg =

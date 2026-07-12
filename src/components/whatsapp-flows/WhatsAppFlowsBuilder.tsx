@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
@@ -111,7 +110,8 @@ export function WhatsAppFlowsBuilder() {
     const { error: insertError } = await supabase.from('whatsapp_flows').insert({
       name: formName,
       description: formDescription || null,
-      screens: defaultScreens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
+      screens:
+        defaultScreens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
     });
     if (insertError) {
       toast({ title: 'Erro', description: insertError.message, variant: 'destructive' });
@@ -136,7 +136,10 @@ export function WhatsAppFlowsBuilder() {
     setSelectedFlow({ ...selectedFlow, screens });
     await supabase
       .from('whatsapp_flows')
-      .update({ screens: screens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */ })
+      .update({
+        screens:
+          screens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
+      })
       .eq('id', selectedFlow.id);
   };
 

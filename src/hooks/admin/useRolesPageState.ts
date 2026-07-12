@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -35,11 +34,10 @@ export function useRolesPageState() {
       role: string;
       profiles: unknown;
     };
-    const { data, error } = await safeClient.from<RoleRow>(
-      'user_roles',
-      (q) => q
+    const { data, error } = await safeClient.from<RoleRow>('user_roles', (q) =>
+      q
         .select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`)
-        .order('role'),
+        .order('role')
     );
     const rows = data ?? null;
 

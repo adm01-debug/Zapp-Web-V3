@@ -10,8 +10,18 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ALL_ROOT_CAUSES, getRootCauseMeta } from '@/lib/failureRootCause';
+import { type useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
+import {
+  type DlqStats,
+  type RootCauseAggregate,
+} from '@/features/admin/hooks/monitoring/useFailedMessages';
 
-export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) { // ignore-audit
+interface FailedMessagesFiltersProps {
+  ui: ReturnType<typeof useFailedMessagesUI>;
+  stats: DlqStats | undefined;
+}
+
+export function FailedMessagesFilters({ ui, stats }: FailedMessagesFiltersProps) {
   const { api } = ui;
 
   return (
@@ -126,7 +136,8 @@ export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) { 
               {ALL_ROOT_CAUSES.map((c) => {
                 const meta = getRootCauseMeta(c);
                 const count =
-                  api.aggregates.byRootCause.find((x: any) => x.cause === c)?.count ?? 0; // ignore-audit
+                  api.aggregates.byRootCause.find((x: RootCauseAggregate) => x.cause === c)
+                    ?.count ?? 0;
                 return (
                   <SelectItem key={c} value={c}>
                     {meta.label}

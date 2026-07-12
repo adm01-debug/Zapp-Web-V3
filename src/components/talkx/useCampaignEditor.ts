@@ -94,6 +94,7 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
       const { data, error: _error } = await safeQueries.getList({ status: 'connected' });
       return data || [];
     },
+    staleTime: 300_000,
   });
 
   const { data: contacts } = useQuery({

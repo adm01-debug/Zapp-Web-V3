@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -18,7 +17,7 @@ interface Group {
 export function useForwardMessage(
   open: boolean,
   onForward: (targetIds: string[], targetType: 'contact' | 'group') => void,
-  onOpenChange: (open: boolean) => void,
+  onOpenChange: (open: boolean) => void
 ) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
@@ -64,20 +63,22 @@ export function useForwardMessage(
     }
   };
 
-  const filteredContacts = contacts.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery)
+  const filteredContacts = contacts.filter(
+    (c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery)
   );
 
-  const filteredGroups = groups.filter(g =>
+  const filteredGroups = groups.filter((g) =>
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const toggleContact = (id: string) => {
-    setSelectedContacts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSelectedContacts((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   const toggleGroup = (id: string) => {
-    setSelectedGroups(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSelectedGroups((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const reset = useCallback(() => {
@@ -88,7 +89,11 @@ export function useForwardMessage(
 
   const handleForward = async () => {
     if (selectedContacts.length === 0 && selectedGroups.length === 0) {
-      toast({ title: 'Selecione destinatários', description: 'Escolha pelo menos um contato ou grupo para encaminhar.', variant: 'destructive' });
+      toast({
+        title: 'Selecione destinatários',
+        description: 'Escolha pelo menos um contato ou grupo para encaminhar.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -98,11 +103,18 @@ export function useForwardMessage(
       if (selectedGroups.length > 0) onForward(selectedGroups, 'group');
 
       const total = selectedContacts.length + selectedGroups.length;
-      toast({ title: 'Mensagem encaminhada!', description: `Encaminhada para ${total} ${total === 1 ? 'destinatário' : 'destinatários'}.` });
+      toast({
+        title: 'Mensagem encaminhada!',
+        description: `Encaminhada para ${total} ${total === 1 ? 'destinatário' : 'destinatários'}.`,
+      });
       reset();
       onOpenChange(false);
     } catch {
-      toast({ title: 'Erro ao encaminhar', description: 'Não foi possível encaminhar a mensagem.', variant: 'destructive' });
+      toast({
+        title: 'Erro ao encaminhar',
+        description: 'Não foi possível encaminhar a mensagem.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSending(false);
     }
@@ -116,13 +128,20 @@ export function useForwardMessage(
   const totalSelected = selectedContacts.length + selectedGroups.length;
 
   return {
-    searchQuery, setSearchQuery,
-    selectedContacts, selectedGroups,
-    filteredContacts, filteredGroups,
-    isLoading, isSending,
-    activeTab, setActiveTab,
-    toggleContact, toggleGroup,
-    handleForward, handleClose,
+    searchQuery,
+    setSearchQuery,
+    selectedContacts,
+    selectedGroups,
+    filteredContacts,
+    filteredGroups,
+    isLoading,
+    isSending,
+    activeTab,
+    setActiveTab,
+    toggleContact,
+    toggleGroup,
+    handleForward,
+    handleClose,
     totalSelected,
   };
 }
