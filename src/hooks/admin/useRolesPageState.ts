@@ -28,8 +28,6 @@ export function useRolesPageState() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    type RoleRow = { id: string; user_id: string; role: string; profiles: { name: string; email: string | null; avatar_url: string | null } | { name: string; email: string | null; avatar_url: string | null }[] | null };
-    const { data, error } = await safeClient.from<RoleRow>('user_roles', q =>
     type RoleRow = {
       id: string;
       user_id: string;
