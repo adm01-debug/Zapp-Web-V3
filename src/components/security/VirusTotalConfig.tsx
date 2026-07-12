@@ -41,11 +41,11 @@ export const VirusTotalConfig = () => {
       } else {
         toast.error(data.message);
       }
-    } catch (error: any) {
+    } catch (error) {
       log.error('VirusTotal API test failed', error);
       setTestResult({
         success: false,
-        message: error.message || "Erro ao testar conexão"
+        message: error instanceof Error ? error.message : "Erro ao testar conexão"
       });
       toast.error("Erro ao validar chave");
     } finally {

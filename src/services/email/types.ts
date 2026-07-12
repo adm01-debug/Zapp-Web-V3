@@ -9,6 +9,7 @@ export interface EmailFailure {
 
 export interface EmailHealthInfo {
   status: 'healthy' | 'degraded' | 'error';
+  source?: string;
   lastValidation: Date | null;
   cacheExpiration: number | null;
   recentFailures: EmailFailure[];

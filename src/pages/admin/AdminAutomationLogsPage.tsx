@@ -113,7 +113,7 @@ export default function AdminAutomationLogsPage() {
     if (error) {
       // Silently show empty state when table doesn't exist yet (pending migration)
       const isMissing =
-        error.message?.includes('does not exist') || (error as any).code === '42P01';
+        error.message?.includes('does not exist') || error.message?.includes('42P01');
       if (!isMissing) {
         toast({ title: 'Erro', description: error.message, variant: 'destructive' });
       }

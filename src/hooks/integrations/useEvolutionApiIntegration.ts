@@ -59,8 +59,8 @@ export function useEvolutionApiIntegration() {
 
       setCredentials(credsRes.data as EvolutionInstanceCredential[]);
       setHealthLogs(logsRes.data as HealthLog[]);
-    } catch (err: any) {
-      toast.error('Erro ao carregar dados: ' + err.message);
+    } catch (err) {
+      toast.error('Erro ao carregar dados: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setLoading(false);
     }
@@ -133,8 +133,9 @@ export function useEvolutionApiIntegration() {
       }
 
       return isSuccess;
-    } catch (err: any) {
-      const errorMsg = err.message.includes('fetch') ? 'Erro de rede/URL inacessível' : err.message;
+    } catch (err) {
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      const errorMsg = rawMsg.includes('fetch') ? 'Erro de rede/URL inacessível' : rawMsg;
       toast.error(`Erro de conexão: ${errorMsg}`);
       
       if (creds.instance_name) {
@@ -203,8 +204,8 @@ export function useEvolutionApiIntegration() {
         is_editing: null
       });
       fetchData();
-    } catch (err: any) {
-      toast.error('Erro ao salvar: ' + err.message);
+    } catch (err) {
+      toast.error('Erro ao salvar: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
@@ -216,8 +217,8 @@ export function useEvolutionApiIntegration() {
       if (error) throw error;
       toast.success('Credenciais excluídas');
       fetchData();
-    } catch (err: any) {
-      toast.error('Erro ao excluir: ' + err.message);
+    } catch (err) {
+      toast.error('Erro ao excluir: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 

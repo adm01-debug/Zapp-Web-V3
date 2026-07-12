@@ -131,7 +131,7 @@ export default function BridgeStatusPage() {
       // last_at uses safeClient for error handling and the most-recent timestamp.
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       const { count: msgCount, data: lastMsg } = await supabase
-        .from('provider_message_log' as any)
+        .from('provider_message_log' as Parameters<typeof supabase.from>[0])
         .select('received_at', { count: 'exact' })
         .gt('received_at', fiveMinsAgo)
         .order('received_at', { ascending: false })
@@ -196,7 +196,7 @@ export default function BridgeStatusPage() {
     const trafficSub = supabase
       .channel('traffic-changes')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' },
         () => {
           setRecentTraffic((prev) => ({
@@ -211,7 +211,7 @@ export default function BridgeStatusPage() {
     const alertsSub = supabase
       .channel('health-incidents')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'system_health_incidents' },
         () => {
           void fetchIncidents();

@@ -17,14 +17,31 @@ export type TriggerType =
   | "tag_removed"
   | "keyword_match";
 
+export interface TriggerConfig {
+  threshold_seconds?: number;
+  tag_id?: string;
+  keywords?: string[];
+  [key: string]: unknown;
+}
+
+export interface RuleActions {
+  suggest_reply?: boolean;
+  auto_send?: boolean;
+  apply_tags?: string[];
+  ai_prompt?: string;
+  template?: string;
+  escalate_sla?: { enabled: boolean; level: string; reason: string };
+  [key: string]: unknown;
+}
+
 export interface Rule {
   id: string;
   name: string;
   description: string | null;
   is_active: boolean;
   trigger_type: TriggerType;
-  trigger_config: any;
-  actions: any;
+  trigger_config: TriggerConfig;
+  actions: RuleActions;
   priority: number;
   cooldown_seconds: number;
   channel_id: string | null;

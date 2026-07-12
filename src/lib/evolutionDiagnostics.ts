@@ -61,11 +61,11 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
         });
       }
     }
-  } catch (err: any) {
+  } catch (err) {
     results.push({
       step: 'Conectividade Lovable Cloud',
       status: 'fail',
-      message: `Erro crítico ao tentar usar a Edge Function: ${err.message}`
+      message: `Erro crítico ao tentar usar a Edge Function: ${err instanceof Error ? err.message : String(err)}`
     });
   }
 
@@ -85,11 +85,11 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
           details: extError
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       results.push({
         step: 'Database Direct (FATOR X)',
         status: 'fail',
-        message: `Falha na conexão com banco de dados: ${err.message}`
+        message: `Falha na conexão com banco de dados: ${err instanceof Error ? err.message : String(err)}`
       });
     }
   }
