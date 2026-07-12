@@ -77,14 +77,14 @@ Legenda esforço: **P** pequeno · **M** médio · **G** grande. `[DB]` requer a
 
 14. **[✓FE][P]** `useExternalEvolution.ts:572`: refetch pós-envio descarta mensagens canônicas (chat colapsa p/ 1-2) → merge por união, não substituição.
 15. **[✓FE][P]** `useChatPanelHandlers.ts:65`: anexo sem legenda descartado silenciosamente → permitir envio só-mídia.
-16. **[✓FE][P]** `ContactFormV3.tsx:219` / `ContactMergeDialog.tsx:184`: "Mesclar" crasha (tags/created_at undefined) e merge em 4 writes sem transação → guard + **RPC atômica**. **[DB]**
+16. 🟡 **[✓FE][P]** `ContactFormV3.tsx:219`: **crash corrigido** (`37e5185`) — busca o contato completo antes de abrir o dialog em vez de forçar cast do projeto raso do detector de duplicados. `ContactMergeDialog.tsx:184` ainda mescla em 4 writes sequenciais sem transação → precisa de **RPC atômica**. **[DB]**
 17. ✅ **[✓FE][P]** `useEmail.ts:462`: `startOAuth` lia `data.authUrl` mas a edge retorna `data.url` → "Conectar Gmail" sempre falhava. *(corrigido em `1d84f74`)*
 18. **[Edge][M]** `reprocess-failed-messages`: path kebab-case cru vai à Evolution (DLQ nunca entrega) + sem claim/lease (duplicatas) + idempotência ilusória → normalizar path + lease + cache real.
 19. **[Edge][P]** `whatsapp-cloud-webhook:230`: dedupe marcado **antes** de persistir + falha só logada → perde mensagens. Persistir-primeiro + DLQ.
 20. **[Edge][M]** TOCTOU no cache de idempotência (`evolution-api-proxy:77`) + dupla-enfileiração (`enqueue-failed-message`) → chave única atômica.
 21. **[✓FE][M]** `useMessageQueue`: fila do localStorage reenvia placeholder de áudio como texto; processamento disparado dentro do updater de `setQueue` (impuro) → mover efeito para fora + serializar mídia real.
 22. **[✓FE][P]** `useWarRoomAlerts`/`useGoalNotifications`: monitor de SLA como "cron no browser" insere alertas duplicados → mover para edge/cron server-side. **[ARQ]**
-23. **[✓FE][P]** `ChatMessagesArea.tsx:117`: canal realtime recriado a cada mensagem e invalida queryKey inexistente → estabilizar deps.
+23. 🟡 **[✓FE][P]** `ChatMessagesArea.tsx:117`: canal realtime recriado a cada mensagem → **churn corrigido** (`d54b401`, deps estabilizadas via `conversationId`+ref). A invalidação `queryKey:['messages']` segue sem efeito (nenhum `useQuery` usa essa chave) — religar corretamente exige mapear o fluxo de props entre os pipelines local/FATOR X. **[ARQ]**
 24. **[✓FE][M]** `useAdminData.ts:109` `handleRoleChange`: delete+insert não atômico e `workspace_id=''` em coluna uuid → RPC transacional. **[DB]**
 25. **[✓FE][M]** `useAuthForm.ts:190` passkey login navega sem sessão e mostra toast de sucesso no erro; 2FA/AAL2 nunca exigido → corrigir fluxo + guard AAL2.
 
