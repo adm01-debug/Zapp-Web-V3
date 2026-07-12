@@ -1,4 +1,4 @@
-// external-db-proxy v1.8 (2026-07-04)
+// external-db-proxy v1.9 (2026-07-12) — MED-8: structured observability metrics
 // Proxy autorizado para consultas de tabelas operacionais.
 // Evolution/FATOR X usa o Supabase self-hosted atomicabr e o schema `evo`.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -217,6 +217,115 @@ function jsonResponse(req: Request, payload: Record<string, unknown>, status: nu
   });
 }
 
+// ─── MED-8 (2026-07-12): Structured observability metrics ───────────────────
+// In-memory counters reset per cold-start but give same-instance aggregation.
+// Per-request metric: lines are the persistent record — parseable by Grafana
+// Loki (json parser) or DataDog (log-based metrics).
+// Endpoint: GET ?metrics=1 → Prometheus text format for direct scraping.
+interface ProxyMetrics {
+  requests_total: number;
+  requests_ok: number;
+  requests_error: number;
+  requests_auth_failed: number;
+  requests_forbidden: number;
+  latency_sum_ms: number;
+  latency_p95_ms: number;
+  latency_samples: number[];
+  actions: Record<string, number>;
+  error_types: Record<string, number>;
+  tables_accessed: Record<string, number>;
+}
+
+const _proxyMetrics: ProxyMetrics = {
+  requests_total: 0,
+  requests_ok: 0,
+  requests_error: 0,
+  requests_auth_failed: 0,
+  requests_forbidden: 0,
+  latency_sum_ms: 0,
+  latency_p95_ms: 0,
+  latency_samples: [],
+  actions: {},
+  error_types: {},
+  tables_accessed: {},
+};
+
+function recordMetric(opts: {
+  action: string;
+  table?: string;
+  schema?: string;
+  status_code: number;
+  latency_ms: number;
+  iss?: string;
+  error_type?: string;
+  ok: boolean;
+}): void {
+  _proxyMetrics.requests_total++;
+  _proxyMetrics.latency_sum_ms += opts.latency_ms;
+  _proxyMetrics.latency_samples.push(opts.latency_ms);
+  // Keep only last 1000 samples in memory to bound allocation
+  if (_proxyMetrics.latency_samples.length > 1000) _proxyMetrics.latency_samples.shift();
+  // p95 update
+  const sorted = [..._proxyMetrics.latency_samples].sort((a, b) => a - b);
+  _proxyMetrics.latency_p95_ms = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+
+  if (opts.ok) _proxyMetrics.requests_ok++;
+  else _proxyMetrics.requests_error++;
+  if (opts.status_code === 401 || opts.status_code === 403) {
+    if (opts.status_code === 401) _proxyMetrics.requests_auth_failed++;
+    else _proxyMetrics.requests_forbidden++;
+  }
+  if (opts.action) _proxyMetrics.actions[opts.action] = (_proxyMetrics.actions[opts.action] ?? 0) + 1;
+  if (opts.table) _proxyMetrics.tables_accessed[opts.table] = (_proxyMetrics.tables_accessed[opts.table] ?? 0) + 1;
+  if (opts.error_type) _proxyMetrics.error_types[opts.error_type] = (_proxyMetrics.error_types[opts.error_type] ?? 0) + 1;
+
+  // Emit structured line parseable by Grafana Loki / DataDog log-based metrics
+  console.log(JSON.stringify({
+    metric: "external_db_proxy_request",
+    action: opts.action,
+    table: opts.table ?? null,
+    schema: opts.schema ?? null,
+    status_code: opts.status_code,
+    latency_ms: opts.latency_ms,
+    iss: opts.iss ?? KEY_ISS,
+    error_type: opts.error_type ?? null,
+    ok: opts.ok,
+    ts: Date.now(),
+  }));
+}
+
+function prometheusMetrics(): string {
+  const m = _proxyMetrics;
+  const lines: string[] = [
+    `# HELP external_db_proxy_requests_total Total requests handled`,
+    `# TYPE external_db_proxy_requests_total counter`,
+    `external_db_proxy_requests_total ${m.requests_total}`,
+    `# HELP external_db_proxy_requests_ok_total Successful requests`,
+    `# TYPE external_db_proxy_requests_ok_total counter`,
+    `external_db_proxy_requests_ok_total ${m.requests_ok}`,
+    `# HELP external_db_proxy_requests_error_total Failed requests`,
+    `# TYPE external_db_proxy_requests_error_total counter`,
+    `external_db_proxy_requests_error_total ${m.requests_error}`,
+    `# HELP external_db_proxy_requests_auth_failed_total 401 auth failures`,
+    `# TYPE external_db_proxy_requests_auth_failed_total counter`,
+    `external_db_proxy_requests_auth_failed_total ${m.requests_auth_failed}`,
+    `# HELP external_db_proxy_latency_avg_ms Average latency (ms)`,
+    `# TYPE external_db_proxy_latency_avg_ms gauge`,
+    `external_db_proxy_latency_avg_ms ${m.requests_total ? Math.round(m.latency_sum_ms / m.requests_total) : 0}`,
+    `# HELP external_db_proxy_latency_p95_ms p95 latency (ms, rolling 1000 requests)`,
+    `# TYPE external_db_proxy_latency_p95_ms gauge`,
+    `external_db_proxy_latency_p95_ms ${m.latency_p95_ms}`,
+  ];
+  for (const [action, count] of Object.entries(m.actions)) {
+    lines.push(`external_db_proxy_action_total{action="${action}"} ${count}`);
+  }
+  for (const [errType, count] of Object.entries(m.error_types)) {
+    lines.push(`external_db_proxy_error_total{type="${errType}"} ${count}`);
+  }
+  return lines.join("\n") + "\n";
+}
+// ─── end MED-8 ───────────────────────────────────────────────────────────────
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
@@ -263,6 +372,7 @@ Deno.serve(async (req) => {
             ? `Token emitido por ${callerInfo.token_iss} — confirme que SELFHOSTED_SUPABASE_ANON_KEY corresponde ao JWT_SECRET desse issuer.`
             : `Token iss=${callerInfo.token_iss} não bate com EXTERNAL_URL=${EXTERNAL_URL}/auth/v1 — confira SUPABASE_URL/SUPABASE_ANON_KEY do projeto cloud emissor.`,
       });
+      recordMetric({ action: "auth", status_code: authed.status, latency_ms: 0, iss: callerInfo.token_iss, error_type: "auth_rejected", ok: false });
       return authed;
     }
     console.log("[external-db-proxy] requireUser OK", {
@@ -282,6 +392,13 @@ Deno.serve(async (req) => {
 
   if (req.method === "GET") {
     const url = new URL(req.url);
+    // MED-8: Prometheus metrics endpoint — requires authentication (same as other GETs with params)
+    if (url.searchParams.get("metrics") === "1") {
+      return new Response(prometheusMetrics(), {
+        status: 200,
+        headers: { ...getCorsHeaders(req), "Content-Type": "text/plain; version=0.0.4; charset=utf-8" },
+      });
+    }
     if (url.searchParams.get("health") === "1" || url.searchParams.get("check") === "tables") {
       const probes = [
         { schema: "evo", table: "evolution_messages" },
@@ -350,11 +467,14 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.rpc(rpc, params);
       if (error) {
         console.error('[external-db-proxy] rpc error', { rpc, cid, code: error.code, message: error.message });
+        recordMetric({ action: "rpc", table: rpc, status_code: 500, latency_ms: Date.now() - start, error_type: "rpc_error", ok: false });
         return jsonResponse(req, { error: "Database operation failed", cid, rid, data: null }, 500);
       }
+      recordMetric({ action: "rpc", table: rpc, status_code: 200, latency_ms: Date.now() - start, ok: true });
       return jsonResponse(req, { ok: true, cid, rid, data, latency_ms: Date.now() - start }, 200);
     } catch (error) {
       console.error('[external-db-proxy] rpc exception', { rpc, cid, message: error instanceof Error ? error.message : String(error) });
+      recordMetric({ action: "rpc", table: rpc, status_code: 500, latency_ms: Date.now() - start, error_type: "rpc_exception", ok: false });
       return jsonResponse(req, { error: "Database operation failed", cid, rid, data: null }, 500);
     }
   }
@@ -412,6 +532,7 @@ Deno.serve(async (req) => {
       const missing = err.code === "42P01" || err.code === "PGRST205" || /does not exist|schema cache/i.test(err.message);
       if (missing) {
         console.warn("[external-db-proxy] missing_table", { schema, table, cid });
+        recordMetric({ action: "select", table, schema, status_code: 503, latency_ms: Date.now() - start, error_type: "missing_table", ok: false });
         return jsonResponse(req, {
           error: `Tabela '${schema}.${table}' não encontrada no destino (${targetName}).`,
           hint: "Verifique se a migration foi aplicada no self-hosted e se o schema 'evo' está exposto na Data API (config.toml → [api].schemas).",
@@ -437,6 +558,7 @@ Deno.serve(async (req) => {
           key_ref: KEY_REF,
           message: err.message,
         });
+        recordMetric({ action: "select", table, schema, status_code: 502, latency_ms: Date.now() - start, error_type: "auth_mismatch", ok: false });
         return jsonResponse(req, {
           error: "Self-hosted rejeitou a service_role key (assinatura inválida).",
           hint: "Verifique se a service_role key no secret corresponde ao JWT_SECRET do self-hosted (Settings → API). Detalhes registrados no servidor.",
@@ -444,11 +566,11 @@ Deno.serve(async (req) => {
         }, 502);
       }
       console.error('[external-db-proxy] query error', { schema, table, code: err.code, message: err.message, cid });
+      recordMetric({ action: "select", table, schema, status_code: 500, latency_ms: Date.now() - start, error_type: "query_error", ok: false });
       return jsonResponse(req, { error: "Database operation failed", cid, rid, data: [], count: 0, latency_ms: Date.now() - start }, 500);
     }
 
-
-
+    recordMetric({ action: "select", table, schema, status_code: 200, latency_ms: Date.now() - start, ok: true });
     return jsonResponse(req, {
       ok: true,
       cid,
@@ -463,6 +585,7 @@ Deno.serve(async (req) => {
     }, 200);
   } catch (error) {
     console.error('[external-db-proxy] query exception', { schema, table, message: error instanceof Error ? error.message : String(error), cid });
+    recordMetric({ action: action ?? "select", table, schema, status_code: 500, latency_ms: Date.now() - start, error_type: "query_exception", ok: false });
     return jsonResponse(req, { error: "Database operation failed", cid, rid, data: [], count: 0 }, 500);
   }
 });
