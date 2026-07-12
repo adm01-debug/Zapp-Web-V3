@@ -119,6 +119,7 @@ export function useAgentPresence({
       events.forEach((e) => window.removeEventListener(e, resetActivityTimer));
       if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
       void updateStatus('offline');
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled, user, workspaceId]);

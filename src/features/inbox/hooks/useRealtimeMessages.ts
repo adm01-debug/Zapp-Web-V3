@@ -318,7 +318,10 @@ export function useRealtimeMessages() {
 
     return () => {
       active = false;
-      if (channel) void dbRemoveChannel('messages', channel);
+      if (channel) {
+        void channel.unsubscribe();
+        void dbRemoveChannel('messages', channel);
+      }
     };
   }, [fetchConversations, handleNewMessage, handleMessageUpdate, handleMessageDelete]);
 
