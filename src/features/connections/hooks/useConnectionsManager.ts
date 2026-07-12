@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { externalSupabase } from '@/integrations/supabase/externalClient';
+import { externalSupabase, callExtRpc } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { whatsappConnectionRepository } from '../data-access/whatsappConnectionRepository';
@@ -221,7 +221,7 @@ export function useConnectionsManager() {
       setLoading(true);
       const { data, error } = await whatsappConnectionRepository.fetchConnections();
       if (cancelled) return;
-      if (!error && data) setConnections(data as unknown as WhatsAppConnection[]);
+      if (!error && data) setConnections(data as WhatsAppConnection[]);
       setLoading(false);
     };
     void fetchConnections();
@@ -267,11 +267,7 @@ export function useConnectionsManager() {
           data: { user },
         } = await supabase.auth.getUser();
         if (user && externalSupabase) {
-          await (
-            externalSupabase as unknown as {
-              rpc: (name: string, args: unknown) => Promise<unknown>;
-            }
-          ).rpc('fn_safe_audit_log', {
+          await callExtRpc(externalSupabase, 'fn_safe_audit_log', {
             p_entity_type: 'whatsapp_connection',
             p_entity_id: connection.id,
             p_action: 'disconnect',

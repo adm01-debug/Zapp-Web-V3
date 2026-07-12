@@ -175,7 +175,8 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       }
 
       try {
-        await (supabase.rpc as unknown as (n: string, a: unknown) => Promise<unknown>)('fn_log_reconnection_attempt', {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).rpc('fn_log_reconnection_attempt', {
           p_connection_id:  null,
           p_instance_name:  evoInstanceName,
           p_status:         attemptStatus,
