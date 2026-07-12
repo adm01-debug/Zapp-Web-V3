@@ -1,17 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-import { defineTool, type ToolContext } from '@lovable.dev/mcp-js';
+import { defineTool } from '@lovable.dev/mcp-js';
 import { z } from 'zod';
-
-function supabaseForUser(ctx: ToolContext) {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY!,
-    {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    }
-  );
-}
+import { supabaseForUser } from './_shared-client';
 
 export default defineTool({
   name: 'list_whatsapp_connections',
