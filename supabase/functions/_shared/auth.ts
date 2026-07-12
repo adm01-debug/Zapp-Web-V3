@@ -15,7 +15,7 @@
  *     // authed.user is now safe to use
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { errorResponse, requireEnv } from "./validation.ts";
+import { errorResponse, requireEnv, validateEnvironment } from "./validation.ts";
 
 export interface AuthedUser {
   user: { id: string; email: string | null };
@@ -98,6 +98,40 @@ function readSecret(name: string): string | null {
   const raw = Deno.env.get(name)?.trim();
   if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
   return raw;
+}
+
+/**
+ * Validates that critical auth environment variables are configured.
+ * Should be called once at module load time.
+ * Throws if configuration is incomplete.
+ */
+export function validateAuthEnvironment(): {
+  supabaseUrlSet: boolean;
+  hasCloud: boolean;
+  hasSelfHosted: boolean;
+} {
+  // Validate at least ONE Supabase backend is configured
+  const selfUrl = readSupabaseUrl('SELFHOSTED_SUPABASE_URL') ?? readSupabaseUrl('EXTERNAL_SUPABASE_URL');
+  const selfAnon = readSecret('SELFHOSTED_SUPABASE_ANON_KEY') ?? readSecret('EXTERNAL_SUPABASE_ANON_KEY');
+  const cloudUrl = readSupabaseUrl('SUPABASE_URL');
+  const cloudAnon = readSecret('SUPABASE_ANON_KEY') ?? readSecret('SUPABASE_PUBLISHABLE_KEY');
+
+  const hasSelfHosted = !!(selfUrl && selfAnon);
+  const hasCloud = !!(cloudUrl && cloudAnon);
+
+  if (!hasSelfHosted && !hasCloud) {
+    throw new Error(
+      '[Configuration Error] No Supabase backend is configured. ' +
+      'Set either: (SUPABASE_URL + SUPABASE_ANON_KEY) or (SELFHOSTED_SUPABASE_URL + SELFHOSTED_SUPABASE_ANON_KEY). ' +
+      'At least one backend is required for authentication.'
+    );
+  }
+
+  return {
+    supabaseUrlSet: hasSelfHosted || hasCloud,
+    hasCloud,
+    hasSelfHosted,
+  };
 }
 
 export async function requireUser(req: Request): Promise<AuthedUser | Response> {
