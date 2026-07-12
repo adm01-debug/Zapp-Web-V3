@@ -43,13 +43,15 @@ END $$;
 ALTER TABLE public.system_connections ENABLE ROW LEVEL SECURITY;
 
 -- Policy: leitura para usuários autenticados
-CREATE POLICY IF NOT EXISTS "system_connections_read_authenticated"
+DROP POLICY IF EXISTS "system_connections_read_authenticated" ON public.system_connections;
+CREATE POLICY "system_connections_read_authenticated"
   ON public.system_connections FOR SELECT
   TO authenticated
   USING (true);
 
 -- Policy: escrita somente para admin/dev
-CREATE POLICY IF NOT EXISTS "system_connections_write_admin"
+DROP POLICY IF EXISTS "system_connections_write_admin" ON public.system_connections;
+CREATE POLICY "system_connections_write_admin"
   ON public.system_connections FOR ALL
   TO authenticated
   USING (

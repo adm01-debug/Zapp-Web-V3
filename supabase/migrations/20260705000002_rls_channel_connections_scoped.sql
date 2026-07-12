@@ -17,13 +17,15 @@
 DROP POLICY IF EXISTS auth_full_access ON zapp.channel_connections;
 
 -- Selecao para todos os usuarios autenticados
-CREATE POLICY IF NOT EXISTS channel_conn_select ON zapp.channel_connections
+DROP POLICY IF EXISTS channel_conn_select ON zapp.channel_connections;
+CREATE POLICY channel_conn_select ON zapp.channel_connections
   FOR SELECT
   TO authenticated
   USING (true);
 
 -- INSERT: admin/manager/supervisor apenas
-CREATE POLICY IF NOT EXISTS channel_conn_insert ON zapp.channel_connections
+DROP POLICY IF EXISTS channel_conn_insert ON zapp.channel_connections;
+CREATE POLICY channel_conn_insert ON zapp.channel_connections
   FOR INSERT
   TO authenticated
   WITH CHECK (
@@ -33,7 +35,8 @@ CREATE POLICY IF NOT EXISTS channel_conn_insert ON zapp.channel_connections
   );
 
 -- UPDATE: admin/manager/supervisor apenas  
-CREATE POLICY IF NOT EXISTS channel_conn_update ON zapp.channel_connections
+DROP POLICY IF EXISTS channel_conn_update ON zapp.channel_connections;
+CREATE POLICY channel_conn_update ON zapp.channel_connections
   FOR UPDATE
   TO authenticated
   USING (
@@ -48,7 +51,8 @@ CREATE POLICY IF NOT EXISTS channel_conn_update ON zapp.channel_connections
   );
 
 -- DELETE: admin/manager apenas
-CREATE POLICY IF NOT EXISTS channel_conn_delete ON zapp.channel_connections
+DROP POLICY IF EXISTS channel_conn_delete ON zapp.channel_connections;
+CREATE POLICY channel_conn_delete ON zapp.channel_connections
   FOR DELETE
   TO authenticated
   USING (

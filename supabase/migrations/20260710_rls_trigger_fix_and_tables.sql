@@ -19,14 +19,18 @@ ALTER TABLE evo.idx_usage_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evo.vps_performance_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- Policies: service_role acesso total, authenticated apenas leitura
-CREATE POLICY IF NOT EXISTS service_role_all ON evo.idx_usage_audit
+DROP POLICY IF EXISTS service_role_all ON evo.idx_usage_audit;
+CREATE POLICY service_role_all ON evo.idx_usage_audit
   TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS authenticated_select ON evo.idx_usage_audit
+DROP POLICY IF EXISTS authenticated_select ON evo.idx_usage_audit;
+CREATE POLICY authenticated_select ON evo.idx_usage_audit
   FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY IF NOT EXISTS service_role_all ON evo.vps_performance_snapshots
+DROP POLICY IF EXISTS service_role_all ON evo.vps_performance_snapshots;
+CREATE POLICY service_role_all ON evo.vps_performance_snapshots
   TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS authenticated_select ON evo.vps_performance_snapshots
+DROP POLICY IF EXISTS authenticated_select ON evo.vps_performance_snapshots;
+CREATE POLICY authenticated_select ON evo.vps_performance_snapshots
   FOR SELECT TO authenticated USING (true);
 
 -- FIX 2: Corrigir rls_auto_enable para cobrir evo, zapp, ops

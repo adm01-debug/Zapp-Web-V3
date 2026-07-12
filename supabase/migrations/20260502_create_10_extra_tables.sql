@@ -141,8 +141,10 @@ DO $$ DECLARE t TEXT; BEGIN
     'provider_message_log','query_telemetry','service_channels',
     'whatsapp_cloud_webhook_pings'
   ]) LOOP
-    EXECUTE format('CREATE POLICY IF NOT EXISTS auth_full_access ON public.%I FOR ALL TO authenticated USING (true) WITH CHECK (true)', t);
-    EXECUTE format('CREATE POLICY IF NOT EXISTS service_full_access ON public.%I FOR ALL TO service_role USING (true) WITH CHECK (true)', t);
+    EXECUTE format('DROP POLICY IF EXISTS auth_full_access ON public.%I', t);
+    EXECUTE format('CREATE POLICY auth_full_access ON public.%I FOR ALL TO authenticated USING (true) WITH CHECK (true)', t);
+    EXECUTE format('DROP POLICY IF EXISTS service_full_access ON public.%I', t);
+    EXECUTE format('CREATE POLICY service_full_access ON public.%I FOR ALL TO service_role USING (true) WITH CHECK (true)', t);
   END LOOP;
 END $$;
 

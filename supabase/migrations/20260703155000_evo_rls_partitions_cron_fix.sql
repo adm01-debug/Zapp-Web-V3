@@ -21,8 +21,9 @@
 --      creates/refreshes compatibility views and should NOT run every minute in
 --      production — it creates unnecessary DB load. Changed to hourly.
 --
--- Idempotent: ENABLE RLS is idempotent; CREATE POLICY IF NOT EXISTS guards policies;
--- cron.alter_job is called on job name guard (EXISTS check).
+-- Idempotent: ENABLE RLS is idempotent; policies use DROP POLICY IF EXISTS + CREATE
+-- (CREATE POLICY has no IF NOT EXISTS in PostgreSQL); cron.alter_job is guarded by an
+-- EXISTS check on the job name.
 -- =============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -51,16 +52,18 @@ BEGIN
     EXECUTE format('ALTER TABLE evo.%I ENABLE ROW LEVEL SECURITY', t);
 
     -- service_role bypass: full access for the Python consumer and edge functions
+    EXECUTE format('DROP POLICY IF EXISTS "service_role_bypass" ON evo.%I', t);
     EXECUTE format(
-      'CREATE POLICY IF NOT EXISTS "service_role_bypass" ON evo.%I
+      'CREATE POLICY "service_role_bypass" ON evo.%I
          FOR ALL TO service_role USING (true) WITH CHECK (true)',
       t
     );
 
     -- authenticated: SELECT only — consistent with parent table policies
     -- (single-tenant setup; anon access is blocked by zero GRANT + RLS)
+    EXECUTE format('DROP POLICY IF EXISTS "authenticated_select" ON evo.%I', t);
     EXECUTE format(
-      'CREATE POLICY IF NOT EXISTS "authenticated_select" ON evo.%I
+      'CREATE POLICY "authenticated_select" ON evo.%I
          FOR SELECT TO authenticated USING (true)',
       t
     );
@@ -85,13 +88,15 @@ BEGIN
         WHERE schemaname = 'evo' AND tablename = t AND policyname = 'service_role_bypass'
       )
   LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "service_role_bypass" ON evo.%I', t);
     EXECUTE format(
-      'CREATE POLICY IF NOT EXISTS "service_role_bypass" ON evo.%I
+      'CREATE POLICY "service_role_bypass" ON evo.%I
          FOR ALL TO service_role USING (true) WITH CHECK (true)',
       t
     );
+    EXECUTE format('DROP POLICY IF EXISTS "authenticated_select" ON evo.%I', t);
     EXECUTE format(
-      'CREATE POLICY IF NOT EXISTS "authenticated_select" ON evo.%I
+      'CREATE POLICY "authenticated_select" ON evo.%I
          FOR SELECT TO authenticated USING (true)',
       t
     );
@@ -134,9 +139,11 @@ BEGIN
     SELECT 1 FROM pg_tables WHERE schemaname = 'evo' AND tablename = 'evolution_messages_v2' AND NOT rowsecurity
   ) THEN
     ALTER TABLE evo.evolution_messages_v2 ENABLE ROW LEVEL SECURITY;
-    CREATE POLICY IF NOT EXISTS "service_role_bypass" ON evo.evolution_messages_v2
+    DROP POLICY IF EXISTS "service_role_bypass" ON evo.evolution_messages_v2;
+    CREATE POLICY "service_role_bypass" ON evo.evolution_messages_v2
       FOR ALL TO service_role USING (true) WITH CHECK (true);
-    CREATE POLICY IF NOT EXISTS "authenticated_select" ON evo.evolution_messages_v2
+    DROP POLICY IF EXISTS "authenticated_select" ON evo.evolution_messages_v2;
+    CREATE POLICY "authenticated_select" ON evo.evolution_messages_v2
       FOR SELECT TO authenticated USING (true);
     RAISE NOTICE 'RLS enabled on evo.evolution_messages_v2 parent table';
   END IF;
@@ -145,9 +152,11 @@ BEGIN
     SELECT 1 FROM pg_tables WHERE schemaname = 'evo' AND tablename = 'evolution_webhook_events_v2' AND NOT rowsecurity
   ) THEN
     ALTER TABLE evo.evolution_webhook_events_v2 ENABLE ROW LEVEL SECURITY;
-    CREATE POLICY IF NOT EXISTS "service_role_bypass" ON evo.evolution_webhook_events_v2
+    DROP POLICY IF EXISTS "service_role_bypass" ON evo.evolution_webhook_events_v2;
+    CREATE POLICY "service_role_bypass" ON evo.evolution_webhook_events_v2
       FOR ALL TO service_role USING (true) WITH CHECK (true);
-    CREATE POLICY IF NOT EXISTS "authenticated_select" ON evo.evolution_webhook_events_v2
+    DROP POLICY IF EXISTS "authenticated_select" ON evo.evolution_webhook_events_v2;
+    CREATE POLICY "authenticated_select" ON evo.evolution_webhook_events_v2
       FOR SELECT TO authenticated USING (true);
     RAISE NOTICE 'RLS enabled on evo.evolution_webhook_events_v2 parent table';
   END IF;

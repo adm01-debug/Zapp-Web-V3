@@ -8,14 +8,18 @@ ALTER TABLE vendas.creditos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vendas.trocas ENABLE ROW LEVEL SECURITY;
 
 -- Policies: service_role (full) + authenticated (full) — no anon policy intentional
-CREATE POLICY IF NOT EXISTS "service_role_full" ON vendas.creditos
+DROP POLICY IF EXISTS "service_role_full" ON vendas.creditos;
+CREATE POLICY "service_role_full" ON vendas.creditos
   FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "auth_full_access" ON vendas.creditos
+DROP POLICY IF EXISTS "auth_full_access" ON vendas.creditos;
+CREATE POLICY "auth_full_access" ON vendas.creditos
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-CREATE POLICY IF NOT EXISTS "service_role_full" ON vendas.trocas
+DROP POLICY IF EXISTS "service_role_full" ON vendas.trocas;
+CREATE POLICY "service_role_full" ON vendas.trocas
   FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "auth_full_access" ON vendas.trocas
+DROP POLICY IF EXISTS "auth_full_access" ON vendas.trocas;
+CREATE POLICY "auth_full_access" ON vendas.trocas
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- Revoke anon table-level grants (defense-in-depth)
