@@ -5,7 +5,7 @@
  * @description Importação de CSV e Excel com validação Zod
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { z } from 'zod';
 import { toast } from 'sonner';
 
@@ -46,6 +46,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
   const [status, setStatus] = useState<ImportStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ImportResult<T> | null>(null);
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Parsear CSV usando xlsx (carregado sob demanda — ~600KB fora do bundle principal)
   const parseCSV = useCallback(async (file: File): Promise<unknown[]> => {
@@ -205,9 +206,10 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
       await onImport(result.success);
       setProgress(100);
       toast.success(`${result.success.length} registros importados com sucesso!`);
-      
-      // Reset após 2 segundos
-      setTimeout(() => {
+
+      // Reset após 2 segundos — store in ref to cleanup on unmount
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+      resetTimeoutRef.current = setTimeout(() => {
         setStatus('idle');
         setResult(null);
         setProgress(0);
@@ -217,6 +219,13 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
       toast.error(`Erro ao importar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }, [result, onImport]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+    };
+  }, []);
 
   // Reset
   const reset = useCallback(() => {
