@@ -66,7 +66,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
             log.error('rpc_get_contact failed, using phone fallback', error);
           } else if (data) {
             type ContactLookup = { push_name?: string | null; name?: string | null; full_name?: string | null; phone?: string | null; profile_picture_url?: string | null; id?: string | null };
-            const row = (Array.isArray(data) ? data[0] : data) as unknown as ContactLookup | null;
+            const row = (Array.isArray(data) ? data[0] : data) as ContactLookup | null;
             if (row) {
               contactName = row.push_name || row.name || row.full_name || phoneFallback;
               contactPhone = row.phone || phoneFallback;
