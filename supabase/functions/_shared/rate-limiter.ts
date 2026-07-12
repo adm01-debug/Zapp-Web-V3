@@ -71,9 +71,10 @@ export async function checkRateLimit(supabase: SupabaseClient, {
         return { allowed: true, currentCount: 0, limit }; // Fail open (FIX-05)
       }
 
-      // rpc retorna array de linhas: [{ current_count, is_allowed, window_expired }]
+      // rpc retorna array de linhas: [{ current_count (bigint), is_allowed, window_expired }]
+      // Note: current_count is now BIGINT, safely coerced to JavaScript number for comparisons
       const row = Array.isArray(data) ? data[0] : data;
-      const currentCount = row?.current_count ?? 0;
+      const currentCount = (row?.current_count ?? 0) as number;
       const allowed = row?.is_allowed ?? true;
       const windowExpired = row?.window_expired ?? false;
 

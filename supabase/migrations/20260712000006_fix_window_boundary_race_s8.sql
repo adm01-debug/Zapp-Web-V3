@@ -25,13 +25,13 @@ CREATE OR REPLACE FUNCTION public.increment_webhook_rate_limit(
   p_window_start timestamptz,
   p_limit int,
   p_window_seconds int DEFAULT 60
-) RETURNS TABLE(current_count int, is_allowed boolean, window_expired boolean)
+) RETURNS TABLE(current_count bigint, is_allowed boolean, window_expired boolean)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp, public
 AS $fn$
 DECLARE
-  v_count int;
+  v_count bigint;
   v_now timestamptz;
   v_window_age_seconds int;
   v_expired boolean;
@@ -43,12 +43,12 @@ BEGIN
   IF v_expired THEN
     -- Window has expired: reset counter to 1 for this new request
     -- Delete the old row (or upsert with reset) atomically
-    DELETE FROM zapp.webhook_rate_limits
+    DELETE FROM public.webhook_rate_limits
     WHERE instance_id = p_instance_id
       AND event_type = p_event_type
       AND window_start = p_window_start;
 
-    INSERT INTO zapp.webhook_rate_limits(instance_id, event_type, window_start, event_count, created_at)
+    INSERT INTO public.webhook_rate_limits(instance_id, event_type, window_start, event_count, created_at)
     VALUES (p_instance_id, p_event_type, p_window_start, 1, v_now)
     ON CONFLICT (instance_id, event_type, window_start)
     DO UPDATE SET
@@ -60,10 +60,10 @@ BEGIN
     RETURN QUERY SELECT v_count, true, true;
   ELSE
     -- Window is still active: increment counter and check limit
-    INSERT INTO zapp.webhook_rate_limits(instance_id, event_type, window_start, event_count, created_at)
+    INSERT INTO public.webhook_rate_limits(instance_id, event_type, window_start, event_count, created_at)
     VALUES (p_instance_id, p_event_type, p_window_start, 1, v_now)
     ON CONFLICT (instance_id, event_type, window_start)
-    DO UPDATE SET event_count = zapp.webhook_rate_limits.event_count + 1
+    DO UPDATE SET event_count = public.webhook_rate_limits.event_count + 1
     RETURNING event_count INTO v_count;
 
     RETURN QUERY SELECT v_count, (v_count <= p_limit), false;

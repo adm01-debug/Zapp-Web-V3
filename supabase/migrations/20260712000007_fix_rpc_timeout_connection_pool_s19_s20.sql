@@ -24,7 +24,7 @@
 
 -- Step 1: Ensure webhook_rate_limits table has optimal indexes
 CREATE INDEX IF NOT EXISTS idx_webhook_rate_limits_active
-  ON zapp.webhook_rate_limits (instance_id, event_type, window_start)
+  ON public.webhook_rate_limits (instance_id, event_type, window_start)
   WHERE window_start > now() - INTERVAL '2 minutes';
 -- This partial index ensures only "active" windows are indexed, reducing
 -- index bloat from expired window rows. Fast-path for rate-limit lookup.
@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION public.increment_webhook_rate_limit(
   p_window_start timestamptz,
   p_limit int,
   p_window_seconds int DEFAULT 60
-) RETURNS TABLE(current_count int, is_allowed boolean, window_expired boolean)
+) RETURNS TABLE(current_count bigint, is_allowed boolean, window_expired boolean)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp, public
@@ -44,7 +44,7 @@ SET statement_timeout = '5s'
 SET lock_timeout = '2s'
 AS $fn$
 DECLARE
-  v_count int;
+  v_count bigint;
   v_now timestamptz;
   v_window_age_seconds int;
   v_expired boolean;
@@ -56,12 +56,12 @@ BEGIN
   IF v_expired THEN
     -- Window has expired: reset counter to 1 for this new request
     -- Use fast-path: DELETE + INSERT in single transaction
-    DELETE FROM zapp.webhook_rate_limits
+    DELETE FROM public.webhook_rate_limits
     WHERE instance_id = p_instance_id
       AND event_type = p_event_type
       AND window_start = p_window_start;
 
-    INSERT INTO zapp.webhook_rate_limits(instance_id, event_type, window_start, event_count, created_at)
+    INSERT INTO public.webhook_rate_limits(instance_id, event_type, window_start, event_count, created_at)
     VALUES (p_instance_id, p_event_type, p_window_start, 1, v_now)
     ON CONFLICT (instance_id, event_type, window_start)
     DO UPDATE SET
@@ -73,10 +73,10 @@ BEGIN
   ELSE
     -- Window is still active: increment counter and check limit
     -- Use atomic INSERT ... ON CONFLICT with minimal lock duration
-    INSERT INTO zapp.webhook_rate_limits(instance_id, event_type, window_start, event_count, created_at)
+    INSERT INTO public.webhook_rate_limits(instance_id, event_type, window_start, event_count, created_at)
     VALUES (p_instance_id, p_event_type, p_window_start, 1, v_now)
     ON CONFLICT (instance_id, event_type, window_start)
-    DO UPDATE SET event_count = zapp.webhook_rate_limits.event_count + 1
+    DO UPDATE SET event_count = public.webhook_rate_limits.event_count + 1
     RETURNING event_count INTO v_count;
 
     RETURN QUERY SELECT v_count, (v_count <= p_limit), false;
