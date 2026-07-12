@@ -32,6 +32,15 @@ type AnyQueryBuilderResult = AnyQueryResult & { single?: () => AnyQueryResult };
 // preserving the runtime type we actually use downstream.
 type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
 
+// Permissive query-builder shape usada nos callbacks de `safeClient.from`.
+// Precisamos decouplar do `ReturnType<typeof supabase.from>` porque o cliente
+// tipado do Supabase gera uma união gigante por nome de tabela — quando o
+// caller usa uma tabela ausente em `types.ts` (ex.: views/`_safe`) o compilador
+// entra em recursão TS2589. Este alias mantém IntelliSense básico sem cascatear.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SafeQueryBuilder = any;
+
+
 export interface SafeResponse<T> {
   data: T | null;
   error: Error | null;
@@ -172,7 +181,7 @@ export const maskSensitiveData = (
 async function executeQuery<T>(
   operation: string,
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
+  callback: (q: SafeQueryBuilder) => AnyQueryResult
 ): Promise<SafeResponse<T>> {
   const requestId = generateRequestId();
   telemetry.stats.totalCalls++;
@@ -200,7 +209,7 @@ async function executeQuery<T>(
 
 async function executeSingle<T>(
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
+  callback: (q: SafeQueryBuilder) => AnyQueryResult
 ): Promise<SafeResponse<T>> {
   return executeQuery<T>('single', table, (q) => {
     const query = callback(q) as AnyQueryBuilderResult;
@@ -210,7 +219,7 @@ async function executeSingle<T>(
 
 async function executeFrom<T>(
   table: string,
-  callback: (q: ReturnType<typeof supabase.from>) => AnyQueryResult
+  callback: (q: SafeQueryBuilder) => AnyQueryResult
 ): Promise<SafeResponse<T[]>> {
   const result = await executeQuery<T[]>('from', table, callback);
   return result;

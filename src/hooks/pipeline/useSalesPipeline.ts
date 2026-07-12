@@ -35,7 +35,6 @@ export function useSalesPipeline() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    type DealRow = Deal & { contacts: { name: string; phone: string } | null; profiles: { name: string } | null };
     const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([
       supabase.from('sales_pipeline_stages').select('*').order('position'),
       (safeClient.from as unknown as (t: string, cb: (q: unknown) => unknown) => Promise<{ data: unknown; error: Error | null }>)('sales_deals', (q) => (q as { select: (s: string) => { order: (c: string, o: { ascending: boolean }) => unknown } }).select('*, contacts(name, phone), profiles!sales_deals_assigned_to_fkey(name)').order('created_at', { ascending: false })),
@@ -44,8 +43,10 @@ export function useSalesPipeline() {
     ]);
     if (!mountedRef.current) return;
     if (stagesRes.data) setStages(stagesRes.data);
-    const dealRows = (dealsRes.data ?? null) as DealRow[] | null;
-    if (dealRows) setDeals(dealRows.map((d) => ({ ...d, tags: d.tags || [], contact: d.contacts, assignee: d.profiles })));
+    if (dealsRes.data) {
+      const dealsRows = dealsRes.data as Array<Deal & { contacts: { name: string; phone: string } | null; profiles: { name: string } | null; tags?: string[] }>;
+      setDeals(dealsRows.map((d) => ({ ...d, tags: d.tags || [], contact: d.contacts, assignee: d.profiles })));
+    }
     if (contactsRes.data) setContacts(contactsRes.data);
     if (agentsRes.data) setAgents(agentsRes.data);
     setLoading(false);
