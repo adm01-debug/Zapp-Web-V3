@@ -11,10 +11,10 @@
  * Regra: toda chamada à Evolution deve usar `evolutionInstanceName(connection)`.
  */
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isValidUUID } from '@/utils/uuid';
 
 export function isUuidLike(value: string | null | undefined): boolean {
-  return !!value && UUID_RE.test(value.trim());
+  return !!value && isValidUUID(value.trim());
 }
 
 export interface EvolutionInstanceRef {
