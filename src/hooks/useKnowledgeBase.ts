@@ -52,17 +52,28 @@ export function useKnowledgeBase() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [articlesRes, filesRes] = await Promise.all([
-      supabase
-        .from('knowledge_base_articles')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(200),
-      supabase.from('knowledge_base_files').select('*').order('created_at', { ascending: false }).limit(500),
-    ]);
-    if (articlesRes.data) setArticles(articlesRes.data.map((a) => ({ ...a, tags: a.tags || [] })));
-    if (filesRes.data) setFiles(filesRes.data);
-    setLoading(false);
+    try {
+      const [articlesRes, filesRes] = await Promise.all([
+        supabase
+          .from('knowledge_base_articles')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(200),
+        supabase.from('knowledge_base_files').select('*').order('created_at', { ascending: false }).limit(500),
+      ]);
+      if (articlesRes.error) {
+        toast({ title: 'Erro ao carregar artigos', description: articlesRes.error.message, variant: 'destructive' });
+      } else if (articlesRes.data) {
+        setArticles(articlesRes.data.map((a) => ({ ...a, tags: a.tags || [] })));
+      }
+      if (filesRes.error) {
+        toast({ title: 'Erro ao carregar arquivos', description: filesRes.error.message, variant: 'destructive' });
+      } else if (filesRes.data) {
+        setFiles(filesRes.data);
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const saveArticle = useCallback(
@@ -102,7 +113,11 @@ export function useKnowledgeBase() {
 
   const deleteArticle = useCallback(
     async (id: string) => {
-      await supabase.from('knowledge_base_articles').delete().eq('id', id);
+      const { error } = await supabase.from('knowledge_base_articles').delete().eq('id', id);
+      if (error) {
+        toast({ title: 'Erro ao remover artigo', description: error.message, variant: 'destructive' });
+        return;
+      }
       toast({ title: 'Artigo removido' });
       void fetchData();
     },
@@ -126,7 +141,7 @@ export function useKnowledgeBase() {
       const { data: signedData } = await supabase.storage
         .from('whatsapp-media')
         .createSignedUrl(fileName, 86400);
-      await supabase
+      const { error: insertError } = await supabase
         .from('knowledge_base_files')
         .insert({
           file_name: file.name,
@@ -134,6 +149,10 @@ export function useKnowledgeBase() {
           file_type: file.type,
           file_size: file.size,
         });
+      if (insertError) {
+        toast({ title: 'Erro ao salvar arquivo', description: insertError.message, variant: 'destructive' });
+        return;
+      }
       toast({ title: 'Arquivo enviado!', description: file.name });
       void fetchData();
     },

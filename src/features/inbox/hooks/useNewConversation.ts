@@ -40,15 +40,16 @@ export function useNewConversation(
       .from('whatsapp_connections')
       .select('id, name')
       .eq('status', 'connected')
-      .then(
-        ({ data }) => {
-          if (data && data.length > 0) {
-            setConnections(data);
-            setSelectedConnection(data[0].id);
-          }
-        },
-        () => {}
-      );
+      .then(({ data, error }) => {
+        if (error) {
+          toast.error(`Erro ao carregar conexões: ${error.message}`);
+          return;
+        }
+        if (data && data.length > 0) {
+          setConnections(data);
+          setSelectedConnection(data[0].id);
+        }
+      });
   }, [open]);
 
   useEffect(() => {
@@ -63,7 +64,12 @@ export function useNewConversation(
         .select('id, name, phone, avatar_url')
         .or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`)
         .limit(10);
-      setContacts(data || []);
+      if (error) {
+        toast.error(`Erro na busca: ${error.message}`);
+        setContacts([]);
+      } else {
+        setContacts(data || []);
+      }
       setIsLoading(false);
     }, 300);
     return () => clearTimeout(timeout);
