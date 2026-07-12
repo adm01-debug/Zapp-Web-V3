@@ -3,7 +3,7 @@ import {
   getWhatsappConnections,
   invalidateWhatsappConnectionsCache,
 } from '@/lib/whatsappConnectionsCache';
-import type { WhatsAppConnection } from '../hooks/types';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 
 export const whatsappConnectionRepository = {
   /**
@@ -19,7 +19,7 @@ export const whatsappConnectionRepository = {
     }
   },
 
-  async updateConnection(id: string, updates: Partial<WhatsAppConnection>) {
+  async updateConnection(id: string, updates: TablesUpdate<'whatsapp_connections'>) {
     const res = await supabase.from('whatsapp_connections').update(updates).eq('id', id);
     invalidateWhatsappConnectionsCache();
     return res;
