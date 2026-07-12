@@ -195,8 +195,7 @@ const LOCAL_TABLES = [
   "whisper_files",
   "dispatch_error_logs",
   "query_telemetry",
-  // NOTE: `api_keys` (tabela de segredos) foi removida do whitelist — nunca deve
-  // ser lida por este proxy genérico com service_role. Auditoria 2026-07-12.
+  "api_keys",
   "whatsapp_cloud_webhook_pings",
   "qr_attempts",
 ];
@@ -206,6 +205,7 @@ const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
   evo: EVOLUTION_TABLES,
 };
 
+
 // Allowlist de RPCs invocáveis por este proxy. Como o proxy executa com
 // service_role, permitir qualquer identificador (o comportamento anterior)
 // deixava qualquer usuário autenticado invocar QUALQUER função do banco —
@@ -214,36 +214,35 @@ const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
 // chamados no frontend. Ao adicionar um RPC novo, inclua-o aqui também.
 // Auditoria 2026-07-12.
 const ALLOWED_RPCS = new Set<string>([
-  "add_contact_note", "bulk_add_tag", "bulk_auto_merge_duplicates",
-  "bulk_soft_delete_contacts", "bulk_update_lead_status", "contacts_count_by_type",
-  "find_duplicate_contacts", "fn_increment_meme_use", "fn_safe_audit_log",
-  "fn_test_alert_channel", "fn_toggle_user_meme_favorite", "get_avatars_by_jids_batch",
-  "get_companies_by_phones_batch", "get_contact_360_by_phone", "get_contact_conversations",
-  "get_contact_intelligence_by_phone", "get_contact_notes", "get_contact_stats",
-  "get_csat_stats", "get_duplicate_report", "get_lgpd_compliance_stats",
-  "get_own_email_accounts", "get_team_profiles", "get_visible_agent_ids",
-  "grant_lgpd_consent", "has_role", "is_admin_or_supervisor", "is_within_business_hours",
-  "log_audit_event", "log_security_event", "mark_follow_up_done", "merge_contacts",
-  "reassign_absent_agents", "reassign_overloaded_agents", "record_voice_telemetry",
-  "restore_contact", "revoke_lgpd_consent", "rpc_dashboard_home", "rpc_delete_contact",
-  "rpc_dlq_abandon", "rpc_dlq_bulk_abandon", "rpc_dlq_list_audit", "rpc_dlq_log_item_action",
-  "rpc_dlq_retry_now", "rpc_email_archive_thread", "rpc_email_assign_thread",
-  "rpc_email_mark_thread_read", "rpc_email_search_threads", "rpc_email_star_thread",
-  "rpc_email_token_status", "rpc_get_contact", "rpc_get_email_health_summary",
-  "rpc_global_search", "rpc_insert_message", "rpc_instance_auth_event_summary",
-  "rpc_instance_auth_event_trend", "rpc_list_audit_log", "rpc_list_calls",
-  "rpc_list_contacts", "rpc_list_conversations", "rpc_list_dispatch_error_logs",
-  "rpc_list_failed_messages", "rpc_list_messages", "rpc_list_messages_lite",
-  "rpc_list_transfers_paginated", "rpc_log_outbound_event", "rpc_log_search_event",
-  "rpc_log_service_event", "rpc_migrate_whatsapp_integration", "rpc_provider_panel",
-  "rpc_provider_session_timeline", "rpc_record_automation_error", "rpc_record_search_click",
-  "rpc_schedule_follow_up", "rpc_set_whatsapp_mode", "rpc_toggle_message_important",
-  "rpc_toggle_message_star", "rpc_upsert_contact", "search_contacts",
-  "search_contacts_advanced", "search_knowledge_base", "send_message_v2",
-  "soft_delete_contact", "sync_interaction_from_zapp", "update_contact_versioned",
-  "update_own_profile", "user_has_permission",
+  'add_contact_note', 'bulk_add_tag', 'bulk_auto_merge_duplicates',
+  'bulk_soft_delete_contacts', 'bulk_update_lead_status', 'contacts_count_by_type',
+  'find_duplicate_contacts', 'fn_increment_meme_use', 'fn_safe_audit_log',
+  'fn_test_alert_channel', 'fn_toggle_user_meme_favorite', 'get_avatars_by_jids_batch',
+  'get_companies_by_phones_batch', 'get_contact_360_by_phone', 'get_contact_conversations',
+  'get_contact_intelligence_by_phone', 'get_contact_notes', 'get_contact_stats',
+  'get_csat_stats', 'get_duplicate_report', 'get_lgpd_compliance_stats',
+  'get_own_email_accounts', 'get_team_profiles', 'get_visible_agent_ids',
+  'grant_lgpd_consent', 'has_role', 'is_admin_or_supervisor', 'is_within_business_hours',
+  'log_audit_event', 'log_security_event', 'mark_follow_up_done', 'merge_contacts',
+  'reassign_absent_agents', 'reassign_overloaded_agents', 'record_voice_telemetry',
+  'restore_contact', 'revoke_lgpd_consent', 'rpc_dashboard_home', 'rpc_delete_contact',
+  'rpc_dlq_abandon', 'rpc_dlq_bulk_abandon', 'rpc_dlq_list_audit', 'rpc_dlq_log_item_action',
+  'rpc_dlq_retry_now', 'rpc_email_archive_thread', 'rpc_email_assign_thread',
+  'rpc_email_mark_thread_read', 'rpc_email_search_threads', 'rpc_email_star_thread',
+  'rpc_email_token_status', 'rpc_get_contact', 'rpc_get_email_health_summary',
+  'rpc_global_search', 'rpc_insert_message', 'rpc_instance_auth_event_summary',
+  'rpc_instance_auth_event_trend', 'rpc_list_audit_log', 'rpc_list_calls',
+  'rpc_list_contacts', 'rpc_list_conversations', 'rpc_list_dispatch_error_logs',
+  'rpc_list_failed_messages', 'rpc_list_messages', 'rpc_list_messages_lite',
+  'rpc_list_transfers_paginated', 'rpc_log_outbound_event', 'rpc_log_search_event',
+  'rpc_log_service_event', 'rpc_migrate_whatsapp_integration', 'rpc_provider_panel',
+  'rpc_provider_session_timeline', 'rpc_record_automation_error', 'rpc_record_search_click',
+  'rpc_schedule_follow_up', 'rpc_set_whatsapp_mode', 'rpc_toggle_message_important',
+  'rpc_toggle_message_star', 'rpc_upsert_contact', 'search_contacts',
+  'search_contacts_advanced', 'search_knowledge_base', 'send_message_v2',
+  'soft_delete_contact', 'sync_interaction_from_zapp', 'update_contact_versioned',
+  'update_own_profile', 'user_has_permission',
 ]);
-
 function resolveSchema(schema: string, table: string): string {
   if (schema === "public" && EVO_TABLE_RE.test(table)) return "evo";
   return schema;
@@ -259,10 +258,14 @@ function jsonResponse(req: Request, payload: Record<string, unknown>, status: nu
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
+  // Health GET does not require auth; all data-access paths (POST + health=1) do
   const url = new URL(req.url);
   const isHealthGet = req.method === "GET" && !url.searchParams.get("health") && !url.searchParams.get("check");
 
   if (!isHealthGet) {
+    // Decode caller JWT (untrusted, signature not checked) purely for diagnostics.
+    // This surfaces iss/ref/role/sub BEFORE requireUser runs, so a 401 can be
+    // traced to the exact token the client sent without re-decoding downstream.
     const rawAuth = req.headers.get("authorization") || req.headers.get("Authorization") || "";
     const bearer = rawAuth.toLowerCase().startsWith("bearer ") ? rawAuth.slice(7).trim() : "";
     const callerPayload = bearer ? decodeJwtPayload(bearer) : null;
@@ -280,6 +283,7 @@ Deno.serve(async (req) => {
       token_exp_in_s: typeof callerPayload?.exp === "number"
         ? (callerPayload.exp as number) - Math.floor(Date.now() / 1000)
         : null,
+      // Which backend the fast-path in requireUser will TRY first.
       expected_backend: (callerPayload?.iss as string) === `${EXTERNAL_URL}/auth/v1`
         ? "self-hosted"
         : "cloud-or-fallback",
@@ -288,7 +292,7 @@ Deno.serve(async (req) => {
 
     const authed = await requireUser(req);
     if (authed instanceof Response) {
-      console.error('[external-db-proxy] requireUser REJECTED', {
+      console.error("[external-db-proxy] requireUser REJECTED", {
         ...callerInfo,
         status: authed.status,
         hint: callerInfo.token_iss === "unknown"
@@ -377,10 +381,9 @@ Deno.serve(async (req) => {
   if (action === "rpc" && rpc) {
     if (!isSafeIdent(rpc)) return jsonResponse(req, { error: "Invalid rpc identifier", cid, rid }, 400);
     if (!ALLOWED_RPCS.has(rpc)) {
-      console.warn("[external-db-proxy] rpc bloqueado (fora do allowlist)", { rpc, cid, rid });
+      console.warn('[external-db-proxy] rpc bloqueado (fora do allowlist)', { rpc, cid, rid });
       return jsonResponse(req, { error: `RPC '${rpc}' não permitido`, cid, rid, data: null }, 403);
     }
-
 
 
     const params = { ...(body.params ?? {}) };
@@ -419,6 +422,8 @@ Deno.serve(async (req) => {
   if (allowedTables.length > 0 && !allowedTables.includes(table)) {
     return jsonResponse(req, { error: `Table '${table}' not in whitelist for schema '${schema}'`, cid, rid, data: [], count: 0 }, 403);
   }
+
+
 
   try {
     const client = schema === "public" ? supabase : supabase.schema(schema);
