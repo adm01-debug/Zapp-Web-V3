@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
+import type { ConnectionInfo } from './types';
 
 const log = getLogger('useMonitoringNotifications');
-import type { ConnectionInfo } from './types';
 
 export function useMonitoringNotifications() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);

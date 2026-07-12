@@ -27,22 +27,40 @@
 
 DROP POLICY IF EXISTS "Users can manage conversations" ON public.conversations;
 
+-- INSERT: agent can create a conversation only if assigned_to is self, null, or elevated
 CREATE POLICY "Agents write own conversations" ON public.conversations
   FOR INSERT TO authenticated
-  WITH CHECK (true);  -- Any agent can open a conversation (service_role does most of this)
+  WITH CHECK (
+    assigned_to IS NULL
+    OR assigned_to = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+    OR EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
+    )
+  );
 
+-- UPDATE: can mutate rows where currently assigned to self / unassigned / elevated;
+--         WITH CHECK ensures the new state also satisfies ownership (no silent reassignment)
 CREATE POLICY "Agents update assigned conversations" ON public.conversations
   FOR UPDATE TO authenticated
   USING (
-    assigned_to IS NULL  -- unassigned: any agent can pick it up
+    assigned_to IS NULL
     OR assigned_to = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
     OR EXISTS (
       SELECT 1 FROM public.profiles
       WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
     )
   )
-  WITH CHECK (true);
+  WITH CHECK (
+    assigned_to IS NULL
+    OR assigned_to = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+    OR EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
+    )
+  );
 
+-- DELETE: admin/supervisor only
 CREATE POLICY "Admin supervisor delete conversations" ON public.conversations
   FOR DELETE TO authenticated
   USING (
@@ -78,18 +96,29 @@ CREATE POLICY "Payment links write creator or elevated" ON public.payment_links
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 3. sales_deals + deal_activities  (CRM — creator/assignee or admin/supervisor)
+-- 3. sales_deals  (CRM — split per operation; DELETE is admin/supervisor only)
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Authenticated users can manage deals" ON public.sales_deals;
-DROP POLICY IF EXISTS "Authenticated users can manage deal activities" ON public.deal_activities;
 
 CREATE POLICY "Sales deals read all authenticated" ON public.sales_deals
   FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY "Sales deals write assignee or elevated" ON public.sales_deals
-  FOR ALL TO authenticated
+-- INSERT: new row's assigned_to must be self, null, or elevated
+CREATE POLICY "Sales deals insert assignee or elevated" ON public.sales_deals
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    assigned_to IS NULL
+    OR assigned_to = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+    OR EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
+    )
+  );
+
+-- UPDATE: can edit rows assigned to self / unassigned / elevated; WITH CHECK mirrors USING
+CREATE POLICY "Sales deals update assignee or elevated" ON public.sales_deals
+  FOR UPDATE TO authenticated
   USING (
-    -- sales_deals has no created_by; scope by assigned_to + role
     assigned_to IS NULL
     OR assigned_to = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
     OR EXISTS (
@@ -97,25 +126,53 @@ CREATE POLICY "Sales deals write assignee or elevated" ON public.sales_deals
       WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
     )
   )
-  WITH CHECK (true);
+  WITH CHECK (
+    assigned_to IS NULL
+    OR assigned_to = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+    OR EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
+    )
+  );
+
+-- DELETE: admin/supervisor only — prevents any agent from deleting unassigned deals
+CREATE POLICY "Sales deals delete admin supervisor" ON public.sales_deals
+  FOR DELETE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
+    )
+  );
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 4. deal_activities  (CRM activity log — performer or admin/supervisor)
+-- ─────────────────────────────────────────────────────────────────────────────
+DROP POLICY IF EXISTS "Authenticated users can manage deal activities" ON public.deal_activities;
 
 CREATE POLICY "Deal activities read all authenticated" ON public.deal_activities
   FOR SELECT TO authenticated USING (true);
 
+-- WITH CHECK enforces that performed_by cannot be forged to another user's id
 CREATE POLICY "Deal activities write performer or elevated" ON public.deal_activities
   FOR ALL TO authenticated
   USING (
-    -- deal_activities uses performed_by (not created_by)
     performed_by = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
     OR EXISTS (
       SELECT 1 FROM public.profiles
       WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
     )
   )
-  WITH CHECK (true);
+  WITH CHECK (
+    performed_by = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+    OR EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
+    )
+  );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. meta_capi_events  (marketing analytics — writes restricted)
+-- 5. meta_capi_events  (marketing analytics — writes restricted)
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Authenticated users can manage capi events" ON public.meta_capi_events;
 
@@ -144,7 +201,7 @@ CREATE POLICY "CAPI events write admin supervisor" ON public.meta_capi_events
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 5. knowledge_base_articles + knowledge_base_files  (team content)
+-- 6. knowledge_base_articles + knowledge_base_files  (team content)
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Authenticated users can manage knowledge base" ON public.knowledge_base_articles;
 DROP POLICY IF EXISTS "Authenticated users can manage kb files" ON public.knowledge_base_files;
@@ -186,7 +243,7 @@ CREATE POLICY "KB files write admin supervisor" ON public.knowledge_base_files
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 6. whatsapp_flows  (config — admin/supervisor only)
+-- 7. whatsapp_flows  (config — admin/supervisor only)
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Authenticated users can manage whatsapp flows" ON public.whatsapp_flows;
 
@@ -209,7 +266,7 @@ CREATE POLICY "WA flows write admin supervisor" ON public.whatsapp_flows
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 7. login_attempts  (security — service_role only; drop authenticated write)
+-- 8. login_attempts  (security — service_role only; drop authenticated write)
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "auth_full_access" ON public.login_attempts;
 
@@ -225,7 +282,7 @@ CREATE POLICY "Login attempts read admin supervisor" ON public.login_attempts
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 8. automation_rules  (config — agents read, admin/supervisor write)
+-- 9. automation_rules  (config — agents read, admin/supervisor write)
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "auth_full_access" ON public.automation_rules;
 
@@ -248,12 +305,14 @@ CREATE POLICY "Automation rules write admin supervisor" ON public.automation_rul
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 9. whatsapp_cloud_webhook_pings  (service_role only — drop authenticated access)
+-- 10. whatsapp_cloud_webhook_pings  (service_role only — drop ALL authenticated access)
 -- ─────────────────────────────────────────────────────────────────────────────
+-- Drop both the generic auth_full_access AND the pre-existing wa_cloud_pings_admin_read
+-- (from 20260427125814_cbf864aa...) to ensure no residual permissive path survives.
 DROP POLICY IF EXISTS "auth_full_access" ON public.whatsapp_cloud_webhook_pings;
+DROP POLICY IF EXISTS "wa_cloud_pings_admin_read" ON public.whatsapp_cloud_webhook_pings;
 
--- service_full_access policy already exists via the original migration loop;
--- only admins can read pings for debugging.
+-- Only admin (not supervisor) can read pings for debugging — no write via authenticated role.
 CREATE POLICY "WA cloud pings read admin" ON public.whatsapp_cloud_webhook_pings
   FOR SELECT TO authenticated
   USING (
@@ -264,13 +323,14 @@ CREATE POLICY "WA cloud pings read admin" ON public.whatsapp_cloud_webhook_pings
   );
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 10. followup_sequences  (P3 FMEA finding — scope to creator + admin/supervisor)
+-- 11. followup_sequences  (P3 FMEA finding — scope to creator + admin/supervisor)
 -- ─────────────────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Authenticated users can manage followup_sequences" ON public.followup_sequences;
 
 CREATE POLICY "Followup sequences read all authenticated" ON public.followup_sequences
   FOR SELECT TO authenticated USING (true);
 
+-- WITH CHECK enforces created_by cannot be forged to another user's profile id
 CREATE POLICY "Followup sequences write creator or elevated" ON public.followup_sequences
   FOR ALL TO authenticated
   USING (
@@ -280,4 +340,10 @@ CREATE POLICY "Followup sequences write creator or elevated" ON public.followup_
       WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
     )
   )
-  WITH CHECK (true);
+  WITH CHECK (
+    created_by = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+    OR EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor')
+    )
+  );

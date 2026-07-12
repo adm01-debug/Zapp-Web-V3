@@ -12,8 +12,10 @@ const log = getLogger("diagnostics");
 function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
     const b64url = token.split('.')[1];
+    // Convert base64url → base64 and restore padding that JWTs omit
     const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(b64)) as Record<string, unknown>;
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    return JSON.parse(atob(padded)) as Record<string, unknown>;
   } catch {
     return {};
   }
