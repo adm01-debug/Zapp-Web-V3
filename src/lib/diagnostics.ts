@@ -97,7 +97,9 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
         });
       }
     } catch (e: unknown) {
-      record('External Connectivity', 'fail', { error: e instanceof Error ? e.message : String(e) });
+      record('External Connectivity', 'fail', {
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
 
     // Passo 4: Testar Escrita/Leitura no system_connections (Verificar RLS)
@@ -143,8 +145,9 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
         record('Cleanup', 'pass', 'Registro de teste removido.');
       }
     }
-  } catch (e: any) { // ignore-audit
-    record('Global Error', 'fail', { message: e.message });
+  } catch (e: unknown) {
+    // ignore-audit
+    record('Global Error', 'fail', { message: e instanceof Error ? e.message : String(e) });
   }
 
   return diagnostics;

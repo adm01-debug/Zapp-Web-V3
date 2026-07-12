@@ -218,11 +218,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
             });
           },
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         // ignore-audit
         log.error('Failed to send message:', err);
-        const msg = err?.message || 'Falha ao invocar a funcao de envio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
+        const msg = err instanceof Error ? err.message : 'Falha ao invocar a funcao de envio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
         lastFailedSendRef.current = { content: messageContent, attachments };
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
@@ -247,11 +250,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         await audioPending.onSendAudio(audioPending.blob);
         lastFailedAudioRef.current = null;
         toast({ title: 'Audio reenviado', description: 'O audio foi reenviado com sucesso.' });
-      } catch (err: any) {
+      } catch (err: unknown) {
         // ignore-audit
         log.error('Audio retry failed:', err);
-        const msg = err?.message || 'Falha ao reenviar audio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
+        const msg = err instanceof Error ? err.message : 'Falha ao reenviar audio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         toast({ title: 'Erro ao reenviar audio', description: msg, variant: 'destructive' });
@@ -269,11 +275,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       await Promise.resolve(onSendMessage(failedSend.content, failedSend.attachments));
       lastFailedSendRef.current = null;
       toast({ title: 'Reenviado', description: 'A mensagem foi enviada com sucesso.' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       // ignore-audit
       log.error('Retry failed:', err);
-      const msg = err?.message || 'Falha ao reenviar.';
-      const detail = typeof err?.detail === 'string' ? err.detail : null;
+      const msg = err instanceof Error ? err.message : 'Falha ao reenviar.';
+      const detail =
+        typeof (err as { detail?: string }).detail === 'string'
+          ? (err as { detail?: string }).detail!
+          : null;
       setLastSendError(msg);
       setLastSendErrorDetail(detail);
       toast({ title: 'Erro ao reenviar', description: msg, variant: 'destructive' });
@@ -498,11 +507,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       try {
         await onSendAudio(audioBlob);
         lastFailedAudioRef.current = null;
-      } catch (err: any) {
+      } catch (err: unknown) {
         // ignore-audit
         log.error('Error sending audio:', err);
-        const msg = err?.message || 'Falha ao enviar audio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
+        const msg = err instanceof Error ? err.message : 'Falha ao enviar audio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
         lastFailedAudioRef.current = { blob: audioBlob, onSendAudio };
         lastFailedSendRef.current = null;
         setLastSendError(msg);
@@ -533,10 +545,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         .update({ mediaUrl: publicUrl, updated_at: new Date().toISOString() })
         .eq('id', messageId);
       toast({ title: 'Sucesso', description: 'Audio atualizado com a nova voz.' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       // ignore-audit
       log.error('Failed to change audio voice:', err);
-      toast({ title: 'Erro na conversao', description: err.message, variant: 'destructive' });
+      toast({
+        title: 'Erro na conversao',
+        description: err instanceof Error ? err.message : String(err),
+        variant: 'destructive',
+      });
     }
   }, []);
 

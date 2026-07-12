@@ -2,21 +2,25 @@ import { useState } from 'react';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('VirusTotalConfig');
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ShieldCheck, ShieldAlert, Loader2, Key } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ShieldCheck, ShieldAlert, Loader2, Key } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const VirusTotalConfig = () => {
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string; user?: string } | null>(null);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message: string;
+    user?: string;
+  } | null>(null);
 
   const handleTestConnection = async () => {
     if (!apiKey) {
-      toast.error("Por favor, insira a chave da API");
+      toast.error('Por favor, insira a chave da API');
       return;
     }
 
@@ -25,7 +29,7 @@ export const VirusTotalConfig = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke('virustotal-test', {
-        body: { apiKey }
+        body: { apiKey },
       });
 
       if (error) throw error;
@@ -33,35 +37,36 @@ export const VirusTotalConfig = () => {
       setTestResult({
         success: data.success,
         message: data.message,
-        user: data.user
+        user: data.user,
       });
 
       if (data.success) {
-        toast.success("Conexão bem-sucedida!");
+        toast.success('Conexão bem-sucedida!');
       } else {
         toast.error(data.message);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('VirusTotal API test failed', error);
       setTestResult({
         success: false,
-        message: error.message || "Erro ao testar conexão"
+        message: error instanceof Error ? error.message : 'Erro ao testar conexão',
       });
-      toast.error("Erro ao validar chave");
+      toast.error('Erro ao validar chave');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto mt-8">
+    <Card className="mx-auto mt-8 w-full max-w-2xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Key className="w-5 h-5" />
+          <Key className="h-5 w-5" />
           Configuração VirusTotal
         </CardTitle>
         <CardDescription>
-          Insira sua chave de API do VirusTotal para habilitar a varredura preventiva de malwares nos uploads.
+          Insira sua chave de API do VirusTotal para habilitar a varredura preventiva de malwares
+          nos uploads.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -75,31 +80,41 @@ export const VirusTotalConfig = () => {
               onChange={(e) => setApiKey(e.target.value)}
               className=""
             />
-            <Button 
-              onClick={handleTestConnection} 
-              disabled={isLoading}
-              variant="outline"
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Testar"}
+            <Button onClick={handleTestConnection} disabled={isLoading} variant="outline">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Testar'}
             </Button>
           </div>
         </div>
 
         {testResult && (
-          <div className={`p-4 rounded-lg flex items-start gap-3 ${testResult.success ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-destructive text-destructive-foreground border border-destructive'}`}>
-            {testResult.success ? <ShieldCheck className="w-5 h-5 mt-0.5" /> : <ShieldAlert className="w-5 h-5 mt-0.5" />}
+          <div
+            className={`flex items-start gap-3 rounded-lg p-4 ${testResult.success ? 'border border-primary/20 bg-primary/10 text-primary' : 'border border-destructive bg-destructive text-destructive-foreground'}`}
+          >
+            {testResult.success ? (
+              <ShieldCheck className="mt-0.5 h-5 w-5" />
+            ) : (
+              <ShieldAlert className="mt-0.5 h-5 w-5" />
+            )}
             <div>
-              <p className="font-semibold">{testResult.success ? 'Conexão Ativa' : 'Falha na Conexão'}</p>
+              <p className="font-semibold">
+                {testResult.success ? 'Conexão Ativa' : 'Falha na Conexão'}
+              </p>
               <p className="text-sm">{testResult.message}</p>
-              {testResult.user && <p className="text-xs mt-1 opacity-80">Usuário: {testResult.user}</p>}
+              {testResult.user && (
+                <p className="mt-1 text-xs opacity-80">Usuário: {testResult.user}</p>
+              )}
             </div>
           </div>
         )}
 
-        <div className="text-xs text-muted-foreground bg-muted p-3 rounded border">
-          <p className="font-semibold mb-1">Dica para o Desenvolvedor:</p>
-          <p>Após validar que a chave funciona, salve-a nos segredos do projeto usando o comando:</p>
-          <code className="block mt-1 p-1 bg-muted rounded">supabase secrets set VIRUSTOTAL_API_KEY=sua_chave</code>
+        <div className="rounded border bg-muted p-3 text-xs text-muted-foreground">
+          <p className="mb-1 font-semibold">Dica para o Desenvolvedor:</p>
+          <p>
+            Após validar que a chave funciona, salve-a nos segredos do projeto usando o comando:
+          </p>
+          <code className="mt-1 block rounded bg-muted p-1">
+            supabase secrets set VIRUSTOTAL_API_KEY=sua_chave
+          </code>
         </div>
       </CardContent>
     </Card>
