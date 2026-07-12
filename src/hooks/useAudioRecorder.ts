@@ -109,7 +109,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           }
 
           // If local transcription is empty and we had issues, try backend STT
-          if (transcription.trim() === '' && audioBlob.size > 1000) {
+          // Use transcriptionRef so the closure reads the live value, not the stale
+          // one captured when startRecording was memoized.
+          if (transcriptionRef.current.trim() === '' && audioBlob.size > 1000) {
             try {
               setIsTranscribing(true);
               const { data } = await supabase.functions.invoke('speech-to-text', {
@@ -228,10 +230,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   }, []);
 
   // Ref-based so it works from stale closures (e.g. the maxDuration interval) and
-  // from the memoized startRecording — it must not depend on the `isRecording` state,
-  // whose value would be captured at creation time and go stale.
+  // from the memoized startRecording.  Uses mediaRecorderRef.current.state !== 'inactive'
+  // instead of the isRecording React state: the state value is captured at creation
+  // time and goes stale for a callback with empty deps.
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       streamRef.current?.getTracks().forEach((track) => track.stop());
 
@@ -325,7 +328,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   }, [onRecordingComplete]);
 
   const uploadAudio = useCallback(async (blob: Blob, conversationId: string) => {
-    const fileName = `${conversationId}/${Date.now()}.webm`;
+    const fileName = `${conversationId}/${crypto.randomUUID()}.webm`;
 
     const { error } = await supabase.storage.from('audio-messages').upload(fileName, blob, {
       contentType: 'audio/webm',
