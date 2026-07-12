@@ -17,7 +17,7 @@ import {
 const log = getLogger('useFailedMessages');
 
 // Typed escape hatch for DLQ RPCs not yet reflected in the generated Supabase types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const _rpc = <T = unknown>(fn: string, args?: Record<string, unknown>) =>
   (supabase as any).rpc(fn, args) as Promise<{ data: T; error: Error | null }>;
 
@@ -281,18 +281,13 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const ids = Array.isArray(input) ? input : input.ids;
       const reason = Array.isArray(input) ? '' : (input.reason ?? '');
       if (ids.length === 0) return 0;
-      let n = 0;
-      const succeededIds: string[] = [];
-      for (const id of ids) {
-        const { data, error } = await supabase.rpc('rpc_dlq_retry_now', { p_id: id });
-        if (error) throw error;
-        if (data === true) {
-          n += 1;
-          succeededIds.push(id);
-        }
-      }
-      if (succeededIds.length > 0)
-        await logItemAction('bulk_retry', succeededIds, reason || undefined);
+      const { data, error } = await _rpc<number>('rpc_dlq_bulk_retry_now', {
+        p_ids: ids,
+        p_reason: reason || null,
+      });
+      if (error) throw error;
+      const n = (data as number | null) ?? 0;
+      if (n > 0) await logItemAction('bulk_retry', ids, reason || undefined);
       return n;
     },
     onSuccess: (n) => {
