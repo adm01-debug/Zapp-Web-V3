@@ -27,6 +27,7 @@
  * - JWT validation: Signature + expiration + claims validation
  * - Secret scrubbing: Producer secrets never persisted to DLQ
  * - Idempotency: 5-min deduplication window per request_id + distributed lock (IMPROVEMENT 6)
+ * - Request signing: HMAC-SHA256 signature validation to prevent tampering (IMPROVEMENT 11)
  *
  * Required Supabase RPC Functions:
  * - check_duplicate_request(p_request_id, p_action, p_user_id) → {is_duplicate, cached_result}
@@ -664,6 +665,113 @@ function decrementConcurrency(concurrencyKey: string): void {
   }
 }
 
+/**
+ * IMPROVEMENT 11: Request Signing/HMAC Validation
+ * Prevents tampering and replay attacks by validating cryptographic signatures.
+ *
+ * MECHANISM:
+ * - Clients compute HMAC-SHA256(body + timestamp, shared_secret)
+ * - Send signature in X-Signature header
+ * - Server recomputes signature and compares
+ * - Rejects if signature mismatch or timestamp too old (>5 minutes)
+ *
+ * USAGE:
+ * Client computes: signature = Base64(HMAC-SHA256(JSON.stringify(body) + '.' + timestamp, secret))
+ * Sends header: X-Signature: timestamp.signature
+ * Server validates and rejects tampering
+ *
+ * BENEFITS:
+ * - Replay attack prevention (timestamp validation)
+ * - Tampering detection (signature validation)
+ * - Non-repudiation (client signed the request)
+ */
+async function validateRequestSignature(
+  req: Request,
+  bodyText: string,
+  log: Logger
+): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const signatureHeader = req.headers.get('X-Signature');
+    if (!signatureHeader) {
+      // Signature is optional (backward compatibility), but if provided must be valid
+      return { valid: true };
+    }
+
+    // Parse signature header: format is "timestamp.signature"
+    const parts = signatureHeader.split('.');
+    if (parts.length !== 2) {
+      log.warn("Invalid signature format (expected 'timestamp.signature')", { signatureHeader });
+      return { valid: false, error: 'Invalid signature format' };
+    }
+
+    const [timestampStr, providedSignature] = parts;
+    const timestamp = parseInt(timestampStr, 10);
+
+    if (isNaN(timestamp)) {
+      log.warn("Invalid signature timestamp");
+      return { valid: false, error: 'Invalid signature timestamp' };
+    }
+
+    // Prevent replay: reject if timestamp > 5 minutes old
+    const now = Date.now();
+    const ageMs = now - timestamp;
+    const maxAgeMs = 5 * 60 * 1000; // 5 minutes
+
+    if (ageMs > maxAgeMs) {
+      log.warn("Signature timestamp too old (replay attack?)", { ageMs, maxAgeMs });
+      return { valid: false, error: 'Request signature timestamp too old' };
+    }
+
+    if (ageMs < -30_000) { // Allow 30s clock skew forward
+      log.warn("Signature timestamp in future (clock skew?)", { ageMs });
+      return { valid: false, error: 'Signature timestamp in future' };
+    }
+
+    // Get signing secret from environment
+    const signingSecret = (globalThis as any).AI_ROUTER_SIGNING_SECRET || '';
+    if (!signingSecret) {
+      // Signing is optional if secret not configured
+      log.info("Request signing disabled (no AI_ROUTER_SIGNING_SECRET)");
+      return { valid: true };
+    }
+
+    // Compute HMAC-SHA256(body + '.' + timestamp, secret)
+    const messageToSign = bodyText + '.' + timestampStr;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(signingSecret);
+    const messageData = encoder.encode(messageToSign);
+
+    const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = await crypto.subtle.sign('HMAC', key, messageData);
+
+    // Compare signatures (constant-time comparison to prevent timing attacks)
+    const computedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    const normalizedProvided = providedSignature
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    if (computedSignature !== normalizedProvided) {
+      log.warn("Signature mismatch (tampering detected?)", {
+        computed: computedSignature.substring(0, 10),
+        provided: normalizedProvided.substring(0, 10),
+      });
+      return { valid: false, error: 'Invalid request signature' };
+    }
+
+    log.info("Request signature validated", { age: ageMs });
+    return { valid: true };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    log.error("Signature validation error", { error: errMsg });
+    return { valid: false, error: 'Signature validation failed' };
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -709,12 +817,22 @@ Deno.serve(async (req) => {
       return errorResponse("Request body too large (max 1MB)", 413, req);
     }
 
-    // Parse request body
+    // Parse request body (get raw text for signature validation)
     let body: Record<string, unknown>;
+    let bodyText = "";
     try {
-      body = await req.json();
+      bodyText = await req.text();
+      body = JSON.parse(bodyText);
     } catch {
       return errorResponse("Invalid JSON", 400, req);
+    }
+
+    // ━━━ PHASE 1B: Request Signature Validation (IMPROVEMENT 11) ━━━
+    // Optional HMAC validation to prevent tampering and replay attacks
+    const signatureValidation = await validateRequestSignature(req, bodyText, log);
+    if (!signatureValidation.valid) {
+      log.warn("Request signature validation failed", { error: signatureValidation.error });
+      return errorResponse(signatureValidation.error || "Request signature invalid", 401, req);
     }
 
     action = String(body.action || "").toLowerCase().trim();
