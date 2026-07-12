@@ -167,12 +167,8 @@ function resolveValidator(secret: string, strict = false): ValidatorFn {
 }
 
 /**
- * CORS headers — definidos inline (sem dependência de pacote externo) para
- * compatibilidade com qualquer versão do runtime do Supabase Edge Functions.
- *
- * Inclui todos os headers que o `@supabase/supabase-js` envia por padrão
- * (incluindo metadados de plataforma/runtime), além de Methods e Max-Age para
- * evitar preflights repetidos.
+ * CORS headers — fornecidos por `_shared/cors.ts` (getCorsHeaders / handleCorsPreflight).
+ * Origin-aware: retorna o header específico para origens na allowlist ou `*` como fallback.
  */
 
 const DEFAULT_TOLERANCE_SECONDS = 300; // 5 minutos

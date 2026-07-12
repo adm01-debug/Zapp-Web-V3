@@ -10,7 +10,7 @@ const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
 const SERVICE_ROLE = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200, req: Request) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -22,13 +22,13 @@ Deno.serve(async (req) => {
 
   // Auth obrigatória
   const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
+  if (!auth.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401, req);
 
   const userClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
     global: { headers: { Authorization: auth } },
   });
   const { data: u } = await userClient.auth.getUser();
-  if (!u?.user) return json({ error: "unauthorized" }, 401);
+  if (!u?.user) return json({ error: "unauthorized" }, 401, req);
 
   const verifyTokenConfigured = VERIFY_TOKEN.length > 0;
 
@@ -110,5 +110,5 @@ Deno.serve(async (req) => {
     handshake,
     delivery,
     checkedAt: new Date().toISOString(),
-  });
+  }, 200, req);
 });

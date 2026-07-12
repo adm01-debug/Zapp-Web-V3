@@ -14,11 +14,13 @@ const ALLOWED_PATTERNS = [
   /^https:\/\/.*\.supabase\.co$/,
   /^https:\/\/.*\.promobrindes\.com\.br$/,
   /^https:\/\/.*\.atomicabr\.com\.br$/,
-  /^https:\/\/zapp-web-v3[a-z0-9-]*\.vercel\.app$/,
+  /^https:\/\/zapp-web-v3[a-z0-9-]+-juca1\.vercel\.app$/,
 ];
 const ALLOWED_HEADERS = [
   'authorization', 'x-client-info', 'apikey', 'content-type',
   'x-api-key', 'x-request-id',
+  'idempotency-key', 'x-idempotency-key',
+  'x-hub-signature-256',
 ].join(', ');
 const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 

@@ -38,7 +38,7 @@ function decodeCursor(raw: string): CursorPayload | null {
   }
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
@@ -63,16 +63,17 @@ Deno.serve(async (req) => {
     try {
       params = (await req.json()) ?? {};
     } catch {
-      return jsonResponse({ error: "Invalid JSON body" }, 400);
+      return jsonResponse(req, { error: "Invalid JSON body" }, 400);
     }
   } else {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+    return jsonResponse(req, { error: "Method not allowed" }, 405);
   }
 
   // ── Validate input ──────────────────────────────────────────────────
   const contactId = String(params.contact_id ?? "").trim();
   if (!UUID_RE.test(contactId)) {
     return jsonResponse(
+      req,
       { error: "contact_id is required and must be a UUID" },
       400,
     );
@@ -87,6 +88,7 @@ Deno.serve(async (req) => {
   const mediaType = String(params.media_type ?? "all").toLowerCase();
   if (!VALID_TYPES.has(mediaType)) {
     return jsonResponse(
+      req,
       { error: `media_type must be one of: ${[...VALID_TYPES].join(", ")}` },
       400,
     );
@@ -104,11 +106,11 @@ Deno.serve(async (req) => {
 
   if (cursorRaw) {
     cursor = decodeCursor(cursorRaw);
-    if (!cursor) return jsonResponse({ error: "Invalid cursor" }, 400);
+    if (!cursor) return jsonResponse(req, { error: "Invalid cursor" }, 400);
     mode = "cursor";
   } else if (offsetRaw !== null) {
     if (!Number.isFinite(offsetRaw) || offsetRaw < 0) {
-      return jsonResponse({ error: "offset must be a non-negative number" }, 400);
+      return jsonResponse(req, { error: "offset must be a non-negative number" }, 400);
     }
     offset = Math.trunc(offsetRaw);
     mode = "offset";
@@ -117,13 +119,13 @@ Deno.serve(async (req) => {
   // ── Auth: require JWT ───────────────────────────────────────────────
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) {
-    return jsonResponse({ error: "Missing Authorization header" }, 401);
+    return jsonResponse(req, { error: "Missing Authorization header" }, 401);
   }
 
   const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
   const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'));
   if (!supabaseUrl || !anonKey) {
-    return jsonResponse({ error: "Server misconfigured" }, 500);
+    return jsonResponse(req, { error: "Server misconfigured" }, 500);
   }
 
   // User-scoped client → RLS applies on `messages`.
@@ -134,7 +136,7 @@ Deno.serve(async (req) => {
 
   const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData?.user) {
-    return jsonResponse({ error: "Unauthorized" }, 401);
+    return jsonResponse(req, { error: "Unauthorized" }, 401);
   }
 
   // ── Build query ─────────────────────────────────────────────────────
@@ -175,6 +177,7 @@ Deno.serve(async (req) => {
   if (error) {
     console.error("[contact-media] query error", error.message);
     return jsonResponse(
+      req,
       { error: "Failed to load media" },
       500,
     );
@@ -191,7 +194,7 @@ Deno.serve(async (req) => {
       : null;
   const nextOffset = hasMore && mode === "offset" ? offset + items.length : null;
 
-  return jsonResponse({
+  return jsonResponse(req, {
     items,
     page: {
       mode,
