@@ -38,6 +38,7 @@ export function AbandonmentRate() {
       const respondedSet = new Set<string>();
 
       contactMessages.forEach((m) => {
+        if (!m.contact_id) return;
         if (m.sender === 'contact') contactSet.add(m.contact_id);
         if (m.sender === 'agent') respondedSet.add(m.contact_id);
       });
@@ -126,7 +127,7 @@ export function AbandonmentRate() {
                         <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number | string) => [String(value), 'Conversas']} />
+                    <Tooltip formatter={(value) => [String(value ?? ''), 'Conversas']} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
