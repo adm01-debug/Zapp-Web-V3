@@ -233,24 +233,25 @@ const BREAKER_THRESHOLD = 4;
 const BREAKER_COOLDOWN_MS = 5_000;
 const breaker = new Map<string, { fails: number; openedAt: number }>();
 
-// Session-wide auth breaker: after we see a hard 401/403 from the proxy we
-// stop hammering the endpoint for the rest of the session. All targets share
-// this lock because the token is global.
-let authLockUntil = 0;
+// Per-target auth breaker: after we see a hard 401/403 from a specific proxy
+// target we stop hammering that endpoint for AUTH_LOCK_MS. Keyed by target URL
+// so a bad token on one Evolution instance doesn't block requests to others.
+const authLockUntil = new Map<string, number>();
 const AUTH_LOCK_MS = 60_000;
 // Persistent config-auth errors (502 with "service_role rejected") won't be
 // fixed by retrying — hold requests for 5 minutes to give the operator time
 // to rotate the secret without flooding telemetry.
 const CONFIG_LOCK_MS = 5 * 60_000;
 
-function isAuthLocked(): number {
+function isAuthLocked(target: string): number {
   const now = Date.now();
-  return authLockUntil > now ? authLockUntil - now : 0;
+  const until = authLockUntil.get(target) ?? 0;
+  return until > now ? until - now : 0;
 }
 
-function tripAuthLock(cooldownMs: number = AUTH_LOCK_MS, reason: string = 'auth'): void {
-  authLockUntil = Math.max(authLockUntil, Date.now() + cooldownMs);
-  proxyLog.warn('proxy auth lock tripped', { cooldownMs, reason });
+function tripAuthLock(target: string, cooldownMs: number = AUTH_LOCK_MS, reason: string = 'auth'): void {
+  authLockUntil.set(target, Math.max(authLockUntil.get(target) ?? 0, Date.now() + cooldownMs));
+  proxyLog.warn('proxy auth lock tripped', { target, cooldownMs, reason });
 }
 
 function isBreakerOpen(target: string): { open: boolean; remainingMs: number } {
@@ -283,14 +284,14 @@ function recordBreakerSuccess(target: string): void {
     proxyLog.info('proxy circuit closed', { target });
     breaker.delete(target);
   }
-  authLockUntil = 0;
+  authLockUntil.delete(target);
 }
 
 // Internal reset — only used via the __testing namespace in non-production builds.
 function __resetBreakerAndCoalesce(): void {
   breaker.clear();
   inflight.clear();
-  authLockUntil = 0;
+  authLockUntil.clear();
 }
 
 export async function queryExternalProxy<T = unknown>(
@@ -301,13 +302,13 @@ export async function queryExternalProxy<T = unknown>(
   const body = normalizeProxyBody(rawBody as Record<string, unknown>);
   const meta = deriveTelemetryMeta(body);
 
-  // ── Session auth lock ──
-  // If a previous call returned 401/403, short-circuit for AUTH_LOCK_MS so we
-  // don't flood the edge with doomed requests until the user re-authenticates.
-  const authRemaining = isAuthLocked();
+  // ── Per-target auth lock ──
+  // If a previous call to this specific target returned 401/403, short-circuit
+  // for AUTH_LOCK_MS so we don't flood that endpoint with doomed requests.
+  const authRemaining = isAuthLocked(meta.target);
   if (authRemaining > 0) {
     throw new Error(
-      `Proxy auth locked (retry in ${authRemaining}ms) — sessão inválida, faça login novamente`
+      `Proxy auth locked for ${meta.target} (retry in ${authRemaining}ms) — sessão inválida, faça login novamente`
     );
   }
 
@@ -493,8 +494,8 @@ async function executeProxyCall<T>(
       const transient = error ? isTransientRuntimeError(error) || isGhostPost : false;
       if (transient) transientCount += 1;
       if (isGhostPost) recordBreakerFailure(meta.target);
-      if (isAuthError) tripAuthLock(AUTH_LOCK_MS, 'auth_401_403');
-      if (isConfigAuthError) tripAuthLock(CONFIG_LOCK_MS, 'config_service_role_mismatch');
+      if (isAuthError) tripAuthLock(meta.target, AUTH_LOCK_MS, 'auth_401_403');
+      if (isConfigAuthError) tripAuthLock(meta.target, CONFIG_LOCK_MS, 'config_service_role_mismatch');
       if (ok) recordBreakerSuccess(meta.target);
 
       const isAbort = error?.name === 'AbortError';
