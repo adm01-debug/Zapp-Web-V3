@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
@@ -74,11 +75,8 @@ export function useSendToContact(onSuccess: () => void) {
   ) => {
     setIsSending(true);
     try {
-      const { data: connections , error: connectionsErr } = await supabase
-        .from('whatsapp_connections')
-        .select('id, name')
-        .eq('status', 'connected')
-        .limit(1);
+      const safeQueries = safeWhatsAppConnectionsQuery(supabase);
+      const { data: connections , error: connectionsErr } = await safeQueries.getList({ status: 'connected' });
 
       const connection = connections?.[0];
 
