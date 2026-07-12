@@ -85,7 +85,7 @@ interface ActionResult {
   metrics?: Record<string, unknown>;
 }
 
-// Circuit breaker state for external APIs
+// Circuit breaker state for external APIs (per provider)
 interface CircuitBreakerState {
   state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
   failureCount: number;
@@ -96,6 +96,10 @@ interface CircuitBreakerState {
 const circuitBreakerStates = new Map<string, CircuitBreakerState>();
 const CIRCUIT_BREAKER_THRESHOLD = 5;
 const CIRCUIT_BREAKER_COOLDOWN_MS = 60_000; // 1 minute
+const CONCURRENT_UPLOAD_LIMIT = 3; // Max concurrent transcribe_audio operations
+const MAX_METRICS_BUFFER_SIZE = 10000; // Circular buffer limit
+
+let activeTranscodeCount = 0;
 
 function getCircuitBreakerState(key: string): CircuitBreakerState {
   if (!circuitBreakerStates.has(key)) {
