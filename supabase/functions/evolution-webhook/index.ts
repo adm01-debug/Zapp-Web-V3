@@ -225,10 +225,12 @@ serve(async (req) => {
     "messages.upsert":  600, // 2x default: bursts em grupos grandes
     "groups.upsert":    600, // sincronizacao inicial de grupos
   };
+  const WINDOW_SECONDS = 60; // [FIX 2026-07-12 G3] Match rate-limiter window
   const rateLimit = await checkRateLimit(supabase, {
     instanceId: instance || 'unknown',
     eventType: event,
     limit: EVENT_RATE_LIMITS[event] ?? 300,
+    windowSeconds: WINDOW_SECONDS,
   });
   if (!rateLimit.allowed) {
     // [C-1 FIX 2026-07-12] Roll back the idempotency mark so this 429'd event stays
@@ -237,16 +239,29 @@ serve(async (req) => {
     // event would be permanently deduped: the consumer's requeue/redelivery would
     // short-circuit as "duplicate" at markEventProcessed() and the message would be
     // silently lost — the exact wpp2 data-loss class this pipeline guards against.
-    await unmarkEventProcessed(supabase, eventId);
+    // [G1 FIX 2026-07-12] Track rollback failures to audit trail for event-loss detection.
+    const rollbackOk = await unmarkEventProcessed(supabase, eventId, instance, event);
+
+    // [G3 FIX 2026-07-12] Calculate Retry-After to next window boundary (not fixed 30s)
+    const now = Date.now();
+    const windowMs = WINDOW_SECONDS * 1000;
+    const bucketStart = Math.floor(now / windowMs) * windowMs;
+    const bucketEnd = bucketStart + windowMs;
+    const retryAfterSeconds = Math.ceil((bucketEnd - now) / 1000);
+
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 429,
-      error_message: 'rate_limit_exceeded',
+      error_message: rollbackOk ? 'rate_limit_exceeded' : 'rate_limit_exceeded_rollback_failed',
       duration_ms: Date.now() - startedAt,
     });
-    console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit}) — idempotency rolled back for redelivery`);
+    if (!rollbackOk) {
+      console.error(`[webhook][${requestId}] CRITICAL: idempotency rollback FAILED for event_id=${eventId.slice(0,48)}… — event will be silently lost on re-delivery`);
+    } else {
+      console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit}) — idempotency rolled back, retry after ${retryAfterSeconds}s`);
+    }
     return new Response(
       JSON.stringify({ error: 'rate_limit_exceeded', instance, requestId }),
-      { status: 429, headers: { ...corsHeaders, 'Retry-After': '30' } }
+      { status: 429, headers: { ...corsHeaders, 'Retry-After': String(retryAfterSeconds) } }
     );
   }
 
