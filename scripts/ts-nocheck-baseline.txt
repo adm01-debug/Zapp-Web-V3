@@ -5,7 +5,6 @@ src/components/talkx/useCampaignEditor.ts
 src/features/admin/hooks/monitoring/useDlqAuditLog.ts
 src/features/contacts/hooks/useContactsSearch.ts
 src/features/inbox/hooks/reactions/useReactionMutations.ts
-src/features/inbox/hooks/team-chat/useTeamMessages.ts
 src/hooks/useClientWallet.ts
 src/hooks/useExternalEvolution.ts
 src/hooks/useGoalsDashboard.ts
