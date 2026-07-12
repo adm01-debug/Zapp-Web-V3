@@ -47,15 +47,26 @@ export function useServiceWorker() {
     let cleanup: (() => void) | undefined;
     let disposed = false;
 
-    const registerServiceWorker = async () => {
+    const registerServiceWorker = async (retryCount = 0) => {
       try {
         const reloadedForLegacyCleanup = await cleanupLegacyServiceWorker();
         if (reloadedForLegacyCleanup || disposed) return;
 
-        const registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/',
-          updateViaCache: 'none',
-        });
+        let registration;
+        try {
+          registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+            updateViaCache: 'none',
+          });
+        } catch (err) {
+          const error = err as Error;
+          if (error.message.includes('404') && retryCount < 3) {
+            log.warn(`[ServiceWorker] 404 on registration attempt ${retryCount + 1}, retrying...`);
+            setTimeout(() => registerServiceWorker(retryCount + 1), 2000 * (retryCount + 1));
+            return;
+          }
+          throw err;
+        }
 
         if (disposed) return;
 
@@ -63,7 +74,9 @@ export function useServiceWorker() {
 
         // Check for updates every 5 minutes (was 1 min — too frequent)
         const intervalId = setInterval(() => {
-          registration.update();
+          registration.update().catch((err) => {
+            log.debug('[ServiceWorker] Update check failed:', err);
+          });
         }, 300_000);
 
         // Handle service worker updates

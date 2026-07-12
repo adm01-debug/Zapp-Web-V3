@@ -47,6 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchingRolesRef.current = true;
     fetchingPermissionsRef.current = true;
     try {
+      if (!supabase) {
+        log.warn('[Auth] Supabase client not initialized for user:', userId);
+        setRoles([]);
+        setPermissions([]);
+        return;
+      }
       const { data: userRoles, error } = await supabase
         .from('user_roles')
         .select('role')
