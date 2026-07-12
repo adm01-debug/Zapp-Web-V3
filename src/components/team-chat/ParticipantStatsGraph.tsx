@@ -48,13 +48,14 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
       const messageIds = messages.map(m => m.id);
       
       type ReceiptRow = { status: string; profile_id: string | null; profiles: { name: string | null } | null };
-      const { data: rawReceipts, error: recError } = await safeClient.from<ReceiptRow>(
+      const { data: rawReceipts, error: recError } = await (safeClient.from as any)(
         'team_message_receipts',
-        (q) => q
+        (q: any) => q
           .select('status, profile_id, profiles(name)')
           .in('message_id', messageIds),
       );
-      const allReceipts = rawReceipts ?? null;
+      const allReceipts = (rawReceipts as ReceiptRow[] | null) ?? null;
+
 
       if (recError) throw recError;
 
