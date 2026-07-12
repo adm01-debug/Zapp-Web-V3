@@ -56,14 +56,8 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
   const { enrichedData, aiTags, slaInfo } = useContactEnrichedData(contact.id);
   const { profileId } = useConversationActions();
   const panelRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [_showCompactHeader, setShowCompactHeader] = useState(false);
   const [accordionValue, setAccordionValue] = useState<string[]>(getStoredAccordionState);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-
-  const handleScroll = useCallback(() => {
-    if (scrollRef.current) setShowCompactHeader(scrollRef.current.scrollTop > 180);
-  }, []);
 
   const handleAccordionChange = useCallback((value: string[]) => {
     setAccordionValue(value);
@@ -175,8 +169,6 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
       </div>
 
       <div
-        ref={scrollRef}
-        onScroll={handleScroll}
         className="scrollbar-thin min-h-0 flex-1 overflow-y-auto bg-background/50"
       >
         <AnalysisBadges contactId={contact.id} className="px-4 pb-2 pt-2" />

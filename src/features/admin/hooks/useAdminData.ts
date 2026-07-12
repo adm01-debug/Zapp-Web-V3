@@ -57,18 +57,20 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     setLoading(true);
 
     if (activeTab === 'users') {
-      const { data: profiles, error: _error } = await supabase
+      const { data: profiles, error: profilesErr } = await supabase
         .from('profiles')
         .select('*')
         .order('name')
         .limit(1000);
 
-      const { data: roles, error: _rolesErr } = await supabase
+      const { data: roles, error: rolesErr } = await supabase
         .from('user_roles')
         .select('*')
         .limit(1000);
 
-      if (profiles && roles) {
+      if (profilesErr) toast.error('Erro ao carregar usuários');
+      else if (rolesErr) toast.error('Erro ao carregar permissões');
+      else if (profiles && roles) {
         const usersWithRoles = profiles.map((profile) => {
           const userRole = roles.find((r) => r.user_id === profile.user_id);
           return {
@@ -79,13 +81,15 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         setUsers(usersWithRoles);
       }
     } else if (activeTab === 'audit') {
-      const { data: logs, error: _logsErr } = await supabase
+      const { data: logs, error: logsErr } = await supabase
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (logs) {
+      if (logsErr) {
+        toast.error('Erro ao carregar logs de auditoria');
+      } else if (logs) {
         const userIds = [
           ...new Set(logs.map((l) => l.user_id).filter((id): id is string => id !== null)),
         ];
