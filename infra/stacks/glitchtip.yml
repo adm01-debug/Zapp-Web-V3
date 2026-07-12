@@ -76,7 +76,7 @@ services:
         DATABASE_URL="$(cat /run/secrets/glitchtip_database_url_v1)"
         SECRET_KEY="$(cat /run/secrets/glitchtip_secret_key_v1)"
         export DATABASE_URL SECRET_KEY
-        exec "$0" "$@"
+        exec ./bin/start.sh
     environment:
       REDIS_URL: redis://glitchtip-valkey:6379/0
       PORT: "8000"

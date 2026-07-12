@@ -126,7 +126,7 @@ function describeAudit(e: any): UnifiedEvent {
   let label = 'Evento de Outbound';
   let detail = e.status;
 
-  if (e.event_type === 'send_attempt') {
+  if (action === 'send_attempt') {
     label = 'Tentativa de Envio';
     detail = `Tentativa #${attemptNumber || 1}`;
   } else if (action === 'delivered') {
@@ -140,7 +140,7 @@ function describeAudit(e: any): UnifiedEvent {
   return {
     id: e.id,
     source: 'audit',
-    type: e.event_type,
+    type: action,
     at: e.created_at,
     label,
     detail,

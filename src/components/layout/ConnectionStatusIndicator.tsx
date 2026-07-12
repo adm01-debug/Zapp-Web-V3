@@ -54,6 +54,7 @@ interface ConnectionRow {
 interface DisconnectEvent {
   instance_id: string;
   instance_name: string | null;
+  name?: string | null;
   at: number; // epoch ms
 }
 
@@ -191,7 +192,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         if (!prevDisconnectedRef.current.has(id)) {
           const row = rowByInstanceId.get(id);
           const displayName = row?.instance_name || row?.name || id;
-          newlyDown.push({ instance_id: id, instance_name: row?.instance_name ?? null, at: Date.now() });
+          newlyDown.push({ instance_id: id, instance_name: row?.instance_name ?? null, name: row?.name ?? null, at: Date.now() });
           toast.warning(`Conexão "${displayName}" caiu`, {
             description: 'Mensagens podem não ser entregues. Clique no indicador para reconectar.',
             duration: 6000,
@@ -534,7 +535,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                   key={`${ev.instance_id}-${ev.at}-${idx}`}
                   className="flex items-center justify-between gap-2 text-[11px]"
                 >
-                  <span className="truncate text-foreground/80">{ev.instance_name || ev.instance_id}</span>
+                  <span className="truncate text-foreground/80">{ev.instance_name || ev.name || ev.instance_id}</span>
                   <span
                     className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
                     title={new Date(ev.at).toLocaleString()}
