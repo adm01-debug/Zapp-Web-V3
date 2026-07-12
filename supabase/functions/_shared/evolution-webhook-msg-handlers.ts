@@ -108,24 +108,14 @@ export async function handleMessagesUpdate(supabase: SupabaseClient, instance: s
           console.log(`Message ${key.id} status: ${currentMessage.status} → ${newStatus}`);
         }
       } else {
-        let contactId: string | null = null;
+        // M-4 (2026-07-12): ACK arrived for a message not yet in the messages table.
+        // Previously we inserted a '[Mensagem recebida]' placeholder here, which masked
+        // real content loss — the real message might never arrive, leaving the placeholder
+        // as the only record, and the UI showed garbage content instead of surfacing the gap.
+        // Now we log a structured warning so operators/monitoring can detect orphan ACKs.
+        // The message.upsert handler will create the real row when/if Evolution delivers it.
         const remoteJid = resolveEventJid(entry, baseData);
-        if (remoteJid) {
-          const phone = normalizePhone(remoteJid);
-          if (phone) {
-            const contact = await getContactByPhone(supabase, phone, connection.id);
-            contactId = contact?.id ?? null;
-          }
-        }
-
-        if (contactId) {
-          const { error: fallbackErr } = await supabase.from('messages').upsert({
-            content: '[Mensagem recebida]', message_type: 'text', sender: 'contact',
-            external_id: key.id, status: newStatus, status_updated_at: now, created_at: now,
-            contact_id: contactId, whatsapp_connection_id: connection.id,
-          }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true });
-          if (fallbackErr) console.error(`[UPDATE] Fallback insert error for ${key.id}:`, fallbackErr);
-        }
+        console.warn(`[UPDATE][orphan-ack] no message found for external_id=${key.id} instance=${instance} status=${newStatus} remoteJid=${remoteJid ?? 'unknown'}`);
       }
     }
   }
