@@ -1,13 +1,7 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,13 +22,8 @@ interface AddMemberDialogProps {
   onAddMember: (profileId: string) => Promise<void>;
 }
 
-export function AddMemberDialog({
-  open,
-  onOpenChange,
-  queueId,
-  existingMemberIds,
-  onAddMember,
-}: AddMemberDialogProps) {
+export function AddMemberDialog(props: AddMemberDialogProps) {
+  const { open, onOpenChange, existingMemberIds, onAddMember } = props;
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -55,7 +44,7 @@ export function AddMemberDialog({
         .order('name');
 
       if (error) throw error;
-      setProfiles(data || []);
+      setProfiles((data as Profile[]) || []);
     } catch (err) {
       log.error('Error fetching profiles:', err);
     } finally {
@@ -72,21 +61,21 @@ export function AddMemberDialog({
     }
   };
 
-  const availableProfiles = profiles.filter(p => !existingMemberIds.includes(p.id));
+  const availableProfiles = profiles.filter((p) => !existingMemberIds.includes(p.id));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-border/30">
+      <DialogContent className="border-border/30 bg-card sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-foreground">Adicionar Atendente</DialogTitle>
         </DialogHeader>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : availableProfiles.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="py-8 text-center text-muted-foreground">
             <p>Todos os atendentes já estão nesta fila.</p>
           </div>
         ) : (
@@ -95,10 +84,10 @@ export function AddMemberDialog({
               {availableProfiles.map((profile) => (
                 <div
                   key={profile.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
+                  className="flex items-center justify-between rounded-lg bg-muted/20 p-3 transition-colors hover:bg-muted/30"
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10">
+                    <Avatar className="h-10 w-10">
                       <AvatarImage src={profile.avatar_url || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {profile.name[0]}
@@ -112,10 +101,10 @@ export function AddMemberDialog({
                     disabled={addingId === profile.id}
                   >
                     {addingId === profile.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <>
-                        <Check className="w-4 h-4 mr-1" />
+                        <Check className="mr-1 h-4 w-4" />
                         Adicionar
                       </>
                     )}
