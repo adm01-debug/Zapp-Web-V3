@@ -133,10 +133,10 @@ BACKUP_DIR="$HOME/backups"
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
 BUNDLE="$BACKUP_DIR/zapp-web-v3-backup-$(date +%Y%m%d).bundle"
-git bundle create "$BUNDLE" --all
+git bundle create "$BUNDLE" --all || { echo "ERRO: git bundle create falhou — aborte antes de reescrever o histórico." >&2; exit 1; }
 chmod 600 "$BUNDLE"
 # Verificar integridade do bundle:
-git bundle verify "$BUNDLE"
+git bundle verify "$BUNDLE" || { echo "ERRO: git bundle verify falhou — bundle corrompido ou incompleto." >&2; exit 1; }
 # Testar restauração real — git bundle verify não garante restaurabilidade:
 VERIFY_CLONE=$(mktemp -d)
 git clone --mirror "$BUNDLE" "$VERIFY_CLONE/repo.git" \
