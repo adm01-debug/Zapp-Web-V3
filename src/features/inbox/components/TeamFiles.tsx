@@ -207,7 +207,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-warning-foreground" />
           </div>
-        ) : (filteredFiles as any[]).length === 0 ? (
+        ) : filteredFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 grayscale">
             <File className="mb-2 h-8 w-8" />
             <p className="text-[10px]">
@@ -217,7 +217,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
             </p>
           </div>
         ) : (
-          filteredFiles.map((file: any) => (
+          filteredFiles.map((file) => (
             // ignore-audit
             <div
               key={file.id}
