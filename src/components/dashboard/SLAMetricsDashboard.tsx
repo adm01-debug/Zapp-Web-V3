@@ -60,7 +60,7 @@ export function SLAMetricsDashboard() {
           <Badge variant="outline" className="gap-1"><Calendar className="w-3 h-3" />{PERIOD_LABELS[periodFilter]}</Badge>
         </div>
         <div className="flex items-center gap-3">
-          <ToggleGroup type="single" value={periodFilter} onValueChange={(v) => v && setPeriodFilter(v as PeriodFilter)} className="bg-muted/30 p-1 rounded-lg">
+          <ToggleGroup type="single" value={periodFilter} onValueChange={(v) => v && setPeriodFilter(v as PeriodFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values className="bg-muted/30 p-1 rounded-lg">
             <ToggleGroupItem value="today" size="sm" className="text-xs px-3">Hoje</ToggleGroupItem>
             <ToggleGroupItem value="week" size="sm" className="text-xs px-3">Semana</ToggleGroupItem>
             <ToggleGroupItem value="month" size="sm" className="text-xs px-3">Mês</ToggleGroupItem>

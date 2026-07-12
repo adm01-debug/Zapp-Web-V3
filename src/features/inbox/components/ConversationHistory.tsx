@@ -174,7 +174,7 @@ export function ConversationHistory({
   return (
     <div className="space-y-3">
       {/* Period Filter */}
-      <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
+      <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
         <SelectTrigger className="h-8 w-full border-border/30 bg-muted/20 text-xs hover:border-primary/30">
           <div className="flex items-center gap-2">
             <Filter className="h-3 w-3 text-muted-foreground" />

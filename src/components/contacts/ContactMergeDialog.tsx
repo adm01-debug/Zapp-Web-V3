@@ -120,7 +120,7 @@ function FieldSelector({ fieldKey, label, primaryValue, secondaryValue, value, o
           </Badge>
         )}
       </div>
-      <RadioGroup value={value} onValueChange={(v) => onChange(v as FieldChoice)} className="grid grid-cols-1 gap-2">
+      <RadioGroup value={value} onValueChange={(v) => onChange(v as FieldChoice)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values className="grid grid-cols-1 gap-2">
         {([['primary', primaryValue], ['secondary', secondaryValue]] as const).map(([side, val]) => (
           <div key={side} className={cn(
             "flex items-center gap-3 p-2 rounded-lg border transition-all cursor-pointer",

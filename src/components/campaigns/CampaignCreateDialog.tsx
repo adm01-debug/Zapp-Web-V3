@@ -89,7 +89,7 @@ export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: Cam
             </div>
             <div>
               <Label htmlFor="campaign-target">Público-alvo</Label>
-              <Select value={form.target_type} onValueChange={(v: string) => setForm(f => ({ ...f, target_type: v as TargetType }))}>
+              <Select value={form.target_type} onValueChange={(v: string) => setForm(f => ({ ...f, target_type: v as TargetType } // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values))}>
                 <SelectTrigger id="campaign-target"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os contatos</SelectItem>

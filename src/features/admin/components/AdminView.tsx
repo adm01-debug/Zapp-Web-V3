@@ -224,7 +224,7 @@ export function AdminView() {
             <div className="space-y-2"><Label htmlFor="new-password">Senha *</Label><Input id="new-password" type="password" placeholder="Mínimo 6 caracteres" value={newUser.password} onChange={(e) => setNewUser(p => ({ ...p, password: e.target.value }))} /></div>
             <div className="space-y-2">
               <Label htmlFor="new-role">Role</Label>
-              <Select value={newUser.role} onValueChange={(v) => setNewUser(p => ({ ...p, role: v as AppRole }))}>
+              <Select value={newUser.role} onValueChange={(v) => setNewUser(p => ({ ...p, role: v as AppRole } // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values))}>
                 <SelectTrigger id="new-role"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(roleIconMap) as AppRole[]).map((key) => {

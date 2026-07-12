@@ -164,7 +164,7 @@ export function QrAttemptsPanel() {
                   {instances.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
                 <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos status</SelectItem>

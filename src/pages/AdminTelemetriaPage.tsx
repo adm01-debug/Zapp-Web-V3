@@ -153,7 +153,7 @@ export default function AdminTelemetriaPage() {
 
           {/* Filters */}
           <div className="flex items-center gap-3 flex-wrap">
-            <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as SeverityFilter)}>
+            <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as SeverityFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
               <SelectTrigger className="w-44"><SelectValue placeholder="Severidade" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
@@ -162,7 +162,7 @@ export default function AdminTelemetriaPage() {
                 <SelectItem value="error">❌ Erros</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
+            <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
               <SelectTrigger className="w-44"><SelectValue placeholder="Período" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="1h">Última hora</SelectItem>

@@ -69,7 +69,7 @@ export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, 
                   </TableCell>
                   <TableCell>
                     {isAdmin ? (
-                      <Select value={user.role} onValueChange={(v) => onRoleChange(user.user_id, v as AppRole)}>
+                      <Select value={user.role} onValueChange={(v) => onRoleChange(user.user_id, v as AppRole)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
                         <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>

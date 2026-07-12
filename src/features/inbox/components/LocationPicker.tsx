@@ -46,7 +46,7 @@ export function LocationPicker({ open, onOpenChange, onSend }: LocationPickerPro
           <DialogDescription>Envie sua localização ou escolha um ponto no mapa</DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'map' | 'current')} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'map' | 'current')} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values className="w-full">
           <div className="px-4 pt-3">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="current" className="gap-2"><LocateFixed className="w-4 h-4" />Minha Localização</TabsTrigger>

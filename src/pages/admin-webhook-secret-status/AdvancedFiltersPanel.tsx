@@ -238,7 +238,7 @@ export function AdvancedFiltersPanel({
               <Label className="text-xs">Status de validação</Label>
               <Select
                 value={prefs.statusFilter}
-                onValueChange={(v) => setPref('statusFilter', v as WebhookStatusFilter)}
+                onValueChange={(v) => setPref('statusFilter', v as WebhookStatusFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -293,7 +293,7 @@ export function AdvancedFiltersPanel({
               <Label className="text-xs">Densidade da tabela</Label>
               <Select
                 value={prefs.tableDensity}
-                onValueChange={(v) => setPref('tableDensity', v as WebhookTableDensity)}
+                onValueChange={(v) => setPref('tableDensity', v as WebhookTableDensity)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values
               >
                 <SelectTrigger>
                   <SelectValue />

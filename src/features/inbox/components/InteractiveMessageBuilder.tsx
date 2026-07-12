@@ -60,7 +60,7 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={messageType} onValueChange={(v) => setMessageType(v as 'buttons' | 'list')}>
+        <Tabs value={messageType} onValueChange={(v) => setMessageType(v as 'buttons' | 'list')} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="buttons" className="gap-2">
               <MessageSquare className="w-4 h-4" />

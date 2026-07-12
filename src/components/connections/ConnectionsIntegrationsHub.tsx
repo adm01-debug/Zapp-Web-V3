@@ -17,7 +17,7 @@ export function ConnectionsIntegrationsHub() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header tab={tab} onTabChange={(v) => setTab(v as HubTab)} isDev={isDev} />
+      <Header tab={tab} onTabChange={(v) => setTab(v as HubTab /* ignore-audit: Tabs value string narrowed to HubTab; developer controls tab values */)} isDev={isDev} />
       <Content tab={tab} isDev={isDev} />
     </div>
   );

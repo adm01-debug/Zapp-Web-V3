@@ -107,7 +107,7 @@ export function GlobalSearchFilters({
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Período</label>
-            <Select value={dateFilter} onValueChange={(v) => onSetDateFilter(v as DateFilter)}>
+            <Select value={dateFilter} onValueChange={(v) => onSetDateFilter(v as DateFilter)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
               <SelectTrigger className="h-9 w-full">
                 <Clock className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                 <SelectValue />

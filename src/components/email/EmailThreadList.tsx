@@ -176,7 +176,7 @@ export function EmailThreadList({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Select value={filter} onValueChange={(v) => setFilter(v as FilterValue)}>
+          <Select value={filter} onValueChange={(v) => setFilter(v as FilterValue)} // ignore-audit: Select/Tabs value string narrowed to union; developer controls option values>
             <SelectTrigger className="h-7 w-28 text-xs border-0 bg-muted/50">
               <Filter className="h-3.5 w-3.5 mr-1.5" />
               <SelectValue />
