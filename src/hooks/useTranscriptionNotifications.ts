@@ -104,6 +104,7 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
       .subscribe();
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled, showToast, playSound, showBrowserNotif, settings, isQuietHours, settings.transcriptionNotificationEnabled]);
