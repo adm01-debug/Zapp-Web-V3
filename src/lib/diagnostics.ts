@@ -96,3 +96,5 @@ export async function runSupabaseDiagnostics() {
 
   return results;
 }
+
+export const runConnectionDiagnostics = runSupabaseDiagnostics;
