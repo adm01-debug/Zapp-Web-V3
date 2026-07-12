@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, cleanup } from '@testing-library/react';
 
 const mockChannel = vi.hoisted(() => vi.fn());
 const mockRemoveChannel = vi.hoisted(() => vi.fn());
@@ -48,9 +49,7 @@ vi.mock('@/integrations/datasource/db', () => ({
   dbTable: vi.fn((t: string) => t),
 }));
 
-// Must import AFTER mocks
-const { useTranscriptionNotifications } = await import('@/hooks/useTranscriptionNotifications');
-const { renderHook } = await import('@testing-library/react');
+import { useTranscriptionNotifications } from '@/hooks/useTranscriptionNotifications';
 
 describe('useTranscriptionNotifications', () => {
   beforeEach(() => {
@@ -58,7 +57,12 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockResolvedValue(undefined),
     });
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('subscribes to transcription-notifications channel', () => {
@@ -82,6 +86,7 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: onMock,
       subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockResolvedValue(undefined),
     });
     renderHook(() => useTranscriptionNotifications());
     expect(onMock).toHaveBeenCalledWith(

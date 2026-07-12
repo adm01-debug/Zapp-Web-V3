@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
+import { z } from 'zod';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
@@ -215,7 +216,7 @@ export function useUserSettings() {
         const data = rows?.[0] ?? null;
 
         // Check if component unmounted during fetch
-        if (controller.signal.aborted) return;
+        if (abortController.signal.aborted) return;
 
         if (error && error.code !== 'PGRST116') {
           // PGRST116 = no rows returned
