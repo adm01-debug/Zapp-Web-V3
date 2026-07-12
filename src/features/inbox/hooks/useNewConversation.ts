@@ -8,6 +8,7 @@ import {
   mapValidationIssuesToContractError,
 } from '@/shared/criticalPayloadSchemas';
 import { dbFrom } from '@/integrations/datasource/db';
+import { log } from '@/lib/logger';
 
 interface ContactResult {
   id: string;
@@ -164,7 +165,8 @@ export function useNewConversation(
       onConversationStarted?.(contactId);
       onClose?.();
       resetForm();
-    } catch {
+    } catch (err) {
+      log.error('Error sending new conversation message', err);
       toast.error('Erro ao enviar mensagem');
     } finally {
       setIsSending(false);
