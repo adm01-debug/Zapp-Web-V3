@@ -240,6 +240,25 @@ function getCacheInfo(): CacheInfo {
   return { ...cache };
 }
 
+// ---------------------------------------------------------------------------
+// State for the safeClient object below.
+// These were lost during a merge conflict resolution — restored here.
+// ---------------------------------------------------------------------------
+export interface FailureRecord {
+  requestId: string;
+  operation: string;
+  resource: string;
+  error: string;
+  timestamp: string;
+}
+
+const CACHE_TTL = 300000; // 5 minutes
+const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+let lastValidation: Date | null = null;
+const recentFailures: FailureRecord[] = [];
+const stats = { totalCalls: 0, failedCalls: 0, cacheHits: 0 };
+let _healthLogInProgress = false;
+
 export const safeClient = {
   async from<T = unknown>(
     table: string,
