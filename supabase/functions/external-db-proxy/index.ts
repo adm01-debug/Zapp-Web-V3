@@ -361,6 +361,12 @@ Deno.serve(async (req) => {
 
     const authed = await requireUser(req);
     if (authed instanceof Response) {
+      inc("proxy_auth_reject_total", {
+        iss: callerInfo.token_iss,
+        role: callerInfo.token_role,
+        expected: callerInfo.expected_backend,
+        status: authed.status,
+      });
       console.error("[external-db-proxy] requireUser REJECTED", {
         ...callerInfo,
         status: authed.status,
@@ -370,8 +376,10 @@ Deno.serve(async (req) => {
             ? `Token emitido por ${callerInfo.token_iss} — confirme que SELFHOSTED_SUPABASE_ANON_KEY corresponde ao JWT_SECRET desse issuer.`
             : `Token iss=${callerInfo.token_iss} não bate com EXTERNAL_URL=${EXTERNAL_URL}/auth/v1 — confira SUPABASE_URL/SUPABASE_ANON_KEY do projeto cloud emissor.`,
       });
+      observeMs("proxy_request_duration_ms", Date.now() - _t0, { outcome: "auth_reject" });
       return authed;
     }
+    inc("proxy_auth_ok_total", { iss: callerInfo.token_iss, role: callerInfo.token_role });
     console.log("[external-db-proxy] requireUser OK", {
       ...callerInfo,
       user_id: authed.user.id,
