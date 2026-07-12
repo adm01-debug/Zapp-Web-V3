@@ -29,7 +29,10 @@ BEGIN
   IF NOT FOUND THEN
     EXECUTE 'CREATE EXTENSION dblink SCHEMA public';
   ELSIF v_schema <> 'public' THEN
-    EXECUTE 'ALTER EXTENSION dblink SET SCHEMA public';
+    RAISE EXCEPTION
+      '[analytics_retention] dblink está instalado no schema "%" — mova-o para public '
+      'antes de executar este script: ALTER EXTENSION dblink SET SCHEMA public',
+      v_schema;
   END IF;
 END $do$;
 
