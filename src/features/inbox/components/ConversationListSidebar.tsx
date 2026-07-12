@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, type RefObject } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -35,11 +34,64 @@ import { WhatsAppConnectionStatus } from '@/features/connections';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { toast } from 'sonner';
 
+interface InboxState {
+  conversations: Array<Record<string, unknown>>;
+  allConversations?: Array<Record<string, unknown>>;
+  cachedConversations?: Array<Record<string, unknown>>;
+  selectedContactId: string | null;
+  handleSelectConversation: (id: string) => void;
+  setSearch: (value: string) => void;
+  loading: boolean;
+  sortBy: string;
+  setSortBy: (value: string) => void;
+  refetch: () => void;
+}
+
+interface InboxFiltersState {
+  filteredConversations: Array<{ contact: { id: string } }>;
+  selectedContactType: string;
+  handleContactTypeChange: (value: string) => void;
+  showOnlyRetrying: boolean;
+  failureCategoryFilter: string;
+  setFailureCategoryFilter: (value: string) => void;
+  failureCategoryCounts: Record<string, number>;
+  mainTab: string;
+  subTab: string;
+  setMainTab: (value: string) => void;
+  setSubTab: (value: string) => void;
+  showAll: boolean;
+  setShowAll: (value: boolean) => void;
+  scope: string;
+  setScope: (value: string) => void;
+  selectedQueueId: string;
+  setSelectedQueueId: (value: string) => void;
+  filters: { agentId?: string; [key: string]: unknown };
+  setFilters: (filters: { agentId?: string; [key: string]: unknown }) => void;
+  departmentAgentIds: string[];
+}
+
+interface BulkActionsState {
+  selectedIds: Set<string>;
+  bulkMarkAsRead: () => void;
+  bulkTransfer: () => void;
+  bulkArchive: () => void;
+  clearSelection: () => void;
+  bulkLoading: boolean;
+}
+
+interface PullToRefreshState {
+  isRefreshing: boolean;
+  pullProgress: number;
+  pullDistance: number;
+  containerRef: RefObject<HTMLDivElement>;
+  handlers: Record<string, unknown>;
+}
+
 interface ConversationListSidebarProps {
-  inbox: ReturnType<typeof useRealtimeInbox>;
-  inboxFilters: ReturnType<typeof useInboxFilters>;
-  bulkActions: ReturnType<typeof useInboxBulkActions>;
-  pullToRefresh: ReturnType<typeof usePullToRefresh>;
+  inbox: InboxState;
+  inboxFilters: InboxFiltersState;
+  bulkActions: BulkActionsState;
+  pullToRefresh: PullToRefreshState;
   width?: number;
 }
 
