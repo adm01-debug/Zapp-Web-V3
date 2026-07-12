@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -143,6 +146,14 @@ export function CallDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-gradient-to-b from-card to-background border-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{contact.name || 'Contato Desconhecido'} - Chamada {direction === 'inbound' ? 'recebida' : 'realizada'}</DialogTitle>
+          <DialogDescription>
+            {direction === 'inbound'
+              ? 'Chamada recebida. Clique no botão verde para atender ou no botão vermelho para rejeitar.'
+              : 'Chamada em andamento. Clique no botão vermelho para encerrar.'}
+          </DialogDescription>
+        </DialogHeader>
         <div className="p-8 flex flex-col items-center">
           {/* Contact Avatar */}
           <motion.div

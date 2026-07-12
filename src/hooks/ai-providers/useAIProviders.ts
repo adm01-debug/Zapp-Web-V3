@@ -22,7 +22,7 @@ export function useAIProviders() {
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: true });
       if (error) throw error;
-      return (data || []) as unknown as AIProvider[];
+      return (data || []) as AIProvider[];
     },
   });
 
@@ -36,7 +36,7 @@ export function useAIProviders() {
         api_key_secret_name: payload.api_key_secret_name || null,
         model: payload.model || null,
         system_prompt: payload.system_prompt || null,
-        config: (payload.config || {}) as unknown as Json,
+        config: (payload.config || {}) as Json,
         is_active: payload.is_active,
         is_default: payload.is_default,
         use_for: payload.use_for,

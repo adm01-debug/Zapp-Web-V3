@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { dbFrom } from '@/integrations/datasource/db';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 export interface Queue {
   id: string;
@@ -41,23 +42,26 @@ export function useQueues() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
 
   const fetchQueues = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch queues
-      const { data: queuesData, error: queuesError } = await supabase
-        .from('queues')
+      const { data: queuesData, error: queuesError } = await safeFrom('queues')
         .select('*')
         .order('priority', { ascending: false });
+      if (!mountedRef.current) return;
 
       if (queuesError) throw queuesError;
 
       // Fetch queue members with profiles
-      const { data: membersData, error: membersError } = await safeClient.from<QueueMember>('queue_members', q =>
-        q.select('*, profile:profiles(id, name, avatar_url, is_active)'),
+      const { data: membersData, error: membersError } = await safeClient.from<QueueMember>(
+        'queue_members',
+        (q) => q.select('*, profile:profiles(id, name, avatar_url, is_active)')
       );
+      if (!mountedRef.current) return;
 
       if (membersError) throw membersError;
 
@@ -65,46 +69,47 @@ export function useQueues() {
       // Fonte correta: queue_positions (fila de espera real). contacts.queue_id é
       // NULL::uuid hardcoded na view do repoint layer => a contagem antiga era
       // eternamente 0. Mesma fonte usada pelo rpc_queue_sla_panel v2.
-      const { data: waitingData, error: waitingError } = await dbFrom('queue_positions')
-        .select('queue_id');
+      const { data: waitingData, error: waitingError } =
+        await dbFrom('queue_positions').select('queue_id');
+      if (!mountedRef.current) return;
 
       if (waitingError) throw waitingError;
 
       // Count waiting per queue
       const waitingCounts: Record<string, number> = {};
-      (waitingData as { queue_id: string | null }[] | null)?.forEach(row => {
+      (waitingData as { queue_id: string | null }[] | null)?.forEach((row) => {
         if (row.queue_id) {
           waitingCounts[row.queue_id] = (waitingCounts[row.queue_id] || 0) + 1;
         }
       });
 
       // Combine data
-      const queuesWithMembers: QueueWithMembers[] = (queuesData || []).map(queue => ({
+      const queuesWithMembers: QueueWithMembers[] = (queuesData || []).map((queue) => ({
         ...queue,
-        members: (membersData || []).filter(m => m.queue_id === queue.id) as QueueMember[],
-        waiting_count: waitingCounts[queue.id] || 0
+        members: (membersData || []).filter((m) => m.queue_id === queue.id) as QueueMember[],
+        waiting_count: waitingCounts[queue.id] || 0,
       }));
 
       setQueues(queuesWithMembers);
       setError(null);
     } catch (err) {
+      if (!mountedRef.current) return;
       log.error('Error fetching queues:', err);
       setError(err as Error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   const createQueue = async (queue: Partial<Queue>) => {
     try {
-      const { data, error } = await supabase
-        .from('queues')
+      const { data, error } = await safeFrom('queues')
         .insert({
           name: queue.name!,
           description: queue.description,
           color: queue.color || '#3B82F6',
           max_wait_time_minutes: queue.max_wait_time_minutes || 30,
-          priority: queue.priority || 0
+          priority: queue.priority || 0,
         })
         .select()
         .single();
@@ -113,7 +118,7 @@ export function useQueues() {
 
       toast({
         title: 'Fila criada',
-        description: `A fila "${queue.name}" foi criada com sucesso.`
+        description: `A fila "${queue.name}" foi criada com sucesso.`,
       });
 
       await fetchQueues();
@@ -123,7 +128,7 @@ export function useQueues() {
       toast({
         title: 'Erro ao criar fila',
         description: 'Não foi possível criar a fila.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw err;
     }
@@ -131,16 +136,13 @@ export function useQueues() {
 
   const updateQueue = async (id: string, updates: Partial<Queue>) => {
     try {
-      const { error } = await supabase
-        .from('queues')
-        .update(updates)
-        .eq('id', id);
+      const { error } = await safeFrom('queues').update(updates).eq('id', id);
 
       if (error) throw error;
 
       toast({
         title: 'Fila atualizada',
-        description: 'A fila foi atualizada com sucesso.'
+        description: 'A fila foi atualizada com sucesso.',
       });
 
       await fetchQueues();
@@ -149,7 +151,7 @@ export function useQueues() {
       toast({
         title: 'Erro ao atualizar fila',
         description: 'Não foi possível atualizar a fila.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw err;
     }
@@ -157,16 +159,13 @@ export function useQueues() {
 
   const deleteQueue = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('queues')
-        .delete()
-        .eq('id', id);
+      const { error } = await safeFrom('queues').delete().eq('id', id);
 
       if (error) throw error;
 
       toast({
         title: 'Fila excluída',
-        description: 'A fila foi excluída com sucesso.'
+        description: 'A fila foi excluída com sucesso.',
       });
 
       await fetchQueues();
@@ -175,7 +174,7 @@ export function useQueues() {
       toast({
         title: 'Erro ao excluir fila',
         description: 'Não foi possível excluir a fila.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw err;
     }
@@ -183,18 +182,16 @@ export function useQueues() {
 
   const addMember = async (queueId: string, profileId: string) => {
     try {
-      const { error } = await supabase
-        .from('queue_members')
-        .insert({
-          queue_id: queueId,
-          profile_id: profileId
-        });
+      const { error } = await safeFrom('queue_members').insert({
+        queue_id: queueId,
+        profile_id: profileId,
+      });
 
       if (error) throw error;
 
       toast({
         title: 'Membro adicionado',
-        description: 'O atendente foi adicionado à fila.'
+        description: 'O atendente foi adicionado à fila.',
       });
 
       await fetchQueues();
@@ -203,7 +200,7 @@ export function useQueues() {
       toast({
         title: 'Erro ao adicionar membro',
         description: 'Não foi possível adicionar o atendente.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw err;
     }
@@ -211,8 +208,7 @@ export function useQueues() {
 
   const removeMember = async (queueId: string, profileId: string) => {
     try {
-      const { error } = await supabase
-        .from('queue_members')
+      const { error } = await safeFrom('queue_members')
         .delete()
         .eq('queue_id', queueId)
         .eq('profile_id', profileId);
@@ -221,7 +217,7 @@ export function useQueues() {
 
       toast({
         title: 'Membro removido',
-        description: 'O atendente foi removido da fila.'
+        description: 'O atendente foi removido da fila.',
       });
 
       await fetchQueues();
@@ -230,7 +226,7 @@ export function useQueues() {
       toast({
         title: 'Erro ao remover membro',
         description: 'Não foi possível remover o atendente.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw err;
     }
@@ -246,16 +242,16 @@ export function useQueues() {
 
       toast({
         title: queueId ? 'Contato atribuído' : 'Contato removido da fila',
-        description: queueId 
+        description: queueId
           ? 'O contato foi atribuído à fila e será distribuído automaticamente.'
-          : 'O contato foi removido da fila.'
+          : 'O contato foi removido da fila.',
       });
     } catch (err) {
       log.error('Error assigning contact:', err);
       toast({
         title: 'Erro ao atribuir contato',
         description: 'Não foi possível atribuir o contato à fila.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw err;
     }
@@ -267,7 +263,7 @@ export function useQueues() {
     // Subscribe to realtime changes — unique channel name per hook instance
     // to avoid "cannot add 'postgres_changes' callbacks after subscribe()" when
     // multiple consumers (e.g. ContactDetails + sidebar) mount in parallel.
-    const channelName = `queues-changes:${Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('')}`;
+    const channelName = `queues-changes:${Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, '0')).join('')}`;
     const queuesChannel = supabase
       .channel(channelName)
       // public.queues / public.queue_members são VIEWS (repoint layer) — o realtime
@@ -292,6 +288,6 @@ export function useQueues() {
     addMember,
     removeMember,
     assignContactToQueue,
-    refetch: fetchQueues
+    refetch: fetchQueues,
   };
 }

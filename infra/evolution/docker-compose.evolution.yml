@@ -188,6 +188,13 @@ services:
       - RABBITMQ_EVENTS_GROUP_PARTICIPANTS_UPDATE=true
       - RABBITMQ_EVENTS_CONNECTION_UPDATE=true
       - RABBITMQ_EVENTS_CALL=true
+      # [M-2 2026-07-12] Reconcilia o compose com os 17 eventos da instância viva
+      # (wpp2). Sem estes 4, reprovisionar a stack a partir deste arquivo mataria
+      # os alertas de QR/logout e o sync de labels — o consumer v18 já os espera.
+      - RABBITMQ_EVENTS_LABELS_EDIT=true
+      - RABBITMQ_EVENTS_LABELS_ASSOCIATION=true
+      - RABBITMQ_EVENTS_QRCODE_UPDATED=true
+      - RABBITMQ_EVENTS_LOGOUT_INSTANCE=true
       - WEBHOOK_GLOBAL_ENABLED=false
       - WEBHOOK_GLOBAL_URL=
 

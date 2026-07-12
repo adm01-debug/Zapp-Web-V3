@@ -52,7 +52,7 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
             log.warn('evolution_messages UPDATE payload rejeitado', parsed.error);
             return;
           }
-          const newData = parsed.data as unknown as { id: string; transcription_status?: string; transcription?: string; contact_id?: string };
+          const newData = parsed.data as { id: string; transcription_status?: string; transcription?: string; contact_id?: string };
           const oldData = payload.old as { transcription_status?: string } | undefined;
 
           // Check if transcription just completed
@@ -81,9 +81,11 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
               }
 
               // Truncate transcription for preview
-              const transcriptionPreview = newData.transcription!.length > 100
-                ? newData.transcription!.slice(0, 100) + '...'
-                : newData.transcription!;
+              const transcription = newData.transcription;
+              if (!transcription) return;
+              const transcriptionPreview = transcription.length > 100
+                ? transcription.slice(0, 100) + '...'
+                : transcription;
 
               // Show toast notification
               if (showToast) {

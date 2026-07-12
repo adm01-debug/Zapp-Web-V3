@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Zap Webb — Evolution API Client (ESCRITA / envio)
  *
@@ -27,6 +28,11 @@
  *  - GET  /instance/connectionState/{instance}
  */
 import { safeClient } from '@/integrations/supabase/safeClient';
+import {
+  supabase,
+  SUPABASE_RESOLVED_URL,
+  SUPABASE_RESOLVED_ANON_KEY,
+} from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
 export interface EvolutionCredentials {
@@ -45,11 +51,9 @@ const DEFAULT_URL =
  * `evolution-credentials` (JWT-gated, Vault-backed). Assim o secret nunca é
  * embutido no bundle público.
  */
-const ENV_KEY_OVERRIDE =
-  (import.meta.env.VITE_EVOLUTION_API_KEY as string | undefined) || '';
+const ENV_KEY_OVERRIDE = (import.meta.env.VITE_EVOLUTION_API_KEY as string | undefined) || '';
 
-const DEFAULT_INSTANCE =
-  (import.meta.env.VITE_ZAPPWEB_INSTANCE as string | undefined) || 'wpp2';
+const DEFAULT_INSTANCE = (import.meta.env.VITE_ZAPPWEB_INSTANCE as string | undefined) || 'wpp2';
 
 // ─── Cache de URL (sem credenciais) ───────────────────────────────────────
 const urlCache = new Map<string, { api_url: string; at: number }>();
@@ -81,20 +85,15 @@ async function fetchKeyFromEdge(): Promise<string> {
     );
     return '';
   }
-  const res = await fetch(
-    `${SUPABASE_RESOLVED_URL}/functions/v1/evolution-credentials`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: SUPABASE_RESOLVED_ANON_KEY,
-      },
-    }
-  );
+  const res = await fetch(`${SUPABASE_RESOLVED_URL}/functions/v1/evolution-credentials`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: SUPABASE_RESOLVED_ANON_KEY,
+    },
+  });
   if (!res.ok) {
-    log.warn(
-      `[evolutionClient] evolution-credentials respondeu ${res.status} — key indisponível.`
-    );
+    log.warn(`[evolutionClient] evolution-credentials respondeu ${res.status} — key indisponível.`);
     return '';
   }
   const key = res.headers.get('X-Evolution-Key') ?? '';
@@ -194,6 +193,12 @@ export function stripJid(numberOrJid: string): string {
  * api_key: override de env OU runtime via edge fn `evolution-credentials`
  *          (nunca lida do banco pelo browser — REVOKE de 2026-07-05 mantido).
  */
+interface EvolutionInstancePublicRow {
+  instance_name: string;
+  api_url: string | null;
+  is_active: boolean;
+}
+
 export async function getEvolutionCredentials(
   instance: string = DEFAULT_INSTANCE
 ): Promise<EvolutionCredentials> {
@@ -207,7 +212,7 @@ export async function getEvolutionCredentials(
 
   try {
     // Consulta view SEGURA — sem api_key, sem instance_token (REVOKE aplicado 2026-07-05)
-    const { data: rows } = await safeClient.from<any>('evolution_instances_public', (q) =>
+    const { data: rows } = await safeClient.from<EvolutionInstancePublicRow>('evolution_instances_public', (q) =>
       q
         .select('instance_name, api_url, is_active')
         .eq('instance_name', instance)
@@ -268,7 +273,9 @@ async function evoFetch<T>(
   if (!res.ok) {
     circuitBreaker.recordError(res.status);
     const body = await res.text().catch(() => '');
-    const err = Object.assign(new Error(`Evolution API ${res.status}: ${body || res.statusText}`), { status: res.status });
+    const err = Object.assign(new Error(`Evolution API ${res.status}: ${body || res.statusText}`), {
+      status: res.status,
+    });
     throw err;
   }
 

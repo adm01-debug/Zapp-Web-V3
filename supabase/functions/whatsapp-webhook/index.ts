@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
+import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
 
 const WhatsAppStatusSchema = z.object({
   id: z.string().max(500),
@@ -75,7 +76,31 @@ serve(async (req) => {
       const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-      const rawPayload = await req.json();
+      // [A-3 FIX 2026-07-12] Validate Meta's X-Hub-Signature-256 (HMAC-SHA256 of the
+      // RAW body, keyed by the App Secret) BEFORE trusting any status/message update.
+      // Without this, anyone who discovers the URL could POST forged `statuses` and
+      // mark arbitrary messages read/failed (status poisoning). Read the body as text
+      // so the signature is verified over the exact bytes Meta signed.
+      const rawBody = await req.text();
+      const appSecret = Deno.env.get('WHATSAPP_APP_SECRET');
+      if (!appSecret) {
+        // Fail-closed: Meta always signs. A missing App Secret means we cannot
+        // authenticate the sender — refuse rather than process spoofable input.
+        log.error("WHATSAPP_APP_SECRET not configured — refusing POST (fail-closed)");
+        return errorResponse("Webhook not configured for signature verification", 503, req);
+      }
+      const signature = req.headers.get('x-hub-signature-256');
+      if (!signature || !(await verifyHmacSignature(rawBody, signature, appSecret))) {
+        log.warn("Invalid or missing X-Hub-Signature-256 — rejecting");
+        return errorResponse("Invalid signature", 401, req);
+      }
+
+      let rawPayload: unknown;
+      try {
+        rawPayload = JSON.parse(rawBody);
+      } catch {
+        return jsonResponse({ success: true, warning: "Invalid JSON" }, 200, req);
+      }
       const parsed = WhatsAppWebhookSchema.safeParse(rawPayload);
 
       if (!parsed.success) {

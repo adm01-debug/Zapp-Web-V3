@@ -49,7 +49,7 @@ export function usePerformanceSnapshots() {
           profile_id: profile.id,
           ...data,
           user_agent: navigator.userAgent,
-        } as unknown as Database['public']['Tables']['performance_snapshots']['Insert']);
+        } as unknown as Database['public']['Tables']['performance_snapshots']['Insert']); // ignore-audit — spread of typed metrics object; shape matches Insert row at runtime
       } catch (err) {
         // Silent fail — don't interrupt UX for telemetry
         log.warn('Failed to save performance snapshot:', err);

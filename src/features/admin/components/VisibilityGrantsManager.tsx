@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Star, Plus, Trash2, Loader2, Users, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { normalizeProfileRef } from '@/features/admin/utils/profileMappers';
 
 interface Profile {
   id: string;
@@ -54,12 +55,24 @@ export function VisibilityGrantsManager() {
         .from('agent_visibility_grants')
         .select('id, agent_id, can_see_agent_id');
 
-      const grants = grantsData
-        ? grantsData.map(g => ({
-            ...g,
-            agent_profile: profilesList.find(p => p.id === g.agent_id),
-            target_profile: profilesList.find(p => p.id === g.can_see_agent_id),
-          }))
+      const grants: Grant[] = grantsData
+        ? grantsData.map((g) => {
+            const agent = normalizeProfileRef(
+              profilesList.find((p) => p.id === g.agent_id) as never,
+            );
+            const target = normalizeProfileRef(
+              profilesList.find((p) => p.id === g.can_see_agent_id) as never,
+            );
+            return {
+              ...g,
+              agent_profile: agent
+                ? { id: agent.id, user_id: agent.user_id ?? '', name: agent.name, email: agent.email }
+                : undefined,
+              target_profile: target
+                ? { id: target.id, user_id: target.user_id ?? '', name: target.name, email: target.email }
+                : undefined,
+            };
+          })
         : [];
 
       return {

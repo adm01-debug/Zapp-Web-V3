@@ -205,6 +205,44 @@ const SCHEMA_TABLE_WHITELIST: Record<string, string[]> = {
   evo: EVOLUTION_TABLES,
 };
 
+
+// Allowlist de RPCs invocáveis por este proxy. Como o proxy executa com
+// service_role, permitir qualquer identificador (o comportamento anterior)
+// deixava qualquer usuário autenticado invocar QUALQUER função do banco —
+// escalonamento de privilégio. Esta lista é a união do catálogo canônico
+// (src/integrations/datasource/rpcCatalog.ts) com os RPCs efetivamente
+// chamados no frontend. Ao adicionar um RPC novo, inclua-o aqui também.
+// Auditoria 2026-07-12.
+const ALLOWED_RPCS = new Set<string>([
+  'add_contact_note', 'bulk_add_tag', 'bulk_auto_merge_duplicates',
+  'bulk_soft_delete_contacts', 'bulk_update_lead_status', 'contacts_count_by_type',
+  'find_duplicate_contacts', 'fn_increment_meme_use', 'fn_safe_audit_log',
+  'fn_test_alert_channel', 'fn_toggle_user_meme_favorite', 'get_avatars_by_jids_batch',
+  'get_companies_by_phones_batch', 'get_contact_360_by_phone', 'get_contact_conversations',
+  'get_contact_intelligence_by_phone', 'get_contact_notes', 'get_contact_stats',
+  'get_csat_stats', 'get_duplicate_report', 'get_lgpd_compliance_stats',
+  'get_own_email_accounts', 'get_team_profiles', 'get_visible_agent_ids',
+  'grant_lgpd_consent', 'has_role', 'is_admin_or_supervisor', 'is_within_business_hours',
+  'log_audit_event', 'log_security_event', 'mark_follow_up_done', 'merge_contacts',
+  'reassign_absent_agents', 'reassign_overloaded_agents', 'record_voice_telemetry',
+  'restore_contact', 'revoke_lgpd_consent', 'rpc_dashboard_home', 'rpc_delete_contact',
+  'rpc_dlq_abandon', 'rpc_dlq_bulk_abandon', 'rpc_dlq_list_audit', 'rpc_dlq_log_item_action',
+  'rpc_dlq_retry_now', 'rpc_email_archive_thread', 'rpc_email_assign_thread',
+  'rpc_email_mark_thread_read', 'rpc_email_search_threads', 'rpc_email_star_thread',
+  'rpc_email_token_status', 'rpc_get_contact', 'rpc_get_email_health_summary',
+  'rpc_global_search', 'rpc_insert_message', 'rpc_instance_auth_event_summary',
+  'rpc_instance_auth_event_trend', 'rpc_list_audit_log', 'rpc_list_calls',
+  'rpc_list_contacts', 'rpc_list_conversations', 'rpc_list_dispatch_error_logs',
+  'rpc_list_failed_messages', 'rpc_list_messages', 'rpc_list_messages_lite',
+  'rpc_list_transfers_paginated', 'rpc_log_outbound_event', 'rpc_log_search_event',
+  'rpc_log_service_event', 'rpc_migrate_whatsapp_integration', 'rpc_provider_panel',
+  'rpc_provider_session_timeline', 'rpc_record_automation_error', 'rpc_record_search_click',
+  'rpc_schedule_follow_up', 'rpc_set_whatsapp_mode', 'rpc_toggle_message_important',
+  'rpc_toggle_message_star', 'rpc_upsert_contact', 'search_contacts',
+  'search_contacts_advanced', 'search_knowledge_base', 'send_message_v2',
+  'soft_delete_contact', 'sync_interaction_from_zapp', 'update_contact_versioned',
+  'update_own_profile', 'user_has_permission',
+]);
 function resolveSchema(schema: string, table: string): string {
   if (schema === "public" && EVO_TABLE_RE.test(table)) return "evo";
   return schema;
@@ -217,8 +255,76 @@ function jsonResponse(req: Request, payload: Record<string, unknown>, status: nu
   });
 }
 
-Deno.serve(async (req) => {
+// ─────────────────────────────────────────────────────────────
+// MED-8 · Observabilidade in-memory (Prometheus text exposition)
+// Zero-dep. Reset a cada cold start (aceito — cardinalidade baixa).
+// ─────────────────────────────────────────────────────────────
+type MetricLabels = Record<string, string | number | undefined>;
+const metricCounters = new Map<string, number>();
+const metricLatencyBuckets: number[] = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
+const metricLatency = new Map<string, { buckets: number[]; sum: number; count: number }>();
+const bootAt = Date.now();
+
+function labelKey(name: string, labels?: MetricLabels): string {
+  if (!labels) return name;
+  const parts = Object.entries(labels)
+    .filter(([, v]) => v !== undefined && v !== "")
+    .map(([k, v]) => `${k}="${String(v).replace(/[\\"\n]/g, "_")}"`);
+  return parts.length ? `${name}{${parts.join(",")}}` : name;
+}
+function inc(name: string, labels?: MetricLabels, delta = 1): void {
+  const k = labelKey(name, labels);
+  metricCounters.set(k, (metricCounters.get(k) ?? 0) + delta);
+}
+function observeMs(name: string, ms: number, labels?: MetricLabels): void {
+  const k = labelKey(name, labels);
+  let h = metricLatency.get(k);
+  if (!h) {
+    h = { buckets: metricLatencyBuckets.map(() => 0), sum: 0, count: 0 };
+    metricLatency.set(k, h);
+  }
+  for (let i = 0; i < metricLatencyBuckets.length; i++) {
+    if (ms <= metricLatencyBuckets[i]) h.buckets[i] += 1;
+  }
+  h.sum += ms;
+  h.count += 1;
+}
+function renderPrometheus(): string {
+  const lines: string[] = [];
+  lines.push("# HELP proxy_uptime_seconds Seconds since edge cold start");
+  lines.push("# TYPE proxy_uptime_seconds gauge");
+  lines.push(`proxy_uptime_seconds ${((Date.now() - bootAt) / 1000).toFixed(1)}`);
+  lines.push("# HELP proxy_requests_total Total proxy requests by method and status");
+  lines.push("# TYPE proxy_requests_total counter");
+  for (const [k, v] of metricCounters) lines.push(`${k} ${v}`);
+  lines.push("# HELP proxy_request_duration_ms Latency histogram (ms)");
+  lines.push("# TYPE proxy_request_duration_ms histogram");
+  for (const [k, h] of metricLatency) {
+    const base = k.includes("{") ? k.slice(0, -1) + "," : k + "{";
+    for (let i = 0; i < metricLatencyBuckets.length; i++) {
+      lines.push(`${base}le="${metricLatencyBuckets[i]}"} ${h.buckets[i]}`);
+    }
+    lines.push(`${base}le="+Inf"} ${h.count}`);
+    lines.push(`${k.replace(/proxy_request_duration_ms/, "proxy_request_duration_ms_sum")} ${h.sum}`);
+    lines.push(`${k.replace(/proxy_request_duration_ms/, "proxy_request_duration_ms_count")} ${h.count}`);
+  }
+  return lines.join("\n") + "\n";
+}
+
+async function handleRequest(req: Request, _t0: number): Promise<Response> {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
+
+  // Métricas Prometheus (sem auth — só contadores agregados, sem PII)
+  {
+    const u = new URL(req.url);
+    if (req.method === "GET" && u.pathname.endsWith("/metrics")) {
+      return new Response(renderPrometheus(), {
+        status: 200,
+        headers: { ...getCorsHeaders(req), "Content-Type": "text/plain; version=0.0.4" },
+      });
+    }
+  }
+
 
   // Health GET does not require auth; all data-access paths (POST + health=1) do
   const url = new URL(req.url);
@@ -254,6 +360,12 @@ Deno.serve(async (req) => {
 
     const authed = await requireUser(req);
     if (authed instanceof Response) {
+      inc("proxy_auth_reject_total", {
+        iss: callerInfo.token_iss,
+        role: callerInfo.token_role,
+        expected: callerInfo.expected_backend,
+        status: authed.status,
+      });
       console.error("[external-db-proxy] requireUser REJECTED", {
         ...callerInfo,
         status: authed.status,
@@ -263,8 +375,10 @@ Deno.serve(async (req) => {
             ? `Token emitido por ${callerInfo.token_iss} — confirme que SELFHOSTED_SUPABASE_ANON_KEY corresponde ao JWT_SECRET desse issuer.`
             : `Token iss=${callerInfo.token_iss} não bate com EXTERNAL_URL=${EXTERNAL_URL}/auth/v1 — confira SUPABASE_URL/SUPABASE_ANON_KEY do projeto cloud emissor.`,
       });
+      observeMs("proxy_request_duration_ms", Date.now() - _t0, { outcome: "auth_reject" });
       return authed;
     }
+    inc("proxy_auth_ok_total", { iss: callerInfo.token_iss, role: callerInfo.token_role });
     console.log("[external-db-proxy] requireUser OK", {
       ...callerInfo,
       user_id: authed.user.id,
@@ -342,6 +456,11 @@ Deno.serve(async (req) => {
 
   if (action === "rpc" && rpc) {
     if (!isSafeIdent(rpc)) return jsonResponse(req, { error: "Invalid rpc identifier", cid, rid }, 400);
+    if (!ALLOWED_RPCS.has(rpc)) {
+      console.warn('[external-db-proxy] rpc bloqueado (fora do allowlist)', { rpc, cid, rid });
+      return jsonResponse(req, { error: `RPC '${rpc}' não permitido`, cid, rid, data: null }, 403);
+    }
+
 
     const params = { ...(body.params ?? {}) };
     delete params.__cid;
@@ -464,5 +583,20 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('[external-db-proxy] query exception', { schema, table, message: error instanceof Error ? error.message : String(error), cid });
     return jsonResponse(req, { error: "Database operation failed", cid, rid, data: [], count: 0 }, 500);
+  }
+}
+
+Deno.serve(async (req) => {
+  const _t0 = Date.now();
+  try {
+    const res = await handleRequest(req, _t0);
+    inc("proxy_requests_total", { method: req.method, status: res.status });
+    observeMs("proxy_request_duration_ms", Date.now() - _t0, { outcome: res.status < 400 ? "ok" : "error" });
+    return res;
+  } catch (err) {
+    inc("proxy_requests_total", { method: req.method, status: 500 });
+    observeMs("proxy_request_duration_ms", Date.now() - _t0, { outcome: "exception" });
+    console.error("[external-db-proxy] unhandled", err instanceof Error ? err.message : String(err));
+    throw err;
   }
 });

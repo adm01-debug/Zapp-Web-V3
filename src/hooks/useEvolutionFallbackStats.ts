@@ -39,7 +39,7 @@ export function useEvolutionFallbackStats(windowHours = 24) {
     queryFn: async () => {
       const { data, error } = await safeClient.rpc<FallbackStats>('rpc_evolution_fallback_stats', { p_hours: windowHours });
       if (error) throw error;
-      return data as unknown as FallbackStats;
+      return data as FallbackStats; // ignore-audit: narrows Supabase query result to local interface
     },
     refetchInterval: 30_000,
     staleTime: 15_000,

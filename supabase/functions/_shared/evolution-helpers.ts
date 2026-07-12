@@ -55,6 +55,118 @@ export async function markEventProcessed(supabase: any, eventId: string, instanc
   return true;
 }
 
+// Rolls back a prior markEventProcessed() so the event can be re-delivered and
+// reprocessed later. Used ONLY on the rate-limit (429) path: idempotency is marked
+// BEFORE the rate-limit check (so genuine retries don't reconsume quota), but a 429
+// must NOT leave the event permanently deduped — otherwise the consumer's re-delivery
+// is short-circuited as "duplicate" and the message is silently lost. Fail-safe:
+// never throws; a failed rollback is logged but does not change the 429 response.
+// CRITICAL: failed rollback writes to DLQ to ensure audit trail (G1 fix 2026-07-12).
+// deno-lint-ignore no-explicit-any
+export async function unmarkEventProcessed(supabase: any, eventId: string, instance?: string, eventType?: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
+    if (error) {
+      console.error(`[idempotency] rollback FAILED for ${eventId.slice(0, 48)}…: ${error.message ?? error.code}`);
+      // [FIX-08 2026-07-12 S11] Write audit entry using SECURITY DEFINER RPC to bypass RLS
+      // so operators can detect this event is permanently deduplicated
+      try {
+        const { error: auditError } = await supabase.rpc('fn_insert_idempotency_failure_audit', {
+          p_event_id: eventId,
+          p_instance: instance || null,
+          p_event_type: eventType || null,
+          p_error_code: error.code,
+          p_error_message: error.message,
+        });
+        if (auditError) {
+          console.error(`[idempotency] audit RPC failed: ${auditError.message ?? auditError.code}`);
+        }
+      } catch (e) {
+        console.error(`[idempotency] failed to write audit row for rollback failure: ${e}`);
+      }
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error(`[idempotency] rollback exception for ${eventId.slice(0, 48)}…: ${e instanceof Error ? e.message : String(e)}`);
+    // [FIX-08 2026-07-12 S11] Write audit entry using SECURITY DEFINER RPC
+    try {
+      const { error: auditError } = await supabase.rpc('fn_insert_idempotency_failure_audit', {
+        p_event_id: eventId,
+        p_instance: instance || null,
+        p_event_type: eventType || null,
+        p_error_code: 'EXCEPTION',
+        p_error_message: e instanceof Error ? e.message : String(e),
+      });
+      if (auditError) {
+        console.error(`[idempotency] audit RPC failed: ${auditError.message ?? auditError.code}`);
+      }
+    } catch (ex) {
+      console.error(`[idempotency] failed to write audit row for exception: ${ex}`);
+    }
+    return false;
+  }
+}
+
+// Deep-redacts producer secrets from a webhook payload before it is persisted to
+// the DLQ / reprocess queue. Evolution ships `apikey` (and echoes `sender`) inside
+// every webhook body; writing the raw payload to a Postgres table leaks the
+// instance's admin key at rest (readable via admin dashboards, exports, backups).
+// Returns a defensive deep copy with the sensitive keys stripped; the original is
+// left untouched so live processing keeps whatever it needs.
+//
+// [FIX-12 2026-07-12 C-6] Expanded secret patterns to cover:
+// - API Keys: apikey, api_key, api-key, api_secret, key, secret
+// - Tokens: token, access_token, refresh_token, bearer, auth_token
+// - Credentials: password, username, credential
+// - Authorization: authorization, auth, x-auth-token, x-api-key
+// - Personal Info: phone, email, ssn, cpf
+// - Cloud/OAuth: aws_access_key, oauth_token, consumer_key
+// - Pattern matching: *_secret, *_token, *_key, *_password, bearer_*, basic_*
+const __SECRET_PATTERNS = [
+  // API Keys
+  'apikey', 'api_key', 'api-key', 'api_secret', 'key', 'secret',
+  // Tokens
+  'token', 'access_token', 'refresh_token', 'bearer', 'auth_token',
+  // Authorization
+  'authorization', 'auth', 'x-auth-token', 'x-api-key', 'x-token',
+  // Credentials
+  'password', 'passwd', 'pwd', 'credential', 'credentials',
+  'username', 'user', 'login', 'sender',
+  // Personal Info
+  'phone', 'email', 'ssn', 'cpf', 'cnpj', 'credit_card', 'cc_number',
+  // OAuth
+  'oauth_token', 'oauth_secret', 'consumer_key', 'consumer_secret',
+  // AWS
+  'aws_access_key', 'aws_secret_key', 'access_key', 'secret_key',
+  // Database
+  'db_password', 'database_password', 'db_url', 'connection_string',
+  // Webhook
+  'webhook_secret', 'webhook_key', 'signature', 'hmac',
+];
+
+function isSecretKey(key: string): boolean {
+  const lowerKey = key.toLowerCase();
+  // Direct match
+  if (__SECRET_PATTERNS.includes(lowerKey)) return true;
+  // Pattern match: contains secret, token, key, password
+  if (lowerKey.includes('_secret') || lowerKey.includes('_token') ||
+      lowerKey.includes('_key') || lowerKey.includes('_password')) return true;
+  if (lowerKey.startsWith('bearer_') || lowerKey.startsWith('basic_')) return true;
+  return false;
+}
+
+export function scrubWebhookSecrets(value: unknown, depth = 0): unknown {
+  if (depth > 12 || value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((v) => scrubWebhookSecrets(v, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (isSecretKey(k)) { out[k] = '[REDACTED]'; continue; }
+    out[k] = scrubWebhookSecrets(v, depth + 1);
+  }
+  return out;
+}
+
 export interface WebhookAuditRow {
   request_id: string;
   instance?: string | null;
@@ -372,7 +484,8 @@ export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): 
     const { error } = await supabase.from('evolution_webhook_dlq').insert({
       event_type: input.event_type || 'unknown',
       instance_name: input.instance || 'unknown',
-      payload: input.payload ?? null,
+      // [A-2 2026-07-12] scrub producer secrets (apikey/sender/token) before persisting.
+      payload: input.payload == null ? null : scrubWebhookSecrets(input.payload),
       error_message: (input.error_message || 'unknown_error').slice(0, 2000),
       error_stack: input.error_stack ? String(input.error_stack).slice(0, 8000) : null,
       status: 'pending',

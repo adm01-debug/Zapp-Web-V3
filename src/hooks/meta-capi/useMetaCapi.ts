@@ -12,13 +12,13 @@ import { toast } from '@/hooks/use-toast';
 export interface CAPIEvent {
   id: string;
   event_name: string;
-  event_time: string;
+  event_time: string | null;
   contact_id: string | null;
   pixel_id: string | null;
-  action_source: string;
+  action_source: string | null;
   custom_data: Json;
-  sent_to_meta: boolean;
-  created_at: string;
+  sent_to_meta: boolean | null;
+  created_at: string | null;
 }
 
 export function useMetaCapi() {

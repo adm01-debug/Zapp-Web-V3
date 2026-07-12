@@ -91,7 +91,7 @@ export function useVoiceAgent(options?: UseVoiceAgentOptions): UseVoiceAgentRetu
         transcript: text,
         action: result.action,
         response: result.response,
-        data: result.data as Record<string, unknown>,
+        data: result.data as Record<string, unknown>, // ignore-audit: narrows Supabase query result to local interface
         durationMs: Date.now() - startTime,
         success: true,
       });

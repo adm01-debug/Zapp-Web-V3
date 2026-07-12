@@ -14,13 +14,21 @@ import { Loader2, TrendingUp, AlertTriangle, Clock, BarChart3, ArrowRight } from
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+interface StsReportRow {
+  voice_preset: string;
+  total_requests: number;
+  error_rate: number;
+  total_errors: number;
+  p95_ms: number;
+}
+
 export function StsCommercialDashboard() {
-  const { data: stats = [], isLoading: loading } = useQuery<any[]>({
+  const { data: stats = [], isLoading: loading } = useQuery<StsReportRow[]>({
     queryKey: ['admin', 'sts-commercial-dashboard'],
     queryFn: async () => {
       try {
         // sts_troubleshooting_report is the view created in the previous turn
-        const { data, error } = await safeClient.from<any>('sts_troubleshooting_report', (q) =>
+        const { data, error } = await safeClient.from<StsReportRow>('sts_troubleshooting_report', (q) =>
           q.select('*')
         );
 

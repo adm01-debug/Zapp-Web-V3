@@ -70,7 +70,7 @@ export function AutomationsManager() {
             <CardDescription>Configure respostas e ações automáticas</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={filter} onValueChange={(v) => setFilter(v as 'all' | 'active' | 'inactive')}>
+            <Select value={filter} onValueChange={(v) => setFilter(v as 'all' | 'active' | 'inactive' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>

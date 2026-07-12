@@ -102,12 +102,26 @@ export function useUserSettings() {
       return;
     }
 
+    let isMounted = true;
+    const abortController = new AbortController();
+
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
+        if (!isMounted || abortController.signal.aborted) return;
+
+        if (!safeClient) {
+          log.error('Error in fetchSettings: safeClient is not initialized');
+          if (isMounted) setIsLoading(false);
+          return;
+        }
+
         const { data: rows, error } = await safeClient.from<UserSettings>('user_settings', (q) =>
           q.select('*').eq('user_id', user.id).limit(1)
         );
+
+        if (!isMounted || abortController.signal.aborted) return;
+
         const data = rows?.[0] ?? null;
 
         if (error) {
@@ -115,7 +129,7 @@ export function useUserSettings() {
           return;
         }
 
-        if (data) {
+        if (data && isMounted && !abortController.signal.aborted) {
           setSettings({
             id: data.id,
             user_id: data.user_id,
@@ -158,13 +172,21 @@ export function useUserSettings() {
           });
         }
       } catch (err) {
+        if (!isMounted || abortController.signal.aborted) return;
         log.error('Error in fetchSettings:', err);
       } finally {
-        setIsLoading(false);
+        if (isMounted && !abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     void fetchSettings();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [user?.id]);
 
   // Update settings locally
@@ -183,7 +205,18 @@ export function useUserSettings() {
       return false;
     }
 
+    if (!safeClient) {
+      log.error('Error in saveSettings: safeClient is not initialized');
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Serviço indisponível. Tente novamente.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
     setIsSaving(true);
+    let timeoutId: NodeJS.Timeout | null = null;
     try {
       const settingsData = {
         user_id: user.id,
@@ -214,9 +247,21 @@ export function useUserSettings() {
         global_sla_notification_message: settings.global_sla_notification_message,
       };
 
-      const { error } = await safeClient.from('user_settings', (q) =>
+      const savePromise = safeClient.from('user_settings', (q) =>
         q.upsert(settingsData, { onConflict: 'user_id' })
       );
+
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('Save operation timed out after 30 seconds'));
+        }, 30000);
+      });
+
+      const { error } = (await Promise.race([savePromise, timeoutPromise])) as Awaited<
+        typeof savePromise
+      >;
+
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (error) {
         log.error('Error saving settings:', error);
@@ -234,10 +279,14 @@ export function useUserSettings() {
       });
       return true;
     } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
       log.error('Error in saveSettings:', err);
       toast({
         title: 'Erro ao salvar',
-        description: 'Ocorreu um erro inesperado.',
+        description:
+          err instanceof Error && err.message.includes('timed out')
+            ? 'A operação demorou muito tempo. Verifique sua conexão.'
+            : 'Ocorreu um erro inesperado.',
         variant: 'destructive',
       });
       return false;

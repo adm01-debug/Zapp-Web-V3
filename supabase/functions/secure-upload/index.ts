@@ -11,7 +11,6 @@ import { requireUser } from "../_shared/auth.ts";
  */
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — OOM guard (F5b)
 const ALLOWED_BUCKETS = new Set(["whatsapp-media", "audio-messages"]);
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
 // Splits on '/', decodes percent-encoding, then drops empty / dot / dotdot segments.
 // Guards against ....// bypass that replace(/\.\./) leaves as traversal-ready slashes.

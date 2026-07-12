@@ -162,7 +162,7 @@ export function MetaCAPIView() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {event.action_source} • {new Date(event.event_time).toLocaleString('pt-BR')}
+                      {event.action_source} • {event.event_time ? new Date(event.event_time).toLocaleString('pt-BR') : '—'}
                     </p>
                   </div>
                   {event.sent_to_meta ? (

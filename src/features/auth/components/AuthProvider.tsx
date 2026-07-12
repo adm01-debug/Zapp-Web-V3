@@ -37,16 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  /**
-   * Fetch roles + permissions in a single coordinated pass, avoiding the
-   * previous duplicate query against `user_roles` (called by both fetchRoles
-   * and fetchPermissions on every login / token refresh).
-   */
   const fetchRolesAndPermissions = useCallback(async (userId: string) => {
     if (fetchingRolesRef.current) return;
     fetchingRolesRef.current = true;
     fetchingPermissionsRef.current = true;
     try {
+      if (!supabase) {
+        log.warn('[Auth] Supabase client not initialized for user:', userId);
+        setRoles([]);
+        setPermissions([]);
+        return;
+      }
       const { data: userRoles, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -66,13 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: perms } = await safeClient.from<{ permissions: { name: string } | null }>(
-        'role_permissions',
-        q => q.select('permissions(name)').in('role', roleNames)
-      );
+      const { data: perms } = await supabase
+        .from('role_permissions')
+        .select('permissions(name)')
+        .in(
+          'role',
+          roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
+        );
 
       if (perms) {
-        const permNames = perms
+        const permNames = (perms as Array<{ permissions: { name: string } | null }>)
           .map((p) => p.permissions?.name)
           .filter((n): n is string => typeof n === 'string');
         setPermissions([...new Set(permNames)]);
@@ -85,7 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Backward-compatible helpers used by refreshRoles / refreshPermissions consumers.
   const fetchRoles = useCallback(
     (userId: string) => fetchRolesAndPermissions(userId),
     [fetchRolesAndPermissions]
@@ -165,7 +168,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [refreshAll]);
 
-  // Real-time profile updates (e.g., department changes)
   useEffect(() => {
     if (!user) return;
 
@@ -184,7 +186,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (payload.eventType === 'DELETE') {
             setProfile(null);
           } else {
-            // Refetch to ensure we have full data and respect RLS
             await fetchProfile(user.id);
           }
         }
@@ -238,7 +239,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await authService.signOut();
-      // Explicitly clear stale Supabase tokens from localStorage to prevent ghost sessions
       if (typeof window !== 'undefined') {
         Object.keys(localStorage)
           .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))

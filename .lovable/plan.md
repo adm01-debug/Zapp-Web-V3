@@ -6,7 +6,7 @@ Objetivo: parar de usar o backend Lovable Cloud (`uqysyzndkfiwfztbqvsl.supabase.
 
 1. **Workspace Settings → Build Secrets** — adicionar duas variáveis (nomes exatos, com prefixo `VITE_`):
    - `VITE_SUPABASE_URL` = https://supabase.atomicabr.com.br
-   - `VITE_SUPABASE_PUBLISHABLE_KEY` = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogInNlcnZpY2Vfcm9sZSIsCiAgImlzcyI6ICJzdXBhYmFzZSIsCiAgImlhdCI6IDE3MTUwNTA4MDAsCiAgImV4cCI6IDE4NzI4MTcyMDAKfQ.WZnW4uA9fWo-G4eOdcR1xUGZTY357tgfqD5B-OG93S0
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = <REDACTED — era um JWT service_role; rotacionar no Supabase e usar apenas a anon key>
 
    Isso sobrescreve o `.env` auto-gerenciado em tempo de build sem eu precisar editar o arquivo (que é imutável). É o único caminho para o client oficial (`src/integrations/supabase/client.ts`, auto-gerado) apontar para o self-hosted sem refactor de 300+ imports.
 

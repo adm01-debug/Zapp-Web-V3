@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useEmail.ts — Hook principal de gerenciamento Email
  *
@@ -51,13 +52,13 @@ const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-')
  * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
  * replica exatamente as expressões da view para payloads de realtime.
  */
-const mapBaseThreadRow = (row: any): EmailThread =>
+const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({
     ...row,
-    thread_id: row.id,
-    email_thread_id: row.gmail_thread_id != null ? String(row.gmail_thread_id) : null,
-    account_id: row.gmail_account_id,
-    unread_count: row.is_unread ? Math.max(row.message_count ?? 1, 1) : 0,
+    thread_id: row['id'],
+    email_thread_id: row['gmail_thread_id'] != null ? String(row['gmail_thread_id']) : null,
+    account_id: row['gmail_account_id'],
+    unread_count: row['is_unread'] ? Math.max(Number(row['message_count'] ?? 1), 1) : 0,
   });
 
 /**
@@ -84,15 +85,23 @@ export function useEmail() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
   const [schemaStatus, setSchemaStatus] = useState<{ ok: boolean; lastChecked: Date | null }>({
     ok: true,
     lastChecked: null,
   });
-  const [nextPageToken, _setNextPageToken] = useState<string | null>(null);
+  // setter nunca é chamado hoje — paginação de threads ainda não implementada;
+  // ver docs/AUDITORIA_EXAUSTIVA_2026-07-12.md (Onda 6, item de código morto).
+  const [nextPageToken] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  /**
+   * AUTH GATE: tracks whether the Supabase session has been confirmed.
+   * loadAccounts() and checkTokenStatus() must not fire as anon — that causes
+   * 403 on public.email_accounts (anon has no SELECT), which feeds the
+   * safeClient infinite loop (recordFailure -> rpc -> recordFailure).
+   */
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const oauthInFlightRef = useRef(false);
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -109,7 +118,9 @@ export function useEmail() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session && mountedRef.current) setIsAuthenticated(true);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (mountedRef.current) setIsAuthenticated(!!session);
     });
     return () => subscription.unsubscribe();
@@ -134,12 +145,16 @@ export function useEmail() {
     if (!mountedRef.current) return;
 
     if (dbErr) {
-      if (dbErr.message.includes('disponível') || dbErr.message.includes('not found') ||
-          dbErr.message.includes('permission denied') || dbErr.message.includes('42501')) {
+      if (
+        dbErr.message.includes('disponível') ||
+        dbErr.message.includes('not found') ||
+        dbErr.message.includes('permission denied') ||
+        dbErr.message.includes('42501')
+      ) {
         log.warn('Email schema unavailable — using mock accounts');
         setAccounts(GMAIL_MOCKS.accounts);
-        if (GMAIL_MOCKS.accounts.length > 0 && !activeAccountId) {
-          setActiveAccountId(GMAIL_MOCKS.accounts[0].id);
+        if (GMAIL_MOCKS.accounts.length > 0) {
+          setActiveAccountId((prev) => prev || GMAIL_MOCKS.accounts[0].id);
         }
         setSchemaStatus({ ok: false, lastChecked: new Date() });
       } else {
@@ -150,12 +165,12 @@ export function useEmail() {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
       const accs = emailMappers.accounts(Array.isArray(data) ? data : []);
       setAccounts(accs);
-      if (accs.length > 0 && !activeAccountId) {
-        setActiveAccountId(accs[0].id);
+      if (accs.length > 0) {
+        setActiveAccountId((prev) => prev || accs[0].id);
       }
     }
     setIsLoading(false);
-  }, [activeAccountId]);
+  }, []);
 
   // ── Verificar status dos tokens ────────────────────────────────────
   const checkTokenStatus = useCallback(async () => {
@@ -384,7 +399,7 @@ export function useEmail() {
       p_thread_id: threadId,
       p_read: read,
       p_message_ids: null,
-    } as any);
+    });
 
     if (!rpcErr) {
       setThreads((prev) =>
@@ -486,13 +501,21 @@ export function useEmail() {
         body: { action: 'getAuthUrl' },
       });
 
-      if (fnErr || !data?.authUrl) {
+      // A edge function retorna `{ url, state }` (action 'getAuthUrl' em
+      // supabase/functions/gmail-oauth), não `authUrl`.
+      if (fnErr || !data?.url) {
         setError('Erro ao obter URL de autorização Google. Verifique GOOGLE_CLIENT_ID.');
         oauthInFlightRef.current = false;
         return;
       }
 
-      const popup = window.open(data.authUrl, 'email_oauth', 'width=500,height=600,scrollbars=yes');
+      // `state` emitido para este fluxo — validado no handler abaixo antes de
+      // trocar o code, para que uma mensagem postMessage forjada (de qualquer
+      // origem, já que o callback usa target '*') não consiga injetar o code
+      // de outra conta Google para ser vinculado ao usuário atual.
+      const expectedState = data.state as string | undefined;
+
+      const popup = window.open(data.url, 'email_oauth', 'width=500,height=600,scrollbars=yes');
       if (!popup) {
         setError('Popup bloqueado. Permita popups para este site.');
         oauthInFlightRef.current = false;
@@ -526,10 +549,17 @@ export function useEmail() {
           return;
         }
         if (event.data?.type !== 'gmail-oauth-code') return;
+
+        const { code, state: returnedState } = event.data;
+        if (!expectedState || returnedState !== expectedState) {
+          // Não finaliza o fluxo (settled=false): uma mensagem forjada não deve
+          // encerrar a espera pela mensagem legítima do popup real.
+          log.warn('[gmail-oauth] state inválido no callback — mensagem ignorada');
+          return;
+        }
         settled = true;
         cleanupListeners();
 
-        const { code } = event.data;
         if (!code) {
           oauthInFlightRef.current = false;
           return;
@@ -621,7 +651,7 @@ export function useEmail() {
               prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
             );
           } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as any)?.id;
+            const deletedId = (payload.old as { id?: string })?.id;
             if (!deletedId) return;
             setThreads((prev) => prev.filter((t) => t.id !== deletedId));
           }

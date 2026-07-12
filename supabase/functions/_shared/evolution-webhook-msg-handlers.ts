@@ -108,24 +108,15 @@ export async function handleMessagesUpdate(supabase: SupabaseClient, instance: s
           console.log(`Message ${key.id} status: ${currentMessage.status} → ${newStatus}`);
         }
       } else {
-        let contactId: string | null = null;
-        const remoteJid = resolveEventJid(entry, baseData);
-        if (remoteJid) {
-          const phone = normalizePhone(remoteJid);
-          if (phone) {
-            const contact = await getContactByPhone(supabase, phone, connection.id);
-            contactId = contact?.id ?? null;
-          }
-        }
-
-        if (contactId) {
-          const { error: fallbackErr } = await supabase.from('messages').upsert({
-            content: '[Mensagem recebida]', message_type: 'text', sender: 'contact',
-            external_id: key.id, status: newStatus, status_updated_at: now, created_at: now,
-            contact_id: contactId, whatsapp_connection_id: connection.id,
-          }, { onConflict: 'external_id,whatsapp_connection_id', ignoreDuplicates: true });
-          if (fallbackErr) console.error(`[UPDATE] Fallback insert error for ${key.id}:`, fallbackErr);
-        }
+        // [M-4 FIX 2026-07-12] Do NOT fabricate a placeholder inbound message from an
+        // orphan ACK. The prior code inserted content='[Mensagem recebida]' here; because
+        // the real messages.upsert lands in evo.evolution_messages with
+        // ignoreDuplicates:true on (message_id,instance_name), that placeholder would then
+        // BLOCK the real content forever (the genuine upsert is ignored as a duplicate).
+        // A status update for a message we never stored is meaningless on its own — just
+        // record the anomaly so the pipeline monitors can see it, and let the real upsert
+        // (now no longer preceded by a poisoning row) persist the true content.
+        console.warn(`[UPDATE] orphan ACK for unknown message external_id=${key.id} status=${newStatus} — skipping placeholder (awaiting real upsert)`);
       }
     }
   }

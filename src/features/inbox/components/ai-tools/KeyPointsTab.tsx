@@ -52,7 +52,7 @@ export function KeyPointsTab({ analysis, ttsButtonClass, isTtsLoading, isTtsPlay
             </h4>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className={ttsButtonClass} onClick={() => onPlayText(analysis.nextSteps!.join('. '))} disabled={isTtsLoading} aria-label="Ouvir próximos passos">
+                <Button variant="ghost" size="icon" className={ttsButtonClass} onClick={() => onPlayText(analysis.nextSteps?.join('. ') ?? '')} disabled={isTtsLoading} aria-label="Ouvir próximos passos">
                   {isTtsLoading ? <Loader2 className="h-3.5 w-3.5" /> : isTtsPlaying ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>

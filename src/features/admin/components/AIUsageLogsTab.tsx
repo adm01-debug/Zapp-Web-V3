@@ -16,7 +16,7 @@ interface AIUsageLogsTabProps {
   logs: LogEntry[];
   logsPage: number;
   setLogsPage: (fn: (p: number) => number) => void;
-  profileMap: Map<string, { name?: string; email?: string }>;
+  profileMap: Map<string, { name?: string | null; email?: string | null }>;
 }
 
 export function AIUsageLogsTab({ logs, logsPage, setLogsPage, profileMap }: AIUsageLogsTabProps) {

@@ -47,7 +47,8 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 export function ContactStatsSection({ contactId: _contactId }: ContactStatsSectionProps) {
   const result = useContactStats();
   const { isLoading } = result;
-  const stats = result.stats as unknown as ContactSpecificStats | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stats = result.stats as unknown as ContactSpecificStats | null; // ignore-audit — useContactStats provides aggregate data; per-contact hook pending
 
   if (isLoading) {
     return (

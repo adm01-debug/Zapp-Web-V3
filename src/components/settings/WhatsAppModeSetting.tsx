@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
+import { getLogger } from '@/lib/logger';
 import { safeClient } from '@/integrations/supabase/safeClient';
+const log = getLogger('WhatsAppModeSetting');
 import {
   getWhatsAppMode,
   invalidateWhatsAppModeCache,
@@ -41,11 +43,11 @@ export function WhatsAppModeSetting() {
       'rpc_get_active_integration_profile'
     );
     if (error) {
-      console.warn('[WhatsAppModeSetting] loadProfile failed:', error.message);
+      log.warn('loadProfile failed:', error.message);
       setProfileLoadError(error.message);
       return;
     }
-    if (data) setProfile(data as IntegrationProfile);
+    if (data) setProfile(data as IntegrationProfile); // ignore-audit: narrows Supabase query result to local interface
   }, []);
 
   const refresh = useCallback(async () => {

@@ -406,13 +406,29 @@ export function checkRateLimit(
   return { allowed: entry.count <= maxRequests, remaining };
 }
 
-/** Extract client IP from request for rate limiting */
+/** Extract and normalize client IP from request for rate limiting (C.14: IPv6 support) */
 export function getClientIP(req: Request): string {
-  return (
+  const raw =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('x-real-ip') ||
-    'unknown'
-  );
+    'unknown';
+
+  // Normalize IPv6 addresses to lowercase canonical form to prevent rate-limit bypass
+  // via different representations (e.g., 2001:db8::1 vs 2001:0db8::0001)
+  if (raw !== 'unknown' && raw.includes(':')) {
+    try {
+      // Parse as IPv6 and convert to canonical string representation
+      const hostname = new URL(`http://[${raw}]/`).hostname || raw;
+      // Remove brackets that URL.hostname includes for IPv6 addresses
+      return hostname.startsWith('[') && hostname.endsWith(']')
+        ? hostname.slice(1, -1)
+        : hostname;
+    } catch {
+      // If parsing fails, return as-is (might be malformed or IPv4)
+      return raw;
+    }
+  }
+  return raw;
 }
 
 /** Get required env var or throw */

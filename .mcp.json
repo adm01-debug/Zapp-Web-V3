@@ -16,7 +16,7 @@
       "type": "http",
       "url": "https://supabase-mcp.atomicabr.com.br/mcp",
       "headers": {
-        "Authorization": "Bearer d139cac60e8a26a6e3ba087f6f967aba8e588eee"
+        "Authorization": "Bearer ${SELFHOSTED_SUPABASE_MCP_TOKEN}"
       }
     }
   }

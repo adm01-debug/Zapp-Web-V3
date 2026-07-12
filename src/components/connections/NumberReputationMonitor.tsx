@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export function NumberReputationMonitor() {
     (ReputationData & { connection?: ConnectionInfo })[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     loadData();
@@ -42,9 +44,11 @@ export function NumberReputationMonitor() {
   const loadData = async () => {
     setLoading(true);
     const { data: reps } = await supabase.from('number_reputation').select('*');
+    if (!mountedRef.current) return;
     const { data: connections } = await supabase
       .from('whatsapp_connections')
       .select('id, instance_id, phone_number');
+    if (!mountedRef.current) return;
     if (reps && connections) {
       setReputations(
         reps.map((r) => ({
