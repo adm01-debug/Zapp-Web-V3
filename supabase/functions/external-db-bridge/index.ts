@@ -69,16 +69,33 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userData, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !userData?.user) {
+    if (userError || !userData || typeof userData !== 'object' || !userData.user) {
       return errorResponse("Unauthorized", 401, req);
     }
-    const userId = userData.user.id;
+    const userObj = userData as Record<string, unknown>;
+    const userProp = userObj.user as Record<string, unknown> | null;
+    if (!userProp || typeof userProp.id !== 'string') {
+      return errorResponse("Unauthorized", 401, req);
+    }
+    const userId = userProp.id;
 
     // Parse & validate body
     const parsed = parseBody(ExternalDbBridgeSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
-    const { action, table, rpc, params, limit, offset, countMode } = parsed.data;
+    if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
+      return errorResponse("Invalid request data", 400, req);
+    }
+    const parsedData = parsed.data as Record<string, unknown>;
+    const action = typeof parsedData.action === 'string' ? parsedData.action : '';
+    const table = typeof parsedData.table === 'string' ? parsedData.table : '';
+    const rpc = typeof parsedData.rpc === 'string' ? parsedData.rpc : '';
+    const params = (parsedData.params && typeof parsedData.params === 'object' && !Array.isArray(parsedData.params))
+      ? (parsedData.params as Record<string, unknown>)
+      : null;
+    const limit = typeof parsedData.limit === 'number' ? Math.max(1, parsedData.limit) : null;
+    const offset = typeof parsedData.offset === 'number' ? Math.max(0, parsedData.offset) : null;
+    const countMode = typeof parsedData.countMode === 'string' ? parsedData.countMode : '';
 
     const startTime = performance.now();
     let result: unknown = null;
@@ -87,18 +104,32 @@ Deno.serve(async (req) => {
 
     try {
       if (action === "select" && table) {
-        let query = supabaseAdmin.from(table).select(params?.select as string || "*", {
+        const selectStr = (params && typeof params.select === 'string') ? params.select : "*";
+        let query = supabaseAdmin.from(table).select(selectStr, {
           count: (countMode as "exact" | "planned" | "estimated") || undefined,
         });
-        if (params?.filters) {
-          for (const f of params.filters as Array<{ column: string; operator: string; value: unknown }>) {
-            query = query.filter(f.column, f.operator, f.value);
+
+        if (params && typeof params === 'object' && Array.isArray(params.filters)) {
+          for (const f of params.filters) {
+            if (f && typeof f === 'object' && !Array.isArray(f)) {
+              const fObj = f as Record<string, unknown>;
+              const fColumn = typeof fObj.column === 'string' ? fObj.column : '';
+              const fOperator = typeof fObj.operator === 'string' ? fObj.operator : '';
+              if (fColumn && fOperator) {
+                query = query.filter(fColumn, fOperator, fObj.value);
+              }
+            }
           }
         }
-        if (params?.order) {
-          const ord = params.order as { column: string; ascending?: boolean };
-          query = query.order(ord.column, { ascending: ord.ascending ?? true });
+
+        if (params && typeof params === 'object' && params.order && typeof params.order === 'object' && !Array.isArray(params.order)) {
+          const ordObj = params.order as Record<string, unknown>;
+          const ordColumn = typeof ordObj.column === 'string' ? ordObj.column : '';
+          if (ordColumn) {
+            query = query.order(ordColumn, { ascending: typeof ordObj.ascending === 'boolean' ? ordObj.ascending : true });
+          }
         }
+
         if (limit) query = query.limit(limit);
         if (offset) query = query.range(offset, offset + (limit || 50) - 1);
 
@@ -112,28 +143,44 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
       } else if (action === "insert" && table) {
-        const { data, error } = await supabaseAdmin.from(table).insert(params?.rows || params).select();
+        const rowsVal = (params && typeof params === 'object' && params.rows) ? params.rows : params;
+        const { data, error } = await supabaseAdmin.from(table).insert(rowsVal).select();
         if (error) throw error;
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
       } else if (action === "update" && table) {
-        let query = supabaseAdmin.from(table).update(params?.values || {});
-        if (params?.match) {
-          for (const [k, v] of Object.entries(params.match)) {
-            query = query.eq(k, v as string);
+        const updateValues = (params && typeof params === 'object' && params.values && typeof params.values === 'object' && !Array.isArray(params.values))
+          ? (params.values as Record<string, unknown>)
+          : {};
+        let query = supabaseAdmin.from(table).update(updateValues);
+
+        if (params && typeof params === 'object' && params.match && typeof params.match === 'object' && !Array.isArray(params.match)) {
+          const matchObj = params.match as Record<string, unknown>;
+          for (const [k, v] of Object.entries(matchObj)) {
+            const kStr = typeof k === 'string' ? k : '';
+            if (kStr) {
+              query = query.eq(kStr, v as string);
+            }
           }
         }
+
         const { data, error } = await query.select();
         if (error) throw error;
         result = data;
         recordCount = Array.isArray(data) ? data.length : 0;
       } else if (action === "delete" && table) {
         let query = supabaseAdmin.from(table).delete();
-        if (params?.match) {
-          for (const [k, v] of Object.entries(params.match)) {
-            query = query.eq(k, v as string);
+
+        if (params && typeof params === 'object' && params.match && typeof params.match === 'object' && !Array.isArray(params.match)) {
+          const matchObj = params.match as Record<string, unknown>;
+          for (const [k, v] of Object.entries(matchObj)) {
+            const kStr = typeof k === 'string' ? k : '';
+            if (kStr) {
+              query = query.eq(kStr, v as string);
+            }
           }
         }
+
         const { data, error } = await query.select();
         if (error) throw error;
         result = data;
