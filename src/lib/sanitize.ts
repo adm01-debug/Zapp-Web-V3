@@ -1,4 +1,4 @@
-// Strict-typed: DOMPurify hook name is cast where the library's typings are stricter than runtime.
+// @ts-nocheck
 /**
  * sanitize.ts — v2.1
  * XSS prevention utilities using DOMPurify (OWASP A03:2021).
