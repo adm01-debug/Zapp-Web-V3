@@ -129,11 +129,16 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       const sugg = suggestions.find((s) => s.id === id);
       if (!sugg?.recommended_tag) return false;
       try {
-        await (getClient()?.rpc as any)('rpc_upsert_contact', {
-          p_remote_jid: sugg.remote_jid,
-          p_instance: sugg.instance_name,
-          p_tags: [sugg.recommended_tag],
-        });
+        const client = getClient();
+        if (client) {
+          // rpc_upsert_contact is a dynamic function not in generated Supabase types
+          type UnboundRpc = (fn: string, args: Record<string, unknown>) => Promise<unknown>;
+          await (client.rpc as unknown as UnboundRpc)('rpc_upsert_contact', {
+            p_remote_jid: sugg.remote_jid,
+            p_instance: sugg.instance_name,
+            p_tags: [sugg.recommended_tag],
+          });
+        }
         await safeClient.from('automation_executions', (q) =>
           q.update({ applied_tags: [sugg.recommended_tag] }).eq('id', id)
         );

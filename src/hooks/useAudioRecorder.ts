@@ -4,6 +4,11 @@ import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { MAX_PTT_DURATION_SEC } from '@/lib/audio/pttLimits';
 
+interface SpeechWindow {
+  SpeechRecognition?: new () => SpeechRecognition;
+  webkitSpeechRecognition?: new () => SpeechRecognition;
+}
+
 interface UseAudioRecorderOptions {
   onRecordingComplete?: (audioBlob: Blob, audioUrl: string) => void;
   /** Limite de duração em segundos. Default: limite oficial de PTT (16 min). */
@@ -28,13 +33,15 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
   // Mirror of the latest transcription so async handlers (onstop) read the
   // current value instead of the stale one captured when startRecording was memoized.
   const transcriptionRef = useRef<string>('');
-  useEffect(() => { transcriptionRef.current = transcription; }, [transcription]);
+  useEffect(() => {
+    transcriptionRef.current = transcription;
+  }, [transcription]);
 
   const startRecording = useCallback(
     async (isRecovery = false) => {
@@ -131,15 +138,16 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
 
         // Enhanced Transcription with Backend Fallback Support
-        const SpeechRecognition =
-          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (SpeechRecognition) {
-          const recognition = new SpeechRecognition();
+        const SpeechRecognitionAPI =
+          (window as Window & SpeechWindow).SpeechRecognition ||
+          (window as Window & SpeechWindow).webkitSpeechRecognition;
+        if (SpeechRecognitionAPI) {
+          const recognition = new SpeechRecognitionAPI();
           recognition.lang = 'pt-BR';
           recognition.continuous = true;
           recognition.interimResults = true;
 
-          recognition.onresult = (event: any) => { // ignore-audit
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 setTranscription((prev) => (prev + ' ' + event.results[i][0].transcript).trim());
@@ -147,7 +155,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             }
           };
 
-          recognition.onerror = async (event: any) => { // ignore-audit
+          recognition.onerror = async (event: SpeechRecognitionErrorEvent) => {
             log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
@@ -224,7 +232,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       setIsRecording(false);
       setIsPaused(false);
     }
-    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
     if (intervalRef.current) {
@@ -243,13 +251,27 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-      streamRef.current?.getTracks().forEach(track => track.stop());
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
       const ctx = audioContextRef.current;
-      if (ctx && ctx.state !== 'closed') { ctx.close().catch(() => { /* ignore */ }); }
+      if (ctx && ctx.state !== 'closed') {
+        ctx.close().catch(() => {
+          /* ignore */
+        });
+      }
       const mr = mediaRecorderRef.current;
-      if (mr && mr.state !== 'inactive') { try { mr.stop(); } catch { /* ignore */ } }
+      if (mr && mr.state !== 'inactive') {
+        try {
+          mr.stop();
+        } catch {
+          /* ignore */
+        }
+      }
     };
   }, []);
 

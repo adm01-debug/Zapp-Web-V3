@@ -51,13 +51,13 @@ const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-')
  * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
  * replica exatamente as expressões da view para payloads de realtime.
  */
-const mapBaseThreadRow = (row: any): EmailThread =>
+const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({
     ...row,
     thread_id: row.id,
     email_thread_id: row.gmail_thread_id != null ? String(row.gmail_thread_id) : null,
     account_id: row.gmail_account_id,
-    unread_count: row.is_unread ? Math.max(row.message_count ?? 1, 1) : 0,
+    unread_count: row.is_unread ? Math.max((row.message_count as number) ?? 1, 1) : 0,
   });
 
 /**
@@ -109,7 +109,9 @@ export function useEmail() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session && mountedRef.current) setIsAuthenticated(true);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (mountedRef.current) setIsAuthenticated(!!session);
     });
     return () => subscription.unsubscribe();
@@ -134,8 +136,12 @@ export function useEmail() {
     if (!mountedRef.current) return;
 
     if (dbErr) {
-      if (dbErr.message.includes('disponível') || dbErr.message.includes('not found') ||
-          dbErr.message.includes('permission denied') || dbErr.message.includes('42501')) {
+      if (
+        dbErr.message.includes('disponível') ||
+        dbErr.message.includes('not found') ||
+        dbErr.message.includes('permission denied') ||
+        dbErr.message.includes('42501')
+      ) {
         log.warn('Email schema unavailable — using mock accounts');
         setAccounts(GMAIL_MOCKS.accounts);
         if (GMAIL_MOCKS.accounts.length > 0 && !activeAccountId) {
@@ -384,7 +390,7 @@ export function useEmail() {
       p_thread_id: threadId,
       p_read: read,
       p_message_ids: null,
-    } as any);
+    } as Record<string, unknown>);
 
     if (!rpcErr) {
       setThreads((prev) =>
@@ -621,7 +627,7 @@ export function useEmail() {
               prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
             );
           } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as any)?.id;
+            const deletedId = (payload.old as { id?: string })?.id;
             if (!deletedId) return;
             setThreads((prev) => prev.filter((t) => t.id !== deletedId));
           }
