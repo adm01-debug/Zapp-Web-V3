@@ -1,22 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 
-const mockFrom = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: (...args: unknown[]) => mockFrom(...args),
     auth: {
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
     },
   },
 }));
 
-const mockUseAuth = vi.fn();
+const mockUseAuth = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
-  AuthProvider: ({ children }: any) => children,
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
@@ -36,7 +39,9 @@ describe('useOnboardingChecklist', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({ data: { name: 'Agent Name', avatar_url: null }, error: null }),
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: { name: 'Agent Name', avatar_url: null }, error: null }),
             }),
           }),
         };
@@ -90,12 +95,25 @@ describe('useOnboardingChecklist', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({ data: { name: 'Ab', avatar_url: null }, error: null }),
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: { name: 'Ab', avatar_url: null }, error: null }),
             }),
           }),
         };
       }
-      return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }), limit: vi.fn().mockResolvedValue({ data: [], error: null }) }) }) };
+      return {
+        select: vi
+          .fn()
+          .mockReturnValue({
+            eq: vi
+              .fn()
+              .mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+              }),
+          }),
+      };
     });
 
     const { result } = renderHook(() => useOnboardingChecklist());

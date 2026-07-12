@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useInboxFilters } from '../useInboxFilters';
@@ -5,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
 // Mocking dependencies
-const mockHasPermission = vi.fn();
+const mockHasPermission = vi.hoisted(() => vi.fn());
 
 vi.mock('@/features/auth', () => ({
   usePermissions: () => ({
@@ -25,20 +26,28 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/hooks/useUrlFilters', () => ({
   useUrlFilters: () => {
-      const [f, s] = React.useState({ status: [], tags: [], agentId: null });
-      return {
-        filters: f,
-        setFilters: s,
-        clearFilters: vi.fn(),
-      };
+    const [f, s] = React.useState<{
+      status: string[];
+      tags: string[];
+      agentId: string | null;
+      dateRange?: { from: Date | null; to: Date | null };
+    }>({ status: [], tags: [], agentId: null });
+    return {
+      filters: f,
+      setFilters: s,
+      clearFilters: vi.fn(),
+    };
   },
 }));
 
 vi.mock('@/features/inbox', () => ({
   useAllTicketStates: () => ({}),
-  filterByContactType: (convs: any, type: any) => {
+  filterByContactType: (
+    convs: Array<{ contact: { contact_type: string | null } }>,
+    type: string | null | undefined
+  ) => {
     if (!type) return convs;
-    return convs.filter((c: any) => c.contact.contact_type === type);
+    return convs.filter((c) => c.contact.contact_type === type);
   },
   useFailureMetricsBatch: () => ({ data: {} }),
 }));
@@ -71,8 +80,8 @@ describe('useInboxFilters Business Rules', () => {
       contact: { id: 'c3', assigned_to: null, contact_type: 'cliente' },
       messages: [],
       unreadCount: 0,
-    }
-  ] as any;
+    },
+  ];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,47 +89,55 @@ describe('useInboxFilters Business Rules', () => {
   });
 
   it('filters by department scope for coordinators', () => {
-    mockHasPermission.mockImplementation((perm) => perm === 'inbox.view_department');
+    mockHasPermission.mockImplementation((perm: string) => perm === 'inbox.view_department');
 
-    const { result } = renderHook(() => useInboxFilters({
-      conversations: mockConversations,
-      profileId: 'agent-1'
-    }), { wrapper });
+    const { result } = renderHook(
+      () =>
+        useInboxFilters({
+          conversations: mockConversations,
+          profileId: 'agent-1',
+        }),
+      { wrapper }
+    );
 
     act(() => {
-        result.current.setScope('department');
-        result.current.setDepartmentAgentIds(['agent-1', 'agent-2']);
+      result.current.setScope('department');
+      result.current.setDepartmentAgentIds(['agent-1', 'agent-2']);
     });
 
     const filtered = result.current.filteredConversations;
-    
+
     expect(filtered.length).toBe(2);
-    expect(filtered.map(f => f.contact.id)).toContain('c1');
-    expect(filtered.map(f => f.contact.id)).toContain('c2');
+    expect(filtered.map((f) => f.contact.id)).toContain('c1');
+    expect(filtered.map((f) => f.contact.id)).toContain('c2');
   });
 
   it('filters by specific agent when selected by coordinator', () => {
-    mockHasPermission.mockImplementation((perm) => perm === 'inbox.view_department');
+    mockHasPermission.mockImplementation((perm: string) => perm === 'inbox.view_department');
 
-    const { result } = renderHook(() => useInboxFilters({
-      conversations: mockConversations,
-      profileId: 'agent-1'
-    }), { wrapper });
+    const { result } = renderHook(
+      () =>
+        useInboxFilters({
+          conversations: mockConversations,
+          profileId: 'agent-1',
+        }),
+      { wrapper }
+    );
 
     act(() => {
-        result.current.setScope('department');
-        result.current.setDepartmentAgentIds(['agent-1', 'agent-2']);
-        
-        result.current.setFilters({
-            status: [],
-            tags: [],
-            agentId: 'agent-2',
-            dateRange: { from: null, to: null }
-        } as any);
+      result.current.setScope('department');
+      result.current.setDepartmentAgentIds(['agent-1', 'agent-2']);
+
+      result.current.setFilters({
+        status: [],
+        tags: [],
+        agentId: 'agent-2',
+        dateRange: { from: null, to: null },
+      });
     });
 
     const filtered = result.current.filteredConversations;
-    
+
     expect(filtered.length).toBe(1);
     expect(filtered[0].contact.id).toBe('c2');
   });
@@ -128,20 +145,22 @@ describe('useInboxFilters Business Rules', () => {
   it('shows only mine for common agents', () => {
     mockHasPermission.mockReturnValue(false);
 
-    const { result } = renderHook(() => useInboxFilters({
-      conversations: mockConversations,
-      profileId: 'agent-1'
-    }), { wrapper });
+    const { result } = renderHook(
+      () =>
+        useInboxFilters({
+          conversations: mockConversations,
+          profileId: 'agent-1',
+        }),
+      { wrapper }
+    );
 
     act(() => {
-        result.current.setScope('mine');
+      result.current.setScope('mine');
     });
 
     const filtered = result.current.filteredConversations;
-    
+
     expect(filtered.length).toBe(1);
     expect(filtered[0].contact.id).toBe('c1');
   });
 });
-
-

@@ -1,4 +1,4 @@
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { z } from "https://esm.sh/zod@3.23.8";
 import { MetaWebhookPayloadSchema } from "./webhook-schemas.ts";
 
 // Normalizes Meta WhatsApp Cloud API payloads to the unified Evolution model.
@@ -214,14 +214,17 @@ export function normalizeMetaPayload(payload: unknown): {
 
 /**
  * Validates Meta webhook signature (X-Hub-Signature-256).
- * Returns true if valid OR if no secret is configured (dev mode).
+ * Returns true if the signature is valid. Rejects (returns false) when appSecret is empty.
  */
 export async function validateMetaSignature(
   rawBody: string,
   signatureHeader: string | null,
   appSecret: string,
 ): Promise<boolean> {
-  if (!appSecret) return true;
+  if (!appSecret) {
+    console.error('[meta-webhook] WHATSAPP_APP_SECRET not configured — rejecting all requests');
+    return false;
+  }
   if (!signatureHeader) return false;
   const expected = signatureHeader.startsWith('sha256=') ? signatureHeader.slice(7) : signatureHeader;
 

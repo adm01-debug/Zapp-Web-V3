@@ -1,8 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 const EVOLUTION_API_URL = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
 const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY")!;
 
@@ -25,6 +26,7 @@ async function getMediaBase64(instanceName: string, messageId: string): Promise<
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
       body: JSON.stringify({ message: { key: { id: messageId } }, convertToMp4: false }),
+      signal: AbortSignal.timeout(30_000),
     });
     if (!resp.ok) return null;
     const data = await resp.json();
@@ -38,6 +40,9 @@ async function getMediaBase64(instanceName: string, messageId: string): Promise<
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   const headers = { ...getCorsHeaders(req), "Content-Type": "application/json" };
   const log = new Logger("recover-corrupted-audios");
@@ -84,7 +89,7 @@ Deno.serve(async (req) => {
         const existingUrl = msg.media_url;
         if (existingUrl) {
           try {
-            const checkResp = await fetch(existingUrl);
+            const checkResp = await fetch(existingUrl, { signal: AbortSignal.timeout(10_000) });
             if (checkResp.ok) {
               const existingBytes = new Uint8Array(await checkResp.arrayBuffer());
               if (isValidAudioBytes(existingBytes)) { results.skipped++; continue; }
@@ -129,6 +134,6 @@ Deno.serve(async (req) => {
     }), { headers });
   } catch (err) {
     log.error("Error", { error: err instanceof Error ? err.message : String(err) });
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers });
   }
 });

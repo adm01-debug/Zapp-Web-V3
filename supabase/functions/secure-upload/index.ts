@@ -1,5 +1,6 @@
 import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUser } from "../_shared/auth.ts";
 
 /**
  * Secure Upload Middleware
@@ -9,6 +10,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   { error: true, code, message, verdict, scanId, details? }
  */
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — OOM guard (F5b)
+const ALLOWED_BUCKETS = new Set(["whatsapp-media", "audio-messages"]);
+
+// Splits on '/', decodes percent-encoding, then drops empty / dot / dotdot segments.
+// Guards against ....// bypass that replace(/\.\./) leaves as traversal-ready slashes.
+const sanitizeStoragePath = (raw: string): string =>
+  raw
+    .split('/')
+    .flatMap(seg => { try { return [decodeURIComponent(seg)]; } catch { return [seg]; } })
+    .filter(seg => seg !== '' && seg !== '.' && seg !== '..')
+    .join('/');
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -25,19 +36,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) {
       return securityErrorResponse(
         { code: "UNAUTHORIZED", message: "Sessão inválida ou expirada." },
         401,
         req,
       );
     }
-
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const bucket = (formData.get("bucket") as string) || "whatsapp-media";
-    const customPath = formData.get("path") as string;
+
+    // Restrict bucket to known-safe values; ignore any attacker-supplied name
+    const requestedBucket = (formData.get("bucket") as string) || "whatsapp-media";
+    const bucket = ALLOWED_BUCKETS.has(requestedBucket) ? requestedBucket : "whatsapp-media";
+    const rawPathValue = formData.get("path");
+    const rawPath = typeof rawPathValue === "string" ? rawPathValue : null;
+    const customPath = rawPath ? sanitizeStoragePath(rawPath) || null : null;
 
     if (file && file.size > MAX_FILE_SIZE) {
       return securityErrorResponse(
@@ -51,6 +66,14 @@ Deno.serve(async (req) => {
       return securityErrorResponse(
         { code: "INVALID_INPUT", message: "Nenhum arquivo enviado.", details: { field: "file" } },
         400,
+        req,
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return securityErrorResponse(
+        { code: "FILE_TOO_LARGE", message: "Arquivo excede o tamanho máximo permitido de 50 MB." },
+        413,
         req,
       );
     }
@@ -77,6 +100,7 @@ Deno.serve(async (req) => {
 
         const lookup = await fetch(`https://www.virustotal.com/api/v3/files/${sha256}`, {
           headers: { "x-apikey": vtApiKey },
+          signal: AbortSignal.timeout(10_000),
         });
 
         if (lookup.ok) {

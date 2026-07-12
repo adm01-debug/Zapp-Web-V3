@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -8,11 +9,26 @@ Deno.serve(async (req) => {
   const log = new Logger("voice-copilot-action");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const { action, params } = await req.json();
     
     const supabaseUrl = requireEnv('SUPABASE_URL');
     const supabaseKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const supabase = createClient(supabaseUrl, supabaseKey);
+    // Caller-scoped client enforces RLS — used for user-data reads (contacts, analyses)
+    // so tenant isolation is guaranteed without relying on a non-existent user_id column.
+    const callerClient = createClient(supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? requireEnv('SUPABASE_ANON_KEY'), {
+      global: { headers: { authorization: req.headers.get('authorization') || '' } },
+    });
+
+    if (!action || typeof action !== 'string') {
+      return errorResponse('action must be a non-empty string', 400, req);
+    }
+    // params is optional for actions like get_dashboard_metrics, list_agents, get_queue_status
+    const safeParams = (params !== undefined && params !== null && typeof params === 'object' && !Array.isArray(params))
+      ? params
+      : {};
 
     log.info("Processing voice action", { action });
 
@@ -20,14 +36,14 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'search_contacts': {
-        const { query } = params;
+        const { query } = safeParams as Record<string, unknown>;
         // Sanitize input: remove SQL wildcards and special chars
         const sanitized = String(query || '').replace(/[%_\\]/g, '').trim();
         if (!sanitized) {
           result = [];
           break;
         }
-        const { data, error } = await supabase
+        const { data, error } = await callerClient
           .from('contacts')
           .select('id, name, phone, email, company, ai_sentiment, assigned_to')
           .or(`name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%,email.ilike.%${sanitized}%`)
@@ -38,7 +54,21 @@ Deno.serve(async (req) => {
       }
 
       case 'get_conversation_summary': {
-        const { contactId } = params;
+        const { contactId } = safeParams as Record<string, unknown>;
+        if (!contactId || typeof contactId !== 'string') {
+          return errorResponse('contactId is required', 400, req);
+        }
+        // RLS on callerClient enforces tenant isolation — no user_id filter needed
+        const { data: contactCheck, error: contactCheckError } = await callerClient
+          .from('contacts')
+          .select('id')
+          .eq('id', contactId)
+          .maybeSingle();
+        if (contactCheckError) return errorResponse('Database error', 500, req);
+        if (!contactCheck) {
+          result = { summary: 'Nenhuma análise disponível para este contato.' };
+          break;
+        }
         const { data: analysis } = await supabase
           .from('conversation_analyses')
           .select('summary, sentiment, key_points, urgency')
@@ -74,7 +104,25 @@ Deno.serve(async (req) => {
       }
 
       case 'assign_conversation': {
-        const { contactId, agentName } = params;
+        const { contactId, agentName } = safeParams as Record<string, unknown>;
+        if (!contactId || typeof contactId !== 'string') {
+          return errorResponse('contactId is required', 400, req);
+        }
+        if (!agentName || typeof agentName !== 'string') {
+          return errorResponse('agentName is required', 400, req);
+        }
+        // Verify the caller owns this contact before mutating it
+        const { data: ownedContact, error: ownedContactError } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('id', contactId)
+          .eq('user_id', authed.user.id)
+          .maybeSingle();
+        if (ownedContactError) return errorResponse('Database error', 500, req);
+        if (!ownedContact) {
+          result = { success: false, message: 'Contato não encontrado.' };
+          break;
+        }
         // Find agent by name
         const { data: agent } = await supabase
           .from('profiles')
@@ -92,7 +140,8 @@ Deno.serve(async (req) => {
         const { error } = await supabase
           .from('contacts')
           .update({ assigned_to: agent.id })
-          .eq('id', contactId);
+          .eq('id', contactId)
+          .eq('user_id', authed.user.id);
 
         result = error
           ? { success: false, message: 'Erro ao atribuir conversa.' }
@@ -101,10 +150,38 @@ Deno.serve(async (req) => {
       }
 
       case 'create_note': {
-        const { contactId, content, authorId } = params;
+        const { contactId, content } = safeParams as Record<string, unknown>;
+        if (!contactId || typeof contactId !== 'string') {
+          return errorResponse('contactId is required', 400, req);
+        }
+        if (!content || typeof content !== 'string') {
+          return errorResponse('content is required', 400, req);
+        }
+        // Verify the caller owns this contact before inserting a note
+        const { data: ownedContact, error: ownedContactErr } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('id', contactId)
+          .eq('user_id', authed.user.id)
+          .maybeSingle();
+        if (ownedContactErr) return errorResponse('Database error', 500, req);
+        if (!ownedContact) {
+          result = { success: false, message: 'Contato não encontrado.' };
+          break;
+        }
+        // Resolve the profile for the authenticated user — never trust params.authorId.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', authed.user.id)
+          .maybeSingle();
+        if (!profile) {
+          result = { success: false, message: 'Perfil do usuário não encontrado.' };
+          break;
+        }
         const { error } = await supabase
           .from('contact_notes')
-          .insert({ contact_id: contactId, content, author_id: authorId });
+          .insert({ contact_id: contactId, content, author_id: profile.id });
         result = error
           ? { success: false, message: 'Erro ao criar nota.' }
           : { success: true, message: 'Nota criada com sucesso.' };
@@ -136,8 +213,7 @@ Deno.serve(async (req) => {
     log.done(200, { action });
     return jsonResponse({ result }, 200, req);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

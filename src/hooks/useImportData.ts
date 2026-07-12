@@ -5,7 +5,7 @@
  * @description Importação de CSV e Excel com validação Zod
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
@@ -47,6 +47,13 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
   const [status, setStatus] = useState<ImportStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ImportResult<T> | null>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   // Parsear CSV usando xlsx
   const parseCSV = useCallback(async (file: File): Promise<unknown[]> => {
@@ -95,7 +102,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
       
       reader.onload = (e) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const data = new Uint8Array(e.target?.result as ArrayBuffer); // ignore-audit: narrows Supabase query result to local interface
           const workbook = XLSX.read(data, { type: 'array' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(sheet, {
@@ -159,6 +166,8 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
     };
   }, [schema, maxRows]);
 
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
   // Processar arquivo
   const processFile = useCallback(async (file: File) => {
     setStatus('parsing');
@@ -166,6 +175,12 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
     setResult(null);
 
     try {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        throw new Error(
+          `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 10 MB.`
+        );
+      }
+
       const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
       const data = isExcel ? await parseExcel(file) : await parseCSV(file);
 
@@ -205,8 +220,8 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
       setProgress(100);
       toast.success(`${result.success.length} registros importados com sucesso!`);
       
-      // Reset após 2 segundos
-      setTimeout(() => {
+      // Reset após 2 segundos — timer tracked so unmount can clear it
+      resetTimerRef.current = setTimeout(() => {
         setStatus('idle');
         setResult(null);
         setProgress(0);

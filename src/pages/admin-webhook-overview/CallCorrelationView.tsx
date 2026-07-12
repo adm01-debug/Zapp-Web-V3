@@ -3,8 +3,6 @@
  * timelines consolidadas por instância.
  */
 import { useMemo, useState } from 'react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { PhoneCall, Phone, AlertTriangle, Clock, Activity } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';
+import { formatDateTimeCompact } from '@/lib/formatters';
 import {
   groupEventsByCall,
   formatDuration,
@@ -23,13 +22,6 @@ interface Props {
   events: EvolutionWebhookEvent[];
 }
 
-function formatTime(iso: string): string {
-  try {
-    return format(new Date(iso), 'dd/MM HH:mm:ss', { locale: ptBR });
-  } catch {
-    return iso;
-  }
-}
 
 function shortJid(jid: string | null): string {
   if (!jid) return '—';
@@ -205,7 +197,7 @@ function TimelineNode({ entry, startedAt }: { entry: CallTimelineEntry; startedA
         {entry.status && (
           <span className={cn('font-medium', statusTone(entry.status))}>{entry.status}</span>
         )}
-        <span className="text-muted-foreground">{formatTime(entry.createdAt)}</span>
+        <span className="text-muted-foreground">{formatDateTimeCompact(entry.createdAt)}</span>
         <span className="text-muted-foreground">· {offset}</span>
       </div>
       {entry.errorMessage && (

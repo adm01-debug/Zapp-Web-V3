@@ -49,15 +49,16 @@ export async function handleRpc(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const res = await withTimeout(client.rpc(rpc, cleanParams))
-      rpcData = (res.data as any).data
-      error = (res.data as any).error
+      const pgRes = res.data as { data: unknown; error: { message: string; code?: string } | null } | null;
+      rpcData = pgRes?.data ?? null
+      error = pgRes?.error ?? null
       timeoutFired = res.timeoutFired
-    } catch (e: any) {
-      if (e.message === 'proxy_timeout') {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === 'proxy_timeout') {
         timeoutFired = true
         break
       }
-      error = { message: e.message }
+      error = { message: e instanceof Error ? e.message : String(e) }
     }
 
     if (!isSchemaCacheError(error)) break
@@ -103,44 +104,65 @@ export async function handleRpc(
   return new Response(JSON.stringify({ data: rpcData, cid: ctx.cid, rid: ctx.rid }), { status: 200, headers })
 }
 
+type DynamicQueryBuilder = Record<string, (col: string, val: unknown) => DynamicQueryBuilder>
+
 export async function handleQuery(
   client: SupabaseClient,
   action: 'select' | 'update',
   table: string,
-  body: any,
+  body: Record<string, unknown>,
   ctx: QueryLogContext,
   headers: Record<string, string>
 ): Promise<Response> {
   const queryStart = Date.now()
-  
+
   if (!table) {
     return new Response(JSON.stringify({ error: 'Table name is required', cid: ctx.cid, rid: ctx.rid }), { status: 400, headers })
   }
 
-  let query: any
+  let query: PromiseLike<unknown> & DynamicQueryBuilder
 
   if (action === 'select') {
     query = client.from(table).select((body.select as string) || '*', {
-      count: (body.countMode as any) || null,
-    })
+      count: (body.countMode as 'exact' | 'planned' | 'estimated' | undefined) ?? null,
+    }) as unknown as typeof query
   } else if (action === 'update') {
-    query = client.from(table).update(body.data || {}).match(body.match || {})
+    query = client.from(table)
+      .update((body.data as Record<string, unknown>) || {})
+      .match((body.match as Record<string, unknown>) || {}) as unknown as typeof query
   } else {
     return new Response(JSON.stringify({ error: `Unsupported action: ${action}`, cid: ctx.cid, rid: ctx.rid }), { status: 400, headers })
   }
 
+  const ALLOWED_FILTER_OPERATORS = new Set([
+    'eq', 'neq', 'gt', 'gte', 'lt', 'lte',
+    'like', 'ilike', 'is', 'in', 'contains',
+    'containedBy', 'overlaps', 'textSearch',
+    'not', 'or', 'filter',
+  ]);
+
   if (Array.isArray(body.filters)) {
     for (const f of body.filters as ProxyFilter[]) {
-      (query as any)[f.operator](f.column, f.value)
+      if (!ALLOWED_FILTER_OPERATORS.has(f.operator)) {
+        return new Response(JSON.stringify({ error: `Unsupported filter operator: ${f.operator}`, cid: ctx.cid, rid: ctx.rid }), { status: 400, headers });
+      }
+      query = (query as DynamicQueryBuilder)[f.operator](f.column, f.value) as unknown as typeof query
     }
   }
 
   if (body.order) {
-    query = query.order(body.order.column, { ascending: !!body.order.ascending })
+    const order = body.order as { column: string; ascending?: boolean }
+    query = (query as unknown as ReturnType<typeof client.from>)
+      .order(order.column, { ascending: !!order.ascending }) as unknown as typeof query
   }
 
-  if (typeof body.limit === 'number') query = query.limit(body.limit)
-  if (typeof body.offset === 'number') query = query.range(body.offset, body.offset + (body.limit || 10) - 1)
+  if (typeof body.limit === 'number') {
+    query = (query as unknown as ReturnType<typeof client.from>).limit(body.limit) as unknown as typeof query
+  }
+  if (typeof body.offset === 'number') {
+    query = (query as unknown as ReturnType<typeof client.from>)
+      .range(body.offset, body.offset + ((body.limit as number) || 10) - 1) as unknown as typeof query
+  }
 
   let queryData: unknown = null
   let error: { message: string; code?: string } | null = null
@@ -151,16 +173,17 @@ export async function handleQuery(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const res = await withTimeout(query)
-      queryData = (res.data as any).data
-      error = (res.data as any).error
-      count = (res.data as any).count
+      const pgRes = res.data as { data: unknown; error: { message: string; code?: string } | null; count?: number | null } | null
+      queryData = pgRes?.data ?? null
+      error = pgRes?.error ?? null
+      count = pgRes?.count ?? null
       timeoutFired = res.timeoutFired
-    } catch (e: any) {
-      if (e.message === 'proxy_timeout') {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === 'proxy_timeout') {
         timeoutFired = true
         break
       }
-      error = { message: e.message }
+      error = { message: e instanceof Error ? e.message : String(e) }
     }
 
     if (!isSchemaCacheError(error)) break

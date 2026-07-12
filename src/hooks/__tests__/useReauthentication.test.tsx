@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-const mockGetUser = vi.fn();
-const mockSignInWithPassword = vi.fn();
+const mockGetUser = vi.hoisted(() => vi.fn());
+const mockSignInWithPassword = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
-      getUser: (...args: any[]) => mockGetUser(...args),
-      signInWithPassword: (...args: any[]) => mockSignInWithPassword(...args),
+      getUser: (...args: unknown[]) => mockGetUser(...args),
+      signInWithPassword: (...args: unknown[]) => mockSignInWithPassword(...args),
     },
   },
 }));
@@ -21,6 +21,11 @@ vi.mock('sonner', () => ({
 }));
 
 import { useReauthentication } from '@/hooks/useReauthentication';
+
+interface ReauthResult {
+  success: boolean;
+  error?: string;
+}
 
 describe('useReauthentication', () => {
   beforeEach(() => {
@@ -43,7 +48,7 @@ describe('useReauthentication', () => {
 
     const { result } = renderHook(() => useReauthentication());
 
-    let reauthResult: any;
+    let reauthResult!: ReauthResult;
     await act(async () => {
       reauthResult = await result.current.reauthenticate('correctpass');
     });
@@ -65,7 +70,7 @@ describe('useReauthentication', () => {
 
     const { result } = renderHook(() => useReauthentication());
 
-    let reauthResult: any;
+    let reauthResult!: ReauthResult;
     await act(async () => {
       reauthResult = await result.current.reauthenticate('wrongpass');
     });
@@ -81,7 +86,7 @@ describe('useReauthentication', () => {
 
     const { result } = renderHook(() => useReauthentication());
 
-    let reauthResult: any;
+    let reauthResult!: ReauthResult;
     await act(async () => {
       reauthResult = await result.current.reauthenticate('anypass');
     });

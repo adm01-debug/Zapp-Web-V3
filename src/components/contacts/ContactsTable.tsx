@@ -56,6 +56,7 @@ function SortableHeader({ label, field, sortField, sortDir, onSort }: {
   const isActive = sortField === field;
   return (
     <th
+      scope="col"
       className="text-left p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors group"
       onClick={() => onSort(field)}
     >
@@ -109,7 +110,7 @@ export function ContactsTable({
       <table className="w-full" role="grid" aria-label="Lista de contatos">
         <thead>
           <tr className="border-b border-border/20 bg-muted/20">
-            <th className="p-3 w-10">
+            <th scope="col" className="p-3 w-10">
               <Checkbox
                 checked={selectedIds.length === contacts.length && contacts.length > 0}
                 onCheckedChange={(checked) => onSelectIds(checked ? contacts.map(c => c.id) : [])}
@@ -122,9 +123,9 @@ export function ContactsTable({
             <SortableHeader label="Email" field="email" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
             <SortableHeader label="Empresa" field="company" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
             <SortableHeader label="Cargo" field="job_title" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
-            <th className="text-left p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Etiquetas</th>
-            <th className="text-center p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Saúde</th>
-            <th className="text-right p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
+            <th scope="col" className="text-left p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Etiquetas</th>
+            <th scope="col" className="text-center p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Saúde</th>
+            <th scope="col" className="text-right p-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -156,7 +157,7 @@ export function ContactsTable({
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar className="w-9 h-9">
-                        <AvatarImage src={contact.avatar_url || undefined} />
+                        <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
                         <AvatarFallback className={cn('font-semibold text-xs', avatarColors.bg, avatarColors.text)}>
                           {getInitials(contact.name)}
                         </AvatarFallback>
@@ -239,12 +240,12 @@ export function ContactsTable({
                 </td>
                 <td className="p-3 text-right">
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id)} title="Conversar">
+                    <Button aria-label="Conversar" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id)} title="Conversar">
                       <MessageSquare className="w-3.5 h-3.5" />
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="w-7 h-7">
+                        <Button aria-label="Opções do contato" variant="ghost" size="icon" className="w-7 h-7">
                           <MoreVertical className="w-3.5 h-3.5" />
                         </Button>
                       </DropdownMenuTrigger>

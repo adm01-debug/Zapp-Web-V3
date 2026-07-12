@@ -1,4 +1,4 @@
-import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
+import { whatsappConnectionRepository } from '../data-access/whatsappConnectionRepository';
 import { supabase } from '@/integrations/supabase/client';
 
 import { getLogger } from '@/lib/logger';
@@ -17,7 +17,7 @@ export const whatsappConnectionService = {
     const QR_TTL_MAX_MS = 300_000;
 
     if (!result || typeof result !== 'object') return { ttlMs: QR_TTL_DEFAULT_MS, source: 'default' };
-    const r = result as { count?: unknown; qrcode?: { count?: unknown; ttl?: unknown }; ttl?: unknown; expires_in?: unknown };
+    const r = result as Record<string, unknown> & { qrcode?: Record<string, unknown> }; // ignore-audit: narrows Supabase query result to local interface
     const candidates = [
       r.count,
       r.qrcode?.count,
@@ -39,7 +39,7 @@ export const whatsappConnectionService = {
   async logQrAttempt(connId: string, instanceId: string, name: string, status: string = 'pending') {
     try {
       log.debug(`Logging QR attempt for ${instanceId} (${status})`);
-      const { data: userData , error } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       const result = await whatsappConnectionRepository.logQrAttempt({
         connection_id: connId,
         instance_id: instanceId,

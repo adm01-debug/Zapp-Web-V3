@@ -48,6 +48,7 @@ export function useSLARules(scope?: SLARuleScope) {
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey,
+    staleTime: 60_000,
     queryFn: async () => {
       let query = supabase.from('sla_rules').select('*').order('priority', { ascending: false });
 
@@ -80,7 +81,7 @@ export function useSLARules(scope?: SLARuleScope) {
         agent_id: form.agent_id || null,
       };
       const payload = form.metadata
-        ? { ...base, metadata: form.metadata as unknown as Json }
+        ? { ...base, metadata: form.metadata as Json }
         : base;
       const { error } = await supabase.from('sla_rules').insert(payload);
       if (error) throw error;
@@ -108,7 +109,7 @@ export function useSLARules(scope?: SLARuleScope) {
         agent_id: form.agent_id || null,
       };
       const payload = form.metadata
-        ? { ...base, metadata: form.metadata as unknown as Json }
+        ? { ...base, metadata: form.metadata as Json }
         : base;
       const { error } = await supabase.from('sla_rules').update(payload).eq('id', id);
       if (error) throw error;

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 /**
  * MCP Server for Claude / AI Agents
@@ -8,9 +9,13 @@ import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
 serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
   const corsHeaders = getCorsHeaders(req);
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const url = new URL(req.url);
     const body = await req.json().catch(() => ({}));
 
@@ -35,9 +40,10 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), { 
-      status: 500, 
-      headers: corsHeaders 
+    console.error('[mcp-server] unhandled error:', error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: corsHeaders
     });
   }
 });

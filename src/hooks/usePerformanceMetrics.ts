@@ -38,14 +38,15 @@ export function usePerformanceMetrics(componentName: string) {
         }
       });
     });
-    inpObserver.observe({ type: 'event-timing', buffered: true, durationThreshold: 40 } as PerformanceObserverInit & { durationThreshold: number });
+    inpObserver.observe({ type: 'event-timing', buffered: true, durationThreshold: 40 } as PerformanceObserverInit & { durationThreshold?: number });
 
     // Layout Shifts (CLS)
     const clsObserver = new PerformanceObserver((list) => {
-      const entries = list.getEntries() as (PerformanceEntry & { hadRecentInput?: boolean; value?: number })[];
+      const entries = list.getEntries();
       entries.forEach((entry) => {
-        if (!entry.hadRecentInput) {
-          log.warn(`[${componentName}] Layout Shift: ${entry.value?.toFixed(4)}`, entry);
+        const shift = entry as PerformanceEntry & { hadRecentInput?: boolean; value?: number };
+        if (!shift.hadRecentInput) {
+          log.warn(`[${componentName}] Layout Shift: ${(shift.value ?? 0).toFixed(4)}`, entry);
         }
       });
     });

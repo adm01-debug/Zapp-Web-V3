@@ -76,7 +76,12 @@ export function useRouteRoles(path: string | undefined): AppRole[] | null {
       if (cancelled) return;
       const cached = cache.get(path) ?? null;
       setRoles(prev => (prev === cached ? prev : cached));
-    }).catch(() => {});
+    }).catch((err: unknown) => {
+      // fetchRoles already handles and logs errors internally; this catch
+      // guards against any unexpected escape. Log it so silent auth failures
+      // surface in monitoring rather than being swallowed.
+      log.error('Unhandled error in fetchRoles for path', { path, err });
+    });
     return () => {
       cancelled = true;
     };

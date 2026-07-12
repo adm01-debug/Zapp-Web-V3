@@ -14,6 +14,7 @@ import {
   requireEnv,
   Logger,
 } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 /** Codifica ArrayBuffer em base64 em chunks (evita estouro de call stack). */
 function bufferToBase64(buf: ArrayBuffer): string {
@@ -33,6 +34,8 @@ Deno.serve(async (req) => {
   const log = new Logger("elevenlabs-voice");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const ip = getClientIP(req);
     const rl = checkRateLimit(`voice:${ip}`, 20, 60_000);
     if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
@@ -44,6 +47,7 @@ Deno.serve(async (req) => {
     if (action === "listVoices") {
       const resp = await fetch("https://api.elevenlabs.io/v1/voices", {
         headers: { "xi-api-key": ELEVENLABS_API_KEY },
+        signal: AbortSignal.timeout(10_000),
       });
       if (!resp.ok) {
         const detail = (await resp.text().catch(() => "")).substring(0, 200);
@@ -82,6 +86,7 @@ Deno.serve(async (req) => {
               use_speaker_boost: s.useSpeakerBoost !== false,
             },
           }),
+          signal: AbortSignal.timeout(30_000),
         },
       );
 
@@ -100,8 +105,7 @@ Deno.serve(async (req) => {
 
     return errorResponse(`Ação desconhecida: ${action}`, 400, req);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    log.error("Unhandled error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

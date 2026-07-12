@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,13 +20,13 @@ export function FollowUpExecutionsHistory() {
   const { data: executions = [], isLoading } = useQuery({
     queryKey: ['followup-executions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('followup_executions')
-        .select('*, sequence:followup_sequences(name), contact:contacts(name, phone)')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      type ExecutionRow = { id: string; status: string; current_step: number; created_at: string; sequence: { name: string } | null; contact: { name: string | null; phone: string | null } | null };
+      const { data, error } = await safeClient.from<ExecutionRow>(
+        'followup_executions',
+        q => q.select('*, sequence:followup_sequences(name), contact:contacts(name, phone)').order('created_at', { ascending: false }).limit(100),
+      );
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
   });
 

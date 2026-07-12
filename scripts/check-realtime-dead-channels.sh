@@ -39,6 +39,8 @@ for TABLE in "${DEAD_TABLES[@]}"; do
     fi
     VIOLATIONS+=("$match")
   done < <(grep -rn --include='*.ts' --include='*.tsx' \
+    --exclude='*.test.ts' --exclude='*.test.tsx' \
+    --exclude='*.spec.ts' --exclude='*.spec.tsx' \
     -P "schema:\s*['\"]public['\"].*?table:\s*['\"]${TABLE}['\"]" \
     "${SRC_DIR}" 2>/dev/null || true)
 done

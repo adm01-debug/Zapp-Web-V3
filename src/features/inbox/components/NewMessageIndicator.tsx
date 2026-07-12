@@ -86,9 +86,10 @@ export function NewMessageIndicator({
                     }}
                   />
                   <Avatar className="w-12 h-12 ring-2 ring-primary/50">
-                    <AvatarImage 
-                      src={avatarUrl || undefined} 
-                      referrerPolicy="no-referrer" 
+                    <AvatarImage
+                      src={avatarUrl || undefined}
+                      alt={contactName}
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
                         (e.target as HTMLImageElement).removeAttribute('src');
                       }}
@@ -126,6 +127,7 @@ export function NewMessageIndicator({
                       size="icon"
                       className="w-6 h-6 hover:bg-muted/50"
                       onClick={onDismiss}
+                      aria-label="Dispensar notificação"
                     >
                       <X className="w-4 h-4" />
                     </Button>

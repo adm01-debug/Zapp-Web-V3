@@ -61,10 +61,10 @@ function EditableField({ value, icon, onSave, placeholder, label }: EditableFiel
           disabled={saving}
           placeholder={placeholder}
         />
-        <Button variant="ghost" size="icon" className="w-6 h-6 text-primary hover:bg-primary/10" onClick={handleSave} disabled={saving}>
+        <Button aria-label="Salvar" variant="ghost" size="icon" className="w-6 h-6 text-primary hover:bg-primary/10" onClick={handleSave} disabled={saving}>
           <Check className="w-3 h-3" />
         </Button>
-        <Button variant="ghost" size="icon" className="w-6 h-6 text-destructive hover:bg-destructive/10" onClick={() => { setDraft(value); setEditing(false); }}>
+        <Button aria-label="Cancelar edição" variant="ghost" size="icon" className="w-6 h-6 text-destructive hover:bg-destructive/10" onClick={() => { setDraft(value); setEditing(false); }}>
           <X className="w-3 h-3" />
         </Button>
       </div>
@@ -91,7 +91,7 @@ function EditableField({ value, icon, onSave, placeholder, label }: EditableFiel
         <span className="text-primary shrink-0">{icon}</span>
         <span className="text-foreground truncate">{value}</span>
       </div>
-      <Button variant="ghost" size="icon" className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditing(true)}>
+      <Button aria-label={`Editar ${label}`} variant="ghost" size="icon" className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => setEditing(true)}>
         <Pencil className="w-3 h-3 text-muted-foreground" />
       </Button>
     </div>
@@ -107,7 +107,7 @@ export function ContactInfoSection({ contact, enrichedData }: ContactInfoSection
   };
 
   const updateContact = useCallback(async (field: string, value: string) => {
-    const { error } = await dbFrom('contacts').update({ [field]: value } as never).eq('id', contact.id);
+    const { error } = await dbFrom('contacts').update({ [field]: value }).eq('id', contact.id);
     if (error) throw error;
 
     queryClient.invalidateQueries({ queryKey: ['contact-enriched', contact.id] });
@@ -119,8 +119,10 @@ export function ContactInfoSection({ contact, enrichedData }: ContactInfoSection
   return (
     <div className="space-y-1.5">
       {/* Phone — always visible, copyable */}
-      <div
-        className="flex items-center justify-between gap-2 text-sm bg-background/40 rounded-lg p-2.5 hover:bg-muted/30 transition-colors group cursor-pointer"
+      <button
+        type="button"
+        aria-label={`Copiar telefone ${contact.phone}`}
+        className="flex w-full items-center justify-between gap-2 text-sm bg-background/40 rounded-lg p-2.5 hover:bg-muted/30 transition-colors group cursor-pointer"
         onClick={() => copyToClipboard(contact.phone, 'Telefone')}
       >
         <div className="flex items-center gap-2.5">
@@ -128,7 +130,7 @@ export function ContactInfoSection({ contact, enrichedData }: ContactInfoSection
           <span className="text-foreground  text-xs">{contact.phone}</span>
         </div>
         <Copy className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-      </div>
+      </button>
 
       {/* Email & Company in grid when both have values */}
       <div className="grid grid-cols-1 gap-1.5">

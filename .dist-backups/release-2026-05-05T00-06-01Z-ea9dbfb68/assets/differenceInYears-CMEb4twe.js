@@ -1,1 +1,0 @@
-import{bw as a,gb as c}from"./index-lu8c9KKn.js";function i(n,s){const e=a(n),t=a(s);return e.getFullYear()-t.getFullYear()}function d(n,s){const e=a(n),t=a(s),r=c(e,t),l=Math.abs(i(e,t));e.setFullYear(1584),t.setFullYear(1584);const f=c(e,t)===-r,o=r*(l-+f);return o===0?0:o}export{d};

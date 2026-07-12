@@ -57,7 +57,9 @@ export function playTeamChatSound() {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.35);
-      } catch (err) { log.error('Unexpected error in useTeamChatNotifications:', err); }
+      } catch (err) {
+        log.error('Unexpected error in useTeamChatNotifications:', err);
+      }
     }, 150);
   } catch (err) {
     log.warn('Failed to play team chat sound:', err);
@@ -86,84 +88,110 @@ export function useTeamChatNotifications(activeConversationId: string | null) {
 
     const channel = supabase
       .channel('team-chat-notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'team_messages',
-      }, async (payload) => {
-        const msg = payload.new as {
-          id: string;
-          conversation_id: string;
-          sender_id: string;
-          content: string;
-          media_type: string | null;
-          created_at: string;
-        };
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          // Wave 2: team_messages is a VIEW in public schema — zapp.team_messages is the base table.
+          // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
+          schema: 'zapp',
+          table: 'team_messages',
+        },
+        async (payload) => {
+          const msg = payload.new as {
+            id: string;
+            conversation_id: string;
+            sender_id: string;
+            content: string;
+            media_type: string | null;
+            created_at: string;
+          };
 
-        // Don't notify for own messages
-        if (msg.sender_id === profile.id) return;
+          // Don't notify for own messages
+          if (msg.sender_id === profile.id) return;
 
-        // Don't notify if currently viewing this conversation
-        if (!document.hidden && activeIdRef.current === msg.conversation_id) return;
+          // Don't notify if currently viewing this conversation
+          if (!document.hidden && activeIdRef.current === msg.conversation_id) return;
 
-        // Check if user is a member of this conversation
-        const { data: membership , error } = await supabase
-          .from('team_conversation_members')
-          .select('id, is_muted')
-          .eq('conversation_id', msg.conversation_id)
-          .eq('profile_id', profile.id)
-          .single();
+          // Check if user is a member of this conversation
+          const { data: membership } = await supabase
+            .from('team_conversation_members')
+            .select('id, is_muted')
+            .eq('conversation_id', msg.conversation_id)
+            .eq('profile_id', profile.id)
+            .single();
 
-        if (!membership) return; // Not a member
-        if (membership.is_muted) return; // Muted
+          if (!membership) return; // Not a member
+          if (membership.is_muted) return; // Muted
 
-        // Play sound if enabled
-        if (notifSettings.soundEnabled && !isQuietHours()) {
-          playTeamChatSound();
+          // Play sound if enabled
+          if (notifSettings.soundEnabled && !isQuietHours()) {
+            playTeamChatSound();
+          }
+
+          // Show browser notification if enabled
+          if (
+            permission === 'granted' &&
+            isSubscribed &&
+            notifSettings.browserNotifications &&
+            !isQuietHours()
+          ) {
+            // Fetch sender name
+            let senderName = 'Colega';
+            try {
+              const { data } = await supabase
+                .from('profiles')
+                .select('name')
+                .eq('id', msg.sender_id)
+                .single();
+              if (data) senderName = data.name;
+            } catch (err) {
+              log.error('Unexpected error in useTeamChatNotifications:', err);
+            }
+
+            const body = msg.media_type
+              ? msg.media_type === 'image'
+                ? '📷 Imagem'
+                : msg.media_type === 'audio' || msg.media_type === 'audio_meme'
+                  ? '🎤 Áudio'
+                  : msg.media_type === 'video'
+                    ? '🎥 Vídeo'
+                    : msg.media_type === 'sticker'
+                      ? '🎨 Figurinha'
+                      : msg.media_type === 'document'
+                        ? '📎 Documento'
+                        : msg.content.slice(0, 100)
+              : msg.content.slice(0, 100);
+
+            await showNotification({
+              title: `💬 Teams: ${senderName}`,
+              body,
+              tag: `team-msg-${msg.conversation_id}`,
+              data: {
+                type: 'team_chat',
+                conversationId: msg.conversation_id,
+                messageId: msg.id,
+              },
+              requireInteraction: false,
+            });
+
+            log.debug('Team chat notification sent for message:', msg.id);
+          }
         }
-
-        // Show browser notification if enabled
-        if (permission === 'granted' && isSubscribed && notifSettings.browserNotifications && !isQuietHours()) {
-          // Fetch sender name
-          let senderName = 'Colega';
-          try {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('name')
-              .eq('id', msg.sender_id)
-              .single();
-            if (data) senderName = data.name;
-          } catch (err) { log.error('Unexpected error in useTeamChatNotifications:', err); }
-
-          const body = msg.media_type
-            ? msg.media_type === 'image' ? '📷 Imagem'
-              : msg.media_type === 'audio' || msg.media_type === 'audio_meme' ? '🎤 Áudio'
-              : msg.media_type === 'video' ? '🎥 Vídeo'
-              : msg.media_type === 'sticker' ? '🎨 Figurinha'
-              : msg.media_type === 'document' ? '📎 Documento'
-              : msg.content.slice(0, 100)
-            : msg.content.slice(0, 100);
-
-          await showNotification({
-            title: `💬 Teams: ${senderName}`,
-            body,
-            tag: `team-msg-${msg.conversation_id}`,
-            data: {
-              type: 'team_chat',
-              conversationId: msg.conversation_id,
-              messageId: msg.id,
-            },
-            requireInteraction: false,
-          });
-
-          log.debug('Team chat notification sent for message:', msg.id);
-        }
-      })
+      )
       .subscribe();
 
     return () => {
       void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [profile, notifSettings.soundEnabled, notifSettings.browserNotifications, permission, isSubscribed, isQuietHours, showNotification]);
+  }, [
+    profile,
+    notifSettings.soundEnabled,
+    notifSettings.browserNotifications,
+    permission,
+    isSubscribed,
+    isQuietHours,
+    showNotification,
+  ]);
 }

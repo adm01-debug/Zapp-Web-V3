@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,35 +31,55 @@ interface ConnectionInfo {
  * Only shows when there are actual reputation records to display.
  */
 export function NumberReputationMonitor() {
-  const [reputations, setReputations] = useState<(ReputationData & { connection?: ConnectionInfo })[]>([]);
+  const [reputations, setReputations] = useState<
+    (ReputationData & { connection?: ConnectionInfo })[]
+  >([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
-    const { data: reps , error } = await supabase.from('number_reputation').select('*');
-    const { data: connections , error: connectionsErr } = await supabase.from('whatsapp_connections').select('id, instance_id, phone_number');
+    const { data: reps } = await supabase.from('number_reputation').select('*');
+    if (!mountedRef.current) return;
+    const { data: connections } = await supabase
+      .from('whatsapp_connections')
+      .select('id, instance_id, phone_number');
+    if (!mountedRef.current) return;
     if (reps && connections) {
-      setReputations(reps.map(r => ({
-        ...r,
-        connection: connections.find(c => c.id === r.whatsapp_connection_id) as ConnectionInfo | undefined,
-      })));
+      setReputations(
+        reps.map((r) => ({
+          ...r,
+          connection: connections.find((c) => c.id === r.whatsapp_connection_id) as
+            ConnectionInfo | undefined,
+        }))
+      );
     }
     setLoading(false);
   };
 
   const startWarmup = async (id: string) => {
-    await supabase.from('number_reputation').update({ warmup_status: 'active', warmup_day: 1, daily_limit: 20 }).eq('id', id);
+    await supabase
+      .from('number_reputation')
+      .update({ warmup_status: 'active', warmup_day: 1, daily_limit: 20 })
+      .eq('id', id);
     toast.success('Aquecimento iniciado');
     loadData();
   };
 
-  const getHealthColor = (score: number) => score >= 80 ? 'text-status-online' : score >= 50 ? 'text-warning' : 'text-destructive';
-  const getHealthBg = (score: number) => score >= 80 ? 'bg-status-online/10' : score >= 50 ? 'bg-warning/10' : 'bg-destructive/10';
+  const getHealthColor = (score: number) =>
+    score >= 80 ? 'text-status-online' : score >= 50 ? 'text-warning' : 'text-destructive';
+  const getHealthBg = (score: number) =>
+    score >= 80 ? 'bg-status-online/10' : score >= 50 ? 'bg-warning/10' : 'bg-destructive/10';
 
   const warmupLabels: Record<string, string> = {
-    none: 'Sem aquecimento', active: 'Em aquecimento', completed: 'Aquecido', paused: 'Pausado',
+    none: 'Sem aquecimento',
+    active: 'Em aquecimento',
+    completed: 'Aquecido',
+    paused: 'Pausado',
   };
 
   // Hide entirely when no data — no empty state card taking space
@@ -68,45 +89,73 @@ export function NumberReputationMonitor() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Shield className="w-5 h-5 text-primary" />
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <Shield className="h-5 w-5 text-primary" />
           Saúde dos Números
         </h2>
         <p className="text-sm text-muted-foreground">Reputação e aquecimento das suas conexões</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {reputations.map((rep, idx) => (
-          <motion.div key={rep.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4 space-y-3">
+          <motion.div
+            key={rep.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+          >
+            <Card className="transition-shadow hover:shadow-md">
+              <CardContent className="space-y-3 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium">{rep.connection?.instance_id || 'Instância'}</p>
-                    <p className="text-xs text-muted-foreground">{rep.connection?.phone_number || 'N/A'}</p>
+                    <p className="text-sm font-medium">
+                      {rep.connection?.instance_id || 'Instância'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {rep.connection?.phone_number || 'N/A'}
+                    </p>
                   </div>
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getHealthBg(rep.health_score)}`}>
-                    <span className={`text-lg font-bold ${getHealthColor(rep.health_score)}`}>{rep.health_score}</span>
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${getHealthBg(rep.health_score)}`}
+                  >
+                    <span className={`text-lg font-bold ${getHealthColor(rep.health_score)}`}>
+                      {rep.health_score}
+                    </span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center"><p className="text-lg font-bold">{rep.messages_sent_today}</p><p className="text-[10px] text-muted-foreground">Enviadas</p></div>
-                  <div className="text-center"><p className="text-lg font-bold text-destructive">{rep.failures_today}</p><p className="text-[10px] text-muted-foreground">Falhas</p></div>
-                  <div className="text-center"><p className="text-lg font-bold text-warning">{rep.complaints_count}</p><p className="text-[10px] text-muted-foreground">Reclamações</p></div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold">{rep.messages_sent_today}</p>
+                    <p className="text-[10px] text-muted-foreground">Enviadas</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-destructive">{rep.failures_today}</p>
+                    <p className="text-[10px] text-muted-foreground">Falhas</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-warning">{rep.complaints_count}</p>
+                    <p className="text-[10px] text-muted-foreground">Reclamações</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                <div className="flex items-center justify-between border-t border-border/30 pt-2">
                   <div className="flex items-center gap-1.5">
-                    <Thermometer className="w-3.5 h-3.5 text-muted-foreground" />
+                    <Thermometer className="h-3.5 w-3.5 text-muted-foreground" />
                     <Badge variant="outline" className="text-[10px]">
                       {warmupLabels[rep.warmup_status] || rep.warmup_status}
                       {rep.warmup_day ? ` (Dia ${rep.warmup_day})` : ''}
                     </Badge>
                   </div>
                   {rep.warmup_status === 'none' && (
-                    <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={() => startWarmup(rep.id)}>
-                      <Flame className="w-3 h-3 mr-1" />Aquecer
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px]"
+                      onClick={() => startWarmup(rep.id)}
+                    >
+                      <Flame className="mr-1 h-3 w-3" />
+                      Aquecer
                     </Button>
                   )}
                 </div>
@@ -115,12 +164,16 @@ export function NumberReputationMonitor() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-muted-foreground">
                       <span>Limite diário</span>
-                      <span>{rep.messages_sent_today}/{rep.daily_limit}</span>
+                      <span>
+                        {rep.messages_sent_today}/{rep.daily_limit}
+                      </span>
                     </div>
-                    <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
                       <div
                         className={`h-full rounded-full transition-all ${rep.messages_sent_today / rep.daily_limit > 0.9 ? 'bg-destructive' : rep.messages_sent_today / rep.daily_limit > 0.7 ? 'bg-warning' : 'bg-primary'}`}
-                        style={{ width: `${Math.min(100, (rep.messages_sent_today / rep.daily_limit) * 100)}%` }}
+                        style={{
+                          width: `${Math.min(100, (rep.messages_sent_today / rep.daily_limit) * 100)}%`,
+                        }}
                       />
                     </div>
                   </div>

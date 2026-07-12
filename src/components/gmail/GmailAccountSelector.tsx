@@ -123,7 +123,7 @@ export function EmailAccountSelector({
                 onClick={() => onSelectAccount(acc.id)}
               >
                 <Avatar className="h-6 w-6 shrink-0">
-                  <AvatarImage src={acc.picture_url ?? ''} />
+                  <AvatarImage src={acc.picture_url ?? ''} alt={acc.display_name ?? acc.email} />
                   <AvatarFallback className="text-[10px]">{acc.email[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -173,6 +173,7 @@ export function EmailAccountSelector({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
+            aria-label={isSyncing ? 'Sincronizando...' : 'Sincronizar conta Gmail'}
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0"

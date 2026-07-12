@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, User } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 /**
  * Shared validation, security, and logging utilities for Edge Functions.
@@ -329,7 +329,7 @@ export function jsonResponse(data: unknown, status = 200, req?: Request) {
 export function contractErrorResponse(
   code: string,
   message: string,
-  issues: any[] = [],
+  issues: { path?: (string | number)[]; message?: string }[] = [],
   requestId?: string,
   req?: Request
 ) {
@@ -338,6 +338,7 @@ export function contractErrorResponse(
     code,
     message,
     requestId,
+    fields: issues.map(i => i.path?.join('.') || 'root'),
     details: issues.map(i => ({
       path: i.path?.join('.') || 'root',
       message: i.message
@@ -405,13 +406,29 @@ export function checkRateLimit(
   return { allowed: entry.count <= maxRequests, remaining };
 }
 
-/** Extract client IP from request for rate limiting */
+/** Extract and normalize client IP from request for rate limiting (C.14: IPv6 support) */
 export function getClientIP(req: Request): string {
-  return (
+  const raw =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('x-real-ip') ||
-    'unknown'
-  );
+    'unknown';
+
+  // Normalize IPv6 addresses to lowercase canonical form to prevent rate-limit bypass
+  // via different representations (e.g., 2001:db8::1 vs 2001:0db8::0001)
+  if (raw !== 'unknown' && raw.includes(':')) {
+    try {
+      // Parse as IPv6 and convert to canonical string representation
+      const hostname = new URL(`http://[${raw}]/`).hostname || raw;
+      // Remove brackets that URL.hostname includes for IPv6 addresses
+      return hostname.startsWith('[') && hostname.endsWith(']')
+        ? hostname.slice(1, -1)
+        : hostname;
+    } catch {
+      // If parsing fails, return as-is (might be malformed or IPv4)
+      return raw;
+    }
+  }
+  return raw;
 }
 
 /** Get required env var or throw */
@@ -506,7 +523,7 @@ export async function authorizeRoles(
   supabaseUrl: string,
   supabaseAnonKey: string,
   requiredRoles: string[] = ['admin', 'dev']
-): Promise<{ user: any; roles: string[] }> {
+): Promise<{ user: User; roles: string[] }> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) throw { message: "Não autorizado", status: 401 };
 
@@ -518,7 +535,7 @@ export async function authorizeRoles(
   if (authError || !user) throw { message: "Não autorizado", status: 401 };
 
   // Fetch user roles using service role to bypass RLS for checking
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
   
   const { data: roleData, error: roleError } = await adminClient
@@ -546,5 +563,43 @@ export async function authorizeRoles(
 
   return { user, roles: userRoles };
 }
+
+// ─── parseBody + CommonSchemas + z (migrado de validation-legacy.ts em v2.2) ─
+// Antes vivia só no arquivo -legacy; movido para cá para permitir a remoção
+// definitiva do legacy e destravar novos consumidores sem duplicar helpers.
+export { z } from './schemas.ts';
+import { z as _z } from './schemas.ts';
+
+export interface ParseSuccess<T> { data: T; error: null; }
+export interface ParseFailure { data: null; error: Response; }
+export type ParseResult<T> = ParseSuccess<T> | ParseFailure;
+
+/** Parse JSON body and validate via Zod schema. Returns { data, error } discriminated union. */
+export async function parseBody<T>(req: Request, schema: _z.ZodSchema<T>): Promise<ParseResult<T>> {
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return { data: null, error: errorResponse('Invalid JSON body', 400, req) };
+  }
+  const result = schema.safeParse(raw);
+  if (!result.success) {
+    return {
+      data: null,
+      error: errorResponse(
+        'Validation failed: ' + result.error.issues.map(i => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; '),
+        400,
+        req
+      ),
+    };
+  }
+  return { data: result.data, error: null };
+}
+
+export const CommonSchemas = {
+  uuid: _z.string().uuid(),
+  nonEmpty: _z.string().min(1).trim(),
+} as const;
+
 
 

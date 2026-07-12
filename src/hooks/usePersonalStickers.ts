@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,6 +8,13 @@ export function usePersonalStickers() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const { data: profile } = useQuery({
     queryKey: ['my-profile-stickers'],
@@ -24,7 +31,7 @@ export function usePersonalStickers() {
       if (!profile?.id) return [];
       const { data, error } = await supabase
         .from('stickers')
-        .select('id, name, image_url, is_favorite, use_count, created_at')
+        .select('*')
         .eq('owner_id', profile.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -83,11 +90,13 @@ export function usePersonalStickers() {
       } catch {
         toast.error('Erro inesperado ao enviar');
       } finally {
-        setUploading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (mountedRef.current) {
+          setUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
       }
     },
-    [profile?.id, queryClient]
+    [profile?.id, queryClient, mountedRef]
   );
 
   const toggleFavorite = useMutation({

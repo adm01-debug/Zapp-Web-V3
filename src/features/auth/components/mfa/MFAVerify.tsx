@@ -14,11 +14,11 @@ interface MFAVerifyProps {
   description?: string;
 }
 
-export function MFAVerify({ 
-  onSuccess, 
+export function MFAVerify({
+  onSuccess,
   onCancel,
   title = 'Verificação 2FA',
-  description = 'Digite o código do seu app autenticador'
+  description = 'Digite o código do seu app autenticador',
 }: MFAVerifyProps) {
   const { verifyTOTP, factors, fetchFactors, loading } = useMFA();
   const [code, setCode] = useState('');
@@ -31,8 +31,8 @@ export function MFAVerify({
 
   const handleVerify = async () => {
     if (code.length !== 6) return;
-    
-    const verifiedFactor = factors.find(f => f.status === 'verified');
+
+    const verifiedFactor = factors.find((f) => f.status === 'verified');
     if (!verifiedFactor) {
       setError('Nenhum fator MFA encontrado');
       return;
@@ -40,11 +40,11 @@ export function MFAVerify({
 
     setVerifying(true);
     setError('');
-    
+
     try {
       await verifyTOTP(verifiedFactor.id, code);
       onSuccess?.();
-    } catch (err: unknown) {
+    } catch {
       setError('Código inválido. Tente novamente.');
       setCode('');
     } finally {
@@ -59,14 +59,14 @@ export function MFAVerify({
   }, [code]);
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
         <motion.div
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
-          className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center"
+          className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"
         >
-          <Shield className="w-6 h-6 text-primary" />
+          <Shield className="h-6 w-6 text-primary" />
         </motion.div>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -79,6 +79,7 @@ export function MFAVerify({
             id="mfa-code"
             type="text"
             inputMode="numeric"
+            autoComplete="one-time-code"
             maxLength={6}
             placeholder="000000"
             value={code}
@@ -86,15 +87,16 @@ export function MFAVerify({
               setError('');
               setCode(e.target.value.replace(/\D/g, ''));
             }}
-            className={`text-center text-2xl tracking-widest  ${error ? 'border-destructive' : ''}`}
+            className={`text-center text-2xl tracking-widest ${error ? 'border-destructive' : ''}`}
             disabled={verifying || loading}
             autoFocus
           />
           {error && (
             <motion.p
+              role="alert"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-sm text-destructive text-center"
+              className="text-center text-sm text-destructive"
             >
               {error}
             </motion.p>
@@ -107,14 +109,14 @@ export function MFAVerify({
               Cancelar
             </Button>
           )}
-          <Button 
-            className="flex-1" 
+          <Button
+            className="flex-1"
             onClick={handleVerify}
             disabled={code.length !== 6 || verifying}
           >
             {verifying ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Verificando...
               </>
             ) : (
@@ -123,7 +125,7 @@ export function MFAVerify({
           </Button>
         </div>
 
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-center text-xs text-muted-foreground">
           Abra seu app autenticador e digite o código de 6 dígitos
         </p>
       </CardContent>

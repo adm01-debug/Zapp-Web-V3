@@ -1,21 +1,22 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock supabase
-const mockRpc = vi.fn();
-const mockFrom = vi.fn();
-const mockSelect = vi.fn();
-const mockInsert = vi.fn();
-const mockDelete = vi.fn();
-const mockUpdate = vi.fn();
-const mockEq = vi.fn();
-const mockOrder = vi.fn();
-const mockLimit = vi.fn();
-const mockMaybeSingle = vi.fn();
+const mockRpc = vi.hoisted(() => vi.fn());
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockSelect = vi.hoisted(() => vi.fn());
+const mockInsert = vi.hoisted(() => vi.fn());
+const mockDelete = vi.hoisted(() => vi.fn());
+const mockUpdate = vi.hoisted(() => vi.fn());
+const mockEq = vi.hoisted(() => vi.fn());
+const mockOrder = vi.hoisted(() => vi.fn());
+const mockLimit = vi.hoisted(() => vi.fn());
+const mockMaybeSingle = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    rpc: mockRpc,
-    from: mockFrom,
+    rpc: (...args: unknown[]) => mockRpc(...args),
+    from: (...args: unknown[]) => mockFrom(...args),
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
     },
@@ -25,7 +26,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 describe('Security - RLS & Access Control', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     const chain = {
       select: mockSelect.mockReturnThis(),
       insert: mockInsert.mockReturnThis(),
@@ -36,7 +37,7 @@ describe('Security - RLS & Access Control', () => {
       limit: mockLimit.mockReturnThis(),
       maybeSingle: mockMaybeSingle,
     };
-    
+
     mockFrom.mockReturnValue(chain);
   });
 
@@ -82,28 +83,32 @@ describe('Security - Audit Logging', () => {
     mockRpc.mockResolvedValue({ error: null });
   });
 
-  it('should log audit entries via RPC', async () => {
+  it('should log audit entries via RPC (UUID entity_id preservado)', async () => {
     const { logAudit } = await import('@/lib/audit');
+    const uuid = '11111111-2222-3333-4444-555555555555';
 
     await logAudit({
       action: 'login',
       entityType: 'auth',
-      entityId: 'user-1',
+      entityId: uuid,
       details: { method: 'password' },
     });
 
-    expect(mockRpc).toHaveBeenCalledWith('log_audit_event', expect.objectContaining({
-      p_action: 'login',
-      p_entity_type: 'auth',
-      p_entity_id: 'user-1',
-    }));
+    expect(mockRpc).toHaveBeenCalledWith(
+      'log_audit_event',
+      expect.objectContaining({
+        p_action: 'login',
+        p_entity_type: 'auth',
+        p_entity_id: uuid,
+      })
+    );
   });
 
   it('should handle audit log failures gracefully', async () => {
     mockRpc.mockResolvedValue({ error: new Error('DB error') });
 
     const { logAudit } = await import('@/lib/audit');
-    
+
     // Should not throw
     await expect(logAudit({ action: 'login' })).resolves.not.toThrow();
   });
@@ -112,32 +117,38 @@ describe('Security - Audit Logging', () => {
 describe('Security - Export Blocking', () => {
   it('should block PDF export', async () => {
     const { exportToPDF } = await import('@/utils/exportReport');
-    expect(() => exportToPDF({
-      title: 'Test',
-      generatedAt: new Date(),
-      columns: [],
-      rows: [],
-    })).toThrow('Exportação bloqueada');
+    expect(() =>
+      exportToPDF({
+        title: 'Test',
+        generatedAt: new Date(),
+        columns: [],
+        rows: [],
+      })
+    ).toThrow('Exportação bloqueada');
   });
 
   it('should block Excel export', async () => {
     const { exportToExcel } = await import('@/utils/exportReport');
-    expect(() => exportToExcel({
-      title: 'Test',
-      generatedAt: new Date(),
-      columns: [],
-      rows: [],
-    })).toThrow('Exportação bloqueada');
+    expect(() =>
+      exportToExcel({
+        title: 'Test',
+        generatedAt: new Date(),
+        columns: [],
+        rows: [],
+      })
+    ).toThrow('Exportação bloqueada');
   });
 
   it('should block CSV export', async () => {
     const { exportToCSV } = await import('@/utils/exportReport');
-    expect(() => exportToCSV({
-      title: 'Test',
-      generatedAt: new Date(),
-      columns: [],
-      rows: [],
-    })).toThrow('Exportação bloqueada');
+    expect(() =>
+      exportToCSV({
+        title: 'Test',
+        generatedAt: new Date(),
+        columns: [],
+        rows: [],
+      })
+    ).toThrow('Exportação bloqueada');
   });
 });
 

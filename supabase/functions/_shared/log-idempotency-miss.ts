@@ -14,14 +14,13 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
-// deno-lint-ignore no-explicit-any
-let cached: any = null;
+let cached: ReturnType<typeof createClient> | null | false = null;
 
 function getExternalServiceClient() {
   if (cached === null) {
-    const url = Deno.env.get('EXTERNAL_SUPABASE_URL');
-    const key = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')
-      || Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+    const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+    const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
+      || (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
     if (!url || !key) {
       cached = false;
       return null;

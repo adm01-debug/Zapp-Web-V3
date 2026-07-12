@@ -1,18 +1,22 @@
-export interface Contact {
-  id: string;
-  name: string;
-  nickname?: string;
-  surname?: string;
-  job_title?: string;
-  company?: string;
-  phone: string;
-  avatar?: string;
-  email?: string;
-  tags: string[];
-  createdAt: Date;
-  contact_type?: string | null;
-  whatsapp_connection_id?: string | null;
-}
+// W4 (2026-07-06): núcleo derivado do schema gerado; 'avatar' e 'createdAt' são
+import type { Tables } from '@/integrations/supabase/types';
+// aliases camelCase client-side (mapeados de avatar_url/created_at nos adapters).
+export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'phone' | 'tags'> &
+  Partial<
+    Pick<
+      Tables<'contacts'>,
+      | 'nickname'
+      | 'surname'
+      | 'job_title'
+      | 'company'
+      | 'email'
+      | 'contact_type'
+      | 'whatsapp_connection_id'
+    >
+  > & {
+    avatar?: string;
+    createdAt: Date;
+  };
 
 // WhatsApp Interactive Message Types
 export interface InteractiveButton {
@@ -72,12 +76,30 @@ export interface Message {
   id: string;
   conversationId: string;
   content: string;
-  type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'interactive' | 'button_response' | 'location' | 'sticker';
+  type:
+    | 'text'
+    | 'image'
+    | 'audio'
+    | 'video'
+    | 'document'
+    | 'interactive'
+    | 'button_response'
+    | 'location'
+    | 'sticker';
   mediaUrl?: string;
   sender: 'contact' | 'agent';
   agentId?: string;
   timestamp: Date;
-  status: 'sending' | 'retrying' | 'sent' | 'delivered' | 'read' | 'played' | 'failed' | 'failed_auth' | 'failed_retries';
+  status:
+    | 'sending'
+    | 'retrying'
+    | 'sent'
+    | 'delivered'
+    | 'read'
+    | 'played'
+    | 'failed'
+    | 'failed_auth'
+    | 'failed_retries';
   // Interactive message data
   interactive?: InteractiveMessage;
   // Button response data (when user clicks a button)
@@ -121,10 +143,9 @@ export interface Message {
   isWhisper?: boolean;
   /** @internal Flag used for optimistic updates in the UI */
   _optimistic?: boolean;
-  /** Meta-informações brutas (Evolution/WhatsApp API). */
-  media_meta?: any;
+  /** Meta-informações brutas (Evolution/WhatsApp API). Campos conhecidos são tipados; campos adicionais são aceitos via index. */
+  media_meta?: (Record<string, unknown> & { ptt?: boolean; isPtv?: boolean }) | null;
 }
-
 
 export interface Conversation {
   id: string;

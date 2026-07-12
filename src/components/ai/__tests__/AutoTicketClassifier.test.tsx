@@ -1,14 +1,63 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AutoTicketClassifier } from '../AutoTicketClassifier';
 
 const mockTags = [
-  { id: 't1', contact_id: 'c1', tag_name: 'suporte técnico', confidence: 0.9, source: 'ai', created_at: new Date().toISOString(), contacts: { name: 'Maria', phone: '+5511999' } },
-  { id: 't2', contact_id: 'c2', tag_name: 'venda consultiva', confidence: 0.85, source: 'ai', created_at: new Date().toISOString(), contacts: { name: 'João', phone: '+5511888' } },
-  { id: 't3', contact_id: 'c3', tag_name: 'reclamação', confidence: 0.95, source: 'ai', created_at: new Date().toISOString(), contacts: { name: 'Ana', phone: '+5511777' } },
-  { id: 't4', contact_id: 'c4', tag_name: 'pagamento boleto', confidence: 0.7, source: 'ai', created_at: new Date().toISOString(), contacts: { name: 'Pedro', phone: '+5511666' } },
-  { id: 't5', contact_id: 'c5', tag_name: 'agendamento horário', confidence: 0.6, source: 'ai', created_at: new Date().toISOString(), contacts: { name: 'Lucas', phone: '+5511555' } },
-  { id: 't6', contact_id: 'c6', tag_name: 'info geral', confidence: 0.5, source: 'ai', created_at: new Date().toISOString(), contacts: { name: 'Carla', phone: '+5511444' } },
+  {
+    id: 't1',
+    contact_id: 'c1',
+    tag_name: 'suporte técnico',
+    confidence: 0.9,
+    source: 'ai',
+    created_at: new Date().toISOString(),
+    contacts: { name: 'Maria', phone: '+5511999' },
+  },
+  {
+    id: 't2',
+    contact_id: 'c2',
+    tag_name: 'venda consultiva',
+    confidence: 0.85,
+    source: 'ai',
+    created_at: new Date().toISOString(),
+    contacts: { name: 'João', phone: '+5511888' },
+  },
+  {
+    id: 't3',
+    contact_id: 'c3',
+    tag_name: 'reclamação',
+    confidence: 0.95,
+    source: 'ai',
+    created_at: new Date().toISOString(),
+    contacts: { name: 'Ana', phone: '+5511777' },
+  },
+  {
+    id: 't4',
+    contact_id: 'c4',
+    tag_name: 'pagamento boleto',
+    confidence: 0.7,
+    source: 'ai',
+    created_at: new Date().toISOString(),
+    contacts: { name: 'Pedro', phone: '+5511666' },
+  },
+  {
+    id: 't5',
+    contact_id: 'c5',
+    tag_name: 'agendamento horário',
+    confidence: 0.6,
+    source: 'ai',
+    created_at: new Date().toISOString(),
+    contacts: { name: 'Lucas', phone: '+5511555' },
+  },
+  {
+    id: 't6',
+    contact_id: 'c6',
+    tag_name: 'info geral',
+    confidence: 0.5,
+    source: 'ai',
+    created_at: new Date().toISOString(),
+    contacts: { name: 'Carla', phone: '+5511444' },
+  },
 ];
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -72,27 +121,38 @@ describe('AutoTicketClassifier', () => {
   describe('Classification logic (classifyTag)', () => {
     const classifyTag = (tagName: string): string => {
       const lower = tagName.toLowerCase();
-      if (lower.includes('suporte') || lower.includes('bug') || lower.includes('erro')) return 'Suporte Técnico';
-      if (lower.includes('vend') || lower.includes('preço') || lower.includes('compra')) return 'Vendas';
-      if (lower.includes('pag') || lower.includes('boleto') || lower.includes('fatura')) return 'Financeiro';
+      if (lower.includes('suporte') || lower.includes('bug') || lower.includes('erro'))
+        return 'Suporte Técnico';
+      if (lower.includes('vend') || lower.includes('preço') || lower.includes('compra'))
+        return 'Vendas';
+      if (lower.includes('pag') || lower.includes('boleto') || lower.includes('fatura'))
+        return 'Financeiro';
       if (lower.includes('reclam') || lower.includes('insatisf')) return 'Reclamação';
       if (lower.includes('agend') || lower.includes('horário')) return 'Agendamento';
       return 'Informação';
     };
 
     it('classifies suporte', () => expect(classifyTag('suporte técnico')).toBe('Suporte Técnico'));
-    it('classifies bug as suporte', () => expect(classifyTag('bug report')).toBe('Suporte Técnico'));
-    it('classifies erro as suporte', () => expect(classifyTag('erro no sistema')).toBe('Suporte Técnico'));
+    it('classifies bug as suporte', () =>
+      expect(classifyTag('bug report')).toBe('Suporte Técnico'));
+    it('classifies erro as suporte', () =>
+      expect(classifyTag('erro no sistema')).toBe('Suporte Técnico'));
     it('classifies venda', () => expect(classifyTag('venda consultiva')).toBe('Vendas'));
     it('classifies preço as vendas', () => expect(classifyTag('preço produto')).toBe('Vendas'));
     it('classifies compra as vendas', () => expect(classifyTag('compra online')).toBe('Vendas'));
-    it('classifies pagamento as financeiro', () => expect(classifyTag('pagamento pendente')).toBe('Financeiro'));
-    it('classifies boleto as financeiro', () => expect(classifyTag('boleto vencido')).toBe('Financeiro'));
-    it('classifies fatura as financeiro', () => expect(classifyTag('fatura mensal')).toBe('Financeiro'));
+    it('classifies pagamento as financeiro', () =>
+      expect(classifyTag('pagamento pendente')).toBe('Financeiro'));
+    it('classifies boleto as financeiro', () =>
+      expect(classifyTag('boleto vencido')).toBe('Financeiro'));
+    it('classifies fatura as financeiro', () =>
+      expect(classifyTag('fatura mensal')).toBe('Financeiro'));
     it('classifies reclamação', () => expect(classifyTag('reclamação grave')).toBe('Reclamação'));
-    it('classifies insatisfação as reclamação', () => expect(classifyTag('insatisfeito')).toBe('Reclamação'));
-    it('classifies agendamento', () => expect(classifyTag('agendamento consulta')).toBe('Agendamento'));
-    it('classifies horário as agendamento', () => expect(classifyTag('horário disponível')).toBe('Agendamento'));
+    it('classifies insatisfação as reclamação', () =>
+      expect(classifyTag('insatisfeito')).toBe('Reclamação'));
+    it('classifies agendamento', () =>
+      expect(classifyTag('agendamento consulta')).toBe('Agendamento'));
+    it('classifies horário as agendamento', () =>
+      expect(classifyTag('horário disponível')).toBe('Agendamento'));
     it('defaults to Informação', () => expect(classifyTag('dúvida geral')).toBe('Informação'));
     it('case insensitive', () => expect(classifyTag('SUPORTE URGENTE')).toBe('Suporte Técnico'));
   });
@@ -109,11 +169,15 @@ describe('AutoTicketClassifier', () => {
 
     it('urgent for reclamação', () => expect(derivePriority('reclamação', 0.5)).toBe('urgent'));
     it('urgent for urgent tag', () => expect(derivePriority('urgente', 0.3)).toBe('urgent'));
-    it('high for bug with high confidence', () => expect(derivePriority('bug crítico', 0.9)).toBe('high'));
-    it('high for erro with high confidence', () => expect(derivePriority('erro grave', 0.85)).toBe('high'));
-    it('medium for moderate confidence', () => expect(derivePriority('info geral', 0.6)).toBe('medium'));
+    it('high for bug with high confidence', () =>
+      expect(derivePriority('bug crítico', 0.9)).toBe('high'));
+    it('high for erro with high confidence', () =>
+      expect(derivePriority('erro grave', 0.85)).toBe('high'));
+    it('medium for moderate confidence', () =>
+      expect(derivePriority('info geral', 0.6)).toBe('medium'));
     it('low for low confidence', () => expect(derivePriority('info geral', 0.3)).toBe('low'));
-    it('medium not high for bug with low confidence', () => expect(derivePriority('bug', 0.6)).toBe('medium'));
+    it('medium not high for bug with low confidence', () =>
+      expect(derivePriority('bug', 0.6)).toBe('medium'));
   });
 
   // ===== CATEGORY ICONS =====
@@ -128,7 +192,7 @@ describe('AutoTicketClassifier', () => {
     ];
 
     it('has 6 categories', () => expect(CATEGORIES.length).toBe(6));
-    CATEGORIES.forEach(cat => {
+    CATEGORIES.forEach((cat) => {
       it(`${cat.name} has icon`, () => expect(cat.icon.length).toBeGreaterThan(0));
     });
   });
@@ -158,7 +222,7 @@ describe('AutoTicketClassifier', () => {
         { contact_id: 'c2', tag_name: 'venda' },
       ];
       const grouped = new Map<string, string[]>();
-      tags.forEach(t => {
+      tags.forEach((t) => {
         if (!grouped.has(t.contact_id)) grouped.set(t.contact_id, []);
         grouped.get(t.contact_id)!.push(t.tag_name);
       });
@@ -175,9 +239,17 @@ describe('AutoTicketClassifier', () => {
       expect(name).toBe('Desconhecido');
     });
 
-    it('handles zero confidence', () => {
-      const confidence = (0 || 0.7) * 100;
+    it('falls back to 70% when confidence is zero', () => {
+      // Mirrors production: ((tag.confidence as number) || 0.7) * 100
+      const rawConfidence = 0;
+      const confidence = (rawConfidence || 0.7) * 100;
       expect(confidence).toBe(70);
+    });
+
+    it('does not apply fallback when confidence is non-zero', () => {
+      const rawConfidence = 0.5;
+      const confidence = (rawConfidence || 0.7) * 100;
+      expect(confidence).toBe(50);
     });
 
     it('handles empty tags list', async () => {

@@ -2,7 +2,7 @@
  * Shared AI Usage Logger for Edge Functions.
  * Logs token consumption per user to ai_usage_logs table.
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 
 interface AiUsageEntry {
   functionName: string;
@@ -48,9 +48,8 @@ export function extractUserIdFromRequest(req: Request): string | null {
 }
 
 /** Resolve profile_id from user_id via profiles table */
-// deno-lint-ignore no-explicit-any
 async function resolveProfileId(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string | null | undefined
 ): Promise<string | null> {
   if (!userId) return null;
@@ -70,8 +69,8 @@ async function resolveProfileId(
 /** Log AI usage to database (fire-and-forget, non-blocking) */
 export async function logAiUsage(entry: AiUsageEntry): Promise<void> {
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
+    const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!supabaseUrl || !serviceRoleKey) return;
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -134,6 +133,25 @@ export async function callAiWithTracking(params: {
         errorMessage: `HTTP ${response.status}`,
       });
       return { response, data: null, durationMs };
+    }
+
+    // C.20: Validate response body size before parsing to prevent memory exhaustion
+    const contentLength = response.headers.get('content-length');
+    const MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB max response
+    if (contentLength) {
+      const size = parseInt(contentLength, 10);
+      if (isNaN(size) || size > MAX_RESPONSE_SIZE) {
+        const err = `Response too large: ${size} bytes (max ${MAX_RESPONSE_SIZE})`;
+        logAiUsage({
+          functionName: params.functionName,
+          userId: params.userId,
+          model: params.body.model as string || null,
+          durationMs,
+          status: 'error',
+          errorMessage: err,
+        });
+        throw new Error(err);
+      }
     }
 
     const data = await response.json();

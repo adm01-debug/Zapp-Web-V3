@@ -137,16 +137,16 @@ export function N8nIntegrationView() {
               <CardContent className="pt-4 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <Label>Nome</Label>
-                    <Input placeholder="Meu Workflow" value={newWorkflow.name} onChange={e => setNewWorkflow(p => ({ ...p, name: e.target.value }))} />
+                    <Label htmlFor="n8n-workflow-name">Nome</Label>
+                    <Input id="n8n-workflow-name" placeholder="Meu Workflow" value={newWorkflow.name} onChange={e => setNewWorkflow(p => ({ ...p, name: e.target.value }))} />
                   </div>
                   <div>
-                    <Label>Webhook URL</Label>
-                    <Input placeholder="https://n8n.../webhook/..." value={newWorkflow.webhookUrl} onChange={e => setNewWorkflow(p => ({ ...p, webhookUrl: e.target.value }))} />
+                    <Label htmlFor="n8n-webhook-url">Webhook URL</Label>
+                    <Input id="n8n-webhook-url" placeholder="https://n8n.../webhook/..." value={newWorkflow.webhookUrl} onChange={e => setNewWorkflow(p => ({ ...p, webhookUrl: e.target.value }))} />
                   </div>
                   <div>
                     <Label>Evento Gatilho</Label>
-                    <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={newWorkflow.triggerEvent} onChange={e => setNewWorkflow(p => ({ ...p, triggerEvent: e.target.value }))}>
+                    <select aria-label="Evento gatilho" className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={newWorkflow.triggerEvent} onChange={e => setNewWorkflow(p => ({ ...p, triggerEvent: e.target.value }))}>
                       {triggerEvents.map(te => <option key={te.value} value={te.value}>{te.label}</option>)}
                     </select>
                   </div>
@@ -183,8 +183,8 @@ export function N8nIntegrationView() {
                     <Badge variant="outline" className="text-xs">{triggerEvents.find(t => t.value === wf.triggerEvent)?.label}</Badge>
                     {wf.lastTriggered && <span className="text-xs text-muted-foreground">Último: {new Date(wf.lastTriggered).toLocaleTimeString('pt-BR')}</span>}
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => testWorkflow(wf)}><Play className="w-3 h-3" /></Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeWorkflow(wf.id)}><Trash2 className="w-3 h-3" /></Button>
+                      <Button aria-label="Testar workflow" size="icon" variant="ghost" className="h-7 w-7" onClick={() => testWorkflow(wf)}><Play className="w-3 h-3" /></Button>
+                      <Button aria-label="Remover workflow" size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeWorkflow(wf.id)}><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   </CardContent>
                 </Card>

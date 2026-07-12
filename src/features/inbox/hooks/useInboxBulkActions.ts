@@ -18,14 +18,14 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
   const { execute: executeUndoable } = useUndoableAction();
 
   const toggleSelectionMode = useCallback(() => {
-    setSelectionMode(prev => {
+    setSelectionMode((prev) => {
       if (prev) setSelectedIds(new Set());
       return !prev;
     });
   }, []);
 
   const toggleSelection = useCallback((contactId: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(contactId)) {
         newSet.delete(contactId);
@@ -43,7 +43,7 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
 
   const selectAll = useCallback(() => {
     if (!selectionMode) setSelectionMode(true);
-    const allIds = new Set(filteredConversations.map(c => c.contact.id));
+    const allIds = new Set(filteredConversations.map((c) => c.contact.id));
     setSelectedIds(allIds);
     toast.success(`${allIds.size} conversa(s) selecionada(s)`);
   }, [filteredConversations, selectionMode]);
@@ -68,37 +68,38 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
     }
   }, [selectedIds, clearSelection, refetch]);
 
-  const bulkTransfer = useCallback(async (type: 'agent' | 'queue', targetId: string, _message?: string) => {
-    if (selectedIds.size === 0) return;
-    setBulkLoading(true);
-    try {
-      const contactIds = Array.from(selectedIds);
-      const updateData: { assigned_to?: string; queue_id?: string } = {};
-      if (type === 'agent') {
-        updateData.assigned_to = targetId;
-      } else {
-        updateData.queue_id = targetId;
+  const bulkTransfer = useCallback(
+    async (type: 'agent' | 'queue', targetId: string, _message?: string) => {
+      if (selectedIds.size === 0) return;
+      setBulkLoading(true);
+      try {
+        const contactIds = Array.from(selectedIds);
+        const updateData: { assigned_to?: string; queue_id?: string } = {};
+        if (type === 'agent') {
+          updateData.assigned_to = targetId;
+        } else {
+          updateData.queue_id = targetId;
+        }
+        const { error } = await dbFrom('contacts').update(updateData).in('id', contactIds);
+        if (error) throw error;
+        toast.success(`${contactIds.length} contato(s) transferido(s)`);
+        clearSelection();
+        refetch();
+      } catch {
+        toast.error('Erro ao transferir contatos');
+      } finally {
+        setBulkLoading(false);
       }
-      const { error } = await dbFrom('contacts')
-        .update(updateData)
-        .in('id', contactIds);
-      if (error) throw error;
-      toast.success(`${contactIds.length} contato(s) transferido(s)`);
-      clearSelection();
-      refetch();
-    } catch {
-      toast.error('Erro ao transferir contatos');
-    } finally {
-      setBulkLoading(false);
-    }
-  }, [selectedIds, clearSelection, refetch]);
+    },
+    [selectedIds, clearSelection, refetch]
+  );
 
   const bulkArchive = useCallback(async () => {
     if (selectedIds.size === 0) return;
     setBulkLoading(true);
     const contactIds = Array.from(selectedIds);
 
-    const { data: originalContacts , error: originalContactsErr } = await supabase
+    const { data: originalContacts } = await supabase
       .from('contacts')
       .select('id, assigned_to')
       .in('id', contactIds);
@@ -117,11 +118,18 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
         },
         undoAction: async () => {
           if (originalContacts) {
-            for (const contact of originalContacts) {
-              await dbFrom('contacts')
-                .update({ assigned_to: contact.assigned_to })
-                .eq('id', contact.id);
+            // Group contacts by their original assigned_to so we restore with
+            // one .in() update per unique agent instead of N sequential writes.
+            const byAssignee = new Map<string | null, string[]>();
+            for (const c of originalContacts) {
+              if (!byAssignee.has(c.assigned_to)) byAssignee.set(c.assigned_to, []);
+              byAssignee.get(c.assigned_to)!.push(c.id);
             }
+            await Promise.all(
+              Array.from(byAssignee.entries()).map(([assignedTo, ids]) =>
+                dbFrom('contacts').update({ assigned_to: assignedTo }).in('id', ids)
+              )
+            );
           }
           refetch();
         },
@@ -139,7 +147,9 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
     try {
       const { data, error: fnError } = await supabase.functions.invoke('batch-fetch-avatars');
       if (fnError) throw fnError;
-      toast.success(`${data?.updated || 0} avatares atualizados de ${data?.processed || 0} contatos.`);
+      toast.success(
+        `${data?.updated || 0} avatares atualizados de ${data?.processed || 0} contatos.`
+      );
       refetch();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro desconhecido';

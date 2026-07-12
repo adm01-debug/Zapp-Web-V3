@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mockChannel = vi.fn();
-const mockRemoveChannel = vi.fn();
+const mockChannel = vi.hoisted(() => vi.fn());
+const mockRemoveChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    channel: (...args: any[]) => mockChannel(...args),
-    removeChannel: mockRemoveChannel,
+    channel: (...args: unknown[]) => mockChannel(...args),
+    removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -92,11 +92,13 @@ describe('useTranscriptionNotifications', () => {
   });
 
   it('accepts custom options', () => {
-    renderHook(() => useTranscriptionNotifications({
-      showToast: false,
-      playSound: false,
-      showBrowserNotification: false,
-    }));
+    renderHook(() =>
+      useTranscriptionNotifications({
+        showToast: false,
+        playSound: false,
+        showBrowserNotification: false,
+      })
+    );
     expect(mockChannel).toHaveBeenCalled();
   });
 });

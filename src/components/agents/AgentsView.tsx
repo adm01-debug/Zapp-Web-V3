@@ -142,6 +142,7 @@ export function AgentsView() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
+            aria-label="Buscar atendentes"
             placeholder="Buscar atendentes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -179,7 +180,7 @@ export function AgentsView() {
                             agent.status === 'away' && 'ring-status-away/50',
                             agent.status === 'offline' && 'ring-border/30'
                           )}>
-                            <AvatarImage src={agent.avatar_url || undefined} />
+                            <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />
                             <AvatarFallback className={cn('font-semibold', getAvatarColor(agent.name).bg, getAvatarColor(agent.name).text)}>
                               {getInitials(agent.name)}
                             </AvatarFallback>
@@ -203,7 +204,7 @@ export function AgentsView() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-8 h-8 hover:bg-muted/30">
+                          <Button aria-label="Opções do agente" variant="ghost" size="icon" className="w-8 h-8 hover:bg-muted/30">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>

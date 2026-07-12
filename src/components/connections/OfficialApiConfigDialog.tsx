@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Loader2, ShieldCheck, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from '@/hooks/use-toast';
 
 interface OfficialApiConfigDialogProps {
@@ -15,6 +16,13 @@ interface OfficialApiConfigDialogProps {
   connectionId: string;
   connectionName: string;
   instanceId: string | null;
+}
+
+interface SafeCredentialView {
+  phone_number_id: string | null;
+  waba_id: string | null;
+  has_access_token: boolean | null;
+  has_app_secret: boolean | null;
 }
 
 interface CredentialsForm {
@@ -52,25 +60,18 @@ export function OfficialApiConfigDialog({
     setLoading(true);
     (async () => {
       try {
-        const { data } = await (supabase as unknown as {
-          from: (t: string) => {
-            select: (c: string) => {
-              eq: (col: string, v: string) => {
-                maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
-              };
-            };
-          };
-        })
-          .from('whatsapp_official_credentials_safe')
+        // View not in generated types — use fromTable helper for dynamic table access
+        const res = await fromTable('whatsapp_official_credentials_safe')
           .select('phone_number_id, waba_id, has_access_token, has_app_secret')
           .eq('connection_id', connectionId)
           .maybeSingle();
+        const data = res.data as SafeCredentialView | null; // ignore-audit: narrows Supabase query result to local interface
         if (cancelled) return;
         if (data) {
           setForm({
             ...EMPTY,
-            phone_number_id: (data.phone_number_id as string) ?? '',
-            waba_id: (data.waba_id as string) ?? '',
+            phone_number_id: data.phone_number_id ?? '',
+            waba_id: data.waba_id ?? '',
           });
           setHasAccessToken(Boolean(data.has_access_token));
           setHasAppSecret(Boolean(data.has_app_secret));
@@ -107,13 +108,9 @@ export function OfficialApiConfigDialog({
     };
     if (form.access_token) payload.access_token = form.access_token;
     if (form.app_secret) payload.app_secret = form.app_secret;
-    const { error } = await (supabase as unknown as {
-      from: (t: string) => {
-        upsert: (v: Record<string, unknown>, o: { onConflict: string }) => Promise<{ error: { message: string } | null }>;
-      };
-    })
-      .from('whatsapp_official_credentials')
-      .upsert(payload, { onConflict: 'connection_id' });
+    // Table not in generated types — use fromTable helper for dynamic table access
+    const { error } = await fromTable('whatsapp_official_credentials')
+      .upsert(payload, { onConflict: 'connection_id' }) as { error: { message: string } | null };
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });

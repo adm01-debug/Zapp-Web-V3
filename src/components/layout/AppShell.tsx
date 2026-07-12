@@ -1,4 +1,3 @@
-
 import { Suspense, useCallback, forwardRef, lazy, useState, useMemo, memo } from 'react';
 import { Target, Mic, Minimize2, Info } from 'lucide-react';
 import { useViewTransition } from '@/hooks/useViewTransition';
@@ -44,32 +43,38 @@ interface AppShellProps {
   loading: boolean;
 }
 
-export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppShell({
-  currentView,
-  setCurrentView,
-  userId,
-  canGoBack,
-  canGoForward,
-  goBack,
-  goForward,
-  breadcrumbTrail,
-  navDirectionRef,
-  profile,
-  userEmail,
-  signOut,
-  unreadNotifications,
-  showChecklist,
-  loading,
-}, _ref) {
+export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppShell(
+  {
+    currentView,
+    setCurrentView,
+    userId,
+    canGoBack,
+    canGoForward,
+    goBack,
+    goForward,
+    breadcrumbTrail,
+    navDirectionRef: _navDirectionRef,
+    profile,
+    userEmail,
+    signOut,
+    unreadNotifications,
+    showChecklist,
+    loading,
+  },
+  _ref
+) {
   const isMobile = useIsMobile();
   const { isZen, toggleZen } = useZenMode();
   const isInboxView = currentView === 'inbox' || currentView === 'team-chat';
   const { startTransition } = useViewTransition();
   const [voiceOpen, setVoiceOpen] = useState(false);
 
-  const handleViewChange = useCallback((viewId: string) => {
-    startTransition(() => setCurrentView(viewId));
-  }, [startTransition, setCurrentView]);
+  const handleViewChange = useCallback(
+    (viewId: string) => {
+      startTransition(() => setCurrentView(viewId));
+    },
+    [startTransition, setCurrentView]
+  );
 
   const handleVoiceAction = useVoiceActionHandler(handleViewChange);
 
@@ -89,16 +94,19 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
     return `v2.0.${today}.10-10`;
   }, []);
 
-  const currentAgent = useMemo(() => ({
-    name: profile?.name || userEmail || 'Usuário',
-    avatar: profile?.avatar_url || undefined,
-    status: 'online' as const,
-  }), [profile?.name, profile?.avatar_url, userEmail]);
+  const currentAgent = useMemo(
+    () => ({
+      name: profile?.name || userEmail || 'Usuário',
+      avatar: profile?.avatar_url || undefined,
+      status: 'online' as const,
+    }),
+    [profile?.name, profile?.avatar_url, userEmail]
+  );
 
   return (
-    <div className="flex h-screen max-h-screen min-h-screen bg-background overflow-hidden relative selection:bg-primary/20">
+    <div className="relative flex h-screen max-h-screen min-h-screen overflow-hidden bg-background selection:bg-primary/20">
       <RouteLoadingBar isLoading={loading} />
-      
+
       {/* Background mounts are non-visual or global UI overlays */}
       <Suspense fallback={null}>
         <FailedMessageAlertsMount />
@@ -108,7 +116,7 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
 
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:font-medium"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
       >
         Pular para o conteúdo
       </a>
@@ -135,10 +143,10 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
       )}
 
       {!isMobile && (
-        <div className="fixed bottom-2 left-2 z-[60] flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/10 border border-border/10 text-[9px] text-muted-foreground/60 select-none pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
-          <Info className="w-2.5 h-2.5 opacity-40" />
+        <div className="pointer-events-none fixed bottom-2 left-2 z-[60] flex select-none items-center gap-1.5 rounded-full border border-border/10 bg-muted/10 px-2 py-0.5 text-[9px] text-muted-foreground/60 opacity-40 transition-opacity hover:opacity-100">
+          <Info className="h-2.5 w-2.5 opacity-40" />
           <span>{appVersion}</span>
-          <span className="w-1 h-1 rounded-full bg-success/40" />
+          <span className="h-1 w-1 rounded-full bg-success/40" />
           <span className="uppercase tracking-tighter opacity-40">Build 10/10</span>
         </div>
       )}
@@ -149,8 +157,8 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
         aria-label="Conteúdo principal"
         tabIndex={-1}
         className={cn(
-          'flex flex-1 overflow-hidden relative min-w-0 min-h-0 h-full max-h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset',
-          isMobile && 'pt-12 pb-[64px]'
+          'relative flex h-full max-h-full min-h-0 min-w-0 flex-1 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40',
+          isMobile && 'pb-[64px] pt-12'
         )}
       >
         {!isMobile && isInboxView && (
@@ -159,15 +167,15 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
               <button
                 onClick={toggleZen}
                 className={cn(
-                  'absolute top-3 right-3 z-30 h-9 rounded-full flex items-center gap-2 transition-all duration-500',
-                  'border border-border/40 shadow-sm backdrop-blur-md touch-manipulation focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
+                  'absolute right-3 top-3 z-30 flex h-9 items-center gap-2 rounded-full transition-all duration-500',
+                  'touch-manipulation border border-border/40 shadow-sm backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                   isZen
-                    ? 'px-4 bg-primary/15 border-primary/40 text-primary hover:bg-primary/25 hover:border-primary/60 shadow-lg shadow-primary/10'
-                    : 'px-3.5 bg-background/80 border-border/40 text-muted-foreground/80 hover:text-foreground hover:bg-background hover:border-border/80'
+                    ? 'border-primary/40 bg-primary/15 px-4 text-primary shadow-lg shadow-primary/10 hover:border-primary/60 hover:bg-primary/25'
+                    : 'border-border/40 bg-background/80 px-3.5 text-muted-foreground/80 hover:border-border/80 hover:bg-background hover:text-foreground'
                 )}
                 aria-label={isZen ? 'Sair do modo zen' : 'Entrar no modo zen'}
               >
-                {isZen ? <Minimize2 className="w-3.5 h-3.5" /> : <Target className="w-4 h-4" />}
+                {isZen ? <Minimize2 className="h-3.5 w-3.5" /> : <Target className="h-4 w-4" />}
                 <span className="text-[11px] font-medium tracking-wide">
                   {isZen ? 'Sair' : 'Zen'}
                 </span>
@@ -178,9 +186,9 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
             </TooltipContent>
           </Tooltip>
         )}
-        
+
         {showChecklist && currentView === 'dashboard' && (
-          <div className="absolute top-4 right-4 z-20 w-96 max-w-[calc(100%-2rem)] animate-slide-in-right">
+          <div className="animate-slide-in-right absolute right-4 top-4 z-20 w-96 max-w-[calc(100%-2rem)]">
             <OnboardingChecklist onNavigate={handleViewChange} />
           </div>
         )}
@@ -204,10 +212,10 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
           <TooltipTrigger asChild>
             <button
               onClick={() => setVoiceOpen(true)}
-              className="fixed bottom-6 right-6 z-50 w-[54px] h-[54px] rounded-full bg-gradient-to-br from-primary via-primary to-secondary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 active:scale-95 transition-all duration-500 flex items-center justify-center border border-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none"
+              className="fixed bottom-6 right-6 z-50 flex h-[54px] w-[54px] items-center justify-center rounded-full border border-primary/20 bg-gradient-to-br from-primary via-primary to-secondary text-primary-foreground shadow-xl shadow-primary/20 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
               aria-label="Assistente de voz inteligente"
             >
-              <Mic className="w-6 h-6" />
+              <Mic className="h-6 w-6" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="left" sideOffset={8}>
@@ -227,8 +235,20 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
         </Suspense>
       )}
 
-      <div id="a11y-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only" />
-      <div id="a11y-alert" role="alert" aria-live="assertive" aria-atomic="true" className="sr-only" />
+      <div
+        id="a11y-status"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      />
+      <div
+        id="a11y-alert"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        className="sr-only"
+      />
     </div>
   );
 });

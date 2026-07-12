@@ -10,7 +10,7 @@ const renderWithClient = (ui: React.ReactElement) => {
 };
 
 // Mock hooks
-const mockHasPermission = vi.fn();
+const mockHasPermission = vi.hoisted(() => vi.fn());
 const mockUserRole = vi.fn(() => ({
   isSupervisor: false,
   isManager: false,

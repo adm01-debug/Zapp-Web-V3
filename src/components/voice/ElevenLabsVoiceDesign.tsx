@@ -7,8 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mic, Play, Save, RefreshCw, Wand2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Play, RefreshCw, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,12 +29,14 @@ export function ElevenLabsVoiceDesign() {
   const [loading, setLoading] = useState(false);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>('');
-  const [text, setText] = useState('Olá, eu sou uma inteligência artificial treinada para te ajudar.');
+  const [text, setText] = useState(
+    'Olá, eu sou uma inteligência artificial treinada para te ajudar.'
+  );
   const [settings, setSettings] = useState({
     stability: 0.5,
     similarity_boost: 0.75,
     style: 0.0,
-    use_speaker_boost: true
+    use_speaker_boost: true,
   });
 
   useEffect(() => {
@@ -36,11 +44,13 @@ export function ElevenLabsVoiceDesign() {
     const fetchVoices = async () => {
       setLoading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user || cancelled) return;
 
         const { data, error } = await supabase.functions.invoke('elevenlabs-voice', {
-          body: { action: 'listVoices' }
+          body: { action: 'listVoices' },
         });
 
         if (error) throw error;
@@ -57,7 +67,9 @@ export function ElevenLabsVoiceDesign() {
     };
 
     fetchVoices();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleGenerate = async () => {
@@ -69,12 +81,12 @@ export function ElevenLabsVoiceDesign() {
           action: 'textToSpeech',
           voiceId: selectedVoice,
           text,
-          settings
-        }
+          settings,
+        },
       });
 
       if (error) throw error;
-      
+
       const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
       audio.play();
       toast.success('Áudio gerado com sucesso!');
@@ -90,7 +102,7 @@ export function ElevenLabsVoiceDesign() {
     <Card className="w-full">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Wand2 className="w-5 h-5 text-primary" />
+          <Wand2 className="h-5 w-5 text-primary" />
           <CardTitle>Design de Voz</CardTitle>
         </div>
         <CardDescription>Configure e teste vozes neurais de alta fidelidade</CardDescription>
@@ -98,9 +110,9 @@ export function ElevenLabsVoiceDesign() {
       <CardContent className="space-y-6">
         <div className="grid gap-4">
           <div className="grid gap-2">
-            <Label>Voz</Label>
+            <Label htmlFor="voice-select">Voz</Label>
             <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-              <SelectTrigger>
+              <SelectTrigger id="voice-select">
                 <SelectValue placeholder="Selecione uma voz" />
               </SelectTrigger>
               <SelectContent>
@@ -114,10 +126,11 @@ export function ElevenLabsVoiceDesign() {
           </div>
 
           <div className="grid gap-2">
-            <Label>Texto para Teste</Label>
-            <Input 
-              value={text} 
-              onChange={(e) => setText(e.target.value)} 
+            <Label htmlFor="test-text">Texto para Teste</Label>
+            <Input
+              id="test-text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
               placeholder="Digite o texto que deseja ouvir..."
             />
           </div>
@@ -126,24 +139,30 @@ export function ElevenLabsVoiceDesign() {
             <div className="space-y-4">
               <div className="grid gap-2">
                 <div className="flex justify-between">
-                  <Label>Estabilidade</Label>
-                  <span className="text-xs text-muted-foreground">{Math.round(settings.stability * 100)}%</span>
+                  <Label id="stability-label">Estabilidade</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {Math.round(settings.stability * 100)}%
+                  </span>
                 </div>
-                <Slider 
-                  value={[settings.stability * 100]} 
-                  onValueChange={([v]) => setSettings(s => ({ ...s, stability: v / 100 }))}
+                <Slider
+                  aria-labelledby="stability-label"
+                  value={[settings.stability * 100]}
+                  onValueChange={([v]) => setSettings((s) => ({ ...s, stability: v / 100 }))}
                   max={100}
                   step={1}
                 />
               </div>
               <div className="grid gap-2">
                 <div className="flex justify-between">
-                  <Label>Similaridade</Label>
-                  <span className="text-xs text-muted-foreground">{Math.round(settings.similarity_boost * 100)}%</span>
+                  <Label id="similarity-label">Similaridade</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {Math.round(settings.similarity_boost * 100)}%
+                  </span>
                 </div>
-                <Slider 
-                  value={[settings.similarity_boost * 100]} 
-                  onValueChange={([v]) => setSettings(s => ({ ...s, similarity_boost: v / 100 }))}
+                <Slider
+                  aria-labelledby="similarity-label"
+                  value={[settings.similarity_boost * 100]}
+                  onValueChange={([v]) => setSettings((s) => ({ ...s, similarity_boost: v / 100 }))}
                   max={100}
                   step={1}
                 />
@@ -152,23 +171,30 @@ export function ElevenLabsVoiceDesign() {
             <div className="space-y-4">
               <div className="grid gap-2">
                 <div className="flex justify-between">
-                  <Label>Exagero de Estilo</Label>
-                  <span className="text-xs text-muted-foreground">{Math.round(settings.style * 100)}%</span>
+                  <Label id="style-label">Exagero de Estilo</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {Math.round(settings.style * 100)}%
+                  </span>
                 </div>
-                <Slider 
-                  value={[settings.style * 100]} 
-                  onValueChange={([v]) => setSettings(s => ({ ...s, style: v / 100 }))}
+                <Slider
+                  aria-labelledby="style-label"
+                  value={[settings.style * 100]}
+                  onValueChange={([v]) => setSettings((s) => ({ ...s, style: v / 100 }))}
                   max={100}
                   step={1}
                 />
               </div>
-              <div className="flex items-end h-full pb-1">
-                <Button 
-                  className="w-full gap-2" 
-                  onClick={handleGenerate} 
+              <div className="flex h-full items-end pb-1">
+                <Button
+                  className="w-full gap-2"
+                  onClick={handleGenerate}
                   disabled={loading || !selectedVoice}
                 >
-                  {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                  {loading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
                   Gerar e Ouvir
                 </Button>
               </div>

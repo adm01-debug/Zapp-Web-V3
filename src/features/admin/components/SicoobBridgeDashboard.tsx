@@ -196,10 +196,10 @@ export function SicoobBridgeDashboard() {
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-background">
                   <tr className="border-b">
-                    <th className="text-left p-2 font-medium text-muted-foreground">Singular ID</th>
-                    <th className="text-left p-2 font-medium text-muted-foreground">Sicoob User</th>
-                    <th className="text-left p-2 font-medium text-muted-foreground">Vendedor</th>
-                    <th className="text-left p-2 font-medium text-muted-foreground">Data</th>
+                    <th scope="col" className="text-left p-2 font-medium text-muted-foreground">Singular ID</th>
+                    <th scope="col" className="text-left p-2 font-medium text-muted-foreground">Sicoob User</th>
+                    <th scope="col" className="text-left p-2 font-medium text-muted-foreground">Vendedor</th>
+                    <th scope="col" className="text-left p-2 font-medium text-muted-foreground">Data</th>
                   </tr>
                 </thead>
                 <tbody>

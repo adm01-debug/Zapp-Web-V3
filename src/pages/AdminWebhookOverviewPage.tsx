@@ -6,8 +6,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format, subHours } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { subHours } from 'date-fns';
 import {
   Webhook, RefreshCw, Activity, CheckCircle2, XCircle, Server, AlertTriangle,
 } from 'lucide-react';
@@ -32,6 +31,7 @@ import { queryExternalProxy } from '@/lib/externalProxy';
 import { openWebhookEventsWithFilters } from '@/lib/webhookEventsDeepLink';
 import { cn } from '@/lib/utils';
 import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';
+import { formatDateTimeCompact } from '@/lib/formatters';
 import {
   aggregateByType,
   aggregateByTypeAndInstance,
@@ -51,14 +51,6 @@ const RANGE_OPTIONS = [
 // Asking for more just wastes a round-trip and risks Postgres timeouts.
 const HARD_LIMIT = 200;
 
-function formatTime(iso: string | null): string {
-  if (!iso) return '—';
-  try {
-    return format(new Date(iso), "dd/MM HH:mm:ss", { locale: ptBR });
-  } catch {
-    return iso;
-  }
-}
 
 const AUTO_REFRESH_STORAGE_KEY = 'zappweb:webhook-overview:auto-refresh';
 const AUTO_REFRESH_INTERVAL_MS = 60_000;
@@ -251,11 +243,11 @@ export default function AdminWebhookOverviewPage() {
                 <ResponsiveContainer width="100%" height={Math.max(220, byType.length * 28)}>
                   <BarChart data={byType.slice(0, 10)} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                    <XAxis type="number" tick={{ fontSize: 10 }} />
+                    <XAxis type="number" tick={{ style: { fontSize: '0.75rem' } }} />
                     <YAxis
                       type="category"
                       dataKey="type"
-                      tick={{ fontSize: 10 }}
+                      tick={{ style: { fontSize: '0.75rem' } }}
                       width={150}
                     />
                     <Tooltip
@@ -299,8 +291,8 @@ export default function AdminWebhookOverviewPage() {
                 <ResponsiveContainer width="100%" height={260}>
                   <AreaChart data={hourly}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                    <XAxis dataKey="bucket" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                    <XAxis dataKey="bucket" tick={{ style: { fontSize: '0.75rem' } }} />
+                    <YAxis tick={{ style: { fontSize: '0.75rem' } }} allowDecimals={false} />
                     <Tooltip
                       contentStyle={{
                         background: 'hsl(var(--card))',
@@ -451,7 +443,7 @@ export default function AdminWebhookOverviewPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {formatTime(row.lastAt)}
+                          {formatDateTimeCompact(row.lastAt)}
                         </TableCell>
                       </TableRow>
                     );

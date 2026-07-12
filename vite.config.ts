@@ -45,9 +45,6 @@ export default defineConfig(({ mode }) => ({
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      // NOTE: includeAssets lists files that exist in public/.
-      // pwa-192x192.png / pwa-512x512.png do NOT exist; the real icons live
-      // under public/icons/ — reference those in the manifest below.
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         name: 'OmniChannel Pro',
@@ -59,17 +56,10 @@ export default defineConfig(({ mode }) => ({
         start_url: '/',
         scope: '/',
         lang: 'pt-BR',
-        // These icon paths match the files that actually exist in public/icons/
         icons: [
           {
             src: '/icons/icon-192x192.png',
             sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: '/icons/icon-512x512.png',
-            sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
           },
@@ -83,25 +73,20 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         // FIX F4: Increased from 4MB to 8MB so that vendor-mapbox (~6.5MB)
-        // is included in the precache. Without this, the map chunk is served
-        // only from the network, breaking offline map access and also making
-        // the chunk visible to 404 errors after a deploy hash change.
+        // is included in the precache.
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // FIX W1 (2026-07-11): Removed 'woff2' — no local web fonts are bundled.
+        // Google Fonts load from CDN via the runtimeCaching CacheFirst rule below.
+        // Including 'woff2' caused workbox-build to emit on every build:
+        // "One of the glob patterns doesn't match any files"
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // clientsClaim: true — claims uncontrolled clients on first install.
+        // skipWaiting removed: ServiceWorkerUpdateBanner controls the update lifecycle.
         clientsClaim: true,
-        skipWaiting: true,
         cleanupOutdatedCaches: true,
         runtimeCaching: [
-          // FIX F3: Navigation requests (window.location.reload(), link clicks,
-          // browser back/forward) always go to the NETWORK first so the browser
+          // FIX F3: Navigation requests go to the NETWORK first so the browser
           // fetches the freshest index.html after a deploy.
-          //
-          // Without this, the service worker could serve a stale precached
-          // index.html after a chunk-error reload, meaning the old bundle
-          // (with broken chunk hashes) would load again.
-          //
-          // networkTimeoutSeconds=3: if the network is slow or offline, fall
-          // back to the cached index.html so the SPA still loads.
           {
             urlPattern: ({ request }: { request: Request }) =>
               request.mode === 'navigate',
@@ -111,7 +96,7 @@ export default defineConfig(({ mode }) => ({
               networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 1,
-                maxAgeSeconds: 60 * 60 * 24, // 24h — caps staleness of offline fallback
+                maxAgeSeconds: 60 * 60 * 24, // 24h
               },
               cacheableResponse: {
                 statuses: [200],
@@ -146,13 +131,13 @@ export default defineConfig(({ mode }) => ({
   build: {
     reportCompressedSize: false,
     cssCodeSplit: true,
-    sourcemap: mode === 'development',
+    // 'hidden' generates .map files in dist without referencing them in JS output.
+    // Browsers cannot accidentally load them; Sentry can consume them via CLI/plugin.
+    // Dev builds keep true (full inline sourcemaps).
+    sourcemap: mode === 'development' ? true : 'hidden',
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        // Isola libs pesadas "folha" (usadas por telas/rotas especificas) em chunks
-        // proprios e cacheaveis, tirando-as do bundle de entrada. Conservador de
-        // proposito: NAO separa o ecossistema React (evita problemas de ordem de init).
         manualChunks(id: string) {
           if (!id.includes('node_modules')) return;
           if (id.includes('mapbox-gl') || id.includes('mapbox')) return 'vendor-mapbox';

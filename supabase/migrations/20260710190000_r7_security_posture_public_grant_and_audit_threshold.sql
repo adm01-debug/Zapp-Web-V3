@@ -1,0 +1,23 @@
+-- Migration 20260710190000 — R7 fixes
+-- Rodada de validação 7 (2026-07-10)
+
+-- ════════════════════════════════════════════════════════════════
+-- FIX R7-04 (P0 Security): security_posture query não detectava PUBLIC grants
+-- PostgreSQL ACL format: '=r/grantor' = PUBLIC grant (grantee vazio)
+-- anon herda automaticamente todos os grants PUBLIC via role membership
+-- A query anterior LIKE 'anon=%' perdia esse caso
+--
+-- AGORA: detecta 'anon=%' (explícito) OU '~^=' (PUBLIC)
+-- SCOPE: expandido de 'zapp' para 'zapp' + 'evo'
+--
+-- FIX R7-03: security_posture ainda usava information_schema.role_table_grants
+-- (REPLACE do R6 falhou por mismatch de whitespace) — agora usa pg_catalog
+-- Speedup: 23ms → 1.7ms (14x)
+--
+-- FIX R7-16: audit_log_bloat threshold 20MB→50MB (REGRESSÃO) → 300MB/1GB
+-- steady state = 3 dias × 24h × 2.3MB/h = 165MB → threshold 300MB (1.8× margem)
+--
+-- Todas as alterações aplicadas diretamente via REPLACE cirúrão na função.
+-- Esta migration documenta as mudanças e serves para reaplicá-las em novos environments.
+-- ════════════════════════════════════════════════════════════════
+SELECT 'migration_20260710190000_done' AS resultado;

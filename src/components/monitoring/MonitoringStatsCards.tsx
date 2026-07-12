@@ -44,7 +44,7 @@ function MiniSparkline({ data, color = 'text-primary' }: { data: number[]; color
   const fillPoints = `0,${h} ${points} ${w},${h}`;
 
   return (
-    <svg width={w} height={h} className="shrink-0" viewBox={`0 0 ${w} ${h}`}>
+    <svg width={w} height={h} className="shrink-0" viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
       <polygon points={fillPoints} className={cn('opacity-10', color === 'text-primary' ? 'fill-emerald-500' : color === 'text-destructive' ? 'fill-destructive' : 'fill-primary')} />
       <polyline
         points={points}

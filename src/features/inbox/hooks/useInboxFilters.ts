@@ -115,15 +115,8 @@ export function useInboxFilters({
     // Failure Category (deep-link de monitoramento)
     const catFromUrl = params.get('failureCategory');
     if (catFromUrl) {
-      const validCategories: (FailureCategory | 'all')[] = [
-        'all',
-        'auth',
-        'http_4xx',
-        'http_5xx',
-        'network',
-        'unknown',
-      ];
-      if (validCategories.includes(catFromUrl as FailureCategory | 'all')) {
+      const validCategories: (FailureCategory | 'all')[] = ['all', 'auth', 'http_4xx', 'http_5xx', 'network', 'unknown'];
+      if ((validCategories as string[]).includes(catFromUrl)) {
         setFailureCategoryFilter(catFromUrl as FailureCategory | 'all');
       }
     }
@@ -332,7 +325,12 @@ export function useInboxFilters({
       if (mainTab === 'open') {
         result = result.filter((c) => {
           const s = statusOf(c.contact.id);
-          const isOpenOrProgress = s === 'open' || s === 'in_progress';
+          // Bug fix: TicketTabs contabiliza como "aberto" tudo que não é `resolved`
+          // (inclui `pending`, `waiting`, `snoozed` etc). O filtro precisa seguir
+          // o mesmo critério, senão o contador diverge da lista renderizada
+          // ("Aguardando 33" com "Nenhuma conversa encontrada"). TicketStatus só
+          // modela open|in_progress|resolved, então "não resolvido" cobre o resto.
+          const isOpenOrProgress = s !== 'resolved';
 
           if (!isOpenOrProgress) return false;
 

@@ -53,10 +53,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button";
     
     return (
-      <Comp 
-        className={cn(buttonVariants({ variant, size, className }))} 
-        ref={ref} 
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
         disabled={disabled || isLoading}
+        aria-busy={isLoading || undefined}
         {...props}
       >
         {isLoading ? (
@@ -94,6 +95,7 @@ const MotionButton = React.forwardRef<HTMLButtonElement, MotionButtonProps>(
         whileTap={{ scale: disabled || isLoading ? 1 : 0.98 }}
         className={cn(buttonVariants({ variant, size, className }))}
         disabled={disabled || isLoading}
+        aria-busy={isLoading || undefined}
         {...props}
       >
         {isLoading ? (

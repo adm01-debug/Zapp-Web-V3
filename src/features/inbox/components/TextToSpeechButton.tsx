@@ -56,6 +56,7 @@ export function TextToSpeechButton({
             (isThisPlaying || isThisLoading) && "opacity-100",
             className
           )}
+          aria-label={isThisPlaying ? 'Parar áudio' : 'Ouvir mensagem'}
           onClick={handleClick}
           disabled={isLoading && currentMessageId !== messageId}
         >

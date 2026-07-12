@@ -43,20 +43,23 @@ export function useTypingPresence({
   const contactTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track current user typing
-  const setTyping = useCallback(async (isTyping: boolean) => {
-    if (!channelRef.current) return;
+  const setTyping = useCallback(
+    async (isTyping: boolean) => {
+      if (!channelRef.current) return;
 
-    try {
-      await channelRef.current.track({
-        oderId: currentUserId,
-        name: currentUserName,
-        isTyping,
-        lastTyped: new Date().toISOString()
-      });
-    } catch (error) {
-      log.error('Error tracking typing status:', error);
-    }
-  }, [currentUserId, currentUserName]);
+      try {
+        await channelRef.current.track({
+          oderId: currentUserId,
+          name: currentUserName,
+          isTyping,
+          lastTyped: new Date().toISOString(),
+        });
+      } catch (error) {
+        log.error('Error tracking typing status:', error);
+      }
+    },
+    [currentUserId, currentUserName]
+  );
 
   // Debounced typing indicator - call when user is typing
   const handleTypingStart = useCallback(() => {
@@ -93,7 +96,6 @@ export function useTypingPresence({
     // subscrito impede registrar novos callbacks (`presence`/`broadcast`) e
     // crashava o ChatPanel ("cannot add `presence` callbacks ... after `subscribe()`").
     const presenceTopic = `typing-agents:${channelKey}`;
-    const broadcastTopic = `typing:${channelKey}`;
 
     // Create presence channel for this conversation
     const channel = supabase.channel(presenceTopic, {
@@ -114,13 +116,13 @@ export function useTypingPresence({
       Object.entries(state).forEach(([key, presences]) => {
         if (key !== currentUserId && Array.isArray(presences)) {
           presences.forEach((presence) => {
-            const p = presence as unknown as PresenceState;
+            const p = presence as PresenceState;
             if (p.isTyping) {
               users.push({
                 oderId: p.oderId || key,
                 name: p.name || 'Contato',
                 isTyping: p.isTyping,
-                lastTyped: p.lastTyped || new Date().toISOString()
+                lastTyped: p.lastTyped || new Date().toISOString(),
               });
             }
           });
@@ -169,6 +171,6 @@ export function useTypingPresence({
     isContactTyping,
     typingUsers,
     handleTypingStart,
-    handleTypingStop
+    handleTypingStop,
   };
 }

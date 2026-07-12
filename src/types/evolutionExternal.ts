@@ -38,10 +38,13 @@ export interface EvolutionMessage {
   instance_name: string;
   push_name: string | null;
   deleted_at: string | null;
-  reactions?: Array<{ text: string; key: { remoteJid: string; fromMe: boolean; id: string } }> | null;
+  reactions?: Array<{
+    text: string;
+    key: { remoteJid: string; fromMe: boolean; id: string };
+  }> | null;
   media_meta?: {
     ptt?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   ptt?: boolean;
 }
@@ -51,7 +54,8 @@ export interface EvolutionMessage {
 // raw_data, notes, tags, follow_up_*, contact_id, conversation_id, status,
 // status_at duplicates, etc. Heavy fields are fetched on-demand via
 // `useMessageDetails` (rpc_get_message_details).
-export type EvolutionMessageLite = Pick<EvolutionMessage,
+export type EvolutionMessageLite = Pick<
+  EvolutionMessage,
   | 'id'
   | 'message_id'
   | 'remote_jid'
@@ -74,13 +78,20 @@ export type EvolutionMessageLite = Pick<EvolutionMessage,
   | 'created_at'
   | 'status_at'
   | 'deleted_at'
-> & { reactions?: Array<{ text: string; key: { remoteJid: string; fromMe: boolean; id: string } }> | null };
+> & {
+  reactions?: Array<{
+    text: string;
+    key: { remoteJid: string; fromMe: boolean; id: string };
+  }> | null;
+};
 
 /**
  * Project a full EvolutionMessage (e.g. from a realtime payload) into the
  * lite shape, dropping heavy fields. Tolerant of missing keys.
  */
-export function toEvolutionMessageLite(m: Partial<EvolutionMessage> & { id: string }): EvolutionMessageLite {
+export function toEvolutionMessageLite(
+  m: Partial<EvolutionMessage> & { id: string }
+): EvolutionMessageLite {
   return {
     id: m.id,
     message_id: m.message_id ?? '',

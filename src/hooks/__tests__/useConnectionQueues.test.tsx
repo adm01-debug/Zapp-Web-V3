@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const mockFrom = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: (...args: any[]) => mockFrom(...args) },
+  supabase: { from: (...args: unknown[]) => mockFrom(...args) },
 }));
 vi.mock('@/lib/logger');
 
@@ -14,9 +14,12 @@ describe('useConnectionQueues', () => {
     vi.clearAllMocks();
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: [
-          { id: 'cq1', whatsapp_connection_id: 'conn1', queue_id: 'q1' },
-        ], error: null }),
+        eq: vi
+          .fn()
+          .mockResolvedValue({
+            data: [{ id: 'cq1', whatsapp_connection_id: 'conn1', queue_id: 'q1' }],
+            error: null,
+          }),
       }),
       insert: vi.fn().mockResolvedValue({ error: null }),
       delete: vi.fn().mockReturnValue({

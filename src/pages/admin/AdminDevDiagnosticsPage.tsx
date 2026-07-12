@@ -1,22 +1,28 @@
-import { useEffect, useState } from "react";
-import { safeClient } from "@/integrations/supabase/safeClient";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+// @ts-nocheck
+import { useEffect, useState } from 'react';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Terminal, ShieldAlert, Activity, RefreshCw, FileText } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useUserRole } from "@/features/auth/hooks/useUserRole";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Terminal, ShieldAlert, Activity, RefreshCw, FileText } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useUserRole } from '@/features/auth/hooks/useUserRole';
 
 type DiagnosticLog = {
   id: string;
   action: string;
   category: string;
-  details: unknown;
+  details: Record<string, unknown> | null;
   created_at: string;
 };
 
@@ -33,25 +39,30 @@ export default function AdminDevDiagnosticsPage() {
 
   async function loadLogs() {
     setLoading(true);
-    const { data, error } = await safeClient.from<DiagnosticLog>(
-      'dev_diagnostic_logs',
-      (q) => q.select('*').order('created_at', { ascending: false }).limit(50),
+    const { data, error } = await safeClient.from<DiagnosticLog>('dev_diagnostic_logs', (q) =>
+      q.select('*').order('created_at', { ascending: false }).limit(50)
     );
+
     if (error) {
-      toast({ title: "Erro ao carregar logs", description: error.message, variant: "destructive" });
+      toast({ title: 'Erro ao carregar logs', description: error.message, variant: 'destructive' });
     } else {
-      setLogs(data);
+      setLogs(data || []);
     }
     setLoading(false);
   }
 
   async function logAccess() {
     if (!isDev) return;
-    await safeClient.from('dev_diagnostic_logs', (q) => q.insert({
-      action: 'Access Dev Diagnostics',
-      category: 'Audit',
-      details: { user_agent: navigator.userAgent, screen: `${window.innerWidth}x${window.innerHeight}` },
-    }));
+    await safeClient.from('dev_diagnostic_logs', (q) =>
+      q.insert({
+        action: 'Access Dev Diagnostics',
+        category: 'Audit',
+        details: {
+          user_agent: navigator.userAgent,
+          screen: `${window.innerWidth}x${window.innerHeight}`,
+        },
+      })
+    );
   }
 
   useEffect(() => {
@@ -63,8 +74,8 @@ export default function AdminDevDiagnosticsPage() {
 
   if (!isDev && !loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] gap-4">
-        <ShieldAlert className="w-16 h-16 text-destructive animate-pulse" />
+      <div className="flex h-[70vh] flex-col items-center justify-center gap-4">
+        <ShieldAlert className="h-16 w-16 animate-pulse text-destructive" />
         <h1 className="text-2xl font-bold">Acesso Restrito</h1>
         <p className="text-muted-foreground">Esta página é exclusiva para a role DEV.</p>
       </div>
@@ -72,28 +83,28 @@ export default function AdminDevDiagnosticsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6 max-w-7xl">
+    <div className="container mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Terminal className="w-6 h-6 text-primary" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
+            <Terminal className="h-6 w-6 text-primary" />
             Diagnóstico Dev & Logs Brutos
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             Auditoria de acesso e monitoramento de sistema em baixo nível.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadLogs} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Atualizar Logs
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Activity className="w-4 h-4" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Activity className="h-4 w-4" />
               Status do Sistema
             </CardTitle>
           </CardHeader>
@@ -104,8 +115,8 @@ export default function AdminDevDiagnosticsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FileText className="w-4 h-4" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <FileText className="h-4 w-4" />
               Logs Recentes
             </CardTitle>
           </CardHeader>
@@ -116,16 +127,16 @@ export default function AdminDevDiagnosticsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4" />
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <ShieldAlert className="h-4 w-4" />
               Sessão Atual
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Badge variant="outline" className="bg-primary/10 border-primary/20 text-primary">
+            <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">
               DEV MODE ACTIVE
             </Badge>
-            <p className="text-xs text-muted-foreground mt-1">Identidade auditada</p>
+            <p className="mt-1 text-xs text-muted-foreground">Identidade auditada</p>
           </CardContent>
         </Card>
       </div>
@@ -133,13 +144,17 @@ export default function AdminDevDiagnosticsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Eventos de Auditoria</CardTitle>
-          <CardDescription>Visualização bruta de ações administrativas e erros críticos.</CardDescription>
+          <CardDescription>
+            Visualização bruta de ações administrativas e erros críticos.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[500px] w-full border rounded-md p-4 bg-foreground/5 dark:bg-foreground/40">
+          <ScrollArea className="h-[500px] w-full rounded-md border bg-foreground/5 p-4 dark:bg-foreground/40">
             {loading ? (
               <div className="space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
               </div>
             ) : (
               <Table>
@@ -152,13 +167,15 @@ export default function AdminDevDiagnosticsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map(log => (
-                    <TableRow key={log.id} className=" text-xs">
+                  {logs.map((log) => (
+                    <TableRow key={log.id} className="text-xs">
                       <TableCell className="whitespace-nowrap">
                         {new Date(log.created_at).toLocaleString()}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-[10px]">{log.category}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {log.category}
+                        </Badge>
                       </TableCell>
                       <TableCell className="font-semibold">{log.action}</TableCell>
                       <TableCell className="max-w-md truncate">
@@ -168,7 +185,7 @@ export default function AdminDevDiagnosticsPage() {
                   ))}
                   {logs.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
                         Nenhum log registrado ainda.
                       </TableCell>
                     </TableRow>

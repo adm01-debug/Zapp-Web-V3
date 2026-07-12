@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { log } from '@/lib/logger';
-import { whatsappStatusService } from '@/features/inbox/services/whatsappStatusService';
-import type { WhatsAppStatusMessage, WhatsAppPresenceInfo } from '@/features/inbox/data-access/whatsappStatusRepository';
-
+import { whatsappStatusService } from '../services/whatsappStatusService';
+import type {
+  WhatsAppStatusMessage,
+  WhatsAppPresenceInfo,
+} from '../data-access/whatsappStatusRepository';
 
 export type { WhatsAppStatusMessage, WhatsAppPresenceInfo };
 
@@ -21,7 +23,11 @@ export interface WhatsAppStatusData {
  */
 export function useWhatsAppStatus(phone: string | undefined): WhatsAppStatusData {
   const [statusMessages, setStatusMessages] = useState<WhatsAppStatusMessage[]>([]);
-  const [presence, setPresence] = useState<WhatsAppPresenceInfo>({ isOnline: false, lastSeen: null, loading: true });
+  const [presence, setPresence] = useState<WhatsAppPresenceInfo>({
+    isOnline: false,
+    lastSeen: null,
+    loading: true,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useMountedRef();
@@ -46,7 +52,7 @@ export function useWhatsAppStatus(phone: string | undefined): WhatsAppStatusData
     try {
       const data = await whatsappStatusService.fetchStatusData(phone);
 
-      if (controller.signal.aborted || !mountedRef.current) return;
+      if (!mountedRef.current) return;
 
       setStatusMessages(data.statusMessages);
       setPresence(data.presence);

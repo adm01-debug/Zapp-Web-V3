@@ -15,6 +15,7 @@ import {
   requireEnv,
   Logger,
 } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -38,6 +39,9 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     const { allowed } = checkRateLimit(`stt:${ip}`, 10, 60_000);
     if (!allowed) return errorResponse("Limite de transcrições excedido. Tente novamente em 1 minuto.", 429, req);
+
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
 
     const body = await req.json().catch(() => null);
     if (!body || typeof body.audio !== "string" || body.audio.length === 0) {
@@ -65,6 +69,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "xi-api-key": ELEVENLABS_API_KEY },
       body: formData,
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!response.ok) {
@@ -82,8 +87,11 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ text }, 200, req);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    log.error("Unhandled error", { error: msg });
-    return errorResponse(msg, 500, req);
+    if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
+      log.warn("ElevenLabs STT request timed out, returning fallback");
+      return jsonResponse({ text: "", fallback: true, error: "TRANSCRIPTION_TIMEOUT" }, 200, req);
+    }
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

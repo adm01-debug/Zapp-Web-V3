@@ -194,8 +194,8 @@ export function AIStatsWidget() {
                       <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.2} /><stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} /></linearGradient>
                       <linearGradient id="neutralGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0.2} /><stop offset="95%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0} /></linearGradient>
                     </defs>
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                    <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="date" tick={{ style: { fontSize: '0.75rem' }, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis domain={['auto', 'auto']} tick={{ style: { fontSize: '0.75rem' }, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                     <Tooltip content={<ChartTooltipContent />} />
                     {visibleSentiments.has('positive') && <Area type="monotone" dataKey="positive" name="Positivo" stroke="hsl(var(--success))" strokeWidth={2} fill="url(#positiveGradient)" />}
                     {visibleSentiments.has('negative') && <Area type="monotone" dataKey="negative" name="Negativo" stroke="hsl(var(--destructive))" strokeWidth={2} fill="url(#negativeGradient)" />}

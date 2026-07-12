@@ -60,7 +60,7 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={messageType} onValueChange={(v) => setMessageType(v as 'buttons' | 'list')}>
+        <Tabs value={messageType} onValueChange={(v) => setMessageType(v as 'buttons' | 'list' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="buttons" className="gap-2">
               <MessageSquare className="w-4 h-4" />
@@ -75,22 +75,22 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
           <div className="space-y-4 mt-4">
             {/* Header */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Cabeçalho (opcional)</Label>
-              <Input placeholder="Título da mensagem..." value={headerText} onChange={(e) => setHeaderText(e.target.value)} maxLength={60} />
+              <Label htmlFor="msg-header" className="text-xs text-muted-foreground">Cabeçalho (opcional)</Label>
+              <Input id="msg-header" placeholder="Título da mensagem..." value={headerText} onChange={(e) => setHeaderText(e.target.value)} maxLength={60} />
               <p className="text-[10px] text-muted-foreground text-right">{headerText.length}/60</p>
             </div>
 
             {/* Body */}
             <div className="space-y-2">
-              <Label>Mensagem *</Label>
-              <Textarea placeholder="Digite o corpo da mensagem..." value={body} onChange={(e) => setBody(e.target.value)} maxLength={1024} rows={3} />
+              <Label htmlFor="msg-body">Mensagem *</Label>
+              <Textarea id="msg-body" placeholder="Digite o corpo da mensagem..." value={body} onChange={(e) => setBody(e.target.value)} maxLength={1024} rows={3} />
               <p className="text-[10px] text-muted-foreground text-right">{body.length}/1024</p>
             </div>
 
             {/* Footer */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Rodapé (opcional)</Label>
-              <Input placeholder="Texto do rodapé..." value={footer} onChange={(e) => setFooter(e.target.value)} maxLength={60} />
+              <Label htmlFor="msg-footer" className="text-xs text-muted-foreground">Rodapé (opcional)</Label>
+              <Input id="msg-footer" placeholder="Texto do rodapé..." value={footer} onChange={(e) => setFooter(e.target.value)} maxLength={60} />
               <p className="text-[10px] text-muted-foreground text-right">{footer.length}/60</p>
             </div>
 
@@ -120,14 +120,14 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
                         <GripVertical className="w-4 h-4 text-muted-foreground" />
                         <Badge variant="secondary" className="gap-1">{getButtonTypeIcon(button.type)}{getButtonTypeLabel(button.type)}</Badge>
                       </div>
-                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeButton(index)}>
+                      <Button aria-label="Remover botão" type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeButton(index)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                     <div className="space-y-2">
-                      <Input placeholder="Título do botão (máx. 20 caracteres)" value={button.title} onChange={(e) => updateButton(index, { title: e.target.value })} maxLength={20} />
-                      {button.type === 'url' && <Input placeholder="https://exemplo.com" value={button.url || ''} onChange={(e) => updateButton(index, { url: e.target.value })} type="url" />}
-                      {button.type === 'phone' && <Input placeholder="+55 11 99999-0000" value={button.phoneNumber || ''} onChange={(e) => updateButton(index, { phoneNumber: e.target.value })} type="tel" />}
+                      <Input aria-label={`Título do botão ${index + 1}`} placeholder="Título do botão (máx. 20 caracteres)" value={button.title} onChange={(e) => updateButton(index, { title: e.target.value })} maxLength={20} />
+                      {button.type === 'url' && <Input aria-label={`URL do botão ${index + 1}`} placeholder="https://exemplo.com" value={button.url || ''} onChange={(e) => updateButton(index, { url: e.target.value })} type="url" />}
+                      {button.type === 'phone' && <Input aria-label={`Telefone do botão ${index + 1}`} placeholder="+55 11 99999-0000" value={button.phoneNumber || ''} onChange={(e) => updateButton(index, { phoneNumber: e.target.value })} type="tel" />}
                     </div>
                   </motion.div>
                 ))}
@@ -144,8 +144,8 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
             {/* List Tab */}
             <TabsContent value="list" className="mt-0 space-y-4">
               <div className="space-y-2">
-                <Label>Texto do Botão de Lista *</Label>
-                <Input placeholder="Ver opções" value={listButtonText} onChange={(e) => setListButtonText(e.target.value)} maxLength={20} />
+                <Label htmlFor="list-btn-text">Texto do Botão de Lista *</Label>
+                <Input id="list-btn-text" placeholder="Ver opções" value={listButtonText} onChange={(e) => setListButtonText(e.target.value)} maxLength={20} />
                 <p className="text-[10px] text-muted-foreground">{listButtonText.length}/20 - Este botão abrirá a lista de opções</p>
               </div>
 
@@ -173,15 +173,15 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
                             {section.title && <span className="text-sm text-muted-foreground truncate max-w-[150px]">{section.title}</span>}
                             <Badge variant="secondary" className="text-[10px]">{section.rows.length} {section.rows.length === 1 ? 'item' : 'itens'}</Badge>
                           </div>
-                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeSection(sectionIndex); }}>
+                          <Button aria-label="Remover seção" type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeSection(sectionIndex); }}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <div className="p-3 pt-0 space-y-3 border-t border-border/50">
                             <div className="space-y-1">
-                              <Label className="text-xs">Título da Seção *</Label>
-                              <Input placeholder="Ex: Categorias, Opções, Produtos..." value={section.title} onChange={(e) => updateSection(sectionIndex, { title: e.target.value })} maxLength={24} />
+                              <Label htmlFor={`section-title-${sectionIndex}`} className="text-xs">Título da Seção *</Label>
+                              <Input id={`section-title-${sectionIndex}`} placeholder="Ex: Categorias, Opções, Produtos..." value={section.title} onChange={(e) => updateSection(sectionIndex, { title: e.target.value })} maxLength={24} />
                               <p className="text-[10px] text-muted-foreground text-right">{section.title.length}/24</p>
                             </div>
                             <div className="space-y-2">
@@ -196,10 +196,10 @@ export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: Intera
                                   <motion.div key={row.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="p-2 rounded-md bg-background border border-border/50 space-y-2">
                                     <div className="flex items-start gap-2">
                                       <div className="flex-1 space-y-2">
-                                        <Input placeholder="Título do item (máx. 24)" value={row.title} onChange={(e) => updateRow(sectionIndex, rowIndex, { title: e.target.value })} maxLength={24} className="h-8 text-sm" />
-                                        <Input placeholder="Descrição (opcional, máx. 72)" value={row.description || ''} onChange={(e) => updateRow(sectionIndex, rowIndex, { description: e.target.value })} maxLength={72} className="h-8 text-sm" />
+                                        <Input aria-label={`Título do item ${rowIndex + 1} da seção ${sectionIndex + 1}`} placeholder="Título do item (máx. 24)" value={row.title} onChange={(e) => updateRow(sectionIndex, rowIndex, { title: e.target.value })} maxLength={24} className="h-8 text-sm" />
+                                        <Input aria-label={`Descrição do item ${rowIndex + 1} da seção ${sectionIndex + 1}`} placeholder="Descrição (opcional, máx. 72)" value={row.description || ''} onChange={(e) => updateRow(sectionIndex, rowIndex, { description: e.target.value })} maxLength={72} className="h-8 text-sm" />
                                       </div>
-                                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive shrink-0" onClick={() => removeRow(sectionIndex, rowIndex)}>
+                                      <Button aria-label="Remover item" type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive shrink-0" onClick={() => removeRow(sectionIndex, rowIndex)}>
                                         <X className="w-3 h-3" />
                                       </Button>
                                     </div>

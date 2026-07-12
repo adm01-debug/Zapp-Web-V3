@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mockChannel = vi.fn();
-const mockRemoveChannel = vi.fn();
+const mockChannel = vi.hoisted(() => vi.fn());
+const mockRemoveChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     channel: (...args: unknown[]) => mockChannel(...args),
-    removeChannel: mockRemoveChannel,
+    removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
   },
   // The hook short-circuits when Supabase isn't configured; the mock must
   // expose these exports (added with the graceful-degradation work) or the

@@ -1,6 +1,0 @@
-Contact: mailto:seguranca@promobrindes.com.br
-Contact: mailto:adm01@promobrindes.com.br
-Expires: 2027-05-04T00:00:00.000Z
-Preferred-Languages: pt-BR, en
-Canonical: https://zapp.atomicabr.com.br/.well-known/security.txt
-Policy: https://promobrindes.com.br/politica-de-seguranca

@@ -59,6 +59,7 @@ export function ToolPanel({ isOpen, onClose, icon, title, subtitle, children, cl
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 rounded-lg shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                aria-label="Fechar painel"
                 onClick={onClose}
               >
                 <X className="h-4 w-4" />

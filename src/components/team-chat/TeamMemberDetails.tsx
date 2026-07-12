@@ -41,7 +41,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
       if (conversation.type === 'direct' && otherMemberId) {
         const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').eq('id', otherMemberId).single();
         if (error) throw error;
-        return data as MemberProfile;
+        return data as MemberProfile; // ignore-audit: MemberProfile maps a subset of profiles columns; select explicitly lists them
       }
       return null;
     },
@@ -74,7 +74,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h3 className="text-sm font-semibold flex items-center gap-1.5"><span className="w-1 h-4 bg-primary rounded-full" />{conversation.type === 'direct' ? 'Detalhes do Colaborador' : conversation.type === 'department' ? 'Detalhes do Departamento' : 'Detalhes do Grupo'}</h3>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleAll} title="Recolher/Expandir"><ChevronsDownUp className="w-3.5 h-3.5" /></Button>
+          <Button aria-label="Recolher/Expandir tudo" variant="ghost" size="icon" className="h-7 w-7" onClick={toggleAll} title="Recolher/Expandir"><ChevronsDownUp className="w-3.5 h-3.5" /></Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label="Fechar"><X className="w-3.5 h-3.5" /></Button>
         </div>
       </div>
@@ -108,7 +108,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
                   return (
                     <div key={member.id} className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="relative">
-                        <Avatar className="h-9 w-9"><AvatarImage src={member.avatar_url || undefined} /><AvatarFallback className="text-xs bg-muted">{member.name?.charAt(0) || '?'}</AvatarFallback></Avatar>
+                        <Avatar className="h-9 w-9"><AvatarImage src={member.avatar_url || undefined} alt={member.name || ""} /><AvatarFallback className="text-xs bg-muted">{member.name?.charAt(0) || '?'}</AvatarFallback></Avatar>
                         {member.is_active && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-card" />}
                         {mBirthday?.isToday && <div className="absolute -top-1 -right-1 text-xs">🎂</div>}
                       </div>

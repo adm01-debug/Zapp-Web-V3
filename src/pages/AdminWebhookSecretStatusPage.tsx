@@ -59,7 +59,7 @@ export default function AdminWebhookSecretStatusPage() {
   const { filters, setFilters } = useUrlFilters();
   // Reuse `agentId` slot for instance — but better: use raw URL via setFilters extension.
   // We'll piggy-back on a custom param via setSearchParams below.
-  const instance = (filters as unknown as { instance?: string | null }).instance ?? null;
+  const instance = (filters as { instance?: string | null }).instance ?? null;
   // useUrlFilters doesn't natively expose `instance`; we use a dedicated query param.
   const selectedInstance = useMemo<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -82,7 +82,7 @@ export default function AdminWebhookSecretStatusPage() {
     queryFn: async (): Promise<SecretStatus> => {
       const { data, error } = await supabase.functions.invoke('webhook-secret-status');
       if (error) throw error;
-      return data as SecretStatus;
+      return data as SecretStatus; // ignore-audit: narrows Supabase query result to local interface
     },
     refetchInterval: REFRESH_INTERVAL,
   });
@@ -601,12 +601,12 @@ export default function AdminWebhookSecretStatusPage() {
               >
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    {prefs.visibleColumns.when && <th className="py-2 pr-4">Quando</th>}
-                    {prefs.visibleColumns.event && <th className="py-2 pr-4">Evento</th>}
-                    {prefs.visibleColumns.instance && <th className="py-2 pr-4">Instância</th>}
-                    {prefs.visibleColumns.signature && <th className="py-2 pr-4">Assinatura</th>}
-                    {prefs.visibleColumns.status && <th className="py-2 pr-4">Status</th>}
-                    {prefs.visibleColumns.action && <th className="py-2 pr-4 text-right">Ação</th>}
+                    {prefs.visibleColumns.when && <th scope="col" className="py-2 pr-4">Quando</th>}
+                    {prefs.visibleColumns.event && <th scope="col" className="py-2 pr-4">Evento</th>}
+                    {prefs.visibleColumns.instance && <th scope="col" className="py-2 pr-4">Instância</th>}
+                    {prefs.visibleColumns.signature && <th scope="col" className="py-2 pr-4">Assinatura</th>}
+                    {prefs.visibleColumns.status && <th scope="col" className="py-2 pr-4">Status</th>}
+                    {prefs.visibleColumns.action && <th scope="col" className="py-2 pr-4 text-right">Ação</th>}
                   </tr>
                 </thead>
                 <tbody>

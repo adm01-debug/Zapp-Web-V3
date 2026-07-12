@@ -34,7 +34,7 @@ export function AIProviderHealthPanel() {
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data || []) as unknown as UsageLog[];
+      return (data || []) as UsageLog[];
     },
     refetchInterval: 30000,
   });
@@ -149,7 +149,7 @@ export function AIProviderHealthPanel() {
               <TrendingUp className="w-3 h-3" /> Chamadas Recentes
             </p>
             {recentLogs.slice(0, 10).map(log => {
-              const providerType = (log.metadata as Record<string, unknown>)?.provider_type as string || 'lovable_ai';
+              const providerType = (log.metadata as Record<string, unknown>)?.provider_type as string || 'lovable_ai'; // ignore-audit: Json column narrowed to Record then provider_type narrowed to string
               const isFallback = log.status === 'fallback';
               return (
                 <div

@@ -72,7 +72,7 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (criticalErr) {
         toast.error('Falha Crítica no Sistema', {
           description: criticalErr.message,
-          duration: 10000,
+          duration: 6000,
         });
       }
     } else if (evidence.summary.networkFailures > 0) {

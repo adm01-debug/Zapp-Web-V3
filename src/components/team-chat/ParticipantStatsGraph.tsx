@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useUserSettings } from '@/hooks/useUserSettings';
 
 interface ParticipantStatsGraphProps {
@@ -46,19 +47,21 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
 
       const messageIds = messages.map(m => m.id);
       
-      const { data: allReceipts, error: recError } = await supabase
-        .from('team_message_receipts')
-        .select(`
-          status,
-          profile_id,
-          profiles(name)
-        `)
-        .in('message_id', messageIds);
+      type ReceiptRow = { status: string; profile_id: string | null; profiles: { name: string | null } | null };
+      const { data: rawReceipts, error: recError } = await (safeClient.from as any)(
+        'team_message_receipts',
+        (q: any) => q
+          .select('status, profile_id, profiles(name)')
+          .in('message_id', messageIds),
+      );
+      const allReceipts = (rawReceipts as ReceiptRow[] | null) ?? null;
+
 
       if (recError) throw recError;
 
-      const statsMap: Record<string, any> = {};
-      
+      type StatEntry = { name: string; sent: number; delivered: number; read: number };
+      const statsMap: Record<string, StatEntry> = {};
+
       messages.forEach(m => {
         const senderId = m.sender_id;
         if (senderId) {
@@ -70,7 +73,7 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
       });
 
       if (allReceipts) {
-        allReceipts.forEach((r: any) => {
+        allReceipts.forEach((r) => {
           const pid = r.profile_id;
           if (pid) {
             if (!statsMap[pid]) {
@@ -116,7 +119,7 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                 cursor={{ fill: 'rgba(0,0,0,0.05)' }}
               />
-              <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+              <Legend wrapperStyle={{ fontSize: '0.75rem', paddingTop: '10px' }} />
               <Bar dataKey="sent" name="Enviadas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={20} />
               <Bar dataKey="delivered" name="Entregues" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} barSize={20} />
               <Bar dataKey="read" name="Lidas" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} barSize={20} />

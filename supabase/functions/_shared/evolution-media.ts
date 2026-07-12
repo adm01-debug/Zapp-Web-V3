@@ -1,4 +1,5 @@
 // Shared media persistence helpers for Evolution API functions
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isRecord } from "./evolution-helpers.ts";
 
 export function isValidMediaBytes(bytes: Uint8Array, messageType: string): boolean {
@@ -39,15 +40,30 @@ function detectExtension(respContentType: string, defaultExt: string): string {
   return defaultExt;
 }
 
-// deno-lint-ignore no-explicit-any
+export function isSafeMediaCdnUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url);
+    if (protocol !== 'https:') return false;
+    const h = hostname.toLowerCase();
+    const exact = new Set(['mmg.whatsapp.net', 'media.whatsapp.net', 'pps.whatsapp.net', 'static.whatsapp.net']);
+    if (exact.has(h)) return true;
+    if (h.endsWith('.whatsapp.net') || h.endsWith('.whatsapp.com')) return true;
+    return false;
+  } catch { return false; }
+}
+
 export async function persistMediaToStorage(
-  supabase: any,
+  supabase: SupabaseClient,
   cdnUrl: string,
   messageType: string,
   messageId: string,
 ): Promise<string | null> {
+  if (!isSafeMediaCdnUrl(cdnUrl)) {
+    console.error(`[MEDIA] Rejected unsafe CDN URL for ${messageType}`);
+    return null;
+  }
   try {
-    const resp = await fetch(cdnUrl, { signal: AbortSignal.timeout(15000) });
+    const resp = await fetch(cdnUrl, { signal: AbortSignal.timeout(15000), redirect: 'error' });
     if (!resp.ok) { console.error(`[MEDIA] Download failed (${resp.status}) for ${messageType}`); return null; }
 
     const arrayBuf = await resp.arrayBuffer();
@@ -79,9 +95,8 @@ export async function persistMediaToStorage(
   } catch (err) { console.error(`[MEDIA] persistMediaToStorage error:`, err); return null; }
 }
 
-// deno-lint-ignore no-explicit-any
 export async function persistMediaViaApi(
-  supabase: any,
+  supabase: SupabaseClient,
   instance: string,
   data: Record<string, unknown>,
   messageType: string,
@@ -93,7 +108,7 @@ export async function persistMediaViaApi(
     if (!evolutionUrl || !evolutionKey) return null;
 
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
-    const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${instance}`, {
+    const resp = await fetch(`${baseUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instance)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': evolutionKey },
       body: JSON.stringify({ message: { key: data.key, message: data.message }, convertToMp4: false }),

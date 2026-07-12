@@ -27,15 +27,18 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [hasSession, setHasSession] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const [redirectCancelled, setRedirectCancelled] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!success) return;
-    timerRef.current = setTimeout(() => navigate('/auth'), 3000);
+    if (!success || redirectCancelled) return;
+    if (countdown <= 0) { navigate('/auth'); return; }
+    timerRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [success, navigate]);
+  }, [success, countdown, redirectCancelled, navigate]);
 
   useEffect(() => {
     // Check if user came from password reset email
@@ -91,7 +94,7 @@ export default function ResetPassword() {
 
   if (!hasSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Link Inválido</CardTitle>
@@ -105,13 +108,13 @@ export default function ResetPassword() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </main>
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -128,17 +131,28 @@ export default function ResetPassword() {
               </motion.div>
               <CardTitle>Senha Alterada!</CardTitle>
               <CardDescription>
-                Sua senha foi alterada com sucesso. Redirecionando para login...
+                Sua senha foi alterada com sucesso.{' '}
+                {redirectCancelled
+                  ? 'Redirecionamento cancelado.'
+                  : `Redirecionando em ${countdown}s...`}
               </CardDescription>
             </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Button onClick={() => navigate('/auth')}>Ir para login</Button>
+              {!redirectCancelled && (
+                <Button variant="ghost" onClick={() => { setRedirectCancelled(true); if (timerRef.current) clearTimeout(timerRef.current); }}>
+                  Cancelar redirecionamento
+                </Button>
+              )}
+            </CardContent>
           </Card>
         </motion.div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -162,6 +176,7 @@ export default function ResetPassword() {
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
@@ -169,6 +184,8 @@ export default function ResetPassword() {
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    aria-pressed={showPassword}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
@@ -183,6 +200,7 @@ export default function ResetPassword() {
                 <Input
                   id="confirmPassword"
                   type="password"
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={loading}
@@ -191,6 +209,7 @@ export default function ResetPassword() {
 
               {error && (
                 <motion.p
+                  role="alert"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="text-sm text-destructive"
@@ -213,6 +232,6 @@ export default function ResetPassword() {
           </CardContent>
         </Card>
       </motion.div>
-    </div>
+    </main>
   );
 }

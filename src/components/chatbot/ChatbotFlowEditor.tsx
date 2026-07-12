@@ -85,7 +85,7 @@ export function ChatbotFlowEditor({ flow, onSave, onClose }: Props) {
                       <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2', config.color)}>{index + 1}</div>
                       {index < nodes.length - 1 && <div className="w-0.5 h-8 bg-secondary/50 mt-1" />}
                     </div>
-                    <Card className={cn('flex-1 max-w-xl cursor-pointer transition-all border-2', config.color, isSelected && 'ring-2 ring-primary')} onClick={() => setSelectedNode(node)}>
+                    <Card role="button" tabIndex={0} aria-label={`Selecionar nó: ${node.data.label}`} className={cn('flex-1 max-w-xl cursor-pointer transition-all border-2', config.color, isSelected && 'ring-2 ring-primary')} onClick={() => setSelectedNode(node)} onKeyDown={(e) => e.key === 'Enter' && setSelectedNode(node)}>
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
@@ -102,7 +102,7 @@ export function ChatbotFlowEditor({ flow, onSave, onClose }: Props) {
                         {outEdges.length > 0 && (
                           <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                             <ArrowRight className="w-3 h-3" />
-                            {outEdges.map(e => { const target = nodes.find(n => n.id === e.target); return <Badge key={e.id} variant="outline" className="text-xs cursor-pointer" onClick={ev => { ev.stopPropagation(); removeEdge(e.id); }}>→ {target?.data.label || '?'}<XCircle className="w-2.5 h-2.5 ml-1" /></Badge>; })}
+                            {outEdges.map(e => { const target = nodes.find(n => n.id === e.target); return <Badge key={e.id} role="button" tabIndex={0} aria-label={`Remover conexão para ${target?.data.label || '?'}`} variant="outline" className="text-xs cursor-pointer" onClick={ev => { ev.stopPropagation(); removeEdge(e.id); }} onKeyDown={ev => { if (ev.key === 'Enter') { ev.stopPropagation(); removeEdge(e.id); } }}>→ {target?.data.label || '?'}<XCircle className="w-2.5 h-2.5 ml-1" /></Badge>; })}
                           </div>
                         )}
                       </CardContent>

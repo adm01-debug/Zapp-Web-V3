@@ -67,6 +67,11 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
 
   useEffect(() => { if (open) setIndex(initialIndex); }, [open, initialIndex]);
 
+  // Clamp index when messages list shrinks (e.g. refresh returns fewer items)
+  useEffect(() => {
+    if (messages.length > 0) setIndex(i => Math.min(i, messages.length - 1));
+  }, [messages.length]);
+
   const goNext = useCallback(() => setIndex((i) => Math.min(i + 1, messages.length - 1)), [messages.length]);
   const goPrev = useCallback(() => setIndex((i) => Math.max(i - 1, 0)), []);
 
@@ -83,7 +88,8 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
 
   useEffect(() => {
     if (!open || !messages.length) return;
-    const current = messages[index];
+    const current = messages[index] ?? messages[0];
+    if (!current) return;
     const mediaType = getMediaType(current);
     setResolvedMedia({ src: null, mimetype: null });
     setMediaError(null);
@@ -109,7 +115,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
 
   if (!open || !messages.length) return null;
 
-  const current = messages[index];
+  const current = messages[index] ?? messages[0];
   const mediaType = getMediaType(current);
   const textContent = getTextContent(current);
   const bgColor = getBgColor(current);
@@ -138,7 +144,7 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
           </div>
           <div className="flex items-center gap-1">
             <span className="text-[10px] text-foreground/40 mr-2">{index + 1}/{messages.length}</span>
-            <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 text-foreground/70 hover:text-foreground hover:bg-background/10"><X className="w-4 h-4" /></Button>
+            <Button aria-label="Fechar visualizador de status" variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 text-foreground/70 hover:text-foreground hover:bg-background/10"><X className="w-4 h-4" /></Button>
           </div>
         </div>
 
@@ -155,20 +161,20 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
           )}
 
           <AnimatePresence mode="wait">
-            <motion.div key={messages[index].id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="w-full h-full flex items-center justify-center px-14">
+            <motion.div key={current.id ?? index} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="w-full h-full flex items-center justify-center px-14">
               {mediaType === 'image' ? (
                 mediaLoading ? (
-                  <div className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" /><p className="text-sm">Carregando imagem...</p></div>
+                  <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" /><p className="text-sm">Carregando imagem...</p></div>
                 ) : resolvedMedia.src ? (
-                  <img src={resolvedMedia.src} alt="Status" className="max-w-full max-h-[65vh] object-contain rounded-lg" loading="eager" />
+                  <img src={resolvedMedia.src} alt={textContent ? `Status de ${pushName || 'Contato'}: ${textContent}` : `Status de ${pushName || 'Contato'}`} className="max-w-full max-h-[65vh] object-contain rounded-lg" loading="eager" />
                 ) : (
                   <div className="text-center text-foreground/70 space-y-2"><ImageIcon className="w-8 h-8 mx-auto" /><p className="text-sm">{mediaError || 'Imagem indisponível'}</p></div>
                 )
               ) : mediaType === 'video' ? (
                 mediaLoading ? (
-                  <div className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" /><p className="text-sm">Carregando vídeo...</p></div>
+                  <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 text-foreground/70"><Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" /><p className="text-sm">Carregando vídeo...</p></div>
                 ) : resolvedMedia.src ? (
-                  <video src={resolvedMedia.src} controls autoPlay className="max-w-full max-h-[65vh] object-contain rounded-lg" />
+                  <><video src={resolvedMedia.src} controls autoPlay className="max-w-full max-h-[65vh] object-contain rounded-lg" /><p className="sr-only">Legendas não disponíveis para este vídeo.</p></>
                 ) : (
                   <div className="text-center text-foreground/70 space-y-2"><Video className="w-8 h-8 mx-auto" /><p className="text-sm">{mediaError || 'Vídeo indisponível'}</p></div>
                 )

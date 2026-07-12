@@ -47,87 +47,52 @@ export const useCalls = () => {
   const getProfileId = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
 
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    try {
-      const builder = supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+    return data?.id || null;
+  }, [user]);
 
-      // Pass abort signal to Supabase query builder if supported
-      const withSignal = (builder as unknown as {
-        abortSignal?: (s: AbortSignal) => typeof builder;
-      }).abortSignal?.(controller.signal) ?? builder;
+  // Start a new call
+  const startCall = useCallback(
+    async (params: StartCallParams): Promise<string | null> => {
+      setIsLoading(true);
+      try {
+        const profileId = await getProfileId();
 
-      const { data, error } = await (withSignal as typeof builder);
+        const { data, error } = await supabase
+          .from('calls')
+          .insert({
+            contact_id: params.contactId || null,
+            agent_id: profileId,
+            direction: params.direction,
+            status: 'ringing',
+            whatsapp_connection_id: params.whatsappConnectionId || null,
+          })
+          .select()
+          .single();
 
-      if (controller.signal.aborted || !mountedRef.current) return null;
+        if (error) throw error;
 
-      return data?.id || null;
-    } catch (err) {
-      if (controller.signal.aborted) return null;
-      throw err;
-    }
-  }, [user, mountedRef]);
-
-  // Start a new call with abort signal support
-  const startCall = useCallback(async (params: StartCallParams): Promise<string | null> => {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    if (!mountedRef.current) return null;
-    if (mountedRef.current) setIsLoading(true);
-
-    try {
-      const profileId = await getProfileId();
-
-      if (controller.signal.aborted || !mountedRef.current) return null;
-
-      const builder = supabase
-        .from('calls')
-        .insert({
-          contact_id: params.contactId || null,
-          agent_id: profileId,
-          direction: params.direction,
-          status: 'ringing',
-          whatsapp_connection_id: params.whatsappConnectionId || null,
-        })
-        .select()
-        .single();
-
-      // Pass abort signal to Supabase query builder if supported
-      const withSignal = (builder as unknown as {
-        abortSignal?: (s: AbortSignal) => typeof builder;
-      }).abortSignal?.(controller.signal) ?? builder;
-
-      const { data, error } = await (withSignal as typeof builder);
-
-      if (error) throw error;
-
-      if (!controller.signal.aborted && mountedRef.current) {
         setCurrentCallId(data.id);
-      }
-      return data.id;
-    } catch (error) {
-      if (controller.signal.aborted) return null;
-      log.error('Error starting call:', error);
-      if (mountedRef.current) {
+        return data.id;
+      } catch (error) {
+        log.error('Error starting call:', error);
         toast({
           title: 'Erro',
           description: 'Não foi possível registrar a chamada',
           variant: 'destructive',
         });
-      }
-      return null;
-    } finally {
-      if (mountedRef.current) {
+        return null;
+      } finally {
         setIsLoading(false);
       }
-    }
-  }, [getProfileId, mountedRef]);
+    },
+    [getProfileId]
+  );
 
   // Answer the call with abort signal support
   const answerCall = useCallback(async (callId: string): Promise<boolean> => {
@@ -185,9 +150,7 @@ export const useCalls = () => {
       if (controller.signal.aborted) return false;
       if (error) throw error;
 
-      if (mountedRef.current) {
-        setCurrentCallId(null);
-      }
+      setCurrentCallId(null);
       return true;
     } catch (error) {
       if (controller.signal.aborted) return false;
@@ -227,9 +190,7 @@ export const useCalls = () => {
       if (controller.signal.aborted) return false;
       if (error) throw error;
 
-      if (mountedRef.current) {
-        setCurrentCallId(null);
-      }
+      setCurrentCallId(null);
       return true;
     } catch (error) {
       if (controller.signal.aborted) return false;
@@ -244,10 +205,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
-        .update({ notes })
-        .eq('id', callId);
+      const { error } = await supabase.from('calls').update({ notes }).eq('id', callId);
 
       // Pass abort signal to Supabase query builder if supported
       const withSignal = (builder as unknown as {

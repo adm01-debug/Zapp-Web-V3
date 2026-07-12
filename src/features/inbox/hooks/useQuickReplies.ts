@@ -52,7 +52,7 @@ export function useQuickReplies() {
         .order('use_count', { ascending: false });
 
       if (error) throw error;
-      return data as QuickReplyTemplate[];
+      return data as QuickReplyTemplate[]; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!user?.id,
   });

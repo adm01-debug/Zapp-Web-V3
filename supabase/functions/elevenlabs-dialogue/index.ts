@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { ElevenLabsDialogueSchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -8,6 +9,8 @@ Deno.serve(async (req) => {
   const log = new Logger("elevenlabs-dialogue");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
     const parsed = parseBody(ElevenLabsDialogueSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
@@ -29,6 +32,7 @@ Deno.serve(async (req) => {
           script,
           language_code: languageCode,
         }),
+        signal: AbortSignal.timeout(30_000),
       }
     );
 
@@ -48,8 +52,7 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'audio/mpeg' },
     });
   } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

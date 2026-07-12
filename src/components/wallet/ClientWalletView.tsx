@@ -39,7 +39,7 @@ export function ClientWalletView() {
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label>Nome da Regra</Label>
-                  <Input placeholder="Ex: Vendas - Principal" value={w.newRule.name} onChange={(e) => w.setNewRule({ ...w.newRule, name: e.target.value })} />
+                  <Input aria-label="Nome da regra de carteira" placeholder="Ex: Vendas - Principal" value={w.newRule.name} onChange={(e) => w.setNewRule({ ...w.newRule, name: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Vendedor</Label>
@@ -50,10 +50,10 @@ export function ClientWalletView() {
                 </div>
                 <div className="space-y-2">
                   <Label>Conexão WhatsApp (opcional)</Label>
-                  <Select value={w.newRule.whatsapp_connection_id} onValueChange={(v) => w.setNewRule({ ...w.newRule, whatsapp_connection_id: v })}>
+                  <Select value={w.newRule.whatsapp_connection_id || '__all__'} onValueChange={(v) => w.setNewRule({ ...w.newRule, whatsapp_connection_id: v === '__all__' ? '' : v })}>
                     <SelectTrigger><SelectValue placeholder="Todas as conexões" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todas as conexões</SelectItem>
+                      <SelectItem value="__all__">Todas as conexões</SelectItem>
                       {w.connections.map((c) => <SelectItem key={c.id} value={c.id}>{c.name} ({c.phone_number})</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -61,7 +61,7 @@ export function ClientWalletView() {
                 </div>
                 <div className="space-y-2">
                   <Label>Prioridade</Label>
-                  <Input type="number" placeholder="0" value={w.newRule.priority} onChange={(e) => w.setNewRule({ ...w.newRule, priority: parseInt(e.target.value) || 0 })} />
+                  <Input aria-label="Prioridade da regra" type="number" placeholder="0" value={w.newRule.priority} onChange={(e) => w.setNewRule({ ...w.newRule, priority: parseInt(e.target.value) || 0 })} />
                   <p className="text-xs text-muted-foreground">Maior prioridade = processada primeiro</p>
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
@@ -113,7 +113,7 @@ export function ClientWalletView() {
                     <TableCell>{rule.connection ? <div className="flex items-center gap-1"><Phone className="w-3 h-3" />{rule.connection.name}</div> : <span className="text-muted-foreground">Todas</span>}</TableCell>
                     <TableCell><Badge variant="outline">{rule.priority}</Badge></TableCell>
                     <TableCell><Switch checked={rule.is_active} onCheckedChange={(checked) => w.handleToggleActive(rule.id, checked)} /></TableCell>
-                    <TableCell className="text-right"><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => w.handleDeleteRule(rule.id)}><Trash2 className="w-4 h-4" /></Button></TableCell>
+                    <TableCell className="text-right"><Button aria-label="Excluir regra" variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => w.handleDeleteRule(rule.id)}><Trash2 className="w-4 h-4" /></Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

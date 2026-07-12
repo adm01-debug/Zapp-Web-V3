@@ -93,21 +93,6 @@ function cryptoId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function ensure(state: Overlay, contactId: string): TicketState {
-  if (!state[contactId]) {
-    const now = new Date().toISOString();
-    state[contactId] = {
-      status: 'open',
-      assignedTo: null,
-      queueId: null,
-      openedAt: now,
-      updatedAt: now,
-      events: [],
-    };
-  }
-  return state[contactId];
-}
-
 export const ticketStore = {
   /** Snapshot completo (somente leitura) — referência ESTÁVEL entre renders. */
   snapshot(): Overlay {
@@ -119,7 +104,10 @@ export const ticketStore = {
   },
 
   /** Garante o registro inicial (idempotente, não dispara evento). */
-  bootstrap(contactId: string, seed?: Partial<Pick<TicketState, 'assignedTo' | 'queueId' | 'openedAt'>>) {
+  bootstrap(
+    contactId: string,
+    seed?: Partial<Pick<TicketState, 'assignedTo' | 'queueId' | 'openedAt'>>
+  ) {
     const current = readAll();
     if (current[contactId]) return;
     const now = new Date().toISOString();
@@ -167,7 +155,12 @@ export const ticketStore = {
     writeAll({ ...current, [contactId]: updated });
   },
 
-  assign(contactId: string, agentId: string | null, performedBy: string | null, opts?: { queueId?: string | null; auto?: boolean }) {
+  assign(
+    contactId: string,
+    agentId: string | null,
+    performedBy: string | null,
+    opts?: { queueId?: string | null; auto?: boolean }
+  ) {
     const current = readAll();
     const existing = current[contactId];
     const base: TicketState = existing ?? {
@@ -179,7 +172,12 @@ export const ticketStore = {
       events: [],
     };
     const prev = base.assignedTo;
-    if (prev === agentId && (opts?.queueId === undefined || opts.queueId === base.queueId) && existing) return;
+    if (
+      prev === agentId &&
+      (opts?.queueId === undefined || opts.queueId === base.queueId) &&
+      existing
+    )
+      return;
     const now = new Date().toISOString();
     const evType: TicketEvent['type'] = opts?.auto
       ? 'auto_routed'

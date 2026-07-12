@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const mockFrom = vi.fn();
-const mockGetUser = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockGetUser = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
-    auth: { getUser: (...args: any[]) => mockGetUser(...args) },
+    from: (...args: unknown[]) => mockFrom(...args),
+    auth: { getUser: (...args: unknown[]) => mockGetUser(...args) },
   },
 }));
 
@@ -17,16 +17,36 @@ import { useConversationAnalyses } from '@/hooks/useConversationAnalyses';
 
 const mockAnalyses = [
   {
-    id: 'a1', contact_id: 'c1', analyzed_by: 'p1', summary: 'Customer wants refund',
-    status: 'completed', key_points: ['refund request'], next_steps: ['process refund'],
-    sentiment: 'negativo', sentiment_score: 0.3, topics: ['billing'], urgency: 'alta',
-    customer_satisfaction: 2, message_count: 15, created_at: '2024-01-01',
+    id: 'a1',
+    contact_id: 'c1',
+    analyzed_by: 'p1',
+    summary: 'Customer wants refund',
+    status: 'completed',
+    key_points: ['refund request'],
+    next_steps: ['process refund'],
+    sentiment: 'negativo',
+    sentiment_score: 0.3,
+    topics: ['billing'],
+    urgency: 'alta',
+    customer_satisfaction: 2,
+    message_count: 15,
+    created_at: '2024-01-01',
   },
   {
-    id: 'a2', contact_id: 'c1', analyzed_by: 'p1', summary: 'General inquiry',
-    status: 'completed', key_points: ['product info'], next_steps: ['send catalog'],
-    sentiment: 'neutro', sentiment_score: 0.5, topics: ['products'], urgency: 'baixa',
-    customer_satisfaction: 4, message_count: 5, created_at: '2024-01-02',
+    id: 'a2',
+    contact_id: 'c1',
+    analyzed_by: 'p1',
+    summary: 'General inquiry',
+    status: 'completed',
+    key_points: ['product info'],
+    next_steps: ['send catalog'],
+    sentiment: 'neutro',
+    sentiment_score: 0.5,
+    topics: ['products'],
+    urgency: 'baixa',
+    customer_satisfaction: 4,
+    message_count: 5,
+    created_at: '2024-01-02',
   },
 ];
 

@@ -11,7 +11,7 @@ import { WhatsAppModeSetting } from '@/components/settings/WhatsAppModeSetting';
 import { ConnectionTestPanel } from '@/components/settings/ConnectionTestPanel';
 
 export function GlobalSettingsSection() {
-  const { settings, isLoading, getSetting, updateSetting } = useGlobalSettings();
+  const { settings: _settings, isLoading, getSetting, updateSetting } = useGlobalSettings();
 
   const handleToggle = async (key: string, currentValue: string | null) => {
     const newValue = currentValue === 'enabled' ? 'disabled' : 'enabled';
@@ -40,39 +40,57 @@ export function GlobalSettingsSection() {
           <Skeleton className="h-4 w-64" />
         </CardHeader>
         <CardContent className="space-y-4">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
         </CardContent>
       </Card>
     );
   }
 
   const booleanSettings = [
-    { key: 'user_creation', label: 'Criação de Usuários', desc: 'Permite novos cadastros no sistema', icon: Users },
-    { key: 'check_msg_is_group', label: 'Mensagens de Grupo', desc: 'Processar mensagens de grupos WhatsApp', icon: MessageCircle },
-    { key: 'group_tickets_enabled', label: 'Tickets de Grupo', desc: 'Criar tickets automaticamente para grupos', icon: Globe },
+    {
+      key: 'user_creation',
+      label: 'Criação de Usuários',
+      desc: 'Permite novos cadastros no sistema',
+      icon: Users,
+    },
+    {
+      key: 'check_msg_is_group',
+      label: 'Mensagens de Grupo',
+      desc: 'Processar mensagens de grupos WhatsApp',
+      icon: MessageCircle,
+    },
+    {
+      key: 'group_tickets_enabled',
+      label: 'Tickets de Grupo',
+      desc: 'Criar tickets automaticamente para grupos',
+      icon: Globe,
+    },
   ];
 
   return (
-    <Card className="border border-secondary/20 bg-card hover:border-secondary/30 transition-all">
+    <Card className="border border-secondary/20 bg-card transition-all hover:border-secondary/30">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Globe className="w-5 h-5 text-primary" />
+              <Globe className="h-5 w-5 text-primary" />
               Configurações Globais
             </CardTitle>
-            <CardDescription>
-              Configurações que se aplicam a todo o sistema
-            </CardDescription>
+            <CardDescription>Configurações que se aplicam a todo o sistema</CardDescription>
           </div>
           <LanguageSelector />
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
         {booleanSettings.map(({ key, label, desc, icon: Icon }) => (
-          <div key={key} className="flex items-center justify-between p-3 rounded-lg border border-border/20 hover:bg-muted/10 transition-colors">
+          <div
+            key={key}
+            className="flex items-center justify-between rounded-lg border border-border/20 p-3 transition-colors hover:bg-muted/10"
+          >
             <div className="flex items-center gap-3">
-              <Icon className="w-4 h-4 text-muted-foreground" />
+              <Icon className="h-4 w-4 text-muted-foreground" />
               <div>
                 <Label className="text-sm font-medium">{label}</Label>
                 <p className="text-xs text-muted-foreground">{desc}</p>
@@ -87,9 +105,9 @@ export function GlobalSettingsSection() {
 
         <WhatsAppModeSetting />
 
-        <div className="p-3 rounded-lg border border-border/20 space-y-2">
+        <div className="space-y-2 rounded-lg border border-border/20 p-3">
           <div className="flex items-center gap-2">
-            <RotateCcw className="w-4 h-4 text-muted-foreground" />
+            <RotateCcw className="h-4 w-4 text-muted-foreground" />
             <Label className="text-sm font-medium">Reabertura Automática (horas)</Label>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -101,13 +119,13 @@ export function GlobalSettingsSection() {
             max={72}
             value={getSetting('auto_reopen_hours') || '2'}
             onChange={(e) => handleInputChange('auto_reopen_hours', e.target.value)}
-            className="w-24 h-8 text-sm"
+            className="h-8 w-24 text-sm"
           />
         </div>
 
-        <div className="p-3 rounded-lg border border-border/20 space-y-2">
+        <div className="space-y-2 rounded-lg border border-border/20 p-3">
           <div className="flex items-center gap-2">
-            <Key className="w-4 h-4 text-muted-foreground" />
+            <Key className="h-4 w-4 text-muted-foreground" />
             <Label className="text-sm font-medium">Token API Pública</Label>
           </div>
           <p className="text-xs text-muted-foreground">

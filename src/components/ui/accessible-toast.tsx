@@ -59,7 +59,7 @@ export function AccessibleToastProvider({ children }: AccessibleToastProviderPro
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(6)), b => b.toString(16).padStart(2, '0')).join('');
     setToasts((prev) => [...prev, { ...toast, id }]);
     
     // Auto remove after duration (except loading)
@@ -98,6 +98,7 @@ interface ToastContainerProps {
 function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   return (
     <div
+      role="region"
       aria-live="polite"
       aria-label="Notificações"
       className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 max-w-md w-full pointer-events-none"

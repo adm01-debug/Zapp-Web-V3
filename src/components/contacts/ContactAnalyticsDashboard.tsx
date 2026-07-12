@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  BarChart3, Users, TrendingUp, Building, Tag, 
+  BarChart3, Users, TrendingUp, Building, Tag,
   Lightbulb, AlertCircle, ArrowUpRight, Zap, Sparkles
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, subDays, startOfDay } from 'date-fns';
 import { CONTACT_TYPE_CONFIG } from './contactTypeConfig';
@@ -75,7 +76,7 @@ export function ContactAnalyticsDashboard({ contacts, className }: ContactAnalyt
     const newThisWeek = contacts.filter(c => new Date(c.created_at) >= weekAgo).length;
 
     // Actionable Insights Logic
-    const insights = [];
+    const insights: Array<{ title: string; description: string; icon: LucideIcon; color: string; bg: string }> = [];
     
     if (newThisWeek > contacts.length * 0.05) {
       insights.push({

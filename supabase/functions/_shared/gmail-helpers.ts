@@ -14,8 +14,8 @@ export const GMAIL_API  = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 export function getSupabaseAdmin(): SupabaseClient {
   return createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
   );
 }
 
@@ -82,18 +82,24 @@ export async function refreshAccessToken(
   const clientId     = Deno.env.get('GOOGLE_CLIENT_ID')!;
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
 
-  const res = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      refresh_token: refreshToken,
-      client_id:     clientId,
-      client_secret: clientSecret,
-      grant_type:    'refresh_token',
-    }),
-  });
-
-  const tokens = await res.json();
+  let tokens: Record<string, unknown>;
+  try {
+    const res = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        refresh_token: refreshToken,
+        client_id:     clientId,
+        client_secret: clientSecret,
+        grant_type:    'refresh_token',
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    tokens = await res.json();
+  } catch (err) {
+    console.warn('[gmail-helpers] refreshAccessToken network/parse error', err instanceof Error ? err.message : String(err));
+    return null;
+  }
 
   if (tokens.error) {
     // refresh_token inválido ou revogado → desativar conta
@@ -280,21 +286,36 @@ export async function fetchGmailMessage(
   token: string,
   messageId: string
 ): Promise<Record<string, unknown>> {
-  const res = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return await res.json();
+  let res: Response;
+  try {
+    res = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (err) {
+    console.warn('[gmail-helpers] fetchGmailMessage network error', err instanceof Error ? err.message : String(err));
+    return { error: { code: 0, message: 'network_error' } };
+  }
+  if (!res.ok) return { error: { code: res.status, message: res.statusText } };
+  return await res.json().catch(() => ({ error: { code: res.status, message: 'invalid JSON' } }));
 }
 
 export async function fetchGmailHistory(
   token: string,
   startHistoryId: string
 ): Promise<{ addedMessageIds: string[]; newHistoryId?: string }> {
-  const res = await fetch(
-    `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  const data = await res.json();
+  let res: Response;
+  try {
+    res = await fetch(
+      `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
+      { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
+    );
+  } catch (err) {
+    console.warn('[gmail-helpers] fetchGmailHistory network error', err instanceof Error ? err.message : String(err));
+    return { addedMessageIds: [] };
+  }
+  if (!res.ok) return { addedMessageIds: [] };
+  const data = await res.json().catch(() => ({}));
   if (data.error) return { addedMessageIds: [] };
 
   const addedMessageIds: string[] = [];

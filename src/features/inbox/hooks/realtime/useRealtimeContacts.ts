@@ -80,7 +80,7 @@ function mergeContact<T extends Partial<EvolutionContact>>(
     const v = (next as Record<string, unknown>)[k];
     if (v !== undefined) out[k] = v;
   }
-  return out as T;
+  return out as T; // ignore-audit: out is structurally T — built by spreading prev (typed T) and patching matching keys
 }
 
 /**

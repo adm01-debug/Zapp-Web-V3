@@ -201,7 +201,7 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
 
             <Select
               value={newPhone.type}
-              onValueChange={(v) => setNewPhone((p) => ({ ...p, type: v as PhoneEntry['type'] }))}
+              onValueChange={(v) => setNewPhone((p) => ({ ...p, type: v as PhoneEntry['type']  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -227,7 +227,7 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
           </div>
 
           {error && (
-            <p className="text-xs text-destructive flex items-center gap-1">
+            <p role="alert" className="text-xs text-destructive flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" /> {error}
             </p>
           )}

@@ -1,9 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('Audit');
 
-export type AuditAction = 
+export type AuditAction =
   | 'login'
   | 'logout'
   | 'message_sent'
@@ -19,27 +20,41 @@ export type AuditAction =
   | 'scope_change';
 
 interface AuditLogParams {
-  action: AuditAction;
+  action: AuditAction | string;
   entityType?: string;
-  entityId?: string;
+  entityId?: string | null;
   details?: Record<string, unknown>;
+}
+
+/** Split entityId into a UUID-safe value + a text fallback merged into details. */
+export function normalizeEntityId(
+  entityId: string | null | undefined,
+  details?: Record<string, unknown>
+): { entityId: string | null; details: Record<string, unknown> | null } {
+  const trimmed = typeof entityId === 'string' ? entityId.trim() : '';
+  if (!trimmed) return { entityId: null, details: details ?? null };
+  if (isValidUUID(trimmed)) return { entityId: trimmed, details: details ?? null };
+  return {
+    entityId: null,
+    details: { ...(details ?? {}), entity_id_text: trimmed },
+  };
 }
 
 export async function logAudit({ action, entityType, entityId, details }: AuditLogParams) {
   try {
+    const norm = normalizeEntityId(entityId ?? null, details);
     const { error } = await supabase.rpc('log_audit_event', {
       p_action: action,
-      p_entity_type: entityType || null,
-      p_entity_id: entityId || null,
-      p_details: details ? JSON.parse(JSON.stringify(details)) : null,
-      p_user_agent: navigator.userAgent,
+      p_entity_type: entityType || undefined,
+      p_entity_id: norm.entityId ?? undefined,
+      p_details: norm.details ? JSON.parse(JSON.stringify(norm.details)) : undefined,
+      p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
     });
 
     if (error) {
       log.warn('Failed to log audit:', error.message);
     }
   } catch (err: unknown) {
-    // Silently fail - audit logging should never break the app
     log.warn('Audit log error:', err instanceof Error ? err.message : 'unknown');
   }
 }

@@ -79,14 +79,14 @@ export async function withNetworkRetry<T>(
     shouldRetry: (error) => {
       if (error instanceof Error) {
         const msg = error.message.toLowerCase();
-        // Retry on network, timeout, or 5xx errors
+        const status = (error as unknown as { status?: number }).status;
+        if (typeof status === 'number' && status >= 500) return true;
+        // Word-boundary regex prevents '502' matching inside '5024' or URLs
         return (
           msg.includes('fetch') ||
           msg.includes('network') ||
           msg.includes('timeout') ||
-          msg.includes('502') ||
-          msg.includes('503') ||
-          msg.includes('504')
+          /\b(502|503|504)\b/.test(msg)
         );
       }
       return false;

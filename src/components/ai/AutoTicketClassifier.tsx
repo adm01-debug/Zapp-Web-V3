@@ -8,7 +8,11 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('AutoTicketClassifier');
 
 interface ClassifiedTicket {
   contactId: string;
@@ -51,30 +55,30 @@ export function AutoTicketClassifier() {
     setLoading(true);
     try {
       // Fetch AI-tagged contacts
-      const { data: tags, error } = await supabase
-        .from('ai_conversation_tags')
-        .select('*, contacts(name, phone)')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      type AiTagRow = { contact_id: string; tag_name: string; confidence: number | null; created_at: string; contacts: { name: string | null; phone: string | null } | null };
+      const { data: tags, error } = await safeClient.from<AiTagRow>(
+        'ai_conversation_tags',
+        q => q.select('*, contacts(name, phone)').order('created_at', { ascending: false }).limit(100),
+      );
 
       if (!error && tags) {
         const grouped = new Map<string, ClassifiedTicket>();
-        tags.forEach((tag: Record<string, unknown>) => {
-          const contactId = tag.contact_id as string;
-          const contact = tag.contacts as Record<string, string> | null;
+        tags.forEach((tag) => {
+          const contactId = tag.contact_id;
+          const contact = tag.contacts;
           if (!grouped.has(contactId)) {
             grouped.set(contactId, {
               contactId,
               contactName: contact?.name || 'Desconhecido',
-              category: classifyTag(tag.tag_name as string),
-              priority: derivePriority(tag.tag_name as string, (tag.confidence as number) || 0),
-              confidence: ((tag.confidence as number) || 0.7) * 100,
-              tags: [tag.tag_name as string],
+              category: classifyTag(tag.tag_name),
+              priority: derivePriority(tag.tag_name, tag.confidence ?? 0),
+              confidence: (tag.confidence ?? 0.7) * 100,
+              tags: [tag.tag_name],
               lastMessage: '',
             });
           } else {
             const existing = grouped.get(contactId)!;
-            existing.tags.push(tag.tag_name as string);
+            existing.tags.push(tag.tag_name);
           }
         });
 
@@ -83,12 +87,12 @@ export function AutoTicketClassifier() {
 
         // Compute category stats
         const stats: Record<string, number> = {};
-        list.forEach(t => {
+        list.forEach((t) => {
           stats[t.category] = (stats[t.category] || 0) + 1;
         });
         setCategoryStats(stats);
       }
-    } catch (err) {
+    } catch {
       toast.error('Erro ao carregar tickets classificados');
     } finally {
       setLoading(false);
@@ -97,9 +101,12 @@ export function AutoTicketClassifier() {
 
   const classifyTag = (tagName: string): string => {
     const lower = tagName.toLowerCase();
-    if (lower.includes('suporte') || lower.includes('bug') || lower.includes('erro')) return 'Suporte Técnico';
-    if (lower.includes('vend') || lower.includes('preço') || lower.includes('compra')) return 'Vendas';
-    if (lower.includes('pag') || lower.includes('boleto') || lower.includes('fatura')) return 'Financeiro';
+    if (lower.includes('suporte') || lower.includes('bug') || lower.includes('erro'))
+      return 'Suporte Técnico';
+    if (lower.includes('vend') || lower.includes('preço') || lower.includes('compra'))
+      return 'Vendas';
+    if (lower.includes('pag') || lower.includes('boleto') || lower.includes('fatura'))
+      return 'Financeiro';
     if (lower.includes('reclam') || lower.includes('insatisf')) return 'Reclamação';
     if (lower.includes('agend') || lower.includes('horário')) return 'Agendamento';
     return 'Informação';
@@ -116,22 +123,22 @@ export function AutoTicketClassifier() {
   const runBatchClassification = async () => {
     setClassifying(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-classify-tickets', {
-        body: { limit: 50 }
+      const { data: _data, error } = await supabase.functions.invoke('ai-classify-tickets', {
+        body: { limit: 50 },
       });
       if (error) throw error;
       toast.success('Classificação em lote concluída!');
       await loadClassifiedTickets();
-    } catch {
-      toast.success('Classificação local aplicada com sucesso!');
-      await loadClassifiedTickets();
+    } catch (err) {
+      log.error('Falha na classificação de tickets', err);
+      toast.error('Não foi possível classificar os tickets. Tente novamente.');
     } finally {
       setClassifying(false);
     }
   };
 
   const getCategoryInfo = (name: string) => {
-    return CATEGORIES.find(c => c.name === name) || CATEGORIES[4];
+    return CATEGORIES.find((c) => c.name === name) || CATEGORIES[4];
   };
 
   return (
@@ -139,33 +146,39 @@ export function AutoTicketClassifier() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Tag className="w-5 h-5 text-primary" />
+          <div className="rounded-xl bg-primary/10 p-2">
+            <Tag className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h2 className="text-xl font-bold">Classificação Automática de Tickets</h2>
-            <p className="text-sm text-muted-foreground">IA classifica conversas por categoria e prioridade</p>
+            <p className="text-sm text-muted-foreground">
+              IA classifica conversas por categoria e prioridade
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Switch checked={autoClassify} onCheckedChange={setAutoClassify} />
-            <Label className="text-sm">Auto-classificar</Label>
+            <Switch id="auto-classify" checked={autoClassify} onCheckedChange={setAutoClassify} />
+            <Label htmlFor="auto-classify" className="text-sm">Auto-classificar</Label>
           </div>
           <Button size="sm" onClick={runBatchClassification} disabled={classifying}>
-            {classifying ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Brain className="w-4 h-4 mr-1" />}
+            {classifying ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Brain className="mr-1 h-4 w-4" />
+            )}
             Classificar em Lote
           </Button>
         </div>
       </div>
 
       {/* Category Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
         {CATEGORIES.map((cat) => (
           <Card key={cat.name}>
-            <CardContent className="pt-3 pb-3">
+            <CardContent className="pb-3 pt-3">
               <div className="text-center">
-                <p className="text-2xl mb-1">{cat.icon}</p>
+                <p className="mb-1 text-2xl">{cat.icon}</p>
                 <p className="text-lg font-bold">{categoryStats[cat.name] || 0}</p>
                 <p className="text-xs text-muted-foreground">{cat.name}</p>
               </div>
@@ -178,7 +191,7 @@ export function AutoTicketClassifier() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5" />
+            <BarChart3 className="h-5 w-5" />
             Tickets Classificados ({tickets.length})
           </CardTitle>
         </CardHeader>
@@ -187,11 +200,11 @@ export function AutoTicketClassifier() {
             <div className="space-y-2">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-14 bg-muted/50 animate-pulse rounded-lg" />
+                  <div key={i} className="h-14 animate-pulse rounded-lg bg-muted/50" />
                 ))
               ) : tickets.length === 0 ? (
-                <div className="text-center py-12">
-                  <Tag className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <div className="py-12 text-center">
+                  <Tag className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
                   <p className="text-muted-foreground">Nenhum ticket classificado ainda</p>
                   <Button variant="outline" className="mt-3" onClick={runBatchClassification}>
                     Iniciar Classificação
@@ -206,24 +219,28 @@ export function AutoTicketClassifier() {
                       key={ticket.contactId}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-3 rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50"
                     >
-                      <div className={`p-2 rounded-lg ${catInfo.color}`}>
+                      <div className={`rounded-lg p-2 ${catInfo.color}`}>
                         <span className="text-lg">{catInfo.icon}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{ticket.contactName}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <Badge variant="outline" className="text-xs">{ticket.category}</Badge>
-                          <Badge className={`text-xs ${priorityInfo.color}`}>{priorityInfo.label}</Badge>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{ticket.contactName}</p>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {ticket.category}
+                          </Badge>
+                          <Badge className={`text-xs ${priorityInfo.color}`}>
+                            {priorityInfo.label}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex shrink-0 items-center gap-2">
                         <div className="text-right">
                           <p className="text-xs text-muted-foreground">Confiança</p>
                           <p className="text-sm font-medium">{Math.round(ticket.confidence)}%</p>
                         </div>
-                        <CheckCircle className="w-4 h-4 text-success" />
+                        <CheckCircle className="h-4 w-4 text-success" />
                       </div>
                     </motion.div>
                   );

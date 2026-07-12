@@ -121,6 +121,7 @@ export function DialPad({
                 </p>
                 <div className="flex justify-center gap-3 mt-4">
                   <Button
+                    aria-label={isMuted ? 'Ativar microfone' : 'Silenciar microfone'}
                     variant="outline"
                     size="icon"
                     className="rounded-full w-12 h-12"
@@ -130,6 +131,7 @@ export function DialPad({
                     {isMuted ? <MicOff className="w-5 h-5 text-destructive" /> : <Mic className="w-5 h-5" />}
                   </Button>
                   <Button
+                    aria-label="Encerrar chamada"
                     variant="destructive"
                     size="icon"
                     className="rounded-full w-14 h-14"
@@ -138,6 +140,7 @@ export function DialPad({
                     <PhoneOff className="w-6 h-6" />
                   </Button>
                 </div>
+                <p className="mt-3 text-[10px] text-muted-foreground/60">Legendas em tempo real não disponíveis nesta chamada.</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -155,6 +158,7 @@ export function DialPad({
           />
           {number && (
             <Button
+              aria-label="Apagar último dígito"
               variant="ghost"
               size="icon"
               className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8"
@@ -188,6 +192,7 @@ export function DialPad({
       {/* Call Button */}
       {!isInCall && (
         <Button
+          aria-label="Fazer chamada"
           size="lg"
           className="rounded-full w-16 h-16 bg-success hover:bg-success/90"
           onClick={handleCall}

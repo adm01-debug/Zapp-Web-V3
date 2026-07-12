@@ -15,7 +15,7 @@ interface TrainingMiniGamesProps {
 export function TrainingMiniGames({ onXPEarned }: TrainingMiniGamesProps) {
   const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [score, setScore] = useState(0);
+  const [_score, setScore] = useState(0);
   const [highScores, setHighScores] = useState<Record<GameType, number>>(() => {
     const saved = localStorage.getItem('miniGameHighScores');
     return saved ? JSON.parse(saved) : {};
@@ -34,11 +34,15 @@ export function TrainingMiniGames({ onXPEarned }: TrainingMiniGamesProps) {
   };
 
   const handleGameComplete = (finalScore: number, xpEarned: number) => {
-    const game = GAMES.find(g => g.id === selectedGame);
+    const game = GAMES.find((g) => g.id === selectedGame);
     const isNewHighScore = saveHighScore(selectedGame!, finalScore);
-    if (isNewHighScore) celebrate({ title: '🏆 Novo Recorde!', subtitle: `${finalScore} pontos!`, emoji: '🎮' });
+    if (isNewHighScore)
+      celebrate({ title: '🏆 Novo Recorde!', subtitle: `${finalScore} pontos!`, emoji: '🎮' });
     onXPEarned?.(xpEarned);
-    toast({ title: `🎮 ${game?.name} Completo!`, description: `Você ganhou ${xpEarned} XP${isNewHighScore ? ' e bateu seu recorde!' : ''}` });
+    toast({
+      title: `🎮 ${game?.name} Completo!`,
+      description: `Você ganhou ${xpEarned} XP${isNewHighScore ? ' e bateu seu recorde!' : ''}`,
+    });
     setIsPlaying(false);
     setScore(finalScore);
   };
@@ -46,28 +50,55 @@ export function TrainingMiniGames({ onXPEarned }: TrainingMiniGamesProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Gamepad2 className="h-5 w-5 text-primary" />Mini-games de Treinamento</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Gamepad2 className="h-5 w-5 text-primary" />
+          Mini-games de Treinamento
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {GAMES.map((game) => {
             const Icon = game.icon;
             const highScore = highScores[game.id] || 0;
             return (
-              <motion.button key={game.id} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                onClick={() => { setSelectedGame(game.id); setIsPlaying(true); setScore(0); }}
-                className="p-4 rounded-lg border hover:border-primary/50 text-left transition-colors">
+              <motion.button
+                key={game.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setSelectedGame(game.id);
+                  setIsPlaying(true);
+                  setScore(0);
+                }}
+                className="rounded-lg border p-4 text-left transition-colors hover:border-primary/50"
+              >
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10"><Icon className="h-6 w-6 text-primary" /></div>
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium">{game.name}</h3>
-                      <Badge variant="outline" className="text-xs">{game.difficulty === 'easy' ? '🟢' : game.difficulty === 'medium' ? '🟡' : '🔴'}</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {game.difficulty === 'easy'
+                          ? '🟢'
+                          : game.difficulty === 'medium'
+                            ? '🟡'
+                            : '🔴'}
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">{game.description}</p>
-                    <div className="flex items-center gap-3 mt-2">
-                      <Badge variant="secondary" className="text-xs"><Star className="h-3 w-3 mr-1" />{game.xpReward} XP</Badge>
-                      {highScore > 0 && <Badge variant="outline" className="text-xs"><Trophy className="h-3 w-3 mr-1" />{highScore}</Badge>}
+                    <p className="mt-1 text-sm text-muted-foreground">{game.description}</p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <Badge variant="secondary" className="text-xs">
+                        <Star className="mr-1 h-3 w-3" />
+                        {game.xpReward} XP
+                      </Badge>
+                      {highScore > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          <Trophy className="mr-1 h-3 w-3" />
+                          {highScore}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -75,9 +106,21 @@ export function TrainingMiniGames({ onXPEarned }: TrainingMiniGamesProps) {
             );
           })}
         </div>
-        <SpeedTypingGame isOpen={selectedGame === 'speed-typing' && isPlaying} onClose={() => setIsPlaying(false)} onComplete={handleGameComplete} />
-        <QuizGame isOpen={selectedGame === 'quiz' && isPlaying} onClose={() => setIsPlaying(false)} onComplete={handleGameComplete} />
-        <EmojiDecodeGame isOpen={selectedGame === 'emoji-decode' && isPlaying} onClose={() => setIsPlaying(false)} onComplete={handleGameComplete} />
+        <SpeedTypingGame
+          isOpen={selectedGame === 'speed-typing' && isPlaying}
+          onClose={() => setIsPlaying(false)}
+          onComplete={handleGameComplete}
+        />
+        <QuizGame
+          isOpen={selectedGame === 'quiz' && isPlaying}
+          onClose={() => setIsPlaying(false)}
+          onComplete={handleGameComplete}
+        />
+        <EmojiDecodeGame
+          isOpen={selectedGame === 'emoji-decode' && isPlaying}
+          onClose={() => setIsPlaying(false)}
+          onComplete={handleGameComplete}
+        />
       </CardContent>
     </Card>
   );

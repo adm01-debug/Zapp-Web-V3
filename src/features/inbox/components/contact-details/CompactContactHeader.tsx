@@ -19,7 +19,7 @@ export function CompactContactHeader({ contact, isVip, companyName, firstName }:
       className="flex items-center gap-3 px-4 py-2.5 border-b border-border/10 bg-background">
       <div className="relative">
         <Avatar className="w-[44px] h-[44px] ring-1 ring-border/20 shadow-sm">
-          <AvatarImage src={contact.avatar} />
+          <AvatarImage src={contact.avatar} alt={contact.name} />
           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
             {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
           </AvatarFallback>
@@ -41,7 +41,7 @@ export function CompactContactHeader({ contact, isVip, companyName, firstName }:
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10"
+              <Button aria-label="Copiar telefone" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10"
                 onClick={() => { navigator.clipboard.writeText(contact.phone); toast.success('Telefone copiado!'); }}>
                 <Phone className="w-3.5 h-3.5 text-primary" />
               </Button>

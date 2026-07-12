@@ -1,13 +1,17 @@
 import { Conversation, Message } from '@/types/chat';
-import { ConversationWithMessages } from '@/features/inbox';
-import { RealtimeMessage } from '@/features/inbox';
+import type {
+  ConversationWithMessages,
+  RealtimeMessage,
+} from '@/features/inbox/hooks/realtime/types';
 
 /**
  * Pure transformation functions to map between internal Realtime formats
  * and legacy UI formats (Conversation/Message).
  */
 
-export function mapToLegacyConversation(resolved: ConversationWithMessages | null): Conversation | null {
+export function mapToLegacyConversation(
+  resolved: ConversationWithMessages | null
+): Conversation | null {
   if (!resolved) return null;
 
   return {
@@ -59,7 +63,7 @@ export function mapToLegacyMessages(
     status: (m.status as Message['status'] | null) || (m.is_read ? 'read' : 'delivered'),
     mediaUrl: m.media_url || undefined,
     transcription: m.transcription || null,
-    transcriptionStatus: m.transcription_status as Message['transcriptionStatus'] || null,
+    transcriptionStatus: (m.transcription_status as Message['transcriptionStatus']) || null,
     is_deleted: m.is_deleted ?? false,
     external_id: m.external_id || undefined,
     retry_attempt: m.retry_attempt ?? null,

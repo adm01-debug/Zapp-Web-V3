@@ -41,7 +41,10 @@ Deno.test("Method guard: somente POST aceito", () => {
 });
 
 Deno.test("Idempotência: dedup por sha256(instance:event:body) + markEventProcessed", () => {
-  assertMatch(SOURCE, /sha256Hex\(rawBody\)/);
+  // NFC normalization is applied before hashing to prevent Unicode representation attacks
+  // (e.g., café as U+00E9 vs combining U+0301 bypassing dedup). assertMatch both steps.
+  assertMatch(SOURCE, /rawBody\.normalize\('NFC'\)/);
+  assertMatch(SOURCE, /sha256Hex\(normalizedBody\)/);
   assertMatch(SOURCE, /\$\{instance \|\| 'unknown'\}:\$\{event\}:\$\{bodyHash\}/);
   assertMatch(SOURCE, /markEventProcessed\(supabase, eventId/);
   assertMatch(SOURCE, /duplicate: true/);

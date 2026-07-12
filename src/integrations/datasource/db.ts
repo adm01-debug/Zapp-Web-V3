@@ -54,19 +54,17 @@ export function dbClient(entity: LogicalEntity): SupabaseClient {
       `[datasource] Cliente "${mapping.client}" para entidade "${entity}" não está configurado.`,
     );
   }
-  return target;
+  return target as SupabaseClient; // ignore-audit: null check threw above; target is confirmed non-null SupabaseClient
 }
 
 export function dbTable(entity: LogicalEntity): string {
   return requireMapping(entity).table;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function dbFrom(entity: LogicalEntity): any {
+export function dbFrom(entity: LogicalEntity): ReturnType<SupabaseClient['from']> {
   const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
-  const client = dbClient(entity);
-  return client.from(mapping.table);
+  return dbClient(entity).from(mapping.table as unknown as Parameters<SupabaseClient['from']>[0]); // ignore-audit — LogicalEntity table name is dynamic; SupabaseClient<Database>['from'] enforces literal union
 }
 
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {
@@ -102,24 +100,7 @@ function rpcClient(client: DatasourceClient): SupabaseClient {
   if (!target) {
     throw new Error(`[datasource] cliente "${client}" indisponível para RPC.`);
   }
-  return target;
-}
-
-function extractPaginationParams(merged: Record<string, unknown>): { limit: unknown; offset: unknown } {
-  return {
-    limit: merged.p_limit ?? null,
-    offset: merged.p_offset ?? null,
-  };
-}
-
-function extractErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'string') return err;
-  return 'unknown error';
-}
-
-function isTimeoutError(err: unknown, message: string): boolean {
-  return (err instanceof Error && err.name === 'TimeoutError') || /timeout/i.test(message);
+  return target as SupabaseClient; // ignore-audit: null check threw above; target is confirmed non-null SupabaseClient
 }
 
 export async function dbRpc<P extends object, R>(
@@ -135,8 +116,7 @@ export async function dbRpc<P extends object, R>(
   const { limit, offset } = extractPaginationParams(merged);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (client as any).rpc(def.name, merged);
+    const { data, error } = await client.rpc(def.name as unknown as Parameters<SupabaseClient['rpc']>[0], merged as Record<string, unknown>); // ignore-audit — RPC name is dynamic from catalog; SupabaseClient<Database>['rpc'] enforces literal union
     const durationMs = Math.round(performance.now() - startedAt);
     const errorMessage = error ? error.message ?? 'rpc error' : undefined;
 
@@ -145,9 +125,9 @@ export async function dbRpc<P extends object, R>(
       source,
       target: def.name,
       durationMs,
-      limit,
-      offset,
-      filters: merged,
+      limit: (merged as Record<string, unknown>).p_limit as number | null ?? null,
+      offset: (merged as Record<string, unknown>).p_offset as number | null ?? null,
+      filters: merged as Record<string, unknown>,
       recordCount: Array.isArray(data) ? data.length : null,
       errorMessage,
       severity: classifySeverity(durationMs, !!error, false),
@@ -155,7 +135,7 @@ export async function dbRpc<P extends object, R>(
       correlationId,
     });
 
-    return { data: (data as R) ?? null, error, correlationId };
+    return { data: (data as R) ?? null, error, correlationId }; // ignore-audit: narrows Supabase query result to local interface
   } catch (err) {
     const durationMs = Math.round(performance.now() - startedAt);
     const message = extractErrorMessage(err);
@@ -166,9 +146,9 @@ export async function dbRpc<P extends object, R>(
       source,
       target: def.name,
       durationMs,
-      limit,
-      offset,
-      filters: merged,
+      limit: (merged as Record<string, unknown>).p_limit as number | null ?? null,
+      offset: (merged as Record<string, unknown>).p_offset as number | null ?? null,
+      filters: merged as Record<string, unknown>,
       recordCount: null,
       errorMessage: message,
       severity: isTimeout ? 'timeout' : 'error',

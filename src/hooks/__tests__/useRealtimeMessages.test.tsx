@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const mockFrom = vi.fn();
-const mockRemoveChannel = vi.fn();
-const realtimeHandlers: Record<string, (payload: any) => void> = {};
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockRemoveChannel = vi.hoisted(() => vi.fn());
+const realtimeHandlers: Record<string, (payload: unknown) => void> = {};
 
 const mockChannelInstance = {
-  on: vi.fn((_: string, filter: { event: string }, handler: (payload: any) => void) => {
+  on: vi.fn((_: string, filter: { event: string }, handler: (payload: unknown) => void) => {
     realtimeHandlers[filter.event] = handler;
     return mockChannelInstance;
   }),
@@ -16,14 +16,13 @@ const mockChannelInstance = {
   }),
 };
 
-const mockChannel = vi.fn(() => mockChannelInstance);
+const mockChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
-    // @ts-expect-error spread of any[] into mock function
-    channel: (...args: any[]) => mockChannel(...args),
-    removeChannel: (...args: any[]) => mockRemoveChannel(...args),
+    from: (...args: unknown[]) => mockFrom(...args),
+    channel: (...args: unknown[]) => mockChannel(...args),
+    removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
     },
@@ -53,11 +52,50 @@ vi.mock('@/lib/logger');
 
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
 
-let seededContacts: any[] = [];
-let recentMessages: any[] = [];
-let contactsById: Record<string, any> = {};
+type ContactFields = {
+  id: string;
+  name: string;
+  surname: string | null;
+  nickname: string | null;
+  phone: string;
+  email: string | null;
+  avatar_url: string | null;
+  tags: string[];
+  company: string | null;
+  job_title: string | null;
+  assigned_to: string | null;
+  queue_id: string | null;
+  created_at: string;
+  updated_at: string;
+  whatsapp_connection_id: string | null;
+  contact_type: string;
+  group_category: string | null;
+  ai_sentiment: string | null;
+};
+type MessageFields = {
+  id: string;
+  contact_id: string;
+  agent_id: string | null;
+  content: string;
+  sender: string;
+  message_type: string;
+  media_url: string | null;
+  is_read: boolean;
+  status: string;
+  status_updated_at: string | null;
+  created_at: string;
+  updated_at: string;
+  external_id: string;
+  whatsapp_connection_id: string | null;
+  transcription: string | null;
+  transcription_status: string | null;
+};
 
-function makeContact(overrides: Record<string, any> = {}) {
+let seededContacts: ContactFields[] = [];
+let recentMessages: MessageFields[] = [];
+let contactsById: Record<string, ContactFields> = {};
+
+function makeContact(overrides: Partial<ContactFields> = {}): ContactFields {
   return {
     id: 'contact-1',
     name: 'Contato',
@@ -81,7 +119,7 @@ function makeContact(overrides: Record<string, any> = {}) {
   };
 }
 
-function makeMessage(overrides: Record<string, any> = {}) {
+function makeMessage(overrides: Partial<MessageFields> = {}): MessageFields {
   return {
     id: 'message-1',
     contact_id: 'contact-1',
@@ -138,6 +176,7 @@ function makeMessagesQuery() {
 describe('useRealtimeMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockChannel.mockImplementation(() => mockChannelInstance);
     seededContacts = [];
     recentMessages = [];
     contactsById = {};
@@ -235,11 +274,14 @@ describe('useRealtimeMessages', () => {
     // not on the `loading` flag. `loading` toggles as the hook's effects settle
     // (the callbacks it depends on are recreated per render), so keying the wait
     // on it was racy and made this test flaky. Keying on the data is deterministic.
-    await waitFor(() => {
-      expect(
-        result.current.conversations.map((c: { contact: { id: string } }) => c.contact.id),
-      ).toContain(hiddenActiveContact.id);
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(
+          result.current.conversations.map((c: { contact: { id: string } }) => c.contact.id)
+        ).toContain(hiddenActiveContact.id);
+      },
+      { timeout: 10000 }
+    );
   });
 
   it('creates a conversation when a realtime message arrives for a contact not loaded initially', () => {

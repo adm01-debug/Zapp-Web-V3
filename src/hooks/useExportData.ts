@@ -54,7 +54,9 @@ export function useExportData<T extends Record<string, unknown>>(
       a.href = url;
       a.download = `${options.fileName}.csv`;
       a.click();
-      URL.revokeObjectURL(url);
+      // Delay revoke so the browser finishes reading the blob before it's freed.
+      // Revoking synchronously after click() causes empty downloads on Firefox/Safari.
+      setTimeout(() => URL.revokeObjectURL(url), 100);
       toast.success('Exportação concluída!');
     } catch {
       toast.error('Erro ao exportar');

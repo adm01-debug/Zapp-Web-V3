@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mockRpc = vi.fn();
-const mockInvoke = vi.fn();
+const mockRpc = vi.hoisted(() => vi.fn());
+const mockInvoke = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    rpc: (...args: any[]) => mockRpc(...args),
+    rpc: (...args: unknown[]) => mockRpc(...args),
     functions: {
       invoke: (...args: unknown[]) => mockInvoke(...args),
     },
@@ -14,7 +14,12 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/lib/logger');
 
-import { checkAccountLock, recordFailedLogin, clearLoginAttempts, formatLockTime } from '@/lib/loginAttempts';
+import {
+  checkAccountLock,
+  recordFailedLogin,
+  clearLoginAttempts,
+  formatLockTime,
+} from '@/lib/loginAttempts';
 
 describe('loginAttempts', () => {
   beforeEach(() => {
@@ -74,12 +79,15 @@ describe('loginAttempts', () => {
       });
 
       const result = await recordFailedLogin('test@test.com');
-      expect(mockInvoke).toHaveBeenCalledWith('login-attempts', expect.objectContaining({
-        body: expect.objectContaining({
-          action: 'record_failed',
-          email: 'test@test.com',
-        }),
-      }));
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'login-attempts',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            action: 'record_failed',
+            email: 'test@test.com',
+          }),
+        })
+      );
       expect(result.isLocked).toBe(false);
     });
 
@@ -110,9 +118,12 @@ describe('loginAttempts', () => {
       mockInvoke.mockResolvedValue({ data: { ok: true }, error: null });
 
       await clearLoginAttempts('test@test.com');
-      expect(mockInvoke).toHaveBeenCalledWith('login-attempts', expect.objectContaining({
-        body: expect.objectContaining({ action: 'clear', email: 'test@test.com' }),
-      }));
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'login-attempts',
+        expect.objectContaining({
+          body: expect.objectContaining({ action: 'clear', email: 'test@test.com' }),
+        })
+      );
     });
 
     it('handles error without throwing', async () => {

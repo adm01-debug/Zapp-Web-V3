@@ -103,6 +103,16 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [preview, uploading, handleCancel]);
 
+  const safePreviewUrl = (() => {
+    if (!preview?.url) return '';
+    try {
+      const parsed = new URL(preview.url);
+      return parsed.protocol === 'blob:' ? parsed.href : '';
+    } catch {
+      return '';
+    }
+  })();
+
   return (
     <>
       <input
@@ -115,6 +125,7 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
       />
       
       <Button
+        aria-label="Enviar arquivo"
         size="icon"
         variant="ghost"
         className="h-8 w-8 shrink-0"
@@ -131,14 +142,14 @@ export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamF
           <div className="bg-card rounded-xl p-4 max-w-sm w-full mx-4 space-y-3 shadow-xl border border-border" role="dialog" aria-label="Preview do arquivo">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-semibold text-foreground">Enviar arquivo</h4>
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancel}>
+              <Button aria-label="Cancelar envio" size="icon" variant="ghost" className="h-6 w-6" onClick={handleCancel}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
 
             <div className="rounded-lg overflow-hidden bg-muted/30 border border-border/30">
-              {preview.file.type.startsWith('image/') ? (
-                <img src={preview.url} alt="Preview" className="max-h-48 w-full object-contain" />
+              {preview.file.type.startsWith('image/') && safePreviewUrl ? (
+                <img src={safePreviewUrl} alt="Pré-visualização do arquivo" className="max-h-48 w-full object-contain" />
               ) : (
                 <div className="flex items-center gap-3 p-4">
                   {preview.file.type.startsWith('video/') ? (

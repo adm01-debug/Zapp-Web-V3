@@ -1,4 +1,4 @@
-import type { ConversationWithMessages, RealtimeMessage } from '@/features/inbox/hooks/useRealtimeMessages';
+import type { ConversationWithMessages, RealtimeMessage } from '../../../hooks/useRealtimeMessages';
 
 // Extensão do tipo para compatibilidade com useRealtimeMessages e o componente ConversationItem legado
 export interface MockConversationWithMessages extends ConversationWithMessages {
@@ -14,7 +14,13 @@ const minutesAgo = (m: number) => new Date(now - m * 60_000);
 const hoursAgo = (h: number) => new Date(now - h * 60 * 60_000);
 const daysAgo = (d: number) => new Date(now - d * 24 * 60 * 60_000);
 
-const createMockMessage = (id: string, contactId: string, content: string, sender: 'contact' | 'agent', timestamp: Date): RealtimeMessage => ({
+const createMockMessage = (
+  id: string,
+  contactId: string,
+  content: string,
+  sender: 'contact' | 'agent',
+  timestamp: Date
+): RealtimeMessage => ({
   id,
   contact_id: contactId,
   agent_id: sender === 'agent' ? 'agent-1' : null,
@@ -31,7 +37,7 @@ const createMockMessage = (id: string, contactId: string, content: string, sende
   whatsapp_connection_id: 'conn-1',
   transcription: null,
   transcription_status: null,
-  is_deleted: false
+  is_deleted: false,
 });
 
 export const MOCK_CONVERSATIONS: any[] = [
@@ -56,8 +62,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=47',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage('m1', 'mock-contact-1', 'Bom dia! Recebi a proposta atualizada e gostaria de agendar uma call.', 'contact', minutesAgo(2)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm1',
+      'mock-contact-1',
+      'Bom dia! Recebi a proposta atualizada e gostaria de agendar uma call.',
+      'contact',
+      minutesAgo(2)
+    ),
+    messages: [],
   },
   {
     id: 'mock-2',
@@ -80,8 +92,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=11',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage('m2', 'mock-contact-2', 'Perfeito, obrigado!', 'contact', minutesAgo(15)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm2',
+      'mock-contact-2',
+      'Perfeito, obrigado!',
+      'contact',
+      minutesAgo(15)
+    ),
+    messages: [],
   },
   {
     id: 'mock-3',
@@ -104,8 +122,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=20',
       ai_sentiment: 'negative',
     },
-    lastMessage: createMockMessage('m3', 'mock-contact-3', 'Continua sem funcionar 😡', 'contact', minutesAgo(45)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm3',
+      'mock-contact-3',
+      'Continua sem funcionar 😡',
+      'contact',
+      minutesAgo(45)
+    ),
+    messages: [],
   },
   {
     id: 'mock-4',
@@ -128,8 +152,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=52',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage('m4', 'mock-contact-4', 'Segue em anexo o briefing para os brindes corporativos.', 'contact', hoursAgo(2)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm4',
+      'mock-contact-4',
+      'Segue em anexo o briefing para os brindes corporativos.',
+      'contact',
+      hoursAgo(2)
+    ),
+    messages: [],
   },
   {
     id: 'mock-5',
@@ -152,8 +182,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=33',
       ai_sentiment: 'negative',
     },
-    lastMessage: createMockMessage('m5', 'mock-contact-5', 'Preciso de uma resposta URGENTE sobre o cancelamento do contrato.', 'contact', minutesAgo(1)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm5',
+      'mock-contact-5',
+      'Preciso de uma resposta URGENTE sobre o cancelamento do contrato.',
+      'contact',
+      minutesAgo(1)
+    ),
+    messages: [],
   },
   {
     id: 'mock-6',
@@ -176,8 +212,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=23',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage('m6', 'mock-contact-6', 'Ok, resolvido! Valeu pelo suporte 🙏', 'contact', hoursAgo(8)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm6',
+      'mock-contact-6',
+      'Ok, resolvido! Valeu pelo suporte 🙏',
+      'contact',
+      hoursAgo(8)
+    ),
+    messages: [],
   },
   {
     id: 'mock-7',
@@ -200,8 +242,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=45',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage('m7', 'mock-contact-7', 'Pode me ligar amanhã às 10h?', 'agent', hoursAgo(3)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm7',
+      'mock-contact-7',
+      'Pode me ligar amanhã às 10h?',
+      'agent',
+      hoursAgo(3)
+    ),
+    messages: [],
   },
   {
     id: 'mock-8',
@@ -224,8 +272,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=14',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage('m8', 'mock-contact-8', '👍 Tudo certo por aqui, valeu!', 'contact', daysAgo(1)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm8',
+      'mock-contact-8',
+      '👍 Tudo certo por aqui, valeu!',
+      'contact',
+      daysAgo(1)
+    ),
+    messages: [],
   },
   {
     id: 'mock-9',
@@ -248,8 +302,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=49',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage('m9', 'mock-contact-9', 'Adorei a coleção nova! Quando chegam as peças tamanho M?', 'contact', minutesAgo(8)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm9',
+      'mock-contact-9',
+      'Adorei a coleção nova! Quando chegam as peças tamanho M?',
+      'contact',
+      minutesAgo(8)
+    ),
+    messages: [],
   },
   {
     id: 'mock-10',
@@ -272,8 +332,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=12',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage('m10', 'mock-contact-10', 'Olá, vim pelo site. Vocês têm plano para times pequenos?', 'contact', minutesAgo(22)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm10',
+      'mock-contact-10',
+      'Olá, vim pelo site. Vocês têm plano para times pequenos?',
+      'contact',
+      minutesAgo(22)
+    ),
+    messages: [],
   },
   {
     id: 'mock-11',
@@ -296,8 +362,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=68',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage('m11', 'mock-contact-11', 'Cotação enviada por e-mail, conforme combinado.', 'agent', hoursAgo(1)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm11',
+      'mock-contact-11',
+      'Cotação enviada por e-mail, conforme combinado.',
+      'agent',
+      hoursAgo(1)
+    ),
+    messages: [],
   },
   {
     id: 'mock-12',
@@ -320,8 +392,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=44',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage('m12', 'mock-contact-12', 'Tudo certo! Obrigada pelo atendimento ⭐⭐⭐⭐⭐', 'contact', daysAgo(2)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm12',
+      'mock-contact-12',
+      'Tudo certo! Obrigada pelo atendimento ⭐⭐⭐⭐⭐',
+      'contact',
+      daysAgo(2)
+    ),
+    messages: [],
   },
   {
     id: 'mock-13',
@@ -344,8 +422,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=15',
       ai_sentiment: 'negative',
     },
-    lastMessage: createMockMessage('m13', 'mock-contact-13', 'Preciso urgentemente revisar os valores do contrato antes de renovar.', 'contact', minutesAgo(35)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm13',
+      'mock-contact-13',
+      'Preciso urgentemente revisar os valores do contrato antes de renovar.',
+      'contact',
+      minutesAgo(35)
+    ),
+    messages: [],
   },
   {
     id: 'mock-14',
@@ -368,8 +452,14 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=25',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage('m14', 'mock-contact-14', 'Vi vocês no Insta, queria saber mais sobre como funciona!', 'contact', hoursAgo(5)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm14',
+      'mock-contact-14',
+      'Vi vocês no Insta, queria saber mais sobre como funciona!',
+      'contact',
+      hoursAgo(5)
+    ),
+    messages: [],
   },
   {
     id: 'mock-15',
@@ -392,7 +482,13 @@ export const MOCK_CONVERSATIONS: any[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=58',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage('m15', 'mock-contact-15', 'Bora alinhar a campanha conjunta semana que vem?', 'agent', minutesAgo(50)),
-    messages: []
+    lastMessage: createMockMessage(
+      'm15',
+      'mock-contact-15',
+      'Bora alinhar a campanha conjunta semana que vem?',
+      'agent',
+      minutesAgo(50)
+    ),
+    messages: [],
   },
 ];

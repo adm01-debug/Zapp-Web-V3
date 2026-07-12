@@ -3,10 +3,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+const supabase = createClient((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!, { auth: { persistSession: false } });
 const INSTANCE_NAME = Deno.env.get("EVOLUTION_INSTANCE") || "wpp2";
 
-function renderContent(t: string, c: any, deal?: any): string {
+interface FollowupContact { full_name?: string | null; push_name?: string | null; phone_number?: string | null; }
+interface FollowupDeal { title?: string | null; value?: number | string | null; stage?: string | null; }
+
+function renderContent(t: string, c: FollowupContact, deal?: FollowupDeal): string {
   let r = t;
   const fn = (c.full_name || c.push_name || "").split(" ")[0] || "Cliente";
   r = r.replace(/\{\{\s*nome\s*\}\}/gi, fn).replace(/\{\{\s*telefone\s*\}\}/gi, c.phone_number || "");
@@ -23,7 +27,7 @@ function renderContent(t: string, c: any, deal?: any): string {
 }
 
 async function setStatus(id: string, status: string, error?: string) {
-  const u: any = { status };
+  const u: Record<string, unknown> = { status };
   // queued_at marks when the message was enqueued — distinct from sent_at (Evolution confirms delivery)
   if (status === "queued") u.queued_at = new Date().toISOString();
   if (error) u.error_message = error.slice(0, 500);
@@ -89,8 +93,7 @@ async function processFollowUps() {
 }
 
 Deno.serve(async (req: Request) => {
-  const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+    if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   // Internal cron endpoint — require service role or cron secret
   const authErr = requireServiceRoleOrCron(req);
@@ -100,9 +103,9 @@ Deno.serve(async (req: Request) => {
     const start = Date.now();
     const result = await processFollowUps();
     await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "followup_processing", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).then(()=>{},()=>{});
-    return new Response(JSON.stringify({ success: true, version: "v3", ...result, duration_ms: Date.now() - start, timestamp: new Date().toISOString() }), { headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, version: "v3", ...result, duration_ms: Date.now() - start, timestamp: new Date().toISOString() }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[evolution-followup] unhandled error:", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }
 });

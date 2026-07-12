@@ -3,7 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { calculateLevel } from './levelUtils';
 import type { AgentStats } from './types';
 
-export function useGamificationMutations(profileId: string | undefined, currentStats: AgentStats | null | undefined) {
+export function useGamificationMutations(
+  profileId: string | undefined,
+  currentStats: AgentStats | null | undefined
+) {
   const queryClient = useQueryClient();
 
   const addXpMutation = useMutation({
@@ -24,10 +27,20 @@ export function useGamificationMutations(profileId: string | undefined, currentS
   });
 
   const grantAchievementMutation = useMutation({
-    mutationFn: async ({ type, name, description, xpReward }: { type: string; name: string; description?: string; xpReward: number }) => {
+    mutationFn: async ({
+      type,
+      name,
+      description,
+      xpReward,
+    }: {
+      type: string;
+      name: string;
+      description?: string;
+      xpReward: number;
+    }) => {
       if (!profileId) throw new Error('No profile ID');
 
-      const { data: existing , error: existingErr } = await supabase
+      const { data: existing } = await supabase
         .from('agent_achievements')
         .select('id')
         .eq('profile_id', profileId)
@@ -39,7 +52,13 @@ export function useGamificationMutations(profileId: string | undefined, currentS
 
       const { error: achievementError } = await supabase
         .from('agent_achievements')
-        .insert({ profile_id: profileId, achievement_type: type, achievement_name: name, achievement_description: description, xp_earned: xpReward });
+        .insert({
+          profile_id: profileId,
+          achievement_type: type,
+          achievement_name: name,
+          achievement_description: description,
+          xp_earned: xpReward,
+        });
       if (achievementError) throw achievementError;
 
       const newXp = (currentStats?.xp || 0) + xpReward;
@@ -48,11 +67,21 @@ export function useGamificationMutations(profileId: string | undefined, currentS
 
       const { error: statsError } = await supabase
         .from('agent_stats')
-        .update({ xp: newXp, level: newLevel, achievements_count: newAchievementsCount, updated_at: new Date().toISOString() })
+        .update({
+          xp: newXp,
+          level: newLevel,
+          achievements_count: newAchievementsCount,
+          updated_at: new Date().toISOString(),
+        })
         .eq('profile_id', profileId);
       if (statsError) throw statsError;
 
-      return { alreadyHad: false, newXp, newLevel, leveledUp: newLevel > (currentStats?.level || 1) };
+      return {
+        alreadyHad: false,
+        newXp,
+        newLevel,
+        leveledUp: newLevel > (currentStats?.level || 1),
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-stats', profileId] });
@@ -75,7 +104,11 @@ export function useGamificationMutations(profileId: string | undefined, currentS
 
       const { error } = await supabase
         .from('agent_stats')
-        .update({ current_streak: newStreak, best_streak: newBestStreak, updated_at: new Date().toISOString() })
+        .update({
+          current_streak: newStreak,
+          best_streak: newBestStreak,
+          updated_at: new Date().toISOString(),
+        })
         .eq('profile_id', profileId);
       if (error) throw error;
       return { newStreak, newBestStreak };
@@ -86,12 +119,20 @@ export function useGamificationMutations(profileId: string | undefined, currentS
   const incrementMessagesMutation = useMutation({
     mutationFn: async (type: 'sent' | 'received') => {
       if (!profileId) throw new Error('No profile ID');
-      const newSent = type === 'sent' ? (currentStats?.messages_sent || 0) + 1 : currentStats?.messages_sent || 0;
-      const newReceived = type === 'received' ? (currentStats?.messages_received || 0) + 1 : currentStats?.messages_received || 0;
+      const newSent =
+        type === 'sent' ? (currentStats?.messages_sent || 0) + 1 : currentStats?.messages_sent || 0;
+      const newReceived =
+        type === 'received'
+          ? (currentStats?.messages_received || 0) + 1
+          : currentStats?.messages_received || 0;
 
       const { error } = await supabase
         .from('agent_stats')
-        .update({ messages_sent: newSent, messages_received: newReceived, updated_at: new Date().toISOString() })
+        .update({
+          messages_sent: newSent,
+          messages_received: newReceived,
+          updated_at: new Date().toISOString(),
+        })
         .eq('profile_id', profileId);
       if (error) throw error;
       return { newSent, newReceived };

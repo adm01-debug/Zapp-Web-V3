@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,231 +7,23 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from 'sonner';
 import {
   Wifi, Save, Eye, EyeOff, RefreshCw, CheckCircle2, XCircle,
   Loader2, ShieldCheck, Server, Activity, History, Settings2,
   Trash2, Plus, Search, AlertCircle, Clock
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface EvolutionInstanceCredential {
-  id: string;
-  instance_name: string;
-  api_url: string;
-  api_key: string;
-  is_active: boolean;
-  health_status: 'healthy' | 'unhealthy' | 'error' | 'unknown';
-  last_health_check: string | null;
-  created_at: string;
-}
-
-interface HealthLog {
-  id: string;
-  instance_name: string;
-  status: 'success' | 'failure';
-  error_message: string | null;
-  response_time_ms: number;
-  online_instances: number;
-  total_instances: number;
-  performed_at: string;
-}
-
-const DEFAULT_URL = 'https://evolution.atomicabr.com.br';
+import { useEvolutionApiIntegration, DEFAULT_URL } from '@/hooks/integrations/useEvolutionApiIntegration';
 
 export function EvolutionApiIntegrationView() {
-  const [credentials, setCredentials] = useState<EvolutionInstanceCredential[]>([]);
-  const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [testing, setTesting] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('instances');
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    instance_name: '',
-    api_url: DEFAULT_URL,
-    api_key: '',
-    show_key: false,
-    is_editing: null as string | null
-  });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [credsRes, logsRes] = await Promise.all([
-        supabase.from('evolution_instance_credentials').select('*').order('instance_name'),
-        supabase.from('evolution_health_logs').select('*').order('performed_at', { ascending: false }).limit(20)
-      ]);
-
-      if (credsRes.error) throw credsRes.error;
-      if (logsRes.error) throw logsRes.error;
-
-      setCredentials(credsRes.data as EvolutionInstanceCredential[]);
-      setHealthLogs(logsRes.data as HealthLog[]);
-    } catch (err: any) {
-      toast.error('Erro ao carregar dados: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const normalizeUrl = (url: string) => {
-    let normalized = url.trim().replace(/\/+$/, '');
-    if (!normalized.startsWith('http')) {
-      normalized = 'https://' + normalized;
-    }
-    return normalized;
-  };
-
-  const handleTestConnection = async (creds: Partial<EvolutionInstanceCredential>) => {
-    if (!creds.api_url || !creds.api_key) {
-      toast.error('URL e Chave de API são obrigatórias para o teste');
-      return false;
-    }
-
-    const testId = creds.id || 'new';
-    setTesting(testId);
-    const startTime = Date.now();
-    
-    try {
-      const url = normalizeUrl(creds.api_url);
-      const response = await fetch(`${url}/instance/fetchInstances`, {
-        method: 'GET',
-        headers: { apikey: creds.api_key },
-      });
-
-      const responseTime = Date.now() - startTime;
-      const isSuccess = response.ok;
-      let errorMsg = null;
-      let onlineCount = 0;
-      let totalCount = 0;
-
-      if (isSuccess) {
-        const data = await response.json();
-        const instances = Array.isArray(data) ? data : [];
-        totalCount = instances.length;
-        onlineCount = instances.filter((i: any) => i.connectionStatus === 'open').length;
-        toast.success(`Teste bem-sucedido para ${creds.instance_name || 'nova config'}`);
-      } else {
-        errorMsg = response.status === 401 ? 'Chave de API inválida' : `Erro HTTP ${response.status}`;
-        toast.error(`Falha no teste: ${errorMsg}`);
-      }
-
-      // Log the health check in the database
-      if (creds.instance_name) {
-        await supabase.from('evolution_health_logs').insert({
-          instance_name: creds.instance_name,
-          status: isSuccess ? 'success' : 'failure',
-          error_message: errorMsg,
-          response_time_ms: responseTime,
-          online_instances: onlineCount,
-          total_instances: totalCount
-        });
-        
-        // Update credential status
-        await supabase.from('evolution_instance_credentials').update({
-          health_status: isSuccess ? 'healthy' : 'unhealthy',
-          last_health_check: new Date().toISOString()
-        }).eq('id', creds.id);
-        
-        fetchData();
-      }
-
-      return isSuccess;
-    } catch (err: any) {
-      const errorMsg = err.message.includes('fetch') ? 'Erro de rede/URL inacessível' : err.message;
-      toast.error(`Erro de conexão: ${errorMsg}`);
-      
-      if (creds.instance_name) {
-        await supabase.from('evolution_health_logs').insert({
-          instance_name: creds.instance_name,
-          status: 'failure',
-          error_message: errorMsg,
-          response_time_ms: Date.now() - startTime
-        });
-        fetchData();
-      }
-      return false;
-    } finally {
-      setTesting(null);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!formData.instance_name || !formData.api_url || !formData.api_key) {
-      toast.error('Preencha todos os campos obrigatórios');
-      return;
-    }
-
-    const normalizedUrl = normalizeUrl(formData.api_url);
-    
-    // Auto-test before saving
-    const isTestOk = await handleTestConnection({
-      api_url: normalizedUrl,
-      api_key: formData.api_key,
-      instance_name: formData.instance_name
-    });
-
-    if (!isTestOk) {
-      toast.warning('Atenção: O teste de conexão falhou, mas as credenciais serão salvas.');
-    }
-
-    const payload = {
-      instance_name: formData.instance_name,
-      api_url: normalizedUrl,
-      api_key: formData.api_key,
-      health_status: isTestOk ? 'healthy' : 'unhealthy',
-      last_health_check: new Date().toISOString()
-    };
-
-    try {
-      if (formData.is_editing) {
-        const { error } = await supabase
-          .from('evolution_instance_credentials')
-          .update(payload)
-          .eq('id', formData.is_editing);
-        if (error) throw error;
-        toast.success('Configurações atualizadas');
-      } else {
-        const { error } = await supabase
-          .from('evolution_instance_credentials')
-          .insert(payload);
-        if (error) throw error;
-        toast.success('Novas credenciais salvas');
-      }
-
-      setFormData({
-        instance_name: '',
-        api_url: DEFAULT_URL,
-        api_key: '',
-        show_key: false,
-        is_editing: null
-      });
-      fetchData();
-    } catch (err: any) {
-      toast.error('Erro ao salvar: ' + err.message);
-    }
-  };
-
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Tem certeza que deseja excluir as credenciais da instância "${name}"?`)) return;
-
-    try {
-      const { error } = await supabase.from('evolution_instance_credentials').delete().eq('id', id);
-      if (error) throw error;
-      toast.success('Credenciais excluídas');
-      fetchData();
-    } catch (err: any) {
-      toast.error('Erro ao excluir: ' + err.message);
-    }
-  };
+  const {
+    credentials, healthLogs, loading, testing, formData, setFormData,
+    fetchData, handleTestConnection, handleSave, handleDelete,
+  } = useEvolutionApiIntegration();
 
   const filteredCredentials = useMemo(() => {
     return credentials.filter(c => 
@@ -317,10 +109,11 @@ export function EvolutionApiIntegrationView() {
                           </CardDescription>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7" 
+                          <Button
+                            aria-label="Configurar credencial"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
                             onClick={() => {
                               setFormData({
                                 instance_name: creds.instance_name,
@@ -334,10 +127,11 @@ export function EvolutionApiIntegrationView() {
                           >
                             <Settings2 className="w-3.5 h-3.5" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-destructive" 
+                          <Button
+                            aria-label="Excluir credencial"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
                             onClick={() => handleDelete(creds.id, creds.instance_name)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -442,6 +236,7 @@ export function EvolutionApiIntegrationView() {
                       className="pr-10"
                     />
                     <Button
+                      aria-label={formData.show_key ? 'Ocultar chave' : 'Mostrar chave'}
                       type="button"
                       variant="ghost"
                       size="icon"
@@ -526,11 +321,11 @@ export function EvolutionApiIntegrationView() {
                               </Badge>
                             )}
                             {creds && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 ml-1" 
-                                title="Repetir teste"
+                              <Button
+                                aria-label="Repetir teste de conexão"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 ml-1"
                                 onClick={() => handleTestConnection(creds)}
                                 disabled={testing === creds.id}
                               >

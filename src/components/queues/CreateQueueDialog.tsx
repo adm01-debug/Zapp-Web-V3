@@ -89,6 +89,8 @@ export function CreateQueueDialog({ open, onOpenChange, onSubmit }: CreateQueueD
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
+                  aria-label={`Selecionar cor ${c}`}
+                  aria-pressed={color === c}
                   className={`w-8 h-8 rounded-full transition-all ${
                     color === c ? 'ring-2 ring-offset-2 ring-offset-card ring-primary scale-110' : 'hover:scale-105'
                   }`}

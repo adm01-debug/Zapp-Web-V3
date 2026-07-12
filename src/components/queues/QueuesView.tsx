@@ -88,7 +88,7 @@ export function QueuesView() {
             onDelete={(q) => { setQueueToDelete(q); setDeleteDialogOpen(true); }}
           />
         ))}
-        <Card className="border border-dashed border-border/40 cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors bg-transparent" onClick={() => setCreateDialogOpen(true)}>
+        <Card role="button" tabIndex={0} aria-label="Adicionar Nova Fila" className="border border-dashed border-border/40 cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors bg-transparent" onClick={() => setCreateDialogOpen(true)} onKeyDown={(e) => e.key === 'Enter' && setCreateDialogOpen(true)}>
           <CardContent className="flex flex-col items-center justify-center h-full min-h-[280px] text-muted-foreground">
             <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mb-3"><Plus className="w-6 h-6" /></div>
             <p className="font-medium">Adicionar Nova Fila</p><p className="text-sm">Clique para criar</p>

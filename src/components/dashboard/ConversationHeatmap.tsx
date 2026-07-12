@@ -35,18 +35,18 @@ function useHeatmapData() {
       const { data, error } = await dbFrom('messages')
         .select('created_at')
         .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
-      
+
       if (error) throw error;
-      
+
       const heatmap: HeatmapData[] = [];
       const counts = new Map<string, number>();
-      
-      (data || []).forEach(m => {
+
+      (data || []).forEach((m) => {
         const d = new Date(m.created_at);
         const key = `${d.getDay()}-${d.getHours()}`;
         counts.set(key, (counts.get(key) || 0) + 1);
       });
-      
+
       for (let day = 0; day < 7; day++) {
         for (let hour = 0; hour < 24; hour++) {
           const key = `${day}-${hour}`;
@@ -54,7 +54,7 @@ function useHeatmapData() {
           heatmap.push({ day, hour, value, count: value });
         }
       }
-      
+
       return heatmap;
     },
     staleTime: 5 * 60 * 1000,
@@ -98,14 +98,14 @@ export default function ConversationHeatmap({
 
   // Calculate min/max for color scaling
   const { min, max, hotspots } = useMemo(() => {
-    const values = data.map(d => d.value);
+    const values = data.map((d) => d.value);
     const min = Math.min(...values);
     const max = Math.max(...values);
-    
+
     // Find hotspots (top 5 busiest periods)
     const sorted = [...data].sort((a, b) => b.value - a.value);
     const hotspots = sorted.slice(0, 5);
-    
+
     return { min, max, hotspots };
   }, [data]);
 
@@ -118,7 +118,7 @@ export default function ConversationHeatmap({
   };
 
   const getCellData = (day: number, hour: number) => {
-    return data.find(d => d.day === day && d.hour === hour);
+    return data.find((d) => d.day === day && d.hour === hour);
   };
 
   const formatHour = (hour: number) => {
@@ -128,41 +128,50 @@ export default function ConversationHeatmap({
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Flame className="w-5 h-5 text-primary" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Flame className="h-5 w-5 text-primary" />
             Mapa de Calor
           </CardTitle>
 
-          <Tabs value={selectedMetric} onValueChange={(v) => setSelectedMetric(v as 'volume' | 'response_time' | 'satisfaction')}>
+          <Tabs
+            value={selectedMetric}
+            onValueChange={(v) =>
+              setSelectedMetric(v as 'volume' | 'response_time' | 'satisfaction')
+            }
+          >
             <TabsList className="h-8">
-              <TabsTrigger value="volume" className="text-xs px-2 h-6">Volume</TabsTrigger>
-              <TabsTrigger value="response_time" className="text-xs px-2 h-6">Resposta</TabsTrigger>
-              <TabsTrigger value="satisfaction" className="text-xs px-2 h-6">Satisfação</TabsTrigger>
+              <TabsTrigger value="volume" className="h-6 px-2 text-xs">
+                Volume
+              </TabsTrigger>
+              <TabsTrigger value="response_time" className="h-6 px-2 text-xs">
+                Resposta
+              </TabsTrigger>
+              <TabsTrigger value="satisfaction" className="h-6 px-2 text-xs">
+                Satisfação
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        <p className="text-sm text-muted-foreground flex items-center gap-1">
+        <p className="flex items-center gap-1 text-sm text-muted-foreground">
           {config.description}
           <Tooltip>
             <TooltipTrigger>
-              <Info className="w-3.5 h-3.5" />
+              <Info className="h-3.5 w-3.5" />
             </TooltipTrigger>
-            <TooltipContent>
-              Clique em uma célula para ver detalhes do período
-            </TooltipContent>
+            <TooltipContent>Clique em uma célula para ver detalhes do período</TooltipContent>
           </Tooltip>
         </p>
       </CardHeader>
 
       <CardContent>
         {/* Hotspots */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="mb-4 flex flex-wrap gap-2">
           <span className="text-xs text-muted-foreground">Períodos mais movimentados:</span>
           {hotspots.slice(0, 3).map((spot) => (
-            <Badge key={`${spot.day}-${spot.hour}`} variant="secondary" className="text-xs gap-1">
-              <Flame className="w-3 h-3 text-warning" />
+            <Badge key={`${spot.day}-${spot.hour}`} variant="secondary" className="gap-1 text-xs">
+              <Flame className="h-3 w-3 text-warning" />
               {DAYS[spot.day]} {formatHour(spot.hour)}
             </Badge>
           ))}
@@ -172,10 +181,10 @@ export default function ConversationHeatmap({
         <div className="overflow-x-auto">
           <div className="min-w-[600px]">
             {/* Hour labels */}
-            <div className="flex ml-12 mb-1">
-              {HOURS.filter((_, i) => i % 3 === 0).map(hour => (
-                <div 
-                  key={hour} 
+            <div className="mb-1 ml-12 flex">
+              {HOURS.filter((_, i) => i % 3 === 0).map((hour) => (
+                <div
+                  key={hour}
                   className="text-xs text-muted-foreground"
                   style={{ width: `${100 / 8}%` }}
                 >
@@ -186,18 +195,18 @@ export default function ConversationHeatmap({
 
             {/* Grid */}
             {DAYS.map((day, dayIndex) => (
-              <div key={day} className="flex items-center gap-1 mb-1">
+              <div key={day} className="mb-1 flex items-center gap-1">
                 {/* Day label */}
-                <div className="w-10 text-xs text-muted-foreground text-right pr-2 shrink-0">
+                <div className="w-10 shrink-0 pr-2 text-right text-xs text-muted-foreground">
                   {day}
                 </div>
 
                 {/* Cells */}
                 <div className="flex flex-1 gap-0.5">
-                  {HOURS.map(hour => {
+                  {HOURS.map((hour) => {
                     const cellData = getCellData(dayIndex, hour);
-                    const isHovered = hoveredCell?.day === dayIndex && hoveredCell?.hour === hour;
-                    const isHotspot = hotspots.some(h => h.day === dayIndex && h.hour === hour);
+                    const _isHovered = hoveredCell?.day === dayIndex && hoveredCell?.hour === hour;
+                    const isHotspot = hotspots.some((h) => h.day === dayIndex && h.hour === hour);
 
                     return (
                       <Tooltip key={hour}>
@@ -206,25 +215,31 @@ export default function ConversationHeatmap({
                             whileHover={{ scale: 1.2, zIndex: 10 }}
                             onClick={() => onCellClick?.(dayIndex, hour)}
                             className={cn(
-                              "flex-1 aspect-square rounded cursor-pointer transition-all relative",
-                              "min-w-[12px] max-w-[24px]",
-                              isHotspot && "ring-1 ring-warning/50"
+                              'relative aspect-square flex-1 cursor-pointer rounded transition-all',
+                              'min-w-[12px] max-w-[24px]',
+                              isHotspot && 'ring-1 ring-warning/50'
                             )}
                             style={{
-                              backgroundColor: cellData ? getColor(cellData.value) : config.colorScale[0],
+                              backgroundColor: cellData
+                                ? getColor(cellData.value)
+                                : config.colorScale[0],
                             }}
                             onMouseEnter={() => setHoveredCell({ day: dayIndex, hour })}
                             onMouseLeave={() => setHoveredCell(null)}
                           >
                             {isHotspot && (
-                              <div className="absolute -top-1 -right-1 w-2 h-2 bg-warning rounded-full" />
+                              <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning" />
                             )}
                           </motion.div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <div className="text-sm">
-                            <div className="font-medium">{DAYS_FULL[dayIndex]}, {formatHour(hour)}</div>
-                            <div>{config.label}: {cellData?.value ?? 0} {config.unit}</div>
+                            <div className="font-medium">
+                              {DAYS_FULL[dayIndex]}, {formatHour(hour)}
+                            </div>
+                            <div>
+                              {config.label}: {cellData?.value ?? 0} {config.unit}
+                            </div>
                             {cellData?.count && <div>Total: {cellData.count} conversas</div>}
                           </div>
                         </TooltipContent>
@@ -238,18 +253,22 @@ export default function ConversationHeatmap({
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="mt-4 flex items-center justify-center gap-2">
           <span className="text-xs text-muted-foreground">Baixo</span>
-          <div className="flex h-3 rounded overflow-hidden">
+          <div className="flex h-3 overflow-hidden rounded">
             {config.colorScale.map((color, i) => (
-              <div key={`${color}-${i}`} className="w-6 h-full" style={{ backgroundColor: color }} />
+              <div
+                key={`${color}-${i}`}
+                className="h-full w-6"
+                style={{ backgroundColor: color }}
+              />
             ))}
           </div>
           <span className="text-xs text-muted-foreground">Alto</span>
         </div>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t">
+        <div className="mt-4 grid grid-cols-3 gap-3 border-t pt-4">
           <StatCard
             icon={TrendingUp}
             label="Pico Semanal"
@@ -284,7 +303,7 @@ interface StatCardProps {
 function StatCard({ icon: Icon, label, value, description }: StatCardProps) {
   return (
     <div className="text-center">
-      <Icon className="w-4 h-4 mx-auto text-primary mb-1" />
+      <Icon className="mx-auto mb-1 h-4 w-4 text-primary" />
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="font-semibold">{value}</div>
       <div className="text-xs text-muted-foreground">{description}</div>

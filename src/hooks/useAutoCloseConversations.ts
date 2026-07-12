@@ -25,7 +25,7 @@ export function useAutoCloseConversations() {
         .single();
 
       if (error) throw error;
-      return data as AutoCloseConfig;
+      return data;
     },
   });
 

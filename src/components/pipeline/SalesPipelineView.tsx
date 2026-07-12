@@ -1,7 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -15,69 +12,20 @@ import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DealCard } from './DealCard';
 import { PipelineKPICards } from './PipelineKPICards';
-import type { Deal } from './DealCard';
-import { dbFrom } from '@/integrations/datasource/db';
-
-interface PipelineStage { id: string; name: string; color: string; position: number; }
+import { useSalesPipeline } from '@/hooks/pipeline/useSalesPipeline';
 
 export function SalesPipelineView() {
-  const mountedRef = useMountedRef();
-  const [stages, setStages] = useState<PipelineStage[]>([]);
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showDealDialog, setShowDealDialog] = useState(false);
-  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
-  const [contacts, setContacts] = useState<{ id: string; name: string; phone: string }[]>([]);
-  const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
   const [draggedDeal, setDraggedDeal] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
-  const [formTitle, setFormTitle] = useState('');
-  const [formValue, setFormValue] = useState('');
-  const [formStageId, setFormStageId] = useState('');
-  const [formContactId, setFormContactId] = useState('');
-  const [formAssignedTo, setFormAssignedTo] = useState('');
-  const [formPriority, setFormPriority] = useState('medium');
-  const [formCloseDate, setFormCloseDate] = useState('');
-  const [formNotes, setFormNotes] = useState('');
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([
-      supabase.from('sales_pipeline_stages').select('*').order('position'),
-      supabase.from('sales_deals').select('*, contacts(name, phone), profiles!sales_deals_assigned_to_fkey(name)').order('created_at', { ascending: false }),
-      dbFrom('contacts').select('id, name, phone').limit(200),
-      supabase.from('profiles').select('id, name').eq('is_active', true),
-    ]);
-    if (!mountedRef.current) return;
-    if (stagesRes.data) setStages(stagesRes.data);
-    if (dealsRes.data) setDeals(dealsRes.data.map((d) => ({ ...d, tags: d.tags || [], contact: d.contacts, assignee: d.profiles })));
-    if (contactsRes.data) setContacts(contactsRes.data);
-    if (agentsRes.data) setAgents(agentsRes.data);
-    setLoading(false);
-  }, [mountedRef]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => {
-    const channel = supabase.channel('deals-changes').on('postgres_changes', { event: '*', schema: 'zapp', table: 'sales_deals' }, () => fetchData()).subscribe(); // public.sales_deals é VIEW — realtime só emite da tabela-base zapp.sales_deals (publicada + RLS auth_full_access)
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchData]);
-
-  const openNewDeal = (stageId?: string) => { setEditingDeal(null); setFormTitle(''); setFormValue(''); setFormStageId(stageId || stages[0]?.id || ''); setFormContactId(''); setFormAssignedTo(''); setFormPriority('medium'); setFormCloseDate(''); setFormNotes(''); setShowDealDialog(true); };
-  const openEditDeal = (deal: Deal) => { setEditingDeal(deal); setFormTitle(deal.title); setFormValue(String(deal.value || '')); setFormStageId(deal.stage_id || ''); setFormContactId(deal.contact_id || ''); setFormAssignedTo(deal.assigned_to || ''); setFormPriority(deal.priority); setFormCloseDate(deal.expected_close_date || ''); setFormNotes(deal.notes || ''); setShowDealDialog(true); };
-
-  const saveDeal = async () => {
-    if (!formTitle.trim()) return;
-    const payload = { title: formTitle, value: parseFloat(formValue) || 0, stage_id: formStageId || null, contact_id: formContactId || null, assigned_to: formAssignedTo || null, priority: formPriority, expected_close_date: formCloseDate || null, notes: formNotes || null };
-    if (editingDeal) { const { error } = await supabase.from('sales_deals').update(payload).eq('id', editingDeal.id); if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; } toast({ title: 'Deal atualizado!' }); }
-    else { const { error } = await supabase.from('sales_deals').insert(payload); if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; } toast({ title: 'Deal criado!' }); }
-    setShowDealDialog(false); fetchData();
-  };
-
-  const moveDeal = async (dealId: string, newStageId: string) => { await supabase.from('sales_deals').update({ stage_id: newStageId }).eq('id', dealId); await supabase.from('deal_activities').insert({ deal_id: dealId, activity_type: 'stage_change', description: `Movido para ${stages.find(s => s.id === newStageId)?.name}` }); fetchData(); };
-  const deleteDeal = async (id: string) => { await supabase.from('sales_deals').delete().eq('id', id); toast({ title: 'Deal removido' }); fetchData(); };
-  const markAsWon = async (deal: Deal) => { await supabase.from('sales_deals').update({ status: 'won', won_at: new Date().toISOString() }).eq('id', deal.id); toast({ title: '🎉 Deal ganho!', description: `${deal.title} - R$ ${deal.value.toLocaleString('pt-BR')}` }); fetchData(); };
-  const markAsLost = async (deal: Deal) => { await supabase.from('sales_deals').update({ status: 'lost', lost_at: new Date().toISOString() }).eq('id', deal.id); toast({ title: 'Deal perdido', description: deal.title }); fetchData(); };
+  const {
+    stages, deals, loading, contacts, agents,
+    showDealDialog, setShowDealDialog, editingDeal,
+    formTitle, setFormTitle, formValue, setFormValue, formStageId, setFormStageId,
+    formContactId, setFormContactId, formAssignedTo, setFormAssignedTo,
+    formPriority, setFormPriority, formCloseDate, setFormCloseDate, formNotes, setFormNotes,
+    openNewDeal, openEditDeal, saveDeal, moveDeal, deleteDeal, markAsWon, markAsLost,
+  } = useSalesPipeline();
 
   const getStageDeals = (stageId: string) => deals.filter(d => d.stage_id === stageId && d.status === 'open');
   const getStageTotal = (stageId: string) => getStageDeals(stageId).reduce((sum, d) => sum + (d.value || 0), 0);
@@ -108,7 +56,7 @@ export function SalesPipelineView() {
                       <span className="font-semibold text-sm text-foreground">{stage.name}</span>
                       <Badge variant="secondary" className="text-xs h-5">{stageDeals.length}</Badge>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openNewDeal(stage.id)}><Plus className="w-3.5 h-3.5" /></Button>
+                    <Button aria-label="Adicionar deal" variant="ghost" size="icon" className="h-6 w-6" onClick={() => openNewDeal(stage.id)}><Plus className="w-3.5 h-3.5" /></Button>
                   </div>
                   <p className="text-xs text-muted-foreground">R$ {getStageTotal(stage.id).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 </div>
@@ -132,14 +80,14 @@ export function SalesPipelineView() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editingDeal ? 'Editar Deal' : 'Novo Deal'}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><Label>Título *</Label><Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Nome do deal" /></div>
-            <div><Label>Valor (R$)</Label><Input type="number" value={formValue} onChange={(e) => setFormValue(e.target.value)} placeholder="0,00" /></div>
-            <div><Label>Etapa</Label><Select value={formStageId} onValueChange={setFormStageId}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{stages.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Contato</Label><Select value={formContactId} onValueChange={setFormContactId}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Responsável</Label><Select value={formAssignedTo} onValueChange={setFormAssignedTo}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Prioridade</Label><Select value={formPriority} onValueChange={setFormPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
-            <div><Label>Data prevista</Label><Input type="date" value={formCloseDate} onChange={(e) => setFormCloseDate(e.target.value)} /></div>
-            <div className="col-span-2"><Label>Observações</Label><Textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} rows={3} /></div>
+            <div className="col-span-2"><Label htmlFor="deal-title">Título *</Label><Input id="deal-title" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Nome do deal" /></div>
+            <div><Label htmlFor="deal-value">Valor (R$)</Label><Input id="deal-value" type="number" value={formValue} onChange={(e) => setFormValue(e.target.value)} placeholder="0,00" /></div>
+            <div><Label htmlFor="deal-stage">Etapa</Label><Select value={formStageId} onValueChange={setFormStageId}><SelectTrigger id="deal-stage"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{stages.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label htmlFor="deal-contact">Contato</Label><Select value={formContactId} onValueChange={setFormContactId}><SelectTrigger id="deal-contact"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label htmlFor="deal-assigned">Responsável</Label><Select value={formAssignedTo} onValueChange={setFormAssignedTo}><SelectTrigger id="deal-assigned"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label htmlFor="deal-priority">Prioridade</Label><Select value={formPriority} onValueChange={setFormPriority}><SelectTrigger id="deal-priority"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
+            <div><Label htmlFor="deal-close-date">Data prevista</Label><Input id="deal-close-date" type="date" value={formCloseDate} onChange={(e) => setFormCloseDate(e.target.value)} /></div>
+            <div className="col-span-2"><Label htmlFor="deal-notes">Observações</Label><Textarea id="deal-notes" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} rows={3} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDealDialog(false)}>Cancelar</Button>

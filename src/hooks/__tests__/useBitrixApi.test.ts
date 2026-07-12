@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-const mockFunctionsInvoke = vi.fn();
+const mockFunctionsInvoke = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    functions: { invoke: (...args: any[]) => mockFunctionsInvoke(...args) },
+    functions: { invoke: (...args: unknown[]) => mockFunctionsInvoke(...args) },
   },
 }));
 
@@ -128,9 +128,12 @@ describe('useBitrixApi', () => {
     await act(async () => {
       await result.current.listLeads();
     });
-    expect(mockFunctionsInvoke).toHaveBeenCalledWith('bitrix-api', expect.objectContaining({
-      body: expect.objectContaining({ action: 'list', entityType: 'lead' }),
-    }));
+    expect(mockFunctionsInvoke).toHaveBeenCalledWith(
+      'bitrix-api',
+      expect.objectContaining({
+        body: expect.objectContaining({ action: 'list', entityType: 'lead' }),
+      })
+    );
   });
 
   it('handles invoke error', async () => {
@@ -152,14 +155,22 @@ describe('useBitrixApi', () => {
   });
 
   it('sets loading during API call', async () => {
-    let resolvePromise: (value: any) => void;
-    mockFunctionsInvoke.mockReturnValue(new Promise(r => { resolvePromise = r; }));
+    let resolvePromise: (value: unknown) => void;
+    mockFunctionsInvoke.mockReturnValue(
+      new Promise((r) => {
+        resolvePromise = r;
+      })
+    );
     const { result } = renderHook(() => useBitrixApi());
-    
-    act(() => { result.current.listLeads(); });
+
+    act(() => {
+      result.current.listLeads();
+    });
     expect(result.current.loading).toBe(true);
-    
-    await act(async () => { resolvePromise!({ data: { success: true }, error: null }); });
+
+    await act(async () => {
+      resolvePromise!({ data: { success: true }, error: null });
+    });
     expect(result.current.loading).toBe(false);
   });
 });

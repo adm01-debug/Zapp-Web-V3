@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, sanitizeString, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -14,10 +15,14 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
-    const supabaseAnonKey = requireEnv("SUPABASE_ANON_KEY");
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-    const { user: caller } = await authorizeRoles(req, supabaseUrl, supabaseAnonKey, ['admin', 'dev']);
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
 
     const bodySchema = z.object({
@@ -53,15 +58,24 @@ Deno.serve(async (req) => {
 
     if (createError) {
       log.error("User creation failed", { error: createError.message });
-      return errorResponse(createError.message, 400, req);
+      const userFacingMsg = createError.message.toLowerCase().includes("already registered")
+        ? "Email already registered"
+        : "User creation failed";
+      return errorResponse(userFacingMsg, 400, req);
     }
 
-    // If a specific role was provided (not default 'agent'), update it
-    if (role && role !== "agent" && newUser.user) {
-      await adminClient
+    // Upsert the role — UPDATE alone silently no-ops when the user_roles row
+    // doesn't exist yet (trigger race after createUser), leaving the role unset.
+    if (role && newUser.user) {
+      const { error: roleError } = await adminClient
         .from("user_roles")
-        .update({ role })
-        .eq("user_id", newUser.user.id);
+        .upsert({ user_id: newUser.user.id, role }, { onConflict: 'user_id' });
+      if (roleError) {
+        log.error("Role assignment failed", { error: roleError.message });
+        // Roll back the user creation so the caller knows the full setup failed.
+        await adminClient.auth.admin.deleteUser(newUser.user!.id).catch(() => {});
+        return errorResponse("User created but role assignment failed — user rolled back", 500, req);
+      }
     }
 
     // Update profile with additional fields
@@ -132,9 +146,8 @@ Deno.serve(async (req) => {
 
     log.done(200, { userId: newUser.user?.id });
     return jsonResponse({ success: true, user_id: newUser.user?.id }, 200, req);
-  } catch (err: any) {
-    if (err.status) return errorResponse(err.message, err.status, req);
+  } catch (err: unknown) {
     log.error("Unhandled error", { error: err instanceof Error ? err.message : String(err) });
-    return errorResponse(err instanceof Error ? err.message : "Erro interno", 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });

@@ -44,45 +44,6 @@ export function getBearer(req: Request): string | null {
   return raw.slice(7).trim() || null;
 }
 
-/**
- * Parse JWT payload without signature verification.
- * IMPORTANT: This does NOT validate the signature. Use this ONLY when signature
- * validation is performed separately (e.g., via Supabase client).
- * Returns null if parsing fails.
- */
-export function parseJwtPayloadUnsafe(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = parts[1];
-    if (!payload) return null;
-    const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
-    return JSON.parse(atob(padded)) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Check if JWT token has expired.
- * Returns: { expired: boolean, expiresIn: number (seconds), exp: number | null }
- * Includes 30-second grace period to tolerate clock skew.
- */
-export function isTokenExpired(
-  payload: Record<string, unknown> | null
-): { expired: boolean; expiresIn: number; exp: number | null } {
-  if (!payload || typeof payload.exp !== 'number') {
-    return { expired: true, expiresIn: -1, exp: null };
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const grace = 30; // 30 seconds for clock skew tolerance
-  const expiresIn = payload.exp - now;
-  const expired = expiresIn < grace;
-
-  return { expired, expiresIn, exp: payload.exp };
-}
-
 function readSupabaseUrl(name: string): string | null {
   const raw = Deno.env.get(name)?.trim();
   if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
@@ -100,69 +61,36 @@ function readSecret(name: string): string | null {
   return raw;
 }
 
-/**
- * Validates that critical auth environment variables are configured.
- * Should be called once at module load time.
- * Throws if configuration is incomplete.
- */
-export function validateAuthEnvironment(): {
-  supabaseUrlSet: boolean;
-  hasCloud: boolean;
-  hasSelfHosted: boolean;
-} {
-  // Validate at least ONE Supabase backend is configured
-  const selfUrl = readSupabaseUrl('SELFHOSTED_SUPABASE_URL') ?? readSupabaseUrl('EXTERNAL_SUPABASE_URL');
-  const selfAnon = readSecret('SELFHOSTED_SUPABASE_ANON_KEY') ?? readSecret('EXTERNAL_SUPABASE_ANON_KEY');
-  const cloudUrl = readSupabaseUrl('SUPABASE_URL');
-  const cloudAnon = readSecret('SUPABASE_ANON_KEY') ?? readSecret('SUPABASE_PUBLISHABLE_KEY');
-
-  const hasSelfHosted = !!(selfUrl && selfAnon);
-  const hasCloud = !!(cloudUrl && cloudAnon);
-
-  if (!hasSelfHosted && !hasCloud) {
-    throw new Error(
-      '[Configuration Error] No Supabase backend is configured. ' +
-      'Set either: (SUPABASE_URL + SUPABASE_ANON_KEY) or (SELFHOSTED_SUPABASE_URL + SELFHOSTED_SUPABASE_ANON_KEY). ' +
-      'At least one backend is required for authentication.'
-    );
-  }
-
-  return {
-    supabaseUrlSet: hasSelfHosted || hasCloud,
-    hasCloud,
-    hasSelfHosted,
-  };
-}
-
 export async function requireUser(req: Request): Promise<AuthedUser | Response> {
   const token = getBearer(req);
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
 
-  const tokenPayload = parseJwtPayloadUnsafe(token) as { role?: string; sub?: string; iss?: string; exp?: number } | null;
+  const tokenPayload = (() => {
+    try {
+      const [, payload] = token.split('.');
+      if (!payload) return null;
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      return JSON.parse(atob(padded)) as { role?: string; sub?: string; iss?: string };
+    } catch {
+      return null;
+    }
+  })();
 
   if (!tokenPayload?.sub || tokenPayload.role === 'anon') {
     return errorResponse("Unauthorized: user session required", 401, req);
   }
 
-  // Check token expiry BEFORE attempting authentication
-  const expiryCheck = isTokenExpired(tokenPayload);
-  if (expiryCheck.expired) {
-    const expiresAt = expiryCheck.exp ? new Date(expiryCheck.exp * 1000).toISOString() : 'unknown';
-    console.warn('[auth] token expired', { sub: tokenPayload.sub, expiresAt, expiresIn: expiryCheck.expiresIn });
-    return errorResponse(
-      `Unauthorized: token expired (expired at ${expiresAt}). Please login again.`,
-      401,
-      req
-    );
-  }
-
   const selfUrl = readSupabaseUrl("SELFHOSTED_SUPABASE_URL") ?? readSupabaseUrl("EXTERNAL_SUPABASE_URL");
   const selfAnon = readSecret("SELFHOSTED_SUPABASE_ANON_KEY") ?? readSecret("EXTERNAL_SUPABASE_ANON_KEY");
+  // Fallback: /auth/v1/user aceita service_role como apikey. Se a anon estiver ausente
+  // ou não bater com o JWT_SECRET do self-hosted, o service_role destrava a validação.
+  const selfServiceRole = readSecret("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ?? readSecret("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
   const cloudUrl = readSupabaseUrl("SUPABASE_URL");
   const cloudAnon = readSecret("SUPABASE_ANON_KEY") ?? readSecret("SUPABASE_PUBLISHABLE_KEY");
 
   const allCandidates: Array<{ url: string; key: string; label: string }> = [];
-  if (selfUrl && selfAnon) allCandidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted" });
+  if (selfUrl && selfAnon) allCandidates.push({ url: selfUrl, key: selfAnon, label: "self-hosted (anon)" });
+  if (selfUrl && selfServiceRole) allCandidates.push({ url: selfUrl, key: selfServiceRole, label: "self-hosted (service_role)" });
   if (cloudUrl && cloudAnon) allCandidates.push({ url: cloudUrl, key: cloudAnon, label: "cloud" });
 
   if (allCandidates.length === 0) {
@@ -171,7 +99,7 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
 
   // Fast-path: prefer the candidate whose origin matches the JWT's `iss` claim.
   const tokenIssOrigin = (() => {
-    try { return tokenPayload.iss ? new URL(String(tokenPayload.iss)).origin : null; } catch { return null; }
+    try { return tokenPayload.iss ? new URL(tokenPayload.iss).origin : null; } catch { return null; }
   })();
   const candidates = tokenIssOrigin
     ? [...allCandidates].sort((a, b) => (b.url === tokenIssOrigin ? 1 : 0) - (a.url === tokenIssOrigin ? 1 : 0))
@@ -199,7 +127,13 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
     }
   }
 
-  const tokenIss = tokenPayload?.iss ?? null;
+  const tokenIss = (() => {
+    try {
+      const [, payload] = token.split('.');
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      return (JSON.parse(atob(padded)) as { iss?: string }).iss ?? null;
+    } catch { return null; }
+  })();
 
   console.error("[auth] 401 invalid token", {
     token_iss: tokenIss,

@@ -296,7 +296,7 @@ export function BulkReprocessGuidedDialog({
 
         {/* Best-effort progress while pending */}
         {step === 'confirm' && isPending && (
-          <Progress value={undefined as unknown as number} className="h-1 mt-2" />
+          <Progress value={undefined} className="h-1 mt-2" />
         )}
 
       </DialogContent>
