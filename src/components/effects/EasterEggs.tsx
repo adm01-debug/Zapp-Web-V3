@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { Sparkles, PartyPopper, Rocket, Ghost, Music } from 'lucide-react';
 
 interface EasterEggsProviderProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 // Konami Code: ↑ ↑ ↓ ↓ ← → ← → B A
