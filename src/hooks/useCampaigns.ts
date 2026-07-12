@@ -30,7 +30,7 @@ export function useCampaigns() {
     mutationFn: async (campaign: Partial<Campaign>) => {
       const { data, error } = await supabase
         .from('campaigns')
-        .insert(campaign as unknown as CampaignInsert)
+        .insert(campaign as CampaignInsert)
         .select()
         .single();
       if (error) throw error;
@@ -47,7 +47,7 @@ export function useCampaigns() {
     mutationFn: async ({ id, ...updates }: Partial<Campaign> & { id: string }) => {
       const { data, error } = await supabase
         .from('campaigns')
-        .update(updates as unknown as CampaignUpdate)
+        .update(updates as CampaignUpdate)
         .eq('id', id)
         .select()
         .single();
