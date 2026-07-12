@@ -374,6 +374,43 @@ function checkMemoryLimit(log: Logger): boolean {
   return true; // Allow request
 }
 
+// S.1: Centralized prompt sanitization to prevent injection attacks
+// Removes control characters, quotes, and tags that could break out of prompts
+function sanitizeForPrompt(input: string | null | undefined, maxLength: number = 200): string {
+  if (!input) return '';
+  const sanitized = String(input)
+    .replace(/[\n\r\t\v\f"'`\\<>{}]/g, ' ') // Remove control chars, quotes, escapes, and brackets
+    .replace(/\s+/g, ' ') // Collapse multiple spaces
+    .trim();
+  return sanitized.slice(0, maxLength);
+}
+
+// S.3: Sanitize error messages to prevent information leakage
+// Redacts database errors, connection errors, and API/auth sensitive info
+function sanitizeErrorMessage(errorMsg: string): string {
+  const sensitivePatterns = [
+    /database/i,
+    /ECONNREFUSED/,
+    /ENOTFOUND/,
+    /api[_\s]?key/i,
+    /authentication/i,
+    /invalid.*auth/i,
+    /401|403|407/,
+    /credentials?/i,
+    /password/i,
+    /secret/i,
+    /token/i,
+    /unauthorized/i,
+  ];
+
+  const isSensitive = sensitivePatterns.some(pattern => pattern.test(errorMsg));
+  if (isSensitive) {
+    return 'Service temporarily unavailable. Please try again.';
+  }
+
+  return errorMsg.length > 200 ? errorMsg.substring(0, 200) : errorMsg;
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -992,12 +1029,8 @@ Responda APENAS em JSON:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     // C.38: Use helper to flatten dual-catch pattern (non-critical logging)
     await logAiMetrics({
@@ -1071,9 +1104,11 @@ async function handleConversationSummary(
       }
     }
 
+    // S.2: Sanitize contactName to prevent prompt injection via message formatting
+    const safeContactName = sanitizeForPrompt(contactName, 100);
     const conversationText = (messages as any[])
       .map((msg: any) =>
-        `[${msg.sender === 'agent' ? 'Atendente' : contactName || 'Cliente'}]: ${sanitizeString(String(msg.content || ''), 1000)}`
+        `[${msg.sender === 'agent' ? 'Atendente' : safeContactName || 'Cliente'}]: ${sanitizeString(String(msg.content || ''), 1000)}`
       )
       .join('\n');
 
@@ -1119,7 +1154,8 @@ Foque em:
               model: 'google/gemini-3-flash-preview',
               messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Conversa com ${contactName || 'Cliente'}:\n\n${conversationText}` }
+                // S.2: Use sanitized contactName to prevent injection (already sanitized in conversationText, but redeclare for consistency)
+                { role: 'user', content: `Conversa com ${safeContactName || 'Cliente'}:\n\n${conversationText}` }
               ],
               tools: [
                 {
@@ -1427,12 +1463,8 @@ Foque em:
     const durationMs = performance.now() - startTime;
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     try {
       await supabase.rpc('record_ai_metrics', {
@@ -1651,12 +1683,8 @@ Regras importantes:
       metadata: { requestId: ctx.requestId },
     }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in enhance-message handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -1869,12 +1897,8 @@ async function handleClassifyEmoji(
       metadata: { requestId: ctx.requestId },
     }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in classify-emoji handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -2081,12 +2105,8 @@ async function handleClassifySticker(
       metadata: { requestId: ctx.requestId },
     }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in classify-sticker handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -2350,12 +2370,8 @@ async function handleChurnAnalysis(
       metadata: { requestId: ctx.requestId },
     }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in churn-analysis handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -2422,9 +2438,11 @@ async function handleConversationAnalysis(
       }
     }
 
+    // S.2: Sanitize contactName to prevent prompt injection via message formatting
+    const safeContactName = sanitizeForPrompt(contactName, 100);
     const conversationText = (messages as any[])
       .map((msg: any) =>
-        `[${msg.sender === 'agent' ? 'Atendente' : contactName || 'Cliente'}]: ${sanitizeString(String(msg.content || ''), 1000)}`
+        `[${msg.sender === 'agent' ? 'Atendente' : safeContactName || 'Cliente'}]: ${sanitizeString(String(msg.content || ''), 1000)}`
       )
       .join('\n');
 
@@ -2466,7 +2484,8 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
               model: 'google/gemini-3-flash-preview',
               messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Conversa com ${contactName || 'Cliente'}:\n\n${conversationText}` }
+                // S.2: Use sanitized contactName to prevent injection (already sanitized in conversationText, but redeclare for consistency)
+                { role: 'user', content: `Conversa com ${safeContactName || 'Cliente'}:\n\n${conversationText}` }
               ],
               tools: [
                 {
@@ -2775,12 +2794,8 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
       // Metrics not critical
     }
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in conversation-analysis handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -3093,12 +3108,8 @@ Responda APENAS em formato JSON com a seguinte estrutura:
       metadata: { requestId: ctx.requestId },
     }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in suggest-reply handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
@@ -3296,13 +3307,14 @@ async function handleTranscribeAudio(
           errorMessage = "Rate limit exceeded";
         } else if (transcriptionResponse.status === 401) {
           metricsStatus = 'auth_error';
-          errorMessage = "Invalid ElevenLabs API key";
+          // S.3: Don't leak API authentication details in error messages
+          errorMessage = "Authentication failed. Service temporarily unavailable.";
         } else if (transcriptionResponse.status === 400) {
           metricsStatus = 'invalid_input';
           errorMessage = "Invalid audio format";
         } else {
           metricsStatus = 'error';
-          errorMessage = `ElevenLabs error: ${transcriptionResponse.status}`;
+          errorMessage = `Service temporarily unavailable`;
         }
 
         if (transcriptionResponse.status === 400) {
@@ -3437,12 +3449,8 @@ async function handleTranscribeAudio(
         if (activeTranscodeCount < 0) activeTranscodeCount = 0; // Safety check
       }
 
-      // C.33: Sanitize error messages returned from inner catch blocks (prevent info leakage)
-      const clientErrMsg = (errorMessage || errMsg).includes('database') || (errorMessage || errMsg).includes('ECONNREFUSED') || (errorMessage || errMsg).includes('ENOTFOUND')
-        ? 'Service temporarily unavailable. Please try again.'
-        : (errorMessage || errMsg).length > 200
-        ? (errorMessage || errMsg).substring(0, 200)
-        : (errorMessage || errMsg);
+      // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+      const clientErrMsg = sanitizeErrorMessage(errorMessage || errMsg);
 
       return { success: false, error: clientErrMsg, duration_ms: durationMs };
     } finally {
@@ -3465,12 +3473,8 @@ async function handleTranscribeAudio(
       metadata: { requestId: ctx.requestId },
     }, supabase);
 
-    // C.30: Sanitize error messages before returning to clients (prevent info leakage)
-    const clientErrorMsg = errMsg.includes('database') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND')
-      ? 'Service temporarily unavailable. Please try again.'
-      : errMsg.length > 200
-      ? errMsg.substring(0, 200)
-      : errMsg;
+    // S.3: Sanitize error messages using comprehensive filter (prevent info leakage)
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in transcribe-audio handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
