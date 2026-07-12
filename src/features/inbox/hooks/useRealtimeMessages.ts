@@ -227,19 +227,19 @@ export function useRealtimeMessages() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data: seededContacts, error: contactsError } = await dbFrom('contacts')
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(SEEDED_CONTACT_LIMIT);
-        
+
       if (contactsError) throw contactsError;
-      
+
       const { data: recentMessages, error: messagesError } = await dbFrom('messages')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(RECENT_MESSAGES_LIMIT);
-        
+
       if (messagesError) throw messagesError;
 
       const normalizedMessages = ((recentMessages ?? []) as RealtimeMessage[]).map(normalizeMessage);
@@ -248,65 +248,77 @@ export function useRealtimeMessages() {
       const missingContactIds = getUniqueMessageContactIds(normalizedMessages).filter((id) => !seededContactIds.has(id));
       const messageContacts = await fetchContactsByIds(missingContactIds);
       commitConversations(buildConversations([...seededContactRows, ...messageContacts], normalizedMessages));
+      return true; // Signal successful load for realtime setup
     } catch (err) {
       log.error('Error fetching conversations:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
+      return false; // Signal load failure
     } finally { setLoading(false); }
   }, [commitConversations, fetchContactsByIds]);
 
   useEffect(() => {
     let active = true;
-    void fetchConversations();
-    
-    log.info('Subscribing to realtime', { source: 'dbTable' });
-    
-    const channelName = `messages-realtime-${Math.random().toString(36).slice(2, 9)}`;
-    logMessagesSubscribe('useRealtimeMessages', { event: 'INSERT', table: dbTable('messages') });
-    logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
-    logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
-    
-    // FATOR X v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
-    // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
-    const adaptEvoPayload = (p: RealtimePostgresChangesPayload<Record<string, unknown>>): RealtimePostgresChangesPayload<RealtimeMessage> => {
-      const map = (r: Record<string, unknown> | undefined) => r && ({
-        ...r,
-        sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
-        is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
-      });
-      return { ...p, new: map(p.new as Record<string, unknown>), old: map(p.old as Record<string, unknown>) } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>;
-    };
-    const channel = dbChannel('messages', channelName)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'evo', 
-        table: 'evolution_messages',
-      },
-        (payload) => {
-          if (active) wrapMessagesHandler('useRealtimeMessages', handleNewMessage)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
-        })
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'evo', 
-        table: 'evolution_messages',
-      },
-        (payload) => {
-          if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageUpdate)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
-        })
-      .on('postgres_changes', { 
-        event: 'DELETE', 
-        schema: 'evo', 
-        table: 'evolution_messages',
-      },
-        (payload) => {
-          if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageDelete)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
-        })
-      .subscribe((status) => { 
-        if (active) log.debug('Subscription status', { status }); 
-      });
+    let channel: ReturnType<typeof dbChannel> | null = null;
 
-    return () => { 
+    const setupRealtimeSubscription = async () => {
+      const loadSuccess = await fetchConversations();
+      if (!active) return;
+
+      if (!loadSuccess) {
+        log.warn('Initial data load failed — skipping realtime subscription');
+        return;
+      }
+
+      log.info('Subscribing to realtime', { source: 'dbTable' });
+
+      const channelName = `messages-realtime-${Math.random().toString(36).slice(2, 9)}`;
+      logMessagesSubscribe('useRealtimeMessages', { event: 'INSERT', table: dbTable('messages') });
+      logMessagesSubscribe('useRealtimeMessages', { event: 'UPDATE', table: dbTable('messages') });
+      logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
+
+      const adaptEvoPayload = (p: RealtimePostgresChangesPayload<Record<string, unknown>>): RealtimePostgresChangesPayload<RealtimeMessage> => {
+        const map = (r: Record<string, unknown> | undefined) => r && ({
+          ...r,
+          sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
+          is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
+        });
+        return { ...p, new: map(p.new as Record<string, unknown>), old: map(p.old as Record<string, unknown>) } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>;
+      };
+      channel = dbChannel('messages', channelName)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'evo',
+          table: 'evolution_messages',
+        },
+          (payload) => {
+            if (active) wrapMessagesHandler('useRealtimeMessages', handleNewMessage)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
+          })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'evo',
+          table: 'evolution_messages',
+        },
+          (payload) => {
+            if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageUpdate)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
+          })
+        .on('postgres_changes', {
+          event: 'DELETE',
+          schema: 'evo',
+          table: 'evolution_messages',
+        },
+          (payload) => {
+            if (active) wrapMessagesHandler('useRealtimeMessages', handleMessageDelete)(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
+          })
+        .subscribe((status) => {
+          if (active) log.debug('Subscription status', { status });
+        });
+    };
+
+    void setupRealtimeSubscription();
+
+    return () => {
       active = false;
-      void dbRemoveChannel('messages', channel); 
+      if (channel) void dbRemoveChannel('messages', channel);
     };
   }, [fetchConversations, handleNewMessage, handleMessageUpdate, handleMessageDelete]);
 
