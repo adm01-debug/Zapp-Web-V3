@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -56,7 +55,7 @@ export function useConnectionsActions(
 
       if (error) throw error;
 
-      setConnections((prev) => [...prev, data as WhatsAppConnection]);
+      setConnections((prev) => [...prev, data]);
 
       toast({
         title: 'Conexão criada!',
@@ -69,8 +68,11 @@ export function useConnectionsActions(
       if (data && !isOfficial) void handleShowQrCode(data as WhatsAppConnection);
     } catch (error: unknown) {
       log.error('Error creating connection:', error);
-      const msg = error instanceof Error ? error.message : String(error);
-      toast({ title: 'Erro ao criar conexão', description: msg, variant: 'destructive' });
+      toast({
+        title: 'Erro ao criar conexão',
+        description: error instanceof Error ? error.message : String(error),
+        variant: 'destructive',
+      });
     } finally {
       setIsCreating(false);
     }
@@ -97,9 +99,12 @@ export function useConnectionsActions(
         if (error) throw error;
         setConnections((prev) => prev.map((c) => ({ ...c, is_default: c.id === id })));
         toast({ title: 'Conexão padrão atualizada' });
-      } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : String(error);
-        toast({ title: 'Erro ao definir padrão', description: msg, variant: 'destructive' });
+      } catch (error) {
+        toast({
+          title: 'Erro ao definir padrão',
+          description: error instanceof Error ? error.message : String(error),
+          variant: 'destructive',
+        });
       }
     },
     [setConnections, toast]
@@ -121,9 +126,12 @@ export function useConnectionsActions(
         if (error) throw error;
         setConnections((prev) => prev.filter((c) => c.id !== connection.id));
         toast({ title: 'Conexão removida' });
-      } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : String(error);
-        toast({ title: 'Erro ao deletar', description: msg, variant: 'destructive' });
+      } catch (error) {
+        toast({
+          title: 'Erro ao deletar',
+          description: error instanceof Error ? error.message : String(error),
+          variant: 'destructive',
+        });
       }
     },
     [setConnections, toast, deleteInstance]
