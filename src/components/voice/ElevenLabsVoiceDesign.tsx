@@ -110,9 +110,9 @@ export function ElevenLabsVoiceDesign() {
       <CardContent className="space-y-6">
         <div className="grid gap-4">
           <div className="grid gap-2">
-            <Label>Voz</Label>
+            <Label htmlFor="voice-select">Voz</Label>
             <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-              <SelectTrigger>
+              <SelectTrigger id="voice-select">
                 <SelectValue placeholder="Selecione uma voz" />
               </SelectTrigger>
               <SelectContent>
@@ -126,8 +126,9 @@ export function ElevenLabsVoiceDesign() {
           </div>
 
           <div className="grid gap-2">
-            <Label>Texto para Teste</Label>
+            <Label htmlFor="test-text">Texto para Teste</Label>
             <Input
+              id="test-text"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Digite o texto que deseja ouvir..."
@@ -138,12 +139,13 @@ export function ElevenLabsVoiceDesign() {
             <div className="space-y-4">
               <div className="grid gap-2">
                 <div className="flex justify-between">
-                  <Label>Estabilidade</Label>
+                  <Label id="stability-label">Estabilidade</Label>
                   <span className="text-xs text-muted-foreground">
                     {Math.round(settings.stability * 100)}%
                   </span>
                 </div>
                 <Slider
+                  aria-labelledby="stability-label"
                   value={[settings.stability * 100]}
                   onValueChange={([v]) => setSettings((s) => ({ ...s, stability: v / 100 }))}
                   max={100}
@@ -152,12 +154,13 @@ export function ElevenLabsVoiceDesign() {
               </div>
               <div className="grid gap-2">
                 <div className="flex justify-between">
-                  <Label>Similaridade</Label>
+                  <Label id="similarity-label">Similaridade</Label>
                   <span className="text-xs text-muted-foreground">
                     {Math.round(settings.similarity_boost * 100)}%
                   </span>
                 </div>
                 <Slider
+                  aria-labelledby="similarity-label"
                   value={[settings.similarity_boost * 100]}
                   onValueChange={([v]) => setSettings((s) => ({ ...s, similarity_boost: v / 100 }))}
                   max={100}
@@ -168,12 +171,13 @@ export function ElevenLabsVoiceDesign() {
             <div className="space-y-4">
               <div className="grid gap-2">
                 <div className="flex justify-between">
-                  <Label>Exagero de Estilo</Label>
+                  <Label id="style-label">Exagero de Estilo</Label>
                   <span className="text-xs text-muted-foreground">
                     {Math.round(settings.style * 100)}%
                   </span>
                 </div>
                 <Slider
+                  aria-labelledby="style-label"
                   value={[settings.style * 100]}
                   onValueChange={([v]) => setSettings((s) => ({ ...s, style: v / 100 }))}
                   max={100}

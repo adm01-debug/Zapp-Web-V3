@@ -59,7 +59,7 @@ export function TalkXCampaignEditor({ campaign, onClose }: Props) {
               <div>
                 <Label htmlFor="connection">Conexão WhatsApp</Label>
                 <Select value={ed.connectionId} onValueChange={ed.setConnectionId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectTrigger id="connection"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {ed.connections?.map((conn) => <SelectItem key={conn.id} value={conn.id}>{conn.name} ({conn.phone_number || 'Sem número'})</SelectItem>)}
                   </SelectContent>
