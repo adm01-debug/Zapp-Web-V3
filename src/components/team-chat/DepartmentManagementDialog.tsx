@@ -33,6 +33,20 @@ interface Department {
   name: string;
 }
 
+interface Invitation {
+  id: string;
+  code: string;
+  expires_at: string;
+  uses: number;
+}
+
+interface AuditLog {
+  id: string;
+  action: 'ADD_MEMBER' | 'REMOVE_MEMBER';
+  created_at: string;
+  details: { profile_name?: string };
+}
+
 interface Props {
   department: Department;
   open: boolean;
@@ -168,7 +182,7 @@ export function DepartmentManagementDialog({
                           >
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9">
-                                <AvatarImage src={p.avatar_url || undefined} alt={p.name || ""} />
+                                <AvatarImage src={p.avatar_url || undefined} alt={p.name || ''} />
                                 <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <div>
@@ -204,7 +218,7 @@ export function DepartmentManagementDialog({
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                              <AvatarImage src={p.avatar_url || undefined} alt={p.name || ""} />
+                              <AvatarImage src={p.avatar_url || undefined} alt={p.name || ''} />
                               <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
@@ -255,7 +269,7 @@ export function DepartmentManagementDialog({
               </div>
               <ScrollArea className="flex-1">
                 <div className="space-y-3">
-                  {invitations.map((inv: any) => (
+                  {invitations.map((inv: Invitation) => (
                     <div key={inv.id} className="space-y-3 rounded-xl border bg-card p-4">
                       <div className="flex items-center justify-between">
                         <code className="rounded bg-muted px-2 py-1 text-sm font-bold">
@@ -357,7 +371,9 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card'
                   )}
                   onClick={() => setWhatsappMode('evolution')}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('evolution')}
+                  onKeyDown={(e) =>
+                    (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('evolution')
+                  }
                 >
                   <div
                     className={cn(
@@ -389,7 +405,9 @@ export function DepartmentManagementDialog({
                       : 'border-border bg-card'
                   )}
                   onClick={() => setWhatsappMode('official')}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('official')}
+                  onKeyDown={(e) =>
+                    (e.key === 'Enter' || e.key === ' ') && setWhatsappMode('official')
+                  }
                 >
                   <div
                     className={cn(
