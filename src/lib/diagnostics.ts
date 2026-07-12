@@ -103,7 +103,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
 
     // Passo 4: Testar Escrita/Leitura no system_connections (Verificar RLS)
     const testName = `DIAG_TEST_${Math.floor(Math.random() * 1000)}`;
-    const { data: saveResult, error: saveError } = await safeClient.from<any>(
+    const { data: saveResult, error: saveError } = await safeClient.from<SystemConnectionRow>(
       'system_connections',
       (q) =>
         q
@@ -126,7 +126,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
       record('Database Write (RLS)', 'pass', { id: saveResult?.[0]?.id });
 
       // Passo 5: Verificação de Visibilidade (Read-back)
-      const { data: verifyRows, error: verifyError } = await safeClient.from<any>(
+      const { data: verifyRows, error: verifyError } = await safeClient.from<SystemConnectionRow>(
         'system_connections',
         (q) => q.select('*').eq('name', testName).limit(1)
       );
@@ -140,13 +140,14 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
         record('Data Read-back (RLS)', 'pass', { verified_id: verifyData.id });
 
         // Limpeza
-        await safeClient.from<any>('system_connections', (q) => q.delete().eq('name', testName));
+        await safeClient.from<SystemConnectionRow>('system_connections', (q) =>
+          q.delete().eq('name', testName)
+        );
         record('Cleanup', 'pass', 'Registro de teste removido.');
       }
     }
-  } catch (e: any) {
-    // ignore-audit
-    record('Global Error', 'fail', { message: e.message });
+  } catch (e: unknown) {
+    record('Global Error', 'fail', { message: e instanceof Error ? e.message : String(e) });
   }
 
   return diagnostics;

@@ -27,13 +27,21 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
 import { getLogger } from '@/lib/logger';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const log = getLogger('Connections');
-import { motion, AnimatePresence } from 'framer-motion';
+
+interface SystemConnection {
+  id?: string;
+  name?: string;
+  provider?: string;
+  config?: { url?: string; anon_key?: string; [key: string]: unknown };
+  is_active?: boolean;
+  created_by?: string;
+}
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
   'development' | 'staging' | 'production';
@@ -71,7 +79,7 @@ const MCP_SERVER_URL = 'https://supabase.atomicabr.com.br/functions/v1/mcp-serve
 
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
-  const [connections, setConnections] = useState<any[]>([]);
+  const [connections, setConnections] = useState<SystemConnection[]>([]);
   const [_loading, setLoading] = useState(true);
 
   const [externalUrl, setExternalUrl] = useState(DEFAULT_EXTERNAL_URL);
@@ -103,7 +111,9 @@ export default function AdminConnectionsPage() {
 
         if (rolesError) throw rolesError;
 
-        const hasAccess = !!roles?.some((r: any) => r.role === 'admin' || r.role === 'dev'); // ignore-audit
+        const hasAccess = !!roles?.some(
+          (r: { role: string }) => r.role === 'admin' || r.role === 'dev'
+        );
         setIsAdmin(hasAccess);
 
         if (!hasAccess) {
@@ -117,7 +127,7 @@ export default function AdminConnectionsPage() {
       setIsAdmin(false);
       toast({
         title: 'Erro de Conexão ou Acesso',
-        description: `Não foi possível validar seu nível de acesso: ${e?.message ?? 'Banco indisponível'}.`,
+        description: `Não foi possível validar seu nível de acesso: ${e instanceof Error ? e.message : 'Banco indisponível'}.`,
         variant: 'destructive',
       });
     }
@@ -141,15 +151,13 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
-    const { data, error } = await safeClient.from<any>('system_connections', (q) =>
+    const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
       q.select('*').order('created_at', { ascending: false })
     );
 
     if (!error && data) {
-      setConnections(data as any[]);
-      const fatorX: any = (data as any[]).find( // ignore-audit
-        (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
-      );
+      setConnections(data);
+      const fatorX = data.find((c) => c.provider === 'supabase_external' || c.name === 'FATOR X');
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
         setExternalUrl(fatorX.config.url);
         setDraftUrl(fatorX.config.url);
@@ -192,7 +200,8 @@ export default function AdminConnectionsPage() {
         variant: 'destructive',
       });
       return false;
-    } catch (e: any) { // ignore-audit
+    } catch (e: any) {
+      // ignore-audit
       toast({
         title: 'Erro de rede',
         description: e?.message ?? 'falha desconhecida',
@@ -234,7 +243,8 @@ export default function AdminConnectionsPage() {
     };
 
     try {
-      const existing: any = connections.find( // ignore-audit
+      const existing: any = connections.find(
+        // ignore-audit
         (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
@@ -565,11 +575,18 @@ export default function AdminConnectionsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="bitrix24-webhook-url">Webhook URL (Inbound)</Label>
-                    <Input id="bitrix24-webhook-url" placeholder="https://sua-empresa.bitrix24.com.br/rest/1/abc..." />
+                    <Input
+                      id="bitrix24-webhook-url"
+                      placeholder="https://sua-empresa.bitrix24.com.br/rest/1/abc..."
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bitrix24-access-token">Access Token / Key</Label>
-                    <Input id="bitrix24-access-token" type="password" placeholder="Digite o token de acesso" />
+                    <Input
+                      id="bitrix24-access-token"
+                      type="password"
+                      placeholder="Digite o token de acesso"
+                    />
                   </div>
                   <Button className="w-full gap-2">
                     <Save className="h-4 w-4" /> Salvar Integração Bitrix
@@ -592,11 +609,18 @@ export default function AdminConnectionsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="n8n-production-url">URL de Produção</Label>
-                    <Input id="n8n-production-url" placeholder="https://n8n.sua-vps.com/webhook/..." />
+                    <Input
+                      id="n8n-production-url"
+                      placeholder="https://n8n.sua-vps.com/webhook/..."
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="n8n-auth-header">Auth Header (API Key)</Label>
-                    <Input id="n8n-auth-header" type="password" placeholder="Header X-N8N-API-KEY" />
+                    <Input
+                      id="n8n-auth-header"
+                      type="password"
+                      placeholder="Header X-N8N-API-KEY"
+                    />
                   </div>
                   <Button className="w-full gap-2" variant="secondary">
                     <Save className="h-4 w-4" /> Conectar n8n
@@ -628,10 +652,18 @@ export default function AdminConnectionsPage() {
                     <table className="w-full text-sm">
                       <thead className="border-b bg-muted/50">
                         <tr>
-                          <th scope="col" className="px-4 py-3 text-left">Nome do App</th>
-                          <th scope="col" className="px-4 py-3 text-left">Eventos</th>
-                          <th scope="col" className="px-4 py-3 text-left">Status</th>
-                          <th scope="col" className="px-4 py-3 text-right">Ações</th>
+                          <th scope="col" className="px-4 py-3 text-left">
+                            Nome do App
+                          </th>
+                          <th scope="col" className="px-4 py-3 text-left">
+                            Eventos
+                          </th>
+                          <th scope="col" className="px-4 py-3 text-left">
+                            Status
+                          </th>
+                          <th scope="col" className="px-4 py-3 text-right">
+                            Ações
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -654,7 +686,12 @@ export default function AdminConnectionsPage() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-2">
-                              <Button aria-label="Configurações da conexão" variant="ghost" size="icon" className="h-8 w-8">
+                              <Button
+                                aria-label="Configurações da conexão"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
                                 <Settings className="h-4 w-4" />
                               </Button>
                               <Button
@@ -731,7 +768,12 @@ export default function AdminConnectionsPage() {
                     <div className="space-y-2">
                       <Label htmlFor="mcp-security-token">Token de Segurança MCP</Label>
                       <div className="flex gap-2">
-                        <Input id="mcp-security-token" type="password" placeholder="Clique em 'Regerar' para criar um token" readOnly />
+                        <Input
+                          id="mcp-security-token"
+                          type="password"
+                          placeholder="Clique em 'Regerar' para criar um token"
+                          readOnly
+                        />
                         <Button variant="outline">Regerar</Button>
                       </div>
                     </div>
