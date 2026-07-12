@@ -100,7 +100,7 @@ export function useGroupActions({ connections, groups, selectedGroups, setGroups
         });
         if (error) failed++; else sent++;
         if (groupsToSend.indexOf(group) < groupsToSend.length - 1) await new Promise(r => setTimeout(r, 2000));
-      } catch { failed++; }
+      } catch (err) { log.error('broadcast send failed for group', group.id, err); failed++; }
     }
     setSelectedGroups(new Set());
     if (failed > 0) toast.warning(`Enviado para ${sent} grupo(s), ${failed} falha(s)`);

@@ -5,6 +5,9 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
 import { newRequestId } from '@/lib/withRequestId';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useTalkX');
 
 export interface TalkXCampaign {
   id: string;
@@ -236,7 +239,8 @@ export function useTalkX() {
         const valid = unique.filter((p) => validSet.has(p));
         const invalid = unique.filter((p) => !validSet.has(p));
         return { valid, invalid };
-      } catch {
+      } catch (err) {
+        log.error('check-numbers API call failed — treating all as valid:', err);
         return { valid: unique, invalid: [] };
       }
     },

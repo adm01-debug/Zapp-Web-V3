@@ -305,7 +305,8 @@ export function useEmail() {
 
         await checkTokenStatus();
         return true;
-      } catch {
+      } catch (err) {
+        log.error('Token refresh invocation failed:', err);
         return false;
       }
     },
