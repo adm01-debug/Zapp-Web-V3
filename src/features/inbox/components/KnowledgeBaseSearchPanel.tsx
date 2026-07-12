@@ -93,6 +93,7 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
                         size="icon"
                         className="w-6 h-6"
                         onClick={(e) => { e.stopPropagation(); handleCopy(article.content); }}
+                        aria-label="Copiar conteúdo"
                       >
                         <Copy className="w-3 h-3" />
                       </Button>
@@ -102,6 +103,7 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
                           size="icon"
                           className="w-6 h-6 text-primary"
                           onClick={(e) => { e.stopPropagation(); onInsertText(article.content); }}
+                          aria-label="Inserir no texto"
                         >
                           <BookOpen className="w-3 h-3" />
                         </Button>

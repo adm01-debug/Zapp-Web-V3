@@ -244,6 +244,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-warning-foreground hover:bg-warning"
+                        aria-label="Visualizar imagem"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>

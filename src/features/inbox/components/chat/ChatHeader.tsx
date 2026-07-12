@@ -156,6 +156,7 @@ export const ChatHeader = memo(function ChatHeader({
             size="icon"
             className="h-8 w-8 rounded-full hover:bg-primary/5 lg:hidden"
             onClick={onBack}
+            aria-label="Voltar"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

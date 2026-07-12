@@ -99,6 +99,7 @@ export function WhatsAppStatusSection({ phone }: WhatsAppStatusSectionProps) {
           className="h-6 w-6 hover:bg-primary/10"
           onClick={refresh}
           disabled={loading}
+          aria-label="Atualizar status do WhatsApp"
         >
           <RefreshCw className={cn('h-3 w-3', loading && 'animate-spin')} />
         </Button>

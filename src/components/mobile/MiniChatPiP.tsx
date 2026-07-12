@@ -121,6 +121,7 @@ export function MiniChatPiP({
                     e.stopPropagation();
                     setIsExpanded(false);
                   }}
+                  aria-label="Minimizar chat"
                 >
                   <Minimize2 className="w-3 h-3" />
                 </Button>
@@ -133,6 +134,7 @@ export function MiniChatPiP({
                   e.stopPropagation();
                   onDismiss();
                 }}
+                aria-label="Fechar chat"
               >
                 <X className="w-3 h-3" />
               </Button>
@@ -176,6 +178,7 @@ export function MiniChatPiP({
                         handleSendReply();
                       }}
                       disabled={!replyText.trim()}
+                      aria-label="Enviar resposta rápida"
                     >
                       <Send className="w-3.5 h-3.5" />
                     </Button>
