@@ -104,41 +104,58 @@ export function useGoalNotifications() {
         .eq('profile_id', profile.id)
         .maybeSingle();
 
-      // Check each goal
-      for (const goal of goals) {
-        const periods: Period[] = ['daily', 'weekly', 'monthly'];
+      // Pre-fetch all counts in parallel (at most 6 queries regardless of # of goals)
+      const periods: Period[] = ['daily', 'weekly', 'monthly'];
+      const dateRanges = Object.fromEntries(periods.map(p => [p, getDateRange(p)])) as Record<Period, { start: Date; end: Date }>;
 
+      const needsMessagesSent = goals.some(g => g.goal_type === 'messages_sent');
+      const needsConversationsResolved = goals.some(g => g.goal_type === 'conversations_resolved');
+
+      const messagesCounts: Partial<Record<Period, number>> = {};
+      const resolvedCounts: Partial<Record<Period, number>> = {};
+
+      await Promise.all([
+        ...periods.map(async (p) => {
+          if (!needsMessagesSent) return;
+          const { start, end } = dateRanges[p];
+          const { count } = await dbFrom('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('sender', 'agent')
+            .eq('agent_id', profile.id)
+            .gte('created_at', start.toISOString())
+            .lte('created_at', end.toISOString());
+          messagesCounts[p] = count ?? 0;
+        }),
+        ...periods.map(async (p) => {
+          if (!needsConversationsResolved) return;
+          const { start, end } = dateRanges[p];
+          const { count } = await supabase
+            .from('conversation_sla')
+            .select('*', { count: 'exact', head: true })
+            .not('resolved_at', 'is', null)
+            .gte('resolved_at', start.toISOString())
+            .lte('resolved_at', end.toISOString());
+          resolvedCounts[p] = count ?? 0;
+        }),
+      ]);
+
+      // Check each goal — all counts already in memory, no extra DB calls
+      for (const goal of goals) {
         for (const period of periods) {
           const targetKey = `${period}_target` as keyof GoalConfiguration;
           const target = goal[targetKey] as number;
-          
+
           if (!target || target === 0) continue;
 
-          const { start, end } = getDateRange(period);
           let current = 0;
 
-          // Calculate current progress based on goal type
           switch (goal.goal_type) {
-            case 'messages_sent': {
-              const { count } = await dbFrom('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('sender', 'agent')
-                .eq('agent_id', profile.id)
-                .gte('created_at', start.toISOString())
-                .lte('created_at', end.toISOString());
-              current = count || 0;
+            case 'messages_sent':
+              current = messagesCounts[period] ?? 0;
               break;
-            }
-            case 'conversations_resolved': {
-              const { count } = await supabase
-                .from('conversation_sla')
-                .select('*', { count: 'exact', head: true })
-                .not('resolved_at', 'is', null)
-                .gte('resolved_at', start.toISOString())
-                .lte('resolved_at', end.toISOString());
-              current = count || 0;
+            case 'conversations_resolved':
+              current = resolvedCounts[period] ?? 0;
               break;
-            }
             case 'response_time':
               current = agentStats?.avg_response_time_seconds || 0;
               break;
