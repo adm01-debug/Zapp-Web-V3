@@ -162,7 +162,8 @@ export const safeClient = {
 
   async single<T = unknown>(
     table: string,
-    queryBuilder: (query: ReturnType<typeof supabase.from>) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryBuilder: (query: any) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
   ): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
     stats.totalCalls++;
