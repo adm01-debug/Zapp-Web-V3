@@ -39,15 +39,38 @@ const SCOPES = [
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-  );
+  const supabaseUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
+  const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
+  const supabaseUrl = (typeof supabaseUrlHosted === 'string' && supabaseUrlHosted.length > 0)
+    ? supabaseUrlHosted
+    : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
 
-  const clientId     = Deno.env.get('MICROSOFT_CLIENT_ID');
-  const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET');
-  const redirectUri  = Deno.env.get('MICROSOFT_REDIRECT_URI') ??
-    `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/outlook-oauth`;
+  const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKey = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
+    ? supabaseServiceKeyHosted
+    : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    const json = (data: unknown, status = 200) =>
+      new Response(JSON.stringify(data), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    return json({ error: 'Server configuration error' }, 503);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const clientIdRaw = Deno.env.get('MICROSOFT_CLIENT_ID');
+  const clientSecretRaw = Deno.env.get('MICROSOFT_CLIENT_SECRET');
+  const clientId = typeof clientIdRaw === 'string' && clientIdRaw.length > 0 ? clientIdRaw : '';
+  const clientSecret = typeof clientSecretRaw === 'string' && clientSecretRaw.length > 0 ? clientSecretRaw : '';
+
+  const redirectUriRaw = Deno.env.get('MICROSOFT_REDIRECT_URI');
+  const redirectUri = (typeof redirectUriRaw === 'string' && redirectUriRaw.length > 0)
+    ? redirectUriRaw
+    : `${supabaseUrl}/functions/v1/outlook-oauth`;
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
@@ -182,7 +205,13 @@ serve(async (req) => {
         .select('id, email')
         .single();
 
-      if (error) { console.error('[outlook-oauth] upsert error', error.message); return json({ error: 'Internal server error' }, 500); }
+      if (error) {
+        const errMsg = typeof error === 'object' && error !== null && 'message' in error && typeof (error as Record<string, unknown>).message === 'string'
+          ? (error as Record<string, unknown>).message
+          : 'Internal server error';
+        console.error('[outlook-oauth] upsert error', errMsg);
+        return json({ error: 'Internal server error' }, 500);
+      }
 
       if (!data || typeof data !== 'object' || Array.isArray(data)) {
         return json({ error: 'Failed to create account' }, 500);
@@ -512,7 +541,9 @@ serve(async (req) => {
 function toAddresses(emails?: string | string[]): Array<{ emailAddress: { address: string } }> {
   if (!emails) return [];
   const list = Array.isArray(emails) ? emails : [emails];
-  return list.filter(Boolean).map(e => ({ emailAddress: { address: e } }));
+  return list
+    .filter((e): e is string => typeof e === 'string' && e.length > 0)
+    .map(e => ({ emailAddress: { address: e } }));
 }
 
 async function refreshTokenIfNeeded(
@@ -520,15 +551,16 @@ async function refreshTokenIfNeeded(
   clientId: string,
   clientSecret: string,
 ): Promise<string> {
-  const accessToken = typeof creds.access_token === 'string' ? creds.access_token : '';
-  const refreshToken = typeof creds.refresh_token === 'string' ? creds.refresh_token : '';
-  const acquiredAt = typeof creds.acquired_at === 'number' ? creds.acquired_at : 0;
-  const expiresIn = typeof creds.expires_in === 'number' ? creds.expires_in : 3600;
+  const accessToken = typeof creds.access_token === 'string' && creds.access_token.length > 0 ? creds.access_token : '';
+  const refreshToken = typeof creds.refresh_token === 'string' && creds.refresh_token.length > 0 ? creds.refresh_token : '';
+  const acquiredAt = typeof creds.acquired_at === 'number' && Number.isFinite(creds.acquired_at) ? creds.acquired_at : 0;
+  const expiresIn = typeof creds.expires_in === 'number' && Number.isFinite(creds.expires_in) ? creds.expires_in : 3600;
 
   if (!accessToken) return '';
 
   const expiryMs = acquiredAt + expiresIn * 1000;
-  const isExpiring = Date.now() > expiryMs - 300_000; // Refresh 5min antes
+  const nowMs = Date.now();
+  const isExpiring = Number.isFinite(nowMs) && Number.isFinite(expiryMs) ? nowMs > expiryMs - 300_000 : false; // Refresh 5min antes
 
   if (!isExpiring) return accessToken;
   if (!refreshToken) return accessToken;
@@ -559,6 +591,6 @@ async function refreshTokenIfNeeded(
     return accessToken;
   }
   const tokens = tokensRaw as Record<string, unknown>;
-  const newAccessToken = typeof tokens.access_token === 'string' ? tokens.access_token : '';
+  const newAccessToken = typeof tokens.access_token === 'string' && tokens.access_token.length > 0 ? tokens.access_token : '';
   return newAccessToken || accessToken;
 }
