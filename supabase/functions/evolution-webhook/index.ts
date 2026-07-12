@@ -237,7 +237,24 @@ serve(async (req) => {
     // event would be permanently deduped: the consumer's requeue/redelivery would
     // short-circuit as "duplicate" at markEventProcessed() and the message would be
     // silently lost — the exact wpp2 data-loss class this pipeline guards against.
-    await unmarkEventProcessed(supabase, eventId);
+    try {
+      await unmarkEventProcessed(supabase, eventId);
+    } catch (unmarkErr) {
+      // Unmark failed even after retries — the idempotency row remains.
+      // Returning 500 signals a hard error; Evolution will redeliver, but the
+      // next delivery will hit the idempotency check and be treated as duplicate.
+      // This is logged CRITICAL for manual reconciliation (rare transient DB failure).
+      const unmarkMsg = unmarkErr instanceof Error ? unmarkErr.message : String(unmarkErr);
+      await auditWebhookEvent(supabase, {
+        request_id: requestId, instance, event_type: event, status: 'error', status_code: 500,
+        error_message: `unmark_failed:${unmarkMsg}`,
+        duration_ms: Date.now() - startedAt,
+      });
+      return new Response(
+        JSON.stringify({ error: 'idempotency_rollback_failed', instance, requestId }),
+        { status: 500, headers: { ...corsHeaders } }
+      );
+    }
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 429,
       error_message: 'rate_limit_exceeded',

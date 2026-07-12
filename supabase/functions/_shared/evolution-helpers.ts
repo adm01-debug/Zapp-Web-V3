@@ -56,14 +56,25 @@ export async function markEventProcessed(supabase: any, eventId: string, instanc
 }
 
 // Removes an idempotency record so a 429-rejected event can be retried.
+// Retries up to 3 times and THROWS on persistent failure — callers must handle
+// the exception so the 429 path never silently leaves the dedupe row in place.
 // deno-lint-ignore no-explicit-any
 export async function unmarkEventProcessed(supabase: any, eventId: string): Promise<void> {
-  try {
-    const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
-    if (error) console.warn('[idempotency] unmark failed:', error.message ?? error.code);
-  } catch (e) {
-    console.warn('[idempotency] unmark exception:', e instanceof Error ? e.message : String(e));
+  const delays = [0, 100, 300]; // ms before each attempt (0 = immediate first try)
+  let lastError: unknown;
+  for (const delay of delays) {
+    if (delay > 0) await new Promise<void>((r) => setTimeout(r, delay));
+    try {
+      const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
+      if (!error) return; // success
+      lastError = error;
+    } catch (e) {
+      lastError = e;
+    }
   }
+  const msg = lastError instanceof Error ? lastError.message : String(lastError);
+  console.error(`[idempotency] CRITICAL: unmark failed for ${eventId} after 3 attempts: ${msg}`);
+  throw new Error(`idempotency_unmark_failed: ${msg}`);
 }
 
 export interface WebhookAuditRow {
