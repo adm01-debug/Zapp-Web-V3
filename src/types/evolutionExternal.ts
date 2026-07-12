@@ -41,7 +41,7 @@ export interface EvolutionMessage {
   reactions?: Array<{ text: string; key: { remoteJid: string; fromMe: boolean; id: string } }> | null;
   media_meta?: {
     ptt?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   ptt?: boolean;
 }
