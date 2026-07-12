@@ -8,7 +8,11 @@
 // (atomico via row lock do Postgres). Comprovado: 200 chamadas concorrentes -> conta 200
 // (antes contava 165, 35 lost updates).
 //
-// Migration da RPC: supabase/migrations (increment_webhook_rate_limit).
+// 2026-07-12 FIX-01 (S8 - Window Boundary Race Condition): RPC now handles window expiry
+// detection atomically. When a window expires (now - window_start >= windowSeconds),
+// the RPC resets the counter within the same transaction. Eliminates race condition where
+// requests could be incorrectly rate-limited or rejected at window boundaries.
+// Migration: 20260712000006_fix_window_boundary_race_s8.sql
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -34,6 +38,7 @@ export async function checkRateLimit(supabase: SupabaseClient, {
       p_event_type: eventType,
       p_window_start: bucket,
       p_limit: limit,
+      p_window_seconds: windowSeconds,
     });
 
     if (error) {
@@ -41,10 +46,17 @@ export async function checkRateLimit(supabase: SupabaseClient, {
       return { allowed: true, currentCount: 0, limit }; // Fail open
     }
 
-    // rpc retorna array de linhas: [{ current_count, is_allowed }]
+    // rpc retorna array de linhas: [{ current_count, is_allowed, window_expired }]
     const row = Array.isArray(data) ? data[0] : data;
     const currentCount = row?.current_count ?? 0;
     const allowed = row?.is_allowed ?? true;
+    const windowExpired = row?.window_expired ?? false;
+
+    // Log window boundary crossings for observability (FIX-01 atomic detection)
+    if (windowExpired) {
+      console.log(`[rate-limiter] window reset: ${instanceId}/${eventType} at bucket ${bucket}`);
+    }
+
     return { allowed, currentCount, limit };
   } catch (e) {
     console.warn('[rate-limiter] unexpected error:', (e as Error).message);
