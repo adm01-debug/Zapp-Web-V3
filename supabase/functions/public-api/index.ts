@@ -186,7 +186,10 @@ Deno.serve(async (req) => {
 
     try {
       const instanceId = typeof connection.instance_id === 'string' ? connection.instance_id : null;
-      if (instanceId) {
+      if (!instanceId) {
+        log.error('Missing instance ID for Evolution API', { connectionId: connection.id });
+        await supabase.from('messages').update({ status: 'failed' }).eq('id', msgId);
+      } else {
         const { data: invokeData, error: invokeError } = await supabase.functions.invoke(
           'evolution-api',
           {

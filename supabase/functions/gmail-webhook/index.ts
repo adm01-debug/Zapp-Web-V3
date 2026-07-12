@@ -121,7 +121,14 @@ serve(async (req) => {
         if (expiration) {
           const expirationMs = parseInt(expiration, 10);
           if (Number.isFinite(expirationMs)) {
-            expires = new Date(expirationMs).toISOString();
+            try {
+              const dateObj = new Date(expirationMs);
+              if (!Number.isNaN(dateObj.getTime())) {
+                expires = dateObj.toISOString();
+              }
+            } catch {
+              // Silently skip invalid dates
+            }
           }
         }
 
@@ -275,10 +282,22 @@ serve(async (req) => {
         const labelIds = Array.isArray(msgObj.labelIds) ? msgObj.labelIds : [];
         const isRead = !labelIds.includes('UNREAD');
 
+        let receivedAt: string | null = null;
+        if (typeof date === 'string' && date.length > 0) {
+          try {
+            const dateObj = new Date(date);
+            if (!Number.isNaN(dateObj.getTime())) {
+              receivedAt = dateObj.toISOString();
+            }
+          } catch {
+            // Silently skip invalid dates
+          }
+        }
+
         const { error: insertErr } = await supabase.from('email_messages').upsert({
           account_id: accountId2, message_id: msgId, thread_id: threadId,
           external_message_id: messageId, subject, from_address: from,
-          to_address: to, received_at: date ? new Date(date).toISOString() : null,
+          to_address: to, received_at: receivedAt,
           body_text: bodyText.slice(0, 5000), snippet,
           labels: labelIds, is_read: isRead,
         }, { onConflict: 'account_id,message_id' });
@@ -561,7 +580,21 @@ async function fetchAndPersistMessage(
   const ccHeaderStr = headers['cc'] ?? '';
   const ccHeader = ccHeaderStr.split(',').map((e: string) => e.trim()).filter((e: string) => e.length > 0);
   const dateStr = headers['date'] ?? '';
-  const date = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString();
+  let date: string;
+  if (typeof dateStr === 'string' && dateStr.length > 0) {
+    try {
+      const dateObj = new Date(dateStr);
+      if (!Number.isNaN(dateObj.getTime())) {
+        date = dateObj.toISOString();
+      } else {
+        date = new Date().toISOString();
+      }
+    } catch {
+      date = new Date().toISOString();
+    }
+  } else {
+    date = new Date().toISOString();
+  }
   const snippet = typeof msgObj.snippet === 'string' ? msgObj.snippet : '';
 
   // Extrai from_email e from_name

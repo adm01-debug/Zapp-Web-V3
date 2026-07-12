@@ -17,11 +17,11 @@ Deno.serve(async (req) => {
 
     if (!supabaseUrl || !serviceRoleKey) {
       console.error("[sicoob-outbox-consumer] missing Supabase configuration");
-      return json({ error: "Supabase configuration missing" }, 500);
+      return json({ error: "Supabase configuration missing" }, 503);
     }
     if (!sicoobGiftsUrl || !bridgeSecret) {
       console.error("[sicoob-outbox-consumer] missing Sicoob configuration");
-      return json({ error: "SICOOB_GIFTS_URL/SECRET not configured" }, 500);
+      return json({ error: "SICOOB_GIFTS_URL/SECRET not configured" }, 503);
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);

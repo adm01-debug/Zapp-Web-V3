@@ -278,13 +278,22 @@ export const ApprovePasswordResetSchema = z.object({
 
 /** Helper para parse seguro */
 export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown) {
-  const result = schema.safeParse(body);
-  if (!result.success) {
+  try {
+    const result = schema.safeParse(body);
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', '),
+        issues: result.error.issues,
+      };
+    }
+    return { success: true, data: result.data };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
-      error: result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', '),
-      issues: result.error.issues,
+      error: `Schema validation error: ${errorMsg}`,
+      issues: [],
     };
   }
-  return { success: true, data: result.data };
 }

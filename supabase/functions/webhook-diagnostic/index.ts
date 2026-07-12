@@ -172,14 +172,15 @@ Deno.serve(async (req: Request) => {
       // 2c. Check recent message flow (scoped to this instance via whatsapp_connection_id)
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const connDbId = dbConnRecord ? (typeof dbConnRecord.id === 'string' ? dbConnRecord.id : '') : '';
-      let msgQuery = supabase
-        .from('messages')
-        .select('sender, created_at')
-        .gte('created_at', oneHourAgo);
-      if (connDbId) msgQuery = msgQuery.eq('whatsapp_connection_id', connDbId);
-      const { data: recentMsgs } = await msgQuery;
-
-      const recentMsgsArray = Array.isArray(recentMsgs) ? recentMsgs : [];
+      let recentMsgsArray: Record<string, unknown>[] = [];
+      if (connDbId) {
+        const { data: recentMsgs } = await supabase
+          .from('messages')
+          .select('sender, created_at')
+          .eq('whatsapp_connection_id', connDbId)
+          .gte('created_at', oneHourAgo);
+        recentMsgsArray = Array.isArray(recentMsgs) ? recentMsgs : [];
+      }
       const validMsgs = recentMsgsArray
         .filter((m): m is Record<string, unknown> => typeof m === 'object' && m !== null && !Array.isArray(m));
       const incoming = validMsgs.filter(m => m.sender === 'contact').length;

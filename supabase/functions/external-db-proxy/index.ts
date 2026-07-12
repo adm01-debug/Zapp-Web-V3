@@ -460,7 +460,8 @@ Deno.serve(async (req) => {
         const itemObj = item as Record<string, unknown>;
         const column = typeof itemObj.column === 'string' ? itemObj.column : "";
         const operator = typeof itemObj.operator === 'string' ? itemObj.operator : "eq";
-        if (!column || !isSafeIdent(column) || !isSafeIdent(operator)) continue;
+        const allowedOperators = new Set(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'like', 'ilike', 'in', 'contains', 'contained_by', 'overlap']);
+        if (!column || !isSafeIdent(column) || !allowedOperators.has(operator)) continue;
         const maybeOperator = query[operator as keyof typeof query];
         if (typeof maybeOperator === "function") {
           query = (maybeOperator as (column: string, value: unknown) => typeof query).call(query, column, itemObj.value);

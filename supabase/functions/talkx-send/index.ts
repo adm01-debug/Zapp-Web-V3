@@ -151,19 +151,28 @@ Deno.serve(async (req) => {
 
     // Filter out blacklisted recipients
     const recipientArray = Array.isArray(recipients) ? recipients : [];
+    const blacklistedRecipientIds: string[] = [];
     const eligibleRecipients = recipientArray
       .filter((r): r is Record<string, unknown> =>
         typeof r === 'object' && r !== null && !Array.isArray(r)
       )
       .filter((r: Record<string, unknown>) => {
         if (blacklistSet.has(r.contact_id)) {
-          supabase.from("talkx_recipients")
-            .update({ status: "skipped", error_message: "Contato na lista negra (opt-out)" })
-            .eq("id", typeof r.id === 'string' ? r.id : '');
+          const recipId = typeof r.id === 'string' ? r.id : '';
+          if (recipId) {
+            blacklistedRecipientIds.push(recipId);
+          }
           return false;
         }
         return true;
       });
+
+    // Update blacklisted recipients in batch
+    if (blacklistedRecipientIds.length > 0) {
+      await supabase.from("talkx_recipients")
+        .update({ status: "skipped", error_message: "Contato na lista negra (opt-out)" })
+        .in("id", blacklistedRecipientIds);
+    }
 
     if (eligibleRecipients.length === 0) {
       await supabase.from("talkx_campaigns")
