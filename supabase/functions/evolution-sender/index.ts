@@ -302,25 +302,32 @@ async function processQueue(): Promise<{
     try {
       result = await processMessage(m);
     } catch (e) {
-      // Unexpected exception — return row to pending so the next cycle can retry
+      // Unexpected exception — return row to pending com backoff exponencial
       const msg = e instanceof Error ? e.message : String(e);
       console.error(`[processQueue] unexpected error processing ${m.id}:`, msg);
-      await markPending(m.id, msg);
+      await markPending(m.id, msg, nextBackoffMs(newAttempts));
       retried++;
+      // Vault indisponível: aborta o batch — evita tempestade de erros e drena créditos
+      if (msg.startsWith("Vault secrets missing")) {
+        errors.push(msg);
+        break;
+      }
       continue;
     }
 
     if (result.success) {
       await markSent(m.id, result);
       sent++;
-    } else if (newAttempts >= maxAttempts) {
+    } else if (isTerminalStatus(result.http_status) || newAttempts >= maxAttempts) {
+      // Fast-fail em 400/401/403/404/422 — nunca retry (config/permissão/validação)
       await markFailed(m.id, result);
       failed++;
       if (errors.length < 5 && result.error) errors.push(result.error.slice(0, 200));
     } else {
-      await markPending(m.id, result.error);
+      await markPending(m.id, result.error, nextBackoffMs(newAttempts), result.http_status);
       retried++;
     }
+
     await new Promise((r) => setTimeout(r, SEND_DELAY_MS));
   }
   return { processed, sent, failed, retried, duration_ms: Date.now() - startTime, errors };
