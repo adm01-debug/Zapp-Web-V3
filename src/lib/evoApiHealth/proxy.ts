@@ -73,9 +73,9 @@ class ExternalDbProxyClient {
       });
 
       const text = await response.text();
-      let result: any = null;
+      let result: { error?: string; [key: string]: unknown } | null = null;
       try {
-        result = text ? JSON.parse(text) : null;
+        result = text ? (JSON.parse(text) as typeof result) : null;
       } catch {
         result = { error: text || `HTTP ${response.status}` };
       }

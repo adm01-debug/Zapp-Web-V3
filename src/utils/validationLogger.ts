@@ -3,7 +3,7 @@ type ValidationEvent = {
   timestamp: string;
   type: 'log' | 'error' | 'network' | 'render';
   message: string;
-  data?: any;
+  data?: unknown;
 };
 
 declare global {
@@ -87,7 +87,7 @@ class ValidationLogger {
     };
   }
 
-  public addEvent(type: ValidationEvent['type'], message: string, data?: any) {
+  public addEvent(type: ValidationEvent['type'], message: string, data?: unknown) {
     if (this.isProcessing) return;
     this.isProcessing = true;
 
