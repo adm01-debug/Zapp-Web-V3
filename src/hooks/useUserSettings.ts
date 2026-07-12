@@ -1,13 +1,64 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { z } from 'zod';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
+import { generateCorrelationId } from '@/lib/correlationId';
 
 // Default ElevenLabs voice: Custom system voice
 const DEFAULT_TTS_VOICE_ID = 'TY3h8ANhQUsJaa0Bga5F';
 const DEFAULT_TTS_SPEED = 1.0;
+
+// Validation schema for user settings - prevents invalid state mutations
+const TimeFormatRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+
+const UserSettingsSchema = z.object({
+  user_id: z.string().uuid(),
+  business_hours_enabled: z.boolean(),
+  business_hours_start: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
+  business_hours_end: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
+  work_days: z.array(z.number().min(0).max(6)).default([1, 2, 3, 4, 5]),
+  welcome_message: z.string().max(500).default(''),
+  away_message: z.string().max(500).default(''),
+  closing_message: z.string().max(500).default(''),
+  auto_assignment_enabled: z.boolean(),
+  auto_assignment_method: z.enum(['roundrobin', 'random', 'least_active']).default('roundrobin'),
+  inactivity_timeout: z.number().min(1).max(300).default(30),
+  auto_transcription_enabled: z.boolean(),
+  sound_enabled: z.boolean(),
+  browser_notifications_enabled: z.boolean(),
+  quiet_hours_enabled: z.boolean(),
+  quiet_hours_start: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
+  quiet_hours_end: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
+  theme: z.enum(['light', 'dark', 'system']).default('system'),
+  language: z.string().default('pt-BR'),
+  compact_mode: z.boolean(),
+  tts_voice_id: z.string().default(DEFAULT_TTS_VOICE_ID),
+  tts_speed: z.number().min(0.5).max(2.0).default(DEFAULT_TTS_SPEED),
+  simulation_mode_enabled: z.boolean(),
+  global_sla_warning_minutes: z.number().min(1).max(1440).default(30),
+  global_sla_critical_minutes: z.number().min(1).max(1440).default(60),
+  global_sla_notification_message: z.string().max(1000).default('Alerta SLA: Tempo limite excedido para resposta.'),
+}).refine(
+  (data) => {
+    const [startH, startM] = data.business_hours_start.split(':').map(Number);
+    const [endH, endM] = data.business_hours_end.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    return startMinutes < endMinutes;
+  },
+  { message: 'Business hours: end time must be after start time', path: ['business_hours_end'] }
+).refine(
+  (data) => {
+    const [startH, startM] = data.quiet_hours_start.split(':').map(Number);
+    const [endH, endM] = data.quiet_hours_end.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    return data.quiet_hours_enabled ? startMinutes !== endMinutes : true;
+  },
+  { message: 'Quiet hours: start and end times must be different', path: ['quiet_hours_end'] }
+);
 
 export interface UserSettings {
   id?: string;
@@ -96,24 +147,34 @@ export function useUserSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Fetch settings from DB
+  // Idempotency tracking: prevents duplicate saves from concurrent requests
+  const [lastSaveId, setLastSaveId] = useState<string | null>(null);
+  const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
+
+  // Fetch settings from DB with cleanup on unmount
   useEffect(() => {
     if (!user?.id) {
       setIsLoading(false);
       return;
     }
 
+    const controller = new AbortController();
+
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
-        const { data: rows, error } = await safeClient.from<UserSettings>(
-          'user_settings',
-          (q) => q.select('*').eq('user_id', user.id).limit(1),
-        );
-        const data = rows[0] ?? null;
+        const { data, error } = await safeClient.single<UserSettings>('user_settings', q => q.select('*').eq('user_id', user.id));
 
-        if (error) {
-          log.error('Error fetching settings:', error);
+        // Check if component unmounted during fetch
+        if (controller.signal.aborted) return;
+
+        if (error && error.code !== 'PGRST116') {
+          // PGRST116 = no rows returned
+          log.error('Error fetching settings', {
+            userId: user.id,
+            error: error.message,
+            code: (error as any).code,
+          });
           return;
         }
 
@@ -149,13 +210,22 @@ export function useUserSettings() {
           });
         }
       } catch (err) {
-        log.error('Error in fetchSettings:', err);
+        if (err instanceof Error && err.name !== 'AbortError') {
+          log.error('Error in fetchSettings', {
+            userId: user.id,
+            error: err.message,
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     void fetchSettings();
+
+    return () => controller.abort();
   }, [user?.id]);
 
   // Update settings locally
@@ -163,7 +233,7 @@ export function useUserSettings() {
     setSettings((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  // Save settings to DB
+  // Save settings to DB with CSRF/idempotency protection
   const saveSettings = useCallback(async () => {
     if (!user?.id) {
       toast({
@@ -174,7 +244,24 @@ export function useUserSettings() {
       return false;
     }
 
+    // Generate unique idempotency key for this save operation
+    const saveId = crypto.randomUUID();
+    const correlationId = generateCorrelationId();
+
+    // Prevent duplicate concurrent saves (CSRF protection)
+    if (pendingSaveId) {
+      log.warn('Ignoring duplicate save request - operation already in progress', {
+        pendingSaveId,
+        newSaveId: saveId,
+        userId: user.id,
+        correlationId,
+      });
+      return false;
+    }
+
+    setPendingSaveId(saveId);
     setIsSaving(true);
+
     try {
       const settingsData = {
         user_id: user.id,
@@ -205,12 +292,46 @@ export function useUserSettings() {
         global_sla_notification_message: settings.global_sla_notification_message,
       };
 
-      const { error } = await safeClient.from('user_settings', (q) =>
-        q.upsert(settingsData, { onConflict: 'user_id' })
+      // Validate input before saving (prevents invalid state mutations)
+      const validationResult = UserSettingsSchema.safeParse(settingsData);
+      if (!validationResult.success) {
+        const fieldErrors = validationResult.error.flatten().fieldErrors;
+        const firstError = Object.entries(fieldErrors)[0];
+        const errorMsg = firstError ? `${firstError[0]}: ${firstError[1]?.[0]}` : 'Invalid settings';
+
+        log.error('Settings validation failed', {
+          userId: user.id,
+          correlationId,
+          errors: fieldErrors,
+        });
+
+        toast({
+          title: 'Erro de validação',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      // Check for race conditions: if we already saved this ID, skip
+      if (lastSaveId === saveId) {
+        log.info('Ignoring duplicate save - already processed', { saveId, userId: user.id });
+        return true;
+      }
+
+      const { error } = await safeClient.from('user_settings', q =>
+        q.upsert(validationResult.data, { onConflict: 'user_id' })
       );
 
       if (error) {
-        log.error('Error saving settings:', error);
+        log.error('Error saving settings', {
+          userId: user.id,
+          saveId,
+          correlationId,
+          error: error.message,
+          code: (error as any).code,
+        });
+
         toast({
           title: 'Erro ao salvar',
           description: 'Não foi possível salvar as configurações.',
@@ -219,13 +340,28 @@ export function useUserSettings() {
         return false;
       }
 
+      // Mark this save as successful
+      setLastSaveId(saveId);
+
+      log.info('Settings saved successfully', {
+        userId: user.id,
+        saveId,
+        correlationId,
+      });
+
       toast({
         title: 'Configurações salvas',
         description: 'Suas configurações foram salvas com sucesso.',
       });
       return true;
     } catch (err) {
-      log.error('Error in saveSettings:', err);
+      log.error('Error in saveSettings', {
+        userId: user.id,
+        saveId,
+        correlationId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+
       toast({
         title: 'Erro ao salvar',
         description: 'Ocorreu um erro inesperado.',
@@ -233,9 +369,10 @@ export function useUserSettings() {
       });
       return false;
     } finally {
+      setPendingSaveId(null);
       setIsSaving(false);
     }
-  }, [user?.id, settings]);
+  }, [user?.id, settings.business_hours_enabled, settings.business_hours_start, settings.business_hours_end, settings.work_days, settings.welcome_message, settings.away_message, settings.closing_message, settings.auto_assignment_enabled, settings.auto_assignment_method, settings.inactivity_timeout, settings.auto_transcription_enabled, settings.sound_enabled, settings.browser_notifications_enabled, settings.quiet_hours_enabled, settings.quiet_hours_start, settings.quiet_hours_end, settings.theme, settings.language, settings.compact_mode, settings.tts_voice_id, settings.tts_speed, settings.simulation_mode_enabled, settings.global_sla_warning_minutes, settings.global_sla_critical_minutes, settings.global_sla_notification_message, lastSaveId, pendingSaveId]);
 
   // Reset to defaults
   const resetSettings = useCallback(() => {
