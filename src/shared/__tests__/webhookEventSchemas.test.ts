@@ -198,9 +198,7 @@ describe('whatsappCloudWebhookSchema', () => {
             {
               field: 'messages',
               value: {
-                statuses: [
-                  { id: 'wamid.abc', status: 'delivered', timestamp: '123' },
-                ],
+                statuses: [{ id: 'wamid.abc', status: 'delivered', timestamp: '123' }],
               },
             },
           ],
@@ -243,18 +241,18 @@ describe('whatsappCloudWebhookSchema', () => {
 
 describe('gmailPushSchema', () => {
   it('aceita historyId numérico e string', () => {
-    expect(
-      gmailPushSchema.safeParse({ emailAddress: 'a@b.com', historyId: 12 }).success,
-    ).toBe(true);
-    expect(
-      gmailPushSchema.safeParse({ emailAddress: 'a@b.com', historyId: '12' }).success,
-    ).toBe(true);
+    expect(gmailPushSchema.safeParse({ emailAddress: 'a@b.com', historyId: 12 }).success).toBe(
+      true
+    );
+    expect(gmailPushSchema.safeParse({ emailAddress: 'a@b.com', historyId: '12' }).success).toBe(
+      true
+    );
   });
 
   it('rejeita email inválido', () => {
-    expect(
-      gmailPushSchema.safeParse({ emailAddress: 'nao-email', historyId: '1' }).success,
-    ).toBe(false);
+    expect(gmailPushSchema.safeParse({ emailAddress: 'nao-email', historyId: '1' }).success).toBe(
+      false
+    );
   });
 });
 
@@ -284,7 +282,7 @@ describe('safeParseEvent', () => {
     const r = safeParseEvent(
       realtimeEnvelopeSchema,
       { table: 'x' },
-      ContractErrorCode.INVALID_EVENT_SHAPE,
+      ContractErrorCode.INVALID_EVENT_SHAPE
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.code).toBe(ContractErrorCode.INVALID_EVENT_SHAPE);
@@ -358,12 +356,13 @@ describe('notificationRowSchema', () => {
   });
 
   it('aceita is_read null e read_at null', () => {
-    expect(
-      notificationRowSchema.safeParse({ ...base, is_read: null, read_at: null }).success,
-    ).toBe(true);
+    expect(notificationRowSchema.safeParse({ ...base, is_read: null, read_at: null }).success).toBe(
+      true
+    );
   });
 
   it('rejeita quando campo obrigatório title está ausente', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { title, ...withoutTitle } = base;
     expect(notificationRowSchema.safeParse(withoutTitle).success).toBe(false);
   });
@@ -388,6 +387,7 @@ describe('conversationEventRowSchema', () => {
   });
 
   it('rejeita event_type ausente', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { event_type, ...bad } = base;
     expect(conversationEventRowSchema.safeParse(bad).success).toBe(false);
   });
@@ -417,42 +417,42 @@ describe('conversationTransferRowSchema', () => {
   });
 
   it('rejeita ticket_number ausente', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { ticket_number, ...bad } = base;
     expect(conversationTransferRowSchema.safeParse(bad).success).toBe(false);
   });
 
   it('rejeita status fora do enum (ex. "processing")', () => {
-    expect(
-      conversationTransferRowSchema.safeParse({ ...base, status: 'processing' }).success,
-    ).toBe(false);
+    expect(conversationTransferRowSchema.safeParse({ ...base, status: 'processing' }).success).toBe(
+      false
+    );
   });
 
   it('rejeita transfer_type fora do enum (ex. "broadcast")', () => {
     expect(
-      conversationTransferRowSchema.safeParse({ ...base, transfer_type: 'broadcast' }).success,
+      conversationTransferRowSchema.safeParse({ ...base, transfer_type: 'broadcast' }).success
     ).toBe(false);
   });
 
   it('rejeita priority como string (DB é integer)', () => {
-    expect(
-      conversationTransferRowSchema.safeParse({ ...base, priority: 'high' }).success,
-    ).toBe(false);
+    expect(conversationTransferRowSchema.safeParse({ ...base, priority: 'high' }).success).toBe(
+      false
+    );
   });
 
   it('aceita priority integer', () => {
-    expect(
-      conversationTransferRowSchema.safeParse({ ...base, priority: 3 }).success,
-    ).toBe(true);
+    expect(conversationTransferRowSchema.safeParse({ ...base, priority: 3 }).success).toBe(true);
   });
 
   it('rejeita source_conversation_id ausente (missing)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { source_conversation_id, ...bad } = base;
     expect(conversationTransferRowSchema.safeParse(bad).success).toBe(false);
   });
 
   it('rejeita source_conversation_id null (não-nullable no banco)', () => {
     expect(
-      conversationTransferRowSchema.safeParse({ ...base, source_conversation_id: null }).success,
+      conversationTransferRowSchema.safeParse({ ...base, source_conversation_id: null }).success
     ).toBe(false);
   });
 });
@@ -472,30 +472,27 @@ describe('conversationEventRowSchema — tightening', () => {
   };
 
   it('aceita event_type conhecido do vocabulário (sla_alert)', () => {
-    expect(
-      conversationEventRowSchema.safeParse({ ...base, event_type: 'sla_alert' }).success,
-    ).toBe(true);
+    expect(conversationEventRowSchema.safeParse({ ...base, event_type: 'sla_alert' }).success).toBe(
+      true
+    );
   });
 
   it('aceita event_type customizado (fallback string) para tolerar rollout', () => {
     expect(
-      conversationEventRowSchema.safeParse({ ...base, event_type: 'custom_event' }).success,
+      conversationEventRowSchema.safeParse({ ...base, event_type: 'custom_event' }).success
     ).toBe(true);
   });
 
   it('rejeita event_type vazio (string vazia)', () => {
-    expect(
-      conversationEventRowSchema.safeParse({ ...base, event_type: '' }).success,
-    ).toBe(false);
+    expect(conversationEventRowSchema.safeParse({ ...base, event_type: '' }).success).toBe(false);
   });
 
   it('rejeita contact_id null (não-nullable no banco)', () => {
-    expect(
-      conversationEventRowSchema.safeParse({ ...base, contact_id: null }).success,
-    ).toBe(false);
+    expect(conversationEventRowSchema.safeParse({ ...base, contact_id: null }).success).toBe(false);
   });
 
   it('rejeita id ausente (missing)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...bad } = base;
     expect(conversationEventRowSchema.safeParse(bad).success).toBe(false);
   });
@@ -522,9 +519,7 @@ describe('teamMessageRowSchema', () => {
   });
 
   it('rejeita status fora do enum', () => {
-    expect(
-      teamMessageRowSchema.safeParse({ ...base, status: 'processing' }).success,
-    ).toBe(false);
+    expect(teamMessageRowSchema.safeParse({ ...base, status: 'processing' }).success).toBe(false);
   });
 
   it('safeParseEvent envelopa e devolve error estruturado', () => {
@@ -543,7 +538,6 @@ describe('teamMessageRowSchema', () => {
     }
   });
 });
-
 
 // ---------------------- WarRoom / SLA / Evolution rows ----------------------
 
@@ -571,8 +565,13 @@ describe('warRoomAlertRowSchema', () => {
 
   it('tolera source/is_read/created_at nulos (P0)', () => {
     const r = warRoomAlertRowSchema.safeParse({
-      id: UUID, alert_type: 'info', title: 't', message: 'm',
-      source: null, is_read: null, created_at: null,
+      id: UUID,
+      alert_type: 'info',
+      title: 't',
+      message: 'm',
+      source: null,
+      is_read: null,
+      created_at: null,
     });
     expect(r.success).toBe(true);
   });
@@ -584,16 +583,26 @@ describe('warRoomAlertRowSchema', () => {
 
   it('rejeita alert_type fora do enum (info/warning/critical/sla_breach)', () => {
     const r = warRoomAlertRowSchema.safeParse({
-      id: UUID, alert_type: 'error', title: 't', message: 'm',
-      source: null, is_read: null, created_at: null,
+      id: UUID,
+      alert_type: 'error',
+      title: 't',
+      message: 'm',
+      source: null,
+      is_read: null,
+      created_at: null,
     });
     expect(r.success).toBe(false);
   });
 
   it('aceita sla_breach como alert_type válido', () => {
     const r = warRoomAlertRowSchema.safeParse({
-      id: UUID, alert_type: 'sla_breach', title: 't', message: 'm',
-      source: 'sla-monitor', is_read: false, created_at: null,
+      id: UUID,
+      alert_type: 'sla_breach',
+      title: 't',
+      message: 'm',
+      source: 'sla-monitor',
+      is_read: false,
+      created_at: null,
     });
     expect(r.success).toBe(true);
   });
@@ -615,9 +624,13 @@ describe('conversationSlaRowSchema', () => {
 
   it('rejeita quando id não é UUID', () => {
     const r = conversationSlaRowSchema.safeParse({
-      id: 'not-uuid', contact_id: null,
-      first_message_at: '2026-01-01', first_response_at: null,
-      resolved_at: null, first_response_breached: null, resolution_breached: null,
+      id: 'not-uuid',
+      contact_id: null,
+      first_message_at: '2026-01-01',
+      first_response_at: null,
+      resolved_at: null,
+      first_response_breached: null,
+      resolution_breached: null,
     });
     expect(r.success).toBe(false);
   });
@@ -632,20 +645,37 @@ describe('conversationSlaRowSchema', () => {
 describe('evolutionMessageRowSchema', () => {
   it('aceita mensagem com media_url/content nulos', () => {
     const r = evolutionMessageRowSchema.safeParse({
-      id: 'row-1', message_id: 'm-1', remote_jid: '5511@s.whatsapp.net',
-      instance_name: 'inst', from_me: false, message_type: 'text',
-      content: null, media_url: null, status: null,
-      created_at: '2026-01-01T00:00:00Z', deleted_at: null,
-      contact_id: null, conversation_id: null,
+      id: 'row-1',
+      message_id: 'm-1',
+      remote_jid: '5511@s.whatsapp.net',
+      instance_name: 'inst',
+      from_me: false,
+      message_type: 'text',
+      content: null,
+      media_url: null,
+      status: null,
+      created_at: '2026-01-01T00:00:00Z',
+      deleted_at: null,
+      contact_id: null,
+      conversation_id: null,
     });
     expect(r.success).toBe(true);
   });
 
   it('rejeita from_me ausente', () => {
     const r = evolutionMessageRowSchema.safeParse({
-      id: 'x', message_id: 'y', remote_jid: 'z', instance_name: 'i',
-      message_type: 't', content: null, media_url: null, status: null,
-      created_at: 'now', deleted_at: null, contact_id: null, conversation_id: null,
+      id: 'x',
+      message_id: 'y',
+      remote_jid: 'z',
+      instance_name: 'i',
+      message_type: 't',
+      content: null,
+      media_url: null,
+      status: null,
+      created_at: 'now',
+      deleted_at: null,
+      contact_id: null,
+      conversation_id: null,
     });
     expect(r.success).toBe(false);
   });
@@ -691,7 +721,10 @@ describe('sentimentAlertAuditRowSchema', () => {
     const r = sentimentAlertAuditRowSchema.safeParse({
       id: SENTIMENT_UUID,
       action: 'other',
-      entity_id: null, entity_type: null, user_id: null, details: null,
+      entity_id: null,
+      entity_type: null,
+      user_id: null,
+      details: null,
       created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(false);
@@ -700,7 +733,10 @@ describe('sentimentAlertAuditRowSchema', () => {
   it('rejeita id ausente (missing)', () => {
     const r = sentimentAlertAuditRowSchema.safeParse({
       action: 'sentiment_alert',
-      entity_id: null, entity_type: null, user_id: null, details: null,
+      entity_id: null,
+      entity_type: null,
+      user_id: null,
+      details: null,
       created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(false);
@@ -721,16 +757,23 @@ describe('sentimentAlertAuditRowSchema', () => {
 describe('teamMessageNotificationRowSchema', () => {
   it('aceita mensagem de texto sem media_type', () => {
     const r = teamMessageNotificationRowSchema.safeParse({
-      id: SENTIMENT_UUID, conversation_id: SENTIMENT_UUID, sender_id: SENTIMENT_UUID,
-      content: 'olá', created_at: '2026-07-08T12:00:00Z',
+      id: SENTIMENT_UUID,
+      conversation_id: SENTIMENT_UUID,
+      sender_id: SENTIMENT_UUID,
+      content: 'olá',
+      created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(true);
   });
 
   it('aceita media_type=null explicitamente', () => {
     const r = teamMessageNotificationRowSchema.safeParse({
-      id: SENTIMENT_UUID, conversation_id: SENTIMENT_UUID, sender_id: SENTIMENT_UUID,
-      content: '', media_type: null, created_at: '2026-07-08T12:00:00Z',
+      id: SENTIMENT_UUID,
+      conversation_id: SENTIMENT_UUID,
+      sender_id: SENTIMENT_UUID,
+      content: '',
+      media_type: null,
+      created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(true);
   });
@@ -738,8 +781,12 @@ describe('teamMessageNotificationRowSchema', () => {
   it('aceita media_type conhecido (image/audio/video/document)', () => {
     for (const media_type of ['image', 'audio', 'video', 'document', 'sticker']) {
       const r = teamMessageNotificationRowSchema.safeParse({
-        id: SENTIMENT_UUID, conversation_id: SENTIMENT_UUID, sender_id: SENTIMENT_UUID,
-        content: '', media_type, created_at: '2026-07-08T12:00:00Z',
+        id: SENTIMENT_UUID,
+        conversation_id: SENTIMENT_UUID,
+        sender_id: SENTIMENT_UUID,
+        content: '',
+        media_type,
+        created_at: '2026-07-08T12:00:00Z',
       });
       expect(r.success).toBe(true);
     }
@@ -747,15 +794,20 @@ describe('teamMessageNotificationRowSchema', () => {
 
   it('rejeita conversation_id não-SENTIMENT_UUID', () => {
     const r = teamMessageNotificationRowSchema.safeParse({
-      id: SENTIMENT_UUID, conversation_id: 'not-uuid', sender_id: SENTIMENT_UUID,
-      content: '', created_at: '2026-07-08T12:00:00Z',
+      id: SENTIMENT_UUID,
+      conversation_id: 'not-uuid',
+      sender_id: SENTIMENT_UUID,
+      content: '',
+      created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(false);
   });
 
   it('rejeita content ausente (missing)', () => {
     const r = teamMessageNotificationRowSchema.safeParse({
-      id: SENTIMENT_UUID, conversation_id: SENTIMENT_UUID, sender_id: SENTIMENT_UUID,
+      id: SENTIMENT_UUID,
+      conversation_id: SENTIMENT_UUID,
+      sender_id: SENTIMENT_UUID,
       created_at: '2026-07-08T12:00:00Z',
     });
     expect(r.success).toBe(false);

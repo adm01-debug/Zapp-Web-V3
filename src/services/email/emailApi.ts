@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
@@ -43,9 +42,8 @@ export const emailApi = {
   },
 
   getHealthSummary: async () => {
-    const { data, error } = await safeClient.from<EmailHealthSummary>(
-      'email_health_summary',
-      q => q.select('*').eq('id', 'current')
+    const { data, error } = await safeClient.from<EmailHealthSummary>('email_health_summary', (q) =>
+      q.select('*').eq('id', 'current')
     );
     return { data: data?.[0] ?? null, error };
   },
@@ -53,7 +51,7 @@ export const emailApi = {
   markThreadRead: async (threadId: string, read: boolean) => {
     return safeClient.rpc('rpc_email_mark_thread_read', {
       p_thread_id: threadId,
-      p_read: read
+      p_read: read,
     });
   },
 
@@ -64,18 +62,18 @@ export const emailApi = {
   retryJob: async (jobId: string) => {
     const { data: jobs } = await safeClient.from<EmailRevalidationJob>(
       'email_revalidation_jobs',
-      q => q.select('*').eq('id', jobId)
+      (q) => q.select('*').eq('id', jobId)
     );
     const job = jobs?.[0];
 
     if (!job) throw new Error('Job não encontrado');
 
-    return safeClient.from('email_revalidation_jobs', q =>
+    return safeClient.from('email_revalidation_jobs', (q) =>
       q.insert({
         status: 'pending',
         requested_by: job.requested_by,
-        result: { retry_of: jobId }
+        result: { retry_of: jobId },
       })
     );
-  }
+  },
 };

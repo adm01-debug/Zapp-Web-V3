@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react';
 import { vi } from 'vitest';
 
@@ -29,14 +30,14 @@ export const mockSession = {
 };
 
 export const mockAuthContext = {
-  user: mockUser as any,
-  session: mockSession as any,
-  profile: mockProfile as any,
+  user: mockUser,
+  session: mockSession,
+  profile: mockProfile,
   loading: false,
   signIn: vi.fn().mockResolvedValue({ error: null }),
   signUp: vi.fn().mockResolvedValue({ error: null }),
   signOut: vi.fn().mockResolvedValue(undefined),
-};
+} as const;
 
 export const mockAuthContextLoggedOut = {
   user: null,
@@ -49,12 +50,12 @@ export const mockAuthContextLoggedOut = {
 };
 
 // Mock AuthProvider that provides test auth context
-export function MockAuthProvider({ 
-  children, 
-  value = mockAuthContext 
-}: { 
+export function MockAuthProvider({
+  children,
+  _value = mockAuthContext,
+}: {
   children: React.ReactNode;
-  value?: typeof mockAuthContext;
+  _value?: typeof mockAuthContext;
 }) {
   // We mock the useAuth hook directly in tests
   return <>{children}</>;
