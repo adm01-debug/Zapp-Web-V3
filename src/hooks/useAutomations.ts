@@ -33,7 +33,15 @@ interface ExternalContact {
 }
 
 // Typed shim for external RPC calls not present in ExtendedDatabase.Functions.
+// Usage: (client as unknown as { rpc: ExtRpc }).rpc(fn, args) — preserves `this` binding.
 type ExtRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+// Handles Supabase/PostgREST errors (plain objects with .message) and standard Errors.
+const toErrMsg = (e: unknown): string => {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'object' && e !== null && 'message' in e) return String((e as { message: unknown }).message);
+  return String(e);
+};
 
 interface AutomationRule {
   id: string;
@@ -137,7 +145,7 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        const { data: contact } = await (client.rpc as unknown as ExtRpc)('rpc_get_contact', {
+        const { data: contact } = await (client as unknown as { rpc: ExtRpc }).rpc('rpc_get_contact', {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
@@ -242,7 +250,7 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            await (client.rpc as unknown as ExtRpc)('rpc_upsert_contact', {
+            await (client as unknown as { rpc: ExtRpc }).rpc('rpc_upsert_contact', {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
@@ -264,7 +272,7 @@ export function useAutomations({
             log.warn('[automation] apply_tags/escalate failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: e instanceof Error ? e.message : String(e),
+              p_error: toErrMsg(e),
               p_context: { stage: 'apply_tags_or_escalate', tags: allTags },
             });
           }
@@ -293,7 +301,7 @@ export function useAutomations({
               );
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
-                await (client.rpc as unknown as ExtRpc)('rpc_insert_message', {
+                await (client as unknown as { rpc: ExtRpc }).rpc('rpc_insert_message', {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
@@ -310,7 +318,7 @@ export function useAutomations({
             log.warn('[automation] suggest_reply failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: e instanceof Error ? e.message : String(e),
+              p_error: toErrMsg(e),
               p_context: { stage: 'suggest_reply_or_autosend' },
             });
           }
