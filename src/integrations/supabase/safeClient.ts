@@ -87,6 +87,19 @@ const cache: CacheInfo = {
   size: 0,
 };
 
+const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_MAX_SIZE = 100;
+let _healthLogInProgress = false;
+
+function pruneResourceCache(): void {
+  const entries = Array.from(resourceCache.entries()).sort((a, b) => a[1].expires - b[1].expires);
+  while (resourceCache.size > CACHE_MAX_SIZE) {
+    const oldest = entries.shift();
+    if (oldest) resourceCache.delete(oldest[0]);
+  }
+}
+
 function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -310,7 +323,7 @@ export const safeClient = {
     queryBuilder: (query: ReturnType<typeof supabase.from>) => PromiseLike<{ data: unknown; error: unknown }>
   ): Promise<SafeResponse<T[]>> {
     const requestId = Math.random().toString(36).substring(7);
-    stats.totalCalls++;
+    telemetry.stats.totalCalls++;
     try {
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
@@ -324,7 +337,7 @@ export const safeClient = {
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
-        stats.failedCalls++;
+        telemetry.stats.failedCalls++;
         return { data: [] as T[], error: this.formatError(error), requestId };
       }
       return { data: (Array.isArray(data) ? data : []) as T[], error: null, requestId };
@@ -336,7 +349,7 @@ export const safeClient = {
         table,
         err instanceof Error ? err.message : String(err)
       );
-      stats.failedCalls++;
+      telemetry.stats.failedCalls++;
       return {
         data: [] as T[],
         error: err instanceof Error ? err : new Error(String(err)),
@@ -350,7 +363,7 @@ export const safeClient = {
     queryBuilder: (query: ReturnType<typeof supabase.from>) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
   ): Promise<SafeResponse<T>> {
     const requestId = Math.random().toString(36).substring(7);
-    stats.totalCalls++;
+    telemetry.stats.totalCalls++;
     try {
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
@@ -364,7 +377,7 @@ export const safeClient = {
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
-        stats.failedCalls++;
+        telemetry.stats.failedCalls++;
         return { data: null, error: this.formatError(error), requestId };
       }
       return { data: data as T, error: null, requestId }; // ignore-audit: narrows Supabase query result to local interface
@@ -376,14 +389,14 @@ export const safeClient = {
         table,
         err instanceof Error ? err.message : String(err)
       );
-      stats.failedCalls++;
+      telemetry.stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
 
   async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
     const requestId = Math.random().toString(36).substring(7);
-    stats.totalCalls++;
+    telemetry.stats.totalCalls++;
     try {
       if (name.startsWith('rpc_email_')) {
         const exists = await this.validateResource(name, 'function');
@@ -398,7 +411,7 @@ export const safeClient = {
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
-        stats.failedCalls++;
+        telemetry.stats.failedCalls++;
         return { data: null, error: this.formatError(error), requestId };
       }
       if (data === undefined || data === null) return { data: null, error: null, requestId };
@@ -411,7 +424,7 @@ export const safeClient = {
         name,
         err instanceof Error ? err.message : String(err)
       );
-      stats.failedCalls++;
+      telemetry.stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
@@ -430,13 +443,13 @@ export const safeClient = {
     const cached = resourceCache.get(cacheKey);
     if (cached) {
       if (cached.expires > Date.now()) {
-        stats.cacheHits++;
+        telemetry.stats.cacheHits++;
         return cached.exists;
       }
       resourceCache.delete(cacheKey); // evict stale entry immediately
     }
 
-    lastValidation = new Date();
+    telemetry.lastValidation = new Date();
     try {
       let exists = false;
       if (type === 'table') {
@@ -520,7 +533,7 @@ export const safeClient = {
           p_metadata: {
             total_calls: telemetry.stats.totalCalls,
             cache_hits: telemetry.stats.cacheHits,
-            last_validation: lastValidation?.toISOString(),
+            last_validation: telemetry.lastValidation?.toISOString(),
           },
         }
       )) as RpcResult;
@@ -612,8 +625,8 @@ export const safeClient = {
       error,
       timestamp: new Date().toISOString(),
     };
-    recentFailures.unshift(record);
-    if (recentFailures.length > MAX_FAILURES) recentFailures.pop();
+    telemetry.recentFailures.unshift(record as OperationFailure);
+    if (telemetry.recentFailures.length > MAX_FAILURES) telemetry.recentFailures.pop();
 
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
@@ -644,7 +657,7 @@ export const safeClient = {
   },
 
   getTelemetry() {
-    return { lastValidation, recentFailures: [...recentFailures], stats: { ...stats } };
+    return { lastValidation: telemetry.lastValidation, recentFailures: [...telemetry.recentFailures], stats: { ...telemetry.stats } };
   },
 
   getCacheInfo() {
