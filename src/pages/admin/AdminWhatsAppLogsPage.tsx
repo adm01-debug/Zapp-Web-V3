@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -180,14 +180,27 @@ export default function AdminWhatsAppLogsPage() {
   const [search, setSearch] = useState('');
   const [activeMode, setActiveMode] = useState<string>('…');
   const { sends, pings, errors, loading, refresh } = useWhatsAppLogs(mode, search);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     whatsapp
       .resolveTransport()
       .then((r) => {
-        setActiveMode(`${r.requestedMode}${r.degraded ? ' (degraded → evolution)' : ''}`);
+        if (mountedRef.current) {
+          setActiveMode(`${r.requestedMode}${r.degraded ? ' (degraded → evolution)' : ''}`);
+        }
       })
-      .catch(() => setActiveMode('desconhecido'));
+      .catch(() => {
+        if (mountedRef.current) {
+          setActiveMode('desconhecido');
+        }
+      });
   }, []);
 
   const counts = useMemo(
@@ -267,14 +280,30 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th scope="col" className="py-2 pr-3">Quando</th>
-                        <th scope="col" className="py-2 pr-3">Modo</th>
-                        <th scope="col" className="py-2 pr-3">Instância</th>
-                        <th scope="col" className="py-2 pr-3">Direção</th>
-                        <th scope="col" className="py-2 pr-3">JID</th>
-                        <th scope="col" className="py-2 pr-3">Status</th>
-                        <th scope="col" className="py-2 pr-3">HTTP</th>
-                        <th scope="col" className="py-2 pr-3">Erro</th>
+                        <th scope="col" className="py-2 pr-3">
+                          Quando
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Modo
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Instância
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Direção
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          JID
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Status
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          HTTP
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Erro
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -323,9 +352,15 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th scope="col" className="py-2 pr-3">Quando</th>
-                        <th scope="col" className="py-2 pr-3">Tipo</th>
-                        <th scope="col" className="py-2 pr-3">Detalhes</th>
+                        <th scope="col" className="py-2 pr-3">
+                          Quando
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Tipo
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Detalhes
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -367,14 +402,30 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th scope="col" className="py-2 pr-3">Quando</th>
-                        <th scope="col" className="py-2 pr-3">Canal</th>
-                        <th scope="col" className="py-2 pr-3">Instância</th>
-                        <th scope="col" className="py-2 pr-3">JID</th>
-                        <th scope="col" className="py-2 pr-3">Código</th>
-                        <th scope="col" className="py-2 pr-3">HTTP</th>
-                        <th scope="col" className="py-2 pr-3">Tentativas</th>
-                        <th scope="col" className="py-2 pr-3">Mensagem</th>
+                        <th scope="col" className="py-2 pr-3">
+                          Quando
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Canal
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Instância
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          JID
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Código
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          HTTP
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Tentativas
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Mensagem
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
