@@ -75,12 +75,16 @@ Deno.serve(async (req) => {
                 .from('evolution_contacts')
                 .update({
                   full_name:           '[Anonimizado]',
+                  phone_number:        null,
+                  remote_jid:          null,
                   email:               null,
                   push_name:           null,
                   profile_picture_url: null,
                   company:             null,
+                  role_title:          null,
                   notes:               null,
                   raw_data:            null,
+                  dedup_hash:          null,
                   pii_masked_at:       new Date().toISOString(),
                 })
                 .eq('id', contact.id);
@@ -109,7 +113,8 @@ Deno.serve(async (req) => {
 
     // ── Job 2: Deletar dados antigos de webhook ───────────────────────────
     if (!job || job === 'delete_expired') {
-      const retentionDays = parseInt(await getConfig(supabase, 'lgpd.data_retention_days', '730'));
+      const _parsed = parseInt(await getConfig(supabase, 'lgpd.data_retention_days', '730'), 10);
+      const retentionDays = Number.isFinite(_parsed) && _parsed > 0 ? _parsed : 730;
       const expirationDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
 
       const { count: countBefore } = await supabase

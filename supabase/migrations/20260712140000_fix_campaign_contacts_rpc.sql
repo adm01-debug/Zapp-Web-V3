@@ -115,4 +115,5 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION public.add_contacts_to_campaign(uuid, uuid[]) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.add_contacts_to_campaign(uuid, uuid[]) TO authenticated;
