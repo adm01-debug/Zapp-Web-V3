@@ -216,6 +216,7 @@ export function useUserSettings() {
     }
 
     setIsSaving(true);
+    let timeoutId: NodeJS.Timeout | null = null;
     try {
       const settingsData = {
         user_id: user.id,
@@ -246,9 +247,19 @@ export function useUserSettings() {
         global_sla_notification_message: settings.global_sla_notification_message,
       };
 
-      const { error } = await safeClient.from('user_settings', (q) =>
+      const savePromise = safeClient.from('user_settings', (q) =>
         q.upsert(settingsData, { onConflict: 'user_id' })
       );
+
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('Save operation timed out after 30 seconds'));
+        }, 30000);
+      });
+
+      const { error } = await Promise.race([savePromise, timeoutPromise]) as Awaited<typeof savePromise>;
+
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (error) {
         log.error('Error saving settings:', error);
@@ -266,10 +277,13 @@ export function useUserSettings() {
       });
       return true;
     } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId);
       log.error('Error in saveSettings:', err);
       toast({
         title: 'Erro ao salvar',
-        description: 'Ocorreu um erro inesperado.',
+        description: err instanceof Error && err.message.includes('timed out')
+          ? 'A operação demorou muito tempo. Verifique sua conexão.'
+          : 'Ocorreu um erro inesperado.',
         variant: 'destructive',
       });
       return false;
