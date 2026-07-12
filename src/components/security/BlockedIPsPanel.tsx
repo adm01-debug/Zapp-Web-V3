@@ -9,11 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BlockIPDialog, UnblockIPDialog } from './BlockedIPDialogs';
-
-interface BlockedIP {
-  id: string; ip_address: string; reason: string; blocked_at: string;
-  expires_at: string | null; is_permanent: boolean; request_count: number; last_attempt_at: string | null;
-}
+import { normalizeBlockedIP, type NormalizedBlockedIP as BlockedIP } from '@/lib/normalizers';
 
 export function BlockedIPsPanel() {
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([]);
@@ -25,7 +21,7 @@ export function BlockedIPsPanel() {
   const fetchBlockedIPs = async () => {
     setLoading(true);
     const { data, error } = await supabase.from('blocked_ips').select('*').order('blocked_at', { ascending: false });
-    if (!error && data) setBlockedIPs(data);
+    if (!error && data) setBlockedIPs(data.map((row) => normalizeBlockedIP(row as unknown as Record<string, unknown>)));
     setLoading(false);
   };
 
