@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +8,17 @@ import { newRequestId } from '@/lib/withRequestId';
 import { dbFrom } from '@/integrations/datasource/db';
 import type { AudioMemeItem } from '@/hooks/useAudioMemes';
 import { evolutionInstanceName, EvolutionInstanceRef } from '@/lib/evolutionInstance';
+
+/** Shape returned by Evolution API send-* actions (partial). */
+interface EvolutionSendResult {
+  key?: { id?: string | null } | null;
+}
+
+/** Update payload for the messages table (typed subset). */
+interface MessageStatusUpdate {
+  status: string;
+  external_id?: string;
+}
 
 /**
  * Encapsulates WhatsApp instance resolution and media-message sending
