@@ -65,14 +65,21 @@ interface OutboundAuditRow {
 
 function normalizeRetryReasons(raw: Json | null | undefined): RetryAttempt[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (r): r is RetryAttempt =>
-      typeof r === 'object' &&
-      r !== null &&
-      !Array.isArray(r) &&
-      typeof (r as { attempt?: unknown }).attempt === 'number' &&
-      typeof (r as { reason?: unknown }).reason === 'string'
-  );
+  const out: RetryAttempt[] = [];
+  for (const r of raw) {
+    if (typeof r !== 'object' || r === null || Array.isArray(r)) continue;
+    const rec = r as Record<string, unknown>;
+    if (typeof rec.attempt === 'number' && typeof rec.reason === 'string') {
+      out.push({
+        attempt: rec.attempt,
+        reason: rec.reason,
+        status: typeof rec.status === 'number' ? rec.status : undefined,
+        at: typeof rec.at === 'string' ? rec.at : undefined,
+        duration_ms: typeof rec.duration_ms === 'number' ? rec.duration_ms : undefined,
+      });
+    }
+  }
+  return out;
 }
 
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {
