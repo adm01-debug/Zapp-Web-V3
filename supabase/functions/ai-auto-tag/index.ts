@@ -6,6 +6,8 @@ import {
 import { AiAutoTagSchema, parseBody } from "../_shared/schemas.ts";
 import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { withCircuitBreaker } from "../_shared/circuit-breaker.ts";
+import { callAiWithTimeout } from "../_shared/timeout-wrapper.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -25,13 +27,28 @@ Deno.serve(async (req) => {
     const parsed = parseBody(AiAutoTagSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
+    // P1-FIX-008: Check for duplicate request (idempotency)
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const supabaseKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    if (parsed.data.requestId) {
+      const { data: dupCheck } = await supabase.rpc('check_duplicate_request', {
+        p_request_id: parsed.data.requestId,
+        p_action: 'auto-tag',
+        p_user_id: authed.user.id,
+      });
+
+      if (dupCheck?.[0]?.is_duplicate) {
+        log.info("Duplicate request detected, returning cached result", { requestId: parsed.data.requestId });
+        return jsonResponse(dupCheck[0].cached_result || { tags: [], priority: 'normal', sentiment: 'neutral' }, dupCheck[0].status_code || 200, req);
+      }
+    }
+
     const { contactId, messages: inputMessages } = parsed.data;
     const validContactId = contactId && isValidUUID(contactId) ? contactId : null;
 
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const supabaseKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     let conversationMessages = inputMessages;
     if (!conversationMessages && validContactId) {
@@ -67,16 +84,27 @@ Deno.serve(async (req) => {
 
     log.info("Classifying conversation", { contactId: validContactId, msgCount: conversationMessages.length });
 
-    const { response, data } = await callAiWithTracking({
-      functionName: 'ai-auto-tag',
-      userId,
-      apiKey: LOVABLE_API_KEY,
-      body: {
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `Você é um classificador avançado de conversas de atendimento ao cliente. Analise a conversa e retorne classificação completa.
+    const startTime = Date.now();
+    let response, data;
+    let metricsStatus = 'success';
+    let errorMessage: string | null = null;
+
+    try {
+      // P1: Circuit breaker + P0: Timeout wrapper
+      const { response: resp, data: d } = await withCircuitBreaker(
+        'lovable-auto-tag',
+        () => callAiWithTimeout(
+          'auto-tag',
+          () => callAiWithTracking({
+            functionName: 'ai-auto-tag',
+            userId,
+            apiKey: LOVABLE_API_KEY,
+            body: {
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                {
+                  role: "system",
+                  content: `Você é um classificador avançado de conversas de atendimento ao cliente. Analise a conversa e retorne classificação completa.
 
 Categorias possíveis: suporte_tecnico, vendas, financeiro, reclamacao, elogio, duvida, urgente, cancelamento, troca, entrega, pagamento, produto, servico, feedback, agendamento, orcamento
 
@@ -95,12 +123,44 @@ Responda APENAS em JSON:
   "requires_immediate_attention": false,
   "escalation_reason": null
 }`
-          },
-          { role: "user", content: conversationText }
-        ],
-        temperature: 0.3,
-      },
-    });
+                },
+                { role: "user", content: conversationText }
+              ],
+              temperature: 0.3,
+            },
+          })
+        )
+      );
+      response = resp;
+      data = d;
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      if (errorMsg.includes('Circuit breaker')) {
+        metricsStatus = 'circuit_open';
+        errorMessage = 'Circuit breaker open - service degraded';
+      } else if (errorMsg.includes('timeout')) {
+        metricsStatus = 'timeout';
+        errorMessage = errorMsg;
+      } else {
+        metricsStatus = 'error';
+        errorMessage = errorMsg;
+      }
+
+      // Record metrics before throwing
+      await supabase.rpc('record_ai_metrics', {
+        p_function_name: 'ai-auto-tag',
+        p_action: 'classification',
+        p_duration_ms: durationMs,
+        p_status: metricsStatus,
+        p_user_id: userId,
+        p_error_message: errorMessage,
+        p_metadata: { requestId: parsed.data.requestId },
+      }).catch(() => {}); // Metrics not critical
+
+      throw error;
+    }
 
     if (!response.ok || !data) {
       if (response.status === 429) return errorResponse("Rate limit exceeded", 429, req);
@@ -127,39 +187,23 @@ Responda APENAS em JSON:
       result.suggested_queue_id = null;
     }
 
+    // P0-FIX-003: Use atomic tag upsert to prevent race conditions
     if (validContactId && result.tags?.length > 0) {
-      const tagRows = result.tags.map((t: { name: string; confidence: number }) => ({
-        contact_id: validContactId,
-        tag_name: sanitizeString(t.name, 100) || 'unknown',
+      const tagData = result.tags.map((t: { name: string; confidence: number }) => ({
+        name: sanitizeString(t.name, 100) || 'unknown',
         confidence: Math.min(Math.max(Number(t.confidence) || 0, 0), 1),
-        source: 'ai',
       }));
-      const newTagNames = tagRows.map((r: { tag_name: string }) => r.tag_name);
 
-      // Insert new tags first; only remove stale ones if insert succeeds.
-      // This prevents a window where the contact has zero tags.
-      const { error: insertErr } = await supabase
-        .from('ai_conversation_tags')
-        .upsert(tagRows, { onConflict: 'contact_id,tag_name', ignoreDuplicates: false });
+      const { data: atomicResult, error: atomicErr } = await supabase.rpc('upsert_conversation_tags_atomic', {
+        p_contact_id: validContactId,
+        p_new_tags: JSON.stringify(tagData),
+        p_should_delete_stale: true,
+      });
 
-      if (insertErr) {
-        log.warn("Failed to upsert tags, preserving existing", { error: insertErr.message });
-      } else {
-        // Remove old tags that are no longer in the new set
-        const { data: existingTags } = await supabase
-          .from('ai_conversation_tags')
-          .select('tag_name')
-          .eq('contact_id', validContactId);
-        const staleTagNames = (existingTags ?? [])
-          .map((r: { tag_name: string }) => r.tag_name)
-          .filter((n: string) => !newTagNames.includes(n));
-        if (staleTagNames.length > 0) {
-          await supabase
-            .from('ai_conversation_tags')
-            .delete()
-            .eq('contact_id', validContactId)
-            .in('tag_name', staleTagNames);
-        }
+      if (atomicErr) {
+        log.warn("Failed to atomically upsert tags", { error: atomicErr.message });
+      } else if (atomicResult && typeof atomicResult === 'object' && 'success' in atomicResult && !atomicResult.success) {
+        log.warn("Atomic upsert failed", { error: (atomicResult as any).error });
       }
     }
 
@@ -200,10 +244,53 @@ Responda APENAS em JSON:
       }
     }
 
-    log.done(200, { tags: result.tags?.length || 0 });
+    // P1-FIX-008: Record result for idempotency deduplication
+    if (parsed.data.requestId) {
+      await supabase.rpc('record_processed_request', {
+        p_request_id: parsed.data.requestId,
+        p_action: 'auto-tag',
+        p_user_id: authed.user.id,
+        p_contact_id: validContactId,
+        p_status_code: 200,
+        p_result_payload: result,
+      }).catch(() => {}); // Not critical if this fails
+    }
+
+    // Record success metrics
+    const durationMs = Date.now() - startTime;
+    await supabase.rpc('record_ai_metrics', {
+      p_function_name: 'ai-auto-tag',
+      p_action: 'classification',
+      p_duration_ms: durationMs,
+      p_status: 'success',
+      p_user_id: userId,
+      p_error_message: null,
+      p_metadata: {
+        tags_count: result.tags?.length || 0,
+        sentiment: result.sentiment,
+        priority: result.priority,
+        requestId: parsed.data.requestId,
+      },
+    }).catch(() => {}); // Metrics not critical
+
+    log.done(200, { tags: result.tags?.length || 0, durationMs });
     return jsonResponse(result, 200, req);
   } catch (error: unknown) {
-    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    const durationMs = Date.now() - startTime;
+    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    // Record error metrics
+    await supabase.rpc('record_ai_metrics', {
+      p_function_name: 'ai-auto-tag',
+      p_action: 'classification',
+      p_duration_ms: durationMs,
+      p_status: 'error',
+      p_user_id: userId,
+      p_error_message: errorMsg,
+      p_metadata: { requestId: parsed.data.requestId },
+    }).catch(() => {}); // Metrics not critical
+
+    log.error("Unhandled error", { error: errorMsg });
     return errorResponse("Internal server error", 500, req);
   }
 });
