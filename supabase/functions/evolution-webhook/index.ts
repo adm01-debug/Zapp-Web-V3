@@ -267,14 +267,22 @@ serve(async (req) => {
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
           .or(instanceOrFilter(instance));
       }
-      // [FIX 2026-07-06] QR alert: notificar admin via n8n (fire-and-forget, nao bloqueia)
-      const _n8nQrUrl = 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
-      fetch(_n8nQrUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
-        signal: AbortSignal.timeout(4000),
-      }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
+      // M-6 (2026-07-12): QR alert via configurable webhook URL (env var) instead of a
+      // hardcoded n8n URL that was coupled to the wpp2 instance and unauthenticated.
+      // Set QR_ALERT_WEBHOOK_URL in Supabase secrets; optionally set QR_ALERT_WEBHOOK_SECRET
+      // to send as Authorization: Bearer <secret> for endpoint authentication.
+      const qrAlertUrl = Deno.env.get('QR_ALERT_WEBHOOK_URL');
+      if (qrAlertUrl) {
+        const qrAlertHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        const qrAlertSecret = Deno.env.get('QR_ALERT_WEBHOOK_SECRET');
+        if (qrAlertSecret) qrAlertHeaders['Authorization'] = `Bearer ${qrAlertSecret}`;
+        fetch(qrAlertUrl, {
+          method: 'POST',
+          headers: qrAlertHeaders,
+          body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
+          signal: AbortSignal.timeout(4000),
+        }).catch((e: unknown) => console.warn('[qr-alert] webhook call failed:', e instanceof Error ? e.message : String(e)));
+      }
     }
 
     if (event === 'messages.upsert') {
