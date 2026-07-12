@@ -244,7 +244,7 @@ function MediaAdminPanel({ type }: { type: MediaType }) {
 
       <Card className="border-border/50">
         <ScrollArea className="h-[500px]">
-          <div className="min-w-[600px]">
+          <div>
             <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground">
               <Checkbox
                 checked={lib.filtered.length > 0 && lib.selected.size === lib.filtered.length}
@@ -253,9 +253,9 @@ function MediaAdminPanel({ type }: { type: MediaType }) {
               />
               <span className="w-12">Preview</span>
               <span className="flex-1">Nome</span>
-              <span className="w-[130px]">Categoria</span>
-              <span className="w-16 text-center">Usos</span>
-              <span className="w-12 text-center">⭐</span>
+              <span className="hidden sm:block w-[130px]">Categoria</span>
+              <span className="hidden sm:block w-16 text-center">Usos</span>
+              <span className="hidden sm:block w-12 text-center">⭐</span>
               <span className="w-24 text-right">Ações</span>
             </div>
             {lib.loading ? (
@@ -355,19 +355,19 @@ function MediaAdminPanel({ type }: { type: MediaType }) {
                         </p>
                       )}
                     </div>
-                    <div className="w-[130px]">
+                    <div className="hidden sm:block w-[130px]">
                       <InlineCategorySelect
                         value={item.category}
                         categories={lib.categories}
                         onChange={(cat) => lib.handleSingleCategoryChange(item, cat)}
                       />
                     </div>
-                    <div className="w-16 text-center">
+                    <div className="hidden sm:block w-16 text-center">
                       <Badge variant="secondary" className="text-[9px]">
                         {item.use_count || 0}x
                       </Badge>
                     </div>
-                    <div className="w-12 text-center">
+                    <div className="hidden sm:block w-12 text-center">
                       <button
                         onClick={() => lib.handleToggleFavorite(item)}
                         aria-label={item.is_favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}

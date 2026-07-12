@@ -81,7 +81,7 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
   return (
     <div className={cn('flex h-full overflow-hidden', className)}>
       {/* Sidebar: Thread list */}
-      <div className="w-[340px] shrink-0 flex flex-col border-r h-full bg-background/50">
+      <div className="hidden md:flex w-[340px] shrink-0 flex-col border-r h-full bg-background/50">
         {/* Account selector + search */}
         <div className="p-3 space-y-3 border-b bg-muted/5">
           <EmailAccountSelector

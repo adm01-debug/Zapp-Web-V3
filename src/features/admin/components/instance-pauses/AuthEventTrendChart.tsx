@@ -190,8 +190,8 @@ export function AuthEventTrendChart() {
           <ResponsiveContainer width="100%" height={288}>
             <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-              <XAxis dataKey="time" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-              <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+              <XAxis dataKey="time" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+              <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" allowDecimals={false} />
               <Tooltip
                 contentStyle={{
                   background: 'hsl(var(--card))',
@@ -201,7 +201,7 @@ export function AuthEventTrendChart() {
                 }}
                 labelStyle={{ color: 'hsl(var(--foreground))' }}
               />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Legend wrapperStyle={{ fontSize: '0.6875rem' }} />
               <Area
                 type="monotone" dataKey="invalid_signature" name="invalid_signature"
                 stackId="1" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))"

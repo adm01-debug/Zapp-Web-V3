@@ -127,7 +127,7 @@ export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React
               <XAxis dataKey="name" fontSize={10} />
               <YAxis fontSize={10} />
               <RechartsTooltip />
-              <Legend wrapperStyle={{ fontSize: '10px' }} />
+              <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
               <Bar dataKey="sent" name="Sucesso" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
               <Bar dataKey="failed" name="Falha" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
             </BarChart>

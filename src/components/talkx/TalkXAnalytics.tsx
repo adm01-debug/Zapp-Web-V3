@@ -141,8 +141,8 @@ export function TalkXAnalytics({ campaigns }: Props) {
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={barData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" />
+                  <XAxis dataKey="name" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+                  <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
                   <ReTooltip
                     contentStyle={{
                       background: 'hsl(var(--popover))',

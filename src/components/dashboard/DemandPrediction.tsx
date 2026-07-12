@@ -156,7 +156,7 @@ export function DemandPrediction({
                   value: 'Capacidade',
                   position: 'right',
                   fill: 'hsl(var(--destructive))',
-                  fontSize: 10,
+                  fontSize: '0.75rem',
                 }}
               />
               <Area

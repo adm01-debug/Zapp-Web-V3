@@ -121,7 +121,7 @@ export const SatisfactionMetrics = () => {
             <h4 className="text-sm font-medium mb-3">Evolução</h4>
             <div className="h-[150px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.timeline}><XAxis dataKey="date" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} domain={[0, 100]} /><Tooltip /><Line type="monotone" dataKey="csat" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} /></LineChart>
+                <LineChart data={data.timeline}><XAxis dataKey="date" tick={{ style: { fontSize: '0.75rem' } }} /><YAxis tick={{ style: { fontSize: '0.75rem' } }} domain={[0, 100]} /><Tooltip /><Line type="monotone" dataKey="csat" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} /></LineChart>
               </ResponsiveContainer>
             </div>
           </div>

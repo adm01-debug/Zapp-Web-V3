@@ -295,7 +295,7 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--popover))', 
                       borderColor: 'hsl(var(--border))',
-                      fontSize: '10px',
+                      fontSize: '0.75rem',
                       borderRadius: '6px'
                     }}
                     itemStyle={{ padding: '0px' }}

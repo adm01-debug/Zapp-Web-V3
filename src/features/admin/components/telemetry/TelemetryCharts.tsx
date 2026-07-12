@@ -107,8 +107,8 @@ export function TelemetryCharts({ rows, timeFilter }: TelemetryChartsProps) {
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={timelineData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-              <XAxis dataKey="time" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-              <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+              <XAxis dataKey="time" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+              <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" allowDecimals={false} />
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "hsl(var(--foreground))" }} />
               <Area
                 type="monotone" dataKey="muitoLentas" name="Muito Lentas"
@@ -142,8 +142,8 @@ export function TelemetryCharts({ rows, timeFilter }: TelemetryChartsProps) {
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={timelineData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-              <XAxis dataKey="time" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-              <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" />
+              <XAxis dataKey="time" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+              <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "hsl(var(--foreground))" }} />
               <Area
                 type="monotone" dataKey="maxMs" name="Máxima"
@@ -172,8 +172,8 @@ export function TelemetryCharts({ rows, timeFilter }: TelemetryChartsProps) {
           <CardContent>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={barData} layout="vertical">
-                <XAxis type="number" tick={{ fontSize: 10 }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
+                <XAxis type="number" tick={{ style: { fontSize: '0.75rem' } }} />
+                <YAxis type="category" dataKey="name" tick={{ style: { fontSize: '0.75rem' } }} width={120} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Alertas" />
               </BarChart>

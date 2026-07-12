@@ -468,7 +468,7 @@ function TopReasonsChart({ reasons, previousReasons = [], compareMode = false, w
           >
             <XAxis
               type="number"
-              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ style: { fontSize: '0.75rem' }, fill: 'hsl(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
@@ -499,7 +499,7 @@ function TopReasonsChart({ reasons, previousReasons = [], compareMode = false, w
             />
             {compareMode && (
               <Legend
-                wrapperStyle={{ fontSize: 10, paddingTop: 4 }}
+                wrapperStyle={{ fontSize: '0.75rem', paddingTop: 4 }}
                 iconType="square"
                 formatter={(v) => (v === 'previous' ? 'Período anterior' : 'Período atual')}
               />

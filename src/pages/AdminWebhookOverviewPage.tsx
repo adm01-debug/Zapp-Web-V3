@@ -243,11 +243,11 @@ export default function AdminWebhookOverviewPage() {
                 <ResponsiveContainer width="100%" height={Math.max(220, byType.length * 28)}>
                   <BarChart data={byType.slice(0, 10)} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                    <XAxis type="number" tick={{ fontSize: 10 }} />
+                    <XAxis type="number" tick={{ style: { fontSize: '0.75rem' } }} />
                     <YAxis
                       type="category"
                       dataKey="type"
-                      tick={{ fontSize: 10 }}
+                      tick={{ style: { fontSize: '0.75rem' } }}
                       width={150}
                     />
                     <Tooltip
@@ -291,8 +291,8 @@ export default function AdminWebhookOverviewPage() {
                 <ResponsiveContainer width="100%" height={260}>
                   <AreaChart data={hourly}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                    <XAxis dataKey="bucket" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                    <XAxis dataKey="bucket" tick={{ style: { fontSize: '0.75rem' } }} />
+                    <YAxis tick={{ style: { fontSize: '0.75rem' } }} allowDecimals={false} />
                     <Tooltip
                       contentStyle={{
                         background: 'hsl(var(--card))',
