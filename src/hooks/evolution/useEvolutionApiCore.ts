@@ -2,7 +2,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useEvolutionApiCore');
 import { normalizeIdempotencyKey, deriveIdempotencyKey } from '@/lib/idempotency';
 import { loadRetryConfig, getRetryConfigSync } from '@/lib/retryConfig';
 
