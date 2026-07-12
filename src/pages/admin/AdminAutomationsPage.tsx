@@ -47,6 +47,17 @@ const SLA_LEVELS = [
   { value: 'critical', label: 'Crítica' },
 ];
 
+// Ensure escalate_sla always has required properties with proper types
+function normalizeEscalateSla(
+  partial: Partial<typeof EMPTY_RULE.actions.escalate_sla> | undefined
+): typeof EMPTY_RULE.actions.escalate_sla {
+  return {
+    enabled: partial?.enabled ?? false,
+    level: (partial?.level as string) ?? 'high',
+    reason: partial?.reason ?? '',
+  };
+}
+
 export default function AdminAutomationsPage() {
   const {
     rules,
@@ -89,10 +100,7 @@ export default function AdminAutomationsPage() {
     cloned.actions = {
       ...EMPTY_RULE.actions,
       ...(cloned.actions ?? {}),
-      escalate_sla: {
-        ...EMPTY_RULE.actions.escalate_sla,
-        ...(cloned.actions?.escalate_sla ?? {}),
-      },
+      escalate_sla: normalizeEscalateSla(cloned.actions?.escalate_sla),
     };
     setEditing(cloned);
     setOpen(true);
@@ -568,7 +576,7 @@ export default function AdminAutomationsPage() {
                           actions: {
                             ...editing.actions,
                             escalate_sla: {
-                              ...(editing.actions.escalate_sla ?? {}),
+                              ...normalizeEscalateSla(editing.actions.escalate_sla),
                               enabled: v,
                             },
                           },
@@ -590,7 +598,7 @@ export default function AdminAutomationsPage() {
                               actions: {
                                 ...editing.actions,
                                 escalate_sla: {
-                                  ...editing.actions.escalate_sla,
+                                  ...normalizeEscalateSla(editing.actions.escalate_sla),
                                   level: v,
                                 },
                               },
