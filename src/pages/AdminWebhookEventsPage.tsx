@@ -9,7 +9,6 @@ import {
   Inbox,
   CheckCircle2,
   XCircle,
-  Eye,
   Filter,
   PhoneCall,
   List,
@@ -18,45 +17,40 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CallCorrelationView } from './admin-webhook-overview/CallCorrelationView';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { formatDateTimeCompact } from '@/lib/formatters';
-import {
-  useWebhookEvents,
-  EVENT_TYPES,
-  MESSAGE_TYPES,
-  STATUS_OPTIONS,
-  RANGE_OPTIONS,
-  type EventTypeFilter,
-} from './admin-webhook-events/useWebhookEvents';
+import { useWebhookEvents, type EventTypeFilter } from './admin-webhook-events/useWebhookEvents';
+import { WebhookFiltersCard } from './admin-webhook-events/WebhookFiltersCard';
+import { WebhookEventsTable } from './admin-webhook-events/WebhookEventsTable';
 
-function shortJid(jid: string | null) {
-  if (!jid) return '—';
-  return jid.replace('@s.whatsapp.net', '').replace('@g.us', ' (grupo)');
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | number;
+  tone: 'warning' | 'info' | 'destructive' | 'success';
+}) {
+  const toneClasses = {
+    warning: 'text-warning',
+    info: 'text-primary',
+    destructive: 'text-destructive',
+    success: 'text-success',
+  }[tone];
+  return (
+    <Card>
+      <CardContent className="flex items-center justify-between p-4">
+        <div>
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="mt-1 text-2xl font-bold">{value}</p>
+        </div>
+        <Icon className={cn('h-8 w-8 opacity-70', toneClasses)} />
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AdminWebhookEventsPage() {
@@ -153,154 +147,27 @@ export default function AdminWebhookEventsPage() {
         />
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <FilterField label="Janela">
-            <Select value={hours} onValueChange={setHours}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RANGE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FilterField>
-
-          <FilterField label="Tipo de evento">
-            <Select
-              value={eventType}
-              onValueChange={(v) =>
-                setEventType(
-                  v as EventTypeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
-                )
-              }
-            >
-              <SelectTrigger className="w-[220px]" data-testid="filter-webhook-event-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {EVENT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t === 'all' ? 'Todos' : t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FilterField>
-
-          <FilterField label="Instância">
-            <Select value={instance} onValueChange={setInstance}>
-              <SelectTrigger className="w-[160px]" data-testid="filter-webhook-instance">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {aggregates.instances.map((i) => (
-                  <SelectItem key={i} value={i}>
-                    {i}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FilterField>
-
-          <FilterField label="Tipo de mensagem">
-            <Select
-              value={messageType}
-              onValueChange={(v) =>
-                setMessageType(
-                  v as (typeof MESSAGE_TYPES)[number] /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
-                )
-              }
-            >
-              <SelectTrigger className="w-[200px]" data-testid="filter-webhook-message-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MESSAGE_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t === 'all' ? 'Todos' : t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FilterField>
-
-          <FilterField label="Status">
-            <Select
-              value={status}
-              onValueChange={(v) =>
-                setStatus(
-                  v as (typeof STATUS_OPTIONS)[number]['value'] /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
-                )
-              }
-            >
-              <SelectTrigger className="w-[160px]" data-testid="filter-webhook-status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FilterField>
-
-          <FilterField label="Remote JID">
-            <Input
-              value={remoteJidFilter}
-              onChange={(e) => setRemoteJidFilter(e.target.value)}
-              placeholder="Ex: 5511999"
-              className="w-[200px]"
-              data-testid="filter-webhook-remote-jid"
-            />
-          </FilterField>
-
-          <FilterField label="Push name">
-            <Input
-              value={pushNameFilter}
-              onChange={(e) => setPushNameFilter(e.target.value)}
-              placeholder="Ex: João"
-              className="w-[200px]"
-              data-testid="filter-webhook-push-name"
-            />
-          </FilterField>
-
-          <FilterField label="Refinar (texto livre)">
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Filtra resultado já carregado"
-              className="w-[240px]"
-              data-testid="filter-webhook-search"
-            />
-          </FilterField>
-
-          {hasActiveFilters && (
-            <FilterField label=" ">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9"
-                data-testid="filter-webhook-clear"
-                onClick={clearFilters}
-              >
-                Limpar filtros
-              </Button>
-            </FilterField>
-          )}
-        </CardContent>
-      </Card>
+      <WebhookFiltersCard
+        hours={hours}
+        setHours={setHours}
+        eventType={eventType}
+        setEventType={setEventType}
+        instance={instance}
+        setInstance={setInstance}
+        messageType={messageType}
+        setMessageType={setMessageType}
+        status={status}
+        setStatus={setStatus}
+        remoteJidFilter={remoteJidFilter}
+        setRemoteJidFilter={setRemoteJidFilter}
+        pushNameFilter={pushNameFilter}
+        setPushNameFilter={setPushNameFilter}
+        search={search}
+        setSearch={setSearch}
+        instances={aggregates.instances}
+        hasActiveFilters={hasActiveFilters}
+        clearFilters={clearFilters}
+      />
 
       {/* Type breakdown chips — only in list view */}
       {viewMode === 'events' && aggregates.types.length > 0 && (
@@ -327,233 +194,21 @@ export default function AdminWebhookEventsPage() {
 
       {viewMode === 'calls' && <CallCorrelationView events={filtered} />}
 
-      {/* Table */}
       {viewMode === 'events' && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle
-              className="flex items-center gap-2 text-sm font-medium"
-              data-testid="webhook-events-results-count"
-              data-results-count={filtered.length}
-            >
-              <Inbox className="h-4 w-4" />
-              {filtered.length} evento{filtered.length === 1 ? '' : 's'}
-              {filtered.length !== aggregates.total && (
-                <span className="font-normal text-muted-foreground">
-                  {' '}
-                  (de {aggregates.total} no período)
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">Carregando…</div>
-            ) : error ? (
-              <div className="p-8 text-center text-sm text-destructive">
-                Erro ao carregar: {(error as Error).message}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="p-12 text-center">
-                <Inbox className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">
-                  Nenhum evento no período/filtros selecionados.
-                </p>
-              </div>
-            ) : (
-              <ScrollArea className="max-h-[600px]">
-                <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-background">
-                    <TableRow>
-                      <TableHead>Quando</TableHead>
-                      <TableHead>Evento</TableHead>
-                      <TableHead>Instância</TableHead>
-                      <TableHead>Origem</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Detalhes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-testid="webhook-event-row"
-                        data-remote-jid={row.remote_jid ?? ''}
-                        data-push-name={row.push_name ?? ''}
-                        data-message-type={row.message_type ?? ''}
-                        data-status={
-                          row.error_message ? 'error' : row.processed ? 'processed' : 'pending'
-                        }
-                      >
-                        <TableCell
-                          className="whitespace-nowrap text-xs"
-                          data-testid="webhook-event-created-at"
-                        >
-                          {formatDateTimeCompact(row.created_at)}
-                        </TableCell>
-                        <TableCell data-testid="webhook-event-event-type">
-                          <Badge variant="outline" className="text-xs">
-                            {row.event_type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs" data-testid="webhook-event-instance">
-                          {row.instance_name}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <div className="flex flex-col">
-                            <span data-testid="webhook-event-jid">{shortJid(row.remote_jid)}</span>
-                            {row.push_name && (
-                              <span
-                                className="max-w-[200px] truncate text-muted-foreground"
-                                data-testid="webhook-event-push-name"
-                              >
-                                {row.push_name}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell data-testid="webhook-event-status">
-                          {row.error_message ? (
-                            <Badge variant="destructive" className="text-xs">
-                              Erro
-                            </Badge>
-                          ) : row.processed ? (
-                            <Badge
-                              variant="outline"
-                              className="border-success/40 text-xs text-success"
-                            >
-                              Processado
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">
-                              Pendente
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setSelected(row)}
-                            aria-label="Ver payload"
-                            data-testid="webhook-event-details-button"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
+        <WebhookEventsTable
+          filtered={filtered}
+          isLoading={isLoading}
+          error={error}
+          total={aggregates.total}
+          selected={selected}
+          setSelected={setSelected}
+        />
       )}
-
-      {/* Details dialog */}
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Webhook className="h-5 w-5" />
-              {selected?.event_type}
-            </DialogTitle>
-            <DialogDescription>
-              {selected &&
-                `${selected.instance_name} • ${formatDateTimeCompact(selected.created_at)}`}
-            </DialogDescription>
-          </DialogHeader>
-          {selected && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <Field label="Instância" value={selected.instance_name} />
-                <Field label="Tipo de mensagem" value={selected.message_type || '—'} />
-                <Field label="Remote JID" value={selected.remote_jid || '—'} mono />
-                <Field label="From me" value={selected.from_me ? 'Sim' : 'Não'} />
-                <Field label="Push name" value={selected.push_name || '—'} />
-                <Field label="Processado" value={selected.processed ? 'Sim' : 'Não'} />
-                <Field label="Processado em" value={formatDateTimeCompact(selected.processed_at)} />
-                <Field label="Recebido em" value={formatDateTimeCompact(selected.created_at)} />
-              </div>
-
-              {selected.error_message && (
-                <div>
-                  <p className="mb-1 text-xs font-semibold text-destructive">Erro</p>
-                  <ScrollArea className="max-h-32 rounded border border-destructive/30 bg-destructive/5 p-2">
-                    <pre className="whitespace-pre-wrap break-all text-xs">
-                      {selected.error_message}
-                    </pre>
-                  </ScrollArea>
-                </div>
-              )}
-
-              <div>
-                <p className="mb-1 text-xs font-semibold text-muted-foreground">Payload completo</p>
-                <ScrollArea className="max-h-80 rounded border bg-muted/40 p-2">
-                  <pre className="whitespace-pre-wrap break-all text-xs">
-                    {JSON.stringify(selected.payload, null, 2)}
-                  </pre>
-                </ScrollArea>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <p className="text-center text-xs text-muted-foreground">
         Fonte: <code>evolution_webhook_events</code> (FATOR X) · Limite 200 registros por consulta ·
         Auto-refresh a cada 60s
       </p>
-    </div>
-  );
-}
-
-// ── Subcomponents ─────────────────────────────────────────────
-function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs text-muted-foreground">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string | number;
-  tone: 'warning' | 'info' | 'destructive' | 'success';
-}) {
-  const toneClasses = {
-    warning: 'text-warning',
-    info: 'text-primary',
-    destructive: 'text-destructive',
-    success: 'text-success',
-  }[tone];
-  return (
-    <Card>
-      <CardContent className="flex items-center justify-between p-4">
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="mt-1 text-2xl font-bold">{value}</p>
-        </div>
-        <Icon className={cn('h-8 w-8 opacity-70', toneClasses)} />
-      </CardContent>
-    </Card>
-  );
-}
-
-function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn('break-all font-medium', mono && 'text-xs')}>{value}</p>
     </div>
   );
 }
