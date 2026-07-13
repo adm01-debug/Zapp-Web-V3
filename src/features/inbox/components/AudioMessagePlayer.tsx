@@ -3,7 +3,7 @@ import { Play, Pause, Loader2, FileText, RefreshCw, AlertCircle, Wand2 } from 'l
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAudioPlayer } from '@/hooks/useAudioManagement';
 import { AudioVolumeControl } from './AudioVolumeControl';
 import { VoiceChanger } from './VoiceChanger';
 import { Badge } from '@/components/ui/badge';
