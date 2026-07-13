@@ -25,6 +25,7 @@ export function useScheduledMessages(contactId?: string) {
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['scheduled-messages', contactId],
+    enabled: !!contactId,
     staleTime: 30_000,
     queryFn: async () => {
       let query = supabase

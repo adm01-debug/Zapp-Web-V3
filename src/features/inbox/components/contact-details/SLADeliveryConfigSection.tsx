@@ -21,6 +21,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['sla-delivery-config', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data: rows, error } = await safeClient.from('sla_delivery_rules', (q) =>
         q.select('*').eq('contact_id', contactId).limit(1)
