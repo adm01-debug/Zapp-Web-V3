@@ -207,7 +207,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
       });
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [queryClient]);
 

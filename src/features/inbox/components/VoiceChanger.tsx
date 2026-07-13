@@ -129,7 +129,7 @@ export const VoiceChanger = memo(function VoiceChanger({
         );
 
         if (queueError) throw queueError;
-        taskId = taskRows?.[0]?.id ?? null;
+        taskId = (taskRows as { id: string }[] | undefined)?.[0]?.id ?? null;
         setActiveTaskId(taskId);
       }
 

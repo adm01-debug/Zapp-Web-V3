@@ -46,6 +46,15 @@ const supabase = _supabase;
  */
 const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
 
+interface BaseThreadRow {
+  id: string;
+  gmail_thread_id?: string | null;
+  gmail_account_id: string;
+  is_unread?: boolean;
+  message_count?: number;
+  [key: string]: unknown;
+}
+
 /**
  * A tabela-base email_app.email_threads não possui as colunas derivadas da view
  * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
@@ -249,7 +258,7 @@ export function useEmail() {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages(Array.isArray(data) ? data : []);
+      setMessages(Array.isArray(data) ? (data as any) : []);
     }
     setIsLoadingMessages(false);
   }, []);
@@ -642,10 +651,10 @@ export function useEmail() {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const nt = mapBaseThreadRow(payload.new);
+            const nt = mapBaseThreadRow(payload.new as any);
             setThreads((prev) => [nt, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            const ut = mapBaseThreadRow(payload.new);
+            const ut = mapBaseThreadRow(payload.new as any);
             setThreads((prev) =>
               prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
             );

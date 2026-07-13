@@ -143,8 +143,8 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         }
         throw error;
       }
-      const list = (data ?? []) as _RpcRow[];
-      const filtered = list.filter((r) => {
+      const list = data ?? [];
+      const filtered = list.filter((r: Record<string, unknown>) => {
         if (errorCode) {
           const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');
           if (code !== errorCode) return false;
@@ -240,7 +240,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       })
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [queryClient]);
 
@@ -254,7 +254,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       await supabase.rpc('rpc_dlq_log_item_action', {
         p_action: action,
         p_ids: ids,
-        p_reason: reason ?? null,
+        p_reason: reason,
       });
       queryClient.invalidateQueries({ queryKey: ['dlq-audit-log'] });
     } catch (logErr) {

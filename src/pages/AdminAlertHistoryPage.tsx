@@ -154,7 +154,7 @@ export default function AdminAlertHistoryPage() {
 
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [queryClient]);
 

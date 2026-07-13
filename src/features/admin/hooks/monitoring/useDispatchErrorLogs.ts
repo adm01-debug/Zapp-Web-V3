@@ -68,10 +68,10 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
         p_cursor_id: currentPageCursor,
       });
       if (error) throw error;
-      const list = (data ?? []) as _RpcRow[];
+      const list = data ?? [];
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: DispatchErrorLogRow[] = list.map(
-        ({ total_count: _t, ...rest }) => rest as DispatchErrorLogRow
+        ({ total_count: _t, ...rest }) => rest as unknown as DispatchErrorLogRow
       );
       return { rows, total };
     },

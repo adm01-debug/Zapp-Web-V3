@@ -158,7 +158,7 @@ export default function AdminEmailStatusPage() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [filters]);
 

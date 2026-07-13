@@ -115,11 +115,11 @@ export function AchievementsPanel() {
               </p>
             </div>
           </div>
-          <AchievementsHeaderBadges stats={stats} />
+          <AchievementsHeaderBadges stats={stats ?? null} />
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <AchievementsStatsHeader achievements={achievements} stats={stats} />
+        <AchievementsStatsHeader achievements={achievements} stats={stats ?? null} />
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">

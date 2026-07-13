@@ -39,7 +39,7 @@ export function useMessageTemplates() {
         .order('use_count', { ascending: false });
       if (!mountedRef.current) return;
       if (error) throw error;
-      setTemplates(data || []);
+      setTemplates((data as any) || []);
     } catch (err) {
       log.error('Error fetching templates:', err);
     } finally {

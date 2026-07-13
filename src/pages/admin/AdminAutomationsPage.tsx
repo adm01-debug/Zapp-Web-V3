@@ -47,6 +47,17 @@ const SLA_LEVELS = [
   { value: 'critical', label: 'Crítica' },
 ];
 
+// Ensure escalate_sla always has required properties with proper types
+function normalizeEscalateSla(
+  partial: Partial<typeof EMPTY_RULE.actions.escalate_sla> | undefined
+): typeof EMPTY_RULE.actions.escalate_sla {
+  return {
+    enabled: partial?.enabled ?? false,
+    level: (partial?.level as string) ?? 'high',
+    reason: partial?.reason ?? '',
+  };
+}
+
 export default function AdminAutomationsPage() {
   const {
     rules,
@@ -89,10 +100,7 @@ export default function AdminAutomationsPage() {
     cloned.actions = {
       ...EMPTY_RULE.actions,
       ...(cloned.actions ?? {}),
-      escalate_sla: {
-        ...EMPTY_RULE.actions.escalate_sla,
-        ...(cloned.actions?.escalate_sla ?? {}),
-      },
+      escalate_sla: normalizeEscalateSla(cloned.actions?.escalate_sla),
     };
     setEditing(cloned);
     setOpen(true);
@@ -432,7 +440,7 @@ export default function AdminAutomationsPage() {
                     <div>
                       <Label htmlFor="auto-inactivity-side">De quem?</Label>
                       <Select
-                        value={editing.trigger_config?.side ?? 'any'}
+                        value={((editing as any).trigger_config?.side as string) ?? 'any'}
                         onValueChange={(v) =>
                           setEditing({
                             ...editing,
@@ -486,9 +494,9 @@ export default function AdminAutomationsPage() {
                   <Input
                     id="auto-trigger-tags"
                     value={
-                      Array.isArray(editing.trigger_config?.tags)
-                        ? editing.trigger_config.tags.join(', ')
-                        : (editing.trigger_config?.tag ?? '')
+                      Array.isArray((editing as any).trigger_config?.tags)
+                        ? ((editing as any).trigger_config.tags as string[]).join(', ')
+                        : (((editing as any).trigger_config?.tag ?? '') as string)
                     }
                     onChange={(e) =>
                       setEditing({
@@ -568,9 +576,9 @@ export default function AdminAutomationsPage() {
                           actions: {
                             ...editing.actions,
                             escalate_sla: {
-                              ...(editing.actions.escalate_sla ?? {}),
+                              ...normalizeEscalateSla(editing.actions.escalate_sla),
                               enabled: v,
-                            },
+                            } as any,
                           },
                         })
                       }
@@ -590,9 +598,9 @@ export default function AdminAutomationsPage() {
                               actions: {
                                 ...editing.actions,
                                 escalate_sla: {
-                                  ...editing.actions.escalate_sla,
+                                  ...normalizeEscalateSla(editing.actions.escalate_sla),
                                   level: v,
-                                },
+                                } as any,
                               },
                             })
                           }
@@ -624,7 +632,7 @@ export default function AdminAutomationsPage() {
                                 escalate_sla: {
                                   ...editing.actions.escalate_sla,
                                   reason: e.target.value,
-                                },
+                                } as any,
                               },
                             })
                           }

@@ -21,9 +21,10 @@ export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
         custom_message?: string | null;
       } | null;
 
-      const WARNING_THRESHOLD = (customRule?.warning_threshold_minutes || 30) * 60 * 1000;
-      const BREACH_THRESHOLD = (customRule?.breach_threshold_minutes || 60) * 60 * 1000;
-      const customMsg = customRule?.custom_message;
+      const WARNING_THRESHOLD =
+        ((customRule?.warning_threshold_minutes as number) || 30) * 60 * 1000;
+      const BREACH_THRESHOLD = ((customRule?.breach_threshold_minutes as number) || 60) * 60 * 1000;
+      const customMsg = customRule?.custom_message as string | undefined;
 
       const isSimulating = localStorage.getItem('zappweb:sla-simulation') === 'true';
       if (isSimulating) {

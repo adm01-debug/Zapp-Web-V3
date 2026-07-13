@@ -32,9 +32,10 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
 
   useEffect(() => {
     if (config) {
-      setWarningThreshold(config.warning_threshold_minutes);
-      setBreachThreshold(config.breach_threshold_minutes);
-      setCustomMessage(config.custom_message || '');
+      const cfg = config as any;
+      setWarningThreshold(cfg.warning_threshold_minutes);
+      setBreachThreshold(cfg.breach_threshold_minutes);
+      setCustomMessage(cfg.custom_message || '');
     }
   }, [config]);
 
@@ -50,9 +51,9 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
         updated_at: new Date().toISOString(),
       };
 
-      if (config?.id) {
+      if ((config as any)?.id) {
         const { error } = await safeClient.from('sla_delivery_rules', (q) =>
-          q.update(payload).eq('id', config.id)
+          q.update(payload).eq('id', (config as any).id)
         );
         if (error) throw error;
       } else {

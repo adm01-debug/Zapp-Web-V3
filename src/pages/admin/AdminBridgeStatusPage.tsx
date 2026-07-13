@@ -35,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { runEvolutionDiagnostics, DiagnosticResult } from '@/lib/evolutionDiagnostics';
+import type { ActiveAlert } from '@/lib/evoApiHealth/types';
 import {
   Dialog,
   DialogContent,
@@ -78,7 +79,7 @@ export default function BridgeStatusPage() {
   const [activeAlerts, setActiveAlerts] = useState<ActiveAlert[]>([]);
   const [incidents, setIncidents] = useState<SystemIncident[]>([]);
   const [instanceCount, _setInstanceCount] = useState<number>(0);
-  const [recentTraffic, setRecentTraffic] = useState<{ count: number; last_at: string | null }>({
+  const [recentTraffic, setRecentTraffic] = useState<RecentTraffic>({
     count: 0,
     last_at: null,
   });
@@ -101,6 +102,10 @@ export default function BridgeStatusPage() {
         description: `Finalizado com ${results.filter((r) => r.status === 'fail').length} falhas.`,
       });
     } catch (e: unknown) {
+      const errorMessage =
+        typeof e === 'object' && e !== null && 'message' in e
+          ? String((e as { message: unknown }).message)
+          : 'Erro desconhecido ao executar diagnóstico.';
       toast({
         title: 'Erro no Diagnóstico',
         description: e instanceof Error ? e.message : String(e),
@@ -165,7 +170,8 @@ export default function BridgeStatusPage() {
         const { data: alerts } = await safeClient.from<AlertRow>('v_alerts_active', (q) =>
           q.select('*').limit(5)
         );
-        if (mountedRef.current) setActiveAlerts(alerts || []);
+        if (mountedRef.current)
+          setActiveAlerts((Array.isArray(alerts) ? alerts : []) as ActiveAlert[]);
       } catch {
         if (mountedRef.current) setActiveAlerts([]);
       }
@@ -185,6 +191,10 @@ export default function BridgeStatusPage() {
       if (!mountedRef.current) return;
       log.error('Health check failed', error);
       setStatus('offline');
+      const errorMessage =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message: unknown }).message)
+          : 'Não foi possível validar todos os serviços.';
       toast({
         title: 'Erro na verificação',
         description:
@@ -203,7 +213,7 @@ export default function BridgeStatusPage() {
     const { data } = await safeClient.from<IncidentRow>('system_health_incidents', (q) =>
       q.select('*').order('started_at', { ascending: false }).limit(10)
     );
-    if (mountedRef.current) setIncidents(data || []);
+    if (mountedRef.current) setIncidents((Array.isArray(data) ? data : []) as HealthIncident[]);
   }, [mountedRef]);
 
   useEffect(() => {
@@ -252,13 +262,13 @@ export default function BridgeStatusPage() {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      supabase.removeChannel(trafficSub);
-      supabase.removeChannel(alertsSub);
+      trafficSub.unsubscribe();
+      alertsSub.unsubscribe();
     };
   }, [fetchIncidents, checkHealth, autoRefresh, refreshInterval]);
 
-  const statusConfig = useMemo(() => {
-    const config = {
+  const statusConfig = useMemo((): StatusConfig => {
+    const config: Record<BridgeStatus, StatusConfig> = {
       online: {
         color: 'bg-success text-success-foreground border-success/20',
         label: 'SISTEMA OPERACIONAL',

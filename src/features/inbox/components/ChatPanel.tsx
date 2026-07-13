@@ -324,7 +324,7 @@ export function ChatPanel({
 
   const { transferConversation: handleTransfer } = useTransferConversation({
     contactId: conversation.contact.id,
-    whatsappConnectionId,
+    whatsappConnectionId: whatsappConnectionId ?? undefined,
   });
 
   const handleScheduleMessage = useChatScheduleMessage({
@@ -379,7 +379,7 @@ export function ChatPanel({
         {activeTool === 'templates' && (
           <ChatTemplatesOverlay
             contactName={conversation.contact.name}
-            contactCompany={conversation.contact.company}
+            contactCompany={conversation.contact.company ?? undefined}
             onClose={() => setActiveTool(null)}
             onUseTemplate={(content) => {
               handlers.setInputValue(content);

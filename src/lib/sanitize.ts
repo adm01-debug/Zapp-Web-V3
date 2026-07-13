@@ -45,9 +45,9 @@ export function sanitizeHtml(html: unknown): string {
   // wrong one and leaves orphaned hooks active.
   const HOOK_NAME = 'afterSanitizeAttributes_sanitizeHtml';
   DOMPurify.addHook(HOOK_NAME as never, (node) => {
-    if (node.tagName === 'A') {
-      node.setAttribute('rel', 'noopener noreferrer');
-      node.setAttribute('target', '_blank');
+    if ((node as Element).tagName === 'A') {
+      (node as Element).setAttribute('rel', 'noopener noreferrer');
+      (node as Element).setAttribute('target', '_blank');
     }
   });
   let sanitized = '';
@@ -72,7 +72,7 @@ export function sanitizeHtml(html: unknown): string {
       ],
     }).trim();
   } finally {
-    DOMPurify.removeHook(HOOK_NAME);
+    DOMPurify.removeHook(HOOK_NAME as any);
   }
   return sanitized;
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,7 +77,7 @@ export default function QueueDetails() {
         .eq('id', id)
         .single();
       if (queueError) throw queueError;
-      setQueue(queueData);
+      setQueue(queueData as any);
 
       const { data: membersData } = await supabase
         .from('queue_members')

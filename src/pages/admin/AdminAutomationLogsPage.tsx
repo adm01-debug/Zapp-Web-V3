@@ -155,7 +155,7 @@ export default function AdminAutomationLogsPage() {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(ch);
+      ch.unsubscribe();
     };
   }, [page, load]);
 

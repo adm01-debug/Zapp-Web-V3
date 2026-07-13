@@ -36,7 +36,7 @@ export function useRealtimeMonitor(enabled: boolean) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [enabled, queryClient]);
 
