@@ -1,5 +1,1 @@
-src/hooks/useExternalEvolution.ts
-src/integrations/datasource/db.ts
-src/integrations/supabase/safe-queries.ts
-src/integrations/supabase/safeClient.ts
 supabase/functions/connection-health-check/index.ts
