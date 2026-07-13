@@ -56,6 +56,9 @@ export function useEmailOAuth({
 
       const handler = async (event: MessageEvent) => {
         if (settled) return;
+        // Origin guard: only accept messages from our own app origin.
+        // Prevents cross-origin pages from injecting a crafted oauth code.
+        if (event.origin !== window.location.origin) return;
         if (event.data?.type === 'gmail-oauth-error') {
           settled = true;
           cleanupListeners();
