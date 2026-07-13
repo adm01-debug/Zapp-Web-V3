@@ -1,1 +1,4 @@
+src/components/compliance/LGPDComplianceView.tsx
+src/components/connections/ConnectionsView.tsx
+src/components/connections/InstanceSettingsDialog.tsx
 src/integrations/supabase/schema.ts
