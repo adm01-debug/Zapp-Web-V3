@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useChannelRoutingRules — Wave 3 tier-2 (2026-07-06)
  * Camada de dados extraída de ChannelRoutingRules. Query keys e semântica

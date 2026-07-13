@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMessageAttempts — hidrata o histórico de tentativas de envio (DLQ) para
  * uma mensagem específica.

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, lazy, Suspense } from 'react';
 import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
 import { Card, CardContent } from '@/components/ui/card';

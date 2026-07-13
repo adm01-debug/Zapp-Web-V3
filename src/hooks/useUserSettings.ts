@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { z } from 'zod';
 import { safeClient } from '@/integrations/supabase/safeClient';

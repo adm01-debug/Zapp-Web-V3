@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Resolves which edge function should receive a "send" call:
  *  - `evolution-api`        for Evolution / Baileys connections (default)

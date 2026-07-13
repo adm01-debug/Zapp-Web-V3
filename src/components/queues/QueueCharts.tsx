@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 import { useState } from 'react';
 import { subDays } from 'date-fns';

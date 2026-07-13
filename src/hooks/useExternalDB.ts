@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useExternalDB — Generic hook for querying any table in the external CRM database
  * Uses externalSupabase client directly (secured by RLS policies on the external DB)
