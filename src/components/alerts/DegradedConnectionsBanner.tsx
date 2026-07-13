@@ -40,7 +40,12 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
     const safeQueries = safeWhatsAppConnectionsQuery(supabase);
     const { data } = await safeQueries.getDegraded(since);
     if (!mountedRef.current) return;
-    setDegraded(data ?? []);
+    // `data` pode vir como SelectQueryError quando alguma coluna do select
+    // não existe no schema atual — nesse caso, tratamos como lista vazia.
+    const rows: DegradedInstance[] = Array.isArray(data)
+      ? (data as unknown as DegradedInstance[])
+      : [];
+    setDegraded(rows);
   }, [recentWindowMs]);
 
   useEffect(() => {
