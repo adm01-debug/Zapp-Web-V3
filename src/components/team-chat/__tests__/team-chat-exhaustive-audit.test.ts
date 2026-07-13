@@ -13,6 +13,8 @@ const readSrc = (p: string) => {
 };
 
 const panelSrc =
+  readSrc('components/team-chat/TeamChatMessageRow.tsx') +
+  '\n' +
   readSrc('components/team-chat/TeamChatPanel.tsx') +
   '\n' +
   readSrc('components/team-chat/teamChatParts.tsx');
