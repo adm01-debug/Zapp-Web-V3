@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
@@ -56,7 +55,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
       .subscribe();
     const interval = setInterval(fetchDegraded, 60_000);
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
       clearInterval(interval);
     };
   }, [fetchDegraded]);

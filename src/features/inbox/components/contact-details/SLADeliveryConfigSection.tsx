@@ -146,7 +146,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
             const current = localStorage.getItem('zappweb:sla-simulation') === 'true';
             localStorage.setItem('zappweb:sla-simulation', String(!current));
             toast.info(`Modo Simulação ${!current ? 'ATIVADO' : 'DESATIVADO'}`);
-            queryClient.invalidateQueries({ queryKey: ['delivery-stats'] });
+            void queryClient.invalidateQueries({ queryKey: ['delivery-stats'] });
           }}
         >
           <Beaker className="mr-2 h-3 w-3" />

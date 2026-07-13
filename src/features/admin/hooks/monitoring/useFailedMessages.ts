@@ -116,7 +116,9 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
 
   // Cursor-based pagination: track cursor for each page number to enable efficient navigation
   // Page 0 always has cursor=null; subsequent pages use last row ID from previous page
-  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(
+    new Map([[0, null]])
+  );
 
   const currentPageCursor = pageIndexToCursor.get(page) ?? null;
 
@@ -236,11 +238,11 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     const channel = supabase
       .channel('failed_messages_realtime')
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'failed_messages' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+        void queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
       })
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

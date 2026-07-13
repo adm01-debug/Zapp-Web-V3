@@ -80,7 +80,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
             return;
           }
           const alert = parsed.data as WarRoomAlert; // ignore-audit: narrows Supabase query result to local interface
-          queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
+          void queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
 
           // Play sound
           if (alert.alert_type === 'critical') {
