@@ -26,7 +26,7 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/hooks/useTranscriptionNotifications.ts',
   'src/hooks/useRealtimeDashboard.ts',
   'src/components/monitoring/hooks/useEvolutionMonitoring.ts',
-  'src/features/inbox/components/AudioMessagePlayer.tsx',
+  'src/features/inbox/components/useAudioMessagePlayer.ts',
   'src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts',
   'src/features/inbox/components/chat/ChatMessagesArea.tsx',
 ];
