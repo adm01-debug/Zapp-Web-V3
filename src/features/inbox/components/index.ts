@@ -96,7 +96,7 @@ export * from './linkPreviewUtils';
 export * from './swipeActions';
 export * from './template-utils';
 export * from '../hooks/useChatMediaSending';
-export * from './useFileUploadLogic';
+export { useFileUploadLogic, type FileMessageData, type FilePreview } from './useFileUploadLogic';
 export * from './useGlobalSearchData';
 export * from './agents-ops';
 export * from './ai-tools';

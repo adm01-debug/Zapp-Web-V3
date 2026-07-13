@@ -1,12 +1,4 @@
 import React, { useMemo, useEffect, useState } from 'react';
-
-interface StsMetricRow {
-  voice_preset: string;
-  error_rate: number;
-  avg_latency_ms: number;
-  p99_latency?: number | null;
-  latest_error?: string | null;
-}
 import { getLogger } from '@/lib/logger';
 import {
   BarChart,
@@ -33,23 +25,32 @@ interface QueueMetricsDashboardProps {
   metrics: QueueMetrics;
 }
 
+interface StsMetricRow {
+  voice_preset: string;
+  error_rate: number;
+  avg_latency_ms: number;
+  p99_latency?: number | null;
+  latest_error?: string | null;
+  total_requests?: number | null;
+  failed_requests?: number | null;
+}
+
 const log = getLogger('QueueMetricsDashboard');
-const _COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React.memo(
   ({ metrics }) => {
-    const [stsMetrics, setStsMetrics] = useState<Record<string, unknown>[]>([]);
+    const [stsMetrics, setStsMetrics] = useState<StsMetricRow[]>([]);
     const [loadingSts, setLoadingSts] = useState(true);
 
     useEffect(() => {
       let cancelled = false;
       const fetchSTS = async () => {
         try {
-          const { data, error } = await safeClient.from<Record<string, unknown>>(
+          const { data, error } = await safeClient.from<StsMetricRow>(
             'sts_performance_metrics',
             (q) => q.select('*')
           );
-          if (!cancelled && !error && data) setStsMetrics(data);
+          if (!cancelled && !error && Array.isArray(data)) setStsMetrics(data);
         } catch (err) {
           if (!cancelled) log.error('Failed to fetch STS metrics', err);
         } finally {

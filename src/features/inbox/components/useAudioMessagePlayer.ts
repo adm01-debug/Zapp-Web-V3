@@ -13,6 +13,10 @@ interface VoiceConversionRow {
   output_audio_url: string | null;
 }
 
+function isVoiceConversionRow(value: unknown): value is Partial<VoiceConversionRow> {
+  return typeof value === 'object' && value !== null;
+}
+
 interface UseAudioMessagePlayerParams {
   messageId: string;
   audioUrl: string | null;
@@ -89,18 +93,22 @@ export function useAudioMessagePlayer({
           filter: `message_id=eq.${messageId}`,
         },
         (payload) => {
-          if (payload.new.status) setVoiceStatus(payload.new.status);
-          if (payload.new.error_message) setVoiceError(payload.new.error_message);
-          if (payload.new.id) setVoiceTaskId(payload.new.id);
+          if (!isVoiceConversionRow(payload.new)) return;
+          const row = payload.new;
 
-          if (payload.new.status === 'completed' && payload.new.output_audio_url && onVoiceChange) {
+          if (row.status) setVoiceStatus(row.status);
+          if (row.error_message) setVoiceError(row.error_message);
+          if (row.id) setVoiceTaskId(row.id);
+
+          if (row.status === 'completed' && row.output_audio_url && onVoiceChange) {
             toast({
               title: 'Conversão concluída',
               description: 'A voz do áudio foi alterada com sucesso.',
             });
-            fetch(payload.new.output_audio_url)
+            void fetch(row.output_audio_url)
               .then((r) => r.blob())
-              .then((blob) => onVoiceChange(messageId, blob));
+              .then((blob) => onVoiceChange(messageId, blob))
+              .catch((error) => log.error('Voice conversion audio fetch error:', error));
           }
         }
       )
