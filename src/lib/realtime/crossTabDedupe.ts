@@ -17,47 +17,37 @@
  *   - Resultado é cacheado em memória por TTL curto (default 30s) para reentrada.
  */
 
-import { getLogger } from '@/lib/logger';
 import { recordDedupeEvent } from '@/lib/realtime/dedupeTelemetry';
+import {
+  DEFAULT_LOCK_TTL,
+  DEFAULT_RESULT_TTL,
+  DEFAULT_WAIT_TIMEOUT,
+  GC_INTERVAL,
+  TAB_ID,
+  LS_LOCK_PREFIX,
+  LS_RESULT_PREFIX,
+  LS_BUS_PREFIX,
+  type BroadcastMessage,
+  type DedupeOptions,
+} from './crossTabDedupeTypes';
+import { readLock, writeLock, releaseLock } from './crossTabDedupeLock';
+import {
+  readPersistedResult,
+  writePersistedResult,
+  gcLocalStorageKeys,
+} from './crossTabDedupeCache';
+import { ensureTransport, broadcast, __getActiveTransport } from './crossTabDedupeTransport';
 
-const log = getLogger('crossTabDedupe');
-
-const LS_LOCK_PREFIX = 'ctd:lock:';
-const LS_RESULT_PREFIX = 'ctd:result:';
-const LS_BUS_PREFIX = 'ctd:bus:'; // fallback de "broadcast" via storage event
-const BC_NAME = 'cross-tab-dedupe';
-const DEFAULT_LOCK_TTL = 10_000; // 10s — máximo razoável para pageload de 100 msgs
-const DEFAULT_RESULT_TTL = 30_000; // resultado fica em cache 30s
-const DEFAULT_WAIT_TIMEOUT = 8_000;
-const GC_INTERVAL = 60_000; // varre chaves expiradas a cada 60s
-const BUS_MSG_TTL = 15_000; // mensagens de bus expiram rápido (storage GC)
-
-/** @internal — exposto para testes que precisam do prefixo de lock. */
-export const LS_PREFIX = LS_LOCK_PREFIX;
-
-interface LockPayload {
-  ownerId: string;
-  acquiredAt: number;
-  expiresAt: number;
-}
-
-interface BroadcastMessage<T = unknown> {
-  type: 'result' | 'error' | 'release';
-  key: string;
-  ownerId: string;
-  data?: T;
-  error?: string;
-  ts: number;
-  /** TTL do resultado (ms) — para que abas receptoras respeitem o mesmo prazo. */
-  resultTtl?: number;
-}
-
-const TAB_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+export { LS_PREFIX, type DedupeOptions, TAB_ID as __TAB_ID } from './crossTabDedupeTypes';
+export { __getActiveTransport } from './crossTabDedupeTransport';
 
 // In-memory: resultado recente + promises pendentes na mesma aba.
 const resultCache = new Map<string, { value: unknown; expiresAt: number }>();
 const inflight = new Map<string, Promise<unknown>>();
-const waiters = new Map<string, Array<(v: { ok: true; data: unknown } | { ok: false; error: string }) => void>>();
+const waiters = new Map<
+  string,
+  Array<(v: { ok: true; data: unknown } | { ok: false; error: string }) => void>
+>();
 
 // Subscribers: handlers da UI interessados em receber resultados que chegam
 // via BroadcastChannel (de outras abas). Chave é uma string ou regex.
@@ -73,87 +63,10 @@ function notifySubscribers(key: string, data: unknown, source: 'remote' | 'local
     if (!sub.match(key)) return;
     try {
       sub.handler(key, data, source);
-    } catch (err) {
-      log.error('Subscriber handler threw', { key, err });
+    } catch {
+      /* swallow handler errors */
     }
   });
-}
-
-// ─── Camada de transporte cross-tab ──────────────────────────────────────────
-// Tenta BroadcastChannel; se indisponível (Safari antigo, alguns sandboxes,
-// iframes restritos) ou se construtor lançar, faz fallback transparente
-// usando o evento `storage` do localStorage.
-//
-// Compatibilidade: o consumidor chama `ensureTransport()` para garantir que o
-// listener de entrada está ativo, e `sendBus(msg)` para emitir. O resto do
-// arquivo permanece igual — `broadcast()` e `getBroadcastChannel()` viraram
-// wrappers finos sobre essa camada para preservar a API interna.
-type Transport = 'broadcast-channel' | 'storage-event' | 'none';
-let transportKind: Transport | null = null;
-let bc: BroadcastChannel | null = null;
-let storageListenerInstalled = false;
-
-function installStorageListener(): boolean {
-  if (storageListenerInstalled) return true;
-  if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return false;
-  try {
-    window.addEventListener('storage', (e: StorageEvent) => {
-      if (!e.key || !e.key.startsWith(LS_BUS_PREFIX)) return;
-      if (!e.newValue) return; // remoção é nossa própria limpeza
-      try {
-        const msg = JSON.parse(e.newValue) as BroadcastMessage;
-        // Filtro de TTL — evita reprocessar mensagens órfãs antigas.
-        if (typeof msg.ts === 'number' && Date.now() - msg.ts > BUS_MSG_TTL) return;
-        onBroadcast(msg);
-      } catch {
-        /* payload corrompido — ignora */
-      }
-    });
-    storageListenerInstalled = true;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function ensureTransport(): Transport {
-  if (transportKind && transportKind !== 'none') return transportKind;
-  // Tentativa 1 — BroadcastChannel.
-  if (typeof BroadcastChannel !== 'undefined' && !bc) {
-    try {
-      bc = new BroadcastChannel(BC_NAME);
-      bc.addEventListener('message', (e) => onBroadcast(e.data as BroadcastMessage)); // ignore-audit: narrows Supabase query result to local interface
-      transportKind = 'broadcast-channel';
-      log.debug('Transport ativo: BroadcastChannel');
-      return transportKind;
-    } catch {
-      bc = null;
-      // cai para fallback
-    }
-  }
-  if (bc) {
-    transportKind = 'broadcast-channel';
-    return transportKind;
-  }
-  // Tentativa 2 — fallback via storage event.
-  if (installStorageListener()) {
-    transportKind = 'storage-event';
-    log.debug('Transport ativo: storage event (fallback, BroadcastChannel indisponível)');
-    return transportKind;
-  }
-  transportKind = 'none';
-  return transportKind;
-}
-
-/** @deprecated Mantido para compatibilidade interna; prefira `ensureTransport`. */
-function getBroadcastChannel(): BroadcastChannel | null {
-  ensureTransport();
-  return bc;
-}
-
-/** @internal — usado por testes para inspecionar o transporte ativo. */
-export function __getActiveTransport(): Transport {
-  return transportKind ?? 'none';
 }
 
 function onBroadcast(msg: BroadcastMessage) {
@@ -167,7 +80,6 @@ function onBroadcast(msg: BroadcastMessage) {
       ws.forEach((w) => w({ ok: true, data: msg.data }));
       waiters.delete(msg.key);
     }
-    // Notifica UI subscribers para que atualizem sem refazer fetch.
     notifySubscribers(msg.key, msg.data, 'remote');
   } else if (msg.type === 'error') {
     const ws = waiters.get(msg.key);
@@ -176,7 +88,6 @@ function onBroadcast(msg: BroadcastMessage) {
       waiters.delete(msg.key);
     }
   } else if (msg.type === 'release') {
-    // Lock liberado sem resultado — quem espera pode tentar adquirir.
     const ws = waiters.get(msg.key);
     if (ws) {
       ws.forEach((w) => w({ ok: false, error: 'released' }));
@@ -185,133 +96,13 @@ function onBroadcast(msg: BroadcastMessage) {
   }
 }
 
-function readLock(key: string): LockPayload | null {
-  if (typeof localStorage === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(LS_LOCK_PREFIX + key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as LockPayload;
-    if (parsed.expiresAt < Date.now()) {
-      localStorage.removeItem(LS_LOCK_PREFIX + key);
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function writeLock(key: string, ttl: number): boolean {
-  if (typeof localStorage === 'undefined') return false;
-  const existing = readLock(key);
-  if (existing && existing.ownerId !== TAB_ID) return false;
-  try {
-    const payload: LockPayload = {
-      ownerId: TAB_ID,
-      acquiredAt: Date.now(),
-      expiresAt: Date.now() + ttl,
-    };
-    localStorage.setItem(LS_LOCK_PREFIX + key, JSON.stringify(payload));
-    const verify = readLock(key);
-    return verify?.ownerId === TAB_ID;
-  } catch {
-    return false;
-  }
-}
-
-function releaseLock(key: string) {
-  if (typeof localStorage === 'undefined') return;
-  const lock = readLock(key);
-  if (lock && lock.ownerId !== TAB_ID) return;
-  try {
-    localStorage.removeItem(LS_LOCK_PREFIX + key);
-  } catch {
-    /* noop */
-  }
-}
-
-// ─── Result cache persistente em localStorage (compartilhado entre abas) ──────
-interface ResultPayload<T = unknown> {
-  value: T;
-  expiresAt: number;
-}
-
-function readPersistedResult<T>(key: string): T | null {
-  if (typeof localStorage === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(LS_RESULT_PREFIX + key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as ResultPayload<T>;
-    if (parsed.expiresAt < Date.now()) {
-      localStorage.removeItem(LS_RESULT_PREFIX + key);
-      return null;
-    }
-    return parsed.value;
-  } catch {
-    return null;
-  }
-}
-
-function writePersistedResult<T>(key: string, value: T, ttl: number): void {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    const payload: ResultPayload<T> = { value, expiresAt: Date.now() + ttl };
-    localStorage.setItem(LS_RESULT_PREFIX + key, JSON.stringify(payload));
-  } catch {
-    /* quota cheia ou serialização falhou — degrada silenciosamente */
-  }
-}
-
-// ─── Garbage collector: varre chaves expiradas periodicamente ─────────────────
+// ─── GC: varre chaves expiradas periodicamente ───────────────────────────────
 export function gcExpiredKeys(): { locksSwept: number; resultsSwept: number } {
-  let locksSwept = 0;
-  let resultsSwept = 0;
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const now = Date.now();
-      const toRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!k) continue;
-        if (
-          !k.startsWith(LS_LOCK_PREFIX) &&
-          !k.startsWith(LS_RESULT_PREFIX) &&
-          !k.startsWith(LS_BUS_PREFIX)
-        ) continue;
-        try {
-          const raw = localStorage.getItem(k);
-          if (!raw) continue;
-          // Para bus: limpa qualquer slot mais velho que BUS_MSG_TTL
-          if (k.startsWith(LS_BUS_PREFIX)) {
-            try {
-              const parsed = JSON.parse(raw) as { ts?: number };
-              if (typeof parsed.ts === 'number' && now - parsed.ts > BUS_MSG_TTL) {
-                toRemove.push(k);
-              }
-            } catch { toRemove.push(k); }
-            continue;
-          }
-          const parsed = JSON.parse(raw) as { expiresAt?: number };
-          if (typeof parsed.expiresAt === 'number' && parsed.expiresAt < now) {
-            toRemove.push(k);
-          }
-        } catch {
-          toRemove.push(k);
-        }
-      }
-      for (const k of toRemove) {
-        localStorage.removeItem(k);
-        if (k.startsWith(LS_LOCK_PREFIX)) locksSwept++;
-        else resultsSwept++;
-      }
-    } catch {
-      /* noop */
-    }
-  }
+  const stats = gcLocalStorageKeys();
   for (const [k, entry] of resultCache) {
     if (entry.expiresAt < Date.now()) resultCache.delete(k);
   }
-  return { locksSwept, resultsSwept };
+  return stats;
 }
 
 let gcTimer: ReturnType<typeof setInterval> | null = null;
@@ -323,48 +114,11 @@ function startGcIfNeeded() {
   }
 }
 
-function broadcast<T>(msg: BroadcastMessage<T>) {
-  const kind = ensureTransport();
-  if (kind === 'broadcast-channel' && bc) {
-    try { bc.postMessage(msg); return; } catch { /* cai no fallback */ }
-  }
-  if (kind === 'storage-event' || kind === 'broadcast-channel') {
-    // Fallback: escreve em um slot rotativo do localStorage. O `storage`
-    // event é disparado em TODAS as outras abas que tenham o mesmo origin
-    // — mantemos paridade funcional (result/error/release) com o BC.
-    if (typeof localStorage === 'undefined') return;
-    try {
-      // Slot único por mensagem para garantir que `storage` event dispare
-      // mesmo quando o mesmo `key` é reescrito em sequência (o evento
-      // só dispara em mudança de valor; usar um slot único evita a colisão).
-      const slot = `${LS_BUS_PREFIX}${TAB_ID}:${msg.ts}:${Math.random().toString(36).slice(2, 8)}`;
-      const payload = JSON.stringify(msg);
-      localStorage.setItem(slot, payload);
-      // Remove logo em seguida — não precisamos persistir, só sinalizar.
-      // Pequeno delay para que abas espectadoras tenham chance de ler em
-      // navegadores que entregam o evento de forma assíncrona.
-      setTimeout(() => {
-        try { localStorage.removeItem(slot); } catch { /* noop */ }
-      }, 250);
-    } catch {
-      /* quota cheia ou serialização falhou — degrada silenciosamente */
-    }
-  }
-}
-
-export interface DedupeOptions {
-  /** TTL do lock no localStorage (ms). Default 10s. */
-  lockTtl?: number;
-  /** TTL do resultado em cache (ms). Default 30s. */
-  resultTtl?: number;
-  /** Quanto esperar pelo broadcast antes de fazer fetch direto (ms). Default 8s. */
-  waitTimeout?: number;
-}
-
+// ─── Main API ─────────────────────────────────────────────────────────────────
 export async function dedupedFetch<T>(
   key: string,
   fetcher: () => Promise<T>,
-  opts: DedupeOptions = {},
+  opts: DedupeOptions = {}
 ): Promise<T> {
   const lockTtl = opts.lockTtl ?? DEFAULT_LOCK_TTL;
   const resultTtl = opts.resultTtl ?? DEFAULT_RESULT_TTL;
@@ -380,7 +134,7 @@ export async function dedupedFetch<T>(
     return cached.value as T;
   }
   if (cached && cached.expiresAt <= Date.now()) {
-    resultCache.delete(key); // expirado: força reprocessamento
+    resultCache.delete(key);
   }
 
   // 1b. Cache persistente em localStorage (compartilhado entre abas).
@@ -404,8 +158,7 @@ export async function dedupedFetch<T>(
     // Garante que o BroadcastChannel está ativo ANTES de aguardar — caso
     // contrário a aba espectadora nunca registra o listener e perde o
     // broadcast do líder, caindo desnecessariamente no fallback de cache.
-    getBroadcastChannel();
-    log.debug('Lock detido por outra aba, aguardando broadcast', { key });
+    ensureTransport(onBroadcast);
     const waited = await waitForResult<T>(key, waitTimeout);
     if (waited.ok) {
       recordDedupeEvent({
@@ -415,8 +168,7 @@ export async function dedupedFetch<T>(
       });
       return waited.data;
     }
-    // Antes de cair em fallback, reconfere o cache persistente — a líder
-    // pode ter terminado depois do broadcast já ter passado.
+    // Antes de cair em fallback, reconfere o cache persistente.
     const lateCache = readPersistedResult<T>(key);
     if (lateCache !== null) {
       resultCache.set(key, { value: lateCache, expiresAt: Date.now() + resultTtl });
@@ -427,10 +179,9 @@ export async function dedupedFetch<T>(
       });
       return lateCache;
     }
-    // Líder falhou ou expirou: tenta executar localmente como fallback.
   }
 
-  // 4. Líder: executa fetcher, cacheia (memória + localStorage), broadcasta, libera lock.
+  // 4. Líder: executa fetcher, cacheia, broadcasta, libera lock.
   const isFallback = !acquired;
   const exec = (async () => {
     try {
@@ -467,7 +218,7 @@ export async function dedupedFetch<T>(
 
 function waitForResult<T>(
   key: string,
-  timeoutMs: number,
+  timeoutMs: number
 ): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   return new Promise((resolve) => {
     let done = false;
@@ -500,7 +251,13 @@ export function clearCrossTabDedupe(): void {
       const keys: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && (k.startsWith(LS_LOCK_PREFIX) || k.startsWith(LS_RESULT_PREFIX) || k.startsWith(LS_BUS_PREFIX))) keys.push(k);
+        if (
+          k &&
+          (k.startsWith(LS_LOCK_PREFIX) ||
+            k.startsWith(LS_RESULT_PREFIX) ||
+            k.startsWith(LS_BUS_PREFIX))
+        )
+          keys.push(k);
       }
       keys.forEach((k) => localStorage.removeItem(k));
     } catch {
@@ -509,15 +266,8 @@ export function clearCrossTabDedupe(): void {
   }
 }
 
-export const __TAB_ID = TAB_ID;
-
 /**
  * Subscreve-se a resultados de dedupedFetch concluídos em qualquer aba.
- *
- * Útil para que abas espectadoras atualizem a UI quando outra aba completa
- * um fetch — sem precisar refazer a requisição. O handler é chamado tanto
- * quando o broadcast chega de outra aba (`source: 'remote'`) quanto quando
- * a própria aba conclui o fetch (`source: 'local'`).
  *
  * @param keyMatcher  string exata, prefixo (ex.: "inbox:initial:") ou RegExp.
  * @param handler     callback (key, data, source) => void
@@ -525,15 +275,15 @@ export const __TAB_ID = TAB_ID;
  */
 export function subscribeDedupe<T = unknown>(
   keyMatcher: string | RegExp,
-  handler: SubscriberFn<T>,
+  handler: SubscriberFn<T>
 ): () => void {
-  const match = typeof keyMatcher === 'string'
-    ? (k: string) => k === keyMatcher || k.startsWith(keyMatcher)
-    : (k: string) => keyMatcher.test(k);
+  const match =
+    typeof keyMatcher === 'string'
+      ? (k: string) => k === keyMatcher || k.startsWith(keyMatcher)
+      : (k: string) => keyMatcher.test(k);
   const sub: Subscription = { match, handler: handler as SubscriberFn };
   subscribers.add(sub);
-  // Garante que o BroadcastChannel está ativo para entregar mensagens.
-  getBroadcastChannel();
+  ensureTransport(onBroadcast);
   return () => {
     subscribers.delete(sub);
   };
@@ -543,4 +293,3 @@ export function subscribeDedupe<T = unknown>(
 export function __notifyLocal(key: string, data: unknown) {
   notifySubscribers(key, data, 'local');
 }
-
