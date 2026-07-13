@@ -325,7 +325,7 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should support Escape to cancel edit', () => {
-      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/);
+      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/s);
     });
 
     it('should show edited indicator on messages', () => {
@@ -606,7 +606,7 @@ describe('Team Chat — Exhaustive Audit', () => {
 
     it('should have keyboard shortcuts for editing', () => {
       expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/s);
-      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/);
+      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/s);
     });
   });
 
