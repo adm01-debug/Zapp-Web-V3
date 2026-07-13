@@ -262,7 +262,7 @@ export function useChatPanel({
 
   const { transferConversation: handleTransfer } = useTransferConversation({
     contactId: conversation.contact.id,
-    whatsappConnectionId,
+    whatsappConnectionId: whatsappConnectionId ?? undefined,
   });
 
   const handleScheduleMessage = useChatScheduleMessage({

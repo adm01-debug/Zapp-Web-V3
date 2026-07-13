@@ -10,9 +10,11 @@ interface ContactTagsContentProps {
 }
 
 export function ContactTagsContent({ contact, conversation }: ContactTagsContentProps) {
+  const contactTags = contact.tags ?? [];
+
   return (
     <div className="flex flex-wrap gap-1.5">
-      {contact.tags.map((tag, i) => (
+      {contactTags.map((tag, i) => (
         <motion.div
           key={`contact-${tag}`}
           initial={{ opacity: 0, scale: 0.8 }}
@@ -34,7 +36,7 @@ export function ContactTagsContent({ contact, conversation }: ContactTagsContent
           key={`conv-${tag}`}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: (contact.tags.length + i) * 0.03 }}
+          transition={{ delay: (contactTags.length + i) * 0.03 }}
         >
           <Badge
             variant="outline"
@@ -46,7 +48,7 @@ export function ContactTagsContent({ contact, conversation }: ContactTagsContent
           </Badge>
         </motion.div>
       ))}
-      {contact.tags.length === 0 && conversation.tags.length === 0 && (
+      {contactTags.length === 0 && conversation.tags.length === 0 && (
         <div className="flex w-full flex-col items-center gap-1.5 py-4 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/20">
             <TagsIcon className="h-5 w-5 text-muted-foreground/30" />

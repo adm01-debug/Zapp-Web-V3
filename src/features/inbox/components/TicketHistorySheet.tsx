@@ -124,6 +124,24 @@ interface AuditLogRow {
   details?: Record<string, unknown> | null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeAuditLog(row: {
+  id: string;
+  created_at: string;
+  action?: string | null;
+  details?: unknown;
+}): AuditLogRow {
+  return {
+    id: row.id,
+    created_at: row.created_at,
+    action: row.action ?? null,
+    details: isRecord(row.details) ? row.details : null,
+  };
+}
+
 function describeAudit(e: AuditLogRow): UnifiedEvent {
   // Após migração: linhas de `audit_logs` (entity_type='conversation')
   // guardam o antigo `event_type/status/error_message/attempt_number` dentro
@@ -138,7 +156,7 @@ function describeAudit(e: AuditLogRow): UnifiedEvent {
     (details['attempt_number'] as number | undefined) ?? e.attempt_number ?? undefined;
 
   let label = 'Evento de Outbound';
-  let detail = status;
+  let detail = _status;
 
   if (action === 'send_attempt') {
     label = 'Tentativa de Envio';
@@ -189,7 +207,7 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     },
   });
 
-  const { data: auditLogs = [] } = useQuery({
+  const { data: auditLogs = [] } = useQuery<AuditLogRow[]>({
     queryKey: ['conversation-audit-logs', contactId],
     enabled: open && !!contactId,
     queryFn: async () => {
@@ -201,7 +219,7 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) return [];
-      return data ?? [];
+      return (data ?? []).map(normalizeAuditLog);
     },
   });
 
