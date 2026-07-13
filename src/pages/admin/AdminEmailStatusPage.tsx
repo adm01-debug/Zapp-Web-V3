@@ -1,6 +1,3 @@
-import { useState, useEffect } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
-import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -20,220 +17,45 @@ import {
   Filter,
   History as HistoryIcon,
 } from 'lucide-react';
-import { useEmail } from '@/hooks/useEmail';
-import { emailHealthService } from '@/services/email/emailHealthService';
-import type { EmailHealthInfo, EmailFailure } from '@/services/email/types';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import {
-  emailApi,
-  type EmailHealthSummary,
-  type EmailRevalidationJob,
-} from '@/services/email/emailApi';
+import { useEmailHealthStatus } from './email/useEmailHealthStatus';
 
-const log = getLogger('AdminEmailStatusPage');
-
-const castStatus = (status: string | null): EmailHealthInfo['status'] => {
-  if (status && ['healthy', 'degraded', 'error'].includes(status)) {
-    return status as EmailHealthInfo['status']; // ignore-audit: includes guard above confirms status is a valid union member
+const getStatusIcon = (status?: string) => {
+  switch (status) {
+    case 'healthy':
+      return <CheckCircle2 className="h-5 w-5 text-primary" />;
+    case 'degraded':
+      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    case 'error':
+      return <AlertCircle className="h-5 w-5 text-destructive" />;
+    default:
+      return <Clock className="h-5 w-5 text-muted-foreground" />;
   }
-  return 'error';
+};
+
+const getStatusLabel = (status?: string) => {
+  switch (status) {
+    case 'healthy':
+      return 'Operacional';
+    case 'degraded':
+      return 'Degradado';
+    case 'error':
+      return 'Crítico';
+    default:
+      return 'Desconhecido';
+  }
 };
 
 export default function AdminEmailStatusPage() {
-  const { accounts } = useEmail();
-  const [health, setHealth] = useState<EmailHealthInfo | null>(null);
-  const [_loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    requestId: '',
-    resource: '',
-    operation: '',
-    page: 1,
-  });
-  const [failuresData, setFailuresData] = useState<{ items: EmailFailure[]; total: number }>({
-    items: [],
-    total: 0,
-  });
-
-  const mountedRef = useMountedRef();
-
-  const loadHealth = async () => {
-    setLoading(true);
-    try {
-      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-      const functionUrl = `${projectUrl}/functions/v1/email-health?page=${filters.page}&pageSize=5${filters.requestId ? `&requestId=${filters.requestId}` : ''}${filters.resource ? `&resource=${filters.resource}` : ''}${filters.operation ? `&operation=${filters.operation}` : ''}`;
-
-      const fetchResponse = await fetch(functionUrl, {
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const dataFull = await fetchResponse.json();
-
-      if (!fetchResponse.ok) throw new Error(dataFull.error || 'Erro na Edge Function');
-
-      if (!mountedRef.current) return;
-      setHealth({
-        status: castStatus(dataFull.status),
-        lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
-        cacheExpiration: null,
-        recentFailures: dataFull.failuresResult?.items || [],
-        stats: {
-          totalCalls: 0,
-          failedCalls: dataFull.failure_count_window || 0,
-          cacheHits: 0,
-        },
-      });
-      setFailuresData(dataFull.failuresResult || { items: [], total: 0 });
-    } catch (error) {
-      log.error('Error loading email health', error);
-      toast.error('O serviço de telemetria do Email está indisponível.');
-
-      try {
-        const { data: summary, error: summaryError } = await emailApi.getHealthSummary();
-        if (summaryError) throw summaryError;
-
-        if (summary) {
-          if (!mountedRef.current) return;
-          setHealth({
-            status: castStatus(summary.status),
-            lastValidation: summary.last_validation ? new Date(summary.last_validation) : null,
-            cacheExpiration: null,
-            recentFailures: [],
-            stats: { totalCalls: 0, failedCalls: summary.failure_count_60m || 0, cacheHits: 0 },
-          });
-        }
-      } catch (fallbackErr) {
-        log.error('Email health fallback also failed', fallbackErr);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadHealth();
-
-    const channel = supabase
-      .channel('email-admin-status')
-      .on<EmailHealthSummary>(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'email_health_summary' },
-        (payload) => {
-          if (payload.new) {
-            setHealth((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    status: castStatus(payload.new.status),
-                    lastValidation: payload.new.last_validation
-                      ? new Date(payload.new.last_validation)
-                      : prev.lastValidation,
-                    stats: {
-                      ...prev.stats,
-                      failedCalls: payload.new.failure_count_60m || 0,
-                    },
-                  }
-                : null
-            );
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'email_revalidation_jobs' },
-        (payload) => {
-          const job = (payload.new || payload.old) as EmailRevalidationJob;
-          if (payload.eventType === 'INSERT') {
-            toast.info(`Nova solicitação de revalidação agendada`);
-          } else if (payload.eventType === 'UPDATE' && job.status === 'completed') {
-            toast.success(`Job ${job.id.split('-')[0]} concluído com sucesso`);
-          } else if (payload.eventType === 'UPDATE' && job.status === 'failed') {
-            toast.error(`Job ${job.id.split('-')[0]} falhou`);
-          }
-          loadHealth();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [filters]);
-
-  const [isRetrying, setIsRetrying] = useState<Record<string, boolean>>({});
-
-  const handleRevalidate = async () => {
-    const revalidatePromise = async () => {
-      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${projectUrl}/functions/v1/email-health?action=revalidate`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      await emailHealthService.forceRevalidation();
-      return data;
-    };
-
-    toast.promise(revalidatePromise(), {
-      loading: 'Agendando revalidação no backend...',
-      success: 'Revalidação agendada com sucesso!',
-      error: 'Erro ao solicitar revalidação',
-    });
-  };
-
-  const handleAction = async (action: 'markRead' | 'rpc_test', id: string) => {
-    setIsRetrying((prev) => ({ ...prev, [id]: true }));
-    try {
-      if (action === 'markRead') {
-        const { error } = await emailApi.markThreadRead(id, true);
-        if (error) throw error;
-        toast.success('Thread marcada como lida no servidor.');
-      } else if (action === 'rpc_test') {
-        const { error } = await emailApi.getTokenStatus();
-        if (error) throw error;
-        toast.success('RPC de status de token validada com sucesso.');
-      }
-      await loadHealth();
-    } catch (err: unknown) {
-      toast.error(
-        `Falha na etapa ${action}: ${err instanceof Error ? err.message : 'Erro desconhecido'}`
-      );
-    } finally {
-      setIsRetrying((prev) => ({ ...prev, [id]: false }));
-    }
-  };
-
-  const getStatusIcon = (status?: string) => {
-    switch (status) {
-      case 'healthy':
-        return <CheckCircle2 className="h-5 w-5 text-primary" />;
-      case 'degraded':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case 'error':
-        return <AlertCircle className="h-5 w-5 text-destructive" />;
-      default:
-        return <Clock className="h-5 w-5 text-muted-foreground" />;
-    }
-  };
-
-  const getStatusLabel = (status?: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'Operacional';
-      case 'degraded':
-        return 'Degradado';
-      case 'error':
-        return 'Crítico';
-      default:
-        return 'Desconhecido';
-    }
-  };
+  const {
+    accounts,
+    health,
+    filters,
+    setFilters,
+    failuresData,
+    isRetrying,
+    handleRevalidate,
+    handleAction,
+  } = useEmailHealthStatus();
 
   return (
     <div className="animate-fade-in space-y-6">
