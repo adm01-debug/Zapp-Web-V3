@@ -470,31 +470,39 @@ export function useExternalConversations(enabled = true) {
 
       if (jidsToFetch.length > 0) {
         try {
-          // Individual calls are safer as rpc_get_contacts (plural) is missing in FATOR X.
-          // We limit concurrent fetches to avoid overloading the proxy.
-          const enrichments = await Promise.all(
-            jidsToFetch.map((jid) =>
-              queryExternalProxy<any>({
-                action: 'rpc',
-                rpc: 'rpc_get_contact',
-                params: {
-                  p_remote_jid: jid,
-                  p_instance: DEFAULT_INSTANCE,
-                },
-              })
-                .then((res) => ({ jid, res }))
-                .catch(() => ({ jid, res: null }))
-            )
-          );
+          // Batch contact enrichment with controlled concurrency (5 concurrent)
+          // to avoid overloading the proxy while fetching metadata for 30 conversations
+          const BATCH_SIZE = 5;
+          const batches = [];
+          for (let i = 0; i < jidsToFetch.length; i += BATCH_SIZE) {
+            batches.push(jidsToFetch.slice(i, i + BATCH_SIZE));
+          }
 
-          enrichments.forEach(({ jid, res }) => {
-            if (res?.data) {
-              contactEnrichmentCache.set(jid, {
-                data: res.data,
-                timestamp: now,
-              });
-            }
-          });
+          for (const batch of batches) {
+            const enrichments = await Promise.all(
+              batch.map((jid) =>
+                queryExternalProxy<any>({
+                  action: 'rpc',
+                  rpc: 'rpc_get_contact',
+                  params: {
+                    p_remote_jid: jid,
+                    p_instance: DEFAULT_INSTANCE,
+                  },
+                })
+                  .then((res) => ({ jid, res }))
+                  .catch(() => ({ jid, res: null }))
+              )
+            );
+
+            enrichments.forEach(({ jid, res }) => {
+              if (res?.data) {
+                contactEnrichmentCache.set(jid, {
+                  data: res.data,
+                  timestamp: now,
+                });
+              }
+            });
+          }
         } catch (err) {
           log.warn('Failed to enrich contacts in sidebar', err);
         }
