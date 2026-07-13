@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
+import { initSentry, captureException } from "../_shared/sentry.ts";
 import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import {
   isRecord, normalizeEventName, toEventRecords,
@@ -65,6 +66,8 @@ async function isKnownInstance(supabase: any, instance: string): Promise<boolean
 }
 
 serve(async (req) => {
+  initSentry('evolution-webhook');
+
   const requestId = generateRequestId();
   const startedAt = Date.now();
   const baseHeaders = { 'Content-Type': 'application/json', 'x-request-id': requestId };
@@ -420,6 +423,16 @@ serve(async (req) => {
     // the loss is recoverable even if the audit insert itself fails.
     const detail = error instanceof Error ? error.message : String(error);
     console.error(redactSecrets(`[webhook][${requestId}] handler_error event=${event} instance=${instance}: ${detail}`));
+    await captureException(error, {
+      functionName: 'evolution-webhook',
+      requestUrl: req.url,
+      metadata: {
+        requestId,
+        event,
+        instance,
+        eventPayloadSize: rawBody?.length || 0,
+      },
+    });
     await routeToDeadLetter(supabase, {
       event_type: event, instance, payload,
       error_message: detail, error_stack: error instanceof Error ? error.stack ?? null : null,
