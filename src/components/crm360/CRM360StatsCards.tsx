@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShoppingCart, DollarSign, Truck, Package, BarChart3, Activity,
 } from 'lucide-react';
-import { useExternalSelect } from '@/hooks/useExternalDB';
+import { useExternalSelect } from '@/hooks/useExternalApiManagement';
 
 interface StatCard {
   label: string;

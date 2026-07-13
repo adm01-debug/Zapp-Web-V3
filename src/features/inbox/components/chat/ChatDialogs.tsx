@@ -2,7 +2,7 @@ import { Suspense, lazy } from 'react';
 import { log } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
 import { Conversation, Message, InteractiveMessage, LocationMessage } from '@/types/chat';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { ExternalProductCatalog } from '@/components/catalog/ExternalProductCatalog';
 
 const TransferDialog = lazy(() => import('../TransferDialog').then(m => ({ default: m.TransferDialog })));

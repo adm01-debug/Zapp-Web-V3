@@ -15,7 +15,7 @@ import { AISuggestions } from '../AISuggestions';
 import { MessageTemplates } from '../MessageTemplates';
 import { AdvancedMessageMenu } from '../AdvancedMessageMenu';
 import { ExternalProductCatalog } from '@/components/catalog/ExternalProductCatalog';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { Message } from '@/types/chat';
 import {
   Package,

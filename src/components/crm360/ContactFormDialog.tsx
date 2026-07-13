@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useExternalMutation } from '@/hooks/useExternalDB';
+import { useExternalMutation } from '@/hooks/useExternalApiManagement';
 import { toast } from 'sonner';
 import { Users, Save, Loader2 } from 'lucide-react';
 

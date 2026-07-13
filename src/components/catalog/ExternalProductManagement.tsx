@@ -25,7 +25,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useExternalCatalog, ExternalProduct } from '@/hooks/useExternalCatalog';
+import { useExternalCatalog, ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { ExternalProductCard } from './ExternalProductCard';
 import { SendProductDialog } from './SendProductDialog';
 

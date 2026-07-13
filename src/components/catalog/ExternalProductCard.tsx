@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Package, Send, Eye, Palette } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { ProductDetailDialog } from './ProductDetailDialog';
 
 interface ExternalProductCardProps {
