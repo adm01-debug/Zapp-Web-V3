@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import type { ExtendedDatabase } from './types-manual';
+import { cookieStorage } from './cookieStorage';
 
 // Re-export so callers that need the specific type can use it
 export type { Database, ExtendedDatabase };
@@ -19,9 +20,17 @@ const SELF_HOSTED_ANON_KEY =
 // Hardened configuration detection
 // ---------------------------------------------------------------------------
 const PLACEHOLDER_TOKENS = new Set([
-  'undefined', 'null', 'missing-anon-key', 'your-anon-key', 'your-project-url',
-  'your-supabase-url', 'your-supabase-anon-key', 'your_supabase_url',
-  'your_supabase_anon_key', 'changeme', 'todo',
+  'undefined',
+  'null',
+  'missing-anon-key',
+  'your-anon-key',
+  'your-project-url',
+  'your-supabase-url',
+  'your-supabase-anon-key',
+  'your_supabase_url',
+  'your_supabase_anon_key',
+  'changeme',
+  'todo',
 ]);
 const SENTINEL_HOST = 'supabase-unconfigured.invalid';
 
@@ -45,23 +54,18 @@ function isValidSupabaseKey(value: unknown): boolean {
 
 const envUrl = import.meta.env.VITE_SUPABASE_URL;
 const envKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const isLovableCloudUrl =
-  typeof envUrl === 'string' && envUrl.includes('.supabase.co');
+const isLovableCloudUrl = typeof envUrl === 'string' && envUrl.includes('.supabase.co');
 
-const SUPABASE_URL =
-  !isLovableCloudUrl && isValidSupabaseUrl(envUrl)
-    ? envUrl
-    : SELF_HOSTED_URL;
+const SUPABASE_URL = !isLovableCloudUrl && isValidSupabaseUrl(envUrl) ? envUrl : SELF_HOSTED_URL;
 
 const SUPABASE_ANON_KEY =
   SUPABASE_URL === SELF_HOSTED_URL
     ? SELF_HOSTED_ANON_KEY
     : isValidSupabaseKey(envKey)
-    ? envKey
-    : SELF_HOSTED_ANON_KEY;
+      ? envKey
+      : SELF_HOSTED_ANON_KEY;
 
 export const isSupabaseConfigured =
   isValidSupabaseUrl(SUPABASE_URL) && isValidSupabaseKey(SUPABASE_ANON_KEY);
@@ -90,8 +94,8 @@ if (!isSupabaseConfigured) {
   if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
     console.warn(
       '[Supabase] ATENÇÃO: usando credenciais hardcoded (fallback). ' +
-      'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
-      'e rotacione a anon key para remover a exposição do source control.'
+        'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
+        'e rotacione a anon key para remover a exposição do source control.'
     );
   } else if (import.meta.env.DEV) {
     console.warn(
@@ -106,7 +110,7 @@ const supabaseAnonKey = isSupabaseConfigured ? SUPABASE_ANON_KEY : 'missing-anon
 const getSupabaseStorage = () => {
   if (typeof window === 'undefined') return undefined;
   try {
-    return window.localStorage;
+    return cookieStorage;
   } catch {
     return undefined;
   }
@@ -115,22 +119,18 @@ const getSupabaseStorage = () => {
 const realtimeReconnectAfterMs = (tries: number): number =>
   Math.min(1000 * 2 ** Math.max(0, tries - 1), 30000);
 
-export const supabase = createClient<ExtendedDatabase>(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      storage: getSupabaseStorage(),
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce'
-    },
-    realtime: {
-      reconnectAfterMs: realtimeReconnectAfterMs
-    }
-  }
-);
+export const supabase = createClient<ExtendedDatabase>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: getSupabaseStorage(),
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
+  realtime: {
+    reconnectAfterMs: realtimeReconnectAfterMs,
+  },
+});
 
 if (!isSupabaseConfigured) {
   const originalChannel = supabase.channel.bind(supabase);

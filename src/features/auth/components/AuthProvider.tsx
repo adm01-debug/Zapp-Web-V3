@@ -5,6 +5,7 @@ import { authService, Profile } from '../services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '../context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
 
 /**
  * Componente central que fornece o estado de autenticação para toda a aplicação.
@@ -114,18 +115,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    // Verify that auth tokens are stored in httpOnly cookies (XSS-resistant)
+    if (!verifyHttpOnlyCookieAuth()) {
+      log.error('[Auth] Security check failed: httpOnly cookies not properly configured');
+    }
+
     const subscription = authService.onAuthStateChange((event, session) => {
       log.info(`[Auth] Event: ${event}`);
 
-      if (event === 'TOKEN_REFRESHED' && !session) {
-        try {
-          Object.keys(localStorage)
-            .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
-            .forEach((k) => localStorage.removeItem(k));
-        } catch (e) {
-          log.warn('[Auth] Failed to clear stale auth tokens', e);
-        }
-      }
+      // Token cleanup is now handled server-side via httpOnly cookie management.
+      // No client-side localStorage manipulation needed.
 
       setSession(session);
       setUser(session?.user ?? null);

@@ -28,6 +28,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { ExtendedDatabase } from './types-manual';
 import { supabase } from './client';
+import { cookieStorage } from './cookieStorage';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('externalClient');
@@ -76,6 +77,7 @@ export function getIsExternalConfigured(): boolean {
 export let externalSupabase: SupabaseClient<ExtendedDatabase> = isExternalConfigured
   ? createClient<ExtendedDatabase>(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
       auth: {
+        storage: cookieStorage,
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: false,
@@ -104,6 +106,7 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
 
   externalSupabase = createClient<ExtendedDatabase>(url, key, {
     auth: {
+      storage: cookieStorage,
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: false,
