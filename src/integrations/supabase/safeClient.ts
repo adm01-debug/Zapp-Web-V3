@@ -55,10 +55,6 @@ function validateTableName(table: string): void {
   }
 }
 
-/**
- * safeFrom — synchronous access to the Supabase query builder for a dynamic
- * table name, bypassing the union of string-literals generated in `types.ts`.
- */
 export function safeFrom(table: string): SafeQueryBuilder {
   return (supabase as unknown as DynamicSupabaseClient).from(table);
 }
@@ -193,12 +189,7 @@ export const safeClient = {
     }
   },
 
-  /**
-   * Verifica se um RPC ou Tabela existe no schema público com cache.
-   *
-   * 401/403/permission_denied = resource EXISTS, role lacks access (pre-auth anon).
-   * "does not exist" / 42P01 / 42883 = resource truly absent.
-   */
+  // 401/403/permission_denied = resource EXISTS, role lacks access; 42P01/42883 = truly absent.
   async validateResource(name: string, type: 'function' | 'table' = 'table'): Promise<boolean> {
     const cacheKey = `${type}:${name}`;
     const cached = resourceCache.get(cacheKey);
@@ -263,10 +254,7 @@ export const safeClient = {
     }
   },
 
-  /**
-   * Sincroniza estado de saúde com o banco.
-   * Uses supabase.rpc() directly (NOT this.rpc()) to avoid recordFailure() recursion.
-   */
+  // Uses supabase.rpc() directly — NOT this.rpc() — to avoid recordFailure() recursion.
   async syncHealthState() {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
@@ -327,10 +315,7 @@ export const safeClient = {
     return _applyMasking(str);
   },
 
-  /**
-   * Registra falha na telemetria.
-   * Uses supabase.rpc() directly to prevent the recordFailure() → rpc() → recordFailure() recursion.
-   */
+  // Uses supabase.rpc() directly — NOT this.rpc() — to prevent recordFailure() → rpc() → recordFailure() recursion.
   async recordFailure(requestId: string, operation: string, resource: string, error: string) {
     const record: FailureRecord = {
       requestId,
