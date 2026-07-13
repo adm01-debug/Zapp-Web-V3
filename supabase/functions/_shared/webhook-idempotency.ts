@@ -1,133 +1,178 @@
-import { v4 as uuidv4 } from "https://deno.land/std@0.208.0/uuid/mod.ts";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { Logger } from "./validation.ts";
 
 /**
- * Webhook Idempotency Handler
- *
- * Ensures webhook payloads are processed exactly-once even if delivered multiple times.
- * Supports multiple sources of idempotency keys:
- * - X-Idempotency-Key header (standard pattern)
- * - X-Webhook-Delivery-Id header (GitHub/Meta pattern)
- * - Payload event_id field
- * - Generated request ID as fallback
- *
- * Usage:
- *   const idempotencyKey = extractIdempotencyKey(req, payload);
- *   const isDuplicate = await checkAndMarkIdempotent(supabase, idempotencyKey, context);
- *   if (isDuplicate) return { success: true, duplicate: true };
+ * Webhook idempotency tracker
+ * Prevents duplicate processing of the same webhook event
  */
 
-export function extractIdempotencyKey(
-  req: Request,
-  payload?: Record<string, unknown>
-): string {
-  const headers = req.headers;
-
-  // Try standard idempotency header first
-  const headerKey = headers.get("x-idempotency-key");
-  if (headerKey) return headerKey;
-
-  // Try webhook delivery ID (GitHub, Meta pattern)
-  const deliveryId = headers.get("x-webhook-delivery-id") || headers.get("x-delivery-id");
-  if (deliveryId) return deliveryId;
-
-  // Try event ID from payload
-  if (payload?.event_id && typeof payload.event_id === "string") {
-    return payload.event_id;
-  }
-
-  // Fallback: generate unique ID
-  return `webhook-${uuidv4()}`;
+export interface IdempotencyCheckResult {
+  isNew: boolean;
+  id: string;
+  alreadyProcessed: boolean;
 }
 
-interface IdempotencyContext {
-  webhookType: string;
-  instance?: string;
-  userId?: string;
-  timestamp?: number;
-}
-
-export async function checkAndMarkIdempotent(
-  supabase: any,
-  idempotencyKey: string,
-  context: IdempotencyContext
-): Promise<{
-  isDuplicate: boolean;
-  processedAt?: string;
-}> {
+/**
+ * Check if webhook has been processed before
+ * Returns immediately if already processed
+ * Creates new idempotency record if new
+ */
+export async function checkWebhookIdempotency(
+  supabase: SupabaseClient,
+  source: string,
+  webhookId: string,
+  log: Logger
+): Promise<IdempotencyCheckResult> {
   try {
-    // Check if already processed
+    // Check if webhook already processed
     const { data: existing, error: selectError } = await supabase
-      .from("webhook_idempotency_keys")
-      .select("processed_at")
-      .eq("idempotency_key", idempotencyKey)
-      .eq("webhook_type", context.webhookType)
-      .maybeSingle();
+      .from("webhook_idempotency")
+      .select("id, status")
+      .eq("source", source)
+      .eq("webhook_id", webhookId)
+      .single();
 
     if (selectError && selectError.code !== "PGRST116") {
-      console.error(
-        `[idempotency] select error for key=${idempotencyKey.slice(0, 16)}…:`,
-        selectError
-      );
-      return { isDuplicate: false };
+      // PGRST116 = not found, which is expected for new webhooks
+      log.warn("Error checking webhook idempotency", {
+        source,
+        webhookId,
+        error: selectError.message,
+      });
     }
 
     if (existing) {
-      console.debug(
-        `[idempotency] duplicate detected: key=${idempotencyKey.slice(0, 16)}… processed at ${existing.processed_at}`
-      );
-      return { isDuplicate: true, processedAt: existing.processed_at };
+      log.info("Webhook already processed", {
+        source,
+        webhookId,
+        status: existing.status,
+      });
+      return {
+        isNew: false,
+        id: existing.id,
+        alreadyProcessed: existing.status === "success",
+      };
     }
 
-    // Mark as processed
-    const now = new Date().toISOString();
-    const { error: insertError } = await supabase
-      .from("webhook_idempotency_keys")
+    // Create new idempotency record
+    const { data: created, error: insertError } = await supabase
+      .from("webhook_idempotency")
       .insert({
-        idempotency_key: idempotencyKey,
-        webhook_type: context.webhookType,
-        instance_name: context.instance || null,
-        user_id: context.userId || null,
-        processed_at: now,
-      });
+        source,
+        webhook_id: webhookId,
+        status: "processing",
+      })
+      .select("id")
+      .single();
 
     if (insertError) {
-      console.error(
-        `[idempotency] insert error for key=${idempotencyKey.slice(0, 16)}…:`,
-        insertError
-      );
-      return { isDuplicate: false };
+      // Unique constraint violation means another process inserted first
+      // Check again in that case
+      if (insertError.code === "23505") {
+        log.warn("Race condition: webhook already exists", {
+          source,
+          webhookId,
+        });
+        return checkWebhookIdempotency(supabase, source, webhookId, log);
+      }
+
+      log.error("Failed to create webhook idempotency record", {
+        source,
+        webhookId,
+        error: insertError.message,
+      });
+      throw insertError;
     }
 
-    return { isDuplicate: false };
+    log.info("Created webhook idempotency record", {
+      source,
+      webhookId,
+      id: created.id,
+    });
+
+    return {
+      isNew: true,
+      id: created.id,
+      alreadyProcessed: false,
+    };
   } catch (error) {
-    console.error(
-      `[idempotency] exception checking key=${idempotencyKey.slice(0, 16)}…:`,
-      error
-    );
-    // Fail open — allow processing on error rather than blocking
-    return { isDuplicate: false };
+    log.error("Webhook idempotency check failed", {
+      source,
+      webhookId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
 }
 
 /**
- * Cleanup old idempotency keys (run in scheduled job)
- * Keep keys for 24 hours to catch retries
+ * Mark webhook as successfully processed
  */
-export async function cleanupOldIdempotencyKeys(
-  supabase: any,
-  maxAgeHours: number = 24
-): Promise<number> {
-  const cutoffTime = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).toISOString();
+export async function markWebhookProcessed(
+  supabase: SupabaseClient,
+  idempotencyId: string,
+  log: Logger
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("webhook_idempotency")
+      .update({
+        status: "success",
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", idempotencyId);
 
-  const { data, error } = await supabase
-    .from("webhook_idempotency_keys")
-    .delete()
-    .lt("processed_at", cutoffTime);
+    if (error) {
+      log.error("Failed to mark webhook as processed", {
+        idempotencyId,
+        error: error.message,
+      });
+      throw error;
+    }
 
-  if (error) {
-    console.error("[idempotency-cleanup] delete error:", error);
-    return 0;
+    log.info("Marked webhook as processed", { idempotencyId });
+  } catch (error) {
+    log.error("Failed to update webhook status", {
+      idempotencyId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
+}
 
-  return (data as any[])?.length ?? 0;
+/**
+ * Mark webhook processing as failed
+ */
+export async function markWebhookFailed(
+  supabase: SupabaseClient,
+  idempotencyId: string,
+  errorMessage: string,
+  log: Logger
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("webhook_idempotency")
+      .update({
+        status: "failed",
+        error_message: errorMessage,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", idempotencyId);
+
+    if (error) {
+      log.error("Failed to mark webhook as failed", {
+        idempotencyId,
+        error: error.message,
+      });
+      throw error;
+    }
+
+    log.info("Marked webhook as failed", { idempotencyId, errorMessage });
+  } catch (error) {
+    log.error("Failed to update webhook failure status", {
+      idempotencyId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }
