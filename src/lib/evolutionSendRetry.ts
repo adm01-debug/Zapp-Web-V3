@@ -41,7 +41,7 @@ const TRANSIENT_PATTERNS = [
 // Word-boundary regex avoids false matches like '5024' or URLs containing these codes.
 const TRANSIENT_STATUS_IN_MSG_RE = /\b(429|502|503|504)\b/;
 
-function isTransient(err: unknown): boolean {
+export function isTransient(err: unknown): boolean {
   if (!err) return false;
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
