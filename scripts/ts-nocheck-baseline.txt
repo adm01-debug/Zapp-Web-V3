@@ -1,3 +1,7 @@
+src/components/compliance/LGPDComplianceView.tsx
+src/components/connections/ConnectionsView.tsx
+src/components/connections/InstanceSettingsDialog.tsx
 src/hooks/useGmailOAuthFlow.ts
 src/hooks/useUserSettings.ts
+src/integrations/supabase/schema.ts
 src/lib/audit.ts
