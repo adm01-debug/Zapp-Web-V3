@@ -1,14 +1,17 @@
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { Wand2, Loader2, Play, Square, Check, Volume2, ShieldAlert } from 'lucide-react';
+import { Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ELEVENLABS_VOICES, type ElevenLabsVoice } from './VoiceSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import {
+  VoiceChangerHeader,
+  CloneWarningPanel,
+  VoiceListItem,
+  VoiceChangerFooter,
+} from './voiceChangerParts';
 
 interface VoiceChangerProps {
   audioBlob?: Blob;
@@ -69,14 +72,11 @@ export const VoiceChanger = memo(function VoiceChanger({
       progressIntervalRef.current = null;
     }
     if (convertedAudioUrl) {
-      // Don't revoke here if we want to keep it while the popover is open
-      // URL.revokeObjectURL(convertedAudioUrl);
       setConvertedAudioUrl(null);
     }
   }, [stopPlayback, convertedAudioUrl]);
 
   const handleConvert = async (voice: ElevenLabsVoice, retryCount = 0) => {
-    // Check if it's a "cloned" voice (placeholder logic - usually based on ID prefix or metadata)
     const isCloned =
       voice.id.startsWith('cloned_') ||
       voice.description.toLowerCase().includes('celebridade') ||
@@ -105,7 +105,6 @@ export const VoiceChanger = memo(function VoiceChanger({
 
       if (!activeBlob) throw new Error('Áudio base não encontrado');
 
-      // 1. Create or get task in queue
       let taskId = activeTaskId;
 
       if (!taskId) {
@@ -133,7 +132,6 @@ export const VoiceChanger = memo(function VoiceChanger({
         setActiveTaskId(taskId);
       }
 
-      // 2. Start STS via Edge Function
       const progressSteps = [15, 40, 65, 85];
       let currentStep = 0;
       progressIntervalRef.current = setInterval(() => {
@@ -183,7 +181,6 @@ export const VoiceChanger = memo(function VoiceChanger({
       toast.success(`Voz convertida para ${voice.name}!`);
       setShowCloneWarning(false);
 
-      // Update telemetry for successful local delivery
       void safeClient.rpc('record_voice_telemetry', {
         p_queue_id: taskId,
         p_duration_ms: Date.now() - conversionStartTime,
@@ -193,7 +190,6 @@ export const VoiceChanger = memo(function VoiceChanger({
       const msg = error instanceof Error ? error.message : 'Erro desconhecido';
       const conversionDuration = Date.now() - conversionStartTime;
 
-      // Update telemetry for local failure
       void safeClient.rpc('record_voice_telemetry', {
         p_queue_id: activeTaskId || '00000000-0000-0000-0000-000000000000',
         p_duration_ms: conversionDuration,
@@ -238,11 +234,10 @@ export const VoiceChanger = memo(function VoiceChanger({
   const proceedWithClonedVoice = useCallback(() => {
     setShowCloneWarning(false);
     if (selectedVoice) handleConvert(selectedVoice);
-  }, [selectedVoice, handleConvert]);
+  }, [selectedVoice]);
 
   const handleConfirm = useCallback(() => {
     if (!convertedAudioUrl) return;
-
     fetch(convertedAudioUrl)
       .then((r) => r.blob())
       .then((blob) => {
@@ -290,155 +285,34 @@ export const VoiceChanger = memo(function VoiceChanger({
         side="top"
         sideOffset={8}
       >
-        {/* Header */}
-        <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
-          <Wand2 className="h-4 w-4 text-primary" />
-          <h4 className="text-sm font-semibold text-foreground">Alterar Voz</h4>
-          {isConverting && (
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-[10px] text-primary">{conversionProgress}%</span>
-              <Loader2 className="h-3 w-3 animate-spin text-primary" />
-            </div>
-          )}
-        </div>
+        <VoiceChangerHeader isConverting={isConverting} conversionProgress={conversionProgress} />
 
-        {/* Clone Warning */}
-        <AnimatePresence>
-          {showCloneWarning && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="border-b border-warning/20 bg-warning/10 p-3"
-            >
-              <Alert variant="default" className="border-none bg-transparent p-0">
-                <ShieldAlert className="h-4 w-4 text-warning-foreground" />
-                <AlertTitle className="text-xs font-bold text-warning-foreground">
-                  Aviso de Voz Clonada
-                </AlertTitle>
-                <AlertDescription className="text-[10px] leading-relaxed text-warning-foreground">
-                  Esta voz parece ser uma voz clonada ou celebridade. Certifique-se de ter
-                  autorização legal para uso comercial ou pessoal desta imagem/voz.
-                </AlertDescription>
-              </Alert>
-              <div className="mt-2 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 flex-1 text-[9px]"
-                  onClick={() => setShowCloneWarning(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-6 flex-1 bg-warning text-[9px] hover:bg-warning"
-                  onClick={proceedWithClonedVoice}
-                >
-                  Eu tenho autorização
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <CloneWarningPanel
+          show={showCloneWarning}
+          onCancel={() => setShowCloneWarning(false)}
+          onConfirm={proceedWithClonedVoice}
+        />
 
-        {/* Voice list */}
         <div className="scrollbar-thin scrollbar-thumb-muted max-h-[280px] overflow-y-auto p-1.5">
-          {ELEVENLABS_VOICES.map((voice) => {
-            const isSelected = selectedVoice?.id === voice.id;
-            const isLoading = isConverting && isSelected;
-
-            return (
-              <button
-                key={voice.id}
-                data-testid={`voice-btn-${voice.id}`}
-                onClick={() => !isConverting && handleConvert(voice)}
-                disabled={isConverting}
-                className={cn(
-                  'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
-                  isSelected
-                    ? 'border border-primary/20 bg-primary/10'
-                    : 'border border-transparent hover:bg-muted/60',
-                  isConverting && !isSelected && 'cursor-not-allowed opacity-50'
-                )}
-              >
-                {/* Status indicator */}
-                <div
-                  className={cn(
-                    'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors',
-                    isSelected ? 'bg-primary/20' : 'bg-muted'
-                  )}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                  ) : isSelected && convertedAudioUrl ? (
-                    <Check className="h-3.5 w-3.5 text-primary" />
-                  ) : (
-                    <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                </div>
-
-                {/* Voice info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-foreground">{voice.name}</span>
-                    <span
-                      className={cn(
-                        'rounded px-1 py-0.5 text-[9px]',
-                        voice.gender === 'female'
-                          ? 'bg-destructive/10 text-destructive'
-                          : 'bg-info/10 text-info'
-                      )}
-                    >
-                      {voice.gender === 'female' ? '♀' : '♂'}
-                    </span>
-                  </div>
-                  <span className="block truncate text-[11px] text-muted-foreground">
-                    {voice.description}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+          {ELEVENLABS_VOICES.map((voice) => (
+            <VoiceListItem
+              key={voice.id}
+              voice={voice}
+              isSelected={selectedVoice?.id === voice.id}
+              isConverting={isConverting}
+              convertedAudioUrl={convertedAudioUrl}
+              onClick={() => !isConverting && handleConvert(voice)}
+            />
+          ))}
         </div>
 
-        {/* Footer with preview and confirm */}
-        <AnimatePresence>
-          {convertedAudioUrl && selectedVoice && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-border"
-            >
-              <div className="flex items-center gap-2 px-3 py-2.5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-foreground"
-                  onClick={togglePlayback}
-                  aria-label={isPlaying ? 'Parar prévia' : 'Ouvir prévia'}
-                >
-                  {isPlaying ? (
-                    <Square className="h-3.5 w-3.5" />
-                  ) : (
-                    <Play className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-                <span className="flex-1 text-xs text-muted-foreground">
-                  Voz: <span className="font-medium text-foreground">{selectedVoice.name}</span>
-                </span>
-                <Button
-                  size="sm"
-                  className="h-7 bg-primary text-xs hover:bg-primary/90"
-                  onClick={handleConfirm}
-                >
-                  Usar esta voz
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <VoiceChangerFooter
+          show={Boolean(convertedAudioUrl && selectedVoice)}
+          selectedVoiceName={selectedVoice?.name ?? ''}
+          isPlaying={isPlaying}
+          onTogglePlayback={togglePlayback}
+          onConfirm={handleConfirm}
+        />
       </PopoverContent>
     </Popover>
   );
