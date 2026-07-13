@@ -97,8 +97,6 @@ export function useFileUploadLogic(opts: {
     const formData = new FormData();
     formData.append('file', fileToUpload);
     formData.append('bucket', 'whatsapp-media');
-
-    // Edge Function: secure-upload (with VirusTotal middleware)
     const { data, error } = await supabase.functions.invoke('secure-upload', {
       body: formData,
     });
