@@ -50,12 +50,27 @@ export interface QueueMetrics {
   byConversation: Record<string, { sent: number; failed: number; latency: number[] }>;
 }
 
+export interface MessageQueueController {
+  queue: QueueItem[];
+  addToQueue: (
+    contactId: string,
+    content: string,
+    attachments?: File[],
+    type?: QueueItem['type']
+  ) => void;
+  retryMessage: (id: string) => void;
+  updateProgress: (id: string, progress: number) => void;
+  reconcileWithDelivery: (contactId: string, externalId: string, status: 'confirmed' | 'failed') => void;
+  getMetrics: () => QueueMetrics;
+  removeFromQueue: (id: string) => void;
+}
+
 const MAX_CONCURRENT_SENDS = 5;
 
 export function useMessageQueue(
   processMessage: (item: QueueItem) => Promise<void>,
   configOverrides?: Partial<Record<string, Partial<QueueConfig>>>
-) {
+): MessageQueueController {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const isProcessingRef = useRef<Record<string, boolean>>({});
   const activeTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());

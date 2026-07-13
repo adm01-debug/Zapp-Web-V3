@@ -91,43 +91,21 @@ export function ChatPanel(props: ChatPanelProps) {
     handleQuickReply,
     handleKeyDown,
     handleInputChange,
-  } = useChatQuickReplyControl({
-    inputValue: handlers.inputValue,
-    dbQuickReplies,
-    quickRepliesOpen: dialogs.quickReplies,
-    openQuickReplies: () => openDialog('quickReplies'),
-    closeQuickReplies: () => closeDialog('quickReplies'),
-    slashCommandsOpen: dialogs.slashCommands,
-    setInputValue: handlers.setInputValue,
-    focusInput: () => handlers.inputRef.current?.focus(),
-    incrementUseCount,
-    baseHandleInputChange: handlers.handleInputChange,
-    baseHandleKeyDown: handlers.handleKeyDown,
-  });
-
-  // Stable refs for ChatMessagesArea to prevent re-renders on input change
-  const contactJid = useMemo(
-    () => (conversation.contact.phone ? `${conversation.contact.phone}@s.whatsapp.net` : ''),
-    [conversation.contact.phone]
-  );
-  const contactAvatar = conversation.contact.avatar || undefined;
-  const handleScrollToMessage = useCallback(
-    (id: string) => messagesAreaRef.current?.scrollToMessage(id),
-    []
-  );
-
-  const { transferConversation: handleTransfer } = useTransferConversation({
-    contactId: conversation.contact.id,
-    whatsappConnectionId: whatsappConnectionId ?? undefined,
-  });
-
-  const handleScheduleMessage = useChatScheduleMessage({
-    contactId: conversation.contact.id,
-    scheduleMessage,
-    onDone: () => closeDialog('scheduleDialog'),
-  });
-
-  const _ambient = useAmbientColor(conversation.sentiment);
+    contactJid,
+    contactAvatar,
+    handleScrollToMessage,
+    handleTransfer,
+    handleScheduleMessage,
+    handlePollSent,
+    handleContactSent,
+    onSendAudio,
+    onLoadOlder,
+    onCancelLoadOlder,
+    loadingOlder,
+    hasMoreOlder,
+    isLoading,
+    messageQueue,
+  } = useChatPanel(props);
 
   return (
     <div
@@ -324,9 +302,7 @@ export function ChatPanel(props: ChatPanelProps) {
           onOpenTeamFiles={() => handleSetActiveTool('teamFiles')}
           fileUploaderRef={fileUploaderRef}
           inputRef={handlers.inputRef}
-          queue={messageQueue?.queue}
-          onRetry={messageQueue?.retryMessage}
-          onRemoveFromQueue={messageQueue?.removeFromQueue}
+          queue={messageQueue}
         />
 
         <ChatDialogs
@@ -358,7 +334,7 @@ export function ChatPanel(props: ChatPanelProps) {
       <ChatMonitoringDialog
         open={activeTool === 'monitoring'}
         onOpenChange={(open) => !open && handleSetActiveTool(null)}
-        metrics={messageQueue?.getMetrics()}
+        metrics={undefined}
       />
     </div>
   );

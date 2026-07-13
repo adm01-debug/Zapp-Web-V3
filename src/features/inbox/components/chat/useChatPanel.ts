@@ -11,7 +11,7 @@ import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
-import type { QueueItem } from '@/features/inbox/hooks/useMessageQueue';
+import type { MessageQueueController } from '@/features/inbox/hooks/useMessageQueue';
 import { useChatMediaSending } from '../../hooks/useChatMediaSending';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatMessagesAreaRef } from './ChatMessagesArea';
@@ -44,7 +44,7 @@ export interface ChatPanelProps extends LoadOlderProps {
   onHighlightConsumed?: () => void;
   whisperCount?: number;
   isLoading?: boolean;
-  messageQueue?: QueueItem[];
+  messageQueue?: MessageQueueController;
 }
 
 export function useChatPanel({
@@ -52,10 +52,14 @@ export function useChatPanel({
   messages,
   onSendMessage,
   onSendAudio,
+  showDetails = false,
+  onToggleDetails,
+  onBack,
+  hideHeader = false,
   initialHighlightMessageId,
   onHighlightConsumed,
   isLoading = false,
-  messageQueue,
+  messageQueue: messageQueueController,
   onLoadOlder,
   onCancelLoadOlder,
   loadingOlder = false,
@@ -296,6 +300,12 @@ export function useChatPanel({
   );
 
   return {
+    conversation,
+    messages,
+    showDetails,
+    onToggleDetails,
+    onBack,
+    hideHeader,
     isDevExact,
     dialogs,
     openDialog,
@@ -365,6 +375,6 @@ export function useChatPanel({
     loadingOlder,
     hasMoreOlder,
     isLoading,
-    messageQueue,
+    messageQueue: messageQueueController?.queue ?? [],
   };
 }

@@ -35,7 +35,13 @@ import { InputPreviewBars } from './InputPreviewBars';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
-import type { QueueItem } from '@/features/inbox/hooks/useMessageQueue';
+import { asRef } from '@/lib/react-refs';
+
+function getQueueErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Erro desconhecido no envio.';
+}
 
 interface QuickReplyItem {
   id: string;
@@ -349,7 +355,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                       </span>
                       {item.error && (
                         <span className="line-clamp-1 text-[9px] italic text-destructive/80">
-                          {item.error?.message || String(item.error)}
+                          {getQueueErrorMessage(item.error)}
                         </span>
                       )}
                     </div>
@@ -548,7 +554,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               </AnimatePresence>
 
               <textarea
-                ref={inputRef as any}
+                ref={asRef(inputRef)}
                 value={inputValue}
                 onChange={(e) => {
                   onInputChange(e);

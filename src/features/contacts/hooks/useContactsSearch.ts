@@ -179,7 +179,7 @@ export function useContactsSearch() {
         }
       );
       if (error) throw error;
-      return data as (Contact & { total_count: number })[];
+      return Array.isArray(data) ? (data as unknown as (Contact & { total_count: number })[]) : [];
     },
   });
 

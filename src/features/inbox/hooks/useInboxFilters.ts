@@ -3,7 +3,7 @@ import { parseISO } from 'date-fns';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { InboxFiltersState } from '@/features/inbox';
 import { ConversationWithMessages } from '@/features/inbox';
-import { MainTab, SubTab } from '@/features/inbox';
+import { MainTab, SubTab, type InboxScope } from '@/features/inbox';
 import { useFailureMetricsBatch, type FailureCategory } from '@/features/inbox';
 import { useAllTicketStates } from '@/features/inbox';
 import { usePermissions } from '@/features/auth';
@@ -35,11 +35,13 @@ export function useInboxFilters({
     const params = new URLSearchParams(window.location.search);
     return params.get('showAll') === 'true' || localStorage.getItem('inbox_show_all') === 'true';
   });
-  const [scope, setScope] = useState<string>(() => {
+  const [scope, setScope] = useState<InboxScope>(() => {
     const params = new URLSearchParams(window.location.search);
     const scopeParam = params.get('scope');
-    if (scopeParam) return scopeParam;
-    return localStorage.getItem('inbox_scope') || 'mine';
+    const storedScope = scopeParam || localStorage.getItem('inbox_scope');
+    return storedScope === 'department' || storedScope === 'all' || storedScope === 'mine'
+      ? storedScope
+      : 'mine';
   });
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [departmentAgentIds, setDepartmentAgentIds] = useState<string[]>([]);

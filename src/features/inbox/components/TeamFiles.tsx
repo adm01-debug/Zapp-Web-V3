@@ -55,7 +55,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       );
 
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 

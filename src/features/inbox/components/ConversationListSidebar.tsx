@@ -33,50 +33,9 @@ import { WhatsAppConnectionStatus } from '@/features/connections';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { toast } from 'sonner';
 
-interface InboxState {
-  conversations: Array<Record<string, unknown>>;
-  allConversations?: Array<Record<string, unknown>>;
-  cachedConversations?: Array<Record<string, unknown>>;
-  selectedContactId: string | null;
-  handleSelectConversation: (id: string) => void;
-  setSearch: (value: string) => void;
-  loading: boolean;
-  sortBy: string;
-  setSortBy: (value: string) => void;
-  refetch: () => void;
-}
-
-interface InboxFiltersState {
-  filteredConversations: Array<{ contact: { id: string } }>;
-  selectedContactType: string;
-  handleContactTypeChange: (value: string) => void;
-  showOnlyRetrying: boolean;
-  failureCategoryFilter: string;
-  setFailureCategoryFilter: (value: string) => void;
-  failureCategoryCounts: Record<string, number>;
-  mainTab: string;
-  subTab: string;
-  setMainTab: (value: string) => void;
-  setSubTab: (value: string) => void;
-  showAll: boolean;
-  setShowAll: (value: boolean) => void;
-  scope: string;
-  setScope: (value: string) => void;
-  selectedQueueId: string;
-  setSelectedQueueId: (value: string) => void;
-  filters: { agentId?: string; [key: string]: unknown };
-  setFilters: (filters: { agentId?: string; [key: string]: unknown }) => void;
-  departmentAgentIds: string[];
-}
-
-interface BulkActionsState {
-  selectedIds: Set<string>;
-  bulkMarkAsRead: () => void;
-  bulkTransfer: () => void;
-  bulkArchive: () => void;
-  clearSelection: () => void;
-  bulkLoading: boolean;
-}
+type InboxState = ReturnType<typeof useRealtimeInbox>;
+type InboxFiltersState = ReturnType<typeof useInboxFilters>;
+type BulkActionsState = ReturnType<typeof useInboxBulkActions>;
 
 interface PullToRefreshState {
   isRefreshing: boolean;
@@ -187,7 +146,14 @@ export function ConversationListSidebar({
             </div>
 
             <div className="flex items-center gap-0.5">
-              <Select value={inbox.sortBy} onValueChange={inbox.setSortBy}>
+              <Select
+                value={inbox.sortBy}
+                onValueChange={(value) => {
+                  if (value === 'lastMessage' || value === 'unread' || value === 'name') {
+                    inbox.setSortBy(value);
+                  }
+                }}
+              >
                 <SelectTrigger className="h-7 w-auto gap-1.5 rounded-lg border-none bg-transparent px-2 text-[11px] font-medium hover:bg-muted/60 focus:ring-0">
                   <SelectValue placeholder="Ordenar" />
                 </SelectTrigger>
@@ -212,7 +178,7 @@ export function ConversationListSidebar({
             <ContactTypeFilter
               value={inboxFilters.selectedContactType}
               onChange={inboxFilters.handleContactTypeChange}
-              conversations={inbox.cachedConversations}
+              conversations={inbox.cachedConversations ?? []}
             />
           </div>
 
@@ -239,7 +205,7 @@ export function ConversationListSidebar({
             )}
           >
             <TicketTabs
-              conversations={inbox.allConversations || inbox.conversations}
+              conversations={inbox.conversations}
               mainTab={inboxFilters.mainTab}
               subTab={inboxFilters.subTab}
               onMainTabChange={inboxFilters.setMainTab}
@@ -252,7 +218,7 @@ export function ConversationListSidebar({
               onQueueChange={inboxFilters.setSelectedQueueId}
               contactType={inboxFilters.selectedContactType}
               onContactTypeChange={inboxFilters.handleContactTypeChange}
-              selectedAgentId={inboxFilters.filters.agentId}
+              selectedAgentId={inboxFilters.filters.agentId ?? undefined}
               onAgentChange={(agentId) =>
                 inboxFilters.setFilters({ ...inboxFilters.filters, agentId })
               }

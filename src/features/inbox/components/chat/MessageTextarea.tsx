@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import type { Message } from '@/types/chat';
 import { MentionAutocomplete, useMentions } from './MentionAutocomplete';
 import { MarkdownPreview } from './MarkdownPreview';
+import { asRef } from '@/lib/react-refs';
 
 interface MessageTextareaProps {
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -83,7 +84,7 @@ export function MessageTextarea({
       </AnimatePresence>
 
       <textarea
-        ref={inputRef}
+        ref={asRef(inputRef)}
         value={inputValue}
         onChange={(e) => {
           onInputChange(e);

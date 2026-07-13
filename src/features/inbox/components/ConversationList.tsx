@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ConversationItem } from './conversation-list/ConversationItem';
+import type { ConversationItemData } from './conversation-list/conversationItemShared';
 import { ConversationContextMenu } from './ConversationContextMenu';
 import { useDensity } from '@/hooks/useDensity';
 
@@ -16,6 +17,27 @@ interface ConversationListProps {
   selectedId?: string;
   onSelect: (conversation: Conversation) => void;
   isLoading?: boolean;
+}
+
+function toConversationItemData(conversation: Conversation): ConversationItemData {
+  return {
+    id: conversation.id,
+    contact: conversation.contact,
+    status: conversation.status,
+    unreadCount: conversation.unreadCount,
+    lastMessage: conversation.lastMessage
+      ? {
+          content: conversation.lastMessage.content,
+          created_at:
+            conversation.lastMessage.created_at ?? conversation.lastMessage.timestamp.toISOString(),
+        }
+      : null,
+    updatedAt: conversation.updatedAt.toISOString(),
+    sentiment: conversation.sentiment,
+    sentimentScore: conversation.sentimentScore,
+    assignedTo: conversation.assignedTo?.id ?? null,
+    priority: conversation.priority,
+  };
 }
 
 export function ConversationList({
@@ -204,6 +226,7 @@ export function ConversationList({
           >
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const conversation = conversations[virtualRow.index];
+              const itemData = toConversationItemData(conversation);
               const isSelected = selectedId === conversation.id;
 
               return (
@@ -224,9 +247,9 @@ export function ConversationList({
                     isMuted={conversation.is_muted}
                   >
                     <ConversationItem
-                      conversation={conversation}
+                      conversation={itemData}
                       isSelected={isSelected}
-                      onSelect={onSelect}
+                      onSelect={() => onSelect(conversation)}
                     />
                   </ConversationContextMenu>
                 </div>

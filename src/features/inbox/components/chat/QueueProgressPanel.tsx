@@ -10,6 +10,12 @@ interface QueueProgressPanelProps {
   onRemoveFromQueue?: (id: string) => void;
 }
 
+function getQueueErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Erro desconhecido no envio.';
+}
+
 export function QueueProgressPanel({
   queue,
   isSending,
@@ -59,7 +65,7 @@ export function QueueProgressPanel({
                     </span>
                     {item.error && (
                       <span className="line-clamp-1 text-[9px] italic text-destructive/80">
-                        {item.error?.message || String(item.error)}
+                        {getQueueErrorMessage(item.error)}
                       </span>
                     )}
                   </div>

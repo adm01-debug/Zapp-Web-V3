@@ -151,7 +151,7 @@ export function ForwardMessageDialog({
                         >
                           <Checkbox checked={isSelected} className="pointer-events-none" />
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={contact.avatar_url} alt={contact.name} />
+                            <AvatarImage src={contact.avatar_url ?? undefined} alt={contact.name} />
                             <AvatarFallback className="bg-primary/10 text-sm text-primary">
                               {contact.name
                                 .split(' ')

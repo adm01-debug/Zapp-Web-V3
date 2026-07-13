@@ -29,8 +29,8 @@ interface Purchase {
   description: string | null;
   amount: number | null;
   currency: string | null;
-  status: string;
-  purchase_type: string;
+  status: string | null;
+  purchase_type: string | null;
   purchased_at: string | null;
   created_at: string;
 }
@@ -122,7 +122,7 @@ export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchases
       ) : (
         <div className="space-y-1.5">
           {purchases.map((p, idx) => {
-            const st = STATUS_CONFIG[p.status] || STATUS_CONFIG.pending;
+            const st = STATUS_CONFIG[p.status ?? 'pending'] || STATUS_CONFIG.pending;
             return (
               <motion.div
                 key={p.id}
