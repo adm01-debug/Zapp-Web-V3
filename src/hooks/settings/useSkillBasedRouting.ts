@@ -31,6 +31,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
 
   const { data: profiles = [] } = useQuery<Profile[]>({
     queryKey: ['skill-routing-profiles'],
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -44,6 +45,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
 
   const { data: queues = [] } = useQuery<Queue[]>({
     queryKey: ['skill-routing-queues'],
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await safeClient.from<Queue>('queues', (q) =>
         q.select('id, name, color').order('name')
@@ -55,6 +57,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
 
   const { data: agentSkills = [] } = useQuery<AgentSkill[]>({
     queryKey: ['agent-skills', selectedProfile],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agent_skills')
@@ -68,6 +71,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
 
   const { data: queueSkills = [] } = useQuery<QueueSkillRequirement[]>({
     queryKey: ['queue-skill-requirements', selectedQueue],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('queue_skill_requirements')
