@@ -105,7 +105,7 @@ export function WebhookAlertHistoryPanel({ history, onCleared }: Props) {
         <CollapsibleContent>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter)}>
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
                 <SelectTrigger className="h-8 w-[220px]">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
@@ -115,7 +115,7 @@ export function WebhookAlertHistoryPanel({ history, onCleared }: Props) {
                   <SelectItem value="webhook_silence">Silêncio do webhook</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as SeverityFilter)}>
+              <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as SeverityFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
                 <SelectTrigger className="h-8 w-[180px]">
                   <SelectValue placeholder="Severidade" />
                 </SelectTrigger>

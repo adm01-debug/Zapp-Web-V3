@@ -73,8 +73,9 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
     const map = new Map<string, Contact[]>();
     contacts.forEach(c => {
       const region = getRegionFromPhone(c.phone);
-      if (!map.has(region)) map.set(region, []);
-      map.get(region)!.push(c);
+      const group = map.get(region);
+      if (group) group.push(c);
+      else map.set(region, [c]);
     });
     return Array.from(map.entries())
       .sort((a, b) => b[1].length - a[1].length);

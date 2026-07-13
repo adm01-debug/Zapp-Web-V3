@@ -50,25 +50,19 @@ const log = getLogger('AdminBridgeStatusPage');
 
 type BridgeStatus = 'online' | 'degraded' | 'offline' | 'loading';
 
-interface HealthIncident {
+interface SystemIncident {
   id: string;
-  started_at: string;
-  resolved_at?: string | null;
   title: string;
-  description?: string | null;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  status: 'active' | 'resolved' | 'investigating';
-}
-
-interface RecentTraffic {
-  count: number;
-  last_at: string | null;
-}
-
-interface StatusConfig {
-  color: string;
-  label: string;
   description: string;
+  status: string;
+  started_at: string;
+  resolved_at: string | null;
+}
+
+interface ActiveAlert {
+  id: string;
+  title: string;
+  alert_type: string;
 }
 
 export default function BridgeStatusPage() {
@@ -83,7 +77,7 @@ export default function BridgeStatusPage() {
   const [externalDb, setExternalDb] = useState<boolean | null>(null);
   const [whatsappTransport, setWhatsappTransport] = useState<string>('...');
   const [activeAlerts, setActiveAlerts] = useState<ActiveAlert[]>([]);
-  const [incidents, setIncidents] = useState<HealthIncident[]>([]);
+  const [incidents, setIncidents] = useState<SystemIncident[]>([]);
   const [instanceCount, _setInstanceCount] = useState<number>(0);
   const [recentTraffic, setRecentTraffic] = useState<RecentTraffic>({
     count: 0,
@@ -114,7 +108,7 @@ export default function BridgeStatusPage() {
           : 'Erro desconhecido ao executar diagnóstico.';
       toast({
         title: 'Erro no Diagnóstico',
-        description: errorMessage,
+        description: e instanceof Error ? e.message : String(e),
         variant: 'destructive',
       });
     } finally {
@@ -154,12 +148,16 @@ export default function BridgeStatusPage() {
       // count uses count:'exact'+head:true (no row transfer, accurate count from PG),
       // last_at uses safeClient for error handling and the most-recent timestamp.
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count: msgCount, data: lastMsg } = await supabase
-        .from('provider_message_log' as Parameters<typeof supabase.from>[0])
+      // provider_message_log is in the 'zapp' schema, absent from public-schema generated types
+      const { count: msgCount, data: lastMsgRaw } = await (
+        supabase as unknown as { from(t: string): ReturnType<typeof supabase.from> }
+      )
+        .from('provider_message_log')
         .select('received_at', { count: 'exact' })
         .gt('received_at', fiveMinsAgo)
         .order('received_at', { ascending: false })
         .limit(1);
+      const lastMsg = lastMsgRaw as Array<{ received_at: string }> | null;
 
       if (mountedRef.current)
         setRecentTraffic({
@@ -169,7 +167,7 @@ export default function BridgeStatusPage() {
 
       // 5. Check Active Alerts
       try {
-        const { data: alerts } = await safeClient.from('v_alerts_active', (q) =>
+        const { data: alerts } = await safeClient.from<AlertRow>('v_alerts_active', (q) =>
           q.select('*').limit(5)
         );
         if (mountedRef.current)
@@ -199,7 +197,8 @@ export default function BridgeStatusPage() {
           : 'Não foi possível validar todos os serviços.';
       toast({
         title: 'Erro na verificação',
-        description: errorMessage,
+        description:
+          error instanceof Error ? error.message : 'Não foi possível validar todos os serviços.',
         variant: 'destructive',
       });
     } finally {
@@ -211,7 +210,7 @@ export default function BridgeStatusPage() {
   }, [toast, mountedRef]);
 
   const fetchIncidents = useCallback(async () => {
-    const { data } = await safeClient.from('system_health_incidents', (q) =>
+    const { data } = await safeClient.from<IncidentRow>('system_health_incidents', (q) =>
       q.select('*').order('started_at', { ascending: false }).limit(10)
     );
     if (mountedRef.current) setIncidents((Array.isArray(data) ? data : []) as HealthIncident[]);

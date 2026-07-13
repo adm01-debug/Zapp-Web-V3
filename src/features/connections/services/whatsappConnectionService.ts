@@ -17,7 +17,7 @@ export const whatsappConnectionService = {
     const QR_TTL_MAX_MS = 300_000;
 
     if (!result || typeof result !== 'object') return { ttlMs: QR_TTL_DEFAULT_MS, source: 'default' };
-    const r = result as Record<string, unknown> & { qrcode?: Record<string, unknown> };
+    const r = result as Record<string, unknown> & { qrcode?: Record<string, unknown> }; // ignore-audit: narrows Supabase query result to local interface
     const candidates = [
       r.count,
       r.qrcode?.count,

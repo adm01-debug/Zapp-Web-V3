@@ -406,22 +406,112 @@ export function checkRateLimit(
   return { allowed: entry.count <= maxRequests, remaining };
 }
 
-/** Extract client IP from request for rate limiting */
+/** Extract and normalize client IP from request for rate limiting (C.14: IPv6 support) */
 export function getClientIP(req: Request): string {
-  return (
+  const raw =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('x-real-ip') ||
-    'unknown'
-  );
+    'unknown';
+
+  // Normalize IPv6 addresses to lowercase canonical form to prevent rate-limit bypass
+  // via different representations (e.g., 2001:db8::1 vs 2001:0db8::0001)
+  if (raw !== 'unknown' && raw.includes(':')) {
+    try {
+      // Parse as IPv6 and convert to canonical string representation
+      const hostname = new URL(`http://[${raw}]/`).hostname || raw;
+      // Remove brackets that URL.hostname includes for IPv6 addresses
+      return hostname.startsWith('[') && hostname.endsWith(']')
+        ? hostname.slice(1, -1)
+        : hostname;
+    } catch {
+      // If parsing fails, return as-is (might be malformed or IPv4)
+      return raw;
+    }
+  }
+  return raw;
 }
 
 /** Get required env var or throw */
-export function requireEnv(name: string): string {
+/**
+ * Require an environment variable to be set and non-empty.
+ * Throws with detailed error message if missing or blank.
+ *
+ * Usage:
+ *   const supabaseUrl = requireEnv('SUPABASE_URL', 'https://');
+ *   const apiKey = requireEnv('API_KEY');
+ */
+export function requireEnv(
+  name: string,
+  expectedPattern?: string | RegExp
+): string {
   const value = Deno.env.get(name);
-  if (!value) {
-    throw new Error(`${name} is not configured`);
+
+  if (!value || value.trim() === '') {
+    throw new Error(
+      `[Configuration Error] Environment variable "${name}" is required but not configured. ` +
+      `Please set it in your .env or deployment configuration.`
+    );
   }
+
+  // Optional pattern validation (e.g., URL prefix, format)
+  if (expectedPattern) {
+    const pattern = typeof expectedPattern === 'string'
+      ? expectedPattern
+      : expectedPattern.toString();
+
+    if (expectedPattern instanceof RegExp) {
+      if (!expectedPattern.test(value)) {
+        throw new Error(
+          `[Configuration Error] Environment variable "${name}" does not match expected format. ` +
+          `Expected pattern: ${pattern}, got: ${redactSecrets(value)}`
+        );
+      }
+    } else if (typeof expectedPattern === 'string') {
+      if (!value.startsWith(expectedPattern)) {
+        throw new Error(
+          `[Configuration Error] Environment variable "${name}" does not start with expected value "${expectedPattern}". ` +
+          `Got: ${redactSecrets(value)}`
+        );
+      }
+    }
+  }
+
   return value;
+}
+
+/**
+ * Validate multiple environment variables at module load time.
+ * Fails fast if any required env var is missing.
+ *
+ * Usage:
+ *   validateEnvironment({
+ *     'SUPABASE_URL': /^https:\/\//,
+ *     'SUPABASE_SERVICE_ROLE_KEY': undefined, // no pattern validation
+ *     'EVOLUTION_API_KEY': /^[a-zA-Z0-9]{32,}$/,
+ *   });
+ */
+export function validateEnvironment(
+  envVars: Record<string, RegExp | string | undefined>
+): Record<string, string> {
+  const validated: Record<string, string> = {};
+  const errors: string[] = [];
+
+  for (const [name, pattern] of Object.entries(envVars)) {
+    try {
+      validated[name] = requireEnv(name, pattern);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      `[Configuration Error] ${errors.length} environment variable(s) are not properly configured:\n` +
+      errors.map(e => `  • ${e}`).join('\n')
+    );
+  }
+
+  return validated;
 }
 
 /**

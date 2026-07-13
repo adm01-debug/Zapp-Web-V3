@@ -102,7 +102,7 @@ export function useImportData<T>(options: UseImportDataOptions<T>) {
       
       reader.onload = (e) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const data = new Uint8Array(e.target?.result as ArrayBuffer); // ignore-audit: narrows Supabase query result to local interface
           const workbook = XLSX.read(data, { type: 'array' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(sheet, {

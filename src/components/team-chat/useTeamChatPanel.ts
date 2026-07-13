@@ -90,7 +90,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
 
       // If clearing search, we might want to pre-populate or clean up
       if (!newQuery.trim()) {
-        queryClient.invalidateQueries({ queryKey: ['team-messages', conversation.id, ''] });
+        void queryClient.invalidateQueries({ queryKey: ['team-messages', conversation.id, ''] });
       }
 
       const duration = performance.now() - start;

@@ -52,7 +52,10 @@ export function useConnectionAlertsPush() {
 
     return () => {
       cancelled = true;
-      if (channel) channel.unsubscribe();
+      if (channel) {
+        void channel.unsubscribe();
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 }

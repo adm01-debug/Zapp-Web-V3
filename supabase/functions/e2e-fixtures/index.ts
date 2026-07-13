@@ -57,11 +57,16 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
   const url = envOrThrow('SUPABASE_URL');
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
-  if (userErr || !userData?.user) return { ok: false, reason: 'invalid-jwt' };
+  if (userErr || !userData || !userData.user) return { ok: false, reason: 'invalid-jwt' };
+
+  const userObj = userData.user as Record<string, unknown>;
+  const userId = typeof userObj.id === 'string' ? userObj.id : '';
+  if (!userId) return { ok: false, reason: 'invalid-jwt' };
+
   const { data: roleRow, error: roleErr } = await admin
     .from('user_roles')
     .select('role')
-    .eq('user_id', userData.user.id)
+    .eq('user_id', userId)
     .eq('role', 'admin')
     .maybeSingle();
   if (roleErr) return { ok: false, reason: 'role-lookup-failed' };
@@ -124,7 +129,8 @@ async function seedFailedMessages(runId: string, count: number) {
   }));
   const { data, error } = await supabase.from('failed_messages').insert(rows).select('id');
   if (error) throw new Error(`failed_messages insert: ${error.message}`);
-  return { inserted: data?.length ?? 0 };
+  const inserted = Array.isArray(data) ? data.length : 0;
+  return { inserted };
 }
 
 async function seedWebhookEvents(runId: string, count: number) {
@@ -143,7 +149,8 @@ async function seedWebhookEvents(runId: string, count: number) {
   }));
   const { data, error } = await ext.from('evolution_webhook_events').insert(rows).select('id');
   if (error) throw new Error(`evolution_webhook_events insert: ${error.message}`);
-  return { inserted: data?.length ?? 0 };
+  const inserted = Array.isArray(data) ? data.length : 0;
+  return { inserted };
 }
 
 // ============================================================
@@ -158,7 +165,8 @@ async function cleanupFailedMessages(runId: string) {
     .like('instance_name', `${E2E_PREFIX}${runId}%`)
     .select('id');
   if (error) throw new Error(`failed_messages cleanup: ${error.message}`);
-  return { deleted: data?.length ?? 0 };
+  const deleted = Array.isArray(data) ? data.length : 0;
+  return { deleted };
 }
 
 async function cleanupWebhookEvents(runId: string) {
@@ -169,7 +177,8 @@ async function cleanupWebhookEvents(runId: string) {
     .like('instance_name', `${E2E_PREFIX}${runId}%`)
     .select('id');
   if (error) throw new Error(`evolution_webhook_events cleanup: ${error.message}`);
-  return { deleted: data?.length ?? 0 };
+  const deleted = Array.isArray(data) ? data.length : 0;
+  return { deleted };
 }
 
 // ============================================================

@@ -35,11 +35,11 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
     disconnect,
   } = useEmail();
 
-  const totalUnread = threads.filter(t => t.unread_count > 0).length;
+  const totalUnread = threads.filter((t) => t.unread_count > 0).length;
 
   // Quando busca seleciona uma thread
   const handleSearchSelect = (result: EmailSearchResult) => {
-    const thread = threads.find(t => t.id === result.id || t.thread_id === result.thread_id);
+    const thread = threads.find((t) => t.id === result.id || t.thread_id === result.thread_id);
     if (thread) selectThread(thread);
     // Se não estiver no cache local, poderia fazer fetch pelo threadId
   };
@@ -47,32 +47,39 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
   // Sem contas conectadas
   if (accounts.length === 0) {
     return (
-      <div className={cn('flex flex-col items-center justify-center h-full gap-6 p-8 bg-sidebar/30 animate-in fade-in duration-500', className)}>
+      <div
+        className={cn(
+          'flex h-full flex-col items-center justify-center gap-6 bg-sidebar/30 p-8 duration-500 animate-in fade-in',
+          className
+        )}
+      >
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="h-20 w-20 rounded-[22px] bg-primary/10 flex items-center justify-center animate-pulse">
+            <div className="flex h-20 w-20 animate-pulse items-center justify-center rounded-[22px] bg-primary/10">
               <Mail className="h-10 w-10 text-primary" />
             </div>
-            <div className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full border-2 border-background animate-bounce" />
+            <div className="absolute -right-1 -top-1 h-5 w-5 animate-bounce rounded-full border-2 border-background bg-primary" />
           </div>
-          <div className="text-center space-y-2">
-            <h3 className="font-bold text-2xl tracking-tight font-display">Email não conectado</h3>
-            <p className="text-muted-foreground text-sm max-w-[320px] leading-relaxed">
-              Conecte sua conta Email para gerenciar e-mails diretamente pela plataforma, com interface de chat.
+          <div className="space-y-2 text-center">
+            <h3 className="font-display text-2xl font-bold tracking-tight">Email não conectado</h3>
+            <p className="max-w-[320px] text-sm leading-relaxed text-muted-foreground">
+              Conecte sua conta Email para gerenciar e-mails diretamente pela plataforma, com
+              interface de chat.
             </p>
           </div>
         </div>
 
-        <Button 
-          onClick={startOAuth} 
-          className="gap-2.5 h-12 px-8 rounded-xl font-semibold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+        <Button
+          onClick={startOAuth}
+          className="h-12 gap-2.5 rounded-xl px-8 font-semibold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <Mail className="h-5 w-5" />
           Conectar Email
         </Button>
 
-        <p className="text-[11px] font-medium text-muted-foreground/60 text-center max-w-[280px]">
-          Sincronização segura via Google OAuth2. <br/>Acesso direto e privado às suas mensagens.
+        <p className="max-w-[280px] text-center text-[11px] font-medium text-muted-foreground/60">
+          Sincronização segura via Google OAuth2. <br />
+          Acesso direto e privado às suas mensagens.
         </p>
       </div>
     );
@@ -81,13 +88,18 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
   return (
     <div className={cn('flex h-full overflow-hidden', className)}>
       {/* Sidebar: Thread list */}
-      <div className="hidden md:flex w-[340px] shrink-0 flex-col border-r h-full bg-background/50">
+      <div className="hidden h-full w-[340px] shrink-0 flex-col border-r bg-background/50 md:flex">
         {/* Account selector + search */}
-        <div className="p-3 space-y-3 border-b bg-muted/5">
+        <div className="space-y-3 border-b bg-muted/5 p-3">
           <EmailAccountSelector
             accounts={accounts}
             activeAccountId={activeAccountId}
-            tokenStatus={Object.fromEntries(tokenStatus.map(s => [s.account_id, s.token_status])) as Record<string, TokenStatus>}
+            tokenStatus={
+              Object.fromEntries(tokenStatus.map((s) => [s.account_id, s.token_status])) as Record<
+                string,
+                TokenStatus
+              >
+            }
             isSyncing={isSyncing}
             onSelectAccount={setActiveAccountId}
             onAddAccount={startOAuth}
@@ -95,10 +107,7 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
             onSync={syncNow}
             totalUnread={totalUnread}
           />
-          <EmailSearchBar
-            accountId={activeAccountId}
-            onSelectThread={handleSearchSelect}
-          />
+          <EmailSearchBar accountId={activeAccountId} onSelectThread={handleSearchSelect} />
         </div>
 
         {/* Error */}
@@ -124,7 +133,7 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
       </div>
 
       {/* Main: Thread view */}
-      <div className="flex-1 min-w-0 h-full">
+      <div className="h-full min-w-0 flex-1">
         {selectedThread ? (
           <EmailChatThread
             thread={selectedThread}
@@ -134,18 +143,20 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
             onBack={() => selectThread(null)}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-6 animate-in fade-in zoom-in-95 duration-700 bg-background/30 backdrop-blur-sm">
+          <div className="flex h-full flex-col items-center justify-center gap-6 bg-background/30 text-muted-foreground backdrop-blur-sm duration-700 animate-in fade-in zoom-in-95">
             <div className="relative">
-              <div className="h-24 w-24 rounded-3xl bg-primary/5 flex items-center justify-center border border-primary/10">
+              <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-primary/10 bg-primary/5">
                 <Mail className="h-10 w-10 text-primary/30" />
               </div>
-              <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-2xl bg-background border border-border shadow-lg flex items-center justify-center">
-                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <div className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-background shadow-lg">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
               </div>
             </div>
-            <div className="text-center space-y-2">
-              <p className="text-base font-bold tracking-tight font-display text-foreground/80">Selecione uma conversa</p>
-              <p className="text-xs text-muted-foreground/60 max-w-[240px] leading-relaxed">
+            <div className="space-y-2 text-center">
+              <p className="font-display text-base font-bold tracking-tight text-foreground/80">
+                Selecione uma conversa
+              </p>
+              <p className="max-w-[240px] text-xs leading-relaxed text-muted-foreground/60">
                 Clique em um e-mail na lista lateral para visualizar o conteúdo e responder.
               </p>
             </div>

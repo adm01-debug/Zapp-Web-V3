@@ -11,6 +11,13 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+interface SearchInsight {
+  id: string;
+  search_term: string;
+  search_count: number;
+  click_count: number;
+}
+
 export function SearchInsightsTables() {
   const { data: insights = [], isLoading } = useQuery({
     queryKey: ['search-insights'],
@@ -21,7 +28,7 @@ export function SearchInsightsTables() {
         .order('search_count', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as SearchInsight[];
     },
   });
 
@@ -46,7 +53,7 @@ export function SearchInsightsTables() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {insights.map((insight: any) => (
+            {insights.map((insight) => (
               <TableRow key={insight.id}>
                 <TableCell className="font-medium">{insight.search_term}</TableCell>
                 <TableCell>{insight.search_count?.toLocaleString('pt-BR')}</TableCell>

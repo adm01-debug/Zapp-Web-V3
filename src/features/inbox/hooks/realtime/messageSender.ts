@@ -156,9 +156,12 @@ function buildEvolutionPayload(
         },
       };
     } catch {
-      log.error('Invalid location JSON — refusing to send as plain text to avoid corrupting the message', {
-        preview: content.slice(0, 80),
-      });
+      log.error(
+        'Invalid location JSON — refusing to send as plain text to avoid corrupting the message',
+        {
+          preview: content.slice(0, 80),
+        }
+      );
       throw new Error('Invalid location content: JSON parse failed');
     }
   }
@@ -490,5 +493,5 @@ export async function sendMessageToContact(
     throw evolutionError;
   }
 
-  return data as SendMessageResult;
+  return data as SendMessageResult; // ignore-audit: narrows Supabase query result to local interface
 }

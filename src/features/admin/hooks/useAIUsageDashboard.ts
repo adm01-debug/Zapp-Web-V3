@@ -94,6 +94,7 @@ export function useAIUsageDashboard() {
         .select('id, user_id, name, email, avatar_url');
       return (data || []) as ProfileInfo[];
     },
+    staleTime: 600_000,
   });
 
   const profileMap = useMemo(() => {

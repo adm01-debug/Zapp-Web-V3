@@ -31,16 +31,20 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-  );
-
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
       status,
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
+
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+  const supabaseKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[lgpd-scheduled-jobs] Missing Supabase configuration');
+    return json({ error: 'Supabase configuration missing' }, 503);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const startTime = Date.now();
   const report: Record<string, unknown> = { started_at: new Date().toISOString() };
@@ -194,11 +198,17 @@ Deno.serve(async (req) => {
 
         let updated = 0;
         for (const r of batchResults) {
-          if (r.status === 'fulfilled' && !r.value.error) {
-            updated += 1;  // count individual updates, not batch chunks
+          // Only count as updated if:
+          // 1. Promise fulfilled (no rejection)
+          // 2. No error from Supabase
+          // 3. At least one row was actually updated (not rejected by WHERE filter)
+          //    If pii_masked_at was set after our SELECT but before UPDATE, the
+          //    filter rejects it: data=[], error=null. We must check data.length > 0
+          if (r.status === 'fulfilled' && !r.value.error && r.value.data?.length > 0) {
+            updated += 1;
           } else {
             const msg = r.status === 'rejected' ? String(r.reason) : r.value.error?.message;
-            console.error('[lgpd] dedup hash update error', msg);
+            if (msg) console.error('[lgpd] dedup hash update error', msg);
           }
         }
 
@@ -255,6 +265,16 @@ Deno.serve(async (req) => {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * Retrieves configuration value from system_settings table with type coercion and fallback.
+ * Queries system_settings by key; converts numbers/booleans to strings for uniformity.
+ * Returns defaultValue on missing key, query error, or null result (graceful degradation).
+ * Used for LGPD configuration: lgpd.anonymize_on_delete, lgpd.data_retention_days.
+ * @param supabase - Supabase client with service-role permissions
+ * @param key - Configuration key (e.g., 'lgpd.anonymize_on_delete')
+ * @param defaultValue - Fallback value if key not found or query fails
+ * @returns Configuration value as string or defaultValue; never throws
+ */
 async function getConfig(
   supabase: ReturnType<typeof createClient>,
   key: string,
@@ -277,3 +297,20 @@ async function getConfig(
   }
 }
 
+/**
+ * Computes 32-bit signed integer hash of input string for deduplication.
+ * Used to detect duplicate contacts by hashing phone_number | email | full_name.
+ * Converts hash to unsigned hex (8 chars, zero-padded) for storage in dedup_hash column.
+ * Deterministic: same input always produces same hash for reliable dedup matching.
+ * @param str - String to hash (typically contact identifiers concatenated)
+ * @returns Hex-encoded hash as 8-character zero-padded string
+ */
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}

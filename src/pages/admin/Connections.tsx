@@ -37,30 +37,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
   'development' | 'staging' | 'production';
 
-const toErrMsg = (e: unknown, fallback = 'Erro desconhecido'): string => {
-  if (e instanceof Error) return e.message;
-  if (typeof e === 'object' && e !== null && 'message' in e)
-    return String((e as { message: unknown }).message);
-  return fallback;
-};
-
-interface SystemConnection {
-  id: string;
-  name: string;
-  provider: string;
-  config: { url?: string; anon_key?: string; [key: string]: unknown };
-  is_active: boolean;
-  created_at?: string;
-  created_by?: string | null;
-}
-
-interface SystemConnectionPayload {
-  name: string;
-  provider: string;
-  config: { url: string; anon_key: string };
-  is_active: boolean;
-}
-
 const getInitialConfig = () => {
   switch (APP_ENV) {
     case 'development':
@@ -91,6 +67,24 @@ const DEFAULT_EXTERNAL_KEY = initialConfig.key;
 
 // MCP server endpoint (self-hosted canônico — migrado de cloud em 30/06/2026)
 const MCP_SERVER_URL = 'https://supabase.atomicabr.com.br/functions/v1/mcp-server';
+
+interface SystemConnectionPayload {
+  name: string;
+  provider: string;
+  config: { url: string; anon_key: string };
+  is_active: boolean;
+}
+
+interface SystemConnection {
+  id: string;
+  name: string;
+  provider: string;
+  config: { url: string; anon_key: string };
+  is_active: boolean;
+  created_at: string;
+  created_by?: string | null;
+  updated_at?: string | null;
+}
 
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
@@ -126,7 +120,9 @@ export default function AdminConnectionsPage() {
 
         if (rolesError) throw rolesError;
 
-        const hasAccess = !!roles?.some((r: any) => r.role === 'admin' || r.role === 'dev'); // ignore-audit
+        const hasAccess = !!roles?.some(
+          (r: { role: string | null }) => r.role === 'admin' || r.role === 'dev'
+        ); // ignore-audit
         setIsAdmin(hasAccess);
 
         if (!hasAccess) {
@@ -138,9 +134,10 @@ export default function AdminConnectionsPage() {
     } catch (e: unknown) {
       log.error('Error checking roles or connection', e);
       setIsAdmin(false);
+      const msg = e instanceof Error ? e.message : 'Banco indisponível';
       toast({
         title: 'Erro de Conexão ou Acesso',
-        description: `Não foi possível validar seu nível de acesso: ${toErrMsg(e, 'Banco indisponível')}.`,
+        description: `Não foi possível validar seu nível de acesso: ${msg}.`,
         variant: 'destructive',
       });
     }
@@ -169,10 +166,11 @@ export default function AdminConnectionsPage() {
     );
 
     if (!error && data) {
-      setConnections(data as SystemConnection[]);
-      const fatorX = (data as SystemConnection[]).find(
-        (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
-      );
+      setConnections(data as SystemConnection[]); // ignore-audit: narrows Supabase query result to local interface
+      const fatorX = (
+        data as SystemConnection[]
+      ) /* ignore-audit: narrows Supabase query result to local interface */
+        .find((c) => c.provider === 'supabase_external' || c.name === 'FATOR X');
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
         setExternalUrl(fatorX.config.url);
         setDraftUrl(fatorX.config.url);
@@ -216,9 +214,10 @@ export default function AdminConnectionsPage() {
       });
       return false;
     } catch (e: unknown) {
+      // ignore-audit
       toast({
         title: 'Erro de rede',
-        description: toErrMsg(e, 'falha desconhecida'),
+        description: e instanceof Error ? e.message : 'falha desconhecida',
         variant: 'destructive',
       });
       return false;
@@ -292,14 +291,15 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      const { data: verify, error: verifyError } = await safeClient.from<SystemConnection>(
-        'system_connections',
-        (q) =>
-          q
-            .select('id, updated_at')
-            .eq('provider', 'supabase_external')
-            .eq('name', 'FATOR X')
-            .maybeSingle()
+      // Exige exatamente uma configuração correspondente antes de concluir o
+      // salvamento — safeClient.single() é o método correto para leitura de
+      // linha única (retorna null quando não encontrado, ao contrário de
+      // safeClient.from(), que sempre resolve para um array).
+      const { data: verify, error: verifyError } = await safeClient.single<{
+        id: string;
+        updated_at: string | null;
+      }>('system_connections', (q) =>
+        q.select('id, updated_at').eq('provider', 'supabase_external').eq('name', 'FATOR X')
       );
 
       if (verifyError || !verify) {

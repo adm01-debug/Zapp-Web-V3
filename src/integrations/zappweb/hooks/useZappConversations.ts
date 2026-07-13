@@ -38,9 +38,9 @@ export function useZappConversations(opts: Options = {}) {
         .order('last_message_at', { ascending: false })
         .limit(limit);
       if (err) throw err;
-      setConversations((data ?? []) as EvolutionConversation[]);
+      setConversations((data ?? []) as unknown as EvolutionConversation[]);
       setError(null);
-    } catch (e) {
+    } catch (e: unknown) {
       log.error('[useZappConversations]', e);
       setError(e instanceof Error ? e.message : String(e));
     } finally {

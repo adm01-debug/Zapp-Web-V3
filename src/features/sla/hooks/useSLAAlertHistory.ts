@@ -13,7 +13,7 @@ export interface SLAAlertHistoryEntry {
   resolvedAt: string | null;
   alertTime: string;
   createdAt: string;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
 }
 
 type SLAHistoryRow = {

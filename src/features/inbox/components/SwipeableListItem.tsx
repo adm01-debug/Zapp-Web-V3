@@ -86,16 +86,18 @@ export function SwipeableListItem({
     else if (offsetX < -threshold || fastLeft) { triggerHaptic('medium'); rightAction.action(); }
   };
 
-  const isLeftSec = triggeredAction === 'left-secondary' && leftSecondaryAction;
-  const isRightSec = triggeredAction === 'right-secondary' && rightSecondaryAction;
-  const LeftIcon = isLeftSec ? leftSecondaryAction!.icon : leftAction.icon;
-  const RightIcon = isRightSec ? rightSecondaryAction!.icon : rightAction.icon;
-  const leftLabel = isLeftSec ? leftSecondaryAction!.label : leftAction.label;
-  const rightLabel = isRightSec ? rightSecondaryAction!.label : rightAction.label;
-  const leftColor = isLeftSec ? leftSecondaryAction!.color : leftAction.color;
-  const rightColor = isRightSec ? rightSecondaryAction!.color : rightAction.color;
-  const leftBg = isLeftSec ? leftSecondaryAction!.bgColor : leftAction.bgColor;
-  const rightBg = isRightSec ? rightSecondaryAction!.bgColor : rightAction.bgColor;
+  const effectiveLeft = triggeredAction === 'left-secondary' ? leftSecondaryAction : undefined;
+  const effectiveRight = triggeredAction === 'right-secondary' ? rightSecondaryAction : undefined;
+  const isLeftSec = effectiveLeft != null;
+  const isRightSec = effectiveRight != null;
+  const LeftIcon = effectiveLeft?.icon ?? leftAction.icon;
+  const RightIcon = effectiveRight?.icon ?? rightAction.icon;
+  const leftLabel = effectiveLeft?.label ?? leftAction.label;
+  const rightLabel = effectiveRight?.label ?? rightAction.label;
+  const leftColor = effectiveLeft?.color ?? leftAction.color;
+  const rightColor = effectiveRight?.color ?? rightAction.color;
+  const leftBg = effectiveLeft?.bgColor ?? leftAction.bgColor;
+  const rightBg = effectiveRight?.bgColor ?? rightAction.bgColor;
 
   if (disabled) return <div className={className}>{children}</div>;
 

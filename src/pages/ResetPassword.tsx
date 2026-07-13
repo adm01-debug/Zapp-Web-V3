@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Lock, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { log } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PasswordStrengthMeter } from '@/features/auth';
 import { toast } from 'sonner';
 
-const passwordSchema = z.string()
+const passwordSchema = z
+  .string()
   .min(8, 'Mínimo 8 caracteres')
   .regex(/[A-Z]/, 'Deve conter letra maiúscula')
   .regex(/[a-z]/, 'Deve conter letra minúscula')
@@ -33,8 +35,11 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!success || redirectCancelled) return;
-    if (countdown <= 0) { navigate('/auth'); return; }
-    timerRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
+    if (countdown <= 0) {
+      navigate('/auth');
+      return;
+    }
+    timerRef.current = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
@@ -42,18 +47,23 @@ export default function ResetPassword() {
 
   useEffect(() => {
     // Check if user came from password reset email
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setHasSession(true);
       }
     });
 
     // Also check current session
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setHasSession(true);
-      }
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session) {
+          setHasSession(true);
+        }
+      })
+      .catch((err) => log.warn('[ResetPassword] getSession failed:', err));
 
     return () => subscription.unsubscribe();
   }, []);
@@ -94,7 +104,7 @@ export default function ResetPassword() {
 
   if (!hasSession) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Link Inválido</CardTitle>
@@ -114,20 +124,17 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring' }}
-                className="mx-auto mb-4 w-16 h-16 bg-success/10 dark:bg-success/20/30 rounded-full flex items-center justify-center"
+                className="dark:bg-success/20/30 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10"
               >
-                <CheckCircle className="w-8 h-8 text-success dark:text-success" />
+                <CheckCircle className="h-8 w-8 text-success dark:text-success" />
               </motion.div>
               <CardTitle>Senha Alterada!</CardTitle>
               <CardDescription>
@@ -140,7 +147,13 @@ export default function ResetPassword() {
             <CardContent className="flex flex-col gap-2">
               <Button onClick={() => navigate('/auth')}>Ir para login</Button>
               {!redirectCancelled && (
-                <Button variant="ghost" onClick={() => { setRedirectCancelled(true); if (timerRef.current) clearTimeout(timerRef.current); }}>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setRedirectCancelled(true);
+                    if (timerRef.current) clearTimeout(timerRef.current);
+                  }}
+                >
                   Cancelar redirecionamento
                 </Button>
               )}
@@ -152,7 +165,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -160,13 +173,11 @@ export default function ResetPassword() {
       >
         <Card>
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Lock className="w-6 h-6 text-primary" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Lock className="h-6 w-6 text-primary" />
             </div>
             <CardTitle>Nova Senha</CardTitle>
-            <CardDescription>
-              Digite sua nova senha
-            </CardDescription>
+            <CardDescription>Digite sua nova senha</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -189,7 +200,7 @@ export default function ResetPassword() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 <PasswordStrengthMeter password={password} />
@@ -221,7 +232,7 @@ export default function ResetPassword() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Alterando...
                   </>
                 ) : (

@@ -40,7 +40,7 @@ const createMockMessage = (
   is_deleted: false,
 });
 
-export const MOCK_CONVERSATIONS: any[] = [
+export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
   {
     id: 'mock-1',
     status: 'open',

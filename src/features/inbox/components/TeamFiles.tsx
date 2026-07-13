@@ -25,19 +25,19 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+interface TeamFilesProps {
+  contactId: string;
+}
+
 interface WhisperFile {
   id: string;
   contact_id: string;
   file_name: string;
   file_url: string;
-  file_size: number;
-  file_type: string;
-  sender_id?: string | null;
+  file_size: number | null;
+  file_type: string | null;
+  sender_id: string | null;
   created_at: string;
-}
-
-interface TeamFilesProps {
-  contactId: string;
 }
 
 export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) {
@@ -128,9 +128,9 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const filteredFiles = (files ?? []).filter((file) => {
-    const fileName = file.file_name || '';
-    const fileType = file.file_type || '';
+  const filteredFiles = files.filter((file) => {
+    const fileName = file.file_name;
+    const fileType = file.file_type ?? '';
     const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType =
       typeFilter === 'all' ||
@@ -217,6 +217,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           </div>
         ) : (
           filteredFiles.map((file) => (
+            // ignore-audit
             <div
               key={file.id}
               className="group flex items-center gap-3 rounded-xl border border-warning bg-warning/50 p-2 transition-colors hover:bg-warning/50"

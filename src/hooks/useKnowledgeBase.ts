@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 export interface Article {
   id: string;
@@ -49,24 +51,23 @@ export function useKnowledgeBase() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [files, setFiles] = useState<KBFile[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [articlesRes, filesRes] = await Promise.all([
-      supabase
-        .from('knowledge_base_articles')
-        .select('*')
-        .order('updated_at', { ascending: false }),
-      supabase.from('knowledge_base_files').select('*').order('created_at', { ascending: false }),
+      safeFrom('knowledge_base_articles').select('*').order('updated_at', { ascending: false }),
+      safeFrom('knowledge_base_files').select('*').order('created_at', { ascending: false }),
     ]);
+    if (!mountedRef.current) return;
     if (articlesRes.data)
       setArticles(
-        articlesRes.data.map(
-          (a: Record<string, unknown>) =>
-            ({ ...a, tags: (a.tags as string[] | null) || [] }) as Article
-        )
+        articlesRes.data.map((a: Record<string, unknown>) => ({
+          ...a,
+          tags: (a.tags as string[]) || [],
+        }))
       );
-    if (filesRes.data) setFiles(filesRes.data as KBFile[]);
+    if (filesRes.data) setFiles(filesRes.data);
     setLoading(false);
   }, []);
 
@@ -82,8 +83,7 @@ export function useKnowledgeBase() {
       editingId?: string
     ) => {
       if (editingId) {
-        const { error } = await supabase
-          .from('knowledge_base_articles')
+        const { error } = await safeFrom('knowledge_base_articles')
           .update(payload)
           .eq('id', editingId);
         if (error) {
@@ -96,7 +96,7 @@ export function useKnowledgeBase() {
         }
         toast({ title: 'Artigo atualizado!' });
       } else {
-        const { error } = await supabase.from('knowledge_base_articles').insert(payload);
+        const { error } = await safeFrom('knowledge_base_articles').insert(payload);
         if (error) {
           const errMsg =
             typeof error === 'object' && error !== null && 'message' in error
@@ -115,7 +115,7 @@ export function useKnowledgeBase() {
 
   const deleteArticle = useCallback(
     async (id: string) => {
-      await supabase.from('knowledge_base_articles').delete().eq('id', id);
+      await safeFrom('knowledge_base_articles').delete().eq('id', id);
       toast({ title: 'Artigo removido' });
       void fetchData();
     },
@@ -143,7 +143,7 @@ export function useKnowledgeBase() {
       const { data: signedData } = await supabase.storage
         .from('whatsapp-media')
         .createSignedUrl(fileName, 86400);
-      await supabase.from('knowledge_base_files').insert({
+      await safeFrom('knowledge_base_files').insert({
         file_name: file.name,
         file_url: signedData?.signedUrl || '',
         file_type: file.type,

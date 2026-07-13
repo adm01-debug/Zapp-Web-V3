@@ -89,7 +89,13 @@ export function ForwardMessageDialog({
 
         <Tabs
           value={fwd.activeTab}
-          onValueChange={(v) => fwd.setActiveTab(v as 'contacts' | 'groups')}
+          onValueChange={(v) =>
+            fwd.setActiveTab(
+              v as
+                | 'contacts'
+                | 'groups' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+            )
+          }
           className="px-4"
         >
           <TabsList className="grid w-full grid-cols-2">
@@ -145,7 +151,7 @@ export function ForwardMessageDialog({
                         >
                           <Checkbox checked={isSelected} className="pointer-events-none" />
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={contact.avatar_url ?? undefined} alt={contact.name} />
+                            <AvatarImage src={contact.avatar_url} alt={contact.name} />
                             <AvatarFallback className="bg-primary/10 text-sm text-primary">
                               {contact.name
                                 .split(' ')

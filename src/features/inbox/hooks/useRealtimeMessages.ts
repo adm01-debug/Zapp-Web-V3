@@ -17,6 +17,18 @@ import { useRealtimeNotifications } from './realtime/useRealtimeNotifications';
 import { useMessageUpdateBatcher } from './realtime/useMessageUpdateBatcher';
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
 import { isValidUUID } from '@/utils/uuid';
+import type {
+  NewMessageNotification,
+  RealtimeMessage,
+  ConversationContact,
+  ConversationWithMessages,
+} from './realtime/types';
+export type {
+  NewMessageNotification,
+  RealtimeMessage,
+  ConversationContact,
+  ConversationWithMessages,
+} from './realtime/types';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
 const log = getLogger('RealtimeMessages');
@@ -33,42 +45,7 @@ export interface NewMessageNotification {
   timestamp: Date;
 }
 
-export interface RealtimeMessage {
-  id: string;
-  contact_id: string | null;
-  agent_id: string | null;
-  content: string;
-  sender: string;
-  message_type: string;
-  media_url: string | null;
-  is_read: boolean | null;
-  status:
-    | 'sending'
-    | 'retrying'
-    | 'sent'
-    | 'delivered'
-    | 'read'
-    | 'played'
-    | 'failed'
-    | 'failed_auth'
-    | 'failed_retries'
-    | null;
-  status_updated_at: string | null;
-  created_at: string;
-  updated_at: string;
-  external_id: string | null;
-  whatsapp_connection_id: string | null;
-  transcription: string | null;
-  transcription_status: string | null;
-  is_deleted: boolean | null;
-  /** Timestamp do soft delete (protocolMessage REVOKE). Null = mensagem viva. */
-  deleted_at?: string | null;
-  retry_attempt?: number | null;
-  retry_total?: number | null;
-  /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
-  contactAvatar?: string | null;
-  reactions?: any[] | null;
-}
+export type { RealtimeMessage } from './realtime/types';
 
 export interface ConversationContact {
   id: string;
@@ -166,7 +143,7 @@ export function useRealtimeMessages() {
 
     const fetchedContacts: ConversationContact[] = [];
 
-    for (const idsChunk of chunkArray(missingIds, CONTACT_FETCH_CHUNK_SIZE)) {
+    for (const idsChunk of chunkArray(uniqueIds, CONTACT_FETCH_CHUNK_SIZE)) {
       const { data, error: contactsError } = await dbFrom('contacts')
         .select('*')
         .in('id', idsChunk);
@@ -237,7 +214,7 @@ export function useRealtimeMessages() {
 
   const handleNewMessage = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const newMessage = normalizeMessage(payload.new as RealtimeMessage);
+      const newMessage = normalizeMessage(payload.new);
       if (!newMessage.contact_id) return;
 
       const existingConversation = conversationsRef.current.find(
@@ -278,7 +255,7 @@ export function useRealtimeMessages() {
   // lastMessage/unreadCount consistentes, sem reordenar a lista.
   const handleMessageDelete = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const deletedMessage = payload.old as RealtimeMessage;
+      const deletedMessage = payload.old;
       if (!deletedMessage?.id || !deletedMessage?.contact_id) return;
 
       commitConversations((prev) => {
@@ -361,7 +338,7 @@ export function useRealtimeMessages() {
         ...p,
         new: map(p.new as Record<string, unknown>),
         old: map(p.old as Record<string, unknown>),
-      } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>;
+      } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>; // ignore-audit — evo.evolution_messages adapter; mapped shape is structurally RealtimeMessage at runtime
     };
     const channel = dbChannel('messages', channelName)
       .on(
@@ -415,7 +392,7 @@ export function useRealtimeMessages() {
 
     return () => {
       active = false;
-      channel.unsubscribe();
+      void dbRemoveChannel('messages', channel);
     };
   }, [fetchConversations, handleNewMessage, handleMessageUpdate, handleMessageDelete]);
 

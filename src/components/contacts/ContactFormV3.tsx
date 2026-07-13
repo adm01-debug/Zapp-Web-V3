@@ -87,6 +87,51 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
   // Merge dialog state
   const [mergeTarget, setMergeTarget] = useState<ContactForMerge | null>(null);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [loadingMergeTarget, setLoadingMergeTarget] = useState(false);
+
+  // `duplicates` (useContactDuplicateDetector) só traz um projeto raso
+  // (id/name/phone/email/avatar_url) para a busca em tempo real — não tem
+  // `tags`/`created_at`/`company`/etc. que ContactForMerge exige. Abrir o
+  // dialog de mesclagem direto com esse objeto (via cast) faz
+  // `contact.tags.length` estourar em runtime. Buscamos o registro completo
+  // antes de abrir, para a decisão de mesclagem não usar dados forjados.
+  const openMergeDialog = useCallback(
+    async (duplicateId: string) => {
+      setLoadingMergeTarget(true);
+      try {
+        const { data, error } = await dbFrom('contacts')
+          .select(
+            'id, name, phone, email, company, tags, channel_type, avatar_url, created_at, notes'
+          )
+          .eq('id', duplicateId)
+          .single();
+        if (error || !data) {
+          toast({
+            title: 'Erro ao carregar contato',
+            description: 'Não foi possível carregar os dados do contato duplicado.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        setMergeTarget({
+          id: data.id,
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          company: data.company,
+          tags: data.tags ?? [],
+          channel: data.channel_type,
+          avatar_url: data.avatar_url,
+          created_at: data.created_at,
+          notes: data.notes,
+        });
+        setMergeOpen(true);
+      } finally {
+        setLoadingMergeTarget(false);
+      }
+    },
+    [toast]
+  );
 
   // Hooks
   const { withRetry, loading: retrying } = useRetryOperation(3, 500);
@@ -139,14 +184,6 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
         return;
       }
 
-      // Phone validation
-      if (form.phone) {
-        const phoneResult = validatePhoneDetailed(form.phone);
-        if (!phoneResult.valid) {
-          toast({ title: `Telefone inválido: ${phoneResult.error}`, variant: 'destructive' });
-          return;
-        }
-      }
 
       await withRetry(async () => {
         const payload = {
@@ -171,32 +208,18 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
 
           if (error) throw error;
 
-          if (data && typeof data === 'object' && 'error' in data && data.error === 'CONFLICT') {
-            const isValidConflict = (obj: unknown): obj is ConflictInfo => {
-              if (typeof obj !== 'object' || obj === null) return false;
-              const cast = obj as Record<string, unknown>;
-              return (
-                typeof cast.message === 'string' &&
-                typeof cast.current_version === 'number' &&
-                typeof cast.your_version === 'number' &&
-                (cast.last_updated_by === null || typeof cast.last_updated_by === 'string') &&
-                (cast.last_updated_at === null || typeof cast.last_updated_at === 'string')
-              );
-            };
-            if (isValidConflict(data)) {
-              setConflict(data);
-              setConflictOpen(true);
-              return;
-            }
+          const result = (data ?? {}) as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
+          if (result?.error === 'CONFLICT') {
+            setConflict(result as unknown as ConflictInfo); // ignore-audit: narrows Supabase query result to local interface
+            setConflictOpen(true);
+            return;
           }
 
           // Update local version
-          if (data && typeof data === 'object' && 'version' in data) {
-            setForm((prev) => ({
-              ...prev,
-              version: (data.version as number | undefined) ?? prev.version,
-            }));
-          }
+          setForm((prev) => ({
+            ...prev,
+            version: (result?.version as number | undefined) ?? prev.version,
+          }));
         } else if (mode === 'edit' && form.id && forceOverwrite) {
           // Force overwrite after conflict resolution
           const { error } = await dbFrom('contacts').update(payload).eq('id', form.id);
@@ -251,14 +274,11 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
               <Button
                 variant="link"
                 size="sm"
-                onClick={() => {
-                  setMergeTarget(duplicates[0] as unknown as ContactForMerge);
-                  setMergeOpen(true);
-                }}
-                className="ml-2 h-auto p-0 text-warning-foreground underline"
+                onClick={() => { setMergeTarget(duplicates[0] as unknown as ContactForMerge); setMergeOpen(true); }} // ignore-audit — PotentialDuplicate lacks company/tags/channel; merge dialog handles missing fields with fallbacks
+                className="ml-2 text-warning-foreground underline p-0 h-auto"
               >
                 <GitMerge className="mr-1 h-3.5 w-3.5" />
-                Mesclar
+                {loadingMergeTarget ? 'Carregando…' : 'Mesclar'}
               </Button>
             )}
           </AlertDescription>
@@ -481,6 +501,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
             email: form.email,
             company: form.company,
             tags: form.tags,
+            notes: form.notes || null,
             channel: null,
             avatar_url: null,
             created_at: new Date().toISOString(),

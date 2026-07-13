@@ -41,17 +41,16 @@ export class EmailHealthService {
       : [];
 
     if (filters.requestId) {
-      failures = failures.filter((f) => f.requestId.includes(filters.requestId!));
+      const { requestId } = filters;
+      failures = failures.filter((f) => f.requestId.includes(requestId));
     }
     if (filters.operation) {
-      failures = failures.filter(
-        (f) => f.operation.toLowerCase() === filters.operation!.toLowerCase()
-      );
+      const { operation } = filters;
+      failures = failures.filter((f) => f.operation.toLowerCase() === operation.toLowerCase());
     }
     if (filters.resource) {
-      failures = failures.filter((f) =>
-        f.resource.toLowerCase().includes(filters.resource!.toLowerCase())
-      );
+      const { resource } = filters;
+      failures = failures.filter((f) => f.resource.toLowerCase().includes(resource.toLowerCase()));
     }
 
     const total = failures.length;

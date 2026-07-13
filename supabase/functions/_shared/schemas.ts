@@ -1,3 +1,4 @@
+// schemas bundle v2 — 2026-07-12 (force redeploy: dedupe check)
 import { z } from "https://esm.sh/zod@3.23.8";
 
 export { z };
@@ -32,12 +33,13 @@ export const AiConversationSummarySchema = z.object({
 export const AiSuggestReplySchema = z.object({
   contactId: z.string().uuid().optional().nullable(),
   contactName: z.string().max(200).optional().nullable(),
+  // S.5: Require at least one message in conversation history to prevent empty payload attacks
   conversationHistory: z.array(z.object({
     role: z.enum(['user', 'assistant', 'system', 'agent', 'client']),
     content: z.string().max(10000),
-  })).max(50),
+  })).min(1, "Conversation history cannot be empty").max(50),
   context: z.string().max(2000).optional(),
-  requestId: z.string().max(256).optional(), // For idempotency deduplication (P1-FIX-008)
+  requestId: z.string().max(256), // For idempotency deduplication (P1-FIX-008) - REQUIRED for idempotency enforcement
 });
 
 /** Schema para detecção de novo dispositivo (detect-new-device) */
@@ -110,7 +112,7 @@ const messageItemSchema = z.object({
 export const AiAutoTagSchema = z.object({
   contactId: z.string().uuid(),
   messages: z.array(messageItemSchema).min(1).max(200),
-  requestId: z.string().max(256).optional(), // For idempotency deduplication (P1-FIX-008)
+  requestId: z.string().max(256), // For idempotency deduplication (P1-FIX-008) - REQUIRED for idempotency enforcement
 });
 
 /** ai-churn-analysis */
@@ -133,13 +135,13 @@ export const AiConversationAnalysisSchema = z.object({
 /** ai-enhance-message */
 export const AiEnhanceMessageSchema = z.object({
   message: z.string().min(1).max(10000),
-  tone: z.string().max(50).optional().nullable(),
+  tone: z.enum(['professional', 'casual', 'persuasive', 'empathetic', 'concise', 'detailed']).optional().nullable(),  // C.17: Validate tone against allowed values
   contactName: z.string().max(200).optional().nullable(),
 });
 
 /** ai-transcribe-audio */
 export const TranscribeAudioSchema = z.object({
-  audioUrl: z.string().max(2000).optional().nullable(),
+  audioUrl: safeImageUrlSchema.optional().nullable(), // C.15: SSRF protection for audio URLs (must be public HTTPS)
   messageId: z.string().max(200).optional().nullable(),
   languageCode: z.string().max(20).optional().nullable(),
   enableDiarization: z.boolean().optional(),

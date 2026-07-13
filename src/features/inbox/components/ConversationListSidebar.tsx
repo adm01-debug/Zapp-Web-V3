@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, type RefObject } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDensity } from '@/hooks/useDensity';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { MobilePullToRefreshIndicator } from '@/components/mobile/MobilePullToRefresh';
 import { VirtualizedRealtimeList } from './VirtualizedRealtimeList';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
@@ -11,6 +12,9 @@ import { InboxFilters } from './InboxFilters';
 import { ContactTypeFilter, FILTER_OPTIONS } from './ContactTypeFilter';
 import { FailureCategoryFilter } from './FailureCategoryFilter';
 import { TicketTabs } from './TicketTabs';
+import type { useInboxFilters } from '../hooks/useInboxFilters';
+import type { useInboxBulkActions } from '../hooks/useInboxBulkActions';
+import type { useRealtimeInbox } from '../hooks/useRealtimeInbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -30,11 +34,64 @@ import { WhatsAppConnectionStatus } from '@/features/connections';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { toast } from 'sonner';
 
+interface InboxState {
+  conversations: Array<Record<string, unknown>>;
+  allConversations?: Array<Record<string, unknown>>;
+  cachedConversations?: Array<Record<string, unknown>>;
+  selectedContactId: string | null;
+  handleSelectConversation: (id: string) => void;
+  setSearch: (value: string) => void;
+  loading: boolean;
+  sortBy: string;
+  setSortBy: (value: string) => void;
+  refetch: () => void;
+}
+
+interface InboxFiltersState {
+  filteredConversations: Array<{ contact: { id: string } }>;
+  selectedContactType: string;
+  handleContactTypeChange: (value: string) => void;
+  showOnlyRetrying: boolean;
+  failureCategoryFilter: string;
+  setFailureCategoryFilter: (value: string) => void;
+  failureCategoryCounts: Record<string, number>;
+  mainTab: string;
+  subTab: string;
+  setMainTab: (value: string) => void;
+  setSubTab: (value: string) => void;
+  showAll: boolean;
+  setShowAll: (value: boolean) => void;
+  scope: string;
+  setScope: (value: string) => void;
+  selectedQueueId: string;
+  setSelectedQueueId: (value: string) => void;
+  filters: { agentId?: string; [key: string]: unknown };
+  setFilters: (filters: { agentId?: string; [key: string]: unknown }) => void;
+  departmentAgentIds: string[];
+}
+
+interface BulkActionsState {
+  selectedIds: Set<string>;
+  bulkMarkAsRead: () => void;
+  bulkTransfer: () => void;
+  bulkArchive: () => void;
+  clearSelection: () => void;
+  bulkLoading: boolean;
+}
+
+interface PullToRefreshState {
+  isRefreshing: boolean;
+  pullProgress: number;
+  pullDistance: number;
+  containerRef: RefObject<HTMLDivElement>;
+  handlers: Record<string, unknown>;
+}
+
 interface ConversationListSidebarProps {
-  inbox: any;
-  inboxFilters: any;
-  bulkActions: any;
-  pullToRefresh: any;
+  inbox: InboxState;
+  inboxFilters: InboxFiltersState;
+  bulkActions: BulkActionsState;
+  pullToRefresh: PullToRefreshState;
   width?: number;
 }
 
@@ -51,7 +108,7 @@ export function ConversationListSidebar({
   const [_contactSearch, setContactSearch] = useState('');
 
   const _conversationsWithUnreadCount = useMemo(
-    () => inbox.conversations.filter((c: any) => c.unreadCount > 0).length, // ignore-audit
+    () => inbox.conversations.filter((c) => Number(c['unreadCount'] ?? 0) > 0).length, // ignore-audit
     [inbox.conversations]
   );
 
@@ -76,7 +133,7 @@ export function ConversationListSidebar({
   }, [inbox]);
 
   const sortedFilteredIds = useMemo(
-    () => inboxFilters.filteredConversations.map((c: any) => c.contact.id), // ignore-audit
+    () => inboxFilters.filteredConversations.map((c) => c.contact.id), // ignore-audit
     [inboxFilters.filteredConversations]
   );
 

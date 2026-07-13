@@ -67,28 +67,29 @@ export function useTeamConversations() {
         }
       }
 
-      const unreadPromises = convIds.map(async (cid) => {
-        const lastRead = lastReadMap.get(cid);
-        let query = supabase
-          .from('team_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('conversation_id', cid)
-          .neq('sender_id', profile.id);
+      // Single batch query replaces the former N×COUNT pattern (one per conversation).
+      // Fetch all messages not from the current user since 30 days ago and count in-memory,
+      // applying each conversation's individual last_read_at cutoff.
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      const { data: unreadMessages } = await supabase
+        .from('team_messages')
+        .select('conversation_id, created_at')
+        .in('conversation_id', convIds)
+        .neq('sender_id', profile.id)
+        .gte('created_at', cutoff.toISOString());
 
-        if (lastRead) {
-          query = query.gt('created_at', lastRead);
+      const unreadMap = new Map<string, number>(convIds.map((cid) => [cid, 0]));
+      for (const msg of unreadMessages || []) {
+        const lastRead = lastReadMap.get(msg.conversation_id);
+        if (!lastRead || msg.created_at > lastRead) {
+          unreadMap.set(msg.conversation_id, (unreadMap.get(msg.conversation_id) ?? 0) + 1);
         }
-
-        const { count } = await query;
-        return { cid, count: count || 0 };
-      });
-
-      const unreadResults = await Promise.all(unreadPromises);
-      const unreadMap = new Map(unreadResults.map((r) => [r.cid, r.count]));
+      }
 
       const enriched: TeamConversation[] = conversations.map((conv) => {
-        const members = ((allMembers || []) as unknown[]).filter(
-          (m: unknown) => (m as any).conversation_id === conv.id
+        const members = (allMembers || []).filter(
+          (m) => m.conversation_id === conv.id
         ) as TeamMember[];
         const lastMsg = lastMessageMap.get(conv.id) || null;
 
@@ -140,7 +141,7 @@ export function useTeamConversations() {
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [profile, queryClient]);
 

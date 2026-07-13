@@ -1,4 +1,5 @@
 import { agentRepository, AgentProfile } from '../data-access/agentRepository';
+import { normalizeAgentProfiles } from '../utils/profileMappers';
 
 export interface AgentWithStats extends AgentProfile {
   activeChats: number;
@@ -55,7 +56,7 @@ export const agentService = {
         }
       });
 
-      return (profilesResult.data as AgentProfile[]).map((profile) => {
+      return (profilesResult.data as AgentProfile[] /* ignore-audit: narrows Supabase query result to local interface */).map((profile) => {
         const agentQueues =
           (membersResult.data
             ?.filter((m) => m.profile_id === profile.id)
@@ -68,7 +69,7 @@ export const agentService = {
         return {
           ...profile,
           activeChats: chatCounts[profile.id] || 0,
-          status: this.getAgentStatus(profile.updated_at),
+          status: this.getAgentStatus(profile.updated_at ?? undefined),
           queues: agentQueues,
         };
       });

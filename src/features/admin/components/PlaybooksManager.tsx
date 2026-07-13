@@ -115,7 +115,7 @@ export function PlaybooksManager() {
       name: name.trim(),
       description: description || null,
       category,
-      steps: steps.filter((s) => s.title.trim()) as unknown as Json,
+      steps: steps.filter((s) => s.title.trim()) as Json,
     };
 
     const { error } = selectedPlaybook

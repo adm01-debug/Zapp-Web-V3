@@ -33,20 +33,6 @@ interface Department {
   name: string;
 }
 
-interface Invitation {
-  id: string;
-  code: string;
-  expires_at: string;
-  uses: number;
-}
-
-interface AuditLog {
-  id: string;
-  action: 'ADD_MEMBER' | 'REMOVE_MEMBER';
-  created_at: string;
-  details: { profile_name?: string };
-}
-
 interface Props {
   department: Department;
   open: boolean;
@@ -269,7 +255,7 @@ export function DepartmentManagementDialog({
               </div>
               <ScrollArea className="flex-1">
                 <div className="space-y-3">
-                  {invitations.map((inv: Invitation) => (
+                  {invitations.map((inv) => (
                     <div key={inv.id} className="space-y-3 rounded-xl border bg-card p-4">
                       <div className="flex items-center justify-between">
                         <code className="rounded bg-muted px-2 py-1 text-sm font-bold">
@@ -298,10 +284,6 @@ export function DepartmentManagementDialog({
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Expira em: {format(new Date(inv.expires_at), 'dd/MM/yy')}</span>
-                        <span>Usos: {inv.uses}</span>
                       </div>
                     </div>
                   ))}

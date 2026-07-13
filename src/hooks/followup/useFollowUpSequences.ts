@@ -39,6 +39,7 @@ export function useFollowUpSequences() {
       if (error) throw error;
       return (data ?? []) as FollowUpSequence[];
     },
+    staleTime: Infinity,
   });
 
   const createMutation = useMutation({

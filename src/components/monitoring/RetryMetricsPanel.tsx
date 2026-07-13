@@ -594,9 +594,9 @@ function TopReasonsChart({
                 fontSize: 11,
                 color: 'hsl(var(--popover-foreground))',
               }}
-              formatter={(value: unknown) => {
-                const val = typeof value === 'number' ? value : String(value || 0);
-                return [String(val) + ' retries', ''];
+              formatter={(value: number | string, name: number | string) => {
+                const label = name === 'previous' ? 'Período anterior' : 'Período atual';
+                return [String(value ?? '') + ' retries', label];
               }}
               labelFormatter={(label: unknown) => String(label || '')}
             />

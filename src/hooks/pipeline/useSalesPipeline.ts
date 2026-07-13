@@ -42,12 +42,7 @@ export function useSalesPipeline() {
     setLoading(true);
     const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([
       supabase.from('sales_pipeline_stages').select('*').order('position'),
-      safeClient.from<
-        Deal & {
-          contacts: { name: string; phone: string } | null;
-          profiles: { name: string } | null;
-        }
-      >('sales_deals', (q) =>
+      safeClient.from('sales_deals', (q) =>
         q
           .select('*, contacts(name, phone), profiles!sales_deals_assigned_to_fkey(name)')
           .order('created_at', { ascending: false })
@@ -57,15 +52,23 @@ export function useSalesPipeline() {
     ]);
     if (!mountedRef.current) return;
     if (stagesRes.data) setStages(stagesRes.data);
-    if (dealsRes.data)
+    if (dealsRes.data) {
+      const dealsRows = dealsRes.data as Array<
+        Deal & {
+          contacts: { name: string; phone: string } | null;
+          profiles: { name: string } | null;
+          tags?: string[];
+        }
+      >;
       setDeals(
-        dealsRes.data.map((d) => ({
+        dealsRows.map((d) => ({
           ...d,
           tags: d.tags || [],
           contact: d.contacts,
           assignee: d.profiles,
         }))
       );
+    }
     if (contactsRes.data) setContacts(contactsRes.data);
     if (agentsRes.data) setAgents(agentsRes.data);
     setLoading(false);
@@ -82,7 +85,7 @@ export function useSalesPipeline() {
       )
       .subscribe(); // public.sales_deals é VIEW — realtime só emite da tabela-base zapp.sales_deals (publicada + RLS auth_full_access)
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [fetchData]);
 

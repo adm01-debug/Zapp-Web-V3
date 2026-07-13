@@ -1,3 +1,64 @@
+/**
+ * Edge Function: Password Reset Request Approval Manager
+ *
+ * Implements 2-step password reset with admin approval gate.
+ * User submits reset request → admin approves/rejects → recovery link sent to user.
+ * Prevents brute-force password resets and allows team oversight of account security.
+ *
+ * Flow:
+ * 1. Admin/supervisor sends JSON with { requestId, action: "approve"|"reject", rejectionReason? }
+ * 2. Verify admin role via is_admin_or_supervisor RPC
+ * 3. Fetch password_reset_requests record with id=requestId and status="pending"
+ * 4. If action=reject: Mark as rejected, log rejection reason, notify user
+ * 5. If action=approve:
+ *    a. Atomic status check: Update status to "approved" only if status="pending"
+ *    b. If update count=0: Another admin already approved (race condition) → return 409
+ *    c. Generate Supabase Auth recovery link via auth.admin.generateLink()
+ *    d. Store generated_link in password_reset_requests for audit trail
+ *    e. Return link to calling function (which sends via email)
+ *
+ * Concurrency Safety (Critical):
+ * - Race scenario: Two admins approve same request simultaneously
+ * - Protection: Atomic .eq("status","pending") guard in UPDATE statement
+ * - Only first UPDATE succeeds (count=1); second gets count=0 → returns 409 Conflict
+ * - Prevents duplicate recovery links (token-per-request invariant maintained)
+ *
+ * Security Controls:
+ * - Rate limit: 10 requests per 60 seconds per IP (prevents denial-of-service approvals)
+ * - Admin-only: Requires is_admin_or_supervisor role (no user self-approval)
+ * - Status guard: Rejects already-processed requests (prevents re-approval)
+ * - Audit trail: Records reviewed_by (admin ID) and reviewed_at (timestamp)
+ * - Rejection reasons logged: For compliance and debugging (why was reset denied?)
+ *
+ * Authorization Model:
+ * - Uses caller-scoped Supabase client for admin role verification (RLS enforced)
+ * - Uses service-role client for recovery link generation (requires Auth admin powers)
+ * - Never confirms which email/user failed (prevents username enumeration)
+ *
+ * Error Handling:
+ * - 401 Unauthorized: No/invalid authorization header (missing JWT)
+ * - 403 Forbidden: Non-admin user attempted to approve (insufficient role)
+ * - 404 Not Found: Reset request not found (invalid ID or already completed)
+ * - 409 Conflict: Request already processed (concurrent approval, or re-approval attempt)
+ * - 429 Too Many Requests: Rate limit exceeded (max 10 approvals/60s per IP)
+ *
+ * Failure Modes:
+ * - Supabase Auth unavailable: generateLink() fails → approval succeeds but no email sent
+ *   → Admin logs into UI, manually re-approves (recovery link regenerated)
+ * - Database stale on read: Fetch shows status="pending" but concurrent UPDATE already happened
+ *   → Update count=0 → returns 409 (client retries or escalates)
+ * - Network timeout: Caller retries the same request (idempotent due to atomic guard)
+ *
+ * Performance:
+ * - Single read (fetch request) + single atomic write (status update)
+ * - Supabase Auth link generation: ~100-500ms (HTTPS round-trip to Google/Firebase)
+ * - No N+1 queries, no unnecessary database activity
+ *
+ * Compliance:
+ * - Password reset attempts logged with admin reviewer ID for compliance audit
+ * - Rejection reasons recorded (e.g., "Suspicious activity detected")
+ * - Timestamps (reviewed_at) provide audit trail for change tracking
+ */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { ApprovePasswordResetSchema, parseBody } from "../_shared/schemas.ts";

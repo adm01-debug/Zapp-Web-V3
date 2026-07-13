@@ -9,6 +9,7 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
+import { normalizeProfileRef } from '@/features/admin/utils/profileMappers';
 
 export type QueueStatus = 'active' | 'paused' | 'archived';
 export type DistAlgo = 'round_robin' | 'least_busy' | 'longest_idle' | 'manual_pull';
@@ -93,7 +94,7 @@ export function useAdminQueues() {
 
   const load = async () => {
     setLoading(true);
-    const results = await Promise.allSettled([
+    const [q, m, s, p, d, c, cq] = await Promise.all([
       safeClient.from<Queue>('queues', (query) =>
         query.select('*').order('priority', { ascending: false })
       ),
@@ -112,41 +113,30 @@ export function useAdminQueues() {
       safeClient.from<ChannelQueue>('channel_queues', (query) => query.select('*')),
     ]);
     if (!mountedRef.current) return;
-
-    // Extract data from settled promises, use empty arrays for failed queries
-    const q = results[0].status === 'fulfilled' ? results[0].value : { data: [] };
-    const m = results[1].status === 'fulfilled' ? results[1].value : { data: [] };
-    const s = results[2].status === 'fulfilled' ? results[2].value : { data: [] };
-    const p = results[3].status === 'fulfilled' ? results[3].value : { data: [] };
-    const d = results[4].status === 'fulfilled' ? results[4].value : { data: [] };
-    const c = results[5].status === 'fulfilled' ? results[5].value : { data: [] };
-    const cq = results[6].status === 'fulfilled' ? results[6].value : { data: [] };
-
     setQueues(q.data ?? []);
-    setMembers((m.data ?? []) as QueueMember[]);
+    setMembers(
+      (
+        (m.data ?? []) as Array<{
+          id: string;
+          queue_id: string;
+          profile_id: string;
+          profile?: unknown;
+        }>
+      ).map((row) => {
+        const ref = normalizeProfileRef(row.profile as never);
+        return {
+          id: row.id,
+          queue_id: row.queue_id,
+          profile_id: row.profile_id,
+          profile: ref ? { id: ref.id, name: ref.name, avatar_url: ref.avatar_url } : undefined,
+        };
+      })
+    );
     setSkills((s.data ?? []) as QueueSkill[]);
     setProfiles((p.data ?? []) as Profile[]);
     setDepartments((d.data ?? []) as Department[]);
     setChannels(c.data ?? []);
     setChannelQueues(cq.data ?? []);
-
-    // Log any failures for debugging
-    const failures = results
-      .map((r, i) => (r.status === 'rejected' ? i : -1))
-      .filter((i) => i >= 0);
-    if (failures.length > 0) {
-      const labels = [
-        'queues',
-        'queue_members',
-        'queue_skill_requirements',
-        'profiles',
-        'departments',
-        'service_channels',
-        'channel_queues',
-      ];
-      console.warn(`useAdminQueues: Failed to load ${failures.map((i) => labels[i]).join(', ')}`);
-    }
-
     setLoading(false);
   };
 

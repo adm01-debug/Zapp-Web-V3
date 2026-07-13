@@ -60,6 +60,7 @@ export function useChatbotFlows() {
       if (error) throw error;
       return (data || []) as ChatbotFlow[];
     },
+    staleTime: Infinity,
   });
 
   const createFlow = useMutation({

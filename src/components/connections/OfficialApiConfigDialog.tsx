@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Loader2, ShieldCheck, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from '@/hooks/use-toast';
 
 interface OfficialApiConfigDialogProps {
@@ -73,26 +74,12 @@ export function OfficialApiConfigDialog({
     setLoading(true);
     (async () => {
       try {
-        // View not in generated types — use interface for dynamic table access
-        interface UntypedSupabase {
-          from(table: string): {
-            select(columns: string): {
-              eq(
-                column: string,
-                value: unknown
-              ): {
-                maybeSingle(): Promise<{ data: unknown; error: unknown }>;
-              };
-            };
-          };
-        }
-        const untypedSupabase = supabase as unknown as UntypedSupabase;
-        const res = await untypedSupabase
-          .from('whatsapp_official_credentials_safe')
+        // View not in generated types — use fromTable helper for dynamic table access
+        const res = await fromTable('whatsapp_official_credentials_safe')
           .select('phone_number_id, waba_id, has_access_token, has_app_secret')
           .eq('connection_id', connectionId)
           .maybeSingle();
-        const data = res.data as SafeCredentialView | null;
+        const data = res.data as SafeCredentialView | null; // ignore-audit: narrows Supabase query result to local interface
         if (cancelled) return;
         if (data) {
           setForm({
@@ -140,16 +127,9 @@ export function OfficialApiConfigDialog({
     };
     if (form.access_token) payload.access_token = form.access_token;
     if (form.app_secret) payload.app_secret = form.app_secret;
-    // Table not in generated types — use interface for dynamic table access
-    interface UpsertClient {
-      from(table: string): {
-        upsert(data: unknown, options?: unknown): Promise<{ error: { message: string } | null }>;
-      };
-    }
-    const upsertClient = supabase as unknown as UpsertClient;
-    const { error } = await upsertClient
-      .from('whatsapp_official_credentials')
-      .upsert(payload, { onConflict: 'connection_id' });
+    // Table not in generated types — use fromTable helper for dynamic table access
+    const { error } = await fromTable('whatsapp_official_credentials')
+      .upsert(payload, { onConflict: 'connection_id' }) as { error: { message: string } | null };
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });

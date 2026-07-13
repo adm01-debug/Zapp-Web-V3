@@ -43,9 +43,9 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         .limit(limit);
       if (err) throw err;
       // ordenar ascendente para UI tipo chat
-      setMessages(((data ?? []) as EvolutionMessage[]).reverse());
+      setMessages(((data ?? []) as unknown as EvolutionMessage[]).reverse());
       setError(null);
-    } catch (e) {
+    } catch (e: unknown) {
       log.error('[useZappMessages]', e);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -73,7 +73,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
             log.warn('[useZappMessages] INSERT payload rejeitado', parsed.error);
             return;
           }
-          const msg = parsed.data as EvolutionMessage;
+          const msg = parsed.data as EvolutionMessage; // ignore-audit: narrows Supabase query result to local interface
           if (msg.remote_jid !== remoteJid) return;
           setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         }
@@ -92,7 +92,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
             log.warn('[useZappMessages] UPDATE payload rejeitado', parsed.error);
             return;
           }
-          const upd = parsed.data as EvolutionMessage;
+          const upd = parsed.data as EvolutionMessage; // ignore-audit: narrows Supabase query result to local interface
           if (upd.remote_jid !== remoteJid) return;
           setMessages((prev) => prev.map((m) => (m.id === upd.id ? { ...m, ...upd } : m)));
         }

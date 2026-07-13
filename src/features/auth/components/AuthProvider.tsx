@@ -37,11 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  /**
-   * Fetch roles + permissions in a single coordinated pass, avoiding the
-   * previous duplicate query against `user_roles` (called by both fetchRoles
-   * and fetchPermissions on every login / token refresh).
-   */
   const fetchRolesAndPermissions = useCallback(async (userId: string) => {
     if (fetchingRolesRef.current) return;
     fetchingRolesRef.current = true;
@@ -94,7 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Backward-compatible helpers used by refreshRoles / refreshPermissions consumers.
   const fetchRoles = useCallback(
     (userId: string) => fetchRolesAndPermissions(userId),
     [fetchRolesAndPermissions]
@@ -174,7 +168,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [refreshAll]);
 
-  // Real-time profile updates (e.g., department changes)
   useEffect(() => {
     if (!user) return;
 
@@ -193,7 +186,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (payload.eventType === 'DELETE') {
             setProfile(null);
           } else {
-            // Refetch to ensure we have full data and respect RLS
             await fetchProfile(user.id);
           }
         }
@@ -247,7 +239,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await authService.signOut();
-      // Explicitly clear stale Supabase tokens from localStorage to prevent ghost sessions
       if (typeof window !== 'undefined') {
         Object.keys(localStorage)
           .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))

@@ -116,7 +116,8 @@ export function AudioMessagePlayer({
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [messageId]);
 
@@ -124,7 +125,7 @@ export function AudioMessagePlayer({
   useEffect(() => {
     const channel = supabase
       .channel(`voice-conversion-${messageId}`)
-      .on(
+      .on<VoiceConversionRow>(
         'postgres_changes',
         {
           event: '*',
@@ -133,18 +134,17 @@ export function AudioMessagePlayer({
           filter: `message_id=eq.${messageId}`,
         },
         (payload) => {
-          const newData = payload.new as VoiceConversionRow;
-          if (newData.status) setVoiceStatus(newData.status);
-          if (newData.error_message) setVoiceError(newData.error_message);
-          if (newData.id) setVoiceTaskId(newData.id);
+          if (payload.new.status) setVoiceStatus(payload.new.status);
+          if (payload.new.error_message) setVoiceError(payload.new.error_message);
+          if (payload.new.id) setVoiceTaskId(payload.new.id);
 
-          if (newData.status === 'completed' && newData.output_audio_url && onVoiceChange) {
+          if (payload.new.status === 'completed' && payload.new.output_audio_url && onVoiceChange) {
             toast({
               title: 'Conversão concluída',
               description: 'A voz do áudio foi alterada com sucesso.',
             });
             // Fetch the new audio and trigger update
-            fetch(newData.output_audio_url)
+            fetch(payload.new.output_audio_url)
               .then((r) => r.blob())
               .then((blob) => onVoiceChange(messageId, blob));
           }
@@ -167,7 +167,8 @@ export function AudioMessagePlayer({
     fetchStatus();
 
     return () => {
-      channel.unsubscribe();
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [messageId, onVoiceChange]);
 
@@ -350,17 +351,17 @@ export function AudioMessagePlayer({
                   clientX:
                     e.currentTarget.getBoundingClientRect().left +
                     e.currentTarget.clientWidth * (progress / 100),
-                } as unknown as React.MouseEvent<HTMLDivElement>);
+                });
               }
               if (e.key === 'ArrowRight') {
                 e.preventDefault();
                 const newTime = Math.min(duration, currentTime + 5);
-                audioRef.current!.currentTime = newTime;
+                if (audioRef.current) audioRef.current.currentTime = newTime;
               }
               if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 const newTime = Math.max(0, currentTime - 5);
-                audioRef.current!.currentTime = newTime;
+                if (audioRef.current) audioRef.current.currentTime = newTime;
               }
             }}
           >

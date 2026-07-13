@@ -92,7 +92,7 @@ export function DataExplorerTable({ tabConfig, onRowClick, onCreateClick }: Data
         <Button variant="outline" size="sm" onClick={() => void browser.refetch()} className="h-9">
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="outline" size="sm" onClick={() => exportToCSV(browser.data as Record<string, unknown>[], tabConfig.columns, tabConfig.id)} disabled={browser.data.length === 0} className="h-9">
+        <Button variant="outline" size="sm" onClick={() => exportToCSV(browser.data as Record<string, unknown>[] /* ignore-audit: narrows Supabase query result to local interface */, tabConfig.columns, tabConfig.id)} disabled={browser.data.length === 0} className="h-9">
           <Download className="h-3.5 w-3.5 mr-1" /> CSV
         </Button>
         {onCreateClick && (

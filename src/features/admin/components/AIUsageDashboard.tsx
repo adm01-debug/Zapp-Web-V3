@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatTokens } from '@/lib/rechartsFormatters';
 import {
   Select,
   SelectContent,
@@ -59,7 +58,14 @@ export function AIUsageDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
+          <Select
+            value={timeFilter}
+            onValueChange={(v) =>
+              setTimeFilter(
+                v as TimeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue />
             </SelectTrigger>
@@ -71,7 +77,12 @@ export function AIUsageDashboard() {
               <SelectItem value="30d">Últimos 30 dias</SelectItem>
             </SelectContent>
           </Select>
-          <Button aria-label="Atualizar dados de uso" variant="outline" size="icon" onClick={() => refetch()}>
+          <Button
+            aria-label="Atualizar dados de uso"
+            variant="outline"
+            size="icon"
+            onClick={() => refetch()}
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportCSV}>
@@ -185,7 +196,9 @@ export function AIUsageDashboard() {
                             <Cell key={entry.name} fill={FUNCTION_COLORS[entry.name] || '#666'} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={formatTokens} />
+                        <Tooltip
+                          formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="mt-2 space-y-1.5">

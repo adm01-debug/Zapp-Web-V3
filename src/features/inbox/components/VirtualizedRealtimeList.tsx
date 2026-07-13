@@ -1,5 +1,5 @@
 import { useRef, useMemo, memo } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
 
 import { ConversationWithMessages } from '@/features/inbox';
 import { useDensity } from '@/hooks/useDensity';
@@ -42,7 +42,7 @@ const VirtualizedItem = memo(
     onToggleSelection,
     onSelectConversation,
   }: {
-    virtualRow: any; // ignore-audit
+    virtualRow: VirtualItem;
     conversation: ConversationWithMessages;
     selectedContactId: string | null;
     selectedIds: Set<string>;

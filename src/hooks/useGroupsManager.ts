@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { log } from '@/lib/logger';
 import { toast } from 'sonner';
 import { useGroupActions } from './groups/actions';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import type { WhatsAppGroup, WhatsAppConnection } from './groups/types';
 
 // Re-export for external consumers
@@ -17,34 +18,30 @@ export function useGroupsManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const mountedRef = useMountedRef();
 
   const fetchGroups = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('whatsapp_groups')
-      .select('*')
-      .order('name', { ascending: true });
+    const { data, error } = await safeClient.from<WhatsAppGroup>('whatsapp_groups', (q) =>
+      q.select('*').order('name', { ascending: true })
+    );
+    if (!mountedRef.current) return;
     if (error) {
       toast.error('Erro ao carregar grupos');
       log.error('Error fetching groups:', error);
-    } else {
-      const normalizedData = (data || []).map((g) => ({
-        ...g,
-        is_admin: g.is_admin ?? false,
-        participant_count: g.participant_count ?? 0,
-      }));
-      setGroups(normalizedData);
-    }
+    } else setGroups(data ?? []);
     setIsLoading(false);
   }, []);
 
   const fetchConnections = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('whatsapp_connections')
-      .select('id, name, phone_number, instance_id, instance_name')
-      .order('name', { ascending: true });
+    const { data, error } = await safeClient.from<WhatsAppConnection>('whatsapp_connections', (q) =>
+      q
+        .select('id, name, phone_number, instance_id, instance_name')
+        .order('name', { ascending: true })
+    );
+    if (!mountedRef.current) return;
     if (error) log.error('Error fetching connections:', error);
-    else setConnections(data || []);
+    else setConnections(data ?? []);
   }, []);
 
   useEffect(() => {

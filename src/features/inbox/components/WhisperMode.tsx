@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AudioRecorder } from './AudioRecorder';
 import { WhisperAudioPlayer } from './WhisperAudioPlayer';
+import { isValidUUID } from '@/utils/uuid';
 
 interface WhisperMessage {
   id: string;
@@ -43,9 +44,7 @@ export function WhisperMode({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const contactIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    contactId ?? ''
-  );
+  const contactIsUUID = isValidUUID(contactId ?? '');
 
   const { data: whispers = [], isLoading } = useQuery<WhisperMessage[]>({
     queryKey: ['whispers', contactId],
@@ -108,6 +107,7 @@ export function WhisperMode({
       .subscribe();
     return () => {
       void channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, [contactId, queryClient, contactIsUUID]);
 

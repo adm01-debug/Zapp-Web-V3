@@ -67,6 +67,11 @@ export const DashboardView = memo(function DashboardView() {
     setTimeout(() => setIsRefreshing(false), 500);
   }, [refetch]);
 
+  const renderWidget = useCallback(
+    (widget: DashboardWidget) => <DashboardWidgetRenderer widget={widget} stats={stats} />,
+    [stats]
+  );
+
   if (isLoading || !stats) {
     return (
       <div className="relative h-full w-full space-y-6 overflow-y-auto bg-background p-6">
@@ -86,11 +91,6 @@ export const DashboardView = memo(function DashboardView() {
       </div>
     );
   }
-
-  const renderWidget = useCallback(
-    (widget: DashboardWidget) => <DashboardWidgetRenderer widget={widget} stats={stats} />,
-    [stats]
-  );
 
   return (
     <div className="scrollbar-none relative h-full w-full space-y-8 overflow-y-auto bg-background p-4 antialiased md:p-8">

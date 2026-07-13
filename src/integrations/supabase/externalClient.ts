@@ -133,12 +133,6 @@ export function callExtRpc(
   fn: string,
   args: Record<string, unknown>
 ): Promise<{ data: unknown; error: { message: string } | null }> {
-  interface RpcClient {
-    rpc(
-      name: string,
-      params?: Record<string, unknown>
-    ): Promise<{ data: unknown; error: { message: string } | null }>;
-  }
-  const rpcClient = client as unknown as RpcClient;
-  return rpcClient.rpc(fn, args);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any).rpc(fn, args); // ignore-audit — external DB schema RPCs not in generated types
 }

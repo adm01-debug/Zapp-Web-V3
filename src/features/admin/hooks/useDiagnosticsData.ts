@@ -65,7 +65,14 @@ async function fetchConnections(): Promise<ConnectionStatus[]> {
 async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const results = await Promise.allSettled([
+  const [
+    { count: totalCount },
+    { count: sentCount },
+    { count: deliveredCount },
+    { count: readCount },
+    { count: failedCount },
+    { count: pendingCount },
+  ] = await Promise.all([
     dbFrom('messages')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', since)
@@ -97,29 +104,7 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
       .eq('status', 'sending'),
   ]);
 
-  const totalCountResult = results[0].status === 'fulfilled' ? results[0].value : { count: 0 };
-  const sentCountResult = results[1].status === 'fulfilled' ? results[1].value : { count: 0 };
-  const deliveredCountResult = results[2].status === 'fulfilled' ? results[2].value : { count: 0 };
-  const readCountResult = results[3].status === 'fulfilled' ? results[3].value : { count: 0 };
-  const failedCountResult = results[4].status === 'fulfilled' ? results[4].value : { count: 0 };
-  const pendingCountResult = results[5].status === 'fulfilled' ? results[5].value : { count: 0 };
-
-  const { count: totalCount } = totalCountResult;
-  const { count: sentCount } = sentCountResult;
-  const { count: deliveredCount } = deliveredCountResult;
-  const { count: readCount } = readCountResult;
-  const { count: failedCount } = failedCountResult;
-  const { count: pendingCount } = pendingCountResult;
-
-  const failures = results.map((r, i) => (r.status === 'rejected' ? i : -1)).filter((i) => i >= 0);
-  if (failures.length > 0) {
-    const labels = ['total', 'sent', 'delivered', 'read', 'failed', 'pending'];
-    console.warn(
-      `fetchMessageDiagnostics: Failed to load ${failures.map((i) => labels[i]).join(', ')}`
-    );
-  }
-
-  const { data: failedMessages } = await supabase
+  const { data: failures } = await supabase
     .from('messages')
     .select('id, content, status, created_at, contact_id')
     .eq('sender', 'agent')
@@ -127,30 +112,27 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
     .order('created_at', { ascending: false })
     .limit(10);
 
-  const recentFailures: Array<{
-    id: string;
-    content: string;
-    status: string;
-    created_at: string;
-    contact_name: string;
-  }> = [];
-  if (failedMessages) {
-    for (const f of failedMessages) {
-      let contactName = 'Desconhecido';
-      if (f.contact_id) {
-        const { data: contact } = await supabase
-          .from('contacts')
-          .select('name')
-          .eq('id', f.contact_id)
-          .single();
-        if (contact) contactName = contact.name;
-      }
+  const recentFailures = [];
+  if (failures) {
+    // Batch-fetch all contact names in a single query instead of one per failure.
+    const contactIds = failures.map((f) => f.contact_id).filter(Boolean) as string[];
+    const contactNameMap = new Map<string, string>();
+    if (contactIds.length > 0) {
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('id, name')
+        .in('id', contactIds);
+      contacts?.forEach((c) => contactNameMap.set(c.id, c.name));
+    }
+    for (const f of failures) {
       recentFailures.push({
         id: f.id,
         content: f.content,
         status: f.status || 'unknown',
         created_at: f.created_at,
-        contact_name: contactName,
+        contact_name: f.contact_id
+          ? (contactNameMap.get(f.contact_id) ?? 'Desconhecido')
+          : 'Desconhecido',
       });
     }
   }
@@ -299,54 +281,12 @@ export function useDiagnosticsData() {
   const query = useQuery({
     queryKey: ['admin', 'diagnostics'],
     queryFn: async () => {
-      const results = await Promise.allSettled([
+      const [connections, messageDiag, health, errorLogs] = await Promise.all([
         fetchConnections(),
         fetchMessageDiagnostics(),
         fetchSystemHealth(),
         fetchErrorLogs(),
       ]);
-
-      const connections = results[0].status === 'fulfilled' ? results[0].value : [];
-      const messageDiag =
-        results[1].status === 'fulfilled'
-          ? results[1].value
-          : {
-              total: 0,
-              sent: 0,
-              delivered: 0,
-              read: 0,
-              failed: 0,
-              pending: 0,
-              deliveryRate: 0,
-              failureRate: 0,
-              recentFailures: [],
-            };
-      const health =
-        results[2].status === 'fulfilled'
-          ? results[2].value
-          : ({
-              database: 'down',
-              storage: 'down',
-              realtime: 'down',
-              edgeFunctions: 'down',
-              dbLatency: 9999,
-              storageLatency: 9999,
-              contactsCount: 0,
-              messagesCount: 0,
-              connectionsCount: 0,
-            } as SystemHealth);
-      const errorLogs = results[3].status === 'fulfilled' ? results[3].value : [];
-
-      const failures = results
-        .map((r, i) => (r.status === 'rejected' ? i : -1))
-        .filter((i) => i >= 0);
-      if (failures.length > 0) {
-        const labels = ['connections', 'messageDiagnostics', 'systemHealth', 'errorLogs'];
-        console.warn(
-          `useDiagnosticsData: Failed to load ${failures.map((i) => labels[i]).join(', ')}`
-        );
-      }
-
       return { connections, messageDiag, health, errorLogs };
     },
     refetchInterval: 30000,

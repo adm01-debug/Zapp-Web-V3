@@ -80,7 +80,7 @@ export function useSecurityPushNotifications() {
 
     const channel = supabase
       .channel('security-alerts-push')
-      .on(
+      .on<SecurityAlert>(
         'postgres_changes',
         {
           event: 'INSERT',
@@ -90,8 +90,7 @@ export function useSecurityPushNotifications() {
         },
         (payload) => {
           log.debug('New security alert received:', payload);
-          const alert = payload.new as SecurityAlert;
-          sendSecurityNotification(alert);
+          sendSecurityNotification(payload.new);
         }
       )
       .subscribe((status) => {

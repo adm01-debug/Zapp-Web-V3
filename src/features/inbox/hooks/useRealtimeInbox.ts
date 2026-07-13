@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import {
-  type ConversationWithMessages,
-  type ConversationContact,
-  type RealtimeMessage,
-} from '@/features/inbox';
+import type {
+  ConversationWithMessages,
+  ConversationContact,
+  RealtimeMessage,
+} from './realtime/types';
+import { seedAvatarCache } from './realtime/avatarBatchStore';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
-import { seedAvatarCache } from '@/features/inbox';
 import { isValidUUID } from '@/utils/uuid';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -142,7 +142,7 @@ export function useRealtimeInbox() {
       // para a coluna `id` (UUID) — isso causa 400 no PostgREST.
       const raw = String(selectedContactId);
       const isJid = raw.includes('@');
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
+      const isUuid = isValidUUID(raw);
       const phone = isJid
         ? raw.split('@')[0].replace(/\D/g, '')
         : !isUuid
@@ -235,46 +235,31 @@ export function useRealtimeInbox() {
         .select('*', { count: 'exact', head: true })
         .eq('contact_id', selectedContactId)
         .eq('is_read', false);
-      if (!cancelled && !error && count !== null) {
-        setWhisperCount(count);
-      }
+      if (!cancelled && !error && count !== null) setWhisperCount(count);
     };
     void fetchWhisperCount();
 
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    const subscribeToWhisperUpdates = async () => {
-      channel = supabase
-        .channel(`whisper-count-${selectedContactId}`, {
-          config: { broadcast: { self: true } },
-        })
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'zapp',
-            table: 'whisper_messages',
-            filter: `contact_id=eq.${selectedContactId}`,
-          },
-          () => {
-            if (!cancelled) {
-              void fetchWhisperCount();
-            }
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIPTION_ERROR' && !cancelled) {
-            log.warn('[whisperCount] Subscription failed, will retry on next interval', { status });
-          }
-        });
-    };
-
-    void subscribeToWhisperUpdates();
-
+    // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
+    // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
+    const channel = supabase
+      .channel(`whisper-count-${selectedContactId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'zapp',
+          table: 'whisper_messages',
+          filter: `contact_id=eq.${selectedContactId}`,
+        },
+        () => {
+          void fetchWhisperCount();
+        }
+      )
+      .subscribe();
     return () => {
       cancelled = true;
-      if (channel) {
-        void channel.unsubscribe();
-      }
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [selectedContactId, profile?.id]);
 
@@ -297,7 +282,8 @@ export function useRealtimeInbox() {
     }
 
     if (USE_EXTERNAL_DB) {
-      const { sendExternalText, sendExternalMedia, sendExternalAudio } = await import('..');
+      const { sendExternalText, sendExternalMedia, sendExternalAudio } =
+        await import('./realtime/externalMessageSender');
       const currentAvatar = resolvedSelectedConversation?.contact.avatar_url;
 
       try {
@@ -329,7 +315,6 @@ export function useRealtimeInbox() {
               contactAvatar: currentAvatar,
               caption: i === 0 ? content : undefined,
               onProgress: (p) => {
-                const _total = (i / attachments.length) * 100 + p / attachments.length;
                 messageQueue.updateProgress(
                   item.id,
                   p / attachments.length + (i / attachments.length) * 100
@@ -354,16 +339,13 @@ export function useRealtimeInbox() {
         throw err;
       }
 
-      if (postSendTimerRef.current) {
-        clearTimeout(postSendTimerRef.current);
-      }
+      clearTimeout(postSendTimerRef.current);
+      // Only refresh the sidebar list — the message list is already updated
+      // via the optimistic message added above; polling handles reconciliation.
+      // Calling refetchSelectedMessages() (= initialFetch) here would collapse
+      // the chat to the last page, discarding any messages loaded via scroll-up.
       postSendTimerRef.current = setTimeout(() => {
-        void refetchSelectedMessages().catch((err) => {
-          log.error('[postSend] refetchSelectedMessages failed:', err);
-        });
-        void refetch().catch((err) => {
-          log.error('[postSend] refetch failed:', err);
-        });
+        void refetch();
       }, 1500);
       return;
     }

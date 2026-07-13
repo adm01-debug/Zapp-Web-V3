@@ -48,6 +48,7 @@ export function useConversationReactionsRealtime(
 
     return () => {
       void channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);
 }

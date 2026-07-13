@@ -51,8 +51,8 @@ export const realtimeEnvelopeSchema = z.object({
   schema: z.string().optional(),
   table: z.string(),
   eventType: z.enum(['INSERT', 'UPDATE', 'DELETE']),
-  new: z.record(z.string(), z.any()).nullable().optional(),
-  old: z.record(z.string(), z.any()).nullable().optional(),
+  new: z.record(z.string(), z.unknown()).nullable().optional(),
+  old: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export function realtimeEnvelopeFor<T extends z.ZodTypeAny>(rowSchema: T) {
@@ -61,7 +61,7 @@ export function realtimeEnvelopeFor<T extends z.ZodTypeAny>(rowSchema: T) {
     table: z.string(),
     eventType: z.enum(['INSERT', 'UPDATE', 'DELETE']),
     new: rowSchema.nullable().optional(),
-    old: z.record(z.string(), z.any()).nullable().optional(),
+    old: z.record(z.string(), z.unknown()).nullable().optional(),
   });
 }
 
@@ -183,7 +183,7 @@ export const notificationRowSchema = z.object({
   message: z.string(),
   type: z.string(),
   is_read: z.boolean().nullable(),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
   created_at: z.string(),
   read_at: z.string().nullable(),
 });
@@ -200,7 +200,7 @@ export const conversationEventRowSchema = z.object({
   to_agent_id: z.string().nullable(),
   from_queue_id: z.string().nullable(),
   to_queue_id: z.string().nullable(),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
   performed_by: z.string().nullable(),
   created_at: z.string(),
 });
@@ -225,7 +225,7 @@ export const conversationTransferRowSchema = z.object({
   contact_id: z.string().nullable(),
   remote_jid: z.string().nullable(),
   contact_name: z.string().nullable(),
-  metadata: z.record(z.string(), z.any()).nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
   created_at: z.string().nullable(),
 });
 
@@ -316,7 +316,7 @@ export const sentimentAlertAuditRowSchema = z.object({
   entity_id: z.string().nullable(),
   entity_type: z.string().nullable(),
   user_id: z.string().nullable(),
-  details: z.record(z.string(), z.any()).nullable(),
+  details: z.record(z.string(), z.unknown()).nullable(),
   created_at: z.string(),
 });
 

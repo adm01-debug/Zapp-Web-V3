@@ -23,7 +23,7 @@ interface StickerGridProps {
   search: string;
   gridSize: 'sm' | 'md' | 'lg';
   onSend: (sticker: StickerItem) => void;
-  onToggleFavorite: (e: React.MouseEvent, sticker: StickerItem) => void;
+  onToggleFavorite: (e: React.SyntheticEvent, sticker: StickerItem) => void;
   onDelete: (e: React.MouseEvent, sticker: StickerItem) => void;
   onCategoryChange: (sticker: StickerItem, cat: string) => void;
   onAddClick: () => void;
@@ -57,7 +57,7 @@ export function StickerGrid({
         onSend(sticker);
       } else if (e.key === 'f') {
         e.preventDefault();
-        onToggleFavorite(e as unknown as React.MouseEvent, sticker);
+        onToggleFavorite(e, sticker);
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         setDeleteTarget(sticker);

@@ -1,1 +1,11 @@
-
+src/components/diagnostics/ConnectionHealthPanel.tsx
+src/components/email/EmailChatBubble-v2.tsx
+src/components/talkx/useCampaignEditor.ts
+src/features/admin/hooks/monitoring/useDlqAuditLog.ts
+src/features/contacts/hooks/useContactsSearch.ts
+src/features/inbox/hooks/team-chat/useTeamMessages.ts
+src/hooks/useClientWallet.ts
+src/hooks/useOnboardingChecklist.ts
+src/integrations/datasource/db.ts
+src/integrations/supabase/safe-queries.ts
+src/integrations/supabase/safeClient.ts

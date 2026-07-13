@@ -42,22 +42,18 @@ export function LGPDComplianceView() {
 
   const handleExportData = async () => {
     if (user) {
-      void (async () => {
-        try {
-          await supabase.rpc('log_audit_event', {
-            p_action: 'gdpr_export_blocked',
-            p_entity_type: 'user',
-            p_entity_id: user.id,
-            p_details: {
-              reason: 'export_disabled_by_policy',
-              attempted_at: new Date().toISOString(),
-            },
-            p_user_agent: navigator.userAgent,
-          });
-        } catch (err: unknown) {
-          log.warn('[audit] gdpr_export_blocked log failed', err);
-        }
-      })();
+      void supabase
+        .rpc('log_audit_event', {
+          p_action: 'gdpr_export_blocked',
+          p_entity_type: 'user',
+          p_entity_id: user.id,
+          p_details: {
+            reason: 'export_disabled_by_policy',
+            attempted_at: new Date().toISOString(),
+          },
+          p_user_agent: navigator.userAgent,
+        })
+        .catch((err: unknown) => log.warn('[audit] gdpr_export_blocked log failed', err));
     }
     toast.error('🔒 Exportação bloqueada por política de segurança', {
       description:

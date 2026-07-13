@@ -68,7 +68,7 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
         }
       );
       if (error) throw error;
-      return data as RetryMetricsResponse;
+      return data as RetryMetricsResponse; // ignore-audit: narrows Supabase query result to local interface
     },
     staleTime: 15_000,
     refetchInterval: 30_000,

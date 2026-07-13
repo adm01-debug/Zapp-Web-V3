@@ -239,7 +239,14 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+          <Select
+            value={range}
+            onValueChange={(v) =>
+              setRange(
+                v as RangeKey /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
+          >
             <SelectTrigger className="h-8 w-[160px] text-xs" data-testid="hmac-audit-range">
               <SelectValue />
             </SelectTrigger>

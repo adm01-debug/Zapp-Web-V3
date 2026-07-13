@@ -72,14 +72,7 @@ function callExternalRpc(
   fn: string,
   args: Record<string, unknown>
 ) {
-  interface RpcClient {
-    rpc(
-      name: string,
-      params?: Record<string, unknown>
-    ): Promise<{ data: unknown; error: { message: string } | null }>;
-  }
-  const rpcClient = client as unknown as RpcClient;
-  return rpcClient.rpc(fn, args);
+  return (client as unknown as { rpc: typeof client.rpc }).rpc(fn, args); // ignore-audit — rpc not in generated types for evolution client; shape is identical at runtime
 }
 
 export async function fallbackFindChats(instanceName: string, limit = 200): Promise<unknown[]> {

@@ -33,7 +33,7 @@ function statusBadge(status: FailedMessageStatus) {
 }
 
 function deriveType(payload: Record<string, unknown>): string {
-  const path = (payload as Record<string, unknown>).__path;
+  const path = payload.__path;
   if (typeof path === 'string') {
     const parts = path.split('/').filter(Boolean);
     return parts[parts.length - 1] || 'message';

@@ -25,7 +25,7 @@ function DensitySelector() {
     { value: 'dense', label: 'Denso', desc: 'Máxima densidade' },
   ];
   return (
-    <Select value={density} onValueChange={(v) => setDensity(v as DensityMode)}>
+    <Select value={density} onValueChange={(v) => setDensity(v as DensityMode /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
       <SelectTrigger><SelectValue /></SelectTrigger>
       <SelectContent>
         {options.map((o) => (

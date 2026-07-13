@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion } from 'framer-motion';
 import { log } from '@/lib/logger';
 import {
@@ -48,6 +49,7 @@ export function SecurityOverview() {
 
   const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
+  const mountedRef = useMountedRef();
 
   // Fetch security alerts
   useEffect(() => {
@@ -63,11 +65,12 @@ export function SecurityOverview() {
           .limit(5);
 
         if (error) throw error;
+        if (!mountedRef.current) return;
         setSecurityAlerts(data || []);
       } catch (error) {
         log.error('Error fetching alerts:', error);
       } finally {
-        setLoadingAlerts(false);
+        if (mountedRef.current) setLoadingAlerts(false);
       }
     }
 
@@ -328,7 +331,10 @@ export function SecurityOverview() {
       </motion.div>
 
       <SecurityAlertsPanel alerts={securityAlerts} loading={loadingAlerts} />
-      <SecurityDevicesPanel devices={devices.map((d) => normalizeUserDevice(d as unknown as Record<string, unknown>))} loading={devicesLoading} />
+      <SecurityDevicesPanel
+        devices={devices.map((d) => normalizeUserDevice(d as unknown as Record<string, unknown>))}
+        loading={devicesLoading}
+      />
     </div>
   );
 }

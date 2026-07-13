@@ -24,6 +24,7 @@ export function useAIProviders() {
       if (error) throw error;
       return (data || []) as AIProvider[];
     },
+    staleTime: Infinity,
   });
 
   const saveMutation = useMutation({
@@ -125,10 +126,10 @@ export function useAIProviders() {
   };
 
   const toggleUseFor = (val: string) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       use_for: prev.use_for.includes(val)
-        ? prev.use_for.filter(v => v !== val)
+        ? prev.use_for.filter((v) => v !== val)
         : [...prev.use_for, val],
     }));
   };

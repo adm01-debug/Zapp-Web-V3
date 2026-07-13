@@ -67,12 +67,10 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   const profiles = (profilesResult.data || []) as any[];
 
   // Overall
-  const frOnTime = slaData.filter(
-    (s: any) => s.first_response_at && !s.first_response_breached
-  ).length;
-  const frBreached = slaData.filter((s: any) => s.first_response_breached).length;
-  const resOnTime = slaData.filter((s: any) => s.resolved_at && !s.resolution_breached).length;
-  const resBreached = slaData.filter((s: any) => s.resolution_breached).length;
+  const frOnTime = slaData.filter((s) => s.first_response_at && !s.first_response_breached).length;
+  const frBreached = slaData.filter((s) => s.first_response_breached).length;
+  const resOnTime = slaData.filter((s) => s.resolved_at && !s.resolution_breached).length;
+  const resBreached = slaData.filter((s) => s.resolution_breached).length;
 
   const firstResponse = buildMetric(frOnTime, frBreached);
   const resolution = buildMetric(resOnTime, resBreached);

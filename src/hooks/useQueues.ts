@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { dbFrom } from '@/integrations/datasource/db';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 export interface Queue {
   id: string;
@@ -41,16 +42,17 @@ export function useQueues() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
 
   const fetchQueues = async () => {
     try {
       setLoading(true);
 
       // Fetch queues
-      const { data: queuesData, error: queuesError } = await supabase
-        .from('queues')
+      const { data: queuesData, error: queuesError } = await safeFrom('queues')
         .select('*')
         .order('priority', { ascending: false });
+      if (!mountedRef.current) return;
 
       if (queuesError) throw queuesError;
 
@@ -59,6 +61,7 @@ export function useQueues() {
         'queue_members',
         (q) => q.select('*, profile:profiles(id, name, avatar_url, is_active)')
       );
+      if (!mountedRef.current) return;
 
       if (membersError) throw membersError;
 
@@ -68,6 +71,7 @@ export function useQueues() {
       // eternamente 0. Mesma fonte usada pelo rpc_queue_sla_panel v2.
       const { data: waitingData, error: waitingError } =
         await dbFrom('queue_positions').select('queue_id');
+      if (!mountedRef.current) return;
 
       if (waitingError) throw waitingError;
 
@@ -89,17 +93,17 @@ export function useQueues() {
       setQueues(queuesWithMembers);
       setError(null);
     } catch (err) {
+      if (!mountedRef.current) return;
       log.error('Error fetching queues:', err);
       setError(err as Error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   const createQueue = async (queue: Partial<Queue>) => {
     try {
-      const { data, error } = await supabase
-        .from('queues')
+      const { data, error } = await safeFrom('queues')
         .insert({
           name: queue.name!,
           description: queue.description,
@@ -132,7 +136,7 @@ export function useQueues() {
 
   const updateQueue = async (id: string, updates: Partial<Queue>) => {
     try {
-      const { error } = await supabase.from('queues').update(updates).eq('id', id);
+      const { error } = await safeFrom('queues').update(updates).eq('id', id);
 
       if (error) throw error;
 
@@ -155,7 +159,7 @@ export function useQueues() {
 
   const deleteQueue = async (id: string) => {
     try {
-      const { error } = await supabase.from('queues').delete().eq('id', id);
+      const { error } = await safeFrom('queues').delete().eq('id', id);
 
       if (error) throw error;
 
@@ -178,7 +182,7 @@ export function useQueues() {
 
   const addMember = async (queueId: string, profileId: string) => {
     try {
-      const { error } = await supabase.from('queue_members').insert({
+      const { error } = await safeFrom('queue_members').insert({
         queue_id: queueId,
         profile_id: profileId,
       });
@@ -204,8 +208,7 @@ export function useQueues() {
 
   const removeMember = async (queueId: string, profileId: string) => {
     try {
-      const { error } = await supabase
-        .from('queue_members')
+      const { error } = await safeFrom('queue_members')
         .delete()
         .eq('queue_id', queueId)
         .eq('profile_id', profileId);
@@ -271,7 +274,7 @@ export function useQueues() {
       .subscribe();
 
     return () => {
-      queuesChannel.unsubscribe();
+      supabase.removeChannel(queuesChannel);
     };
   }, []);
 

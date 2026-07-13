@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 const ONBOARDING_KEY = 'onboarding_completed';
 
@@ -9,6 +10,7 @@ export function useOnboarding() {
   const { user } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     if (!user) {
@@ -38,6 +40,7 @@ export function useOnboarding() {
           .eq('user_id', user.id)
           .maybeSingle();
 
+        if (!mountedRef.current) return;
         // If user has settings, they've been here before
         if (data && data.onboarding_completed) {
           setHasCompletedOnboarding(true);
@@ -51,9 +54,9 @@ export function useOnboarding() {
         }
       } catch (error) {
         log.error('Error checking onboarding status:', error);
-        setHasCompletedOnboarding(true); // Default to completed on error
+        if (mountedRef.current) setHasCompletedOnboarding(true); // Default to completed on error
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     };
 

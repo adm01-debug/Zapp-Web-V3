@@ -164,7 +164,7 @@ export const SLAHistoryDashboard = () => {
           <ToggleGroup
             type="single"
             value={period}
-            onValueChange={(v) => v && setPeriod(v as HistoryPeriod)}
+            onValueChange={(v) => v && setPeriod(v as HistoryPeriod /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
             className="rounded-lg bg-muted/50 p-1"
           >
             {Object.entries(periodLabels).map(([key, label]) => (

@@ -39,9 +39,9 @@ export default function AdminEvoApiHealthPage() {
   const { schemaUnavailable, dashboardData, alertsData, runTestsData, readiness } = useMemo(
     () => ({
       schemaUnavailable: dash.data?.schema_unavailable || alerts.data?.schema_unavailable,
-      dashboardData: dash.data?.data ?? undefined,
-      alertsData: alerts.data?.data ?? undefined,
-      runTestsData: runTests.data?.data ?? undefined,
+      dashboardData: dash.data?.data,
+      alertsData: alerts.data?.data,
+      runTestsData: runTests.data?.data,
       readiness: dash.data?.data?.readiness,
     }),
     [dash.data, alerts.data, runTests.data]
