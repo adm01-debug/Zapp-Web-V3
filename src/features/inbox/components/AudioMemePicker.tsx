@@ -18,168 +18,15 @@ import {
   Play,
   Pause,
   Volume2,
-  Tag,
-  Check,
-  ChevronDown,
 } from 'lucide-react';
-import {
-  useAudioMemes,
-  formatDuration,
-  type PendingUpload,
-  type AudioMemeItem,
-} from '@/hooks/useAudioMemes';
+import { useAudioMemes, formatDuration, type AudioMemeItem } from '@/hooks/useAudioMemes';
+import { CATEGORY_LABELS } from './audioMemeConstants';
+import { AudioMemeCategorySelector } from './AudioMemeCategorySelector';
+import { AudioMemeUploadPreview } from './AudioMemeUploadPreview';
 
 interface AudioMemePickerProps {
   onSendAudioMeme: (meme: AudioMemeItem) => void;
   disabled?: boolean;
-}
-
-const CATEGORY_LABELS: Record<string, { emoji: string; label: string }> = {
-  risada: { emoji: '😂', label: 'Risada' },
-  aplausos: { emoji: '👏', label: 'Aplausos' },
-  suspense: { emoji: '🎭', label: 'Suspense' },
-  vitória: { emoji: '🏆', label: 'Vitória' },
-  falha: { emoji: '💥', label: 'Falha' },
-  surpresa: { emoji: '😱', label: 'Surpresa' },
-  triste: { emoji: '😢', label: 'Triste' },
-  raiva: { emoji: '😡', label: 'Raiva' },
-  romântico: { emoji: '💕', label: 'Romântico' },
-  medo: { emoji: '👻', label: 'Medo' },
-  deboche: { emoji: '😏', label: 'Deboche' },
-  narração: { emoji: '🎙️', label: 'Narração' },
-  bordão: { emoji: '💬', label: 'Bordão' },
-  'efeito sonoro': { emoji: '🔊', label: 'Efeito Sonoro' },
-  viral: { emoji: '🔥', label: 'Viral' },
-  cumprimento: { emoji: '👋', label: 'Cumprimento' },
-  despedida: { emoji: '👋', label: 'Despedida' },
-  animação: { emoji: '🤩', label: 'Animação' },
-  drama: { emoji: '🎬', label: 'Drama' },
-  gospel: { emoji: '⛪', label: 'Gospel' },
-  outros: { emoji: '📦', label: 'Outros' },
-};
-const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
-
-function CategorySelector({
-  value,
-  onChange,
-  size = 'sm',
-}: {
-  value: string;
-  onChange: (cat: string) => void;
-  size?: 'sm' | 'xs';
-}) {
-  const [open, setOpen] = useState(false);
-  const info = CATEGORY_LABELS[value] || { emoji: '📦', label: value };
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          className={cn(
-            'flex items-center gap-1 rounded-md border border-border/50 transition-colors hover:bg-muted/60',
-            size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span>{info.emoji}</span>
-          <span className="text-muted-foreground">{info.label}</span>
-          <ChevronDown
-            className={cn(size === 'xs' ? 'h-2.5 w-2.5' : 'h-3 w-3', 'text-muted-foreground/60')}
-          />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="max-h-[240px] w-[200px] overflow-y-auto p-1.5"
-        align="start"
-        side="bottom"
-        sideOffset={4}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="space-y-0.5">
-          {ALL_CATEGORIES.map((cat) => {
-            const catInfo = CATEGORY_LABELS[cat];
-            const isActive = cat === value;
-            return (
-              <button
-                key={cat}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange(cat);
-                  setOpen(false);
-                }}
-                className={cn(
-                  'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors',
-                  isActive
-                    ? 'bg-primary/10 font-medium text-primary'
-                    : 'text-foreground hover:bg-muted'
-                )}
-              >
-                <span>{catInfo.emoji}</span>
-                <span className="flex-1">{catInfo.label}</span>
-                {isActive && <Check className="h-3 w-3 text-primary" />}
-              </button>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function UploadPreview({
-  pending,
-  onConfirm,
-  onCancel,
-}: {
-  pending: PendingUpload;
-  onConfirm: (p: PendingUpload) => void;
-  onCancel: () => void;
-}) {
-  const [category, setCategory] = useState(pending.selectedCategory);
-  const [name, setName] = useState(pending.name);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-2.5 rounded-lg border border-border bg-card p-3"
-    >
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-          <Music className="h-4 w-4 text-primary" />
-        </div>
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="h-7 flex-1 text-xs"
-          placeholder="Nome do áudio"
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <Tag className="h-3 w-3 shrink-0 text-muted-foreground" />
-        <span className="shrink-0 text-[10px] text-muted-foreground">Categoria:</span>
-        <CategorySelector value={category} onChange={setCategory} size="sm" />
-        {pending.aiCategory !== 'outros' && category !== pending.aiCategory && (
-          <button
-            onClick={() => setCategory(pending.aiCategory)}
-            className="shrink-0 text-[9px] text-primary hover:underline"
-          >
-            IA sugere: {CATEGORY_LABELS[pending.aiCategory]?.label}
-          </button>
-        )}
-      </div>
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}>
-          <X className="mr-1 h-3 w-3" /> Cancelar
-        </Button>
-        <Button
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => onConfirm({ ...pending, selectedCategory: category, name })}
-        >
-          <Check className="mr-1 h-3 w-3" /> Salvar
-        </Button>
-      </div>
-    </motion.div>
-  );
 }
 
 export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerProps) {
@@ -284,7 +131,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
         <AnimatePresence>
           {pendingUpload && (
             <div className="border-b border-border/50 px-3 py-2">
-              <UploadPreview
+              <AudioMemeUploadPreview
                 pending={pendingUpload}
                 onConfirm={handleConfirmUpload}
                 onCancel={handleCancelUpload}
@@ -427,7 +274,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium text-foreground">{meme.name}</p>
                         <div className="mt-0.5 flex items-center gap-2">
-                          <CategorySelector
+                          <AudioMemeCategorySelector
                             value={meme.category}
                             onChange={(cat) => handleCategoryChange(meme, cat)}
                             size="xs"
