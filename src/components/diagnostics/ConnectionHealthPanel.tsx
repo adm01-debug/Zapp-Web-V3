@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
@@ -52,7 +51,7 @@ interface HealthLog {
   checked_at: string;
 }
 
-export function ConnectionHealthPanel() {
+export function ConnectionHealthPanel(): JSX.Element {
   const [connections, setConnections] = useState<ConnectionHealth[]>([]);
   const [recentLogs, setRecentLogs] = useState<HealthLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,11 +67,11 @@ export function ConnectionHealthPanel() {
     []
   );
 
-  const handleCopyQrLink = async (conn: ConnectionHealth) => {
+  const handleCopyQrLink = async (conn: ConnectionHealth): Promise<void> => {
     toast.error('Funcionalidade de QR link requer acesso seguro — use o painel de configurações.');
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (): Promise<void> => {
     const safeQueries = safeWhatsAppConnectionsQuery(supabase);
     const [connResult, { data: logs }] = await Promise.all([
       safeQueries.getList(),
@@ -110,7 +109,7 @@ export function ConnectionHealthPanel() {
     };
   }, [fetchData]);
 
-  const runHealthCheck = async () => {
+  const runHealthCheck = async (): Promise<void> => {
     setChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke('connection-health-check');
