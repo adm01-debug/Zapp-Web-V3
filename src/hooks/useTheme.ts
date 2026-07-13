@@ -46,6 +46,7 @@ let themeState: ThemeSnapshot = {
 const listeners = new Set<(snapshot: ThemeSnapshot) => void>();
 let transitionTimeout: number | null = null;
 let systemListenerAttached = false;
+let mediaQuery: MediaQueryList | null = null;
 
 const notify = () => {
   listeners.forEach((listener) => listener(themeState));
@@ -108,8 +109,16 @@ const handleSystemThemeChange = () => {
 const ensureSystemListener = () => {
   if (typeof window === 'undefined' || systemListenerAttached) return;
 
-  window.matchMedia(MEDIA_QUERY).addEventListener('change', handleSystemThemeChange);
+  mediaQuery = window.matchMedia(MEDIA_QUERY);
+  mediaQuery.addEventListener('change', handleSystemThemeChange);
   systemListenerAttached = true;
+};
+
+const removeSystemListener = () => {
+  if (!mediaQuery) return;
+  mediaQuery.removeEventListener('change', handleSystemThemeChange);
+  mediaQuery = null;
+  systemListenerAttached = false;
 };
 
 const initializeTheme = () => {
@@ -172,11 +181,7 @@ export function useTheme(): UseThemeReturn {
 
   const cycleTheme = useCallback(() => {
     const nextTheme =
-      themeState.theme === 'light'
-        ? 'dark'
-        : themeState.theme === 'dark'
-          ? 'system'
-          : 'light';
+      themeState.theme === 'light' ? 'dark' : themeState.theme === 'dark' ? 'system' : 'light';
 
     updateThemeState(nextTheme);
   }, []);
