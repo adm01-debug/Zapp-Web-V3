@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import { PostgrestError } from '@supabase/supabase-js';
@@ -41,7 +40,6 @@ type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SafeQueryBuilder = any;
 
-
 export interface SafeResponse<T> {
   data: T | null;
   error: Error | null;
@@ -72,6 +70,14 @@ export interface ClientTelemetry {
 export interface CacheInfo {
   expiration: Date | null;
   size: number;
+}
+
+interface FailureRecord {
+  requestId: string;
+  operation: string;
+  resource: string;
+  error: string;
+  timestamp: string;
 }
 
 const MAX_FAILURES = 20;
@@ -334,7 +340,9 @@ export const safeClient = {
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const { data, error } = await queryBuilder(supabase.from(table as Parameters<typeof supabase.from>[0]));
+      const { data, error } = await queryBuilder(
+        supabase.from(table as Parameters<typeof supabase.from>[0])
+      );
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
@@ -361,7 +369,9 @@ export const safeClient = {
 
   async single<T = unknown>(
     table: string,
-    queryBuilder: (query: SafeQueryBuilder) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
+    queryBuilder: (query: SafeQueryBuilder) => {
+      single(): PromiseLike<{ data: unknown; error: unknown }>;
+    }
   ): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
@@ -377,7 +387,9 @@ export const safeClient = {
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const { data, error } = await queryBuilder(supabase.from(table as Parameters<typeof supabase.from>[0])).single();
+      const { data, error } = await queryBuilder(
+        supabase.from(table as Parameters<typeof supabase.from>[0])
+      ).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
@@ -481,7 +493,9 @@ export const safeClient = {
         }
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
+        const { error } = await (
+          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any
+        ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
         if (!error) {
           exists = true;
         } else {
@@ -529,7 +543,8 @@ export const safeClient = {
       // Destructure { error } so PostgREST logical errors (e.g. 403) are not silently discarded
       type RpcResult = { data: unknown; error: { message: string } | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc( // ignore-audit — RPC not in generated types, shape cast via RpcResult
+      const { error: rpcErr } = (await (supabase as any).rpc(
+        // ignore-audit — RPC not in generated types, shape cast via RpcResult
         'rpc_update_email_health_state',
         {
           p_status: status,
@@ -637,7 +652,8 @@ export const safeClient = {
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc( // ignore-audit — RPC not in generated types, shape cast via RpcResult
+      const { error: rpcErr } = (await (supabase as any).rpc(
+        // ignore-audit — RPC not in generated types, shape cast via RpcResult
         'rpc_log_email_health',
         {
           p_status: 'error',
@@ -661,17 +677,25 @@ export const safeClient = {
   },
 
   getTelemetry() {
-    return { lastValidation: telemetry.lastValidation, recentFailures: [...telemetry.recentFailures], stats: { ...telemetry.stats } };
+    return {
+      lastValidation: telemetry.lastValidation,
+      recentFailures: [...telemetry.recentFailures],
+      stats: { ...telemetry.stats },
+    };
   },
 
   getCacheInfo() {
     const values = Array.from(resourceCache.values());
-    const expiration = values.length > 0 ? Math.max(...values.map((v) => v.expires)) : null;
+    const maxExpires = values.length > 0 ? Math.max(...values.map((v) => v.expires)) : null;
+    const expiration = maxExpires !== null ? new Date(maxExpires) : null;
     return { expiration, size: resourceCache.size };
   },
 
   clearCache(prefix?: string) {
-    if (!prefix) { resourceCache.clear(); return; }
+    if (!prefix) {
+      resourceCache.clear();
+      return;
+    }
     for (const key of resourceCache.keys()) {
       if (key.includes(prefix)) resourceCache.delete(key);
     }

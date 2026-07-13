@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useExternalEvolution — Hooks for reading evolution_messages from external FATOR X DB
  * Replaces the local DB reads for the Inbox when external DB is the source of truth.
@@ -147,7 +146,7 @@ export function reconcileOptimistic(
         if (messageType === 'audio') {
           const mExt = m as Record<string, unknown>;
           const isPtt = (mExt.media_meta as Record<string, unknown> | undefined)?.ptt === true;
-          const isMeme = !!(mExt.audio_meme_id);
+          const isMeme = !!mExt.audio_meme_id;
           messageType = isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
         }
 
@@ -188,7 +187,7 @@ export function reconcileOptimistic(
         if (messageType === 'audio') {
           const mExt = m as Record<string, unknown>;
           const isPtt = (mExt.media_meta as Record<string, unknown> | undefined)?.ptt === true;
-          const isMeme = !!(mExt.audio_meme_id);
+          const isMeme = !!mExt.audio_meme_id;
           messageType = isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
         }
 
@@ -494,9 +493,10 @@ export function useExternalConversations(enabled = true) {
           );
 
           enrichments.forEach(({ jid, res }) => {
-            if (res?.data) {
+            const item = res?.data?.[0];
+            if (item) {
               contactEnrichmentCache.set(jid, {
-                data: res.data,
+                data: item,
                 timestamp: now,
               });
             }
@@ -625,7 +625,8 @@ export function useExternalMessages(remoteJid: string | null) {
         type WithAvatar = { avatar_url?: string | null };
         const currentAvatar =
           queryClient.getQueryData<WithAvatar>(['contact', remoteJid])?.avatar_url ||
-          queryClient.getQueryData<WithAvatar>(['external-evolution', 'contact', remoteJid])?.avatar_url;
+          queryClient.getQueryData<WithAvatar>(['external-evolution', 'contact', remoteJid])
+            ?.avatar_url;
 
         // Propaga o avatar para todas as mensagens (canônicas e otimistas remanescentes)
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
@@ -676,7 +677,8 @@ export function useExternalMessages(remoteJid: string | null) {
         type WithAvatar = { avatar_url?: string | null };
         const currentAvatar =
           queryClient.getQueryData<WithAvatar>(['contact', remoteJid])?.avatar_url ||
-          queryClient.getQueryData<WithAvatar>(['external-evolution', 'contact', remoteJid])?.avatar_url;
+          queryClient.getQueryData<WithAvatar>(['external-evolution', 'contact', remoteJid])
+            ?.avatar_url;
 
         const additionsWithAvatar = additions.map((m) => ({ ...m, contactAvatar: currentAvatar }));
         return [...filteredPrev, ...additionsWithAvatar];
