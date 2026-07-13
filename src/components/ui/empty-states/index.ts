@@ -29,6 +29,9 @@
  * @see docs/SIMULATION_REPORT.md — full analysis of all empty-state implementations
  */
 
+
+// ─── Legacy generic component (explicit props + illustration + size variants) ─────
+export { EmptyState } from '../empty-state';
 // ─── Types ───────────────────────────────────────────────────────────────────────
 export type { EmptyStateConfig } from './contextConfigs';
 
