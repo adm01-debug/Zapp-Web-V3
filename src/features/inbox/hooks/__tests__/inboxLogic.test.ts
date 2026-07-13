@@ -64,22 +64,28 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('useInboxFilters Business Rules', () => {
-  const mockConversations = [
+  type MockConversation = {
+    contact: { id: string; assigned_to: string | null; contact_type: string | null };
+    messages: unknown[];
+    unreadCount: number;
+  };
+
+  const mockConversations: MockConversation[] = [
     {
       contact: { id: 'c1', assigned_to: 'agent-1', contact_type: 'cliente' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
     {
       contact: { id: 'c2', assigned_to: 'agent-2', contact_type: 'colaborador' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
     {
       contact: { id: 'c3', assigned_to: null, contact_type: 'cliente' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
   ];
 
   beforeEach(() => {

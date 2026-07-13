@@ -119,6 +119,7 @@ function decodeHtmlEntities(html: string): string {
  */
 function validateNoControlCharacters(text: string): void {
   // Check for null bytes and control characters (Gap 9.3)
+  // eslint-disable-next-line no-control-regex
   if (/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/.test(text)) {
     throw new Error('Input contains invalid control characters');
   }

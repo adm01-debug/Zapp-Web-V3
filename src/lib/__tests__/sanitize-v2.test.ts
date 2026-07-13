@@ -260,7 +260,7 @@ describe('sanitize-v2: Round 15 Comprehensive Tests', () => {
     });
 
     test('5.3: Non-string input throws', () => {
-      const result = sanitizeHtml(123 as any);
+      const result = sanitizeHtml(123 as unknown as string);
       expect(result.success).toBe(false);
       expect(result.error).toContain('string');
     });
@@ -320,12 +320,14 @@ describe('sanitize-v2: Round 15 Comprehensive Tests', () => {
     });
 
     test('6.2: sanitizeHtmlWithHooks handles NULL', () => {
-      const result = sanitizeHtmlWithHooks(null as any);
+      const result = sanitizeHtmlWithHooks(null as unknown as string);
       expect(result).toBe('');
     });
 
     test('6.3: sanitizeHtmlWithHooks prevents tabnabbing', () => {
-      const result = sanitizeHtmlWithHooks('<a href="https://example.com" target="_blank">link</a>');
+      const result = sanitizeHtmlWithHooks(
+        '<a href="https://example.com" target="_blank">link</a>'
+      );
       expect(result).toContain('noopener');
       expect(result).toContain('noreferrer');
     });
@@ -341,7 +343,7 @@ describe('sanitize-v2: Round 15 Comprehensive Tests', () => {
       expect(result).toBeTruthy();
     });
 
-    test('6.6: Multiple hook calls don\'t collide', () => {
+    test("6.6: Multiple hook calls don't collide", () => {
       const result1 = sanitizeHtmlWithHookCleanup('<i>italic</i>');
       const result2 = sanitizeHtmlWithHookCleanup('<b>bold</b>');
       expect(result1).toContain('italic');
