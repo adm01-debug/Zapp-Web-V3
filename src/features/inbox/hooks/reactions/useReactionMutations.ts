@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -43,17 +42,20 @@ const trackReactionEvent = (
   mutationLog.info(`[Analytics] Reaction Event: ${action}`, { ...data, eventKey });
 
   // Forward to Operations Audit Log (audit_logs table)
-  void supabase.from('audit_logs').insert({
-    action: `Reaction Event: ${action}`,
-    entity_type: 'message_reaction',
-    entity_id: data.messageId,
-    details: {
-      emoji: data.emoji,
-      status: data.status,
-      code: data.code,
-      event_key: eventKey
-    }
-  }).catch((err: unknown) => mutationLog.warn('[audit] reaction event log failed', err));
+  void supabase
+    .from('audit_logs')
+    .insert({
+      action: `Reaction Event: ${action}`,
+      entity_type: 'message_reaction',
+      entity_id: data.messageId,
+      details: {
+        emoji: data.emoji,
+        status: data.status,
+        code: data.code,
+        event_key: eventKey,
+      },
+    })
+    .catch((err: unknown) => mutationLog.warn('[audit] reaction event log failed', err));
 };
 
 export function useReactionMutations(
@@ -119,17 +121,20 @@ export function useReactionMutations(
       const previous = queryClient.getQueryData(['message-reactions', messageId]);
 
       if (profileId) {
-        queryClient.setQueryData(['message-reactions', messageId], (old: Record<string, unknown>[] | undefined) => [
-          ...(old || []),
-          {
-            id: 'temp-' + Date.now(),
-            message_id: messageId,
-            user_id: profileId,
-            emoji,
-            created_at: new Date().toISOString(),
-            user_name: 'Você'
-          }
-        ]);
+        queryClient.setQueryData(
+          ['message-reactions', messageId],
+          (old: Record<string, unknown>[] | undefined) => [
+            ...(old || []),
+            {
+              id: 'temp-' + Date.now(),
+              message_id: messageId,
+              user_id: profileId,
+              emoji,
+              created_at: new Date().toISOString(),
+              user_name: 'Você',
+            },
+          ]
+        );
       }
       return { previous };
     },
@@ -138,7 +143,7 @@ export function useReactionMutations(
       toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('add', { messageId, emoji, status: 'success' });
     },
-    onError: (error: { status?: number | string; code?: number | string; message?: string }, emoji, context) => {
+    onError: (error: ApiError, emoji, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['message-reactions', messageId], context.previous);
       }
@@ -198,8 +203,10 @@ export function useReactionMutations(
       const previous = queryClient.getQueryData(['message-reactions', messageId]);
 
       if (profileId) {
-        queryClient.setQueryData(['message-reactions', messageId], (old: Array<{ user_id: string; emoji: string }> | undefined) =>
-          (old || []).filter((r) => !(r.user_id === profileId && r.emoji === emoji))
+        queryClient.setQueryData(
+          ['message-reactions', messageId],
+          (old: Array<{ user_id: string; emoji: string }> | undefined) =>
+            (old || []).filter((r) => !(r.user_id === profileId && r.emoji === emoji))
         );
       }
       return { previous };
@@ -209,7 +216,7 @@ export function useReactionMutations(
       toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('remove', { messageId, emoji, status: 'success' });
     },
-    onError: (error: { status?: number | string; code?: number | string }, emoji, context) => {
+    onError: (error: ApiError, emoji, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['message-reactions', messageId], context.previous);
       }

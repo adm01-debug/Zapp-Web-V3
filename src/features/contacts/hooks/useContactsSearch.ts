@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -156,24 +155,29 @@ export function useContactsSearch() {
   ];
 
   // Cursor-based pagination: track cursor for each page
-  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(
+    new Map([[0, null]])
+  );
   const currentPageCursor = pageIndexToCursor.get(page) ?? null;
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('search_contacts_cursor', {
-        search_term: debouncedSearch || '',
-        contact_type_filter: activeTab === 'all' ? undefined : activeTab,
-        company_filter: filterCompany || undefined,
-        job_title_filter: filterJobTitle || undefined,
-        tag_filter: filterTag || undefined,
-        date_from: dateFrom ?? undefined,
-        sort_field: sortField,
-        sort_direction: sortDirection,
-        page_size: PAGE_SIZE,
-        cursor_id: currentPageCursor,
-      });
+      const { data, error } = await supabase.rpc(
+        'search_contacts_cursor' as Parameters<typeof supabase.rpc>[0],
+        {
+          search_term: debouncedSearch || '',
+          contact_type_filter: activeTab === 'all' ? undefined : activeTab,
+          company_filter: filterCompany || undefined,
+          job_title_filter: filterJobTitle || undefined,
+          tag_filter: filterTag || undefined,
+          date_from: dateFrom ?? undefined,
+          sort_field: sortField,
+          sort_direction: sortDirection,
+          page_size: PAGE_SIZE,
+          cursor_id: currentPageCursor,
+        }
+      );
       if (error) throw error;
       return data as (Contact & { total_count: number })[];
     },
@@ -194,7 +198,16 @@ export function useContactsSearch() {
   // Reset page history when search or filters change
   useEffect(() => {
     setPageIndexToCursor(new Map([[0, null]]));
-  }, [debouncedSearch, activeTab, filterCompany, filterJobTitle, filterTag, dateFrom, sortField, sortDirection]);
+  }, [
+    debouncedSearch,
+    activeTab,
+    filterCompany,
+    filterJobTitle,
+    filterTag,
+    dateFrom,
+    sortField,
+    sortDirection,
+  ]);
 
   const contacts = useMemo(() => data ?? [], [data]);
   const totalCount = contacts.length > 0 ? Number(contacts[0].total_count) : 0;

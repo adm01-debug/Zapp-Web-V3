@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -107,7 +106,9 @@ export default function QueueDetails() {
             .order('created_at', { ascending: false }),
           assignedToIds.length > 0
             ? supabase.from('profiles').select('id, name, avatar_url').in('id', assignedToIds)
-            : Promise.resolve({ data: [] }),
+            : Promise.resolve({
+                data: [] as { id: string; name: string; avatar_url: string | null }[],
+              }),
         ]);
 
         const countMap = new Map<string, number>();
@@ -120,10 +121,7 @@ export default function QueueDetails() {
         });
 
         const agentMap = new Map(
-          (agentResult.data || []).map((p: any) => [
-            p.id,
-            { name: p.name, avatar_url: p.avatar_url },
-          ])
+          (agentResult.data || []).map((p) => [p.id, { name: p.name, avatar_url: p.avatar_url }])
         );
 
         contactsWithDetails = contactsData.map((contact) => ({
