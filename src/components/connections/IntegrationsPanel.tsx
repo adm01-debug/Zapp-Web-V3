@@ -46,9 +46,9 @@ function IntegrationForm({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between p-3 rounded-lg border border-border/20 bg-muted/10">
+      <div className="flex items-center justify-between rounded-lg border border-border/20 bg-muted/10 p-3">
         <div className="flex items-center gap-2">
-          <Icon className="w-5 h-5 text-primary" />
+          <Icon className="h-5 w-5 text-primary" />
           <Label className="font-medium">{title}</Label>
         </div>
         <Switch
@@ -63,18 +63,22 @@ function IntegrationForm({
             <div key={key}>
               <Label className="text-sm">{label}</Label>
               {type === 'boolean' ? (
-                <div className="flex items-center gap-2 mt-1">
+                <div className="mt-1 flex items-center gap-2">
                   <Switch
                     checked={Boolean(values[key])}
                     onCheckedChange={(checked) => onChange(key, checked)}
                   />
-                  <span className="text-sm text-muted-foreground">{values[key] ? 'Ativado' : 'Desativado'}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {values[key] ? 'Ativado' : 'Desativado'}
+                  </span>
                 </div>
               ) : (
                 <Input
                   type={type}
                   value={String(values[key] ?? '')}
-                  onChange={(e) => onChange(key, type === 'number' ? Number(e.target.value) : e.target.value)}
+                  onChange={(e) =>
+                    onChange(key, type === 'number' ? Number(e.target.value) : e.target.value)
+                  }
                   placeholder={placeholder}
                   className="mt-1"
                 />
@@ -84,7 +88,7 @@ function IntegrationForm({
 
           <div className="flex gap-2">
             <Button onClick={onSave} disabled={isLoading} className="flex-1">
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar
             </Button>
             <Button variant="destructive" onClick={onDelete} disabled={isLoading}>
@@ -113,15 +117,28 @@ export function IntegrationsPanel({
   const [evolutionBot, setEvolutionBot] = useState<Record<string, unknown>>({ enabled: false });
 
   useEffect(() => {
-    if (open && instanceName) loadAll();
+    if (open && instanceName) {
+      let cancelled = false;
+      void loadAll(() => cancelled);
+      return () => {
+        cancelled = true;
+      };
+    }
   }, [open, instanceName]);
 
-  const loadAll = async () => {
-    const load = async (getter: (n: string) => Promise<unknown>, setter: (v: Record<string, unknown>) => void) => {
+  const loadAll = async (isCancelled: () => boolean = () => false) => {
+    const load = async (
+      getter: (n: string) => Promise<unknown>,
+      setter: (v: Record<string, unknown>) => void
+    ) => {
       try {
         const data = await getter(instanceName);
-        if (data && typeof data === 'object') setter({ enabled: true, ...(data as Record<string, unknown>) }); // ignore-audit: narrows Supabase query result to local interface
-      } catch (err) { log.error('Unexpected error in IntegrationsPanel:', err); }
+        if (isCancelled()) return;
+        if (data && typeof data === 'object')
+          setter({ enabled: true, ...(data as Record<string, unknown>) }); // ignore-audit: narrows Supabase query result to local interface
+      } catch (err) {
+        log.error('Unexpected error in IntegrationsPanel:', err);
+      }
     };
     await Promise.allSettled([
       load(api.getTypebot, setTypebot),
@@ -160,7 +177,11 @@ export function IntegrationsPanel({
   const difyFields = [
     { key: 'apiUrl', label: 'URL do Dify', placeholder: 'https://api.dify.ai/v1' },
     { key: 'apiKey', label: 'API Key', placeholder: 'app-...' },
-    { key: 'botType', label: 'Tipo (chatBot/textGenerator/agent/workflow)', placeholder: 'chatBot' },
+    {
+      key: 'botType',
+      label: 'Tipo (chatBot/textGenerator/agent/workflow)',
+      placeholder: 'chatBot',
+    },
     { key: 'expire', label: 'Expirar sessão (min)', type: 'number' },
     { key: 'keywordFinish', label: 'Palavra para encerrar' },
     { key: 'speechToText', label: 'Speech to Text', type: 'boolean' },
@@ -197,53 +218,121 @@ export function IntegrationsPanel({
   ];
 
   const handleSaveTypebot = useCallback(async () => {
-    try { await api.setTypebot({ instanceName, ...typebot } as Parameters<typeof api.setTypebot>[0]); toast.success('Typebot configurado!'); } catch { toast.error('Erro'); }
+    try {
+      await api.setTypebot({ instanceName, ...typebot } as Parameters<typeof api.setTypebot>[0]);
+      toast.success('Typebot configurado!');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName, typebot]);
   const handleDeleteTypebot = useCallback(async () => {
-    try { await api.deleteTypebot(instanceName); setTypebot({ enabled: false }); toast.success('Typebot removido'); } catch { toast.error('Erro'); }
+    try {
+      await api.deleteTypebot(instanceName);
+      setTypebot({ enabled: false });
+      toast.success('Typebot removido');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName]);
 
   const handleSaveOpenAI = useCallback(async () => {
-    try { await api.setOpenAI({ instanceName, ...openai } as Parameters<typeof api.setOpenAI>[0]); toast.success('OpenAI configurado!'); } catch { toast.error('Erro'); }
+    try {
+      await api.setOpenAI({ instanceName, ...openai } as Parameters<typeof api.setOpenAI>[0]);
+      toast.success('OpenAI configurado!');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName, openai]);
   const handleDeleteOpenAI = useCallback(async () => {
-    try { await api.deleteOpenAI(instanceName); setOpenai({ enabled: false }); toast.success('OpenAI removido'); } catch { toast.error('Erro'); }
+    try {
+      await api.deleteOpenAI(instanceName);
+      setOpenai({ enabled: false });
+      toast.success('OpenAI removido');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName]);
 
   const handleSaveDify = useCallback(async () => {
-    try { await api.setDify({ instanceName, ...dify } as Parameters<typeof api.setDify>[0]); toast.success('Dify configurado!'); } catch { toast.error('Erro'); }
+    try {
+      await api.setDify({ instanceName, ...dify } as Parameters<typeof api.setDify>[0]);
+      toast.success('Dify configurado!');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName, dify]);
   const handleDeleteDify = useCallback(async () => {
-    try { await api.deleteDify(instanceName); setDify({ enabled: false }); toast.success('Dify removido'); } catch { toast.error('Erro'); }
+    try {
+      await api.deleteDify(instanceName);
+      setDify({ enabled: false });
+      toast.success('Dify removido');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName]);
 
   const handleSaveFlowise = useCallback(async () => {
-    try { await api.setFlowise({ instanceName, ...flowise } as Parameters<typeof api.setFlowise>[0]); toast.success('Flowise configurado!'); } catch { toast.error('Erro'); }
+    try {
+      await api.setFlowise({ instanceName, ...flowise } as Parameters<typeof api.setFlowise>[0]);
+      toast.success('Flowise configurado!');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName, flowise]);
   const handleDeleteFlowise = useCallback(async () => {
-    try { await api.deleteFlowise(instanceName); setFlowise({ enabled: false }); toast.success('Flowise removido'); } catch { toast.error('Erro'); }
+    try {
+      await api.deleteFlowise(instanceName);
+      setFlowise({ enabled: false });
+      toast.success('Flowise removido');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName]);
 
   const handleSaveChatwoot = useCallback(async () => {
-    try { await api.setChatwoot({ instanceName, ...chatwoot } as Parameters<typeof api.setChatwoot>[0]); toast.success('Chatwoot configurado!'); } catch { toast.error('Erro'); }
+    try {
+      await api.setChatwoot({ instanceName, ...chatwoot } as Parameters<typeof api.setChatwoot>[0]);
+      toast.success('Chatwoot configurado!');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName, chatwoot]);
   const handleDeleteChatwoot = useCallback(async () => {
-    try { await api.deleteChatwoot(instanceName); setChatwoot({ enabled: false }); toast.success('Chatwoot removido'); } catch { toast.error('Erro'); }
+    try {
+      await api.deleteChatwoot(instanceName);
+      setChatwoot({ enabled: false });
+      toast.success('Chatwoot removido');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName]);
 
   const handleSaveEvolutionBot = useCallback(async () => {
-    try { await api.setEvolutionBot({ instanceName, ...evolutionBot } as Parameters<typeof api.setEvolutionBot>[0]); toast.success('Evolution Bot configurado!'); } catch { toast.error('Erro'); }
+    try {
+      await api.setEvolutionBot({ instanceName, ...evolutionBot } as Parameters<
+        typeof api.setEvolutionBot
+      >[0]);
+      toast.success('Evolution Bot configurado!');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName, evolutionBot]);
   const handleDeleteEvolutionBot = useCallback(async () => {
-    try { await api.deleteEvolutionBot(instanceName); setEvolutionBot({ enabled: false }); toast.success('Evolution Bot removido'); } catch { toast.error('Erro'); }
+    try {
+      await api.deleteEvolutionBot(instanceName);
+      setEvolutionBot({ enabled: false });
+      toast.success('Evolution Bot removido');
+    } catch {
+      toast.error('Erro');
+    }
   }, [api, instanceName]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Boxes className="w-5 h-5 text-primary" />
+            <Boxes className="h-5 w-5 text-primary" />
             Integrações — {connectionName}
           </DialogTitle>
           <DialogDescription>
@@ -252,13 +341,25 @@ export function IntegrationsPanel({
         </DialogHeader>
 
         <Tabs defaultValue="typebot">
-          <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
-            <TabsTrigger value="typebot" className="text-xs"><Bot className="w-3 h-3 mr-1" /> Typebot</TabsTrigger>
-            <TabsTrigger value="openai" className="text-xs"><Brain className="w-3 h-3 mr-1" /> OpenAI</TabsTrigger>
-            <TabsTrigger value="dify" className="text-xs"><Workflow className="w-3 h-3 mr-1" /> Dify</TabsTrigger>
-            <TabsTrigger value="flowise" className="text-xs"><Zap className="w-3 h-3 mr-1" /> Flowise</TabsTrigger>
-            <TabsTrigger value="chatwoot" className="text-xs"><MessageSquare className="w-3 h-3 mr-1" /> Chatwoot</TabsTrigger>
-            <TabsTrigger value="evbot" className="text-xs"><Bot className="w-3 h-3 mr-1" /> Ev.Bot</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+            <TabsTrigger value="typebot" className="text-xs">
+              <Bot className="mr-1 h-3 w-3" /> Typebot
+            </TabsTrigger>
+            <TabsTrigger value="openai" className="text-xs">
+              <Brain className="mr-1 h-3 w-3" /> OpenAI
+            </TabsTrigger>
+            <TabsTrigger value="dify" className="text-xs">
+              <Workflow className="mr-1 h-3 w-3" /> Dify
+            </TabsTrigger>
+            <TabsTrigger value="flowise" className="text-xs">
+              <Zap className="mr-1 h-3 w-3" /> Flowise
+            </TabsTrigger>
+            <TabsTrigger value="chatwoot" className="text-xs">
+              <MessageSquare className="mr-1 h-3 w-3" /> Chatwoot
+            </TabsTrigger>
+            <TabsTrigger value="evbot" className="text-xs">
+              <Bot className="mr-1 h-3 w-3" /> Ev.Bot
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="typebot" className="mt-4">
@@ -267,7 +368,7 @@ export function IntegrationsPanel({
               icon={Bot}
               fields={typebotFields}
               values={typebot}
-              onChange={(k, v) => setTypebot(prev => ({ ...prev, [k]: v }))}
+              onChange={(k, v) => setTypebot((prev) => ({ ...prev, [k]: v }))}
               onSave={handleSaveTypebot}
               onDelete={handleDeleteTypebot}
               isLoading={api.isLoading}
@@ -280,7 +381,7 @@ export function IntegrationsPanel({
               icon={Brain}
               fields={openaiFields}
               values={openai}
-              onChange={(k, v) => setOpenai(prev => ({ ...prev, [k]: v }))}
+              onChange={(k, v) => setOpenai((prev) => ({ ...prev, [k]: v }))}
               onSave={handleSaveOpenAI}
               onDelete={handleDeleteOpenAI}
               isLoading={api.isLoading}
@@ -293,7 +394,7 @@ export function IntegrationsPanel({
               icon={Workflow}
               fields={difyFields}
               values={dify}
-              onChange={(k, v) => setDify(prev => ({ ...prev, [k]: v }))}
+              onChange={(k, v) => setDify((prev) => ({ ...prev, [k]: v }))}
               onSave={handleSaveDify}
               onDelete={handleDeleteDify}
               isLoading={api.isLoading}
@@ -306,7 +407,7 @@ export function IntegrationsPanel({
               icon={Zap}
               fields={flowiseFields}
               values={flowise}
-              onChange={(k, v) => setFlowise(prev => ({ ...prev, [k]: v }))}
+              onChange={(k, v) => setFlowise((prev) => ({ ...prev, [k]: v }))}
               onSave={handleSaveFlowise}
               onDelete={handleDeleteFlowise}
               isLoading={api.isLoading}
@@ -319,7 +420,7 @@ export function IntegrationsPanel({
               icon={MessageSquare}
               fields={chatwootFields}
               values={chatwoot}
-              onChange={(k, v) => setChatwoot(prev => ({ ...prev, [k]: v }))}
+              onChange={(k, v) => setChatwoot((prev) => ({ ...prev, [k]: v }))}
               onSave={handleSaveChatwoot}
               onDelete={handleDeleteChatwoot}
               isLoading={api.isLoading}
@@ -332,7 +433,7 @@ export function IntegrationsPanel({
               icon={Bot}
               fields={evolutionBotFields}
               values={evolutionBot}
-              onChange={(k, v) => setEvolutionBot(prev => ({ ...prev, [k]: v }))}
+              onChange={(k, v) => setEvolutionBot((prev) => ({ ...prev, [k]: v }))}
               onSave={handleSaveEvolutionBot}
               onDelete={handleDeleteEvolutionBot}
               isLoading={api.isLoading}

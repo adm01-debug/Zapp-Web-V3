@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -101,6 +101,7 @@ export default function AdminConnectionsPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const isMountedRef = useRef(true);
 
   const checkAdminStatus = async () => {
     try {
@@ -110,6 +111,7 @@ export default function AdminConnectionsPage() {
       } = await supabase.auth.getUser();
 
       if (authError) throw authError;
+      if (!isMountedRef.current) return;
 
       setCurrentUserId(user?.id ?? null);
       if (user?.id) {
@@ -119,6 +121,7 @@ export default function AdminConnectionsPage() {
           .eq('user_id', user.id);
 
         if (rolesError) throw rolesError;
+        if (!isMountedRef.current) return;
 
         const hasAccess = !!roles?.some(
           (r: { role: string | null }) => r.role === 'admin' || r.role === 'dev'
@@ -133,6 +136,7 @@ export default function AdminConnectionsPage() {
       }
     } catch (e: unknown) {
       log.error('Error checking roles or connection', e);
+      if (!isMountedRef.current) return;
       setIsAdmin(false);
       const msg = e instanceof Error ? e.message : 'Banco indisponível';
       toast({
@@ -150,7 +154,10 @@ export default function AdminConnectionsPage() {
     // Revalida ao focar na aba do navegador para garantir que o acesso ainda é válido
     const handleFocus = () => checkAdminStatus();
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    return () => {
+      isMountedRef.current = false;
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const handleTabChange = (value: string) => {
@@ -165,6 +172,7 @@ export default function AdminConnectionsPage() {
       q.select('*').order('created_at', { ascending: false })
     );
 
+    if (!isMountedRef.current) return;
     if (!error && data) {
       setConnections(data as SystemConnection[]); // ignore-audit: narrows Supabase query result to local interface
       const fatorX = (
