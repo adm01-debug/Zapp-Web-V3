@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 
+/* ============ INTERFACES ============ */
+
 export interface BusinessHour {
   id?: string;
   whatsapp_connection_id: string;
@@ -22,6 +24,8 @@ export interface AwayMessage {
   is_enabled: boolean;
 }
 
+/* ============ CONSTANTS ============ */
+
 const DEFAULT_HOURS: Omit<BusinessHour, 'whatsapp_connection_id'>[] = [
   { day_of_week: 0, is_enabled: false, start_time: '09:00', end_time: '18:00' },
   { day_of_week: 1, is_enabled: true, start_time: '09:00', end_time: '18:00' },
@@ -37,10 +41,11 @@ const DEFAULT_AWAY_MESSAGE: Omit<AwayMessage, 'whatsapp_connection_id'> = {
   is_enabled: true,
 };
 
+/* ============ SECTION 1: useBusinessHours ============ */
+
 export function useBusinessHours(connectionId: string) {
   const queryClient = useQueryClient();
 
-  // Fetch business hours
   const {
     data: businessHours,
     isLoading: loadingHours,
@@ -55,7 +60,6 @@ export function useBusinessHours(connectionId: string) {
 
       if (error) throw error;
 
-      // If no data, return defaults
       if (!data || data.length === 0) {
         return DEFAULT_HOURS.map((h) => ({ ...h, whatsapp_connection_id: connectionId }));
       }
@@ -65,7 +69,6 @@ export function useBusinessHours(connectionId: string) {
     enabled: !!connectionId,
   });
 
-  // Fetch away message
   const {
     data: awayMessage,
     isLoading: loadingAway,
@@ -85,15 +88,13 @@ export function useBusinessHours(connectionId: string) {
         return { ...DEFAULT_AWAY_MESSAGE, whatsapp_connection_id: connectionId };
       }
 
-      return data as AwayMessage; // ignore-audit: narrows nullable DB fields (content, is_enabled) to non-null
+      return data as AwayMessage;
     },
     enabled: !!connectionId,
   });
 
-  // Save mutation
   const saveMutation = useMutation({
     mutationFn: async ({ hours, away }: { hours: BusinessHour[]; away: AwayMessage }) => {
-      // Batch upsert all 7 rows in a single round trip instead of one upsert per row.
       const { error } = await safeClient.from('business_hours', (q) =>
         q.upsert(
           hours.map((hour) => ({
@@ -108,7 +109,6 @@ export function useBusinessHours(connectionId: string) {
       );
       if (error) throw error;
 
-      // Upsert away message
       const { error: awayError } = await supabase.from('away_messages').upsert(
         {
           whatsapp_connection_id: connectionId,
@@ -162,4 +162,23 @@ export function useBusinessHours(connectionId: string) {
       refetchAway();
     },
   };
+}
+
+/* ============ SECTION 2: useBusinessHoursCheck ============ */
+
+export function useBusinessHoursCheck(connectionId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['business-hours-check', connectionId],
+    queryFn: async () => {
+      if (!connectionId) return null;
+      const { data, error } = await supabase.rpc('is_within_business_hours', {
+        connection_id: connectionId,
+      });
+      if (error) return null;
+      return data as boolean;
+    },
+    enabled: !!connectionId,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 5,
+  });
 }

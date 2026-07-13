@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { useBusinessHours, BusinessHour } from '@/hooks/useBusinessHours';
+import { useBusinessHours, BusinessHour } from '@/hooks/useBusinessHoursManagement';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface BusinessHoursIndicatorProps {

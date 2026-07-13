@@ -17,7 +17,7 @@ vi.mock('@/hooks/use-toast', () => ({
 
 vi.mock('@/lib/logger');
 
-import { useBusinessHours } from '@/hooks/useBusinessHours';
+import { useBusinessHours } from '@/hooks/useBusinessHoursManagement';
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
