@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,28 +30,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Minus,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useRetryMetrics, type RetryMetricsFilters } from '@/features/admin';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, Legend } from 'recharts';
 import { RetryAlertsConfig } from './RetryAlertsConfig';
 import { RetryAlertsBanner } from './RetryAlertsBanner';
 import { RetrySchedulePreview } from './RetrySchedulePreview';
-import {
-  evaluateAllInstances,
-  loadThresholds,
-  loadPerInstanceThresholds,
-  shouldFireRetryAlert,
-  subscribeRetryAlertsStorage,
-  loadRetryAlertDedupeMode,
-  buildRetryAlertDedupeKey,
-  RETRY_ALERT_COOLDOWN_MS,
-  type RetryThresholds,
-  type PerInstanceThresholds,
-  type RetryAlertDedupeMode,
-} from '@/lib/retryAlerts';
+import { TopReasonsChart } from './TopReasonsChart';
+import { useRetryMetricsPanelState } from './useRetryMetricsPanelState';
 
 const HOURS_OPTIONS: Array<{ value: number; label: string }> = [
   { value: 1, label: '1h' },
@@ -77,7 +61,6 @@ function statusVariant(status: string): 'default' | 'destructive' | 'secondary' 
     case 'success':
       return 'default';
     case 'failed':
-      return 'destructive';
     case 'exhausted':
       return 'destructive';
     default:
@@ -98,114 +81,65 @@ function statusIcon(status: string) {
   }
 }
 
+interface KpiCardProps {
+  label: string;
+  value: number | string;
+  subtitle?: string;
+  delta?: number | null;
+}
+
+function KpiCard({ label, value, subtitle, delta }: KpiCardProps) {
+  return (
+    <div className="rounded-lg border bg-card p-3">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-xl font-semibold">{value}</span>
+        {typeof delta === 'number' && (
+          <span
+            className={cn(
+              'inline-flex items-center gap-0.5 text-[10px] font-medium',
+              delta > 0 ? 'text-warning-foreground' : 'text-primary'
+            )}
+          >
+            {delta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+            {Math.abs(delta)}%
+          </span>
+        )}
+      </div>
+      {subtitle && <p className="mt-0.5 text-[10px] text-muted-foreground">{subtitle}</p>}
+    </div>
+  );
+}
+
 export function RetryMetricsPanel() {
-  const [hours, setHours] = useState<number>(24);
-  const [actionFilter, setActionFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [thresholds, setThresholds] = useState<RetryThresholds>(() => loadThresholds());
-  const [perInstance, setPerInstance] = useState<PerInstanceThresholds>(() =>
-    loadPerInstanceThresholds()
-  );
-  const [dedupeMode, setDedupeMode] = useState<RetryAlertDedupeMode>(() =>
-    loadRetryAlertDedupeMode()
-  );
-  const [compareMode, setCompareMode] = useState<boolean>(false);
-
-  const filters: RetryMetricsFilters = {
+  const {
     hours,
-    action: actionFilter === 'all' ? null : actionFilter,
-    status: statusFilter === 'all' ? null : (statusFilter as RetryMetricsFilters['status']),
-  };
-
-  const { data, isLoading, refetch, isFetching, byInstance } = useRetryMetrics(filters);
-
-  const rows = data?.rows ?? [];
-  const agg = data?.aggregates;
-
-  const breaches = useMemo(
-    () => evaluateAllInstances(byInstance, thresholds, perInstance),
-    [byInstance, thresholds, perInstance]
-  );
-
-  // Sincroniza thresholds salvos em outras abas via `window.storage` event,
-  // sem esperar TTL/refetch. O evento só dispara em outras abas, então a aba
-  // que salvou continua usando o estado já setado por `onChange` do dialog.
-  useEffect(() => {
-    return subscribeRetryAlertsStorage(({ thresholds: t, perInstance: p, dedupeMode: m }) => {
-      setThresholds(t);
-      setPerInstance(p);
-      setDedupeMode(m);
-      toast.message('Configurações de alerta atualizadas em outra aba.', { duration: 3500 });
-    });
-  }, []);
-
-  // Toast quando há violação. Granularidade do dedupe é configurável:
-  // `instance` agrega p95+failure_rate em um único toast por instância;
-  // `instance+kind` (default) emite um toast separado para cada tipo de violação.
-  // Cooldown de 5 min — espelha o padrão de webhookHealthAlerts.
-  const cooldownRef = useRef<Map<string, number>>(new Map());
-  useEffect(() => {
-    // Reset apenas quando a janela OU o modo de dedupe muda — edições de
-    // thresholds não re-disparam, mas trocar a granularidade requer um estado
-    // limpo para evitar colisões espúrias entre as duas chaves.
-    cooldownRef.current = new Map();
-  }, [hours, dedupeMode]);
-
-  useEffect(() => {
-    for (const b of breaches) {
-      // Quando `instance+kind`: um toast por kind. Quando `instance`: a primeira
-      // chamada vence o cooldown e as demais kinds são absorvidas no mesmo toast
-      // (descrição combinada).
-      const seenForInstance = new Set<string>();
-      for (const d of b.details) {
-        const key = buildRetryAlertDedupeKey(b.instance, d.kind, hours, dedupeMode);
-        if (seenForInstance.has(key)) continue;
-        seenForInstance.add(key);
-        if (!shouldFireRetryAlert(key, RETRY_ALERT_COOLDOWN_MS, cooldownRef.current)) continue;
-
-        const overrideTag = b.hasOverride ? ' (override próprio)' : '';
-        if (dedupeMode === 'instance+kind') {
-          const kindLabel = d.kind === 'p95' ? 'p95 alto' : '% falha alta';
-          toast.error(`Retry degradado em ${b.instance} — ${kindLabel}${overrideTag}`, {
-            description: `${d.label} · janela ${hours}h · ${b.metrics.total} runs`,
-            duration: 8000,
-          });
-        } else {
-          // Modo `instance`: combina TODOS os motivos da instância no toast único.
-          const allLabels = b.details.map((x) => x.label).join(' · ');
-          const kindsTag = b.details.map((x) => (x.kind === 'p95' ? 'p95' : 'falha%')).join('+');
-          toast.error(`Retry degradado em ${b.instance}${overrideTag}`, {
-            description: `${kindsTag}: ${allLabels} · janela ${hours}h · ${b.metrics.total} runs`,
-            duration: 8000,
-          });
-          // Em modo agregado, paramos após o primeiro detail — o toast já cobre todos.
-          break;
-        }
-      }
-    }
-  }, [breaches, hours, dedupeMode]);
-
-  const actionOptions = useMemo(() => {
-    const set = new Set<string>();
-    rows.forEach((r) => set.add(r.action));
-    if (agg) agg.topActions.forEach((a) => set.add(a.action));
-    return Array.from(set).sort();
-  }, [rows, agg]);
-
-  const toggle = (id: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copiado!');
-  };
+    setHours,
+    actionFilter,
+    setActionFilter,
+    statusFilter,
+    setStatusFilter,
+    expanded,
+    toggle,
+    thresholds,
+    setThresholds,
+    perInstance,
+    setPerInstance,
+    dedupeMode,
+    setDedupeMode,
+    compareMode,
+    setCompareMode,
+    rows,
+    agg,
+    data,
+    isLoading,
+    refetch,
+    isFetching,
+    byInstance,
+    breaches,
+    actionOptions,
+    copy,
+  } = useRetryMetricsPanelState();
 
   const deltaPct = data?.deltaPct;
 
@@ -303,13 +237,9 @@ export function RetryMetricsPanel() {
           <KpiCard label="Duração média" value={`${agg?.avgDurationMs ?? 0}ms`} />
         </div>
 
-        {/* Banner de alertas por instância */}
         <RetryAlertsBanner breaches={breaches} />
-
-        {/* Prévia do cronograma de tentativas/abort por instância */}
         <RetrySchedulePreview instances={byInstance.map((b) => b.instance)} />
 
-        {/* Top reasons — bar chart (top 10) */}
         {agg && agg.topReasons.length > 0 && (
           <TopReasonsChart
             reasons={agg.topReasons}
@@ -319,7 +249,6 @@ export function RetryMetricsPanel() {
           />
         )}
 
-        {/* Tabela */}
         {isLoading ? (
           <div className="py-6 text-center text-xs text-muted-foreground">Carregando…</div>
         ) : rows.length === 0 ? (
@@ -460,202 +389,5 @@ export function RetryMetricsPanel() {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-interface KpiCardProps {
-  label: string;
-  value: number | string;
-  subtitle?: string;
-  delta?: number | null;
-}
-
-function KpiCard({ label, value, subtitle, delta }: KpiCardProps) {
-  return (
-    <div className="rounded-lg border bg-card p-3">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-xl font-semibold">{value}</span>
-        {typeof delta === 'number' && (
-          <span
-            className={cn(
-              'inline-flex items-center gap-0.5 text-[10px] font-medium',
-              delta > 0 ? 'text-warning-foreground' : 'text-primary'
-            )}
-          >
-            {delta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {Math.abs(delta)}%
-          </span>
-        )}
-      </div>
-      {subtitle && <p className="mt-0.5 text-[10px] text-muted-foreground">{subtitle}</p>}
-    </div>
-  );
-}
-
-interface TopReasonsChartProps {
-  reasons: Array<{ reason: string; count: number }>;
-  previousReasons?: Array<{ reason: string; count: number }>;
-  compareMode?: boolean;
-  windowHours?: number;
-}
-
-function deltaTone(
-  curr: number,
-  prev: number
-): { tone: 'up' | 'down' | 'flat'; pct: number | null } {
-  if (prev === 0 && curr === 0) return { tone: 'flat', pct: 0 };
-  if (prev === 0) return { tone: 'up', pct: null };
-  const pct = Math.round(((curr - prev) / prev) * 1000) / 10;
-  if (pct > 0) return { tone: 'up', pct };
-  if (pct < 0) return { tone: 'down', pct };
-  return { tone: 'flat', pct };
-}
-
-function TopReasonsChart({
-  reasons,
-  previousReasons = [],
-  compareMode = false,
-  windowHours = 24,
-}: TopReasonsChartProps) {
-  // Build merged dataset: union of top reasons across both periods so the user
-  // sees both NEW reasons that emerged AND old reasons that disappeared.
-  const data = useMemo(() => {
-    if (!compareMode) {
-      return reasons.slice(0, 10).map((r) => ({ reason: r.reason, current: r.count, previous: 0 }));
-    }
-    const prevMap = new Map(previousReasons.map((r) => [r.reason, r.count]));
-    const currMap = new Map(reasons.map((r) => [r.reason, r.count]));
-    const allReasons = new Set<string>([...currMap.keys(), ...prevMap.keys()]);
-    const merged = Array.from(allReasons).map((reason) => ({
-      reason,
-      current: currMap.get(reason) ?? 0,
-      previous: prevMap.get(reason) ?? 0,
-    }));
-    // Sort by max(current, previous) so the most relevant rows surface,
-    // then keep top 10.
-    merged.sort((a, b) => Math.max(b.current, b.previous) - Math.max(a.current, a.previous));
-    return merged.slice(0, 10);
-  }, [reasons, previousReasons, compareMode]);
-
-  const total = useMemo(() => data.reduce((s, d) => s + d.current, 0), [data]);
-  const previousTotal = useMemo(() => data.reduce((s, d) => s + d.previous, 0), [data]);
-  const chartHeight = Math.max(180, data.length * (compareMode ? 44 : 32));
-
-  return (
-    <div className="rounded-lg bg-muted/30 p-3">
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          Top {data.length} motivos de retry
-          {compareMode && (
-            <span className="ml-2 normal-case tracking-normal text-muted-foreground/80">
-              · atual vs. {windowHours}h anteriores
-            </span>
-          )}
-        </p>
-        <span className="text-[10px] text-muted-foreground">
-          {total} ocorrências{compareMode && ` · anterior: ${previousTotal}`}
-        </span>
-      </div>
-      <div style={{ width: '100%', height: chartHeight }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            layout="vertical"
-            margin={{ top: 4, right: 24, bottom: 4, left: 8 }}
-            barCategoryGap={6}
-          >
-            <XAxis
-              type="number"
-              tick={{ style: { fontSize: '0.75rem' }, fill: 'hsl(var(--muted-foreground))' }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-            />
-            <YAxis
-              type="category"
-              dataKey="reason"
-              width={140}
-              tick={{
-                fontSize: 10,
-                fill: 'hsl(var(--foreground))',
-                fontFamily: 'ui-monospace, monospace',
-              }}
-              axisLine={false}
-              tickLine={false}
-              interval={0}
-            />
-            <Tooltip
-              cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
-              contentStyle={{
-                background: 'hsl(var(--popover))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 6,
-                fontSize: 11,
-                color: 'hsl(var(--popover-foreground))',
-              }}
-              formatter={(value: number | string, name: number | string) => {
-                const label = name === 'previous' ? 'Período anterior' : 'Período atual';
-                return [String(value ?? '') + ' retries', label];
-              }}
-              labelFormatter={(label: number | string) => String(label)}
-            />
-            {compareMode && (
-              <Legend
-                wrapperStyle={{ fontSize: '0.75rem', paddingTop: 4 }}
-                iconType="square"
-                formatter={(v) => (v === 'previous' ? 'Período anterior' : 'Período atual')}
-              />
-            )}
-            {compareMode && (
-              <Bar
-                dataKey="previous"
-                radius={[0, 4, 4, 0]}
-                fill="hsl(var(--muted-foreground) / 0.45)"
-              />
-            )}
-            <Bar dataKey="current" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))">
-              {!compareMode &&
-                data.map((_, i) => <Cell key={i} fill={`hsl(var(--primary) / ${1 - i * 0.06})`} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Comparison delta list — surfaces shifts even when bars are similar. */}
-      {compareMode && data.length > 0 && (
-        <ul className="mt-3 space-y-1">
-          {data.map((d) => {
-            const { tone, pct } = deltaTone(d.current, d.previous);
-            const Icon = tone === 'up' ? TrendingUp : tone === 'down' ? TrendingDown : Minus;
-            const toneClass =
-              tone === 'up'
-                ? 'text-warning-foreground'
-                : tone === 'down'
-                  ? 'text-primary'
-                  : 'text-muted-foreground';
-            return (
-              <li
-                key={d.reason}
-                className="flex items-center justify-between gap-3 rounded border border-border/40 bg-background/50 px-2 py-1 text-[11px]"
-              >
-                <span className="truncate">{d.reason}</span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className="text-muted-foreground">{d.previous}</span>
-                  <span className="text-muted-foreground/60">→</span>
-                  <span>{d.current}</span>
-                  <span
-                    className={cn('inline-flex w-14 items-center justify-end gap-0.5', toneClass)}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {pct === null ? 'novo' : `${Math.abs(pct)}%`}
-                  </span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
   );
 }
