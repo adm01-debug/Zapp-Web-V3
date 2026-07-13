@@ -113,6 +113,13 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
       toast({ title: 'Arquivo removido' });
     },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover arquivo',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

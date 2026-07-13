@@ -82,6 +82,7 @@ export const SLADeliveryHistoryDashboard = () => {
       toast.success('Alerta marcado como resolvido');
       queryClient.invalidateQueries({ queryKey: ['sla-delivery-violations'] });
     },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const filteredViolations = violations?.filter(

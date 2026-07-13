@@ -50,6 +50,7 @@ export function useUpdateTeamMessageStatus() {
         }
       );
     },
+    onError: (err: Error) => log.error('[useUpdateTeamMessageStatus]', err),
   });
 }
 

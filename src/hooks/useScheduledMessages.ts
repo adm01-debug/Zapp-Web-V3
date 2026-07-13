@@ -86,7 +86,11 @@ export function useScheduledMessages(contactId?: string) {
       toast({ title: 'Mensagem agendada com sucesso!' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Erro ao agendar mensagem', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Erro ao agendar mensagem',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -102,6 +106,8 @@ export function useScheduledMessages(contactId?: string) {
       queryClient.invalidateQueries({ queryKey: ['scheduled-messages'] });
       toast({ title: 'Agendamento cancelado' });
     },
+    onError: (e: Error) =>
+      toast({ title: 'Erro ao cancelar', description: e.message, variant: 'destructive' }),
   });
 
   return {

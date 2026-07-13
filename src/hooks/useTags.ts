@@ -203,6 +203,13 @@ export function useContactTags(contactId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['contact-tags', contactId] });
       queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao adicionar etiqueta',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   const removeTagMutation = useMutation({
@@ -220,6 +227,13 @@ export function useContactTags(contactId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact-tags', contactId] });
       queryClient.invalidateQueries({ queryKey: ['tags'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover etiqueta',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 

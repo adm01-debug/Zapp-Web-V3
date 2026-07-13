@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { toast } from 'sonner';
 
 export type SLAAlertSeverity = 'risk' | 'violated';
 
@@ -95,7 +96,9 @@ export function useSLAAlertHistory() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sla-alert-history'] });
+      toast.success('Alerta resolvido');
     },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   return {

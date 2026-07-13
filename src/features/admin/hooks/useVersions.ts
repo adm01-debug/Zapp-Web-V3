@@ -35,24 +35,23 @@ export function useVersions(entityType: string, entityId: string) {
 
   const restoreMutation = useMutation({
     mutationFn: async (versionId: string) => {
-      const version = versions.find(v => v.id === versionId);
+      const version = versions.find((v) => v.id === versionId);
       if (!version) throw new Error('Versão não encontrada');
-      
-      const { error } = await fromTable(entityType)
-        .update(version.data)
-        .eq('id', entityId);
+
+      const { error } = await fromTable(entityType).update(version.data).eq('id', entityId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Versão restaurada!');
     },
+    onError: (err: Error) => toast.error(err.message),
   });
 
-  return { 
-    versions, 
-    isLoading, 
-    restoreVersion: restoreMutation.mutate, 
-    currentVersion: versions[0] 
+  return {
+    versions,
+    isLoading,
+    restoreVersion: restoreMutation.mutate,
+    currentVersion: versions[0],
   };
 }
