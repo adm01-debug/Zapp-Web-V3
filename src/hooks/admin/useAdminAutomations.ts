@@ -1,5 +1,5 @@
 // Re-export from consolidated useAdminManagement module (ETAPA 19 consolidation)
-import { useAdminManagement } from '@/hooks/useAdminManagement';
+import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
 export {
   TRIGGER_LABEL,
@@ -8,7 +8,7 @@ export {
   type TriggerType,
   type AutomationChannel,
   type AutomationDepartment,
-} from '@/hooks/useAdminManagement';
+} from '@/features/admin/hooks/useAdminManagement';
 
 export function useAdminAutomations() {
   const admin = useAdminManagement();

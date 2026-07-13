@@ -1,9 +1,9 @@
 // Re-export from consolidated useAdminManagement module (ETAPA 19 consolidation)
-import { useAdminManagement } from '@/hooks/useAdminManagement';
+import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
 export type {
   UserWithRole,
-} from '@/hooks/useAdminManagement';
+} from '@/features/admin/hooks/useAdminManagement';
 
 export function useRolesPageState() {
   const admin = useAdminManagement();

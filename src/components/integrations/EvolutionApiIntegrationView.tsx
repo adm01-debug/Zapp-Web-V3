@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useEvolutionApiIntegration, DEFAULT_URL } from '@/hooks/integrations/useEvolutionApiIntegration';
+import { useEvolutionApiIntegration, DEFAULT_URL } from '@/features/integrations/hooks/useEvolutionApiIntegration';
 
 export function EvolutionApiIntegrationView() {
   const [activeTab, setActiveTab] = useState('instances');

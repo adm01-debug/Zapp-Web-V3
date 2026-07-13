@@ -1,9 +1,9 @@
 // Re-export from consolidated useAdminManagement module (ETAPA 19 consolidation)
-import { useAdminManagement } from '@/hooks/useAdminManagement';
+import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
 export type {
   Department,
-} from '@/hooks/useAdminManagement';
+} from '@/features/admin/hooks/useAdminManagement';
 
 export function useDepartmentsAdmin() {
   const admin = useAdminManagement();

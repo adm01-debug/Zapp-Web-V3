@@ -1,12 +1,12 @@
 // Re-export from consolidated useAdminManagement module (ETAPA 19 consolidation)
-import { useAdminManagement } from '@/hooks/useAdminManagement';
+import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
 export {
   type ServiceChannel,
   type ChannelStatus,
   type QueueOption,
   type WppConnOption,
-} from '@/hooks/useAdminManagement';
+} from '@/features/admin/hooks/useAdminManagement';
 
 export function useAdminChannels(statusFilter: string, search: string) {
   const admin = useAdminManagement({ channelStatusFilter: statusFilter, channelSearch: search });

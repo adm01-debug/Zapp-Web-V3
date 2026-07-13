@@ -1,6 +1,6 @@
 // Re-export from consolidated useDashboardVisualizationManagement module (ETAPA 46 consolidation)
-import { useGoalsDashboardManagement } from '@/hooks/useDashboardVisualizationManagement';
-export type { Goal } from '@/hooks/useDashboardVisualizationManagement';
+import { useGoalsDashboardManagement } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
+export type { Goal } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
 
 export const PERIOD_OPTIONS = [
   { value: 'today', label: 'Hoje' },

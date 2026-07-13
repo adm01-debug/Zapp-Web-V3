@@ -1,5 +1,5 @@
 // Re-export from consolidated useDashboardVisualizationManagement module (ETAPA 46 consolidation)
-import { useDashboardDataManagement } from '@/hooks/useDashboardVisualizationManagement';
+import { useDashboardDataManagement } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
 import type { DashboardFilters, DashboardStats, QueueStats, RecentActivity } from './dashboardTypes';
 
 export function useDashboardData(filters?: DashboardFilters) {
