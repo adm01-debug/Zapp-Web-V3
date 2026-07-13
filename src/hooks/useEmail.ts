@@ -1,17 +1,6 @@
 /**
- * useEmail.ts — Hook principal de gerenciamento Email
- *
- * Funcionalidades completas:
- * - Carrega contas Email ativas
- * - Monitora status de tokens via rpc_email_token_status
- * - Sincronização via email-sync Edge Function
- * - Carrega threads com filtro de label
- * - Star/unstar, archive, assign a agente
- * - Marcar como lida/não lida
- * - Envio de emails via email-send
- * - Realtime subscription nas threads
- * - Refresh automático de tokens expirados
- * - Watch renewal check
+ * useEmail.ts — Orchestrator principal do módulo Email.
+ * Gerencia estado, ciclo de vida e composição dos sub-hooks especializados.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -29,45 +18,20 @@ import {
   EmailLabel,
   SLAStatus,
 } from '@/types/gmail';
+import { isMockId } from './gmail/emailUtils';
+import { useEmailOAuth } from './gmail/useEmailOAuth';
+import { useEmailThreadActions } from './gmail/useEmailThreadActions';
+import { useEmailSync } from './gmail/useEmailSync';
+import { useEmailRealtime } from './gmail/useEmailRealtime';
 
 const log = getLogger('useEmail');
+const supabase = _supabase;
 
 export type { EmailAccount, EmailTokenInfo, EmailThread, EmailSendParams, EmailLabel, SLAStatus };
 
 export type EmailTokenStatus = 'valid' | 'expiring_soon' | 'expired' | 'no_token';
 export type EmailWatchStatus = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
 export type TokenStatus = EmailTokenStatus;
-
-const supabase = _supabase;
-
-/**
- * IDs vindos do fallback GMAIL_MOCKS (ex.: 'mock-account-123') não existem no
- * banco e não são UUIDs — chamadas de rede com eles geram 400/22P02 em loop.
- */
-const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
-
-/**
- * A tabela-base email_app.email_threads não possui as colunas derivadas da view
- * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
- * replica exatamente as expressões da view para payloads de realtime.
- */
-const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
-  emailMappers.thread({
-    ...row,
-    thread_id: row['id'],
-    email_thread_id: row['gmail_thread_id'] != null ? String(row['gmail_thread_id']) : null,
-    account_id: row['gmail_account_id'],
-    unread_count: row['is_unread'] ? Math.max(Number(row['message_count'] ?? 1), 1) : 0,
-  });
-
-/**
- * Remove chaves undefined antes do spread de UPDATE: o mapper materializa
- * todas as chaves do EmailThread, e um spread cru sobrescreveria campos que
- * a linha-base nao possui (ex.: contact) com undefined, apagando estado
- * previamente carregado via RPC.
- */
-const definedOnly = <T extends object>(o: T): Partial<T> =>
-  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
 // ── Hook Principal ─────────────────────────────────────────────────────
 
@@ -90,8 +54,7 @@ export function useEmail() {
     ok: true,
     lastChecked: null,
   });
-  // setter nunca é chamado hoje — paginação de threads ainda não implementada;
-  // ver docs/AUDITORIA_EXAUSTIVA_2026-07-12.md (Onda 6, item de código morto).
+  // setter nunca é chamado hoje — paginação de threads ainda não implementada
   const [nextPageToken] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   /**
@@ -101,8 +64,8 @@ export function useEmail() {
    * safeClient infinite loop (recordFailure -> rpc -> recordFailure).
    */
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const oauthInFlightRef = useRef(false);
   const mountedRef = useRef(true);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -112,7 +75,7 @@ export function useEmail() {
 
   const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Auth gate: confirma sessao antes de qualquer chamada ao DB ─────
+  // ── Auth gate: confirma sessão antes de qualquer chamada ao DB ─────
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session && mountedRef.current) setIsAuthenticated(true);
@@ -274,79 +237,6 @@ export function useEmail() {
     }
   }, [hasMore, isLoadingThreads, activeAccountId, activeLabel, loadThreads, threads.length]);
 
-  // ── Sincronizar inbox via email-sync ───────────────────────────────
-  const syncNow = useCallback(
-    async (accountId?: string) => {
-      const id = accountId ?? activeAccountId;
-      if (!id || isMockId(id) || isSyncing) return;
-
-      setIsSyncing(true);
-      setError(null);
-      try {
-        const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
-          body: { action: 'syncInbox', accountId: id, maxResults: 100 },
-        });
-
-        if (fnErr) throw new Error('Falha ao sincronizar Email');
-
-        await Promise.all([loadThreads(id, activeLabel), checkTokenStatus()]);
-
-        return data;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setIsSyncing(false);
-      }
-    },
-    [activeAccountId, isSyncing, activeLabel, loadThreads, checkTokenStatus]
-  );
-
-  // ── Renovar token manualmente ────────────────────────────────────
-  const refreshToken = useCallback(
-    async (accountId?: string) => {
-      const id = accountId ?? activeAccountId;
-      if (!id || isMockId(id)) return;
-
-      try {
-        const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
-          body: { action: 'refreshToken', accountId: id },
-        });
-
-        if (fnErr || !data?.success) {
-          setError('Token expirado — reconecte sua conta Email nas configurações.');
-          return false;
-        }
-
-        await checkTokenStatus();
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    [activeAccountId, checkTokenStatus]
-  );
-
-  // ── Renovar Pub/Sub watch ───────────────────────────────────────
-  const renewWatch = useCallback(
-    async (accountId?: string) => {
-      const id = accountId ?? activeAccountId;
-      if (!id || isMockId(id)) return;
-
-      try {
-        const { data, error: fnErr } = await supabase.functions.invoke('gmail-webhook', {
-          body: { action: 'renewWatch', accountId: id },
-        });
-
-        if (!fnErr && data?.success) {
-          await checkTokenStatus();
-        }
-      } catch {
-        // Watch renewal é best-effort
-      }
-    },
-    [activeAccountId, checkTokenStatus]
-  );
-
   // ── Enviar email ──────────────────────────────────────────────
   const sendEmail = useCallback(
     async (params: EmailSendParams): Promise<{ success: boolean; error?: string }> => {
@@ -384,90 +274,6 @@ export function useEmail() {
     [activeAccountId]
   );
 
-  // ── Marcar thread como lida/não lida ──────────────────────────────
-  const markAsRead = useCallback(async (threadId: string, read = true) => {
-    if (isMockId(threadId)) {
-      setThreads((prev) =>
-        prev.map((t) =>
-          t.id === threadId ? { ...t, unread_count: read ? 0 : t.unread_count || 1 } : t
-        )
-      );
-      return;
-    }
-    const { error: rpcErr } = await safeClient.rpc('rpc_email_mark_thread_read', {
-      p_thread_id: threadId,
-      p_read: read,
-      p_message_ids: null,
-    });
-
-    if (!rpcErr) {
-      setThreads((prev) =>
-        prev.map((t) =>
-          t.id === threadId ? { ...t, unread_count: read ? 0 : t.unread_count || 1 } : t
-        )
-      );
-    }
-  }, []);
-
-  // ── Star/Unstar thread ───────────────────────────────────────────
-  const starThread = useCallback(async (threadId: string, starred = true) => {
-    if (isMockId(threadId)) {
-      setThreads((prev) =>
-        prev.map((t) => (t.id === threadId ? { ...t, is_starred: starred } : t))
-      );
-      return;
-    }
-    const { error: rpcErr } = await safeClient.rpc('rpc_email_star_thread', {
-      p_thread_id: threadId,
-      p_starred: starred,
-    });
-
-    if (!rpcErr) {
-      setThreads((prev) =>
-        prev.map((t) => (t.id === threadId ? { ...t, is_starred: starred } : t))
-      );
-    }
-  }, []);
-
-  // ── Archive thread ─────────────────────────────────────────────
-  const archiveThread = useCallback(async (threadId: string) => {
-    if (isMockId(threadId)) {
-      setThreads((prev) => prev.filter((t) => t.id !== threadId));
-      return;
-    }
-    const { error: rpcErr } = await safeClient.rpc('rpc_email_archive_thread', {
-      p_thread_id: threadId,
-      p_archived: true,
-    });
-
-    if (!rpcErr) {
-      // Remover da inbox atual
-      setThreads((prev) => prev.filter((t) => t.id !== threadId));
-    }
-  }, []);
-
-  // ── Assign thread a agente ───────────────────────────────────────
-  const assignThread = useCallback(async (threadId: string, agentId: string | null) => {
-    if (isMockId(threadId)) {
-      setThreads((prev) =>
-        prev.map((t) => (t.id === threadId ? { ...t, assigned_to: agentId } : t))
-      );
-      return;
-    }
-    const { error: rpcErr } = await safeClient.rpc('rpc_email_assign_thread', {
-      p_thread_id: threadId,
-      p_agent_id: agentId,
-    });
-
-    if (!rpcErr) {
-      setThreads((prev) =>
-        prev.map((t) => (t.id === threadId ? { ...t, assigned_to: agentId } : t))
-      );
-    } else {
-      log.warn('Email thread assign error', rpcErr.message);
-    }
-  }, []);
-
   // ── Desconectar conta ──────────────────────────────────────────
   const disconnect = useCallback(
     async (accountId: string) => {
@@ -486,184 +292,23 @@ export function useEmail() {
     [activeAccountId]
   );
 
-  // ── OAuth: iniciar fluxo de conexão ─────────────────────────────────
-  const startOAuth = useCallback(async () => {
-    // Guarda contra clique duplo / chamadas concorrentes: sem isto, dois
-    // listeners 'message' ficariam ativos e ambos tentariam exchangeCode
-    // com o MESMO code de uso único, fazendo a 2ª tentativa falhar no servidor.
-    if (oauthInFlightRef.current) return;
-    oauthInFlightRef.current = true;
+  // ── Sub-hooks especializados ──────────────────────────────────────
+  const { startOAuth } = useEmailOAuth({ mountedRef, setError, loadAccounts, checkTokenStatus });
+  const { markAsRead, starThread, archiveThread, assignThread } = useEmailThreadActions({
+    setThreads,
+  });
+  const { syncNow, refreshToken, renewWatch } = useEmailSync({
+    activeAccountId,
+    activeLabel,
+    isSyncing,
+    setIsSyncing,
+    loadThreads,
+    checkTokenStatus,
+    setError,
+  });
+  useEmailRealtime({ activeAccountId, setThreads });
 
-    setError(null);
-    try {
-      const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
-        body: { action: 'getAuthUrl' },
-      });
-
-      // A edge function retorna `{ url, state }` (action 'getAuthUrl' em
-      // supabase/functions/gmail-oauth), não `authUrl`.
-      if (fnErr || !data?.url) {
-        setError('Erro ao obter URL de autorização Google. Verifique GOOGLE_CLIENT_ID.');
-        oauthInFlightRef.current = false;
-        return;
-      }
-
-      // `state` emitido para este fluxo — validado no handler abaixo antes de
-      // trocar o code, para que uma mensagem postMessage forjada (de qualquer
-      // origem, já que o callback usa target '*') não consiga injetar o code
-      // de outra conta Google para ser vinculado ao usuário atual.
-      const expectedState = data.state as string | undefined;
-
-      const popup = window.open(data.url, 'email_oauth', 'width=500,height=600,scrollbars=yes');
-      if (!popup) {
-        setError('Popup bloqueado. Permita popups para este site.');
-        oauthInFlightRef.current = false;
-        return;
-      }
-
-      // `settled` evita que o poll de popup.closed e o handler de mensagem
-      // disparem cleanup duas vezes (ex.: a mensagem já fechou o popup via
-      // popup?.close() — sem essa flag, o próximo tick do poll veria
-      // popup.closed===true e tentaria limpar de novo, possivelmente
-      // resetando oauthInFlightRef no meio de um exchangeCode ainda em voo).
-      let settled = false;
-      let closeCheckInterval: ReturnType<typeof setInterval> | null = null;
-
-      const cleanupListeners = () => {
-        window.removeEventListener('message', handler);
-        if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
-      };
-
-      // Escutar callback do popup.
-      // Protocolo real do backend gmail-oauth (callback GET):
-      //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
-      //   { type: 'gmail-oauth-error', error }  -> falha (ex.: usuário negou consentimento)
-      const handler = async (event: MessageEvent) => {
-        if (settled) return;
-        if (event.data?.type === 'gmail-oauth-error') {
-          settled = true;
-          cleanupListeners();
-          setError(`Autorização Google negada: ${event.data.error ?? 'erro desconhecido'}`);
-          oauthInFlightRef.current = false;
-          return;
-        }
-        if (event.data?.type !== 'gmail-oauth-code') return;
-
-        const { code, state: returnedState } = event.data;
-        if (!expectedState || returnedState !== expectedState) {
-          // Não finaliza o fluxo (settled=false): uma mensagem forjada não deve
-          // encerrar a espera pela mensagem legítima do popup real.
-          log.warn('[gmail-oauth] state inválido no callback — mensagem ignorada');
-          return;
-        }
-        settled = true;
-        cleanupListeners();
-
-        if (!code) {
-          oauthInFlightRef.current = false;
-          return;
-        }
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          oauthInFlightRef.current = false;
-          if (mountedRef.current) setError('Sessão expirada. Faça login novamente.');
-          return;
-        }
-
-        const { data: exchangeData, error: exchangeErr } = await supabase.functions.invoke(
-          'gmail-oauth',
-          {
-            body: { action: 'exchangeCode', code, userId: user.id },
-          }
-        );
-
-        if (exchangeErr || !exchangeData?.success) {
-          oauthInFlightRef.current = false;
-          if (mountedRef.current) setError('Falha na autenticação Google. Tente novamente.');
-          return;
-        }
-
-        await loadAccounts();
-        await checkTokenStatus();
-        oauthInFlightRef.current = false;
-      };
-
-      window.addEventListener('message', handler);
-
-      // Detecta o usuário fechando o popup MANUALMENTE (sem completar o
-      // fluxo) — sem isto, a guarda de concorrência acima travaria o botão
-      // "Conectar" para sempre, já que nenhuma mensagem chegaria para
-      // resetar oauthInFlightRef. Em try/catch porque navegadores com
-      // Cross-Origin-Opener-Policy estrita podem bloquear o acesso a
-      // popup.closed; nesse caso simplesmente tentamos de novo no próximo
-      // tick em vez de derrubar a sessão.
-      closeCheckInterval = setInterval(() => {
-        if (settled) {
-          if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
-          return;
-        }
-        let closed = false;
-        try {
-          closed = popup.closed;
-        } catch {
-          closed = false;
-        }
-        if (closed) {
-          settled = true;
-          cleanupListeners();
-          oauthInFlightRef.current = false;
-        }
-      }, 500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      oauthInFlightRef.current = false;
-    }
-  }, [loadAccounts, checkTokenStatus]);
-
-  // ── Realtime subscription nas threads ──────────────────────────────
-  useEffect(() => {
-    if (!activeAccountId || isMockId(activeAccountId)) return;
-
-    // A view public.email_threads não emite eventos WAL. Assinamos a tabela-base
-    // email_app.email_threads (presente na publication supabase_realtime) e
-    // adaptamos o payload ao shape da view via mapBaseThreadRow.
-    const channel = supabase
-      .channel(`email-threads-${activeAccountId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'email_app',
-          table: 'email_threads',
-          filter: `gmail_account_id=eq.${activeAccountId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const nt = mapBaseThreadRow(payload.new);
-            setThreads((prev) => [nt, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            const ut = mapBaseThreadRow(payload.new);
-            setThreads((prev) =>
-              prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
-            );
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as { id?: string })?.id;
-            if (!deletedId) return;
-            setThreads((prev) => prev.filter((t) => t.id !== deletedId));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeAccountId]);
-
-  // ── Token check automático (a cada 5 minutos) ──────────────────────────
+  // ── Token check automático (a cada 5 minutos) ──────────────────────
   useEffect(() => {
     if (!isAuthenticated) return;
     void checkTokenStatus();
@@ -673,7 +318,7 @@ export function useEmail() {
         void checkTokenStatus();
       },
       5 * 60 * 1000
-    ); // 5 minutos
+    );
 
     return () => {
       if (tokenCheckInterval.current) clearInterval(tokenCheckInterval.current);
@@ -686,7 +331,7 @@ export function useEmail() {
     void loadAccounts();
   }, [loadAccounts, isAuthenticated]);
 
-  // ── Carregar threads quando muda conta ou label ──────────────────────────
+  // ── Carregar threads quando muda conta ou label ──────────────────────
   useEffect(() => {
     if (activeAccountId && isAuthenticated) {
       void loadThreads(activeAccountId, activeLabel);
