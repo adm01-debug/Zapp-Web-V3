@@ -1,231 +1,207 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+// Consolidated Search & Discovery Management Module (ETAPA 36)
+// Consolidates: useGlobalSearchShortcut, useKnowledgeBaseSearch, useSearchHistory, useSearchInsights, useChatSearch
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { log } from '@/lib/logger';
 
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-// TYPE DEFINITIONS
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-export interface SearchHistoryItem {
-  query: string;
-  timestamp: number;
-  resultCount?: number;
-}
-
-export interface KBArticle {
+interface SearchResult {
   id: string;
   title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  rank: number;
+  content?: string;
+  type: 'message' | 'contact' | 'article' | 'chat';
+  score: number;
+  timestamp: string;
 }
 
-export interface SearchInsightsTopQuery {
+interface SearchHistoryEntry {
+  id: string;
   query: string;
-  count: number;
-  avg_results: number;
+  timestamp: string;
+  result_type: string;
 }
 
-export interface SearchInsightsZeroResult {
-  query: string;
-  count: number;
-  last_at: string;
-}
-
-export interface SearchInsights {
-  total_searches: number;
-  unique_queries: number;
-  vector_searches: number;
-  vector_share: number;
-  total_clicks: number;
-  click_through_rate: number;
-  zero_result_count: number;
-  zero_result_rate: number;
-  avg_result_count: number;
-  top_queries: SearchInsightsTopQuery[];
-  zero_result_queries: SearchInsightsZeroResult[];
-  window_days: number;
-}
-
-interface UseGlobalSearchShortcutParams {
-  onOpen: () => void;
-}
-
-interface UseSearchHistoryResult {
-  history: SearchHistoryItem[];
-  addToHistory: (query: string, resultCount?: number) => void;
-  removeFromHistory: (query: string) => void;
-  clearHistory: () => void;
-}
-
-interface UseKnowledgeBaseSearchResult {
-  query: string;
-  handleSearch: (value: string) => void;
-  clear: () => void;
-  articles: KBArticle[];
-  isLoading: boolean;
-  hasResults: boolean;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-// GLOBAL SEARCH SHORTCUT MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-export function useGlobalSearchShortcutManagement(params: UseGlobalSearchShortcutParams) {
-  const { onOpen } = params;
+export function useGlobalSearchShortcutManagement(onSearch?: (query: string) => void) {
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        onOpen();
+        setIsOpen((prev) => !prev);
+      }
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onOpen]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  return { isOpen, setIsOpen, onSearch };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-// SEARCH HISTORY MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-const HISTORY_KEY = 'global-search-history';
-const MAX_HISTORY = 10;
-
-export function useSearchHistoryManagement(): UseSearchHistoryResult {
-  const [history, setHistory] = useState<SearchHistoryItem[]>([]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(HISTORY_KEY);
-    if (stored) {
-      try {
-        setHistory(JSON.parse(stored));
-      } catch {
-        setHistory([]);
-      }
-    }
-  }, []);
-
-  const addToHistory = useCallback((query: string, resultCount?: number) => {
-    if (!query.trim() || query.length < 2) return;
-
-    setHistory((prev) => {
-      const filtered = prev.filter((item) => item.query.toLowerCase() !== query.toLowerCase());
-      const newHistory = [
-        { query: query.trim(), timestamp: Date.now(), resultCount },
-        ...filtered,
-      ].slice(0, MAX_HISTORY);
-
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
-      return newHistory;
-    });
-  }, []);
-
-  const removeFromHistory = useCallback((query: string) => {
-    setHistory((prev) => {
-      const filtered = prev.filter((item) => item.query !== query);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered));
-      return filtered;
-    });
-  }, []);
-
-  const clearHistory = useCallback(() => {
-    setHistory([]);
-    localStorage.removeItem(HISTORY_KEY);
-  }, []);
-
-  return {
-    history,
-    addToHistory,
-    removeFromHistory,
-    clearHistory,
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-// SEARCH INSIGHTS MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-const EMPTY_INSIGHTS: SearchInsights = {
-  total_searches: 0,
-  unique_queries: 0,
-  vector_searches: 0,
-  vector_share: 0,
-  total_clicks: 0,
-  click_through_rate: 0,
-  zero_result_count: 0,
-  zero_result_rate: 0,
-  avg_result_count: 0,
-  top_queries: [],
-  zero_result_queries: [],
-  window_days: 7,
-};
-
-export function useSearchInsightsManagement(days: number) {
-  return useQuery<SearchInsights>({
-    queryKey: ['search-insights', days],
-    queryFn: async () => {
-      const { data, error } = await safeClient.rpc<SearchInsights>('rpc_search_insights', {
-        p_days: days,
-      });
-      if (error) throw error;
-      if (!data || typeof data !== 'object') return { ...EMPTY_INSIGHTS, window_days: days };
-      return { ...EMPTY_INSIGHTS, ...data, window_days: days };
-    },
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-// KNOWLEDGE BASE SEARCH MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
-
-export function useKnowledgeBaseSearchManagement(): UseKnowledgeBaseSearchResult {
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const debounceRef = useRef<NodeJS.Timeout>();
-
-  const handleSearch = useCallback((value: string) => {
-    setQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedQuery(value), 300);
-  }, []);
+export function useKnowledgeBaseSearchManagement(query: string) {
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      mountedRef.current = false;
     };
   }, []);
 
-  const { data: articles, isLoading } = useQuery({
-    queryKey: ['knowledge-base-search', debouncedQuery],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('search_knowledge_base', {
-        search_query: debouncedQuery,
-        max_results: 5,
-      });
-      if (error) throw error;
-      return (data ?? []) as KBArticle[];
-    },
-    enabled: debouncedQuery.length >= 2,
-  });
+  const search = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) {
+      if (mountedRef.current) setResults([]);
+      return;
+    }
 
-  const clear = useCallback(() => {
-    setQuery('');
-    setDebouncedQuery('');
+    try {
+      setLoading(true);
+      const { data, error: err } = await supabase.rpc('search_knowledge_base', {
+        search_query: searchQuery,
+      });
+
+      if (err) throw err;
+      if (mountedRef.current) setResults(data || []);
+    } catch (err) {
+      if (mountedRef.current) {
+        log.error('Knowledge base search error:', err);
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
   }, []);
 
-  return {
-    query,
-    handleSearch,
-    clear,
-    articles: articles ?? [],
-    isLoading,
-    hasResults: (articles?.length ?? 0) > 0,
-  };
+  useEffect(() => {
+    search(query);
+  }, [query, search]);
+
+  return { results, loading };
 }
+
+export function useSearchHistoryManagement() {
+  const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error: err } = await supabase
+        .from('search_history')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(20);
+
+      if (err) throw err;
+      if (mountedRef.current) setHistory(data || []);
+    } catch (err) {
+      if (mountedRef.current) {
+        log.error('Error fetching search history:', err);
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, []);
+
+  const addToHistory = useCallback(
+    async (query: string, resultType: string) => {
+      try {
+        await supabase.from('search_history').insert({ query, result_type: resultType });
+        await fetchHistory();
+      } catch (err) {
+        if (mountedRef.current) {
+          log.error('Error adding to history:', err);
+        }
+      }
+    },
+    [fetchHistory, mountedRef]
+  );
+
+  const clearHistory = useCallback(async () => {
+    try {
+      await supabase.from('search_history').delete().gt('id', 0);
+      if (mountedRef.current) setHistory([]);
+    } catch (err) {
+      if (mountedRef.current) {
+        log.error('Error clearing history:', err);
+      }
+    }
+  }, [mountedRef]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  return { history, loading, addToHistory, clearHistory, refetch: fetchHistory };
+}
+
+export function useSearchInsightsManagement(timeWindow: number = 7) {
+  const [insights, setInsights] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInsights = async () => {
+      try {
+        const { data, error: err } = await supabase.rpc('get_search_insights', {
+          days: timeWindow,
+        });
+
+        if (err) throw err;
+        setInsights(data);
+      } catch (err) {
+        log.error('Error fetching search insights:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInsights();
+  }, [timeWindow]);
+
+  return { insights, loading };
+}
+
+export function useChatSearchManagement(chatId: string, query: string) {
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!query.trim() || !chatId) {
+      setResults([]);
+      return;
+    }
+
+    const search = async () => {
+      try {
+        setLoading(true);
+        const { data, error: err } = await supabase.rpc('search_chat_messages', {
+          chat_id: chatId,
+          search_query: query,
+        });
+
+        if (err) throw err;
+        setResults(data || []);
+      } catch (err) {
+        log.error('Chat search error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    search();
+  }, [chatId, query]);
+
+  return { results, loading };
+}
+
+export type { SearchResult, SearchHistoryEntry };
