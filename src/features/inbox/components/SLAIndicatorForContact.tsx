@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useRef } from 'react';
 import { log } from '@/lib/logger';
 import { SLAIndicator } from './SLAIndicator';

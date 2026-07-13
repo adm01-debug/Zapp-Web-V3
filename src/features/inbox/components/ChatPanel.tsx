@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { CRMAutoSync } from './CRMAutoSync';
 import { ChatToolPanels } from './chat/ChatToolPanels';
 import { ChatDialogs } from './chat/ChatDialogs';

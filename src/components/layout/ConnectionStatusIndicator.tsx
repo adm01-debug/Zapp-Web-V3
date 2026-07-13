@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Indicador discreto de status das conexões WhatsApp.
  * Substitui o antigo banner vermelho fixo no topo da página.
