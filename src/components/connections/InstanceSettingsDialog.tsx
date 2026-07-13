@@ -1,13 +1,4 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
-
-interface ReconnectionLog {
-  id: string;
-  created_at: string;
-  result: 'success' | 'failure' | string;
-  attempt_number?: number | null;
-  error_message?: string | null;
-}
 import { useMountedRef } from '@/hooks/useMountedRef';
 import {
   Dialog,
@@ -120,6 +111,35 @@ export function InstanceSettingsDialog({
   });
   const [auditLogs, setAuditLogs] = useState<ReconnectionLog[]>([]);
   const [loadingTab, setLoadingTab] = useState('');
+  const [reconnectConfig, setReconnectConfig] = useState<{
+    enabled: boolean;
+    interval: number;
+    maxAttempts: number;
+    loopProtection: boolean;
+  }>({
+    enabled: true,
+    interval: 30,
+    maxAttempts: 5,
+    loopProtection: false,
+  });
+  const [profile, setProfile] = useState<{
+    name: string;
+    status: string;
+    pictureUrl: string;
+  }>({
+    name: '',
+    status: '',
+    pictureUrl: '',
+  });
+  const [privacy, setPrivacy] = useState<Record<string, string>>({
+    readreceipts: 'all',
+    profile: 'all',
+    status: 'all',
+    online: 'all',
+    last: 'all',
+    groupadd: 'all',
+  });
+  const [labels, setLabels] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     if (open && instanceName) {
