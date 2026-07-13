@@ -3,42 +3,20 @@ import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { toast } from 'sonner';
-import { validateFile, FileValidationResult } from '@/utils/whatsappFileTypes';
+import { validateFile } from '@/utils/whatsappFileTypes';
 import { compressImage, formatCompressionInfo } from '@/utils/imageCompression';
 import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
 import { parseScanInvocation, ScanBlockedError } from '@/lib/scanResponse';
 import { useScanResponseHandler } from '@/hooks/useScanResponseHandler';
 import { dbFrom } from '@/integrations/datasource/db';
-
-interface FileMessageData {
-  mediaUrl?: string;
-  messageType?: string;
-  [key: string]: unknown;
-}
-
-interface FilePreview {
-  file: File;
-  validation: FileValidationResult;
-  preview?: string;
-}
-
-interface QueuedFile extends FilePreview {
-  id: string;
-  status: 'pending' | 'uploading' | 'sending' | 'done' | 'error';
-  progress: number;
-  error?: string;
-}
-
-const categoryOrder: Record<string, number> = {
-  image: 0,
-  video: 1,
-  audio: 2,
-  document: 3,
-  sticker: 4,
-};
-const MAX_FILES = 10;
-
-export type { FileMessageData, FilePreview, QueuedFile };
+import {
+  type FileMessageData,
+  type FilePreview,
+  type QueuedFile,
+  categoryOrder,
+  MAX_FILES,
+} from './useFileUploadLogicTypes';
+export type { FileMessageData, FilePreview, QueuedFile } from './useFileUploadLogicTypes';
 
 export function useFileUploadLogic(opts: {
   instanceName?: string;
