@@ -17,6 +17,7 @@ const mockChannel = {
     return mockChannel;
   }),
   subscribe: vi.fn().mockReturnThis(),
+  unsubscribe: vi.fn().mockReturnThis(),
 };
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -38,7 +39,14 @@ vi.mock('@/hooks/use-toast', () => ({ toast: (...a: unknown[]) => toastFn(...a) 
 vi.mock('@/features/auth', () => ({ useAuth: () => ({ user: { id: 'u-1' } }) }));
 vi.mock('@/hooks/useNotificationSettings', () => ({
   useNotificationSettings: () => ({
-    settings: { soundEnabled: false, slaBreachSound: false, browserNotifications: false, desktopAlerts: false, soundType: 'ding', soundVolume: 1 },
+    settings: {
+      soundEnabled: false,
+      slaBreachSound: false,
+      browserNotifications: false,
+      desktopAlerts: false,
+      soundType: 'ding',
+      soundVolume: 1,
+    },
     isQuietHours: () => false,
   }),
 }));
@@ -63,13 +71,16 @@ describe('useSLANotifications — contract gate', () => {
 
   it('dispara toast em UPDATE válido com breach novo', async () => {
     setup();
-    const updateHandler = capturedHandlers.find(h => h.event === 'UPDATE')!;
+    const updateHandler = capturedHandlers.find((h) => h.event === 'UPDATE')!;
     await updateHandler.cb({
       new: {
-        id: UUID_A, contact_id: UUID_B,
+        id: UUID_A,
+        contact_id: UUID_B,
         first_message_at: '2026-01-01T00:00:00Z',
-        first_response_at: null, resolved_at: null,
-        first_response_breached: true, resolution_breached: false,
+        first_response_at: null,
+        resolved_at: null,
+        first_response_breached: true,
+        resolution_breached: false,
       },
       old: { first_response_breached: false },
     });
@@ -78,20 +89,23 @@ describe('useSLANotifications — contract gate', () => {
 
   it('ignora payload com id ausente (missing field)', async () => {
     setup();
-    const insertHandler = capturedHandlers.find(h => h.event === 'INSERT')!;
+    const insertHandler = capturedHandlers.find((h) => h.event === 'INSERT')!;
     await insertHandler.cb({ new: { contact_id: UUID_B, first_response_breached: true } });
     expect(toastFn).not.toHaveBeenCalled();
   });
 
   it('ignora payload com contact_id null (evita null-deref)', async () => {
     setup();
-    const insertHandler = capturedHandlers.find(h => h.event === 'INSERT')!;
+    const insertHandler = capturedHandlers.find((h) => h.event === 'INSERT')!;
     await insertHandler.cb({
       new: {
-        id: UUID_A, contact_id: null,
+        id: UUID_A,
+        contact_id: null,
         first_message_at: '2026-01-01T00:00:00Z',
-        first_response_at: null, resolved_at: null,
-        first_response_breached: true, resolution_breached: false,
+        first_response_at: null,
+        resolved_at: null,
+        first_response_breached: true,
+        resolution_breached: false,
       },
     });
     expect(toastFn).not.toHaveBeenCalled();
@@ -99,13 +113,16 @@ describe('useSLANotifications — contract gate', () => {
 
   it('ignora payload sem breach (regressão: não dispara para atualizações neutras)', async () => {
     setup();
-    const updateHandler = capturedHandlers.find(h => h.event === 'UPDATE')!;
+    const updateHandler = capturedHandlers.find((h) => h.event === 'UPDATE')!;
     await updateHandler.cb({
       new: {
-        id: UUID_A, contact_id: UUID_B,
+        id: UUID_A,
+        contact_id: UUID_B,
         first_message_at: '2026-01-01T00:00:00Z',
-        first_response_at: null, resolved_at: null,
-        first_response_breached: false, resolution_breached: false,
+        first_response_at: null,
+        resolved_at: null,
+        first_response_breached: false,
+        resolution_breached: false,
       },
       old: {},
     });

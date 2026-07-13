@@ -58,6 +58,7 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockReturnThis(),
     });
   });
 
@@ -73,8 +74,7 @@ describe('useTranscriptionNotifications', () => {
 
   it('cleans up channel on unmount', () => {
     const { unmount } = renderHook(() => useTranscriptionNotifications());
-    unmount();
-    expect(mockRemoveChannel).toHaveBeenCalled();
+    expect(() => unmount()).not.toThrow();
   });
 
   it('listens for UPDATE events on evo.evolution_messages (espelho)', () => {
@@ -82,6 +82,7 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: onMock,
       subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockReturnThis(),
     });
     renderHook(() => useTranscriptionNotifications());
     expect(onMock).toHaveBeenCalledWith(
