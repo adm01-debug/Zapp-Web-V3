@@ -3,7 +3,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('PerformanceSnapshots');
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/schema';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
 
