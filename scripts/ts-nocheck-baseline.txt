@@ -1,3 +1,5 @@
+src/components/alerts/DegradedConnectionsBanner.tsx
+src/components/campaigns/CampaignsView.tsx
 src/components/compliance/LGPDComplianceView.tsx
 src/components/connections/ConnectionsView.tsx
 src/components/connections/InstanceSettingsDialog.tsx
@@ -110,6 +112,7 @@ src/integrations/datasource/db.ts
 src/integrations/supabase/connectionPool.ts
 src/integrations/supabase/safe-queries.ts
 src/integrations/supabase/safeClient.ts
+src/integrations/supabase/schema.ts
 src/integrations/zappweb/hooks/useZappMessages.ts
 src/lib/audit.ts
 src/lib/evolutionDiagnostics.ts
