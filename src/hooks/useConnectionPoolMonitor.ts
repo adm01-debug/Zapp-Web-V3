@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import type { ConnectionMetrics } from '@/integrations/supabase/connectionPool';

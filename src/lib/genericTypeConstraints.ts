@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('genericTypeConstraints');
