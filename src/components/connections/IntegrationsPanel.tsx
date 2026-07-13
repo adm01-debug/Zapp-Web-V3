@@ -57,27 +57,33 @@ export function IntegrationsPanel({
   }, [open, instanceName]);
 
   const loadAll = async (isCancelled: () => boolean = () => false) => {
+    const abortController = new AbortController();
     const load = async (
-      getter: (n: string) => Promise<unknown>,
+      getter: (n: string, signal?: AbortSignal) => Promise<unknown>,
       setter: (v: Record<string, unknown>) => void
     ) => {
       try {
-        const data = await getter(instanceName);
+        const data = await getter(instanceName, abortController.signal);
         if (isCancelled()) return;
         if (data && typeof data === 'object')
           setter({ enabled: true, ...(data as Record<string, unknown>) }); // ignore-audit: narrows Supabase query result to local interface
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         log.error('Unexpected error in IntegrationsPanel:', err);
       }
     };
-    await Promise.allSettled([
-      load(api.getTypebot, setTypebot),
-      load(api.getOpenAI, setOpenai),
-      load(api.getDify, setDify),
-      load(api.getFlowise, setFlowise),
-      load(api.getChatwoot, setChatwoot),
-      load(api.getEvolutionBot, setEvolutionBot),
-    ]);
+    try {
+      await Promise.allSettled([
+        load(api.getTypebot as any, setTypebot),
+        load(api.getOpenAI as any, setOpenai),
+        load(api.getDify as any, setDify),
+        load(api.getFlowise as any, setFlowise),
+        load(api.getChatwoot as any, setChatwoot),
+        load(api.getEvolutionBot as any, setEvolutionBot),
+      ]);
+    } finally {
+      if (isCancelled()) abortController.abort();
+    }
   };
 
   const handleSaveTypebot = useCallback(async () => {

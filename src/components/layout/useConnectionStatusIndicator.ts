@@ -40,29 +40,29 @@ export function useConnectionStatusIndicator() {
   useEffect(() => {
     try {
       localStorage.setItem('zappweb:connection-popover-filter', filter);
-    } catch {
-      /* ignore */
-    }
-  }, [filter]);
-
-  useEffect(() => {
-    try {
-      if (selectedInstance)
+      if (selectedInstance) {
         localStorage.setItem('zappweb:connection-popover-selected', selectedInstance);
-      else localStorage.removeItem('zappweb:connection-popover-selected');
+      } else {
+        localStorage.removeItem('zappweb:connection-popover-selected');
+      }
     } catch {
       /* ignore */
     }
-  }, [selectedInstance]);
+  }, [filter, selectedInstance]);
 
   useEffect(() => {
     if (!open || !selectedInstance) return;
-    const t = setTimeout(() => {
+    const callback = () => {
       const el = itemRefs.current.get(selectedInstance);
       if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }, 50);
+    };
+    if (typeof requestIdleCallback !== 'undefined') {
+      const id = requestIdleCallback(callback, { timeout: 500 });
+      return () => cancelIdleCallback(id);
+    }
+    const t = setTimeout(callback, 50);
     return () => clearTimeout(t);
-  }, [open, selectedInstance, filter]);
+  }, [open, selectedInstance]);
 
   const fetchStatus = async () => {
     if (!isSupabaseConfigured) {
@@ -102,9 +102,10 @@ export function useConnectionStatusIndicator() {
 
     const disconnectedRows = rows.filter((r) => r.status !== 'connected');
     const currentDisconnected = new Set(disconnectedRows.map((r) => r.instance_id));
-    const rowByInstanceId = new Map(rows.map((r) => [r.instance_id, r]));
-    if (initializedRef.current) {
+
+    if (initializedRef.current && currentDisconnected.size > 0) {
       const newlyDown: DisconnectEvent[] = [];
+      const rowByInstanceId = new Map(disconnectedRows.map((r) => [r.instance_id, r]));
       currentDisconnected.forEach((id) => {
         if (!prevDisconnectedRef.current.has(id)) {
           const row = rowByInstanceId.get(id);

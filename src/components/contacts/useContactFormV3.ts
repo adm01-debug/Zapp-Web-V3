@@ -57,9 +57,12 @@ export function useContactFormV3({
   });
 
   useEffect(() => {
-    if (form.phone || form.email) {
-      checkDuplicates(form.phone, form.email, form.name);
-    }
+    const timer = setTimeout(() => {
+      if (form.phone || form.email) {
+        checkDuplicates(form.phone, form.email, form.name);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [form.phone, form.email, form.name, checkDuplicates]);
 
   const update = useCallback(

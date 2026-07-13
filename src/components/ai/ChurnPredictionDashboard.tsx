@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingDown,
@@ -31,6 +31,8 @@ export function ChurnPredictionDashboard() {
   const [analyzing, setAnalyzing] = useState(false);
   const [stats, setStats] = useState({ total: 0, critical: 0, high: 0, medium: 0, low: 0 });
   const isMountedRef = useRef(true);
+
+  const filteredRisks = useMemo(() => risks.filter((r) => r.riskScore > 20).slice(0, 50), [risks]);
 
   useEffect(() => {
     analyzeChurnRisk();
@@ -107,13 +109,15 @@ export function ChurnPredictionDashboard() {
       churnRisks.sort((a, b) => b.riskScore - a.riskScore);
       if (isMountedRef.current) {
         setRisks(churnRisks);
-        setStats({
-          total: churnRisks.length,
-          critical: churnRisks.filter((r) => r.riskLevel === 'critical').length,
-          high: churnRisks.filter((r) => r.riskLevel === 'high').length,
-          medium: churnRisks.filter((r) => r.riskLevel === 'medium').length,
-          low: churnRisks.filter((r) => r.riskLevel === 'low').length,
-        });
+        const stats = churnRisks.reduce(
+          (acc, r) => {
+            acc.total++;
+            acc[r.riskLevel]++;
+            return acc;
+          },
+          { total: 0, critical: 0, high: 0, medium: 0, low: 0 }
+        );
+        setStats(stats);
       }
     } catch {
       if (isMountedRef.current) toast.error('Erro ao analisar risco de churn');
@@ -229,44 +233,37 @@ export function ChurnPredictionDashboard() {
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <div key={i} className="h-16 animate-pulse rounded-lg bg-muted/50" />
                   ))
-                : risks
-                    .filter((r) => r.riskScore > 20)
-                    .slice(0, 50)
-                    .map((risk) => (
-                      <motion.div
-                        key={risk.contactId}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-3 rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50"
-                      >
-                        <Badge className={`${getRiskColor(risk.riskLevel)} shrink-0 text-xs`}>
-                          {risk.riskScore}%
-                        </Badge>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{risk.contactName}</p>
-                          <p className="text-xs text-muted-foreground">{risk.phone}</p>
+                : filteredRisks.map((risk) => (
+                    <motion.div
+                      key={risk.contactId}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center gap-3 rounded-lg bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+                    >
+                      <Badge className={`${getRiskColor(risk.riskLevel)} shrink-0 text-xs`}>
+                        {risk.riskScore}%
+                      </Badge>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{risk.contactName}</p>
+                        <p className="text-xs text-muted-foreground">{risk.phone}</p>
+                      </div>
+                      <div className="hidden w-24 md:block">
+                        <Progress value={risk.riskScore} className="h-2" />
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-xs text-muted-foreground">
+                          {risk.daysSinceLastMessage}d sem contato
+                        </p>
+                        <div className="mt-1 flex flex-wrap justify-end gap-1">
+                          {risk.reasons.slice(0, 2).map((reason) => (
+                            <Badge key={reason} variant="outline" className="px-1 py-0 text-[10px]">
+                              {reason.length > 25 ? reason.substring(0, 25) + '...' : reason}
+                            </Badge>
+                          ))}
                         </div>
-                        <div className="hidden w-24 md:block">
-                          <Progress value={risk.riskScore} className="h-2" />
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="text-xs text-muted-foreground">
-                            {risk.daysSinceLastMessage}d sem contato
-                          </p>
-                          <div className="mt-1 flex flex-wrap justify-end gap-1">
-                            {risk.reasons.slice(0, 2).map((reason) => (
-                              <Badge
-                                key={reason}
-                                variant="outline"
-                                className="px-1 py-0 text-[10px]"
-                              >
-                                {reason.length > 25 ? reason.substring(0, 25) + '...' : reason}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                      </div>
+                    </motion.div>
+                  ))}
             </div>
           </ScrollArea>
         </CardContent>
