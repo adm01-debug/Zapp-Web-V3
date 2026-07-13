@@ -1,8 +1,83 @@
-// Re-export from consolidated useIntegrationAuthenticationManagement module (ETAPA 47 consolidation)
-import { useEvolutionAutoSyncManagement } from '@/hooks/useIntegrationAuthenticationManagement';
+import { useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { useEvolutionApi } from '@/hooks/useEvolutionApi';
+import { getLogger } from '@/lib/logger';
+import { normalizePhone, isSamePhone } from '@/lib/phoneUtils';
 
+const log = getLogger('useEvolutionAutoSync');
+
+/**
+ * Auto-syncs Evolution API instances into `whatsapp_connections`.
+ *
+ * When instances exist in Evolution but not in the Supabase table
+ * (e.g. created via API/CLI), this hook auto-inserts them so they
+ * appear in the Connections page.
+ *
+ * Protections:
+ * - Runs once on mount (idempotent)
+ * - Skips instances already in Supabase (by instance_id)
+ * - Skips instances whose phone number already exists (prevents duplicates)
+ * - Insert-only (never deletes or overwrites)
+ */
 export function useEvolutionAutoSync(onSynced?: () => void) {
-  return useEvolutionAutoSyncManagement(onSynced);
+  const ran = useRef(false);
+  const { listInstances } = useEvolutionApi();
+
+  const syncAll = async () => {
+    try {
+      // 1. Get existing connections from Supabase
+      const { data: existing, error } = await supabase
+        .from('whatsapp_connections')
+        .select('instance_id, phone_number');
+      if (error) throw error;
+      const knownIds = new Set((existing ?? []).map((c) => c.instance_id));
+      const knownPhones = (existing ?? [])
+        .map((c) => normalizePhone(c.phone_number ?? ''))
+        .filter(Boolean);
+
+      // 2. List all Evolution instances
+      const evoResult = await listInstances();
+      const instances: unknown[] = Array.isArray(evoResult)
+        ? evoResult
+        : ((evoResult as { data?: unknown[]; instances?: unknown[] })?.data ??
+          (evoResult as { data?: unknown[]; instances?: unknown[] })?.instances ??
+          []);
+
+      if (!instances.length) return;
+
+      // 3. Find instances NOT in Supabase (by instance_id AND phone number)
+      const missing = instances.filter((inst) => {
+        const i = inst as {
+          instance?: { instanceName?: string; number?: string; ownerJid?: string };
+        };
+        if (!i?.instance?.instanceName) return false;
+        if (knownIds.has(i.instance.instanceName)) return false;
+
+        // Also skip if phone number already exists in another connection
+        const phone =
+          i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+        if (phone && knownPhones.some((kp) => isSamePhone(kp, phone))) {
+          return false;
+        }
+        return true;
+      });
+
+      if (!missing.length) return;
+
+      // 4. Insert missing instances
+      for (const inst of missing) {
+        const i = inst as {
+          instance?: {
+            instanceName?: string;
+            profileName?: string;
+            number?: string;
+            ownerJid?: string;
+            status?: string;
+          };
+        };
+        const instanceName = i.instance?.instanceName ?? '';
+        const name = i.instance?.profileName || instanceName || 'Auto-synced';
         const phone =
           i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
         const status = i.instance?.status === 'open' ? 'connected' : 'disconnected';

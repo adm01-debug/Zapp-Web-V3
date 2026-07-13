@@ -1,10 +1,12 @@
-import { useState, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useMessages } from '@/features/inbox';
-import { useContactData } from '@/hooks/useContactData';
 import { Conversation } from '@/types/chat';
 import { log } from '@/lib/logger';
+import type { Tables } from '@/integrations/supabase/types';
+
+type ContactRow = Tables<'contacts'>;
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -15,16 +17,30 @@ const ChatPanel = lazy(() => import('@/features/inbox').then((m) => ({ default: 
 
 export default function ChatPopup() {
   const { contactId } = useParams<{ contactId: string }>();
+  const [contact, setContact] = useState<ContactRow | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isMaximized, setIsMaximized] = useState(false);
-  const { contact, loading } = useContactData(contactId);
   const { messages } = useMessages({
     contactId: contactId || '',
     enabled: !!contactId,
   });
 
-  if (contact) {
-    document.title = `Chat — ${contact.name}`;
-  }
+  useEffect(() => {
+    if (!contactId) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase.from('contacts').select('*').eq('id', contactId).single();
+      if (cancelled) return;
+      if (data) {
+        setContact(data);
+        document.title = `Chat — ${data.name}`;
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [contactId]);
 
   const conversation: Conversation | null = contact
     ? {
