@@ -1,53 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { getLogger } from '@/lib/logger';
-import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
-import { dbFrom, dbTable } from '@/integrations/datasource/db';
+// Re-export from consolidated useRealtimeManagement module (ETAPA 37 consolidation)
+import { useRealtimeDashboardManagement } from '@/hooks/useRealtimeManagement';
 
-const log = getLogger('RealtimeDashboard');
-
-export interface RealtimeMetric {
-  timestamp: Date;
-  messagesPerMinute: number;
-  activeConversations: number;
-  avgResponseTimeSeconds: number | null;
-}
-
-export interface RealtimeDashboardState {
-  messagesThisHour: number;
-  messagesLastHour: number;
-  messagesPerMinute: number;
-  activeConversationsNow: number;
-  newContactsToday: number;
-  unreadMessages: number;
-  metricsHistory: RealtimeMetric[];
-  lastMessageAt: Date | null;
-  isConnected: boolean;
-}
-
-const MAX_HISTORY = 60; // Keep last 60 data points (1 per minute = 1 hour)
-
-export function useRealtimeDashboard() {
-  const [state, setState] = useState<RealtimeDashboardState>({
-    messagesThisHour: 0,
-    messagesLastHour: 0,
-    messagesPerMinute: 0,
-    activeConversationsNow: 0,
-    newContactsToday: 0,
-    unreadMessages: 0,
-    metricsHistory: [],
-    lastMessageAt: null,
-    isConnected: false,
-  });
-
-  const messageCountRef = useRef(0);
-  const minuteCountRef = useRef(0);
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
+export function useRealtimeDashboard(dashboardId?: string) {
+  return useRealtimeDashboardManagement(dashboardId || 'default');
   }, []);
 
   // Fetch initial counts

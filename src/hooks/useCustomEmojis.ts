@@ -1,23 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { CATEGORY_LABELS } from '@/features/inbox';
+// Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
+import { useCustomEmojisManagement } from '@/hooks/useMediaManagement';
 
-import { getLogger } from '@/lib/logger';
-const log = getLogger('useCustomEmojis');
-
-export interface CustomEmoji {
-  id: string;
-  name: string;
-  image_url: string;
-  category: string;
-  is_favorite: boolean;
-  use_count: number;
-}
-
-export interface PendingEmojiUpload {
-  file: File;
+export function useCustomEmojis() {
+  return useCustomEmojisManagement();
   imageUrl: string;
   storagePath: string;
   aiCategory: string;

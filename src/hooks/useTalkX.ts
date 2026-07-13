@@ -1,23 +1,8 @@
-import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
-import { fromTable } from '@/lib/supabaseHelpers';
-import { toast } from 'sonner';
-import { newRequestId } from '@/lib/withRequestId';
+// Re-export from consolidated useIntegrationManagement module (ETAPA 42 consolidation)
+import { useTalkXManagement } from '@/hooks/useIntegrationManagement';
 
-export interface TalkXCampaign {
-  id: string;
-  name: string;
-  message_template: string;
-  variables_config: string[];
-  typing_delay_min: number;
-  typing_delay_max: number;
-  send_interval_min: number;
-  send_interval_max: number;
-  status: string;
-  total_recipients: number;
-  sent_count: number;
+export function useTalkX() {
+  return useTalkXManagement();
   failed_count: number;
   delivered_count: number;
   whatsapp_connection_id: string | null;

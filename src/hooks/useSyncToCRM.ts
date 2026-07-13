@@ -1,23 +1,8 @@
-/**
- * useSyncToCRM
- *
- * Syncs completed conversations from zapp-web back to the external CRM.
- * Calls sync_interaction_from_zapp RPC which:
- * - Finds the contact by phone
- * - Creates an interaction record
- * - Recalculates relationship_score
- * - Deduplicates by zapp_conversation_id
- *
- * Usage: call syncConversation() when a conversation is resolved/closed.
- */
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
-import { dbRpc } from '@/integrations/datasource/db';
-import { RPC } from '@/integrations/datasource/rpcCatalog';
-import { log } from '@/lib/logger';
+// Re-export from consolidated useIntegrationManagement module (ETAPA 42 consolidation)
+import { useSyncToCRMManagement } from '@/hooks/useIntegrationManagement';
 
-interface SyncParams {
-  phone: string;
+export function useSyncToCRM(entityId?: string) {
+  return useSyncToCRMManagement(entityId);
   channel?: string;
   direction?: string;
   assunto?: string;

@@ -1,33 +1,8 @@
-import { useEffect, useCallback, useState } from 'react';
-import {
-  logStructuredError,
-  getErrorRateStats,
-  type StructuredError,
-} from '@/lib/structuredErrorLogging';
-import { getLogger } from '@/lib/logger';
+// Re-export from consolidated useAnalyticsManagement module (ETAPA 39 consolidation)
+import { useErrorMonitoringManagement } from '@/hooks/useAnalyticsManagement';
 
-const log = getLogger('useErrorMonitoring');
-
-/**
- * Hook for monitoring error rates and patterns in real-time.
- * Provides metrics for dashboards and triggers alerts on anomalies.
- */
 export function useErrorRateMonitoring() {
-  const [stats, setStats] = useState(getErrorRateStats());
-  const [pollingInterval, setPollingInterval] = useState(30000); // 30 seconds default
-  const [isMonitoring, setIsMonitoring] = useState(false);
-
-  const updateStats = useCallback(() => {
-    try {
-      const newStats = getErrorRateStats();
-      setStats(newStats);
-
-      // Alert on high error rate
-      const totalErrors = newStats.totalInWindow;
-      if (totalErrors > 20) {
-        log.warn('High error rate detected', {
-          total: totalErrors,
-          critical: newStats.bySeverity.critical,
+  return useErrorMonitoringManagement();
           high: newStats.bySeverity.high,
         });
       }

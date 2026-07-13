@@ -1,4 +1,4 @@
-// Re-export from consolidated useNotificationManagement module (ETAPA 27 consolidation)
+// Re-export from consolidated useNotificationManagement module (ETAPA 38 consolidation)
 import { useNotificationSettingsManagement } from '@/hooks/useNotificationManagement';
 import type { NotificationSettings, SoundTypeOption } from '@/hooks/useNotificationManagement';
 
@@ -6,28 +6,7 @@ export type { NotificationSettings, SoundTypeOption };
 
 export const useNotificationSettings = () => {
   return useNotificationSettingsManagement();
-
-      if ('soundEnabled' in updates) dbUpdates.sound_enabled = updates.soundEnabled;
-      if ('quietHoursEnabled' in updates) dbUpdates.quiet_hours_enabled = updates.quietHoursEnabled;
-      if ('quietHoursStart' in updates) dbUpdates.quiet_hours_start = updates.quietHoursStart;
-      if ('quietHoursEnd' in updates) dbUpdates.quiet_hours_end = updates.quietHoursEnd;
-      if ('browserNotifications' in updates) dbUpdates.browser_notifications_enabled = updates.browserNotifications;
-      if ('sentimentAlertEnabled' in updates) dbUpdates.sentiment_alert_enabled = updates.sentimentAlertEnabled;
-      if ('sentimentAlertThreshold' in updates) dbUpdates.sentiment_alert_threshold = updates.sentimentAlertThreshold;
-      if ('sentimentConsecutiveCount' in updates) dbUpdates.sentiment_consecutive_count = updates.sentimentConsecutiveCount;
-      if ('transcriptionNotificationEnabled' in updates) dbUpdates.transcription_notification_enabled = updates.transcriptionNotificationEnabled;
-      if ('messageSoundType' in updates) dbUpdates.message_sound_type = updates.messageSoundType;
-      if ('mentionSoundType' in updates) dbUpdates.mention_sound_type = updates.mentionSoundType;
-      if ('slaSoundType' in updates) dbUpdates.sla_sound_type = updates.slaSoundType;
-      if ('goalSoundType' in updates) dbUpdates.goal_sound_type = updates.goalSoundType;
-      if ('transcriptionSoundType' in updates) dbUpdates.transcription_sound_type = updates.transcriptionSoundType;
-
-      if (Object.keys(dbUpdates).length > 0) {
-        const { error } = await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: user.id,
-            ...dbUpdates,
+}
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id' });
 

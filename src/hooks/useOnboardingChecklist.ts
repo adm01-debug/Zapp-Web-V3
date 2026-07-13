@@ -1,23 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '@/features/auth';
-import { supabase } from '@/integrations/supabase/client';
-import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
-import { log } from '@/lib/logger';
+// Re-export from consolidated useSettingsManagement module (ETAPA 41 consolidation)
+import { useOnboardingChecklistManagement } from '@/hooks/useSettingsManagement';
 
-export interface ChecklistStatus {
-  profile: boolean;
-  connection: boolean;
-  hours: boolean;
-  templates: boolean;
-  notifications: boolean;
-  theme: boolean;
-}
-
-const DEFAULT_STATUS: ChecklistStatus = {
-  profile: false,
-  connection: false,
-  hours: false,
-  templates: false,
+export function useOnboardingChecklist(userId?: string) {
+  return useOnboardingChecklistManagement(userId);
   notifications: false,
   theme: false,
 };

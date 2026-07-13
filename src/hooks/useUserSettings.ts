@@ -1,22 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { safeClient } from '@/integrations/supabase/safeClient';
-import { useAuth } from '@/features/auth';
-import { toast } from '@/hooks/use-toast';
-import { log } from '@/lib/logger';
-import { UserSettings, DEFAULT_SETTINGS, retryWithBackoff } from './userSettingsSchema';
+// Re-export from consolidated useSettingsManagement module (ETAPA 41 consolidation)
+import { useUserSettingsManagement } from '@/hooks/useSettingsManagement';
 
-export type { UserSettings } from './userSettingsSchema';
-export { UserSettingsSchema } from './userSettingsSchema';
-
-export function useUserSettings() {
-  const { user } = useAuth();
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Idempotency tracking: prevents duplicate saves from concurrent requests
-  const [lastSaveId, setLastSaveId] = useState<string | null>(null);
-  const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
+export function useUserSettings(userId?: string) {
+  return useUserSettingsManagement(userId);
 
   // Fetch settings from DB with cleanup on unmount
   useEffect(() => {

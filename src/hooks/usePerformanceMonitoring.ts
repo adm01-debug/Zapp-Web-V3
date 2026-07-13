@@ -1,33 +1,8 @@
-/**
- * usePerformanceMonitoring.ts (v1.0)
- * Unified performance monitoring consolidating:
- * - usePerformanceMetrics: Real-time Web Vitals tracking (LCP, INP, CLS)
- * - usePerformanceSnapshots: Historical performance snapshot storage
- *
- * Backward compatibility maintained through re-exports of legacy hook names.
- */
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { getLogger } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/schema';
-import { useAuth } from '@/features/auth';
-import { toast } from 'sonner';
+// Re-export from consolidated useAnalyticsManagement module (ETAPA 39 consolidation)
+import { usePerformanceMonitoringManagement } from '@/hooks/useAnalyticsManagement';
 
-const log = getLogger('PerformanceMonitoring');
-
-// ──────────────────────────────────────────────────────────────────────────
-// REAL-TIME METRICS TRACKING
-// ──────────────────────────────────────────────────────────────────────────
-
-/**
- * Hook for tracking real-time Web Vitals (LCP, INP, CLS).
- * Monitors component render times and logs performance issues.
- */
 export function usePerformanceMetrics(componentName: string) {
-  const lastRenderTime = useRef(performance.now());
-  const renderCount = useRef(0);
-
-  useEffect(() => {
+  return usePerformanceMonitoringManagement();
     const now = performance.now();
     const duration = now - lastRenderTime.current;
     renderCount.current++;
