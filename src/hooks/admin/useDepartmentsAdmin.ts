@@ -1,4 +1,3 @@
-
 /**
  * useDepartmentsAdmin — Wave 3 batch-4 (2026-07-07)
  * Camada de dados extraída de DepartmentsPage (CRUD + member_count).
@@ -9,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useMountedRef } from '@/hooks/useMountedRef';
 const log = getLogger('useDepartmentsAdmin');
 
 export interface Department {
@@ -26,13 +26,13 @@ export function useDepartmentsAdmin() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const mountedRef = useMountedRef();
 
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('departments')
-      .select('*')
-      .order('name');
+    const { data, error } = await supabase.from('departments').select('*').order('name');
+
+    if (!mountedRef.current) return;
 
     if (error) {
       toast.error('Erro ao carregar departamentos');
@@ -49,6 +49,7 @@ export function useDepartmentsAdmin() {
         .from('profiles')
         .select('department_id')
         .in('department_id', ids);
+      if (!mountedRef.current) return;
       if (profilesByDeptErr) {
         log.warn('member-count fetch failed:', profilesByDeptErr.message);
         countsFailed = true;
@@ -65,7 +66,7 @@ export function useDepartmentsAdmin() {
         ...d,
         is_active: d.is_active ?? true,
         member_count: countsFailed ? undefined : (counts[d.id] ?? 0),
-      })),
+      }))
     );
     setLoading(false);
   }, []);
@@ -74,7 +75,10 @@ export function useDepartmentsAdmin() {
     void fetchDepartments();
   }, [fetchDepartments]);
 
-  const save = async (payload: { name: string; slug: string; description: string | null; is_active: boolean }, editingId: string | null): Promise<boolean> => {
+  const save = async (
+    payload: { name: string; slug: string; description: string | null; is_active: boolean },
+    editingId: string | null
+  ): Promise<boolean> => {
     setSaving(true);
 
     const { error } = editingId
@@ -87,7 +91,7 @@ export function useDepartmentsAdmin() {
       toast.error(
         error.message.includes('duplicate')
           ? 'Já existe um departamento com esse nome ou identificador'
-          : 'Erro ao salvar departamento',
+          : 'Erro ao salvar departamento'
       );
       return false;
     }

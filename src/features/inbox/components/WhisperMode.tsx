@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -107,6 +106,7 @@ export function WhisperMode({
       )
       .subscribe();
     return () => {
+      void channel.unsubscribe();
       void supabase.removeChannel(channel);
     };
   }, [contactId, queryClient, contactIsUUID]);

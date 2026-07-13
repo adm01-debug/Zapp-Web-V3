@@ -39,7 +39,7 @@ export const useAgentGamification = () => {
         .eq('profile_id', profileId)
         .maybeSingle();
       if (error) throw error;
-      return data as AgentStats | null;
+      return data as AgentStats | null; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!profileId,
     refetchInterval: 30000,
@@ -56,7 +56,7 @@ export const useAgentGamification = () => {
         .order('earned_at', { ascending: false })
         .limit(20);
       if (error) throw error;
-      return data as Achievement[];
+      return data as Achievement[]; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!profileId,
   });

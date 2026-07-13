@@ -19,36 +19,28 @@ interface SpeechToTextReturn {
   toggleListening: () => void;
 }
 
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean;
-  readonly [index: number]: { readonly transcript: string };
-}
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  readonly [index: number]: SpeechRecognitionResult;
-}
-interface SpeechRecognitionEvent {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultList;
-}
-interface SpeechRecognitionErrorEvent {
-  readonly error: string;
-}
+interface SpeechResultItem { transcript: string }
+interface SpeechResult { isFinal: boolean; [index: number]: SpeechResultItem }
+interface SpeechResultList { length: number; [index: number]: SpeechResult }
+interface SpeechRecognitionEvent { resultIndex: number; results: SpeechResultList }
+interface SpeechRecognitionErrorEvent { error: string }
+
 interface SpeechRecognitionInstance {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onend: (() => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
   start(): void;
   stop(): void;
+  abort(): void;
 }
 type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
 
 function getSpeechRecognition(): SpeechRecognitionCtor | null {
   if (typeof window === 'undefined') return null;
-  const w = window as unknown as Record<string, unknown>;
+  const w = window as unknown as Record<string, unknown>; // ignore-audit — accessing vendor-prefixed SpeechRecognition/webkitSpeechRecognition not in standard lib
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as SpeechRecognitionCtor | null;
 }
 

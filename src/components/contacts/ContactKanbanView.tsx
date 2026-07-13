@@ -141,7 +141,7 @@ export function ContactKanbanView({ contacts, onContactClick }: ContactKanbanVie
                                 {(dragProvided, dragSnapshot) => (
                                   <div
                                     ref={dragProvided.innerRef}
-                                    {...(dragProvided.draggableProps as unknown as HTMLAttributes<HTMLDivElement>)}
+                                    {...(dragProvided.draggableProps as unknown as HTMLAttributes<HTMLDivElement>)} // ignore-audit — react-beautiful-dnd DraggableProps doesn't extend HTMLAttributes; same shape at runtime
                                     className={cn(
                                       "w-full text-left p-3 rounded-lg border border-border/30",
                                       "bg-card hover:bg-muted/40 hover:border-primary/20",

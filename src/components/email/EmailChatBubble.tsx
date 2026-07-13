@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef } from 'react';
 import DOMPurify from 'dompurify';
 import {
@@ -45,20 +44,17 @@ interface EmailChatBubbleProps {
 }
 
 function sanitizeHtml(html: string): string {
-  // Força target="_blank" + rel="noopener noreferrer nofollow" em todos os <a>
-  // (clientes de email enviam links sem esses attrs; sem isso o link navega in-tab e
-  // pode permitir window.opener leak via tabnabbing).
-  // CRITICAL: Use a unique hook name to prevent collision with other sanitizeHtml
-  // functions (e.g. src/lib/sanitize.ts). DOMPurify.removeHook() removes by array
-  // position, not by reference; if multiple hooks are active, removeHook pops the
-  // wrong one and leaves orphaned hooks active.
-  const HOOK_NAME = 'afterSanitizeAttributes_emailChat';
-  DOMPurify.addHook(HOOK_NAME, (node) => {
+  // DOMPurify.sanitize() is synchronous in the browser, so the addHook/removeHook
+  // pair is safe: the hook fires inside sanitize(), finally removes it before the
+  // next caller can add its own. Use the correct DOMPurify entry point name
+  // 'afterSanitizeAttributes' (not a custom string) so the hook actually fires.
+  const forceLinksSecure = (node: Element) => {
     if (node.tagName === 'A') {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer nofollow');
     }
-  });
+  };
+  DOMPurify.addHook('afterSanitizeAttributes', forceLinksSecure);
   try {
     return DOMPurify.sanitize(html, {
       FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
@@ -66,7 +62,7 @@ function sanitizeHtml(html: string): string {
       FORCE_BODY: true,
     });
   } finally {
-    DOMPurify.removeHook(HOOK_NAME);
+    DOMPurify.removeHook('afterSanitizeAttributes');
   }
 }
 
@@ -94,7 +90,7 @@ export function EmailChatBubble({
 }: EmailChatBubbleProps) {
   const [expanded, setExpanded] = useState(isFirst);
   const [showFullHtml, setShowFullHtml] = useState(false);
-  const [isStarred, setIsStarred] = useState(message.label_ids.includes('STARRED'));
+  const [isStarred, setIsStarred] = useState(message.label_ids?.includes('STARRED') ?? false);
   const [isRead, setIsRead] = useState(message.is_read);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -120,7 +116,7 @@ export function EmailChatBubble({
     try {
       await emailModifyLabels({
         accountId,
-        messageId: message.message_id,
+        messageId: message.email_msg_id,
         addLabelIds: wasStarred ? [] : ['STARRED'],
         removeLabelIds: wasStarred ? ['STARRED'] : [],
       });
@@ -133,7 +129,7 @@ export function EmailChatBubble({
     const wasRead = isRead;
     setIsRead(!wasRead);
     try {
-      await emailMarkRead({ accountId, messageIds: [message.message_id], read: !wasRead });
+      await emailMarkRead({ accountId, messageIds: [message.email_msg_id], read: !wasRead });
     } catch {
       setIsRead(wasRead);
     }
@@ -141,7 +137,7 @@ export function EmailChatBubble({
 
   const handleTrash = async () => {
     try {
-      await emailTrashMessage({ accountId, messageId: message.message_id });
+      await emailTrashMessage({ accountId, messageId: message.email_msg_id });
       toast.success('Mensagem movida para lixeira');
     } catch {
       toast.error('Erro ao mover para lixeira');
@@ -233,12 +229,14 @@ export function EmailChatBubble({
           {expanded && (
             <div className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
               <span className="text-primary/60">Para:</span>
-              <span className="max-w-[300px] truncate">{message.to_emails.join(', ')}</span>
-              {message.cc_emails.length > 0 && (
+              <span className="max-w-[300px] truncate">{(message.to_emails ?? []).join(', ')}</span>
+              {(message.cc_emails ?? []).length > 0 && (
                 <>
                   <span className="mx-1 opacity-30">|</span>
                   <span className="text-primary/60">Cc:</span>
-                  <span className="max-w-[200px] truncate">{message.cc_emails.join(', ')}</span>
+                  <span className="max-w-[200px] truncate">
+                    {(message.cc_emails ?? []).join(', ')}
+                  </span>
                 </>
               )}
             </div>
@@ -252,7 +250,13 @@ export function EmailChatBubble({
           {onReply && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button aria-label="Responder" variant="ghost" size="icon" className="h-7 w-7" onClick={onReply}>
+                <Button
+                  aria-label="Responder"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={onReply}
+                >
                   <Reply className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>

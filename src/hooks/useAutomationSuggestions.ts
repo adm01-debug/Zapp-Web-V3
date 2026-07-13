@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -97,7 +96,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(ch);
+      ch.unsubscribe();
     };
   }, [remoteJid, refresh]);
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useEffect, useRef } from 'react';
 import { isFeatureEnabled } from '@/lib/featureFlags';
 import { cn } from '@/lib/utils';
@@ -36,6 +35,7 @@ import { InputPreviewBars } from './InputPreviewBars';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
+import type { QueueItem } from '@/features/inbox/hooks/useMessageQueue';
 
 interface QuickReplyItem {
   id: string;
@@ -308,7 +308,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
       </AnimatePresence>
 
       <AnimatePresence>
-        {(isSending || props.queue?.length > 0) && (
+        {(isSending || (props.queue?.length ?? 0) > 0) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -398,15 +398,18 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                     transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
                   />
                 </div>
-                {item.attempts?.length > 0 && (
+                {(item.attempts?.length ?? 0) > 0 && (
                   <div className="mt-1 hidden border-t border-primary/5 pt-1 group-hover:block">
                     <div className="flex items-center justify-between text-[8px] text-muted-foreground">
                       <span>
-                        {item.attempts.length}{' '}
-                        {item.attempts.length === 1 ? 'tentativa' : 'tentativas'}
+                        {(item.attempts ?? []).length}{' '}
+                        {(item.attempts ?? []).length === 1 ? 'tentativa' : 'tentativas'}
                       </span>
-                      {item.attempts[item.attempts.length - 1].duration && (
-                        <span>{item.attempts[item.attempts.length - 1].duration}ms</span>
+                      {(item.attempts ?? [])[((item.attempts ?? []).length ?? 1) - 1]?.duration && (
+                        <span>
+                          {(item.attempts ?? [])[((item.attempts ?? []).length ?? 1) - 1]?.duration}
+                          ms
+                        </span>
                       )}
                     </div>
                   </div>
@@ -545,7 +548,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               </AnimatePresence>
 
               <textarea
-                ref={inputRef}
+                ref={inputRef as any}
                 value={inputValue}
                 onChange={(e) => {
                   onInputChange(e);
@@ -566,7 +569,11 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                     const lastOwnMessage = [...messages]
                       .reverse()
                       .find((m) => m.sender === 'agent' && !m.is_deleted);
-                    if (lastOwnMessage && props.onCancelEdit && props.onCancelReply) {
+                    if (
+                      lastOwnMessage &&
+                      typeof props.onCancelEdit === 'function' &&
+                      typeof props.onCancelReply === 'function'
+                    ) {
                       // This is a heuristic shortcut for accessibility
                       // In a full implementation, we'd pass onEditStart as a prop
                       e.preventDefault();

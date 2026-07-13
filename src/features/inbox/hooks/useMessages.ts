@@ -51,7 +51,7 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
   // Handle new message from realtime
   const handleNewMessage = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const newMessage = messageService.mapMessage(payload.new as RealtimeMessage);
+      const newMessage = messageService.mapMessage(payload.new);
 
       if (newMessage.conversationId === contactId) {
         setMessages((prev) => {
@@ -67,7 +67,7 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
 
   const handleMessageUpdate = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const updatedMessage = messageService.mapMessage(payload.new as RealtimeMessage);
+      const updatedMessage = messageService.mapMessage(payload.new);
 
       if (updatedMessage.conversationId === contactId) {
         setMessages((prev) => prev.map((m) => (m.id === updatedMessage.id ? updatedMessage : m)));
@@ -78,7 +78,7 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
 
   const handleMessageDelete = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const deletedMessage = payload.old as RealtimeMessage;
+      const deletedMessage = payload.old;
 
       if (deletedMessage && (deletedMessage.contact_id === contactId || deletedMessage.id)) {
         setMessages((prev) => prev.filter((m) => m.id !== deletedMessage.id));

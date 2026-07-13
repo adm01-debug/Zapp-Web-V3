@@ -291,7 +291,7 @@ export const MessageBubble = memo(function MessageBubble({
                 <QuotedMessage
                   replyTo={message.replyTo}
                   isSent={isSent}
-                  onClick={() => onScrollToMessage(message.replyTo!.messageId)}
+                  onClick={() => { if (message.replyTo) onScrollToMessage(message.replyTo.messageId); }}
                 />
               )}
               {message.buttonResponse && (

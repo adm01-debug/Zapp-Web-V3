@@ -127,6 +127,6 @@ export function resetReconciliationStats(): void {
 
 // Expõe no window para inspeção rápida em produção via devtools.
 if (typeof window !== 'undefined') {
-  (window as unknown as { __reconcileStats?: () => Counters }).__reconcileStats =
+  (window as unknown as { __reconcileStats?: () => Counters }).__reconcileStats = // ignore-audit — window debug exposure for devtools
     getReconciliationStats;
 }

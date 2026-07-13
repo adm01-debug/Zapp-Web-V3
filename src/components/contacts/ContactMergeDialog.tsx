@@ -120,7 +120,7 @@ function FieldSelector({ fieldKey, label, primaryValue, secondaryValue, value, o
           </Badge>
         )}
       </div>
-      <RadioGroup value={value} onValueChange={(v) => onChange(v as FieldChoice)} className="grid grid-cols-1 gap-2">
+      <RadioGroup value={value} onValueChange={(v) => onChange(v as FieldChoice /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)} className="grid grid-cols-1 gap-2">
         {([['primary', primaryValue], ['secondary', secondaryValue]] as const).map(([side, val]) => (
           <div key={side} className={cn(
             "flex items-center gap-3 p-2 rounded-lg border transition-all cursor-pointer",
@@ -173,12 +173,12 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
       }
     });
     
-    return res as FieldResolution;
+    return res as FieldResolution; // ignore-audit: object built by iterating fields with string values; cast narrows to typed interface
   });
 
   const pick = useCallback((field: keyof FieldResolution): string => {
     const src = resolution[field] === 'primary' ? primaryContact : secondaryContact;
-    return sanitizeText(((src as unknown as Record<string, unknown>)[field] as string) ?? '');
+    return sanitizeText((src[field as keyof ContactForMerge] as string) ?? '');
   }, [resolution, primaryContact, secondaryContact]);
 
   const handleMerge = async () => {

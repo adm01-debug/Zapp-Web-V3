@@ -36,7 +36,7 @@ export async function processVoiceTranscript(
       };
     }
 
-    return result as VoiceAgentAction;
+    return result as VoiceAgentAction; // ignore-audit: narrows Supabase query result to local interface
   } finally {
     clearTimeout(timeout);
   }

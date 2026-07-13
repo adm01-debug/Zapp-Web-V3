@@ -9,7 +9,11 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
-export interface NewRoutingRule { channel_type: string; queue_id: string; priority: number }
+export interface NewRoutingRule {
+  channel_type: string;
+  queue_id: string;
+  priority: number;
+}
 
 export interface RoutingRule {
   id: string;
@@ -30,15 +34,15 @@ export function useChannelRoutingRules() {
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ['channel-routing-rules'],
     queryFn: async () => {
-      const { data, error } = await safeClient.from(
-        'channel_routing_rules',
-        (q) => q
+      const { data, error } = await safeClient.from('channel_routing_rules', (q) =>
+        q
           .select('*, queue:queues(name), channel_connection:channel_connections_safe(name)')
-          .order('priority', { ascending: true }),
+          .order('priority', { ascending: true })
       );
       if (error) throw error;
-      return ((data ?? []) as RoutingRule[]);
+      return (data ?? []) as RoutingRule[];
     },
+    staleTime: 600_000,
   });
 
   const { data: queues = [] } = useQuery({
@@ -52,6 +56,7 @@ export function useChannelRoutingRules() {
       if (error) throw error;
       return data || [];
     },
+    staleTime: 600_000,
   });
 
   const toggleRule = useMutation({
@@ -69,10 +74,7 @@ export function useChannelRoutingRules() {
 
   const deleteRule = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('channel_routing_rules')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('channel_routing_rules').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -83,14 +85,12 @@ export function useChannelRoutingRules() {
 
   const createRule = useMutation({
     mutationFn: async (rule: NewRoutingRule) => {
-      const { error } = await supabase
-        .from('channel_routing_rules')
-        .insert({
-          channel_type: rule.channel_type as Database["public"]["Enums"]["channel_type"],
-          queue_id: rule.queue_id || null,
-          priority: rule.priority,
-          is_active: true,
-        });
+      const { error } = await supabase.from('channel_routing_rules').insert({
+        channel_type: rule.channel_type as Database['public']['Enums']['channel_type'],
+        queue_id: rule.queue_id || null,
+        priority: rule.priority,
+        is_active: true,
+      });
       if (error) throw error;
     },
     onSuccess: () => {

@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { conversationSummary } from '@/integrations/supabase/ai-router';
 import { toast } from 'sonner';
 import { useSummaryTts } from './summary/useSummaryTts';
 import { SummaryResult } from './summary/SummaryResult';
@@ -138,30 +139,23 @@ export function ConversationSummary({
     }
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-conversation-summary', {
-        body: {
-          messages: filteredMessages.map((m) => ({
-            sender: m.sender,
-            content: m.content,
-            created_at: m.created_at,
-          })),
-          contactName,
-          contactId,
-        },
+      const data = await conversationSummary({
+        messages: filteredMessages.map((m) => ({
+          role: m.sender,
+          content: m.content,
+          sender: m.sender,
+        })),
+        contactName,
+        contactId,
       });
-      if (error) throw error;
-      if (mountedRef.current) {
-        setSummary(data);
-        setHasGenerated(true);
-        toast.success('Resumo gerado com sucesso!');
-      }
+      setSummary((data?.data as unknown as SummaryData) ?? null);
+      setHasGenerated(true);
+      toast.success('Resumo gerado com sucesso!');
     } catch (error) {
-      if (mountedRef.current) {
-        log.error('Error generating summary:', error);
-        toast.error('Erro ao gerar resumo. Tente novamente.');
-      }
+      log.error('Error generating summary:', error);
+      toast.error('Erro ao gerar resumo. Tente novamente.');
     } finally {
-      if (mountedRef.current) setIsLoading(false);
+      setIsLoading(false);
     }
   };
 

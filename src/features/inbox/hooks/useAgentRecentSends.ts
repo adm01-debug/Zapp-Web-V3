@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -43,10 +42,12 @@ export function useAgentRecentSends() {
       );
       if (sendsErr) throw sendsErr;
 
-      const parsed = (sends ?? [])
-        .map((s) => {
-          const match = s.idem_key.match(IDEM_PREFIX_RE);
-          return match ? { ...s, message_id: match[1] } : null;
+      const parsed = ((sends as unknown) ?? [])
+        .map((s: unknown) => {
+          const record = s as Record<string, unknown>;
+          const idemKey = record.idem_key as string;
+          const match = idemKey.match(IDEM_PREFIX_RE);
+          return match ? { ...(record as any), message_id: match[1] } : null;
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);
 

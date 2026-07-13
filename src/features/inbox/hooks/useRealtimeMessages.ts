@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom, dbTable, dbChannel, dbRemoveChannel } from '@/integrations/datasource/db';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { sendMessageToContact } from './realtime/messageSender';
 import { subscribeAllSendStatus, getSendStatus } from './realtime/sendStatusBus';
 import {
@@ -32,6 +31,52 @@ export type {
 } from './realtime/types';
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
 
+const log = getLogger('RealtimeMessages');
+const SEEDED_CONTACT_LIMIT = 500;
+const RECENT_MESSAGES_LIMIT = 1000;
+const CONTACT_FETCH_CHUNK_SIZE = 200;
+
+export interface NewMessageNotification {
+  id: string;
+  contactId: string;
+  contactName: string;
+  contactAvatar: string | null;
+  message: string;
+  timestamp: Date;
+}
+
+export type { RealtimeMessage } from './realtime/types';
+
+export interface ConversationContact {
+  id: string;
+  name: string;
+  surname: string | null;
+  nickname: string | null;
+  phone: string;
+  email: string | null;
+  avatar_url: string | null;
+  tags: string[] | null;
+  company: string | null;
+  job_title: string | null;
+  assigned_to: string | null;
+  queue_id: string | null;
+  created_at: string;
+  updated_at: string;
+  whatsapp_connection_id: string | null;
+  contact_type: string | null;
+  group_category: string | null;
+  ai_sentiment: string | null;
+  channel_type: string | null;
+  channel_connection_id: string | null;
+}
+
+export interface ConversationWithMessages {
+  contact: ConversationContact;
+  messages: RealtimeMessage[];
+  unreadCount: number;
+  lastMessage: RealtimeMessage | null;
+}
+
 export type ConversationSendState = 'idle' | 'retrying' | 'failed';
 
 export function useRealtimeMessages() {
@@ -45,6 +90,11 @@ export function useRealtimeMessages() {
 
   const conversationsRef = useRef<ConversationWithMessages[]>([]);
 
+  // Cache para evitar N+1 queries em contactos
+  const contactsCacheRef = useRef<Map<string, ConversationContact>>(new Map());
+  const contactBatchRef = useRef<Set<string>>(new Set());
+  const contactBatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const {
     newMessageNotification,
     notifyAboutIncomingMessage,
@@ -52,6 +102,17 @@ export function useRealtimeMessages() {
     setSelectedContact,
     setSoundEnabled,
   } = useRealtimeNotifications();
+
+  // Cleanup cache on unmount
+  useEffect(() => {
+    return () => {
+      if (contactBatchTimerRef.current) {
+        clearTimeout(contactBatchTimerRef.current);
+      }
+      contactsCacheRef.current.clear();
+      contactBatchRef.current.clear();
+    };
+  }, []);
 
   const commitConversations = useCallback(
     (
@@ -74,6 +135,12 @@ export function useRealtimeMessages() {
   const fetchContactsByIds = useCallback(async (contactIds: string[]) => {
     const uniqueIds = Array.from(new Set(contactIds.filter(Boolean)));
     if (uniqueIds.length === 0) return [] as ConversationContact[];
+
+    const missingIds = uniqueIds.filter((id) => !contactsCacheRef.current.has(id));
+    if (missingIds.length === 0) {
+      return uniqueIds.map((id) => contactsCacheRef.current.get(id)!);
+    }
+
     const fetchedContacts: ConversationContact[] = [];
 
     for (const idsChunk of chunkArray(uniqueIds, CONTACT_FETCH_CHUNK_SIZE)) {
@@ -82,9 +149,18 @@ export function useRealtimeMessages() {
         .in('id', idsChunk);
 
       if (contactsError) throw contactsError;
-      fetchedContacts.push(...((data ?? []) as ConversationContact[]));
+      const contacts = (data ?? []) as ConversationContact[];
+      contacts.forEach((c) => {
+        contactsCacheRef.current.set(c.id, c);
+      });
+      fetchedContacts.push(...contacts);
     }
-    return dedupeContacts(fetchedContacts);
+
+    const allContacts = [
+      ...fetchedContacts,
+      ...uniqueIds.map((id) => contactsCacheRef.current.get(id)!).filter(Boolean),
+    ];
+    return dedupeContacts(allContacts);
   }, []);
 
   const hydrateConversationForMessage = useCallback(
@@ -138,7 +214,7 @@ export function useRealtimeMessages() {
 
   const handleNewMessage = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const newMessage = normalizeMessage(payload.new as RealtimeMessage);
+      const newMessage = normalizeMessage(payload.new);
       if (!newMessage.contact_id) return;
 
       const existingConversation = conversationsRef.current.find(
@@ -179,7 +255,7 @@ export function useRealtimeMessages() {
   // lastMessage/unreadCount consistentes, sem reordenar a lista.
   const handleMessageDelete = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const deletedMessage = payload.old as RealtimeMessage;
+      const deletedMessage = payload.old;
       if (!deletedMessage?.id || !deletedMessage?.contact_id) return;
 
       commitConversations((prev) => {
@@ -262,7 +338,7 @@ export function useRealtimeMessages() {
         ...p,
         new: map(p.new as Record<string, unknown>),
         old: map(p.old as Record<string, unknown>),
-      } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>;
+      } as unknown as RealtimePostgresChangesPayload<RealtimeMessage>; // ignore-audit — evo.evolution_messages adapter; mapped shape is structurally RealtimeMessage at runtime
     };
     const channel = dbChannel('messages', channelName)
       .on(

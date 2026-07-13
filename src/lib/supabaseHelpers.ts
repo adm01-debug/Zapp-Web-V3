@@ -8,12 +8,12 @@
 import { supabase } from '@/integrations/supabase/client';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DynamicClient = { from: (table: string) => any };
+type DynamicClient = { from: (table: string) => any }; // ignore-audit — return type is PostgrestQueryBuilder; erasing to unknown breaks every caller
 
 /**
  * Get a Supabase query builder for a dynamic table name.
  * Use this instead of `(supabase as any).from(tableName)`.
  */
 export function fromTable(tableName: string) {
-  return (supabase as unknown as DynamicClient).from(tableName);
+  return (supabase as unknown as DynamicClient).from(tableName); // ignore-audit — dynamic table name; DynamicClient erases the typed DB schema to allow string arg
 }

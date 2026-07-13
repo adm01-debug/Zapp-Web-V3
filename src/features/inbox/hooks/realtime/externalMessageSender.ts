@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * externalMessageSender — envio de mensagens no modo FATOR X.
  *
@@ -52,7 +51,6 @@ export interface SendExternalOptions {
   onProgress?: (progress: number) => void;
 }
 
-/** Shape produced by makeOptimisticBubble — consumed by useExternalMessages.addMessage. */
 export interface OptimisticMessage {
   id: string;
   contact_id: string;
@@ -72,7 +70,7 @@ export interface OptimisticMessage {
   transcription_status: null;
   is_deleted: boolean;
   contactAvatar: string | null;
-  media_meta: Record<string, unknown> | null;
+  media_meta: unknown;
 }
 
 export interface SendExternalResult {

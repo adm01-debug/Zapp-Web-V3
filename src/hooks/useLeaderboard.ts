@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbFrom } from '@/integrations/datasource/db';
 import { log } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 function rangeStart(range: 'today' | 'week' | 'month'): Date {
   const d = new Date();
@@ -47,6 +48,7 @@ export function useLeaderboard() {
   // overwriting state committed by a faster later request when the user
   // rapidly switches the time range.
   const fetchTokenRef = useRef(0);
+  const mountedRef = useMountedRef();
 
   const fetchLeaderboard = useCallback(async (range: 'today' | 'week' | 'month') => {
     const token = ++fetchTokenRef.current;
@@ -68,16 +70,16 @@ export function useLeaderboard() {
           is_active: boolean | null;
         } | null;
       };
-      const { data: rawStats, error } = await safeClient.from<AgentStatRow>(
-        'agent_stats',
-        (q) => q
+      const { data: rawStats, error } = await safeClient.from<AgentStatRow>('agent_stats', (q) =>
+        q
           .select('*, profiles:profile_id (id, name, avatar_url, is_active)')
           .order('xp', { ascending: false })
-          .limit(10),
+          .limit(10)
       );
       const stats = rawStats ?? null;
 
       if (error) throw error;
+      if (!mountedRef.current) return;
       if (!stats || stats.length === 0) {
         setAgents([]);
         return;
@@ -127,6 +129,7 @@ export function useLeaderboard() {
 
       // Discard results if a newer fetchLeaderboard call has already started.
       if (fetchTokenRef.current !== token) return;
+      if (!mountedRef.current) return;
 
       setAgents(
         stats.map((stat, index) => {
@@ -154,7 +157,7 @@ export function useLeaderboard() {
     } catch (error) {
       log.error('Error fetching leaderboard:', error);
     } finally {
-      if (fetchTokenRef.current === token) {
+      if (fetchTokenRef.current === token && mountedRef.current) {
         setIsLoading(false);
         setIsRefreshing(false);
       }

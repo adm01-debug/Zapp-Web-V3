@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -130,7 +129,7 @@ export const VoiceChanger = memo(function VoiceChanger({
         );
 
         if (queueError) throw queueError;
-        taskId = taskRows?.[0]?.id ?? null;
+        taskId = (taskRows as { id: string }[] | undefined)?.[0]?.id ?? null;
         setActiveTaskId(taskId);
       }
 

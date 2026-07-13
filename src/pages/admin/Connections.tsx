@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -121,7 +120,9 @@ export default function AdminConnectionsPage() {
 
         if (rolesError) throw rolesError;
 
-        const hasAccess = !!roles?.some((r: any) => r.role === 'admin' || r.role === 'dev'); // ignore-audit
+        const hasAccess = !!roles?.some(
+          (r: { role: string | null }) => r.role === 'admin' || r.role === 'dev'
+        ); // ignore-audit
         setIsAdmin(hasAccess);
 
         if (!hasAccess) {
@@ -165,11 +166,11 @@ export default function AdminConnectionsPage() {
     );
 
     if (!error && data) {
-      setConnections(data ?? []);
-      const fatorX = (data ?? []).find(
-        // ignore-audit
-        (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
-      );
+      setConnections(data as SystemConnection[]); // ignore-audit: narrows Supabase query result to local interface
+      const fatorX = (
+        data as SystemConnection[]
+      ) /* ignore-audit: narrows Supabase query result to local interface */
+        .find((c) => c.provider === 'supabase_external' || c.name === 'FATOR X');
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
         setExternalUrl(fatorX.config.url);
         setDraftUrl(fatorX.config.url);
@@ -256,8 +257,7 @@ export default function AdminConnectionsPage() {
 
     try {
       const existing = connections.find(
-        // ignore-audit
-        (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
+        (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 

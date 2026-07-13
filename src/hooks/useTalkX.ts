@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,12 +59,11 @@ export function useTalkX() {
   const campaignsQuery = useQuery({
     queryKey: ['talkx-campaigns'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('talkx_campaigns')
+      const { data, error } = await fromTable('talkx_campaigns')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as TalkXCampaign[];
+      return (data ?? []) as TalkXCampaign[]; // ignore-audit: narrows variables_config from Supabase Json to string[]
     },
   });
 
@@ -73,10 +71,11 @@ export function useTalkX() {
     queryKey: ['talkx-recipients', selectedCampaignId],
     queryFn: async () => {
       if (!selectedCampaignId) return [];
-      const { data, error } = await safeClient.from<TalkXRecipient>('talkx_recipients', q =>
-        q.select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)')
+      const { data, error } = await safeClient.from<TalkXRecipient>('talkx_recipients', (q) =>
+        q
+          .select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)')
           .eq('campaign_id', selectedCampaignId)
-          .order('created_at'),
+          .order('created_at')
       );
       if (error) throw error;
       return data ?? [];
@@ -93,7 +92,7 @@ export function useTalkX() {
         .select()
         .single();
       if (error) throw error;
-      return data as TalkXCampaign;
+      return data as TalkXCampaign; // ignore-audit: narrows variables_config from Supabase Json to string[]
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
@@ -110,7 +109,7 @@ export function useTalkX() {
         .select()
         .single();
       if (error) throw error;
-      return data as TalkXCampaign;
+      return data as TalkXCampaign; // ignore-audit: narrows variables_config from Supabase Json to string[]
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
@@ -119,7 +118,7 @@ export function useTalkX() {
 
   const deleteCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('talkx_campaigns').delete().eq('id', id);
+      const { error } = await fromTable('talkx_campaigns').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -120,7 +119,12 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       const { error } = await supabase
         .from('user_roles')
         .upsert(
-          { user_id: userId, role: newRole, role_key: newRole, workspace_id: ws?.id ?? '' },
+          {
+            user_id: userId,
+            role: newRole as string,
+            role_key: newRole as string,
+            workspace_id: ws?.id ?? '',
+          } as never,
           { onConflict: 'user_id' }
         );
       if (error) {

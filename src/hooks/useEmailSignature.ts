@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEmailSignature.ts — Gerenciamento de assinaturas de email por conta Email
  */
@@ -6,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 export interface EmailSignature {
   id: string;
@@ -20,6 +20,7 @@ export interface EmailSignature {
 export function useEmailSignature(accountId: string | null) {
   const [signatures, setSignatures] = useState<EmailSignature[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const mountedRef = useMountedRef();
 
   const load = useCallback(async () => {
     if (!accountId) {
@@ -31,6 +32,7 @@ export function useEmailSignature(accountId: string | null) {
       q.select('*').eq('account_id', accountId).order('is_default', { ascending: false })
     );
 
+    if (!mountedRef.current) return;
     if (!error) setSignatures(data ?? []);
     setIsLoading(false);
   }, [accountId]);

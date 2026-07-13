@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +37,7 @@ export function AbandonmentRate() {
       const respondedSet = new Set<string>();
 
       contactMessages.forEach((m) => {
+        if (!m.contact_id) return;
         if (m.sender === 'contact') contactSet.add(m.contact_id);
         if (m.sender === 'agent') respondedSet.add(m.contact_id);
       });

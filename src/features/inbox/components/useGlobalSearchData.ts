@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,7 +161,7 @@ export function useGlobalSearchData(open: boolean) {
 
           const { data: textMessages } = await textQuery;
           textMessages?.forEach((msg) => {
-            const contact = msg.contacts as {
+            const contact = msg.contacts as unknown as {
               id: string;
               name: string;
               surname: string | null;
@@ -200,7 +199,7 @@ export function useGlobalSearchData(open: boolean) {
           const { data: audioMessages } = await audioQuery;
           audioMessages?.forEach((msg) => {
             if (addedMessageIds.has(msg.id)) return;
-            const contact = msg.contacts as {
+            const contact = msg.contacts as unknown as {
               id: string;
               name: string;
               surname: string | null;
@@ -292,7 +291,7 @@ export function useGlobalSearchData(open: boolean) {
                     .filter(Boolean)
                     .join(' • '),
                   timestamp: new Date(),
-                  crmPhone: cr.phone_primary,
+                  crmPhone: cr.phone_primary || undefined,
                 });
               });
             }

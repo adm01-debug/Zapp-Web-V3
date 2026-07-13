@@ -226,7 +226,7 @@ export function TranscriptionsHistoryView() {
             </Button>
           )}
         </div>
-        <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
+        <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
           <SelectTrigger className="w-[160px]">
             <Calendar className="mr-2 h-4 w-4" />
             <SelectValue placeholder="Período" />

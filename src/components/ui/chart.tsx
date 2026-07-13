@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';
 
@@ -99,16 +99,37 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
-const ChartTooltipContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<'div'> & {
-      hideLabel?: boolean;
-      hideIndicator?: boolean;
-      indicator?: 'line' | 'dot' | 'dashed';
-      nameKey?: string;
-      labelKey?: string;
-    }
+type TooltipItem = {
+  value?: number | string;
+  name?: number | string;
+  dataKey?: number | string;
+  color?: string;
+  payload?: Record<string, unknown> & { fill?: string };
+};
+
+type ChartTooltipContentProps = React.ComponentProps<'div'> & {
+  active?: boolean;
+  payload?: readonly TooltipItem[];
+  label?: React.ReactNode;
+  labelFormatter?: (label: React.ReactNode, payload: readonly TooltipItem[]) => React.ReactNode;
+  formatter?: (
+    value: TooltipItem['value'],
+    name: TooltipItem['name'],
+    item: TooltipItem,
+    index: number,
+    payload: TooltipItem['payload']
+  ) => React.ReactNode;
+  color?: string;
+  hideLabel?: boolean;
+  hideIndicator?: boolean;
+  indicator?: 'line' | 'dot' | 'dashed';
+  nameKey?: string;
+  labelKey?: string;
+  labelClassName?: string;
+};
+
+const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContentProps
+
 >((props, ref) => {
   const {
     active,
@@ -172,7 +193,7 @@ const ChartTooltipContent = React.forwardRef<
         {payload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || 'value'}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          const indicatorColor = color || item.payload.fill || item.color;
+          const indicatorColor = color || item.payload?.fill || item.color;
 
           return (
             <div
@@ -241,11 +262,17 @@ ChartTooltipContent.displayName = 'ChartTooltip';
 
 const ChartLegend = RechartsPrimitive.Legend;
 
+type LegendItem = {
+  value?: string | number;
+  dataKey?: string | number;
+  color?: string;
+};
+
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<'div'> &
     Pick<RechartsPrimitive.LegendProps, 'verticalAlign'> & {
-      payload?: RechartsPrimitive.LegendProps['payload'];
+      payload?: readonly LegendItem[];
       hideIcon?: boolean;
       nameKey?: string;
     }

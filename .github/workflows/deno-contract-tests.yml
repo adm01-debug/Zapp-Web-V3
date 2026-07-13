@@ -52,7 +52,7 @@ jobs:
             --allow-env \
             --allow-net \
             --no-prompt \
-            supabase/functions/_shared/__tests__/
+            supabase/functions/_shared/
         env:
           DENO_NO_PROMPT: 1
 
@@ -63,7 +63,7 @@ jobs:
             --allow-env \
             --allow-net \
             --no-prompt \
-            $(find supabase/functions -name 'contract.test.ts' -o -name 'contract.test.ts' | grep -v '_shared' | tr '\n' ' ')
+            $(find supabase/functions -name 'contract.test.ts' | grep -v '_shared' | tr '\n' ' ')
         env:
           DENO_NO_PROMPT: 1
 
@@ -74,7 +74,7 @@ jobs:
             --allow-env \
             --allow-net \
             --no-prompt \
-            $(find supabase/functions -name '*.test.ts' | grep -v '_shared/__tests__' | grep -v 'contract.test.ts' | tr '\n' ' ') \
+            $(find supabase/functions -name '*.test.ts' | grep -v '_shared' | grep -v 'contract.test.ts' | tr '\n' ' ') \
             || echo '::warning::Some non-contract tests failed (non-blocking)'
         env:
           DENO_NO_PROMPT: 1

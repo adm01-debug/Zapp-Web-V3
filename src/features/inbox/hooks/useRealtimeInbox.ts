@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
 import type {
@@ -189,16 +188,20 @@ export function useRealtimeInbox() {
     });
   }, [selectedMessages, selectedContactId]);
 
-  // Listen for SLA alerts
+  // Listen for SLA alerts — bound by selectedContactId to avoid memory leak
   useEffect(() => {
+    if (!selectedContactId) return;
+
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail && detail.contactId === selectedContactId) {
+      if (detail?.contactId === selectedContactId) {
         setDeliveryAlert({ status: detail.status, delay: detail.delay, message: detail.message });
       }
     };
     window.addEventListener('sla-delivery-alert', handler);
-    return () => window.removeEventListener('sla-delivery-alert', handler);
+    return () => {
+      window.removeEventListener('sla-delivery-alert', handler);
+    };
   }, [selectedContactId]);
 
   // Whisper count
@@ -255,6 +258,7 @@ export function useRealtimeInbox() {
       .subscribe();
     return () => {
       cancelled = true;
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [selectedContactId, profile?.id]);

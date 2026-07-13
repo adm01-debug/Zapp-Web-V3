@@ -88,7 +88,7 @@ export const useSLANotifications = () => {
             log.warn('conversation_sla UPDATE payload rejeitado', parsedNew.error);
             return;
           }
-          const newRecord = parsedNew.data as SLABreachPayload;
+          const newRecord = parsedNew.data as SLABreachPayload; // ignore-audit: narrows Supabase query result to local interface
           const oldRecord = (payload.old ?? {}) as Partial<SLABreachPayload>;
 
           log.debug('Received update', { newRecord, oldRecord });
@@ -133,7 +133,7 @@ export const useSLANotifications = () => {
             log.warn('conversation_sla INSERT payload rejeitado', parsedNew.error);
             return;
           }
-          const newRecord = parsedNew.data as SLABreachPayload;
+          const newRecord = parsedNew.data as SLABreachPayload; // ignore-audit: narrows Supabase query result to local interface
 
           log.debug('New SLA record', { newRecord });
 
@@ -161,7 +161,7 @@ export const useSLANotifications = () => {
 
     return () => {
       log.debug('Cleaning up subscription');
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [user, settings, isQuietHours]);
 };

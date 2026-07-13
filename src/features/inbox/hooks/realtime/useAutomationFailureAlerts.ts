@@ -79,8 +79,8 @@ export function useAutomationFailureAlerts(enabled = true): void {
       const ruleName =
         (row.rule_snapshot?.name as string | undefined) ??
         (payload.rule_name as string | undefined) ??
-        'Regra sem nome';
-      const stage = describeStage(ctx['stage'] as string | null | undefined);
+        "Regra sem nome";
+      const stage = describeStage(ctx.stage as string | null | undefined);
       const errMsg = shortError(payload.error as string | undefined);
       const tail = row.remote_jid ? ` em ${row.remote_jid.split('@')[0]}` : '';
 
@@ -103,28 +103,26 @@ export function useAutomationFailureAlerts(enabled = true): void {
     };
 
     const channel = supabase
-      .channel('automation_executions_failure_alerts')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'zapp', table: 'automation_executions' },
+      .channel("automation_executions_failure_alerts")
+      .on<AutomationExecutionRowMinimal>(
+        "postgres_changes",
+        { event: "UPDATE", schema: "zapp", table: "automation_executions" },
         (payload) => {
-          const next = payload.new as AutomationExecutionRowMinimal | null;
-          const prev = payload.old as AutomationExecutionRowMinimal | null;
-          handle(next, prev?.status ?? null);
-        }
+          handle(payload.new, payload.old?.status ?? null);
+        },
       )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'automation_executions' },
+      .on<AutomationExecutionRowMinimal>(
+        "postgres_changes",
+        { event: "INSERT", schema: "zapp", table: "automation_executions" },
         (payload) => {
           // Cobre o caso (raro) onde a execução já nasce 'failed'.
-          const next = payload.new as AutomationExecutionRowMinimal | null;
-          handle(next, null);
-        }
+          handle(payload.new, null);
+        },
       )
       .subscribe();
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled]);

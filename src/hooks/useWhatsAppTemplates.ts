@@ -131,7 +131,7 @@ export function useWhatsAppTemplates() {
         content: editingTemplate.content.trim(),
         header_text: editingTemplate.header_text?.trim() || null,
         footer_text: editingTemplate.footer_text?.trim() || null,
-        buttons: (editingTemplate.buttons || []) as unknown as Record<string, never>,
+        buttons: (editingTemplate.buttons || []) as unknown as Record<string, never>, // ignore-audit — Supabase JSONB column typed as Record<string,never>; actual data is array of button objects
         variables: editingTemplate.variables || [],
         status: editingTemplate.status || 'draft',
         created_by: user?.id || null,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -69,7 +68,7 @@ export function useTags() {
         .eq('user_id', user?.id ?? '')
         .maybeSingle();
 
-      const { error } = await safeClient.from('tags', q =>
+      const { error } = await safeClient.from('tags', (q) =>
         q.insert({
           name: data.name,
           color: data.color,
@@ -179,8 +178,8 @@ export function useContactTags(contactId: string | undefined) {
       if (!contactId) return [];
 
       type ContactTagRow = { tag_id: string; tags: Tag | null };
-      const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', q =>
-        q.select('tag_id, tags(*)').eq('contact_id', contactId!),
+      const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', (q) =>
+        q.select('tag_id, tags(*)').eq('contact_id', contactId!)
       );
 
       if (error) throw error;

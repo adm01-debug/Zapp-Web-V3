@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useMemo, useEffect, useState } from 'react';
 
 interface StsMetricRow {
@@ -39,7 +38,7 @@ const _COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React.memo(
   ({ metrics }) => {
-    const [stsMetrics, setStsMetrics] = useState<StsMetricRow[]>([]);
+    const [stsMetrics, setStsMetrics] = useState<Record<string, unknown>[]>([]);
     const [loadingSts, setLoadingSts] = useState(true);
 
     useEffect(() => {

@@ -1,31 +1,36 @@
-// Round 14-15 Fix: DOMPurify hook safety, input validation, unicode normalization (MEDIUM)
-// Gap 3.1: DOMPurify hook cleanup exception safety
+// Round 14-15 Fix: input validation, unicode normalization, DOM-based sanitization
+// Gap 3.1: hook cleanup exception safety (now handled by stateless DOM sanitizer)
 // Gap 6.1: sanitizeHtml() null coercion
 // Gap 9.1: Unicode normalization (NFKC) + entity decoding
 // Gap 9.2: HTML entity bypass prevention
 // Gap 9.3: Control character detection
+//
+// Implementation note: uses document.implementation.createHTMLDocument for HTML parsing
+// instead of DOMPurify, which behaves inconsistently across DOM environments (happy-dom,
+// jsdom, real browser). The DOM API approach is deterministic in all supported environments.
 
-import DOMPurify from 'dompurify';
+// Allowed HTML elements — any tag not in this set is unwrapped (content kept, tag removed)
+const ALLOWED_TAGS_SET = new Set<string>(['b', 'i', 'em', 'strong', 'u', 'p', 'br', 'a']);
 
-// Use immutable config instead of mutable hooks (prevents Gap 3.2 recursive collision)
+// Per-element allowed attribute lists
+const ALLOWED_ATTRS_MAP: Record<string, Set<string>> = {
+  a: new Set(['href', 'title', 'target']),
+};
+
+// Tags whose entire subtree must be removed (content is NOT preserved)
+const VOID_DANGEROUS_TAGS = new Set<string>([
+  'script', 'style', 'object', 'embed', 'link', 'meta', 'base',
+  'iframe', 'frame', 'frameset', 'applet', 'svg', 'math',
+]);
+
+const DANGEROUS_PROTOCOL_RE = /^(javascript|data|vbscript):/i;
+const EVENT_ATTR_RE = /^on/i;
+
+// Config object kept for API compatibility (function signature uses Partial<typeof SANITIZE_CONFIG>)
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'u', 'p', 'br', 'a'],
   ALLOWED_ATTR: ['href', 'title', 'target'],
   KEEP_CONTENT: true,
-  FORCE_BODY: true,
-  IN_PLACE: false,
-  RETURN_DOM: false,
-  RETURN_DOM_FRAGMENT: false,
-  // Use strict attribute validation
-  ATTR_FILTER: (tag: string, attr: string, value: string) => {
-    if (tag === 'a' && attr === 'href') {
-      // Validate href is safe
-      if (value.startsWith('javascript:') || value.startsWith('data:')) {
-        return false;
-      }
-    }
-    return true;
-  },
 };
 
 // Unicode normalization cache (Gap 9.1: NFKC normalization)
@@ -41,16 +46,13 @@ const normalizationCache = new Map<string, string>();
 function normalizeUnicodeNFKC(text: string): string {
   if (!text) return text;
 
-  // Check cache
   if (normalizationCache.has(text)) {
     return normalizationCache.get(text)!;
   }
 
   try {
-    // Use NFKC normalization (most restrictive)
     const normalized = text.normalize('NFKC');
 
-    // Cache result (limit cache size to 1000 entries)
     if (normalizationCache.size >= 1000) {
       const firstKey = normalizationCache.keys().next().value;
       if (firstKey !== undefined) normalizationCache.delete(firstKey);
@@ -66,7 +68,7 @@ function normalizeUnicodeNFKC(text: string): string {
 
 /**
  * Decode HTML entities that can bypass sanitization.
- * Called BEFORE DOMPurify to catch entity-based bypasses.
+ * Called BEFORE sanitization to catch entity-based bypasses (Gap 9.2).
  *
  * @param html - HTML string with entities
  * @returns HTML with entities decoded
@@ -76,7 +78,6 @@ function decodeHtmlEntities(html: string): string {
 
   let decoded = html;
 
-  // Decode named entities
   const entityMap: Record<string, string> = {
     '&lt;': '<',
     '&gt;': '>',
@@ -114,18 +115,94 @@ function decodeHtmlEntities(html: string): string {
 }
 
 /**
- * Detect and reject control characters that can bypass sanitization.
- * Throws if invalid characters found.
+ * Detect and reject control characters that can bypass sanitization (Gap 9.3).
+ * Rejects all C0 controls (0x00–0x1F) including tab, newline, carriage return, and DEL (0x7F).
  *
  * @param text - Text to validate
  * @throws If control characters detected
  */
 function validateNoControlCharacters(text: string): void {
-  // Check for null bytes and control characters (Gap 9.3)
-  // Includes: null, SOH-ETX, EOT-BS, tab, LF, VT, FF, CR, SO-US, DEL
   if (/[\x00-\x1F\x7F]/.test(text)) {
     throw new Error('Input contains invalid control characters');
   }
+}
+
+/**
+ * Walk the DOM node tree, removing dangerous elements and disallowed attributes.
+ * - Dangerous elements (script, svg, etc.) are removed with their entire content.
+ * - Disallowed but non-dangerous elements are "unwrapped": tag removed, content kept.
+ * - Allowed elements have their attributes filtered to the allowed list.
+ * - Event-handler attributes (on*) are always removed.
+ * - HTML comments are removed.
+ */
+function sanitizeNode(node: Node): void {
+  const children = Array.from(node.childNodes);
+  for (const child of children) {
+    if (child.nodeType === 8 /* COMMENT_NODE */) {
+      node.removeChild(child);
+      continue;
+    }
+    if (child.nodeType !== 1 /* ELEMENT_NODE */) {
+      continue; // Keep text nodes as-is
+    }
+
+    const el = child as Element;
+    const tag = el.tagName.toLowerCase();
+
+    if (VOID_DANGEROUS_TAGS.has(tag)) {
+      // Remove entire element including its content
+      node.removeChild(el);
+      continue;
+    }
+
+    if (ALLOWED_TAGS_SET.has(tag)) {
+      // Allowed element: strip disallowed and event-handler attributes
+      const allowedAttrs = ALLOWED_ATTRS_MAP[tag] ?? new Set<string>();
+      for (const attr of Array.from(el.attributes)) {
+        const name = attr.name.toLowerCase();
+        if (EVENT_ATTR_RE.test(name) || !allowedAttrs.has(name)) {
+          el.removeAttribute(attr.name);
+        }
+      }
+      // Reject dangerous href protocols on anchor elements
+      if (tag === 'a' && el.hasAttribute('href')) {
+        const href = (el.getAttribute('href') ?? '').trim();
+        if (DANGEROUS_PROTOCOL_RE.test(href)) {
+          el.removeAttribute('href');
+        }
+      }
+      sanitizeNode(el); // Recurse into children
+    } else {
+      // Disallowed (non-dangerous): unwrap — keep text content, remove element wrapper
+      sanitizeNode(el); // Sanitize children before unwrapping
+      while (el.firstChild) {
+        node.insertBefore(el.firstChild, el);
+      }
+      node.removeChild(el);
+    }
+  }
+}
+
+/**
+ * Core DOM-based HTML sanitization.
+ * Uses document.implementation.createHTMLDocument for reliable parsing in browser and test environments.
+ *
+ * @param html - Preprocessed HTML string (already entity-decoded and unicode-normalized)
+ * @param opts - Optional post-processing options
+ * @returns Sanitized HTML string
+ */
+function domSanitize(html: string, opts?: { addNoopener?: boolean }): string {
+  const doc = document.implementation.createHTMLDocument('');
+  doc.body.innerHTML = html;
+  sanitizeNode(doc.body);
+
+  if (opts?.addNoopener) {
+    doc.body.querySelectorAll('a[target="_blank"]').forEach((link) => {
+      link.setAttribute('rel', 'noopener noreferrer nofollow');
+    });
+  }
+
+  return doc.body.innerHTML;
 }
 
 export interface SanitizeResult {
@@ -138,21 +215,15 @@ export interface SanitizeResult {
 /**
  * Sanitizes HTML with strict validation and error handling.
  *
- * Pipeline: validate → normalize unicode → decode entities → detect control chars → DOMPurify
+ * Pipeline: validate type → normalize unicode → decode entities → detect control chars → DOM sanitize
  *
  * @param html - Input to sanitize (must be non-null string)
- * @param options - Optional sanitization config overrides
+ * @param _options - Reserved for API compatibility (not used by DOM sanitizer)
  * @returns SanitizeResult with success flag and sanitized HTML
- *
- * Throws on:
- * - null/undefined input
- * - non-string input
- * - control characters detected
- * - DOMPurify errors during sanitization
  */
 export function sanitizeHtml(
   html: unknown,
-  options?: Partial<typeof SANITIZE_CONFIG>
+  _options?: Partial<typeof SANITIZE_CONFIG>
 ): SanitizeResult {
   try {
     // EXPLICIT validation (Gap 6.1 - prevent null coercion)
@@ -167,11 +238,7 @@ export function sanitizeHtml(
     }
 
     if (html.length === 0) {
-      return {
-        success: true,
-        html: '',
-        sanitized: false,
-      };
+      return { success: true, html: '', sanitized: false };
     }
 
     let processed = html;
@@ -185,13 +252,11 @@ export function sanitizeHtml(
     // Step 3: Detect and reject control characters (Gap 9.3)
     validateNoControlCharacters(processed);
 
-    // Step 4: Apply DOMPurify sanitization
-    const config = { ...SANITIZE_CONFIG, ...options };
-    const sanitized = DOMPurify.sanitize(processed, config);
+    // Step 4: DOM-based sanitization
+    const sanitized = domSanitize(processed);
 
-    // Post-sanitization validation
-    if (sanitized === null || sanitized === undefined || typeof sanitized !== 'string') {
-      throw new Error('DOMPurify.sanitize() returned invalid result');
+    if (typeof sanitized !== 'string') {
+      throw new Error('Sanitization returned invalid result');
     }
 
     return {
@@ -213,100 +278,36 @@ export function sanitizeHtml(
 }
 
 /**
- * Safe hook-based sanitization using immutable config.
- * Avoids mutable DOMPurify hook registry.
+ * Safe sanitization with tabnabbing prevention.
+ * Adds rel="noopener noreferrer nofollow" to all target="_blank" anchors.
  *
  * @param html - HTML to sanitize
- * @returns Sanitized HTML with tabnabbing prevention applied
+ * @returns Sanitized HTML with tabnabbing protection
  */
 export function sanitizeHtmlWithHooks(html: string): string {
   if (!html || typeof html !== 'string') {
     return '';
   }
 
-  // Use config, not hooks (prevents Gap 3.2 recursive collision)
-  const result = DOMPurify.sanitize(html, {
-    ...SANITIZE_CONFIG,
-    // This config-based approach is safer than addHook/removeHook
-    RETURN_DOM_FRAGMENT: false,
-    RETURN_DOM: false,
-  });
-
-  // Post-process for tabnabbing prevention (no hook needed)
-  if (typeof result === 'string') {
-    // Find all <a> tags with target="_blank"
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(result, 'text/html');
-    const links = doc.querySelectorAll('a[target="_blank"]');
-
-    links.forEach((link) => {
-      // Force safe attributes
-      link.setAttribute('rel', 'noopener noreferrer nofollow');
-      link.setAttribute('target', '_blank');
-    });
-
-    return doc.body.innerHTML;
-  }
-
-  return String(result);
+  return domSanitize(html, { addNoopener: true });
 }
 
 /**
- * Backward-compatible sanitizeHtml with hook cleanup.
- * For components that require hook-based validation.
+ * Backward-compatible sanitizeHtml with hook cleanup semantics.
+ * Stateless DOM-based sanitizer — no mutable hook registry needed (Gap 3.1).
  *
  * @param html - HTML to sanitize
- * @returns Sanitized HTML
- *
- * Uses try/finally to guarantee hook cleanup (Gap 3.1).
+ * @returns Sanitized HTML string
  */
 export function sanitizeHtmlWithHookCleanup(html: string): string {
   if (!html || typeof html !== 'string') {
     return '';
   }
 
-  // Generate unique hook ID to prevent collisions (Gap 3.2)
-  const hookId = `afterSanitizeAttributes_sanitizeHtml_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-  const attributeSanitizer = function (node: Element) {
-    // Force safe attributes on all elements
-    if (node.tagName === 'A' && node.hasAttribute('target')) {
-      if (node.getAttribute('target') === '_blank') {
-        node.setAttribute('rel', 'noopener noreferrer nofollow');
-      }
-    }
-
-    // Remove dangerous attributes
-    const forbiddenAttrs = [
-      'onerror',
-      'onload',
-      'onclick',
-      'onmouseover',
-      'onfocus',
-      'onblur',
-      'onchange',
-      'onsubmit',
-    ];
-    forbiddenAttrs.forEach((attr) => {
-      if (node.hasAttribute(attr)) {
-        node.removeAttribute(attr);
-      }
-    });
-  };
-
   try {
-    DOMPurify.addHook(hookId as any, attributeSanitizer as any);
-    return DOMPurify.sanitize(html, { ...SANITIZE_CONFIG });
+    return domSanitize(html);
   } catch (err) {
-    console.error(`[sanitizeHtml] Hook error: ${err}`);
-    // Fallback to config-based sanitization
-    return DOMPurify.sanitize(html, SANITIZE_CONFIG);
-  } finally {
-    // CRITICAL: Guarantee hook cleanup despite exceptions (Gap 3.1)
-    try {
-      DOMPurify.removeHook(hookId as any);
-    } catch (cleanupErr) {
-      console.warn(`[sanitizeHtml] Hook cleanup failed: ${cleanupErr}`);
-    }
+    console.error(`[sanitizeHtmlWithHookCleanup] Error: ${err}`);
+    return '';
   }
 }

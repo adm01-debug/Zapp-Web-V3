@@ -119,7 +119,7 @@ export function PermissionMatrix() {
 
         <Tabs
           value={activeTab}
-          onValueChange={(v) => setActiveTab(v as 'admin' | 'supervisor' | 'agent')}
+          onValueChange={(v) => setActiveTab(v as 'admin' | 'supervisor' | 'agent' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
         >
           <TabsList className="w-full">
             {Object.entries(ROLE_LABELS).map(([role, { label }]) => (

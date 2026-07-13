@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useExternalDB — Generic hook for querying any table in the external CRM database
  * Uses externalSupabase client directly (secured by RLS policies on the external DB)
@@ -12,7 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // This hook is intentionally generic — it works with arbitrary table/rpc names
 // supplied at runtime, so we use an untyped client to avoid requiring compile-time
 // table name literals that SupabaseClient<Database> enforces.
-const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient;
+const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient; // ignore-audit — dynamic table names require untyped client; see comment above
 import type {
   ExternalDBFilter,
   ExternalDBOrder,
@@ -57,7 +56,7 @@ async function queryExternal<T = unknown>(params: {
   if (error) throw new Error(error.message);
 
   return {
-    data: (data as T[]) || [],
+    data: (data as T[]) || [], // ignore-audit: data from untyped external DB client requires explicit cast to generic T[]
     meta: {
       record_count: count ?? (Array.isArray(data) ? data.length : null),
       duration_ms: duration,
@@ -128,7 +127,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
       const duration = Math.round(performance.now() - start);
       if (error) throw new Error(error.message);
       return {
-        data: Array.isArray(data) ? (data as T[]) : [data as T],
+        data: Array.isArray(data) ? (data as T[]) : [data as T], // ignore-audit: RPC data from untyped external DB client requires explicit cast to generic T
         meta: {
           record_count: Array.isArray(data) ? data.length : 1,
           duration_ms: duration,

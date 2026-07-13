@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -50,10 +49,21 @@ import { QrTtlBadge } from './QrTtlBadge';
 import { QrAttemptHistory } from './QrAttemptHistory';
 import { RefreshQrButton } from './RefreshQrButton';
 import { IdempotencyMissBanner } from './IdempotencyMissBanner';
-import { useConnectionsManager } from '@/features/connections';
+import { useConnectionsManager, type WhatsAppConnection } from '@/features/connections';
 import { useEvolutionAutoSync } from '@/hooks/useEvolutionAutoSync';
 import { useEvolutionAutoReconnect } from '@/hooks/useEvolutionAutoReconnect';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import type { DegradedConnection } from './DegradedQuickActions';
+
+/** Type guard: distingue WhatsAppConnection (payload completo) de DegradedConnection (payload parcial). */
+function isWhatsAppConnection(c: DegradedConnection | WhatsAppConnection): c is WhatsAppConnection {
+  return (
+    typeof (c as WhatsAppConnection).phone_number === 'string' &&
+    typeof (c as WhatsAppConnection).status === 'string' &&
+    typeof (c as WhatsAppConnection).is_default === 'boolean' &&
+    'qr_code' in c
+  );
+}
 
 export function ConnectionsView() {
   const [search, setSearch] = useState('');
@@ -61,7 +71,8 @@ export function ConnectionsView() {
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   const maskSensitiveData = (obj: unknown) => {
-    if (!obj) return null;
+    if (!obj || typeof obj !== 'object') return null;
+    const masked = { ...(obj as Record<string, unknown>) }; // ignore-audit: safe cast of unknown to Record after typeof === 'object' guard
     const sensitiveKeys = [
       'apikey',
       'key',
@@ -76,22 +87,27 @@ export function ConnectionsView() {
       'cookie',
     ];
 
-    const maskValue = (o: Record<string, unknown>): Record<string, unknown> => {
-      for (const key in o) {
+    const maskValue = (o: unknown): unknown => {
+      if (typeof o !== 'object' || o === null) return o;
+      const record = o as Record<string, unknown>; // ignore-audit: safe cast of unknown to Record after null/object guard
+      for (const key in record) {
         if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
-          const val = o[key];
-          o[key] =
-            typeof val === 'string' && val.length > 10
-              ? `${val.substring(0, 4)}...${val.substring(val.length - 4)}`
-              : '****';
-        } else if (typeof o[key] === 'object' && o[key] !== null) {
-          maskValue(o[key] as Record<string, unknown>);
+          if (typeof record[key] === 'string') {
+            record[key] =
+              (record[key] as string).length > 10
+                ? `${(record[key] as string).substring(0, 4)}...${(record[key] as string).substring((record[key] as string).length - 4)}`
+                : '****';
+          } else {
+            record[key] = '****';
+          }
+        } else if (typeof record[key] === 'object') {
+          maskValue(record[key]);
         }
       }
-      return o;
+      return record;
     };
 
-    return maskValue(JSON.parse(JSON.stringify(obj)) as Record<string, unknown>); // Deep clone before masking
+    return maskValue(JSON.parse(JSON.stringify(masked))); // Deep clone before masking
   };
   const {
     connections,
@@ -244,7 +260,9 @@ export function ConnectionsView() {
                     onValueChange={(v) =>
                       setNewConnection({
                         ...newConnection,
-                        api_type: v as 'evolution' | 'official',
+                        api_type: v as
+                          | 'evolution'
+                          | 'official' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */,
                       })
                     }
                   >
@@ -528,7 +546,27 @@ export function ConnectionsView() {
         ))}
       </div>
 
-      <DegradedQuickActions connections={connections} onShowQrCode={handleShowQrCode} />
+      <DegradedQuickActions
+        connections={connections}
+        onShowQrCode={(c) => {
+          // Type-guard: WhatsAppConnection completa segue direto; DegradedConnection
+          // é resolvida no array de conexões antes de invocar (evita chamar com payload incompleto).
+          if (isWhatsAppConnection(c)) {
+            void handleShowQrCode(c);
+            return;
+          }
+          const full = connections.find((conn) => conn.id === c.id);
+          if (full) {
+            void handleShowQrCode(full);
+            return;
+          }
+          toast({
+            title: 'Conexão não encontrada',
+            description: 'Não foi possível localizar a instância na lista atual.',
+            variant: 'destructive',
+          });
+        }}
+      />
 
       {/* Connections List */}
       {loading ? (

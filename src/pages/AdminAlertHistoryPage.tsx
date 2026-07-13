@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin: Histórico de Alertas.
  * Reads `warroom_alerts` (Lovable Cloud) — already populated by the war-room
@@ -155,7 +154,7 @@ export default function AdminAlertHistoryPage() {
 
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [queryClient]);
 

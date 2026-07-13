@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,11 +14,11 @@ import { toast } from 'sonner';
 import { useAuth } from '@/features/auth';
 import { MentionInput } from './MentionInput';
 
-interface InternalNote {
+interface NoteRow {
   id: string;
   content: string;
   created_at: string;
-  author?: { id: string; name: string | null; avatar_url: string | null } | null;
+  author?: { id?: string; name?: string; avatar_url?: string } | null;
 }
 
 export function InternalNotesPanel({ contactId }: { contactId: string }) {
@@ -27,10 +26,10 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: notes, isLoading } = useQuery({
+  const { data: notes, isLoading } = useQuery<NoteRow[]>({
     queryKey: ['internal-notes', contactId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<InternalNote>('contact_notes', (q) =>
+      const { data, error } = await safeClient.from<NoteRow>('contact_notes', (q) =>
         q
           .select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
           .eq('contact_id', contactId)
@@ -38,16 +37,17 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
           .limit(50)
       );
       if (error) throw error;
-      return data || [];
+      return (data || []) as NoteRow[];
     },
   });
 
   const addNoteMutation = useMutation({
     mutationFn: async (content: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .single();
       if (!profile) throw new Error('Profile not found');
       const { error } = await supabase.from('contact_notes').insert({

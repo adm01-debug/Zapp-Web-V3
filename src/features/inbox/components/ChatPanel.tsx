@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChatScheduleMessage } from './chat/hooks/useChatScheduleMessage';
 import { useChatQuickReplyControl } from './chat/hooks/useChatQuickReplyControl';
@@ -13,6 +12,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
+import type { QueueItem } from '@/features/inbox/hooks/useMessageQueue';
 import { useChatMediaSending } from '../hooks/useChatMediaSending';
 import { CRMAutoSync } from './CRMAutoSync';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
@@ -324,7 +324,7 @@ export function ChatPanel({
 
   const { transferConversation: handleTransfer } = useTransferConversation({
     contactId: conversation.contact.id,
-    whatsappConnectionId,
+    whatsappConnectionId: whatsappConnectionId ?? undefined,
   });
 
   const handleScheduleMessage = useChatScheduleMessage({
@@ -379,7 +379,7 @@ export function ChatPanel({
         {activeTool === 'templates' && (
           <ChatTemplatesOverlay
             contactName={conversation.contact.name}
-            contactCompany={conversation.contact.company}
+            contactCompany={conversation.contact.company ?? undefined}
             onClose={() => setActiveTool(null)}
             onUseTemplate={(content) => {
               handlers.setInputValue(content);

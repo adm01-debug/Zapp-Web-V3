@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -10,7 +9,7 @@ interface UserUsage {
 
 interface AIUsageUsersTabProps {
   userUsage: UserUsage[];
-  profileMap: Map<string, { name?: string; email?: string }>;
+  profileMap: Map<string, { name?: string | null; email?: string | null }>;
 }
 
 export function AIUsageUsersTab({ userUsage, profileMap }: AIUsageUsersTabProps) {
@@ -47,9 +46,7 @@ export function AIUsageUsersTab({ userUsage, profileMap }: AIUsageUsersTabProps)
               className="fill-muted-foreground"
             />
             <Tooltip
-              formatter={(v: number | string) =>
-                String((typeof v === 'number' ? v : Number(v)).toLocaleString()) + ' tokens'
-              }
+              formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'}
               contentStyle={{
                 backgroundColor: 'hsl(var(--popover))',
                 border: '1px solid hsl(var(--border))',

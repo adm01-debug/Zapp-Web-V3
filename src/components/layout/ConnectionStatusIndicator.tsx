@@ -155,7 +155,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
     }
     const { data, error } = (await supabase
       .from('whatsapp_connections')
-      .select('id, instance_id, instance_name, name, phone_number, status')) as unknown as {
+      .select('id, instance_id, instance_name, name, phone_number, status')) as unknown as { // ignore-audit — Supabase select returns PostgrestSingleResponse with generic Row; casting to selected-columns shape
       data: Array<{
         id: string;
         instance_id: string | null;
@@ -192,7 +192,12 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
         if (!prevDisconnectedRef.current.has(id)) {
           const row = rowByInstanceId.get(id);
           const displayName = (row ? evolutionInstanceName(row) : null) ?? row?.name ?? id;
-          newlyDown.push({ instance_id: id, instance_name: row?.instance_name ?? null, name: row?.name ?? null, at: Date.now() });
+          newlyDown.push({
+            instance_id: id,
+            instance_name: row?.instance_name ?? null,
+            name: row?.name ?? null,
+            at: Date.now(),
+          });
           toast.warning(`Conexão "${displayName}" caiu`, {
             description: 'Mensagens podem não ser entregues. Clique no indicador para reconectar.',
             duration: 6000,
@@ -228,7 +233,7 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, []);
 
@@ -535,7 +540,9 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
                   key={`${ev.instance_id}-${ev.at}-${idx}`}
                   className="flex items-center justify-between gap-2 text-[11px]"
                 >
-                  <span className="truncate text-foreground/80">{evolutionInstanceName(ev) ?? ev.name ?? ev.instance_id}</span>
+                  <span className="truncate text-foreground/80">
+                    {evolutionInstanceName(ev) ?? ev.name ?? ev.instance_id}
+                  </span>
                   <span
                     className="shrink-0 text-[10px] tabular-nums text-muted-foreground"
                     title={new Date(ev.at).toLocaleString()}

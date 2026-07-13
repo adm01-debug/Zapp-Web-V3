@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,7 +35,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   /** Update message status with error logging and 1 retry */
   const updateMessageStatus = useCallback(
     async (messageId: string, status: string, externalId?: string | null) => {
-      const payload: any = { status }; // ignore-audit
+      const payload: { status: string; external_id?: string | null } = { status };
       if (externalId) payload.external_id = externalId;
 
       try {
@@ -102,7 +101,8 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
       const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn) : null;
       if (fallbackResolved) {
         setInstanceName(fallbackResolved);
-        if (fallbackConn?.id) setWhatsappConnectionId(fallbackConn.id);
+        const connId = (fallbackConn as unknown as { id?: string }).id;
+        if (connId) setWhatsappConnectionId(connId);
         return fallbackResolved;
       }
     } catch (err) {
@@ -273,9 +273,20 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
           .select('id')
           .single();
 
-        const [apiResult, dbResult] = await Promise.all([apiPromise, dbPromise]);
+        const results = await Promise.allSettled([apiPromise, dbPromise]);
+        const apiResult =
+          results[0].status === 'fulfilled' ? results[0].value : { error: true, data: null };
+        const dbResult =
+          results[1].status === 'fulfilled' ? results[1].value : { data: null, error: true };
+
         const messageId = dbResult?.data?.id;
         const externalId = apiResult?.data?.key?.id || null;
+
+        if (results[0].status === 'rejected' || results[1].status === 'rejected') {
+          if (messageId) await updateMessageStatus(messageId, 'failed');
+          toast.error('Erro ao enviar emoji');
+          return;
+        }
 
         if (apiResult?.error || !externalId) {
           if (messageId) await updateMessageStatus(messageId, 'failed');
@@ -353,8 +364,20 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
           .select('id')
           .single();
 
-        const [apiResult, dbResult] = await Promise.all([apiPromise, dbPromise]);
+        const results = await Promise.allSettled([apiPromise, dbPromise]);
+        const apiResult =
+          results[0].status === 'fulfilled' ? results[0].value : { error: true, data: null };
+        const dbResult =
+          results[1].status === 'fulfilled' ? results[1].value : { data: null, error: true };
+
         const messageId = dbResult?.data?.id;
+
+        if (results[0].status === 'rejected' || results[1].status === 'rejected') {
+          log.error('Audio meme send failed - rejected promise');
+          if (messageId) await updateMessageStatus(messageId, 'failed');
+          toast.error('Erro ao enviar áudio meme');
+          return;
+        }
 
         if (apiResult?.error || !apiResult?.data?.key?.id) {
           log.error('Audio meme send failed', apiResult?.error);

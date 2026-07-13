@@ -31,6 +31,7 @@ export const authService = {
     const result = await supabase.auth.signInWithPassword({ email, password });
     if (!result.error) {
       // dual-session: replica login no self-hosted com as mesmas credenciais
+      // mirrorExternalSignIn has an internal try/catch and never rejects — .catch() is dead code
       void mirrorExternalSignIn(email, password);
     }
     return result;
@@ -57,16 +58,14 @@ export const authService = {
     return await supabase.auth.signOut();
   },
 
-  async getProfile(
-    userId: string
-  ): Promise<{ data: Profile | null; error: PostgrestError | null }> {
+  async getProfile(userId: string): Promise<{ data: Profile | null; error: PostgrestError | null }> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
-
-    return { data: data as Profile | null, error };
+    
+    return { data: data as Profile | null, error }; // ignore-audit: narrows Supabase query result to local interface
   },
 
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {

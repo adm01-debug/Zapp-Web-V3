@@ -3,35 +3,28 @@
  *
  * Contexto (incidente 2026-07-04, instância fantasma "d8e07e44-…"):
  * `whatsapp_connections.instance_id` guarda o UUID interno da Evolution, mas a
- * Evolution API roteia TODAS as rotas (`/instance/connect/{x}`, `/instance/restart/{x}`,
- * `/message/*`) pelo NOME da instância. Passar o UUID gera 404 e — combinado com o
- * auto-create da edge function `evolution-api` — cria uma instância nova cujo nome
- * é o UUID, sequestrando o pareamento do telefone para fora do pipeline.
+ * Evolution API roteia TODAS as rotas pelo NOME da instância. Passar o UUID
+ * gera 404 e — combinado com o auto-create da edge function — cria uma
+ * instância nova cujo nome é o UUID, sequestrando o pareamento do telefone.
  *
- * Regra: toda chamada à Evolution deve usar `evolutionInstanceName(connection)`.
+ * A implementação canônica passou a viver em `rowNormalizers.ts` (fonte única
+ * derivada de `columnMap`). Este módulo mantém a assinatura pública histórica
+ * para não quebrar callers.
  */
 
 import { isValidUUID } from '@/utils/uuid';
+import { evolutionInstanceName as _evolutionInstanceName } from '@/integrations/supabase/rowNormalizers';
 
 export function isUuidLike(value: string | null | undefined): boolean {
   return !!value && isValidUUID(value.trim());
 }
 
 export interface EvolutionInstanceRef {
+  name?: string | null;
   instance_name?: string | null;
   instance_id?: string | null;
 }
 
-/**
- * Retorna o nome de instância utilizável nas rotas da Evolution API, ou `null`
- * quando a conexão só possui o UUID (caso em que a chamada NÃO deve ser feita).
- * Aceita `instance_id` legado apenas quando ele claramente não é um UUID
- * (linhas antigas guardavam o nome nesse campo).
- */
 export function evolutionInstanceName(conn: EvolutionInstanceRef): string | null {
-  const name = conn.instance_name?.trim();
-  if (name && !isUuidLike(name)) return name;
-  const legacy = conn.instance_id?.trim();
-  if (legacy && !isUuidLike(legacy)) return legacy;
-  return null;
+  return _evolutionInstanceName(conn);
 }

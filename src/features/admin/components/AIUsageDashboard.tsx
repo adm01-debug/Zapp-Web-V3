@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -59,7 +58,14 @@ export function AIUsageDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
+          <Select
+            value={timeFilter}
+            onValueChange={(v) =>
+              setTimeFilter(
+                v as TimeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue />
             </SelectTrigger>
@@ -191,10 +197,7 @@ export function AIUsageDashboard() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v: number | string) =>
-                            String((typeof v === 'number' ? v : Number(v)).toLocaleString()) +
-                            ' tokens'
-                          }
+                          formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'}
                         />
                       </PieChart>
                     </ResponsiveContainer>

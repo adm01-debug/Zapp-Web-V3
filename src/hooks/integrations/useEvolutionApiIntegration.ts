@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEvolutionApiIntegration — Wave 3 (2026-07-06)
  * Camada de dados extraída de EvolutionApiIntegrationView (componente ficou 100% UI).
@@ -62,9 +61,9 @@ export function useEvolutionApiIntegration() {
       if (credsRes.error) throw credsRes.error;
       if (logsRes.error) throw logsRes.error;
 
-      setCredentials(credsRes.data as EvolutionInstanceCredential[]);
-      setHealthLogs(logsRes.data as HealthLog[]);
-    } catch (err: unknown) {
+      setCredentials(credsRes.data as EvolutionInstanceCredential[]); // ignore-audit: narrows nullable DB fields (api_key, api_url, is_active, health_status) to non-null
+      setHealthLogs(logsRes.data as HealthLog[]); // ignore-audit: narrows nullable DB fields (instance_name, status, response_time_ms, etc.) to non-null
+    } catch (err) {
       toast.error('Erro ao carregar dados: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setLoading(false);
@@ -102,7 +101,7 @@ export function useEvolutionApiIntegration() {
 
       const responseTime = Date.now() - startTime;
       const isSuccess = response.ok;
-      let errorMsg = null;
+      let errorMsg: string | null = null;
       let onlineCount = 0;
       let totalCount = 0;
 

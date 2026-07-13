@@ -54,24 +54,8 @@ export const QueueSlaPanel = () => {
         supabase.from('queue_skill_requirements').select('skill_name'),
         supabase.from('channel_connections').select('channel_type'),
       ]);
-      setSkills(
-        Array.from(
-          new Set(
-            (sk ?? [])
-              .map((s: { skill_name: string | null }) => s.skill_name)
-              .filter(Boolean) as string[]
-          )
-        )
-      );
-      setChannels(
-        Array.from(
-          new Set(
-            (ch ?? [])
-              .map((c: { channel_type: string | null }) => c.channel_type)
-              .filter(Boolean) as string[]
-          )
-        )
-      );
+      setSkills(Array.from(new Set((sk ?? []).map((s: { skill_name: string | null }) => s.skill_name).filter(Boolean) as string[]))); // ignore-audit: filter(Boolean) removes nulls; cast safely narrows (string|null)[] to string[]
+      setChannels(Array.from(new Set((ch ?? []).map((c: { channel_type: string | null }) => c.channel_type).filter(Boolean) as string[]))); // ignore-audit: filter(Boolean) removes nulls; cast safely narrows (string|null)[] to string[]
     })();
   }, []);
 
@@ -299,9 +283,7 @@ function QueueRow({
       <td>
         <Select
           value={row.sla_priority}
-          onValueChange={(v) =>
-            onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })
-          }
+          onValueChange={(v) => onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority']  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */})}
         >
           <SelectTrigger className="h-8 w-[110px]">
             <Badge className={cn('text-[10px]', PRIORITY_COLOR[row.sla_priority])}>

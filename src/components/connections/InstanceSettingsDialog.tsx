@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 
 interface ReconnectionLog {
@@ -23,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { supabase } from '@/integrations/supabase/client';
+import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { toast } from 'sonner';
 import { Loader2, Settings, Shield, User, Tag, History, RotateCcw } from 'lucide-react';
 import { getLogger } from '@/lib/logger';
@@ -37,6 +37,14 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const log = getLogger('InstanceSettingsDialog');
+
+interface ReconnectionLog {
+  id: string;
+  result: 'success' | string;
+  created_at: string;
+  attempt_number: number;
+  error_message: string | null;
+}
 
 interface InstanceSettingsDialogProps {
   open: boolean;
@@ -109,24 +117,6 @@ export function InstanceSettingsDialog({
     readStatus: false,
     syncFullHistory: false,
   });
-  const [profile, setProfile] = useState({ name: '', status: '', pictureUrl: '' });
-  const [privacy, setPrivacy] = useState<Record<string, string>>({
-    readreceipts: 'all',
-    profile: 'all',
-    status: 'contacts',
-    online: 'all',
-    last: 'contacts',
-    groupadd: 'contacts',
-  });
-  const [labels, setLabels] = useState<{ id: string; name: string; color: string }[]>([]);
-
-  // Reconnection & Audit state
-  const [reconnectConfig, setReconnectConfig] = useState({
-    enabled: true,
-    interval: 30,
-    maxAttempts: 5,
-    loopProtection: false,
-  });
   const [auditLogs, setAuditLogs] = useState<ReconnectionLog[]>([]);
   const [loadingTab, setLoadingTab] = useState('');
 
@@ -143,13 +133,8 @@ export function InstanceSettingsDialog({
   const loadReconnectConfig = async () => {
     if (!connectionId) return;
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_connections')
-        .select(
-          'auto_reconnect_enabled, reconnect_interval_seconds, max_reconnect_attempts, loop_protection_active'
-        )
-        .eq('id', connectionId)
-        .single();
+      const safeQueries = safeWhatsAppConnectionsQuery(supabase);
+      const { data, error } = await safeQueries.getById(connectionId);
 
       if (!error && data && mountedRef.current) {
         setReconnectConfig({

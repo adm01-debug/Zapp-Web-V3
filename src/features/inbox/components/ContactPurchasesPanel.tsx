@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,7 @@ interface Purchase {
   title: string;
   description: string | null;
   amount: number | null;
-  currency: string;
+  currency: string | null;
   status: string;
   purchase_type: string;
   purchased_at: string | null;

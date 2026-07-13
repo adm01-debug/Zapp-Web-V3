@@ -5,10 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import {
-  QrCode, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle, Loader2, Search,
+  QrCode,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Loader2,
+  Search,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -29,11 +42,26 @@ interface QrAttempt {
   requested_by: string | null;
 }
 
-const statusConfig: Record<QrAttempt['status'], { label: string; icon: typeof CheckCircle2; cls: string }> = {
+const statusConfig: Record<
+  QrAttempt['status'],
+  { label: string; icon: typeof CheckCircle2; cls: string }
+> = {
   pending: { label: 'Pendente', icon: Clock, cls: 'text-warning bg-warning/10 border-warning/30' },
-  connected: { label: 'Conectado', icon: CheckCircle2, cls: 'text-success bg-success/10 border-success/30' },
-  expired: { label: 'Expirado', icon: AlertTriangle, cls: 'text-muted-foreground bg-muted/40 border-border' },
-  error: { label: 'Erro', icon: XCircle, cls: 'text-destructive bg-destructive/10 border-destructive/30' },
+  connected: {
+    label: 'Conectado',
+    icon: CheckCircle2,
+    cls: 'text-success bg-success/10 border-success/30',
+  },
+  expired: {
+    label: 'Expirado',
+    icon: AlertTriangle,
+    cls: 'text-muted-foreground bg-muted/40 border-border',
+  },
+  error: {
+    label: 'Erro',
+    icon: XCircle,
+    cls: 'text-destructive bg-destructive/10 border-destructive/30',
+  },
 };
 
 /** Admin panel: latest QR Code attempts per WhatsApp instance with re-trigger action. */
@@ -43,12 +71,18 @@ export function QrAttemptsPanel() {
   const [instanceFilter, setInstanceFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
 
-  const { data: attempts = [], isFetching: loading, refetch } = useQuery<QrAttempt[]>({
+  const {
+    data: attempts = [],
+    isFetching: loading,
+    refetch,
+  } = useQuery<QrAttempt[]>({
     queryKey: ['admin', 'qr-attempts', statusFilter, instanceFilter],
     queryFn: async () => {
       let q = supabase
         .from('qr_attempts')
-        .select('id, connection_id, instance_id, connection_name, status, error_message, connected_at, expired_at, created_at, requested_by')
+        .select(
+          'id, connection_id, instance_id, connection_name, status, error_message, connected_at, expired_at, created_at, requested_by'
+        )
         .order('created_at', { ascending: false })
         .limit(200);
       if (statusFilter !== 'all') q = q.eq('status', statusFilter);
@@ -70,7 +104,9 @@ export function QrAttemptsPanel() {
         void queryClient.invalidateQueries({ queryKey: ['admin', 'qr-attempts'] });
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      channel.unsubscribe();
+    };
   }, [queryClient]);
 
   const instances = useMemo(() => {
@@ -82,10 +118,11 @@ export function QrAttemptsPanel() {
   const filtered = useMemo(() => {
     if (!search.trim()) return attempts;
     const q = search.toLowerCase();
-    return attempts.filter((a) =>
-      a.instance_id.toLowerCase().includes(q) ||
-      (a.connection_name || '').toLowerCase().includes(q) ||
-      (a.error_message || '').toLowerCase().includes(q)
+    return attempts.filter(
+      (a) =>
+        a.instance_id.toLowerCase().includes(q) ||
+        (a.connection_name || '').toLowerCase().includes(q) ||
+        (a.error_message || '').toLowerCase().includes(q)
     );
   }, [attempts, search]);
 
@@ -110,29 +147,41 @@ export function QrAttemptsPanel() {
   return (
     <div className="space-y-4">
       {/* Header / stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5"><QrCode className="w-3.5 h-3.5" />Total (últimas)</p>
-            <p className="text-2xl font-bold mt-1">{stats.total}</p>
+          <CardContent className="pb-3 pt-4">
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <QrCode className="h-3.5 w-3.5" />
+              Total (últimas)
+            </p>
+            <p className="mt-1 text-2xl font-bold">{stats.total}</p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-success flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" />Conectados</p>
-            <p className="text-2xl font-bold mt-1">{stats.connected}</p>
+          <CardContent className="pb-3 pt-4">
+            <p className="flex items-center gap-1.5 text-xs text-success">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Conectados
+            </p>
+            <p className="mt-1 text-2xl font-bold">{stats.connected}</p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" />Expirados</p>
-            <p className="text-2xl font-bold mt-1">{stats.expired}</p>
+          <CardContent className="pb-3 pt-4">
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Expirados
+            </p>
+            <p className="mt-1 text-2xl font-bold">{stats.expired}</p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-destructive flex items-center gap-1.5"><XCircle className="w-3.5 h-3.5" />Erros</p>
-            <p className="text-2xl font-bold mt-1">{stats.error}</p>
+          <CardContent className="pb-3 pt-4">
+            <p className="flex items-center gap-1.5 text-xs text-destructive">
+              <XCircle className="h-3.5 w-3.5" />
+              Erros
+            </p>
+            <p className="mt-1 text-2xl font-bold">{stats.error}</p>
           </CardContent>
         </Card>
       </div>
@@ -141,30 +190,36 @@ export function QrAttemptsPanel() {
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <QrCode className="w-4 h-4 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <QrCode className="h-4 w-4 text-primary" />
                 Tentativas de QR Code
               </CardTitle>
               <CardDescription>Últimas 200 tentativas — atualizado em tempo real</CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar instância..."
-                  className="pl-8 h-9 w-[180px]"
+                  className="h-9 w-[180px] pl-8"
                 />
               </div>
               <Select value={instanceFilter} onValueChange={setInstanceFilter}>
-                <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas instâncias</SelectItem>
-                  {instances.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                  {instances.map((i) => (
+                    <SelectItem key={i} value={i}>
+                      {i}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
                 <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos status</SelectItem>
@@ -175,7 +230,11 @@ export function QrAttemptsPanel() {
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={loading}>
-                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
               </Button>
             </div>
           </div>
@@ -183,11 +242,12 @@ export function QrAttemptsPanel() {
         <CardContent className="pt-0">
           {loading && attempts.length === 0 ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-12">
-              Nenhuma tentativa de QR registrada{statusFilter !== 'all' ? ` com status "${statusFilter}"` : ''}.
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Nenhuma tentativa de QR registrada
+              {statusFilter !== 'all' ? ` com status "${statusFilter}"` : ''}.
             </p>
           ) : (
             <ScrollArea className="h-[480px] pr-3">
@@ -201,31 +261,57 @@ export function QrAttemptsPanel() {
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={cn(
-                        'flex items-center gap-3 p-3 rounded-lg border transition-colors',
+                        'flex items-center gap-3 rounded-lg border p-3 transition-colors',
                         'hover:bg-muted/40'
                       )}
                     >
-                      <Icon className={cn('w-4 h-4 flex-shrink-0', cfg.cls.split(' ')[0])} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm truncate">{a.connection_name || a.instance_id}</span>
-                          <Badge variant="outline" className={cn('text-[10px] border', cfg.cls)}>
+                      <Icon className={cn('h-4 w-4 flex-shrink-0', cfg.cls.split(' ')[0])} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="truncate text-sm font-medium">
+                            {a.connection_name || a.instance_id}
+                          </span>
+                          <Badge variant="outline" className={cn('border text-[10px]', cfg.cls)}>
                             {cfg.label}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           {a.instance_id} ·{' '}
-                          <span title={format(new Date(a.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}>
-                            {formatDistanceToNow(new Date(a.created_at), { addSuffix: true, locale: ptBR })}
+                          <span
+                            title={format(new Date(a.created_at), 'dd/MM/yyyy HH:mm:ss', {
+                              locale: ptBR,
+                            })}
+                          >
+                            {formatDistanceToNow(new Date(a.created_at), {
+                              addSuffix: true,
+                              locale: ptBR,
+                            })}
                           </span>
                           {a.connected_at && (
-                            <> · conectou {formatDistanceToNow(new Date(a.connected_at), { addSuffix: true, locale: ptBR })}</>
+                            <>
+                              {' '}
+                              · conectou{' '}
+                              {formatDistanceToNow(new Date(a.connected_at), {
+                                addSuffix: true,
+                                locale: ptBR,
+                              })}
+                            </>
                           )}
                           {a.expired_at && (
-                            <> · expirou {formatDistanceToNow(new Date(a.expired_at), { addSuffix: true, locale: ptBR })}</>
+                            <>
+                              {' '}
+                              · expirou{' '}
+                              {formatDistanceToNow(new Date(a.expired_at), {
+                                addSuffix: true,
+                                locale: ptBR,
+                              })}
+                            </>
                           )}
                           {a.error_message && (
-                            <> · <span className="text-destructive">{a.error_message}</span></>
+                            <>
+                              {' '}
+                              · <span className="text-destructive">{a.error_message}</span>
+                            </>
                           )}
                         </p>
                       </div>
@@ -235,7 +321,8 @@ export function QrAttemptsPanel() {
                         onClick={() => handleRegenerate(a.instance_id)}
                         className="flex-shrink-0"
                       >
-                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Gerar novamente
+                        <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                        Gerar novamente
                       </Button>
                     </motion.div>
                   );

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -110,7 +109,7 @@ export function ContactAccordionSections({
         icon={<Info className="h-3.5 w-3.5 text-primary" />}
         label="Informações"
       >
-        <ContactInfoSection contact={contact} enrichedData={enrichedData} />
+        <ContactInfoSection contact={contact as any} enrichedData={enrichedData} />
       </Section>
 
       <Section
@@ -175,8 +174,8 @@ export function ContactAccordionSections({
         icon={<Tag className="h-3.5 w-3.5 text-primary" />}
         label="Tags"
         badge={
-          contact.tags.length + conversation.tags.length > 0
-            ? contact.tags.length + conversation.tags.length
+          (contact.tags ?? []).length + conversation.tags.length > 0
+            ? (contact.tags ?? []).length + conversation.tags.length
             : undefined
         }
       >
@@ -465,7 +464,7 @@ function Section({
 function TagsContent({ contact, conversation }: { contact: Contact; conversation: Conversation }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {contact.tags.map((tag, i) => (
+      {(contact.tags ?? []).map((tag, i) => (
         <motion.div
           key={`contact-${tag}`}
           initial={{ opacity: 0, scale: 0.8 }}
@@ -487,7 +486,7 @@ function TagsContent({ contact, conversation }: { contact: Contact; conversation
           key={`conv-${tag}`}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: (contact.tags.length + i) * 0.03 }}
+          transition={{ delay: ((contact.tags ?? []).length + i) * 0.03 }}
         >
           <Badge
             variant="outline"
@@ -499,7 +498,7 @@ function TagsContent({ contact, conversation }: { contact: Contact; conversation
           </Badge>
         </motion.div>
       ))}
-      {contact.tags.length === 0 && conversation.tags.length === 0 && (
+      {(contact.tags ?? []).length === 0 && conversation.tags.length === 0 && (
         <div className="flex w-full flex-col items-center gap-1.5 py-4 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/20">
             <TagsIcon className="h-5 w-5 text-muted-foreground/30" />

@@ -63,8 +63,14 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         streamRef.current = stream;
         chunksRef.current = [];
 
-        // Audio Level Analyzer
-        const audioContext = new AudioContext();
+        // Audio Level Analyzer — handle "suspended" state
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+        // Resume if suspended (common on mobile)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
@@ -109,7 +115,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           }
 
           // If local transcription is empty and we had issues, try backend STT
-          if (transcription.trim() === '' && audioBlob.size > 1000) {
+          // Use transcriptionRef so the closure reads the live value, not the stale
+          // one captured when startRecording was memoized.
+          if (transcriptionRef.current.trim() === '' && audioBlob.size > 1000) {
             try {
               setIsTranscribing(true);
               const { data } = await supabase.functions.invoke('speech-to-text', {
@@ -155,8 +163,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           recognition.continuous = true;
           recognition.interimResults = true;
 
-          recognition.onresult = (event: any) => {
-            // ignore-audit
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 setTranscription((prev) => (prev + ' ' + event.results[i][0].transcript).trim());
@@ -164,14 +171,20 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             }
           };
 
-          recognition.onerror = async (event: any) => {
-            // ignore-audit
+          recognition.onerror = async (event: SpeechRecognitionErrorEvent) => {
             log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
-            if (event.error === 'network' || event.error === 'service-not-allowed') {
-              setIsTranscribing(true); // Indicate background processing
-              // When stopping, we'll trigger the backend STT if local failed
+            if (
+              event.error === 'network' ||
+              event.error === 'service-not-allowed' ||
+              event.error === 'service-unavailable'
+            ) {
+              log.info('Local speech recognition unavailable, will use backend STT');
+              setIsTranscribing(true);
+            } else {
+              log.error('Unrecoverable speech recognition error:', event.error);
+              setIsTranscribing(true);
             }
           };
 
@@ -197,6 +210,20 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }, 1000);
       } catch (error) {
         log.error('Error starting recording:', error);
+        // Cleanup stream on error to avoid memory leak
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => {
+            track.stop();
+          });
+          streamRef.current = null;
+        }
+        // Close AudioContext on error
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContextRef.current.close().catch(() => {
+            /* ignore */
+          });
+          audioContextRef.current = null;
+        }
         toast({
           title: 'Erro ao gravar',
           description: 'Não foi possível acessar o microfone.',
@@ -228,10 +255,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   }, []);
 
   // Ref-based so it works from stale closures (e.g. the maxDuration interval) and
-  // from the memoized startRecording — it must not depend on the `isRecording` state,
-  // whose value would be captured at creation time and go stale.
+  // from the memoized startRecording.  Uses mediaRecorderRef.current.state !== 'inactive'
+  // instead of the isRecording React state: the state value is captured at creation
+  // time and goes stale for a callback with empty deps.
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       streamRef.current?.getTracks().forEach((track) => track.stop());
 
@@ -325,7 +353,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   }, [onRecordingComplete]);
 
   const uploadAudio = useCallback(async (blob: Blob, conversationId: string) => {
-    const fileName = `${conversationId}/${Date.now()}.webm`;
+    const fileName = `${conversationId}/${crypto.randomUUID()}.webm`;
 
     const { error } = await supabase.storage.from('audio-messages').upload(fileName, blob, {
       contentType: 'audio/webm',

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
 import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
 
@@ -6,7 +5,7 @@ export interface DiagnosticResult {
   step: string;
   status: 'ok' | 'fail' | 'warn';
   message: string;
-  details?: Record<string, unknown> | string | null;
+  details?: Record<string, unknown> | null;
 }
 
 export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {

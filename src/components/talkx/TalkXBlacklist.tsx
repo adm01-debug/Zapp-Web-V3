@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
 import { ShieldBan, Trash2, Plus, Search, UserX, AlertTriangle } from 'lucide-react';
@@ -71,15 +70,14 @@ export function TalkXBlacklist() {
   const { data: blacklist = [], isLoading } = useQuery({
     queryKey: ['talkx-blacklist'],
     queryFn: async () => {
-      const { data, error } = await safeClient.from(
-        'talkx_blacklist',
-        (q) => q
-          .select('*, contacts:contact_id(name, phone, company, avatar_url)')
-          .order('created_at', { ascending: false }),
-      );
+      const { data, error } = await fromTable('talkx_blacklist')
+        .select('*, contacts:contact_id(name, phone, company, avatar_url)')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      return ((data ?? []) as BlacklistEntry[]);
+      return (data ?? []) as BlacklistEntry[];
     },
+    staleTime: Infinity,
   });
 
   const { data: availableContacts = [] } = useQuery({
@@ -93,6 +91,7 @@ export function TalkXBlacklist() {
       return data || [];
     },
     enabled: showAddDialog,
+    staleTime: 300_000,
   });
 
   const blacklistedIds = useMemo(() => new Set(blacklist.map((b) => b.contact_id)), [blacklist]);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMediaUrl — auto-refresh de URLs WhatsApp expiradas.
  *
@@ -168,11 +167,11 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         const { data: cacheRows } = await safeClient.from('media_cache', (q) =>
           q.select('storage_path').eq('file_hash', hash).limit(1)
         );
-        const cacheRow = cacheRows?.[0] ?? null;
+        const cacheRow = (cacheRows?.[0] ?? null) as any;
 
         if (cacheRow?.storage_path) {
           log.info(`Media cache hit for ${key}`);
-          setUrl(cacheRow.storage_path);
+          setUrl((cacheRow as any).storage_path);
           setError(null);
           setFailed(false);
           return;
@@ -209,7 +208,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
                 file_hash: hash,
                 storage_path: dataUrl,
                 mime_type: mime,
-                size: Math.round(payload.base64.length * 0.75),
+                size: Math.round((payload.base64 ?? '').length * 0.75),
               },
               { onConflict: 'file_hash' }
             )

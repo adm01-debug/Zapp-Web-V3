@@ -53,16 +53,21 @@ export function useConversationViewers(contactId: string) {
             .select('name, avatar_url')
             .eq('user_id', user.id)
             .maybeSingle()
-            .then(({ data: profile }) => channel.track({
-              name: profile?.name || 'Agente',
-              avatar_url: profile?.avatar_url || null,
-              is_typing: false,
-              online_at: new Date().toISOString(),
-            }));
+            .then(({ data: profile }) =>
+              channel.track({
+                name: profile?.name || 'Agente',
+                avatar_url: profile?.avatar_url || null,
+                is_typing: false,
+                online_at: new Date().toISOString(),
+              })
+            );
         }
       });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [contactId, user?.id]);
 
   return viewers;
@@ -77,43 +82,52 @@ export function ViewersIndicator({ contactId }: { contactId: string }) {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2 h-8">
+        <Button variant="ghost" size="sm" className="h-8 gap-2">
           <div className="flex -space-x-2">
             {viewers.slice(0, 3).map((viewer) => (
-              <Avatar key={viewer.id} className="w-6 h-6 border-2 border-background">
+              <Avatar key={viewer.id} className="h-6 w-6 border-2 border-background">
                 <AvatarImage src={viewer.avatar_url || undefined} alt={viewer.name} />
-                <AvatarFallback className="text-xs bg-primary/20">
+                <AvatarFallback className="bg-primary/20 text-xs">
                   {viewer.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             ))}
           </div>
           <span className="text-xs text-muted-foreground">{viewers.length} visualizando</span>
-          {viewers.some(v => v.is_typing) && (
-            <Badge variant="secondary" className="text-xs animate-pulse">
-              <Edit3 className="w-3 h-3 mr-1" />Digitando...
+          {viewers.some((v) => v.is_typing) && (
+            <Badge variant="secondary" className="animate-pulse text-xs">
+              <Edit3 className="mr-1 h-3 w-3" />
+              Digitando...
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64" align="end">
         <div className="space-y-2">
-          <h4 className="font-medium text-sm flex items-center gap-2">
-            <Eye className="w-4 h-4" />Visualizando agora
+          <h4 className="flex items-center gap-2 text-sm font-medium">
+            <Eye className="h-4 w-4" />
+            Visualizando agora
           </h4>
           <div className="space-y-2">
             {viewers.map((viewer) => (
-              <div key={viewer.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                <Avatar className="w-8 h-8">
+              <div key={viewer.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2">
+                <Avatar className="h-8 w-8">
                   <AvatarImage src={viewer.avatar_url || undefined} alt={viewer.name} />
-                  <AvatarFallback className="text-xs">{viewer.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="text-xs">
+                    {viewer.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{viewer.name}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{viewer.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {viewer.is_typing ? (
-                      <span className="flex items-center gap-1 text-primary"><Edit3 className="w-3 h-3" />Digitando...</span>
-                    ) : `Visto ${format(viewer.last_seen, 'HH:mm', { locale: ptBR })}`}
+                      <span className="flex items-center gap-1 text-primary">
+                        <Edit3 className="h-3 w-3" />
+                        Digitando...
+                      </span>
+                    ) : (
+                      `Visto ${format(viewer.last_seen, 'HH:mm', { locale: ptBR })}`
+                    )}
                   </p>
                 </div>
               </div>

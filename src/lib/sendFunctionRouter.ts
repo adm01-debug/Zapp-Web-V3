@@ -1,15 +1,18 @@
-// @ts-nocheck
 /**
  * Resolves which edge function should receive a "send" call:
  *  - `evolution-api`        for Evolution / Baileys connections (default)
  *  - `whatsapp-cloud-api`   for WhatsApp Cloud API (Meta) connections
  *
- * Lookup is by `whatsapp_connections.instance_id` (which we already use as
- * the `instanceName` everywhere). Result is cached in-memory for 60s to
- * avoid round-trips on every send.
+ * A conexão é "official" quando existe uma linha em
+ * `whatsapp_official_credentials` apontando para o `connection_id`. Caso
+ * contrário, roteamos para Evolution (Baileys). Resultado é cacheado por 60s.
  *
- * This is the ONLY place that knows about the api_type split. The Inbox,
- * hooks, and message senders remain agnostic.
+ * Este é o ÚNICO ponto que conhece o split cloud/baileys. Inbox, hooks e
+ * senders permanecem agnósticos.
+ *
+ * Nota: as colunas `instance_name` e `api_type` NÃO existem em
+ * `whatsapp_connections`. O lookup é feito por `name` (canônico) com fallback
+ * para `instance_id` — ver `columnMap.whatsapp_connections`.
  */
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,43 +26,41 @@ const cache = new Map<string, CacheEntry>();
 const TTL_MS = 60_000;
 
 export async function resolveSendFunction(
-  instanceName: string | undefined | null
+  instanceName: string | undefined | null,
 ): Promise<FnName> {
   if (!instanceName) return 'evolution-api';
   const cached = cache.get(instanceName);
   if (cached && cached.expiresAt > Date.now()) return cached.fn;
 
   try {
-    // Use two sequential exact queries instead of interpolated .or() to avoid
-    // PostgREST filter injection when instanceName contains reserved characters.
-    let { data, error } = await supabase
+    // Two sequential exact queries evitam PostgREST filter injection quando
+    // instanceName contém caracteres reservados de `.or()`.
+    let { data: conn, error } = await supabase
       .from('whatsapp_connections')
-      .select('api_type, status')
-      .eq('instance_name', instanceName)
+      .select('id, status')
+      .eq('name', instanceName)
       .maybeSingle();
 
-    if (!data && !error) {
-      ({ data, error } = await supabase
+    if (!conn && !error) {
+      ({ data: conn, error } = await supabase
         .from('whatsapp_connections')
-        .select('api_type, status')
+        .select('id, status')
         .eq('instance_id', instanceName)
         .maybeSingle());
     }
 
-    if (error) {
-      // Do not cache on DB error — let next call retry.
+    if (error || !conn) {
+      // Não cacheia em erro — próxima chamada tenta novamente.
       return 'evolution-api';
     }
 
-    // Roteamento inteligente com fallback:
-    // Se a conexão oficial estiver instável (status != 'connected') e houver uma instância Evolution
-    // conectada, o sistema pode decidir chavear dinamicamente.
-    // Por enquanto, respeitamos a api_type configurada.
+    const { data: official } = await supabase
+      .from('whatsapp_official_credentials')
+      .select('id')
+      .eq('connection_id', conn.id)
+      .maybeSingle();
 
-    const fn: FnName = data?.api_type === 'official' ? 'whatsapp-cloud-api' : 'evolution-api';
-
-    // Se a principal estiver offline e houver flag de fallback, poderíamos retornar a outra aqui.
-
+    const fn: FnName = official ? 'whatsapp-cloud-api' : 'evolution-api';
     cache.set(instanceName, { fn, expiresAt: Date.now() + TTL_MS });
     return fn;
   } catch {

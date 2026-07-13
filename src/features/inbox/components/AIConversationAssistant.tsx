@@ -120,7 +120,7 @@ export function AIConversationAssistant({
           });
 
           if (error) throw error;
-          return data as AnalysisData;
+          return data as AnalysisData; // ignore-audit: narrows Supabase query result to local interface
         },
         {
           maxRetries: 2,

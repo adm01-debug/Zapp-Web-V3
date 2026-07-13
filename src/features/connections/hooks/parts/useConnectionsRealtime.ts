@@ -48,15 +48,17 @@ export function useConnectionsRealtime(
     const channelName = `whatsapp-connections-changes:${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
       .channel(channelName)
-      .on(
+      .on<WhatsAppConnection>(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'whatsapp_connections' },
         (payload) => {
           log.debug('Connection update:', payload);
           if (payload.eventType === 'UPDATE') {
-            const newConn = payload.new as WhatsAppConnection;
-            const oldConn = payload.old as Partial<WhatsAppConnection> | null;
-            setConnections((prev) => prev.map((conn) => (conn.id === newConn.id ? newConn : conn)));
+            const newConn = payload.new;
+            const oldConn = payload.old;
+            setConnections((prev) =>
+              prev.map((conn) => (conn.id === newConn.id ? newConn : conn))
+            );
 
             if (newConn.status === 'connected' && oldConn?.status !== 'connected') {
               announceConnectedRef.current({ id: newConn.id, name: newConn.name });
@@ -81,18 +83,16 @@ export function useConnectionsRealtime(
               }
             }
           } else if (payload.eventType === 'INSERT') {
-            setConnections((prev) => [payload.new as WhatsAppConnection, ...prev]);
+            setConnections((prev) => [payload.new, ...prev]);
           } else if (payload.eventType === 'DELETE') {
-            setConnections((prev) =>
-              prev.filter((conn) => conn.id !== (payload.old as { id: string }).id)
-            );
+            setConnections((prev) => prev.filter((conn) => conn.id !== payload.old.id));
           }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
     // setState do React tem identidade estável — este efeito roda 1x por mount.
   }, [setConnections, setQrCodeDialog]);
