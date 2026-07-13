@@ -7,15 +7,21 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { toast } from 'sonner';
-import { Loader2, Bot, Brain, Workflow, MessageSquare, Zap, Boxes } from 'lucide-react';
+import { Bot, Brain, Workflow, MessageSquare, Zap, Boxes } from 'lucide-react';
 
 import { getLogger } from '@/lib/logger';
+import { IntegrationForm } from './integrationsPanelParts';
+import {
+  typebotFields,
+  openaiFields,
+  difyFields,
+  flowiseFields,
+  chatwootFields,
+  evolutionBotFields,
+} from './integrationsPanelFields';
+
 const log = getLogger('IntegrationsPanel');
 
 interface IntegrationsPanelProps {
@@ -23,82 +29,6 @@ interface IntegrationsPanelProps {
   onOpenChange: (open: boolean) => void;
   instanceName: string;
   connectionName: string;
-}
-
-function IntegrationForm({
-  title,
-  icon: Icon,
-  fields,
-  values,
-  onChange,
-  onSave,
-  onDelete,
-  isLoading,
-}: {
-  title: string;
-  icon: React.ElementType;
-  fields: { key: string; label: string; type?: string; placeholder?: string }[];
-  values: Record<string, unknown>;
-  onChange: (key: string, value: unknown) => void;
-  onSave: () => void;
-  onDelete: () => void;
-  isLoading: boolean;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-lg border border-border/20 bg-muted/10 p-3">
-        <div className="flex items-center gap-2">
-          <Icon className="h-5 w-5 text-primary" />
-          <Label className="font-medium">{title}</Label>
-        </div>
-        <Switch
-          checked={Boolean(values.enabled)}
-          onCheckedChange={(checked) => onChange('enabled', checked)}
-        />
-      </div>
-
-      {Boolean(values.enabled) && (
-        <>
-          {fields.map(({ key, label, type = 'text', placeholder }) => (
-            <div key={key}>
-              <Label className="text-sm">{label}</Label>
-              {type === 'boolean' ? (
-                <div className="mt-1 flex items-center gap-2">
-                  <Switch
-                    checked={Boolean(values[key])}
-                    onCheckedChange={(checked) => onChange(key, checked)}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    {values[key] ? 'Ativado' : 'Desativado'}
-                  </span>
-                </div>
-              ) : (
-                <Input
-                  type={type}
-                  value={String(values[key] ?? '')}
-                  onChange={(e) =>
-                    onChange(key, type === 'number' ? Number(e.target.value) : e.target.value)
-                  }
-                  placeholder={placeholder}
-                  className="mt-1"
-                />
-              )}
-            </div>
-          ))}
-
-          <div className="flex gap-2">
-            <Button onClick={onSave} disabled={isLoading} className="flex-1">
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-            <Button variant="destructive" onClick={onDelete} disabled={isLoading}>
-              Remover
-            </Button>
-          </div>
-        </>
-      )}
-    </div>
-  );
 }
 
 export function IntegrationsPanel({
@@ -150,73 +80,6 @@ export function IntegrationsPanel({
     ]);
   };
 
-  const typebotFields = [
-    { key: 'url', label: 'URL do Typebot', placeholder: 'https://typebot.io' },
-    { key: 'typebot', label: 'Slug do Bot', placeholder: 'meu-bot' },
-    { key: 'expire', label: 'Expirar sessão (min)', type: 'number' },
-    { key: 'keywordFinish', label: 'Palavra para encerrar', placeholder: '#sair' },
-    { key: 'delayMessage', label: 'Delay (ms)', type: 'number' },
-    { key: 'unknownMessage', label: 'Mensagem para desconhecidos', placeholder: 'Não entendi' },
-    { key: 'listeningFromMe', label: 'Ouvir minhas mensagens', type: 'boolean' },
-    { key: 'stopBotFromMe', label: 'Parar bot ao responder', type: 'boolean' },
-  ];
-
-  const openaiFields = [
-    { key: 'openAiApiKey', label: 'API Key OpenAI', placeholder: 'sk-...' },
-    { key: 'model', label: 'Modelo', placeholder: 'gpt-4o' },
-    { key: 'systemMessage', label: 'System Prompt', placeholder: 'Você é um assistente...' },
-    { key: 'maxTokens', label: 'Max Tokens', type: 'number' },
-    { key: 'temperature', label: 'Temperatura', type: 'number' },
-    { key: 'expire', label: 'Expirar sessão (min)', type: 'number' },
-    { key: 'keywordFinish', label: 'Palavra para encerrar', placeholder: '#humano' },
-    { key: 'speechToText', label: 'Speech to Text', type: 'boolean' },
-    { key: 'listeningFromMe', label: 'Ouvir minhas mensagens', type: 'boolean' },
-    { key: 'stopBotFromMe', label: 'Parar ao responder', type: 'boolean' },
-  ];
-
-  const difyFields = [
-    { key: 'apiUrl', label: 'URL do Dify', placeholder: 'https://api.dify.ai/v1' },
-    { key: 'apiKey', label: 'API Key', placeholder: 'app-...' },
-    {
-      key: 'botType',
-      label: 'Tipo (chatBot/textGenerator/agent/workflow)',
-      placeholder: 'chatBot',
-    },
-    { key: 'expire', label: 'Expirar sessão (min)', type: 'number' },
-    { key: 'keywordFinish', label: 'Palavra para encerrar' },
-    { key: 'speechToText', label: 'Speech to Text', type: 'boolean' },
-    { key: 'listeningFromMe', label: 'Ouvir minhas mensagens', type: 'boolean' },
-  ];
-
-  const flowiseFields = [
-    { key: 'apiUrl', label: 'URL do Flowise', placeholder: 'https://flowise.empresa.com' },
-    { key: 'apiKey', label: 'API Key (opcional)' },
-    { key: 'chatflowId', label: 'Chatflow ID', placeholder: 'uuid-do-chatflow' },
-    { key: 'expire', label: 'Expirar sessão (min)', type: 'number' },
-  ];
-
-  const chatwootFields = [
-    { key: 'url', label: 'URL do Chatwoot', placeholder: 'https://chatwoot.empresa.com' },
-    { key: 'accountId', label: 'Account ID', placeholder: '1' },
-    { key: 'token', label: 'Token', placeholder: 'seu-token' },
-    { key: 'nameInbox', label: 'Nome da Inbox', placeholder: 'WhatsApp' },
-    { key: 'signMsg', label: 'Assinar mensagens', type: 'boolean' },
-    { key: 'reopenConversation', label: 'Reabrir conversas', type: 'boolean' },
-    { key: 'importContacts', label: 'Importar contatos', type: 'boolean' },
-    { key: 'importMessages', label: 'Importar mensagens', type: 'boolean' },
-  ];
-
-  const evolutionBotFields = [
-    { key: 'apiUrl', label: 'URL do Bot', placeholder: 'https://bot.empresa.com' },
-    { key: 'apiKey', label: 'API Key (opcional)' },
-    { key: 'expire', label: 'Expirar sessão (min)', type: 'number' },
-    { key: 'keywordFinish', label: 'Palavra para encerrar' },
-    { key: 'unknownMessage', label: 'Mensagem desconhecida' },
-    { key: 'delayMessage', label: 'Delay (ms)', type: 'number' },
-    { key: 'listeningFromMe', label: 'Ouvir minhas mensagens', type: 'boolean' },
-    { key: 'stopBotFromMe', label: 'Parar ao responder', type: 'boolean' },
-  ];
-
   const handleSaveTypebot = useCallback(async () => {
     try {
       await api.setTypebot({ instanceName, ...typebot } as Parameters<typeof api.setTypebot>[0]);
@@ -225,6 +88,7 @@ export function IntegrationsPanel({
       toast.error('Erro');
     }
   }, [api, instanceName, typebot]);
+
   const handleDeleteTypebot = useCallback(async () => {
     try {
       await api.deleteTypebot(instanceName);
@@ -243,6 +107,7 @@ export function IntegrationsPanel({
       toast.error('Erro');
     }
   }, [api, instanceName, openai]);
+
   const handleDeleteOpenAI = useCallback(async () => {
     try {
       await api.deleteOpenAI(instanceName);
@@ -261,6 +126,7 @@ export function IntegrationsPanel({
       toast.error('Erro');
     }
   }, [api, instanceName, dify]);
+
   const handleDeleteDify = useCallback(async () => {
     try {
       await api.deleteDify(instanceName);
@@ -279,6 +145,7 @@ export function IntegrationsPanel({
       toast.error('Erro');
     }
   }, [api, instanceName, flowise]);
+
   const handleDeleteFlowise = useCallback(async () => {
     try {
       await api.deleteFlowise(instanceName);
@@ -297,6 +164,7 @@ export function IntegrationsPanel({
       toast.error('Erro');
     }
   }, [api, instanceName, chatwoot]);
+
   const handleDeleteChatwoot = useCallback(async () => {
     try {
       await api.deleteChatwoot(instanceName);
@@ -317,6 +185,7 @@ export function IntegrationsPanel({
       toast.error('Erro');
     }
   }, [api, instanceName, evolutionBot]);
+
   const handleDeleteEvolutionBot = useCallback(async () => {
     try {
       await api.deleteEvolutionBot(instanceName);
