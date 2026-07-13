@@ -2,53 +2,17 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/hooks/use-toast';
+import {
+  type QueueConfig,
+  type QueueItem,
+  type QueueMetrics,
+  DEFAULT_QUEUE_CONFIG,
+} from './messageQueueTypes';
+
+export type { QueueConfig, QueueItem, QueueMetrics } from './messageQueueTypes';
+export { DEFAULT_QUEUE_CONFIG } from './messageQueueTypes';
 
 const log = getLogger('useMessageQueue');
-
-export interface QueueConfig {
-  maxRetries: number;
-  baseDelay: number;
-  maxDelay: number;
-  jitter: boolean;
-}
-
-export const DEFAULT_QUEUE_CONFIG: QueueConfig = {
-  maxRetries: 3,
-  baseDelay: 1000, // 1s
-  maxDelay: 30000, // 30s
-  jitter: true,
-};
-
-export interface QueueItem {
-  id: string;
-  contactId: string;
-  content: string;
-  type: 'text' | 'attachment' | 'audio';
-  attachments?: File[];
-  onProgress?: (p: number) => void;
-  status: 'pending' | 'sending' | 'failed' | 'confirmed';
-  error?: unknown;
-  retryCount: number;
-  progress?: number;
-  externalId?: string;
-  createdAt: number;
-  completedAt?: number;
-  nextRetryAt?: number;
-  attempts: Array<{
-    timestamp: number;
-    error?: string;
-    duration?: number;
-  }>;
-}
-
-export interface QueueMetrics {
-  totalSent: number;
-  totalFailed: number;
-  totalRetries: number;
-  averageLatency: number;
-  byType: Record<string, { sent: number; failed: number; latency: number[] }>;
-  byConversation: Record<string, { sent: number; failed: number; latency: number[] }>;
-}
 
 export function useMessageQueue(
   processMessage: (item: QueueItem) => Promise<void>,
@@ -125,31 +89,26 @@ export function useMessageQueue(
     }
   }, []);
 
-  // Persistência: Salvar fila ao mudar
   useEffect(() => {
     const queueToSave = queue.map((item) => ({
       ...item,
-      attachments: undefined, // Não serializável
+      attachments: undefined,
     }));
     localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
   }, [queue]);
 
-  // Versão corrigida e simplificada do processamento
   const processNextInQueue = useCallback(
     async (contactId: string) => {
       if (isProcessingRef.current[contactId]) return;
 
-      // Encontrar o próximo item pendente para este contato
       setQueue((currentQueue) => {
         const contactQueue = currentQueue.filter((item) => item.contactId === contactId);
         const itemToProcess = contactQueue.find((item) => item.status === 'pending');
 
         if (!itemToProcess) return currentQueue;
 
-        // Se achamos um item, marcamos como enviando e iniciamos o processo fora do setQueue
         isProcessingRef.current[contactId] = true;
 
-        // Iniciamos o processamento assíncrono
         void (async () => {
           const config = getConfig(contactId);
           const startTime = Date.now();
