@@ -30,6 +30,7 @@
  */
 
 import { recordDedupeEvent } from '@/lib/realtime/dedupeTelemetry';
+import { getLogger } from '@/lib/logger';
 import {
   DEFAULT_LOCK_TTL,
   DEFAULT_RESULT_TTL,
