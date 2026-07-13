@@ -1,10 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { recheckWebhookSignature, type RecheckResult } from '@/lib/recheckWebhookSignature';
-import { RecheckResultDialog } from './admin-webhook-secret-status/RecheckResultDialog';
-import { supabase } from '@/integrations/supabase/client';
-import { queryExternalProxy } from '@/lib/externalProxy';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,7 +18,7 @@ import {
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useUrlFilters } from '@/hooks/useUrlFilters';
+import { RecheckResultDialog } from './admin-webhook-secret-status/RecheckResultDialog';
 import { InstanceFilterSelect } from './admin-webhook-secret-status/InstanceFilterSelect';
 import { InstanceStatusCards } from './admin-webhook-secret-status/InstanceStatusCards';
 import { InstanceBreakdownTable } from './admin-webhook-secret-status/InstanceBreakdownTable';
@@ -34,256 +27,54 @@ import { WebhookAlertHistoryPanel } from './admin-webhook-secret-status/WebhookA
 import { AdvancedFiltersPanel } from './admin-webhook-secret-status/AdvancedFiltersPanel';
 import { HmacSelfTestButton } from './admin-webhook-secret-status/HmacSelfTestButton';
 import { HmacAuditHistoryPanel } from './admin-webhook-secret-status/HmacAuditHistoryPanel';
-import { useWebhookHealthAlerts } from '@/hooks/useWebhookHealthAlerts';
-import { useWebhookViewPreferences } from '@/hooks/useWebhookViewPreferences';
-import {
-  aggregateValidationByInstance,
-  computeInstanceStatus,
-  computeLatencyStats,
-  deriveInstances,
-  type SecretStatusEvent,
-} from './admin-webhook-secret-status/instanceAggregations';
-import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
-
-interface SecretStatus {
-  configured: boolean;
-  length: number;
-  hashPrefix: string | null;
-  strictMode: boolean;
-  checkedAt: string;
-}
-
-const REFRESH_INTERVAL = 30_000;
+import { useAdminWebhookStatus } from './admin-webhook-secret-status/useAdminWebhookStatus';
 
 export default function AdminWebhookSecretStatusPage() {
-  const { filters, setFilters } = useUrlFilters();
-  // Reuse `agentId` slot for instance — but better: use raw URL via setFilters extension.
-  // We'll piggy-back on a custom param via setSearchParams below.
-  const instance = (filters as { instance?: string | null }).instance ?? null;
-  // useUrlFilters doesn't natively expose `instance`; we use a dedicated query param.
-  const selectedInstance = useMemo<string | null>(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('instance');
-  }, [filters]); // refresh when other filters change too
-  void instance;
-
-  const setInstance = useCallback(
-    (next: string | null) => {
-      const url = new URL(window.location.href);
-      if (next) url.searchParams.set('instance', next);
-      else url.searchParams.delete('instance');
-      window.history.replaceState({}, '', url.toString());
-      // Force re-render by touching useUrlFilters
-      setFilters({ search: filters.search });
-    },
-    [filters.search, setFilters]
-  );
-
-  // 1. Secret status (no value exposed)
-  const secretQuery = useQuery({
-    queryKey: ['webhook-secret-status'],
-    queryFn: async (): Promise<SecretStatus> => {
-      const { data, error } = await supabase.functions.invoke('webhook-secret-status');
-      if (error) throw error;
-      return data as SecretStatus; // ignore-audit: narrows Supabase query result to local interface
-    },
-    refetchInterval: REFRESH_INTERVAL,
-  });
-
-  // 2. Recent webhook events — last 24h. Server-side filter by instance when set.
-  const eventsQuery = useQuery({
-    queryKey: ['webhook-recent-events', selectedInstance],
-    queryFn: async () => {
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const filtersArr = [{ column: 'created_at', operator: 'gte', value: since }];
-      if (selectedInstance) {
-        filtersArr.push({ column: 'instance_name', operator: 'eq', value: selectedInstance });
-      }
-      const res = await queryExternalProxy<SecretStatusEvent>({
-        table: 'evolution_webhook_events',
-        select:
-          'id,event_type,instance_name,signature_valid,processed,processed_at,error_message,created_at',
-        filters: filtersArr,
-        order: { column: 'created_at', ascending: false },
-        limit: 500,
-      });
-      return res.data ?? [];
-    },
-    refetchInterval: REFRESH_INTERVAL,
-  });
-
-  // 3. Always fetch a small global slice for the instance dropdown so the user can
-  //    switch even if currently filtered to an instance with no traffic.
-  const instancesQuery = useQuery({
-    queryKey: ['webhook-instances-list'],
-    queryFn: async () => {
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const res = await queryExternalProxy<{ instance_name: string | null }>({
-        table: 'evolution_webhook_events',
-        select: 'instance_name',
-        filters: [{ column: 'created_at', operator: 'gte', value: since }],
-        order: { column: 'created_at', ascending: false },
-        limit: 500,
-      });
-      return res.data ?? [];
-    },
-    refetchInterval: REFRESH_INTERVAL * 4,
-  });
-
-  const refetchAll = () => {
-    void secretQuery.refetch();
-    void eventsQuery.refetch();
-    void instancesQuery.refetch();
-  };
-
-  const events = eventsQuery.data ?? [];
-  const lastEvent = events[0];
-  const total24h = events.length;
-  const validSigned = events.filter((e) => e.signature_valid === true).length;
-  const invalidSigned = events.filter((e) => e.signature_valid === false).length;
-  const unsigned = events.filter((e) => e.signature_valid === null).length;
-  const errored = events.filter((e) => e.error_message).length;
-  const validationRate = total24h > 0 ? Math.round((validSigned / total24h) * 100) : 0;
-
-  const instances = useMemo(() => {
-    const fromList = deriveInstances(
-      (instancesQuery.data ?? []).map((r) => ({
-        event_type: '',
-        instance_name: r.instance_name,
-        signature_valid: null,
-        processed: null,
-        processed_at: null,
-        error_message: null,
-        created_at: '',
-      }))
-    );
-    // Always include current selection so it stays selectable when filtered.
-    if (selectedInstance && !fromList.includes(selectedInstance)) fromList.push(selectedInstance);
-    return fromList.sort();
-  }, [instancesQuery.data, selectedInstance]);
-
-  // Live status / latency for the selected instance (or global).
-  const liveStatus = useMemo(
-    () => computeInstanceStatus(events, selectedInstance),
-    [events, selectedInstance]
-  );
-  const latency = useMemo(() => {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    return computeLatencyStats(
-      events.filter((e) => new Date(e.created_at).getTime() >= oneHourAgo)
-    );
-  }, [events]);
-
-  // Per-instance breakdown only relevant when no instance selected.
-  const breakdown = useMemo(() => aggregateValidationByInstance(events), [events]);
-
-  const secret = secretQuery.data;
-  const enabled = (secret?.configured ?? false) || total24h > 0;
-  const scopeLabel = selectedInstance ?? 'todas';
-
-  // Realtime alerts hook — partilha config/state com o painel.
   const {
-    config: alertConfig,
-    setConfig: setAlertConfig,
-    activeBreaches,
-    recentAlerts,
-    history: alertHistory,
-    reloadHistory,
-  } = useWebhookHealthAlerts();
-
-  // View preferences (status/reason/event-type/density/columns/pinned instance)
-  const {
+    selectedInstance,
+    setInstance,
+    instances,
+    defaultInstance,
+    scopeLabel,
+    secretQuery,
+    eventsQuery,
+    instancesQuery,
+    refetchAll,
+    secret,
+    enabled,
+    events,
+    lastEvent,
+    total24h,
+    validSigned,
+    invalidSigned,
+    unsigned,
+    errored,
+    validationRate,
+    liveStatus,
+    latency,
+    breakdown,
+    filteredEvents,
+    availableEventTypes,
     prefs,
     setPref,
     setVisibleColumn,
-    clearFilters: clearAdvancedFilters,
-    resetPrefs,
     activeFilterCount,
-  } = useWebhookViewPreferences();
-
-  // Clears advanced filters AND removes all query params from the URL
-  // (instance, q, status, etc.). Pinned instance stays in prefs but is
-  // not auto-reapplied because pinnedAppliedRef is already true post-mount.
-  const clearAllFiltersAndUrl = useCallback(() => {
-    clearAdvancedFilters();
-    const url = new URL(window.location.href);
-    // Wipe every search param (keep pathname + hash intact).
-    url.search = '';
-    window.history.replaceState({}, '', url.toString());
-    // Force useUrlFilters to re-read so derived state updates.
-    setFilters({ search: '' });
-  }, [clearAdvancedFilters, setFilters]);
-
-  // Restores ALL view preferences to factory defaults AND wipes the URL,
-  // including the pinned instance — so reopening the page starts blank.
-  const resetAllPrefsAndUrl = useCallback(() => {
-    resetPrefs();
-    const url = new URL(window.location.href);
-    url.search = '';
-    window.history.replaceState({}, '', url.toString());
-    setFilters({ search: '' });
-  }, [resetPrefs, setFilters]);
-
-  // Auto-apply pinned instance once on mount, only if URL has no instance set.
-  const pinnedAppliedRef = useRef(false);
-  useEffect(() => {
-    if (pinnedAppliedRef.current) return;
-    pinnedAppliedRef.current = true;
-    const params = new URLSearchParams(window.location.search);
-    if (!params.get('instance') && prefs.pinnedInstance) {
-      setInstance(prefs.pinnedInstance);
-    }
-  }, [prefs.pinnedInstance, setInstance]);
-
-  // Available event types from current dataset.
-  const availableEventTypes = useMemo(() => {
-    const set = new Set<string>();
-    for (const e of events) if (e.event_type) set.add(e.event_type);
-    return Array.from(set).sort();
-  }, [events]);
-
-  // Apply advanced filters to events table only (not aggregated cards).
-  const filteredEvents = useMemo(() => {
-    const reason = prefs.reasonSearch.trim().toLowerCase();
-    return events.filter((e) => {
-      if (prefs.statusFilter === 'valid' && e.signature_valid !== true) return false;
-      if (prefs.statusFilter === 'invalid' && e.signature_valid !== false) return false;
-      if (prefs.statusFilter === 'unsigned' && e.signature_valid !== null) return false;
-      if (prefs.statusFilter === 'errored' && !e.error_message) return false;
-      if (prefs.eventTypeFilter && e.event_type !== prefs.eventTypeFilter) return false;
-      if (reason && !(e.error_message ?? '').toLowerCase().includes(reason)) return false;
-      return true;
-    });
-  }, [events, prefs.statusFilter, prefs.eventTypeFilter, prefs.reasonSearch]);
-
-  // Recheck dialog state
-  const [recheckOpen, setRecheckOpen] = useState(false);
-  const [recheckLoading, setRecheckLoading] = useState(false);
-  const [recheckResult, setRecheckResult] = useState<RecheckResult | null>(null);
-  const [recheckError, setRecheckError] = useState<string | null>(null);
-  const [recheckingId, setRecheckingId] = useState<string | null>(null);
-
-  const handleRecheck = async (eventId: string) => {
-    setRecheckingId(eventId);
-    setRecheckOpen(true);
-    setRecheckLoading(true);
-    setRecheckResult(null);
-    setRecheckError(null);
-    try {
-      const res = await recheckWebhookSignature(eventId);
-      setRecheckResult(res);
-      if (res.signature_valid === true) toast.success('Assinatura válida');
-      else if (res.signature_valid === false) toast.error('Assinatura inválida');
-      else toast.message('Revalidação inconclusiva');
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Falha ao revalidar';
-      setRecheckError(msg);
-      toast.error(msg);
-    } finally {
-      setRecheckLoading(false);
-      setRecheckingId(null);
-    }
-  };
+    clearAllFiltersAndUrl,
+    resetAllPrefsAndUrl,
+    alertConfig,
+    setAlertConfig,
+    activeBreaches,
+    recentAlerts,
+    alertHistory,
+    reloadHistory,
+    recheckOpen,
+    setRecheckOpen,
+    recheckLoading,
+    recheckResult,
+    recheckError,
+    recheckingId,
+    handleRecheck,
+  } = useAdminWebhookStatus();
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -316,7 +107,7 @@ export default function AdminWebhookSecretStatusPage() {
           <HmacSelfTestButton instance={selectedInstance} />
           <Button variant="ghost" size="sm" asChild data-testid="hmac-selftest-open-page">
             <Link
-              to={`/admin/hmac-selftest?instance=${encodeURIComponent(selectedInstance ?? DEFAULT_WHATSAPP_INSTANCE)}`}
+              to={`/admin/hmac-selftest?instance=${encodeURIComponent(selectedInstance ?? defaultInstance)}`}
               aria-label="Abrir página do HMAC self-test"
             >
               <ExternalLink className="mr-1 h-4 w-4" />
@@ -339,7 +130,7 @@ export default function AdminWebhookSecretStatusPage() {
         </div>
       </div>
 
-      {/* Live instance status (above HMAC section) */}
+      {/* Live instance status */}
       <InstanceStatusCards
         instance={selectedInstance}
         status={liveStatus}
@@ -349,7 +140,6 @@ export default function AdminWebhookSecretStatusPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        {/* Secret card */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -382,7 +172,6 @@ export default function AdminWebhookSecretStatusPage() {
           </CardContent>
         </Card>
 
-        {/* Webhook enabled */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -413,7 +202,6 @@ export default function AdminWebhookSecretStatusPage() {
           </CardContent>
         </Card>
 
-        {/* Last received */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -443,7 +231,6 @@ export default function AdminWebhookSecretStatusPage() {
           </CardContent>
         </Card>
 
-        {/* Signature validation rate */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -469,15 +256,12 @@ export default function AdminWebhookSecretStatusPage() {
         </Card>
       </div>
 
-      {/* Histórico de execuções do botão "Testar HMAC" */}
       <HmacAuditHistoryPanel instance={selectedInstance} />
 
-      {/* Per-instance breakdown — only when filter = "all" */}
       {!selectedInstance && (
         <InstanceBreakdownTable stats={breakdown} onSelectInstance={setInstance} />
       )}
 
-      {/* Alerts */}
       {!secret?.configured && (
         <Alert variant="default" className="border-warning/40 bg-warning/5">
           <ShieldAlert className="h-4 w-4 text-warning" />
@@ -501,7 +285,7 @@ export default function AdminWebhookSecretStatusPage() {
         </Alert>
       )}
 
-      {/* Detail card — verification metadata */}
+      {/* Validation metadata */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Metadados da validação</CardTitle>
@@ -550,7 +334,6 @@ export default function AdminWebhookSecretStatusPage() {
         </CardContent>
       </Card>
 
-      {/* Advanced filters & view preferences */}
       <AdvancedFiltersPanel
         prefs={prefs}
         setPref={setPref}
@@ -703,7 +486,6 @@ export default function AdminWebhookSecretStatusPage() {
         </CardContent>
       </Card>
 
-      {/* Realtime alerts configuration */}
       <AlertThresholdsPanel
         config={alertConfig}
         onChange={setAlertConfig}
@@ -711,7 +493,6 @@ export default function AdminWebhookSecretStatusPage() {
         activeCount={activeBreaches.length}
       />
 
-      {/* Persistent alert history (audit) */}
       <WebhookAlertHistoryPanel history={alertHistory} onCleared={reloadHistory} />
 
       <RecheckResultDialog
