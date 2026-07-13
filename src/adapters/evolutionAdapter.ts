@@ -56,7 +56,12 @@ export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessa
     is_deleted: evo.deleted_at != null,
     deleted_at: evo.deleted_at ?? null,
     contactAvatar: null,
-    reactions: Array.isArray(evo.reactions) ? evo.reactions : [],
+    reactions: Array.isArray(evo.reactions)
+      ? evo.reactions.map((r) => ({
+          user_id: r.key?.remoteJid ?? '',
+          emoji: r.text ?? '',
+        }))
+      : [],
   };
 }
 
