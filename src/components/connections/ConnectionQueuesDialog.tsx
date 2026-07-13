@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useConnectionQueues } from '@/hooks/useConnectionQueues';
+import { useConnectionQueues } from '@/hooks/useConnectionManagement';
 import { useQueues } from '@/hooks/useQueues';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';

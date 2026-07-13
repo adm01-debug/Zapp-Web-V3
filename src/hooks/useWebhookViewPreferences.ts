@@ -1,22 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
-import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
+// Re-export from consolidated useSettingsManagement module (ETAPA 41 consolidation)
+import { useWebhookViewPreferencesManagement } from '@/hooks/useSettingsManagement';
 
-/**
- * Persisted view preferences for the Webhook Secret Status admin page.
- * Stored in localStorage so each admin keeps their own view between sessions.
- */
-
-export type WebhookStatusFilter = 'all' | 'valid' | 'invalid' | 'unsigned' | 'errored';
-export type WebhookTableDensity = 'comfortable' | 'compact';
-
-export interface WebhookViewColumns {
-  when: boolean;
-  event: boolean;
-  instance: boolean;
-  signature: boolean;
-  status: boolean;
-  action: boolean;
-}
+export function useWebhookViewPreferences(userId?: string) {
+  return useWebhookViewPreferencesManagement(userId);
 
 export interface WebhookViewPreferences {
   statusFilter: WebhookStatusFilter;

@@ -1,23 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import type { StickerItem } from '@/features/inbox';
+// Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
+import { usePersonalStickersManagement } from '@/hooks/useMediaManagement';
 
-export function usePersonalStickers() {
-  const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const { data: profile } = useQuery({
-    queryKey: ['my-profile-stickers'],
+export function usePersonalStickers(userId?: string) {
+  return usePersonalStickersManagement(userId);
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('id, name').single();
       if (error) throw error;

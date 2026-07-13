@@ -6,7 +6,7 @@ import { Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { TRIGGER_TYPES, ACTION_TYPES } from './automationConstants';
-import type { AutomationRow } from '@/hooks/automations/useAutomations';
+import type { AutomationRow } from '@/hooks/useAutomationManagement';
 
 interface AutomationCardProps {
   automation: AutomationRow;

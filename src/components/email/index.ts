@@ -6,10 +6,10 @@
  *
  * Architecture note:
  *   - EmailChatBubble (v1) renders via the main DOMPurify sanitizer (sanitize.ts).
- *   - EmailChatBubble-v2 uses the DOM-native sanitizer (sanitize-v2.ts) to avoid
- *     mutable DOMPurify hook collisions in recursive render trees.
+ *   - EmailChatBubble-v2 uses the DOM-native sanitizer (from sanitize.ts v3.0)
+ *     to avoid mutable DOMPurify hook collisions in recursive render trees.
  *
- *   See docs/sanitize-architecture.md before switching between the two.
+ *   Both sanitizers are now unified in src/lib/sanitize.ts (v3.0 consolidated sanitize + sanitize-v2).
  */
 
 export { default as EmailAttachmentPreview } from './EmailAttachmentPreview';

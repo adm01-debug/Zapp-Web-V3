@@ -2,7 +2,7 @@
  * ExternalContact360Panel — 360° CRM view of a contact
  */
 import { memo } from 'react';
-import { useExternalContact360 } from '@/hooks/useExternalContact360';
+import { useExternalContact360 } from '@/hooks/useExternalApiManagement';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';

@@ -1,23 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
-import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+// Re-export from consolidated useSettingsManagement module (ETAPA 41 consolidation)
+import { useGlobalSettingsManagement } from '@/hooks/useSettingsManagement';
 
-export interface GlobalSetting {
-  id: string;
-  key: string;
-  value: string | null;
-  description: string | null;
-  updated_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-// Module-level cache shared by every hook instance. global_settings is
-// quasi-static (admin-only writes), so we deduplicate fetches with a 5-min
-// TTL and a single in-flight promise to eliminate redundant requests.
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let cache: { rows: GlobalSetting[]; fetchedAt: number } | null = null;
+export function useGlobalSettings() {
+  return useGlobalSettingsManagement();
 let inflight: Promise<GlobalSetting[]> | null = null;
 
 async function loadSettings(force = false): Promise<GlobalSetting[]> {

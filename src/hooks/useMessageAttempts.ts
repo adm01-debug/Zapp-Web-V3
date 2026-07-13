@@ -1,33 +1,9 @@
-/**
- * useMessageAttempts — hidrata o histórico de tentativas de envio (DLQ) para
- * uma mensagem específica.
- *
- * Como casa uma mensagem com sua linha em `failed_messages`?
- *   - O sender constrói `idempotency_key = "msg:<message-row-id>"` (ver
- *     `buildSendIdempotencyKey`). Esse é o caminho primário.
- *   - Como fallback, tenta `payload->>'message_id'` (alguns reprocessamentos
- *     legados gravam o id WhatsApp ali).
- *
- * RLS: `failed_messages` é restrito a admin/supervisor. Para agentes a query
- * simplesmente retorna vazio — `MessageDetailsDialog` trata como "sem
- * permissão" graciosamente.
- */
-import { useQuery } from '@tanstack/react-query';
-import { safeClient } from '@/integrations/supabase/safeClient';
+// Re-export from consolidated useAnalyticsManagement module (ETAPA 39 consolidation)
+import { useMessageAttemptsManagement } from '@/hooks/useAnalyticsManagement';
 
-export type AttemptStatus = 'pending' | 'retrying' | 'succeeded' | 'failed' | 'abandoned';
-
-const VALID_STATUS = ['pending', 'retrying', 'succeeded', 'failed', 'abandoned'] as const;
-const RLS_ERROR_RE = /permission|denied|row-level/i;
-
-const normalizeStatus = (s: unknown): AttemptStatus =>
-  typeof s === 'string' && (VALID_STATUS as readonly string[]).includes(s)
-    ? (s as AttemptStatus)
-    : 'failed';
-
-export interface MessageAttemptRow {
-  id: string;
-  status: AttemptStatus;
+export function useMessageAttempts(messageId: string) {
+  return useMessageAttemptsManagement(messageId);
+}
   retry_count: number;
   max_retries: number;
   error_code: string | null;

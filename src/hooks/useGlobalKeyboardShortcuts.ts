@@ -1,116 +1,11 @@
-import { useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useCustomShortcuts } from './useCustomShortcuts';
+// Re-export from consolidated useKeyboardManagement module (ETAPA 30 consolidation)
+import { useGlobalKeyboardShortcutsManagement } from '@/hooks/useKeyboardManagement';
 
 interface GlobalShortcutAction {
   id: string;
   action: () => void;
 }
 
-// Static actions that don't depend on navigate or component props
-const STATIC_ACTIONS: Record<string, () => void> = {
-  'global-search': () => {
-    document.dispatchEvent(new CustomEvent('open-global-search'));
-  },
-  'toggle-theme': () => {
-    document.dispatchEvent(new CustomEvent('toggle-theme'));
-  },
-  'show-shortcuts-help': () => {
-    document.dispatchEvent(new CustomEvent('show-shortcuts-help'));
-  },
-  'refresh-data': () => {
-    window.location.reload();
-  },
-  'toggle-sidebar': () => {
-    document.dispatchEvent(new CustomEvent('toggle-sidebar'));
-  },
-  'quick-compose': () => {
-    document.dispatchEvent(new CustomEvent('quick-compose'));
-  },
-  'toggle-notifications': () => {
-    document.dispatchEvent(new CustomEvent('toggle-notifications'));
-  },
-};
-
 export function useGlobalKeyboardShortcuts(customActions?: GlobalShortcutAction[]) {
-  const navigate = useNavigate();
-  const { shortcuts, getActiveBinding } = useCustomShortcuts();
-
-  // Dynamic actions that depend on navigate
-  const defaultActions = useMemo(() => ({
-    ...STATIC_ACTIONS,
-    'go-to-inbox': () => {
-      navigate('/');
-      toast.info('📥 Inbox', { duration: 1500 });
-    },
-    'go-to-dashboard': () => {
-      navigate('/');
-      toast.info('📊 Dashboard', { duration: 1500 });
-    },
-    'go-to-contacts': () => {
-      navigate('/');
-      toast.info('👥 Contatos', { duration: 1500 });
-    },
-    'go-to-settings': () => {
-      navigate('/');
-      toast.info('⚙️ Configurações', { duration: 1500 });
-    },
-  }), [navigate]);
-
-  // Merge custom actions with defaults, memoized to prevent unnecessary recreations
-  const actions = useMemo(() => {
-    const merged = { ...defaultActions };
-    customActions?.forEach(({ id, action }) => {
-      merged[id] = action;
-    });
-    return merged;
-  }, [defaultActions, customActions]);
-
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs (except for specific ones)
-      const target = event.target as HTMLElement;
-      const isInput =
-        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
-      // Allow Ctrl+K (global search) and Escape even in inputs
-      const allowedInInputs = ['global-search', 'clear-selection', 'show-shortcuts-help'];
-
-      for (const shortcut of shortcuts) {
-        const binding = getActiveBinding(shortcut);
-
-        // Check if keys match
-        if (!binding.key || !event.key) continue;
-        const keyMatches = event.key.toLowerCase() === binding.key.toLowerCase();
-        const ctrlMatches = !!event.ctrlKey === !!binding.modifiers.ctrlKey;
-        const shiftMatches = !!event.shiftKey === !!binding.modifiers.shiftKey;
-        const altMatches = !!event.altKey === !!binding.modifiers.altKey;
-
-        if (keyMatches && ctrlMatches && shiftMatches && altMatches) {
-          // Skip if in input and not allowed
-          if (isInput && !allowedInInputs.includes(shortcut.id)) {
-            continue;
-          }
-
-          // Execute action if exists
-          const action = actions[shortcut.id];
-          if (action) {
-            event.preventDefault();
-            event.stopPropagation();
-            action();
-            return;
-          }
-        }
-      }
-    },
-    [shortcuts, getActiveBinding, actions]
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [handleKeyDown]);
-
-  return { shortcuts };
+  return useGlobalKeyboardShortcutsManagement(customActions);
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo, memo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from '@/components/ui/motion';
@@ -41,7 +40,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const MemoizedAuroraBorealis = memo(AuroraBorealis);
 const MemoizedFloatingParticles = memo(FloatingParticles);
 
-export const DashboardView = memo(function DashboardView() {
+export const DashboardView = memo(function DashboardView(): JSX.Element {
   const [filters, setFilters] = useState<DashboardFiltersState>(getDefaultFilters());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { profile } = useAuth();
@@ -62,14 +61,14 @@ export const DashboardView = memo(function DashboardView() {
 
   const { level1Widgets, level2Widgets, level3Widgets } = useDashboardWidgets();
 
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = useCallback(async (): Promise<void> => {
     setIsRefreshing(true);
     await refetch();
     setTimeout(() => setIsRefreshing(false), 500);
   }, [refetch]);
 
   const renderWidget = useCallback(
-    (widget: DashboardWidget) => <DashboardWidgetRenderer widget={widget} stats={stats} />,
+    (widget: DashboardWidget): JSX.Element => <DashboardWidgetRenderer widget={widget} stats={stats} />,
     [stats]
   );
 

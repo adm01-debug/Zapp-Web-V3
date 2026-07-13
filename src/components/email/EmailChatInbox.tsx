@@ -1,14 +1,12 @@
-// @ts-nocheck
 import { Mail, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { useEmail } from '@/hooks/useEmail';
+import { useEmail, type EmailSearchResult } from '@/hooks/useEmailManagement';
 import { EmailThreadList } from './EmailThreadList';
 import { EmailChatThread } from './EmailChatThread';
 import { EmailSearchBar } from './EmailSearchBar';
 import { EmailAccountSelector } from '../gmail/GmailAccountSelector';
-import { type EmailSearchResult } from '@/hooks/useEmailSearch';
 import { type TokenStatus } from '@/hooks/useGmailOAuthFlow';
 
 interface EmailChatInboxProps {

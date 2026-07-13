@@ -17,7 +17,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDebouncedValue } from '@/hooks/useDebounce';
-import { usePerformanceMetrics } from '@/hooks/usePerformanceMetrics';
+import { usePerformanceMetrics } from '@/hooks/usePerformanceMonitoring';
 import { ListImperativeAPI } from 'react-window';
 
 const log = getLogger('useTeamChatPanel');

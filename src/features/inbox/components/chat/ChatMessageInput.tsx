@@ -8,7 +8,7 @@ import { ReplyPreview } from '../ReplyQuote';
 import { SlashCommands, SlashCommand } from '../SlashCommands';
 import { AudioRecorder } from '../AudioRecorder';
 import { FileUploader, FileUploaderRef } from '../FileUploader';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Send, Smile, Plus, Loader2 } from 'lucide-react';
 import { AIEnhanceButton } from './AIEnhanceButton';
