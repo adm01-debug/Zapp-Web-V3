@@ -40,6 +40,7 @@ export function useSLAConfigurations() {
 
   const { data: configs = [], isLoading } = useQuery({
     queryKey: ['sla-configurations'],
+    staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sla_configurations')
@@ -53,15 +54,24 @@ export function useSLAConfigurations() {
   const saveMutation = useMutation({
     mutationFn: async (values: SLAForm & { id?: string }) => {
       if (values.id) {
-        const { error } = await supabase.from('sla_configurations').update({
-          name: values.name, first_response_minutes: values.first_response_minutes,
-          resolution_minutes: values.resolution_minutes, priority: values.priority, is_default: values.is_default,
-        }).eq('id', values.id);
+        const { error } = await supabase
+          .from('sla_configurations')
+          .update({
+            name: values.name,
+            first_response_minutes: values.first_response_minutes,
+            resolution_minutes: values.resolution_minutes,
+            priority: values.priority,
+            is_default: values.is_default,
+          })
+          .eq('id', values.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('sla_configurations').insert({
-          name: values.name, first_response_minutes: values.first_response_minutes,
-          resolution_minutes: values.resolution_minutes, priority: values.priority, is_default: values.is_default,
+          name: values.name,
+          first_response_minutes: values.first_response_minutes,
+          resolution_minutes: values.resolution_minutes,
+          priority: values.priority,
+          is_default: values.is_default,
         });
         if (error) throw error;
       }
@@ -78,14 +88,17 @@ export function useSLAConfigurations() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from('sla_configurations').update({ is_active }).eq('id', id);
+      const { error } = await supabase
+        .from('sla_configurations')
+        .update({ is_active })
+        .eq('id', id);
       if (error) throw error;
     },
     onMutate: async ({ id, is_active }) => {
       await queryClient.cancelQueries({ queryKey: ['sla-configurations'] });
       const previous = queryClient.getQueryData<SLAConfig[]>(['sla-configurations']);
-      queryClient.setQueryData<SLAConfig[]>(['sla-configurations'], old =>
-        (old || []).map(c => c.id === id ? { ...c, is_active } : c)
+      queryClient.setQueryData<SLAConfig[]>(['sla-configurations'], (old) =>
+        (old || []).map((c) => (c.id === id ? { ...c, is_active } : c))
       );
       return { previous };
     },
@@ -103,8 +116,8 @@ export function useSLAConfigurations() {
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: ['sla-configurations'] });
       const previous = queryClient.getQueryData<SLAConfig[]>(['sla-configurations']);
-      queryClient.setQueryData<SLAConfig[]>(['sla-configurations'], old =>
-        (old || []).filter(c => c.id !== id)
+      queryClient.setQueryData<SLAConfig[]>(['sla-configurations'], (old) =>
+        (old || []).filter((c) => c.id !== id)
       );
       return { previous };
     },
@@ -121,8 +134,11 @@ export function useSLAConfigurations() {
   const openEdit = (cfg: SLAConfig) => {
     setEditingId(cfg.id);
     setForm({
-      name: cfg.name, first_response_minutes: cfg.first_response_minutes,
-      resolution_minutes: cfg.resolution_minutes, priority: cfg.priority, is_default: cfg.is_default,
+      name: cfg.name,
+      first_response_minutes: cfg.first_response_minutes,
+      resolution_minutes: cfg.resolution_minutes,
+      priority: cfg.priority,
+      is_default: cfg.is_default,
     });
     setShowDialog(true);
   };
@@ -134,7 +150,17 @@ export function useSLAConfigurations() {
   };
 
   return {
-    configs, isLoading, form, setForm, showDialog, setShowDialog, editingId,
-    saveMutation, toggleMutation, deleteMutation, openEdit, openCreate,
+    configs,
+    isLoading,
+    form,
+    setForm,
+    showDialog,
+    setShowDialog,
+    editingId,
+    saveMutation,
+    toggleMutation,
+    deleteMutation,
+    openEdit,
+    openCreate,
   };
 }

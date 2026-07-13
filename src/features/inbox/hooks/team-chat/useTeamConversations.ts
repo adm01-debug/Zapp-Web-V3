@@ -126,17 +126,17 @@ export function useTeamConversations() {
       .channel('team-chat-updates')
       // Wave 1: team_messages is a view in public — repoint to zapp base table
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
       // Wave 1: team_conversations and team_conversation_members are views in public — zapp is base schema
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversations' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'team_conversation_members' },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+          void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
         }
       )
       .subscribe();

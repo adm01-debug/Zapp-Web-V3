@@ -1,15 +1,3 @@
-/**
- * AlertInstanceDetailDialog
- *
- * Painel detalhado por instância acionado a partir de um cartão de alerta.
- * Mostra para as últimas 24h:
- *  - % de eventos inválidos (invalid_signature + auth_401/403) por bucket horário
- *  - Intervalo (minutos) entre eventos de autenticação consecutivos
- *
- * Reutiliza as RPCs já existentes:
- *  - rpc_instance_auth_event_trend(p_hours, p_instance) — buckets horários
- *  - rpc_instance_auth_event_summary(p_hours, p_instance) — totais agregados
- */
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -21,9 +9,9 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, Activity, Timer, CheckCircle2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ShieldAlert, Activity, Timer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { AlertInstanceSLACard } from './AlertInstanceSLACard';
 import {
   AreaChart,
   Area,
@@ -82,7 +70,6 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
     refetchInterval: 30_000,
   });
 
-  // Série %inválido por bucket
   const invalidPctData = useMemo(() => {
     return (rows ?? []).map((r) => {
       const invalid = r.invalid_signature + r.auth_401 + r.auth_403;
@@ -96,7 +83,6 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
     });
   }, [rows]);
 
-  // Intervalo entre buckets com eventos (min)
   const intervalData = useMemo(() => {
     const withEvents = (rows ?? []).filter(
       (r) => r.invalid_signature + r.auth_401 + r.auth_403 > 0
@@ -113,12 +99,6 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
     return out;
   }, [rows]);
 
-  // SLA por instância — incidentes (run de buckets com inválidos) e tempo até resolução.
-  // Definição:
-  //  - Incidente inicia em um bucket com >=1 evento inválido após um bucket "limpo" (ou início da janela).
-  //  - Incidente é resolvido quando aparece um bucket "limpo" subsequente.
-  //  - Tempo até resolver = (bucket_resolução - bucket_início) em minutos.
-  //  - Incidentes ainda abertos (sem resolução até o fim da janela) são sinalizados separadamente.
   const slaIncidents = useMemo(() => {
     const ordered = rows ?? [];
     type Incident = { startIso: string; endIso: string | null; minutesToResolve: number | null };
@@ -239,84 +219,7 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
               </Card>
             </div>
 
-            {/* SLA — tempo até resolver */}
-            <Card data-testid="instance-sla-card">
-              <CardContent className="p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    SLA de resolução (últimas 24h)
-                  </div>
-                  {sla.open > 0 ? (
-                    <Badge variant="destructive" data-testid="instance-sla-open-badge">
-                      {sla.open} aberto{sla.open > 1 ? 's' : ''}
-                    </Badge>
-                  ) : sla.resolved > 0 ? (
-                    <Badge variant="secondary" data-testid="instance-sla-resolved-badge">
-                      Tudo resolvido
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" data-testid="instance-sla-clean-badge">
-                      Sem incidentes
-                    </Badge>
-                  )}
-                </div>
-                {sla.total === 0 ? (
-                  <div className="rounded border border-dashed p-4 text-center text-sm text-muted-foreground">
-                    Nenhum incidente detectado no período.
-                  </div>
-                ) : (
-                  <div
-                    className="grid grid-cols-2 gap-3 md:grid-cols-4"
-                    data-testid="instance-sla-metrics"
-                  >
-                    <div>
-                      <div className="text-xs text-muted-foreground">Incidentes</div>
-                      <div className="text-xl font-bold" data-testid="instance-sla-total">
-                        {sla.total}
-                      </div>
-                      <div className="mt-0.5 text-[10px] text-muted-foreground">
-                        {sla.resolved} resolvido{sla.resolved !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Tempo médio</div>
-                      <div
-                        className="text-xl font-bold text-primary"
-                        data-testid="instance-sla-avg"
-                      >
-                        {sla.avgMin}
-                        <span className="ml-1 text-sm">min</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">P95</div>
-                      <div
-                        className="text-xl font-bold text-warning"
-                        data-testid="instance-sla-p95"
-                      >
-                        {sla.p95Min}
-                        <span className="ml-1 text-sm">min</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Pior caso</div>
-                      <div
-                        className="text-xl font-bold text-destructive"
-                        data-testid="instance-sla-max"
-                      >
-                        {sla.maxMin}
-                        <span className="ml-1 text-sm">min</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="mt-3 text-[11px] text-muted-foreground">
-                  Incidente = janela contígua de horas com eventos inválidos. Resolução = primeira
-                  hora subsequente sem inválidos.
-                </div>
-              </CardContent>
-            </Card>
+            <AlertInstanceSLACard sla={sla} />
 
             <Card>
               <CardContent className="p-4">

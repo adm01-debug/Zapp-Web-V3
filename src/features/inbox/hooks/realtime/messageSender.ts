@@ -10,163 +10,18 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { emitSendStatus } from './sendStatusBus';
 import { dbFrom } from '@/integrations/datasource/db';
-import {
-  getWhatsappConnectionById,
-  getFirstConnectedWhatsapp,
-} from '@/lib/whatsappConnectionsCache';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import {
+  classifyAuthError,
+  resolveConnection,
+  buildEvolutionPayload,
+  type SendMessageResult,
+} from './messageSenderHelpers';
 
 const MAX_RETRIES = 3;
 const lastInstabilityToastByContact = new Map<string, number>();
 
-function classifyAuthError(err: unknown): { isAuth: boolean; code?: number; reason?: string } {
-  if (!err || typeof err !== 'object') return { isAuth: false };
-  const anyErr = err as { status?: number; message?: string; error?: { message?: string } };
-  const status = anyErr.status;
-  const msg = (anyErr.message || anyErr.error?.message || '').toLowerCase();
-  if (status === 401 || status === 403)
-    return { isAuth: true, code: status, reason: anyErr.message };
-  if (
-    msg.includes('unauthorized') ||
-    msg.includes('forbidden') ||
-    msg.includes('invalid token') ||
-    msg.includes('invalid api key')
-  ) {
-    return { isAuth: true, code: status, reason: anyErr.message || msg };
-  }
-  return { isAuth: false };
-}
-// Uses RealtimeMessage type from parent hook
-
 const log = getLogger('MessageSender');
-
-interface SendMessageResult {
-  id: string;
-  contact_id: string | null;
-  content: string;
-  [key: string]: unknown;
-}
-
-/**
- * Resolves the WhatsApp connection to use for sending, with fallback.
- */
-async function resolveConnection(contactConnectionId: string | null) {
-  let resolvedConnectionId = contactConnectionId;
-  let connection: {
-    instance_id: string | null;
-    instance_name: string | null;
-    status: string | null;
-  } | null = null;
-
-  if (resolvedConnectionId) {
-    const row = await getWhatsappConnectionById(resolvedConnectionId);
-    if (row)
-      connection = {
-        instance_id: row.instance_id,
-        instance_name: row.instance_name,
-        status: row.status,
-      };
-  }
-
-  if (!connection?.instance_id || connection.status !== 'connected') {
-    const fallback = await getFirstConnectedWhatsapp();
-    if (fallback?.instance_id) {
-      resolvedConnectionId = fallback.id;
-      connection = {
-        instance_id: fallback.instance_id,
-        instance_name: fallback.instance_name,
-        status: fallback.status,
-      };
-    }
-  }
-
-  return { resolvedConnectionId, connection };
-}
-
-/**
- * Builds the Evolution API action and body based on message type.
- */
-function buildEvolutionPayload(
-  instanceName: string,
-  phone: string,
-  content: string,
-  messageType: string,
-  mediaUrl?: string,
-  mediaPayload?: string
-): { action: string; body: Record<string, unknown> } {
-  if (messageType === 'image' && mediaUrl) {
-    return {
-      action: 'send-media',
-      body: {
-        instanceName,
-        number: phone,
-        mediatype: 'image',
-        media: mediaUrl,
-        caption: content !== '[Imagem]' ? content : undefined,
-      },
-    };
-  }
-  if (messageType === 'audio' && (mediaPayload || mediaUrl)) {
-    return {
-      action: 'send-audio',
-      body: {
-        instanceName,
-        number: phone,
-        audio: mediaUrl || mediaPayload,
-        encoding: !mediaUrl && Boolean(mediaPayload),
-      },
-    };
-  }
-  if (messageType === 'video' && mediaUrl) {
-    return {
-      action: 'send-media',
-      body: {
-        instanceName,
-        number: phone,
-        mediatype: 'video',
-        media: mediaUrl,
-        caption: content !== '[Vídeo]' ? content : undefined,
-      },
-    };
-  }
-  if (messageType === 'document' && mediaUrl) {
-    return {
-      action: 'send-media',
-      body: {
-        instanceName,
-        number: phone,
-        mediatype: 'document',
-        media: mediaUrl,
-        fileName: content,
-      },
-    };
-  }
-  if (messageType === 'location') {
-    try {
-      const loc = JSON.parse(content);
-      return {
-        action: 'send-location',
-        body: {
-          instanceName,
-          number: phone,
-          latitude: loc.latitude,
-          longitude: loc.longitude,
-          name: loc.name || '',
-          address: loc.address || '',
-        },
-      };
-    } catch {
-      log.error(
-        'Invalid location JSON — refusing to send as plain text to avoid corrupting the message',
-        {
-          preview: content.slice(0, 80),
-        }
-      );
-      throw new Error('Invalid location content: JSON parse failed');
-    }
-  }
-  return { action: 'send-text', body: { instanceName, number: phone, text: content } };
-}
 
 /**
  * Sends a message: saves to DB, dispatches via Evolution API, updates status.
@@ -184,11 +39,6 @@ export async function sendMessageToContact(
     .select('id')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
     .single();
-
-  // If we already have an optimisticId (local bubble already created), we don't insert yet.
-  // We'll update the record after the API call or use the existing one if we were doing server-side optimistic.
-  // However, the current flow is: DB Insert -> emit 'sending' -> API call -> update DB status.
-  // To reach 10/10 velocity, we should ideally call API FIRST or concurrently, but we need the DB record for the ID.
 
   const { data, error } = await dbFrom('messages')
     .insert({
@@ -213,7 +63,6 @@ export async function sendMessageToContact(
   emitSendStatus(effectiveId, { status: 'sending' }, { contactId, source: 'messageSender' });
 
   try {
-    // Audit: Início da tentativa
     if (opts.conversationId) {
       await safeClient.from('audit_logs', (q) =>
         q.insert({
@@ -351,7 +200,6 @@ export async function sendMessageToContact(
             .catch((e: unknown) => log.warn('Failed to write retry audit log', e));
 
           // Persist counters so the "2/3" indicator survives a page reload.
-          // Fire-and-forget — never block the retry loop.
           dbFrom('messages')
             .update({
               status: 'retrying',
@@ -461,7 +309,6 @@ export async function sendMessageToContact(
       );
     } else {
       // If error came from withRetry exhausting attempts, mark failed_retries.
-      // Persist final attempt counters so the badge stays after a reload.
       await dbFrom('messages')
         .update({
           status: 'failed_retries',

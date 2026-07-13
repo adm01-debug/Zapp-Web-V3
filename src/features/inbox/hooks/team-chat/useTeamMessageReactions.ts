@@ -49,8 +49,12 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     if (!conversationId) return;
     const channel = supabase
       .channel(`team-reactions-${conversationId}`)
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_message_reactions' }, () =>
-        queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'zapp', table: 'team_message_reactions' },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
+        }
       )
       .subscribe();
     return () => {

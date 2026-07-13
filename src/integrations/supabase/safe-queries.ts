@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Safe Query Utilities - RLS Enforcement Layer
  *
@@ -43,7 +42,9 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
   getById: async (id: string) => {
     return supabase
       .from('whatsapp_connections')
-      .select('id, name, phone_number, status, is_default, health_status, health_response_ms, last_health_check, auto_reconnect_enabled, reconnect_interval_seconds, max_reconnect_attempts, loop_protection_active, updated_at')
+      .select(
+        'id, name, phone_number, status, is_default, health_status, health_response_ms, last_health_check, auto_reconnect_enabled, reconnect_interval_seconds, max_reconnect_attempts, loop_protection_active, updated_at'
+      )
       .eq('id', id)
       .single();
   },
@@ -53,9 +54,7 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
    * Safe for: dropdowns, selectors
    */
   getSummary: async (ids?: string[]) => {
-    let query = supabase
-      .from('whatsapp_connections')
-      .select('id, name, phone_number, status');
+    let query = supabase.from('whatsapp_connections').select('id, name, phone_number, status');
 
     if (ids && ids.length > 0) {
       query = query.in('id', ids);
@@ -71,7 +70,9 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
   getDegraded: async (sinceDatetime?: string) => {
     let query = supabase
       .from('whatsapp_connections')
-      .select('id, name, instance_name, health_status, health_response_ms, last_health_check, updated_at')
+      .select(
+        'id, name, instance_name, health_status, health_response_ms, last_health_check, updated_at'
+      )
       .eq('health_status', 'degraded');
 
     if (sinceDatetime) {
@@ -89,7 +90,9 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
     if (ids.length === 0) return { data: [], error: null };
     return supabase
       .from('whatsapp_connections')
-      .select('id, name, phone_number, status, is_default, health_status, health_response_ms, last_health_check, updated_at')
+      .select(
+        'id, name, phone_number, status, is_default, health_status, health_response_ms, last_health_check, updated_at'
+      )
       .in('id', ids)
       .order('name', { ascending: true });
   },
@@ -99,7 +102,7 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
    * Safe for: realtime updates with masking
    */
   subscribe: (
-    callback: (changes: any) => void,
+    callback: (changes: unknown) => void,
     options?: { event?: string; filter?: string }
   ) => {
     return supabase
@@ -159,7 +162,7 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
    * Subscribe to channel changes (RLS enforced)
    * Safe for: realtime updates with masking
    */
-  subscribe: (callback: (changes: any) => void) => {
+  subscribe: (callback: (changes: unknown) => void) => {
     return supabase
       .channel('channel_connections_safe')
       .on(
@@ -196,7 +199,7 @@ export const enforceViewUsage = {
       if (pattern.test(query)) {
         throw new Error(
           `Dangerous query detected: Attempting to access sensitive fields. ` +
-          `Use safeWhatsAppConnectionsQuery() or safeChannelConnectionsQuery() instead.`
+            `Use safeWhatsAppConnectionsQuery() or safeChannelConnectionsQuery() instead.`
         );
       }
     }
@@ -214,10 +217,7 @@ export const serviceRoleOnlyQueries = {
    * Get WhatsApp connection WITH credentials (service role only)
    * WARNING: Only use in edge functions with proper authentication check
    */
-  getWhatsAppWithCredentials: async (
-    supabase: SupabaseClient<Database>,
-    id: string
-  ) => {
+  getWhatsAppWithCredentials: async (supabase: SupabaseClient<Database>, id: string) => {
     return supabase
       .from('whatsapp_connections')
       .select('*') // All fields including sensitive ones
@@ -229,10 +229,7 @@ export const serviceRoleOnlyQueries = {
    * Get channel connection WITH credentials (service role only)
    * WARNING: Only use in edge functions with proper authentication check
    */
-  getChannelWithCredentials: async (
-    supabase: SupabaseClient<Database>,
-    id: string
-  ) => {
+  getChannelWithCredentials: async (supabase: SupabaseClient<Database>, id: string) => {
     return supabase
       .from('channel_connections')
       .select('*') // All fields including sensitive ones

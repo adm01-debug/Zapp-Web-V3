@@ -29,8 +29,26 @@
  *   - 99.99% cross-tab consistency em <100ms
  */
 
-import { getLogger } from '@/lib/logger';
 import { recordDedupeEvent } from '@/lib/realtime/dedupeTelemetry';
+import {
+  DEFAULT_LOCK_TTL,
+  DEFAULT_RESULT_TTL,
+  DEFAULT_WAIT_TIMEOUT,
+  GC_INTERVAL,
+  TAB_ID,
+  LS_LOCK_PREFIX,
+  LS_RESULT_PREFIX,
+  LS_BUS_PREFIX,
+  type BroadcastMessage,
+  type DedupeOptions,
+} from './crossTabDedupeTypes';
+import { readLock, writeLock, releaseLock } from './crossTabDedupeLock';
+import {
+  readPersistedResult,
+  writePersistedResult,
+  gcLocalStorageKeys,
+} from './crossTabDedupeCache';
+import { ensureTransport, broadcast, __getActiveTransport } from './crossTabDedupeTransport';
 
 const log = getLogger('crossTabDedupe');
 
@@ -147,8 +165,8 @@ function notifySubscribers(key: string, data: unknown, source: 'remote' | 'local
     if (!sub.match(key)) return;
     try {
       sub.handler(key, data, source);
-    } catch (err) {
-      log.error('Subscriber handler threw', { key, err });
+    } catch {
+      /* swallow handler errors */
     }
   });
 }
@@ -880,15 +898,8 @@ export function clearCrossTabDedupe(): void {
   log.debug('Cleared all cross-tab dedup state');
 }
 
-export const __TAB_ID = TAB_ID;
-
 /**
  * Subscreve-se a resultados de dedupedFetch concluídos em qualquer aba.
- *
- * Útil para que abas espectadoras atualizem a UI quando outra aba completa
- * um fetch — sem precisar refazer a requisição. O handler é chamado tanto
- * quando o broadcast chega de outra aba (`source: 'remote'`) quanto quando
- * a própria aba conclui o fetch (`source: 'local'`).
  *
  * @param keyMatcher  string exata, prefixo (ex.: "inbox:initial:") ou RegExp.
  * @param handler     callback (key, data, source) => void
@@ -904,8 +915,7 @@ export function subscribeDedupe<T = unknown>(
       : (k: string) => keyMatcher.test(k);
   const sub: Subscription = { match, handler: handler as SubscriberFn };
   subscribers.add(sub);
-  // Garante que o BroadcastChannel está ativo para entregar mensagens.
-  getBroadcastChannel();
+  ensureTransport(onBroadcast);
   return () => {
     subscribers.delete(sub);
   };

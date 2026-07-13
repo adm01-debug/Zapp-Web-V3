@@ -131,7 +131,7 @@ export const ChatMessagesArea = memo(
             (payload) => {
               const updatedMsg = payload.new as { id: string };
               if (updatedMsg.id && messagesRef.current.some((m) => m.id === updatedMsg.id)) {
-                queryClient.invalidateQueries({ queryKey: ['messages'] });
+                void queryClient.invalidateQueries({ queryKey: ['messages'] });
               }
             }
           )

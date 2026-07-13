@@ -12,7 +12,12 @@ const readSrc = (p: string) => {
   }
 };
 
-const panelSrc = readSrc('components/team-chat/TeamChatPanel.tsx');
+const panelSrc =
+  readSrc('components/team-chat/TeamChatMessageRow.tsx') +
+  '\n' +
+  readSrc('components/team-chat/TeamChatPanel.tsx') +
+  '\n' +
+  readSrc('components/team-chat/teamChatParts.tsx');
 const inputSrc = readSrc('components/team-chat/TeamChatInputArea.tsx');
 const headerSrc = readSrc('components/team-chat/TeamChatHeader.tsx');
 const uploaderSrc = readSrc('components/team-chat/TeamFileUploader.tsx');
@@ -316,11 +321,11 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should support Enter to save edit', () => {
-      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/);
+      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/s);
     });
 
     it('should support Escape to cancel edit', () => {
-      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/);
+      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/s);
     });
 
     it('should show edited indicator on messages', () => {
@@ -600,8 +605,8 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should have keyboard shortcuts for editing', () => {
-      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/);
-      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/);
+      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/s);
+      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/s);
     });
   });
 

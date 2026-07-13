@@ -66,15 +66,13 @@ export function usePersonalStickers() {
           }
           const { data: urlData } = supabase.storage.from('stickers').getPublicUrl(path);
           const stickerName = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
-          const { error: insertError } = await supabase
-            .from('stickers')
-            .insert({
-              name: stickerName,
-              image_url: urlData.publicUrl,
-              category: 'pessoal',
-              owner_id: profile.id,
-              uploaded_by: profile.id,
-            });
+          const { error: insertError } = await supabase.from('stickers').insert({
+            name: stickerName,
+            image_url: urlData.publicUrl,
+            category: 'pessoal',
+            owner_id: profile.id,
+            uploaded_by: profile.id,
+          });
           if (insertError) {
             toast.error(`Erro ao salvar ${file.name}`);
             continue;
@@ -108,6 +106,7 @@ export function usePersonalStickers() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['personal-stickers'] }),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const deleteSticker = useMutation({
@@ -125,6 +124,7 @@ export function usePersonalStickers() {
       queryClient.invalidateQueries({ queryKey: ['personal-stickers'] });
       toast.success('Figurinha removida');
     },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const incrementUseCount = useCallback((sticker: StickerItem) => {

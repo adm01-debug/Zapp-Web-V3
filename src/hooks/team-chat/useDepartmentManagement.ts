@@ -76,6 +76,7 @@ export function useDepartmentManagement(
 
   const { data: allProfiles = [], isLoading: loadingProfiles } = useQuery<Profile[]>({
     queryKey: ['dept-profiles', initialDepartment.id],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -89,6 +90,7 @@ export function useDepartmentManagement(
 
   const { data: auditLogs = [], isLoading: loadingAudit } = useQuery<AuditLog[]>({
     queryKey: ['dept-audit', initialDepartment.id],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('audit_logs')
@@ -110,6 +112,7 @@ export function useDepartmentManagement(
 
   const { data: invitations = [], isLoading: loadingInvites } = useQuery<Invitation[]>({
     queryKey: ['dept-invites', initialDepartment.id],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('department_invitations')

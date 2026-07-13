@@ -48,14 +48,20 @@ export function useSLARules(scope?: SLARuleScope) {
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey,
-    staleTime: 60_000,
+    staleTime: Infinity,
     queryFn: async () => {
       let query = supabase.from('sla_rules').select('*').order('priority', { ascending: false });
 
       if (scope === 'contact') query = query.not('contact_id', 'is', null);
       else if (scope === 'company') query = query.not('company', 'is', null).is('contact_id', null);
-      else if (scope === 'job_title') query = query.not('job_title', 'is', null).is('contact_id', null).is('company', null);
-      else if (scope === 'contact_type') query = query.not('contact_type', 'is', null).is('contact_id', null).is('company', null).is('job_title', null);
+      else if (scope === 'job_title')
+        query = query.not('job_title', 'is', null).is('contact_id', null).is('company', null);
+      else if (scope === 'contact_type')
+        query = query
+          .not('contact_type', 'is', null)
+          .is('contact_id', null)
+          .is('company', null)
+          .is('job_title', null);
       else if (scope === 'queue') query = query.not('queue_id', 'is', null).is('contact_id', null);
       else if (scope === 'agent') query = query.not('agent_id', 'is', null).is('contact_id', null);
 
@@ -80,9 +86,7 @@ export function useSLARules(scope?: SLARuleScope) {
         queue_id: form.queue_id || null,
         agent_id: form.agent_id || null,
       };
-      const payload = form.metadata
-        ? { ...base, metadata: form.metadata as Json }
-        : base;
+      const payload = form.metadata ? { ...base, metadata: form.metadata as Json } : base;
       const { error } = await supabase.from('sla_rules').insert(payload);
       if (error) throw error;
     },
@@ -108,9 +112,7 @@ export function useSLARules(scope?: SLARuleScope) {
         queue_id: form.queue_id || null,
         agent_id: form.agent_id || null,
       };
-      const payload = form.metadata
-        ? { ...base, metadata: form.metadata as Json }
-        : base;
+      const payload = form.metadata ? { ...base, metadata: form.metadata as Json } : base;
       const { error } = await supabase.from('sla_rules').update(payload).eq('id', id);
       if (error) throw error;
     },
@@ -130,7 +132,9 @@ export function useSLARules(scope?: SLARuleScope) {
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<SLARule[]>(queryKey);
-      queryClient.setQueryData<SLARule[]>(queryKey, old => (old || []).filter(r => r.id !== id));
+      queryClient.setQueryData<SLARule[]>(queryKey, (old) =>
+        (old || []).filter((r) => r.id !== id)
+      );
       return { previous };
     },
     onError: (err: Error, _id, context) => {
@@ -152,8 +156,8 @@ export function useSLARules(scope?: SLARuleScope) {
     onMutate: async ({ id, is_active }) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<SLARule[]>(queryKey);
-      queryClient.setQueryData<SLARule[]>(queryKey, old =>
-        (old || []).map(r => r.id === id ? { ...r, is_active } : r)
+      queryClient.setQueryData<SLARule[]>(queryKey, (old) =>
+        (old || []).map((r) => (r.id === id ? { ...r, is_active } : r))
       );
       return { previous };
     },

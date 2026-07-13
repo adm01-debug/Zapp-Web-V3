@@ -1,5 +1,4 @@
-import { useState, useCallback, useRef, useMemo, type RefObject } from 'react';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useCallback, useRef, useMemo, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDensity } from '@/hooks/useDensity';
@@ -103,34 +102,8 @@ export function ConversationListSidebar({
   width: _width = 340,
 }: ConversationListSidebarProps) {
   const isMobile = useIsMobile();
-  const { density, setDensity: _setDensity } = useDensity();
+  const { density } = useDensity();
   const contactSearchRef = useRef<HTMLInputElement>(null);
-  const [_contactSearch, setContactSearch] = useState('');
-
-  const _conversationsWithUnreadCount = useMemo(
-    () => inbox.conversations.filter((c) => Number(c['unreadCount'] ?? 0) > 0).length, // ignore-audit
-    [inbox.conversations]
-  );
-
-  // Debounced search to prevent heavy filter calculations on every keystroke
-  const debouncedSetSearch = useDebounce((value: string) => {
-    inbox.setSearch(value);
-  }, 250);
-
-  // Sync local search to inbox filters
-  const _handleContactSearch = useCallback(
-    (value: string) => {
-      setContactSearch(value);
-      debouncedSetSearch(value);
-    },
-    [debouncedSetSearch]
-  );
-
-  const _clearContactSearch = useCallback(() => {
-    setContactSearch('');
-    inbox.setSearch('');
-    contactSearchRef.current?.focus();
-  }, [inbox]);
 
   const sortedFilteredIds = useMemo(
     () => inboxFilters.filteredConversations.map((c) => c.contact.id), // ignore-audit

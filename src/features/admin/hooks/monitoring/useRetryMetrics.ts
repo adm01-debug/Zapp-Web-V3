@@ -115,7 +115,7 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
         'postgres_changes',
         { event: 'INSERT', schema: 'evo', table: 'evolution_retry_metrics' },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['evolution-retry-metrics'] });
+          void queryClient.invalidateQueries({ queryKey: ['evolution-retry-metrics'] });
         }
       )
       .subscribe();

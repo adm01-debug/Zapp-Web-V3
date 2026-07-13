@@ -70,6 +70,7 @@ export function useChannelRoutingRules() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channel-routing-rules'] });
     },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const deleteRule = useMutation({
@@ -81,6 +82,7 @@ export function useChannelRoutingRules() {
       queryClient.invalidateQueries({ queryKey: ['channel-routing-rules'] });
       toast.success('Regra removida');
     },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const createRule = useMutation({

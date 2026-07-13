@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { groupVariantsByColor } from './sendProductUtils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,28 +10,20 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Send,
-  ChevronDown,
-  Package,
-  Copy,
-  Download,
-  Palette,
-  Check,
-  Pencil,
-  User,
-} from 'lucide-react';
+import { Send, ChevronDown, Copy, Download, Check, Pencil, User } from 'lucide-react';
 import { ExternalProduct, useExternalCatalog } from '@/hooks/useExternalCatalog';
 import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import {
   type MessageTemplate,
   type SendMode,
   buildMessage,
   collectAllImages,
+  groupVariantsByColor,
 } from './sendProductUtils';
 import { useContactSearch, useSendToContact } from '@/hooks/catalog/useSendProduct';
 import { ContactSelectionStep } from './ContactSelectionStep';
+import { ProductVariantSelector } from './ProductVariantSelector';
+import { ProductImageGrid } from './ProductImageGrid';
 
 interface SendProductDialogProps {
   product: ExternalProduct;
@@ -108,7 +99,7 @@ export const SendProductDialog: React.FC<SendProductDialogProps> = ({
   );
 
   const activeGroup = selectedColorGroup
-    ? variantGroups.find((g: { colorName: string }) => g.colorName === selectedColorGroup) || null
+    ? variantGroups.find((g) => g.colorName === selectedColorGroup) || null
     : null;
 
   const allImages = useMemo(() => collectAllImages(fullProduct), [fullProduct]);
@@ -226,107 +217,14 @@ export const SendProductDialog: React.FC<SendProductDialogProps> = ({
             <ScrollArea className="max-h-[60vh]">
               <div className="space-y-4 px-5 pb-5">
                 {variantGroups.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Button
-                        variant={sendMode === 'product' ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-8 gap-1.5 text-xs"
-                        onClick={() => {
-                          setSendMode('product');
-                          setSelectedColorGroup(null);
-                          setIsEditing(false);
-                        }}
-                      >
-                        <Package className="h-3.5 w-3.5" />
-                        Produto Completo
-                      </Button>
-                      <Button
-                        variant={sendMode === 'variant' ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-8 gap-1.5 text-xs"
-                        onClick={() => {
-                          setSendMode('variant');
-                          if (!selectedColorGroup && variantGroups.length > 0)
-                            setSelectedColorGroup(variantGroups[0].colorName);
-                          setIsEditing(false);
-                        }}
-                      >
-                        <Palette className="h-3.5 w-3.5" />
-                        Variação Específica
-                      </Button>
-                    </div>
-
-                    {sendMode === 'variant' && (
-                      <div className="space-y-2">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Selecione a variação
-                        </span>
-                        <div className="grid grid-cols-2 gap-2">
-                          {variantGroups.map((group) => {
-                            const isSelected = selectedColorGroup === group.colorName;
-                            const groupStock = group.variants.reduce(
-                              (s, v) => s + v.stock_quantity,
-                              0
-                            );
-                            return (
-                              <button
-                                key={group.colorName}
-                                onClick={() => {
-                                  setSelectedColorGroup(group.colorName);
-                                  setIsEditing(false);
-                                }}
-                                className={cn(
-                                  'flex items-center gap-3 rounded-lg border-2 p-2.5 text-left transition-all',
-                                  isSelected
-                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                                    : 'border-border/50 hover:border-border'
-                                )}
-                              >
-                                {group.images[0] ? (
-                                  <img
-                                    src={group.images[0]}
-                                    alt={group.colorName}
-                                    className="h-10 w-10 flex-shrink-0 rounded-md object-cover"
-                                    loading="lazy"
-                                  />
-                                ) : group.colorHex ? (
-                                  <div
-                                    className="h-10 w-10 flex-shrink-0 rounded-md border"
-                                    style={{ backgroundColor: group.colorHex }}
-                                  />
-                                ) : (
-                                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-muted">
-                                    <Palette className="h-4 w-4 text-muted-foreground" />
-                                  </div>
-                                )}
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5">
-                                    {group.colorHex && (
-                                      <div
-                                        className="h-3 w-3 flex-shrink-0 rounded-full border border-border/50"
-                                        style={{ backgroundColor: group.colorHex }}
-                                      />
-                                    )}
-                                    <span className="truncate text-sm font-medium">
-                                      {group.colorName}
-                                    </span>
-                                  </div>
-                                  <span className="text-[11px] text-muted-foreground">
-                                    {group.images.length} foto{group.images.length !== 1 ? 's' : ''}{' '}
-                                    · {groupStock} un.
-                                  </span>
-                                </div>
-                                {isSelected && (
-                                  <Check className="h-4 w-4 flex-shrink-0 text-primary" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <ProductVariantSelector
+                    variantGroups={variantGroups}
+                    sendMode={sendMode}
+                    setSendMode={setSendMode}
+                    selectedColorGroup={selectedColorGroup}
+                    setSelectedColorGroup={setSelectedColorGroup}
+                    setIsEditing={setIsEditing}
+                  />
                 )}
 
                 {loadingVariants && (
@@ -339,56 +237,12 @@ export const SendProductDialog: React.FC<SendProductDialogProps> = ({
                 <Separator />
 
                 {visibleImages.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        {selectedImages.size} de {visibleImages.length} fotos selecionadas
-                      </span>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 text-xs"
-                        onClick={() =>
-                          selectedImages.size === visibleImages.length
-                            ? setSelectedImages(new Set())
-                            : setSelectedImages(new Set(visibleImages.map((i) => i.url)))
-                        }
-                      >
-                        {selectedImages.size === visibleImages.length
-                          ? 'Desmarcar todas'
-                          : 'Selecionar todas'}
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {visibleImages.map((img) => (
-                        <button
-                          key={img.url}
-                          onClick={() => toggleImage(img.url)}
-                          className={cn(
-                            'relative h-16 w-16 overflow-hidden rounded-lg border-2 transition-all',
-                            selectedImages.has(img.url)
-                              ? 'border-primary ring-2 ring-primary/30'
-                              : 'border-border/50 opacity-60 hover:opacity-100'
-                          )}
-                        >
-                          <img
-                            src={img.url}
-                            alt={img.label}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                          {selectedImages.has(img.url) && (
-                            <div className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                              <Check className="h-3 w-3 text-primary-foreground" />
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <ProductImageGrid
+                    visibleImages={visibleImages}
+                    selectedImages={selectedImages}
+                    setSelectedImages={setSelectedImages}
+                    toggleImage={toggleImage}
+                  />
                 )}
 
                 <Separator />

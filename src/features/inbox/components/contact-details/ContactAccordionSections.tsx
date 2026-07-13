@@ -1,11 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
-  Plus,
   Tag,
   Sparkles,
   User,
@@ -14,15 +10,12 @@ import {
   BarChart3,
   Brain,
   Info,
-  TagsIcon,
   Smartphone,
-  Image,
   ListTodo,
   Bell,
   TrendingUp,
   ShoppingBag,
   GitBranch,
-  X,
   Activity,
   CheckCheck,
 } from 'lucide-react';
@@ -47,6 +40,9 @@ import { ContactPurchasesPanel } from '../ContactPurchasesPanel';
 import { ConversationTimeline } from '../ConversationTimeline';
 import { SLATimelineSection } from './SLATimelineSection';
 import { DeliveryStatsPanel } from '../DeliveryStatsPanel';
+import { Section, sectionVariants } from './ContactAccordionSection';
+import { ContactTagsContent } from './ContactTagsContent';
+import { SharedMediaAccordionItem } from './SharedMediaAccordionItem';
 
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
@@ -55,16 +51,6 @@ import type {
   AIConversationTag,
   SLAInfo,
 } from '@/hooks/useContactEnrichedData';
-import { dbFrom } from '@/integrations/datasource/db';
-
-const sectionVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: 0.08 * i, duration: 0.3, ease: 'easeOut' as const },
-  }),
-};
 
 interface ContactAccordionSectionsProps {
   contact: Contact;
@@ -84,12 +70,8 @@ export function ContactAccordionSections({
   profileId,
 }: ContactAccordionSectionsProps) {
   const [mediaOpen, setMediaOpen] = useState(false);
-  // Lazy: só montamos o componente da galeria depois do primeiro clique,
-  // garantindo zero requisições/efeitos enquanto o usuário só navega no inbox.
   const [mediaMounted, setMediaMounted] = useState(false);
 
-  // Fecha a galeria e descarta o componente ao trocar de contato para
-  // evitar estado aberto indevido e liberar a query da lista.
   useEffect(() => {
     setMediaOpen(false);
     setMediaMounted(false);
@@ -103,7 +85,6 @@ export function ContactAccordionSections({
   return (
     <>
       <Section
-        key="info-section"
         index={0}
         value="info"
         icon={<Info className="h-3.5 w-3.5 text-primary" />}
@@ -113,7 +94,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="wa-status-section"
         index={1}
         value="whatsapp-status"
         icon={<Smartphone className="h-3.5 w-3.5 text-primary" />}
@@ -124,7 +104,6 @@ export function ContactAccordionSections({
 
       {(slaInfo || aiTags.length > 0) && (
         <Section
-          key="sla-ai-section"
           index={1}
           value="sla-ai"
           icon={<Brain className="h-3.5 w-3.5 text-primary" />}
@@ -135,7 +114,6 @@ export function ContactAccordionSections({
       )}
 
       <Section
-        key="sla-config-section"
         index={1.2}
         value="sla-config"
         icon={<Clock className="h-3.5 w-3.5 text-primary" />}
@@ -147,7 +125,6 @@ export function ContactAccordionSections({
       {isExternalConfigured && (
         <div key="external-sections">
           <Section
-            key="crm-360-section"
             index={2}
             value="crm-360"
             icon={<Sparkles className="h-3.5 w-3.5 text-primary" />}
@@ -156,7 +133,6 @@ export function ContactAccordionSections({
             <ExternalContact360Panel phone={contact.phone} />
           </Section>
           <Section
-            key="intelligence-section"
             index={2.5}
             value="intelligence"
             icon={<Brain className="h-3.5 w-3.5 text-primary" />}
@@ -168,7 +144,6 @@ export function ContactAccordionSections({
       )}
 
       <Section
-        key="tags-section"
         index={3}
         value="tags"
         icon={<Tag className="h-3.5 w-3.5 text-primary" />}
@@ -179,11 +154,10 @@ export function ContactAccordionSections({
             : undefined
         }
       >
-        <TagsContent contact={contact} conversation={conversation} />
+        <ContactTagsContent contact={contact} conversation={conversation} />
       </Section>
 
       <Section
-        key="assignment-section"
         index={4}
         value="assignment"
         icon={<User className="h-3.5 w-3.5 text-primary" />}
@@ -193,7 +167,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="tasks-section"
         index={5.5}
         value="tasks"
         icon={<ListTodo className="h-3.5 w-3.5 text-primary" />}
@@ -203,7 +176,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="reminders-section"
         index={5.7}
         value="reminders"
         icon={<Bell className="h-3.5 w-3.5 text-primary" />}
@@ -213,7 +185,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="memory-section"
         index={5.9}
         value="memory"
         icon={<Brain className="h-3.5 w-3.5 text-primary" />}
@@ -223,7 +194,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="scoring-section"
         index={6}
         value="scoring"
         icon={<TrendingUp className="h-3.5 w-3.5 text-primary" />}
@@ -233,7 +203,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="purchases-section"
         index={6.2}
         value="purchases"
         icon={<ShoppingBag className="h-3.5 w-3.5 text-primary" />}
@@ -243,7 +212,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="notes-section"
         index={6}
         value="notes"
         icon={<FileText className="h-3.5 w-3.5 text-primary" />}
@@ -253,7 +221,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="timeline-section"
         index={6.8}
         value="timeline"
         icon={<GitBranch className="h-3.5 w-3.5 text-primary" />}
@@ -263,7 +230,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="history-section"
         index={7}
         value="history"
         icon={<Clock className="h-3.5 w-3.5 text-primary" />}
@@ -277,7 +243,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="delivery-stats-section"
         index={7.3}
         value="delivery-stats"
         icon={<CheckCheck className="h-3.5 w-3.5 text-primary" />}
@@ -287,7 +252,6 @@ export function ContactAccordionSections({
       </Section>
 
       <Section
-        key="sla-timeline-section"
         index={7.5}
         value="sla-timeline"
         icon={<Activity className="h-3.5 w-3.5 text-primary" />}
@@ -310,6 +274,7 @@ export function ContactAccordionSections({
         </AccordionItem>
         <SharedMediaAccordionItem contactId={contact.id} onOpen={openMedia} />
       </motion.div>
+
       {mediaMounted && (
         <MediaGallery contactId={contact.id} open={mediaOpen} onOpenChange={setMediaOpen} />
       )}

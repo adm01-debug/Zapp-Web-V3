@@ -4,7 +4,7 @@
  * load / saveRow / deleteRow: data-layer puro.
  * createRow: recebe newPath/newRoles/newDesc como params (view-state fica na page).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { invalidateRouteRolesCache } from '@/features/auth';
@@ -18,63 +18,78 @@ export type RoutePermission = {
   updated_at: string;
 };
 
-export const ALL_ROLES: AppRole[] = ["dev", "admin", "manager", "supervisor", "agent"];
+export const ALL_ROLES: AppRole[] = ['dev', 'admin', 'manager', 'supervisor', 'agent'];
 
 export function useRoutePermissions() {
   const [rows, setRows] = useState<RoutePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingPath, setSavingPath] = useState<string | null>(null);
   const { toast } = useToast();
+  const isMountedRef = useRef(true);
 
   async function load() {
     setLoading(true);
     const { data, error } = await supabase
       .from('route_permissions')
-      .select("path, allowed_roles, description, is_system, updated_at")
-      .order("path", { ascending: true });
+      .select('path, allowed_roles, description, is_system, updated_at')
+      .order('path', { ascending: true });
+    if (!isMountedRef.current) return;
     if (error) {
-      toast({ title: "Erro ao carregar permissões", description: error.message, variant: "destructive" });
+      toast({
+        title: 'Erro ao carregar permissões',
+        description: error.message,
+        variant: 'destructive',
+      });
     } else {
       setRows((data ?? []) as RoutePermission[]);
     }
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   async function saveRow(path: string, nextRoles: AppRole[]) {
     setSavingPath(path);
     const { error } = await supabase
       .from('route_permissions')
       .update({ allowed_roles: nextRoles })
-      .eq("path", path);
+      .eq('path', path);
     setSavingPath(null);
     if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
       return false;
     }
     invalidateRouteRolesCache(path);
-    toast({ title: "Permissão atualizada", description: path });
+    toast({ title: 'Permissão atualizada', description: path });
     await load();
     return true;
   }
 
   async function deleteRow(path: string) {
-    const { error } = await supabase.from('route_permissions').delete().eq("path", path);
+    const { error } = await supabase.from('route_permissions').delete().eq('path', path);
     if (error) {
-      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+      toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' });
       return false;
     }
     invalidateRouteRolesCache(path);
-    toast({ title: "Rota removida", description: path });
+    toast({ title: 'Rota removida', description: path });
     await load();
     return true;
   }
 
   async function createRow(newPath: string, newRoles: AppRole[], newDesc: string) {
     const path = newPath.trim();
-    if (!path.startsWith("/")) {
-      toast({ title: "Path inválido", description: "Use um caminho começando com /", variant: "destructive" });
+    if (!path.startsWith('/')) {
+      toast({
+        title: 'Path inválido',
+        description: 'Use um caminho começando com /',
+        variant: 'destructive',
+      });
       return false;
     }
     const { error } = await supabase.from('route_permissions').insert({
@@ -84,11 +99,11 @@ export function useRoutePermissions() {
       is_system: false,
     });
     if (error) {
-      toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
+      toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' });
       return false;
     }
     invalidateRouteRolesCache();
-    toast({ title: "Rota cadastrada", description: path });
+    toast({ title: 'Rota cadastrada', description: path });
     await load();
     return true;
   }

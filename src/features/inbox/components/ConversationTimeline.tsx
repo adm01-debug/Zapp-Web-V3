@@ -59,6 +59,7 @@ const EVENT_CONFIG: Record<string, { icon: typeof ArrowRight; label: string; col
 export function ConversationTimeline({ contactId }: { contactId: string }) {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['conversation-timeline', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data, error } = await safeClient.from<TimelineEvent>('conversation_events', (q) =>
         q

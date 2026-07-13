@@ -35,7 +35,7 @@ const NODE_TO_FILE: Record<string, string> = {
   UTN: 'src/hooks/useTranscriptionNotifications.ts',
   URD: 'src/hooks/useRealtimeDashboard.ts',
   UEM: 'src/components/monitoring/hooks/useEvolutionMonitoring.ts',
-  AMP: 'src/features/inbox/components/AudioMessagePlayer.tsx',
+  AMP: 'src/features/inbox/components/useAudioMessagePlayer.ts',
 };
 
 function parseDiagramEdges(): Record<string, Set<Evt>> {

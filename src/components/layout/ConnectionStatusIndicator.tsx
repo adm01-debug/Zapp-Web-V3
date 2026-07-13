@@ -1,105 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
-import {
-  supabase,
-  isSupabaseConfigured,
-  warnSupabaseUnconfigured,
-} from '@/integrations/supabase/client';
-import { WifiOff, Wifi, RefreshCw, History } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { getLogger } from '@/lib/logger';
-import { evolutionInstanceName } from '@/lib/evolutionInstance';
-
-const log = getLogger('ConnectionStatusIndicator');
-const RECONNECT_COOLDOWN_MS = 30_000;
-const HISTORY_STORAGE_KEY = 'zappweb:connection-disconnect-history';
-const HISTORY_MAX_ENTRIES = 20;
-const HISTORY_VISIBLE = 5;
-const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
-const FILTER_STORAGE_KEY = 'zappweb:connection-popover-filter';
-const SELECTED_STORAGE_KEY = 'zappweb:connection-popover-selected';
-
-type FilterValue = 'all' | 'connected' | 'disconnected';
-
-const loadFilter = (): FilterValue => {
-  try {
-    const v = localStorage.getItem(FILTER_STORAGE_KEY);
-    if (v === 'connected' || v === 'disconnected' || v === 'all') return v;
-  } catch {
-    /* ignore */
-  }
-  return 'all';
-};
-
-const loadSelected = (): string | null => {
-  try {
-    return localStorage.getItem(SELECTED_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-};
-
-interface ConnectionRow {
-  id: string;
-  instance_id: string;
-  instance_name: string | null;
-  name: string | null;
-  phone_number: string | null;
-  status: string;
-}
-
-interface DisconnectEvent {
-  instance_id: string;
-  instance_name: string | null;
-  name?: string | null;
-  at: number; // epoch ms
-}
-
-interface Props {
-  collapsed?: boolean;
-}
-
-const loadHistory = (): DisconnectEvent[] => {
-  try {
-    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as DisconnectEvent[];
-    if (!Array.isArray(parsed)) return [];
-    const cutoff = Date.now() - HISTORY_TTL_MS;
-    return parsed.filter((e) => e && typeof e.at === 'number' && e.at >= cutoff);
-  } catch {
-    return [];
-  }
-};
-
-const saveHistory = (events: DisconnectEvent[]) => {
-  try {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(events.slice(0, HISTORY_MAX_ENTRIES)));
-  } catch {
-    /* ignore quota errors */
-  }
-};
-
-const formatRelative = (ts: number): string => {
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return 'agora';
-  if (min < 60) return `há ${min}min`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `há ${hr}h`;
-  const d = Math.floor(hr / 24);
-  return `há ${d}d`;
-};
-
 /**
  * Indicador discreto de status das conexões WhatsApp.
  * Substitui o antigo banner vermelho fixo no topo da página.
  * - Verde: tudo conectado
  * - Âmbar: 1+ desconectada(s) — Popover com lista + ação Reconectar
  */
+import { WifiOff, Wifi } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { useConnectionStatusIndicator } from './useConnectionStatusIndicator';
+import { ConnectionPopoverContent } from './ConnectionPopoverContent';
+
+interface Props {
+  collapsed?: boolean;
+}
+
 export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   const [connections, setConnections] = useState<ConnectionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,11 +254,6 @@ export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   };
 
   if (loading || connections.length === 0) return null;
-
-  const disconnected = connections.filter((c) => c.status !== 'connected');
-  const total = connections.length;
-  const connected = total - disconnected.length;
-  const hasIssue = disconnected.length > 0;
 
   const triggerLabel = hasIssue
     ? `${disconnected.length} conexão${disconnected.length > 1 ? 'ões' : ''} offline`

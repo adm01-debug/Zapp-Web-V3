@@ -47,6 +47,7 @@ export function useBusinessHours(connectionId: string) {
     refetch: refetchHours,
   } = useQuery({
     queryKey: ['business-hours', connectionId],
+    staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await safeClient.from<BusinessHour>('business_hours', (q) =>
         q.select('*').eq('whatsapp_connection_id', connectionId).order('day_of_week')

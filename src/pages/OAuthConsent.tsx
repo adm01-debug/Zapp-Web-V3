@@ -5,12 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
-interface OAuthAuthorizationDetails {
-  redirect_url?: string;
-  redirect_to?: string;
-  client?: { name: string } | null;
-}
-
 // Minimal typed wrapper — supabase.auth.oauth is in beta and TS types may lag.
 interface OAuthDetails {
   redirect_url?: string;
@@ -32,7 +26,6 @@ type OAuthNs = {
 };
 
 function oauth(): OAuthNs {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (supabase.auth as unknown as { oauth: OAuthNs }).oauth; // ignore-audit — supabase.auth.oauth is beta, not in generated TS types
 }
 

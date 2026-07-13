@@ -147,6 +147,7 @@ export function TalkXBlacklist() {
       queryClient.invalidateQueries({ queryKey: ['talkx-blacklist'] });
       toast.success('Contato removido da lista negra');
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (

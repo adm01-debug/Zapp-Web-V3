@@ -48,6 +48,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['team-files', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data, error } = await safeClient.from<WhisperFile>('whisper_files', (q) =>
         q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
@@ -112,6 +113,13 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
       toast({ title: 'Arquivo removido' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover arquivo',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 

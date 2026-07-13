@@ -114,6 +114,7 @@ export function useTalkX() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteCampaign = useMutation({
@@ -125,6 +126,7 @@ export function useTalkX() {
       queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
       toast.success('Campanha excluída');
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const addRecipients = useMutation({
@@ -151,6 +153,7 @@ export function useTalkX() {
       queryClient.invalidateQueries({ queryKey: ['talkx-campaigns'] });
       toast.success('Contatos adicionados!');
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const startCampaign = useCallback(

@@ -1,28 +1,27 @@
-// @ts-nocheck
 // Round 14 Fix P6: EmailChatBubble with config-based sanitization
 // Gap 3.2: Recursive component hook collision prevention
 
 import React, { useMemo } from 'react';
 import DOMPurify from 'isomorphic-dompurify';
 import { sanitizeHtmlWithHooks } from '@/lib/sanitize-v2';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('EmailChatBubble');
 
 interface EmailChatBubbleProps {
   email?: string;
   className?: string;
 }
 
-export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({
-  email,
-  className,
-}) => {
+export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({ email, className }) => {
   // Memoize sanitization to prevent re-runs on component re-render
   const sanitizedHtml = useMemo(() => {
     if (!email) return '';
-    
+
     try {
       return sanitizeHtmlWithHooks(email);
     } catch (err) {
-      console.error('Email sanitization failed:', err);
+      log.error('Email sanitization failed:', err);
       return '';
     }
   }, [email]);
@@ -42,10 +41,7 @@ export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({
 };
 
 // Alternative: Safer version using DOMParser
-export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({
-  email,
-  className,
-}) => {
+export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({ email, className }) => {
   const sanitizedElement = useMemo(() => {
     if (!email) return null;
 
@@ -61,9 +57,9 @@ export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({
       // Parse result and apply tabnabbing prevention
       const parser = new DOMParser();
       const doc = parser.parseFromString(sanitized, 'text/html');
-      
+
       // Prevent tabnabbing on all external links
-      doc.querySelectorAll('a').forEach(link => {
+      doc.querySelectorAll('a').forEach((link) => {
         if (link.hasAttribute('href')) {
           link.setAttribute('target', '_blank');
           link.setAttribute('rel', 'noopener noreferrer nofollow');
@@ -72,7 +68,7 @@ export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({
 
       return doc.body.innerHTML;
     } catch (err) {
-      console.error('Email rendering failed:', err);
+      log.error('Email rendering failed:', err);
       return '';
     }
   }, [email]);
@@ -91,4 +87,3 @@ export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({
 };
 
 export default EmailChatBubble;
-

@@ -5,10 +5,7 @@ import {
   Plus,
   Command,
   Filter,
-  Clock,
-  History,
   Tag,
-  Trash2,
   Inbox,
   Zap,
   ArrowRight,
@@ -25,6 +22,7 @@ import { log } from '@/lib/logger';
 import { useGlobalSearchData, type SearchResult } from './useGlobalSearchData';
 import { GlobalSearchFilters } from './search/GlobalSearchFilters';
 import { GlobalSearchResults } from './search/GlobalSearchResults';
+import { GlobalSearchHistory } from './search/GlobalSearchHistory';
 
 interface QuickAction {
   id: string;
@@ -137,7 +135,6 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
 
   const handleSelect = useCallback(
     (result: SearchResult) => {
-      // Telemetry — fire-and-forget; never blocks the navigation.
       if (search && search.trim().length >= 2) {
         safeClient
           .rpc('rpc_record_search_click', {
@@ -168,7 +165,6 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
     [handleSearch, performSearch, activeTypes, dateFilter, selectedTags, mediaTypeFilter]
   );
 
-  // Keyboard navigation
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -364,49 +360,13 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
             </div>
           )}
 
-          {showHistory && (
-            <div className="p-2">
-              <div className="flex items-center justify-between px-2 pb-2">
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <History className="h-3 w-3" /> Buscas recentes
-                </span>
-                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={clearHistory}>
-                  <Trash2 className="mr-1 h-3 w-3" /> Limpar
-                </Button>
-              </div>
-              {history.map((item) => (
-                <button
-                  key={item.timestamp}
-                  onClick={() => handleHistorySelect(item.query)}
-                  className="group flex w-full items-center justify-between rounded-lg p-2 text-left transition-colors hover:bg-muted/50"
-                >
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{item.query}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {item.resultCount !== undefined && (
-                      <span className="text-xs text-muted-foreground">
-                        {item.resultCount} resultados
-                      </span>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeFromHistory(item.query);
-                      }}
-                      aria-label="Remover do histórico"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          <GlobalSearchHistory
+            show={showHistory}
+            history={history}
+            onSelect={handleHistorySelect}
+            onRemove={removeFromHistory}
+            onClear={clearHistory}
+          />
 
           <GlobalSearchResults
             results={results}

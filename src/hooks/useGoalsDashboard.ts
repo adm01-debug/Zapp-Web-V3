@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import type { ElementType } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
@@ -14,7 +15,7 @@ export interface Goal {
   target: number;
   current: number;
   unit: string;
-  icon: React.ElementType;
+  icon: ElementType;
   color: string;
   priority: 'high' | 'medium' | 'low';
 }
