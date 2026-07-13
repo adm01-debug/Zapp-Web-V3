@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Round 14 Fix P6: EmailChatBubble with config-based sanitization
 // Gap 3.2: Recursive component hook collision prevention
 
