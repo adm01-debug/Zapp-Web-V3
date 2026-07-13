@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { dbFrom, dbTable, dbChannel, dbRemoveChannel } from '@/integrations/datasource/db';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';

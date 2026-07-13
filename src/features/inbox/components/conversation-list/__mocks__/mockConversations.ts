@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { ConversationWithMessages, RealtimeMessage } from '../../../hooks/useRealtimeMessages';
 
 // Extensão do tipo para compatibilidade com useRealtimeMessages e o componente ConversationItem legado

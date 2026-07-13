@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/types/chat';

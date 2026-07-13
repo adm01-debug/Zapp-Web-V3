@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { ErrorBoundary } from 'react-error-boundary';

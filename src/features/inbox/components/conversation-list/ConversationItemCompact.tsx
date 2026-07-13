@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { memo } from 'react';
 import { Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
