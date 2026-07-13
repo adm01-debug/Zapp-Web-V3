@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,13 +31,28 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  Minus,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useRetryMetrics, type RetryMetricsFilters } from '@/features/admin';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, Legend } from 'recharts';
 import { RetryAlertsConfig } from './RetryAlertsConfig';
 import { RetryAlertsBanner } from './RetryAlertsBanner';
 import { RetrySchedulePreview } from './RetrySchedulePreview';
-import { TopReasonsChart } from './TopReasonsChart';
-import { useRetryMetricsPanelState } from './useRetryMetricsPanelState';
+import {
+  evaluateAllInstances,
+  loadThresholds,
+  loadPerInstanceThresholds,
+  shouldFireRetryAlert,
+  subscribeRetryAlertsStorage,
+  loadRetryAlertDedupeMode,
+  buildRetryAlertDedupeKey,
+  RETRY_ALERT_COOLDOWN_MS,
+  type RetryThresholds,
+  type PerInstanceThresholds,
+  type RetryAlertDedupeMode,
+} from '@/lib/retryAlerts';
 
 const HOURS_OPTIONS: Array<{ value: number; label: string }> = [
   { value: 1, label: '1h' },
@@ -61,6 +77,7 @@ function statusVariant(status: string): 'default' | 'destructive' | 'secondary' 
     case 'success':
       return 'default';
     case 'failed':
+      return 'destructive';
     case 'exhausted':
       return 'destructive';
     default:
@@ -81,65 +98,114 @@ function statusIcon(status: string) {
   }
 }
 
-interface KpiCardProps {
-  label: string;
-  value: number | string;
-  subtitle?: string;
-  delta?: number | null;
-}
-
-function KpiCard({ label, value, subtitle, delta }: KpiCardProps) {
-  return (
-    <div className="rounded-lg border bg-card p-3">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-xl font-semibold">{value}</span>
-        {typeof delta === 'number' && (
-          <span
-            className={cn(
-              'inline-flex items-center gap-0.5 text-[10px] font-medium',
-              delta > 0 ? 'text-warning-foreground' : 'text-primary'
-            )}
-          >
-            {delta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {Math.abs(delta)}%
-          </span>
-        )}
-      </div>
-      {subtitle && <p className="mt-0.5 text-[10px] text-muted-foreground">{subtitle}</p>}
-    </div>
-  );
-}
-
 export function RetryMetricsPanel() {
-  const {
+  const [hours, setHours] = useState<number>(24);
+  const [actionFilter, setActionFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [thresholds, setThresholds] = useState<RetryThresholds>(() => loadThresholds());
+  const [perInstance, setPerInstance] = useState<PerInstanceThresholds>(() =>
+    loadPerInstanceThresholds()
+  );
+  const [dedupeMode, setDedupeMode] = useState<RetryAlertDedupeMode>(() =>
+    loadRetryAlertDedupeMode()
+  );
+  const [compareMode, setCompareMode] = useState<boolean>(false);
+
+  const filters: RetryMetricsFilters = {
     hours,
-    setHours,
-    actionFilter,
-    setActionFilter,
-    statusFilter,
-    setStatusFilter,
-    expanded,
-    toggle,
-    thresholds,
-    setThresholds,
-    perInstance,
-    setPerInstance,
-    dedupeMode,
-    setDedupeMode,
-    compareMode,
-    setCompareMode,
-    rows,
-    agg,
-    data,
-    isLoading,
-    refetch,
-    isFetching,
-    byInstance,
-    breaches,
-    actionOptions,
-    copy,
-  } = useRetryMetricsPanelState();
+    action: actionFilter === 'all' ? null : actionFilter,
+    status: statusFilter === 'all' ? null : (statusFilter as RetryMetricsFilters['status']),
+  };
+
+  const { data, isLoading, refetch, isFetching, byInstance } = useRetryMetrics(filters);
+
+  const rows = data?.rows ?? [];
+  const agg = data?.aggregates;
+
+  const breaches = useMemo(
+    () => evaluateAllInstances(byInstance, thresholds, perInstance),
+    [byInstance, thresholds, perInstance]
+  );
+
+  // Sincroniza thresholds salvos em outras abas via `window.storage` event,
+  // sem esperar TTL/refetch. O evento só dispara em outras abas, então a aba
+  // que salvou continua usando o estado já setado por `onChange` do dialog.
+  useEffect(() => {
+    return subscribeRetryAlertsStorage(({ thresholds: t, perInstance: p, dedupeMode: m }) => {
+      setThresholds(t);
+      setPerInstance(p);
+      setDedupeMode(m);
+      toast.message('Configurações de alerta atualizadas em outra aba.', { duration: 3500 });
+    });
+  }, []);
+
+  // Toast quando há violação. Granularidade do dedupe é configurável:
+  // `instance` agrega p95+failure_rate em um único toast por instância;
+  // `instance+kind` (default) emite um toast separado para cada tipo de violação.
+  // Cooldown de 5 min — espelha o padrão de webhookHealthAlerts.
+  const cooldownRef = useRef<Map<string, number>>(new Map());
+  useEffect(() => {
+    // Reset apenas quando a janela OU o modo de dedupe muda — edições de
+    // thresholds não re-disparam, mas trocar a granularidade requer um estado
+    // limpo para evitar colisões espúrias entre as duas chaves.
+    cooldownRef.current = new Map();
+  }, [hours, dedupeMode]);
+
+  useEffect(() => {
+    for (const b of breaches) {
+      // Quando `instance+kind`: um toast por kind. Quando `instance`: a primeira
+      // chamada vence o cooldown e as demais kinds são absorvidas no mesmo toast
+      // (descrição combinada).
+      const seenForInstance = new Set<string>();
+      for (const d of b.details) {
+        const key = buildRetryAlertDedupeKey(b.instance, d.kind, hours, dedupeMode);
+        if (seenForInstance.has(key)) continue;
+        seenForInstance.add(key);
+        if (!shouldFireRetryAlert(key, RETRY_ALERT_COOLDOWN_MS, cooldownRef.current)) continue;
+
+        const overrideTag = b.hasOverride ? ' (override próprio)' : '';
+        if (dedupeMode === 'instance+kind') {
+          const kindLabel = d.kind === 'p95' ? 'p95 alto' : '% falha alta';
+          toast.error(`Retry degradado em ${b.instance} — ${kindLabel}${overrideTag}`, {
+            description: `${d.label} · janela ${hours}h · ${b.metrics.total} runs`,
+            duration: 8000,
+          });
+        } else {
+          // Modo `instance`: combina TODOS os motivos da instância no toast único.
+          const allLabels = b.details.map((x) => x.label).join(' · ');
+          const kindsTag = b.details.map((x) => (x.kind === 'p95' ? 'p95' : 'falha%')).join('+');
+          toast.error(`Retry degradado em ${b.instance}${overrideTag}`, {
+            description: `${kindsTag}: ${allLabels} · janela ${hours}h · ${b.metrics.total} runs`,
+            duration: 8000,
+          });
+          // Em modo agregado, paramos após o primeiro detail — o toast já cobre todos.
+          break;
+        }
+      }
+    }
+  }, [breaches, hours, dedupeMode]);
+
+  const actionOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => set.add(r.action));
+    if (agg) agg.topActions.forEach((a) => set.add(a.action));
+    return Array.from(set).sort();
+  }, [rows, agg]);
+
+  const toggle = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copiado!');
+  };
 
   const deltaPct = data?.deltaPct;
 
@@ -237,9 +303,13 @@ export function RetryMetricsPanel() {
           <KpiCard label="Duração média" value={`${agg?.avgDurationMs ?? 0}ms`} />
         </div>
 
+        {/* Banner de alertas por instância */}
         <RetryAlertsBanner breaches={breaches} />
+
+        {/* Prévia do cronograma de tentativas/abort por instância */}
         <RetrySchedulePreview instances={byInstance.map((b) => b.instance)} />
 
+        {/* Top reasons — bar chart (top 10) */}
         {agg && agg.topReasons.length > 0 && (
           <TopReasonsChart
             reasons={agg.topReasons}
@@ -249,6 +319,7 @@ export function RetryMetricsPanel() {
           />
         )}
 
+        {/* Tabela */}
         {isLoading ? (
           <div className="py-6 text-center text-xs text-muted-foreground">Carregando…</div>
         ) : rows.length === 0 ? (
