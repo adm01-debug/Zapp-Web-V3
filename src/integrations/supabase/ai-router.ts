@@ -64,7 +64,7 @@ export async function callAiRouter<T extends AiRouterResponse = AiRouterResponse
     retries?: number;
   }
 ): Promise<T> {
-  const { timeout = 60_000, retries = 1 } = options || {};
+  const { timeout: _timeout = 60_000, retries = 1 } = options || {};
 
   // Validate action is known (A1, A2, A4 scenario prevention)
   const validActions = [

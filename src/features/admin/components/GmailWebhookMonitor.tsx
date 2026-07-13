@@ -6,7 +6,6 @@ import { Mail, RefreshCw, CheckCircle, AlertCircle, Clock, Wifi, WifiOff } from 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
 interface EmailAccount {

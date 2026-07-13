@@ -8,7 +8,6 @@ import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
-import type { WhatsAppConnection } from '@/features/connections';
 
 export interface DegradedConnection {
   id: string;

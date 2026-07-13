@@ -4,7 +4,6 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDensity } from '@/hooks/useDensity';
-import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { MobilePullToRefreshIndicator } from '@/components/mobile/MobilePullToRefresh';
 import { VirtualizedRealtimeList } from './VirtualizedRealtimeList';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
@@ -13,9 +12,6 @@ import { InboxFilters } from './InboxFilters';
 import { ContactTypeFilter, FILTER_OPTIONS } from './ContactTypeFilter';
 import { FailureCategoryFilter } from './FailureCategoryFilter';
 import { TicketTabs } from './TicketTabs';
-import type { useInboxFilters } from '../hooks/useInboxFilters';
-import type { useInboxBulkActions } from '../hooks/useInboxBulkActions';
-import type { useRealtimeInbox } from '../hooks/useRealtimeInbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,

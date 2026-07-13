@@ -56,7 +56,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     record('Auth Check', 'pass', { user: session.user.email });
 
     // Passo 2: Buscar Configuração Atual no Banco
-    const { data: configRows, error: fetchError } = await safeClient.from<{
+    const { data: configRows, error: _fetchError } = await safeClient.from<{
       config: { url?: string; anon_key?: string };
     }>('system_connections', (q) =>
       q.select('*').eq('name', 'FATOR X').eq('provider', 'supabase_external').limit(1)
@@ -90,7 +90,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     // Verify the upsert
     if (!upsertError) {
       const testName = '_DIAGNOSTICS_TEST';
-      const { data: verifyData, error: verifyError } = await safeClient.single<SystemConnectionRow>(
+      const { data: _verifyData, error: _verifyError } = await safeClient.single<SystemConnectionRow>(
         'system_connections',
         (q: any) => q.select('*').eq('name', testName) // ignore-audit
       );

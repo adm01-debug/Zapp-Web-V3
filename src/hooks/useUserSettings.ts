@@ -5,7 +5,6 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
-import { generateCorrelationId } from '@/lib/correlationId';
 
 // Default ElevenLabs voice: Custom system voice
 const DEFAULT_TTS_VOICE_ID = 'TY3h8ANhQUsJaa0Bga5F';
@@ -14,7 +13,7 @@ const DEFAULT_TTS_SPEED = 1.0;
 // Validation schema for user settings - prevents invalid state mutations
 const TimeFormatRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
 
-const UserSettingsSchema = z.object({
+const _UserSettingsSchema = z.object({
   user_id: z.string().uuid(),
   business_hours_enabled: z.boolean(),
   business_hours_start: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),

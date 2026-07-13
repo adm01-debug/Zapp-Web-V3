@@ -1,13 +1,6 @@
 // @ts-nocheck
 import React, { useMemo, useEffect, useState } from 'react';
 
-interface StsMetricRow {
-  voice_preset: string;
-  error_rate: number;
-  avg_latency_ms: number;
-  p99_latency?: number | null;
-  latest_error?: string | null;
-}
 import { getLogger } from '@/lib/logger';
 import {
   BarChart,

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Star, Plus, Trash2, Loader2, Users, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { normalizeProfileRef } from '@/features/admin/utils/profileMappers';
+import { normalizeProfileRef } from '../utils/profileMappers';
 
 interface Profile {
   id: string;

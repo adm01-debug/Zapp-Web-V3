@@ -26,8 +26,8 @@ const VOID_DANGEROUS_TAGS = new Set<string>([
 const DANGEROUS_PROTOCOL_RE = /^(javascript|data|vbscript):/i;
 const EVENT_ATTR_RE = /^on/i;
 
-// Config object kept for API compatibility (function signature uses Partial<typeof SANITIZE_CONFIG>)
-const SANITIZE_CONFIG = {
+// Config object kept for API compatibility (function signature uses Partial<typeof _SANITIZE_CONFIG>)
+const _SANITIZE_CONFIG = {
   ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'u', 'p', 'br', 'a'],
   ALLOWED_ATTR: ['href', 'title', 'target'],
   KEEP_CONTENT: true,
@@ -122,6 +122,7 @@ function decodeHtmlEntities(html: string): string {
  * @throws If control characters detected
  */
 function validateNoControlCharacters(text: string): void {
+  // eslint-disable-next-line no-control-regex
   if (/[\x00-\x1F\x7F]/.test(text)) {
     throw new Error('Input contains invalid control characters');
   }
@@ -223,7 +224,7 @@ export interface SanitizeResult {
  */
 export function sanitizeHtml(
   html: unknown,
-  _options?: Partial<typeof SANITIZE_CONFIG>
+  _options?: Partial<typeof _SANITIZE_CONFIG>
 ): SanitizeResult {
   try {
     // EXPLICIT validation (Gap 6.1 - prevent null coercion)

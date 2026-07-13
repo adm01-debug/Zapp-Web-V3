@@ -183,7 +183,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
         // FALHA 6 FIX: Auto-save with error handling
         try {
-          const { data: existing, error: existingErr } = await supabase
+          const { data: existing, error: _existingErr } = await supabase
             .from('stickers')
             .select('id')
             .eq('image_url', stickerUrl)

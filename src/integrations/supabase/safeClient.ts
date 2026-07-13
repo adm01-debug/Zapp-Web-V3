@@ -2,7 +2,6 @@
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import { PostgrestError } from '@supabase/supabase-js';
-import { generateCorrelationId } from '@/lib/correlationId';
 
 const supabase = _supabase;
 const _log = getLogger('safeClient');
@@ -221,7 +220,7 @@ async function executeQuery<T>(
   }
 }
 
-async function executeSingle<T>(
+async function _executeSingle<T>(
   table: string,
   callback: (q: SafeQueryBuilder) => AnyQueryResult
 ): Promise<SafeResponse<T>> {
@@ -231,7 +230,7 @@ async function executeSingle<T>(
   });
 }
 
-async function executeFrom<T>(
+async function _executeFrom<T>(
   table: string,
   callback: (q: SafeQueryBuilder) => AnyQueryResult
 ): Promise<SafeResponse<T[]>> {
@@ -239,7 +238,7 @@ async function executeFrom<T>(
   return result;
 }
 
-async function executeRpc<T = unknown>(
+async function _executeRpc<T = unknown>(
   fn: string,
   params?: Record<string, unknown>
 ): Promise<SafeResponse<T>> {
@@ -271,7 +270,7 @@ async function executeRpc<T = unknown>(
   }
 }
 
-async function invokeFunction<T = unknown>(fn: string, body?: unknown): Promise<SafeResponse<T>> {
+async function _invokeFunction<T = unknown>(fn: string, body?: unknown): Promise<SafeResponse<T>> {
   const requestId = generateRequestId();
   telemetry.stats.totalCalls++;
   try {
@@ -292,11 +291,11 @@ async function invokeFunction<T = unknown>(fn: string, body?: unknown): Promise<
   }
 }
 
-function getTelemetry(): ClientTelemetry {
+function _getTelemetry(): ClientTelemetry {
   return { ...telemetry, recentFailures: [...telemetry.recentFailures] };
 }
 
-function getCacheInfo(): CacheInfo {
+function _getCacheInfo(): CacheInfo {
   return { ...cache };
 }
 

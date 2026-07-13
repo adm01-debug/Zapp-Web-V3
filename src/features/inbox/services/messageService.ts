@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { supabase } from '@/integrations/supabase/client';
 import { messageRepository } from '../data-access/messageRepository';
 import type { Message } from '@/types/chat';
 import type { RealtimeMessage } from '../hooks/useRealtimeMessages';
@@ -62,7 +61,7 @@ export const messageService = {
       // Fetch whispers in parallel if contactId is valid UUID.
       // whisper_messages.contact_id is a uuid column; WhatsApp JIDs cause 400 error.
       // Query whispers concurrently rather than sequentially (N+1 mitigation).
-      let whispersData: (Partial<RealtimeMessage> & { isWhisper?: boolean; sender_id?: string })[] = [];
+      const whispersData: (Partial<RealtimeMessage> & { isWhisper?: boolean; sender_id?: string })[] = [];
       if (isValidUUID(contactId)) {
         const { data: whispers, error: whisperErr } = await messageRepository.fetchWhispersByContact(contactId);
 

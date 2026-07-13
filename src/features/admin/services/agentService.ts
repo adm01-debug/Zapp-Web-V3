@@ -1,5 +1,4 @@
 import { agentRepository, AgentProfile } from '../data-access/agentRepository';
-import { normalizeAgentProfiles } from '../utils/profileMappers';
 
 export interface AgentWithStats extends AgentProfile {
   activeChats: number;

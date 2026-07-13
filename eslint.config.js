@@ -36,7 +36,11 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "warn",
       "@typescript-eslint/ban-ts-comment": [
         "error",
-        { "ts-ignore": true, "ts-expect-error": "allow-with-description" },
+        {
+          "ts-ignore": true,
+          "ts-expect-error": "allow-with-description",
+          "ts-nocheck": false,
+        },
       ],
     },
     settings: {

@@ -95,7 +95,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
   // dialog de mesclagem direto com esse objeto (via cast) faz
   // `contact.tags.length` estourar em runtime. Buscamos o registro completo
   // antes de abrir, para a decisão de mesclagem não usar dados forjados.
-  const openMergeDialog = useCallback(
+  const _openMergeDialog = useCallback(
     async (duplicateId: string) => {
       setLoadingMergeTarget(true);
       try {

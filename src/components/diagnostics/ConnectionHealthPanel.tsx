@@ -45,7 +45,7 @@ export function ConnectionHealthPanel() {
   const [recentLogs, setRecentLogs] = useState<HealthLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedId] = useState<string | null>(null);
   const mountedRef = useMountedRef();
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -53,7 +53,7 @@ export function ConnectionHealthPanel() {
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
   }, []);
 
-  const handleCopyQrLink = async (conn: ConnectionHealth) => {
+  const handleCopyQrLink = async (_conn: ConnectionHealth) => {
     toast.error('Funcionalidade de QR link requer acesso seguro — use o painel de configurações.');
   };
 

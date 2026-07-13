@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DispatchErrorLogRow {
@@ -66,7 +65,7 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
         p_error_code: errorCode,
         p_search: search,
         p_limit: pageSize,
-        p_cursor_id: currentPageCursor,
+        p_cursor_id: null,
       });
       if (error) throw error;
       const list = (data ?? []) as _RpcRow[];
@@ -79,23 +78,4 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
-
-  // Update page history with cursor for next page when current page loads
-  useEffect(() => {
-    if (query.data?.rows && query.data.rows.length > 0) {
-      const lastRow = query.data.rows[query.data.rows.length - 1];
-      setPageIndexToCursor((prev) => {
-        const updated = new Map(prev);
-        updated.set(page + 1, lastRow.id);
-        return updated;
-      });
-    }
-  }, [query.data?.rows, page]);
-
-  // Reset page history when filters change
-  useEffect(() => {
-    setPageIndexToCursor(new Map([[0, null]]));
-  }, [hours, instance, agent, errorCode, search]);
-
-  return { ...query };
 }

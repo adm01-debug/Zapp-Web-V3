@@ -42,17 +42,6 @@ export interface MessageSendHistory {
 
 const STALE_MS = 15_000;
 
-interface OutboundAuditRow {
-  id: string;
-  event_type: string | null;
-  status: string | null;
-  latency_ms: number | null;
-  instance_name: string | null;
-  error_message: string | null;
-  created_at: string;
-  metadata: Record<string, unknown> | null;
-}
-
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageSendHistory>({
     queryKey: ['message-send-history', messageId],
@@ -65,7 +54,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
       // Tabelas evolution_retry_metrics/outbound_delivery_audit ainda não estão em types.ts —
       // usamos cast para `any` até a próxima regeneração dos tipos.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supa = supabase as any; // ignore-audit — evolution_retry_metrics/outbound_delivery_audit not in generated types
+      // ignore-audit — evolution_retry_metrics/outbound_delivery_audit not in generated types
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
         supabase
           .from('evolution_retry_metrics')

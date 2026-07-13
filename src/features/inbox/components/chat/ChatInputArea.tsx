@@ -36,7 +36,6 @@ import { InputPreviewBars } from './InputPreviewBars';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
-import type { QueueItem } from '@/features/inbox/hooks/useMessageQueue';
 
 interface QuickReplyItem {
   id: string;

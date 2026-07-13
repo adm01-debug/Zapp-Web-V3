@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/select';
 import { Megaphone, Loader2 } from 'lucide-react';
 import { UseMutationResult } from '@tanstack/react-query';
-import type { Campaign } from '@/hooks/useCampaigns';
 
 type TargetType = 'all' | 'tag' | 'queue' | 'groups' | 'custom';
 type CampaignInput = Omit<FormData, 'target_type'> & { target_type: 'all' | 'custom' | 'queue' | 'tag' };

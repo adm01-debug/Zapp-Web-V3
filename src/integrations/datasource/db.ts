@@ -114,7 +114,7 @@ export async function dbRpc<P extends object, R>(
   const startedAt = performance.now();
   const correlationId = generateCorrelationId();
   const source = def.client === 'external' ? 'externalSupabase' : 'lovableCloud';
-  const { limit, offset } = extractPaginationParams(merged);
+  const { limit: _limit, offset: _offset } = extractPaginationParams(merged);
 
   try {
     const { data, error } = await client.rpc(def.name as unknown as Parameters<SupabaseClient['rpc']>[0], merged as Record<string, unknown>); // ignore-audit — RPC name is dynamic from catalog; SupabaseClient<Database>['rpc'] enforces literal union

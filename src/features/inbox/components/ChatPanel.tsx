@@ -13,7 +13,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
-import type { QueueItem } from '@/features/inbox/hooks/useMessageQueue';
+import type { QueueItem } from '../hooks/useMessageQueue';
 import { useChatMediaSending } from '../hooks/useChatMediaSending';
 
 import { CRMAutoSync } from './CRMAutoSync';

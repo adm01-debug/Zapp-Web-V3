@@ -8,21 +8,6 @@ import { getLogger } from '@/lib/logger';
 
 const mutationLog = getLogger('useReactionMutations');
 
-interface CachedReaction {
-  id: string;
-  message_id: string;
-  user_id: string;
-  emoji: string;
-  contact_id?: string;
-  created_at?: string;
-  user_name?: string;
-}
-
-interface ApiError extends Error {
-  status?: number | string;
-  code?: number | string;
-}
-
 interface ReactionMutationOptions {
   instanceName?: string;
   contactJid?: string;
