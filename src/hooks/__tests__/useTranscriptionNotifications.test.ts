@@ -67,7 +67,7 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn().mockReturnThis(),
-      unsubscribe: vi.fn().mockResolvedValue(undefined),
+      unsubscribe: vi.fn(),
     });
   });
 

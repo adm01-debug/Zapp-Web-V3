@@ -87,14 +87,22 @@ export function useKnowledgeBase() {
           .update(payload)
           .eq('id', editingId);
         if (error) {
-          toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+          const errMsg =
+            typeof error === 'object' && error !== null && 'message' in error
+              ? String((error as { message: unknown }).message)
+              : 'Erro desconhecido';
+          toast({ title: 'Erro', description: errMsg, variant: 'destructive' });
           return false;
         }
         toast({ title: 'Artigo atualizado!' });
       } else {
         const { error } = await safeFrom('knowledge_base_articles').insert(payload);
         if (error) {
-          toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+          const errMsg =
+            typeof error === 'object' && error !== null && 'message' in error
+              ? String((error as { message: unknown }).message)
+              : 'Erro desconhecido';
+          toast({ title: 'Erro', description: errMsg, variant: 'destructive' });
           return false;
         }
         toast({ title: 'Artigo criado!' });
@@ -121,9 +129,13 @@ export function useKnowledgeBase() {
         .from('whatsapp-media')
         .upload(fileName, file);
       if (uploadError) {
+        const errMsg =
+          typeof uploadError === 'object' && uploadError !== null && 'message' in uploadError
+            ? String((uploadError as { message: unknown }).message)
+            : 'Erro desconhecido';
         toast({
           title: 'Erro no upload',
-          description: uploadError.message,
+          description: errMsg,
           variant: 'destructive',
         });
         return;

@@ -93,7 +93,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
     }) => {
       const { error } = await supabase.from('csat_surveys').insert({
         contact_id: data.contact_id,
-        ...(data.agent_id ? { agent_id: data.agent_id } : {}),
+        agent_id: data.agent_id,
         rating: data.rating,
         feedback: data.feedback || null,
         conversation_resolved_at: new Date().toISOString(),

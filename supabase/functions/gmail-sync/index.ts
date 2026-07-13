@@ -207,11 +207,11 @@ serve(async (req) => {
         5,
       );
 
-      const threads = threadResults
+      const threadsPayload = threadResults
         .map(r => (r.status === 'fulfilled' ? r.value : null))
         .filter(Boolean);
 
-      return json({ threads, nextPageToken: listData.nextPageToken ?? null });
+      return json({ threads: threadsPayload, nextPageToken: listData.nextPageToken ?? null });
     }
 
     // ── syncFull — sincronização completa inicial ──────────────────────

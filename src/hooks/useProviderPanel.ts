@@ -77,9 +77,9 @@ export function useProviderPanel() {
   ) => {
     const { id, name, provider_type, base_url, auth_token, priority, is_active } = payload;
     const data = {
-      name,
-      provider_type,
-      base_url,
+      name: name ?? '',
+      provider_type: provider_type ?? ('custom' as const),
+      base_url: base_url ?? '',
       auth_token: auth_token ?? null,
       priority: priority ?? 10,
       is_active: is_active ?? true,

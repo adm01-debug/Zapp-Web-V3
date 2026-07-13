@@ -14,6 +14,53 @@ export { DEFAULT_QUEUE_CONFIG } from './messageQueueTypes';
 
 const log = getLogger('useMessageQueue');
 
+export interface QueueConfig {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+  jitter: boolean;
+}
+
+export const DEFAULT_QUEUE_CONFIG: QueueConfig = {
+  maxRetries: 3,
+  baseDelay: 1000, // 1s
+  maxDelay: 30000, // 30s
+  jitter: true,
+};
+
+export interface QueueItem {
+  id: string;
+  contactId: string;
+  content: string;
+  type: 'text' | 'attachment' | 'audio';
+  attachments?: File[];
+  onProgress?: (p: number) => void;
+  status: 'pending' | 'sending' | 'failed' | 'confirmed';
+  error?: unknown;
+  retryCount: number;
+  progress?: number;
+  externalId?: string;
+  createdAt: number;
+  completedAt?: number;
+  nextRetryAt?: number;
+  attempts: Array<{
+    timestamp: number;
+    error?: string;
+    duration?: number;
+  }>;
+}
+
+export interface QueueMetrics {
+  totalSent: number;
+  totalFailed: number;
+  totalRetries: number;
+  averageLatency: number;
+  byType: Record<string, { sent: number; failed: number; latency: number[] }>;
+  byConversation: Record<string, { sent: number; failed: number; latency: number[] }>;
+}
+
+const MAX_CONCURRENT_SENDS = 5;
+
 export function useMessageQueue(
   processMessage: (item: QueueItem) => Promise<void>,
   configOverrides?: Partial<Record<string, Partial<QueueConfig>>>
@@ -21,13 +68,16 @@ export function useMessageQueue(
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const isProcessingRef = useRef<Record<string, boolean>>({});
   const activeTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const processedDeliveriesRef = useRef<Set<string>>(new Set());
+  const currentlySendingRef = useRef<number>(0);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    return () => {
       activeTimersRef.current.forEach(clearTimeout);
-    },
-    []
-  );
+      processedDeliveriesRef.current.clear();
+      currentlySendingRef.current = 0;
+    };
+  }, []);
   const QUEUE_STORAGE_KEY = 'chat_message_queue';
 
   const getConfig = useCallback(
@@ -99,6 +149,14 @@ export function useMessageQueue(
 
   const processNextInQueue = useCallback(
     async (contactId: string) => {
+      // Controle de concorrência global: máximo de MAX_CONCURRENT_SENDS simultâneos
+      if (currentlySendingRef.current >= MAX_CONCURRENT_SENDS) {
+        log.debug(
+          `[concurrency] Max concurrent sends (${MAX_CONCURRENT_SENDS}) reached, deferring`
+        );
+        return;
+      }
+
       if (isProcessingRef.current[contactId]) return;
 
       setQueue((currentQueue) => {
@@ -108,6 +166,7 @@ export function useMessageQueue(
         if (!itemToProcess) return currentQueue;
 
         isProcessingRef.current[contactId] = true;
+        currentlySendingRef.current += 1;
 
         void (async () => {
           const config = getConfig(contactId);
@@ -117,6 +176,7 @@ export function useMessageQueue(
             // Verificar se o item já passou do tempo de retry se estiver pendente após falha
             if (itemToProcess.nextRetryAt && itemToProcess.nextRetryAt > Date.now()) {
               isProcessingRef.current[contactId] = false;
+              currentlySendingRef.current = Math.max(0, currentlySendingRef.current - 1);
               // Agendar verificação para o tempo exato do retry
               const t1 = setTimeout(
                 () => {
@@ -240,6 +300,7 @@ export function useMessageQueue(
             }
           } finally {
             isProcessingRef.current[contactId] = false;
+            currentlySendingRef.current = Math.max(0, currentlySendingRef.current - 1);
             // Tentar processar o próximo após um pequeno delay ou o tempo do retry
             const t3 = setTimeout(() => {
               activeTimersRef.current.delete(t3);
@@ -315,6 +376,13 @@ export function useMessageQueue(
 
   const reconcileWithDelivery = useCallback(
     (contactId: string, externalId: string, status: 'confirmed' | 'failed') => {
+      const dedupeKey = `${contactId}:${externalId}:${status}`;
+      if (processedDeliveriesRef.current.has(dedupeKey)) {
+        log.debug('[dedup] Already processed delivery event', { contactId, externalId, status });
+        return;
+      }
+      processedDeliveriesRef.current.add(dedupeKey);
+
       setQueue((prev) => {
         const item = prev.find(
           (i) =>
@@ -325,8 +393,9 @@ export function useMessageQueue(
         if (status === 'confirmed') {
           return prev.filter((i) => i.id !== item.id);
         } else {
-          // Apenas marca como falha se não houver mais tentativas automáticas
-          return prev.map((i) => (i.id === item.id ? { ...i, status: 'failed' } : i));
+          return prev.map((i) =>
+            i.id === item.id ? { ...i, status: 'failed', completedAt: Date.now() } : i
+          );
         }
       });
     },

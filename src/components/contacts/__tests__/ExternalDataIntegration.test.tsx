@@ -11,13 +11,16 @@ const mockDbRpc = vi.hoisted(() => vi.fn()); // intercepts dbRpc calls (search_c
 const mockFrom = vi.hoisted(() => vi.fn()); // tracks getExternalSupabase().from() calls
 
 vi.mock('@/integrations/datasource/db', () => ({
-  dbRpc: (...a: unknown[]) =>
-    (globalThis as Record<string, (...args: unknown[]) => unknown>).__mockDbRpc(...a),
+  dbRpc: (...a: unknown[]) => {
+    const __mockDbRpc = (globalThis as unknown as Record<string, unknown>).__mockDbRpc as
+      ((...args: unknown[]) => unknown) | undefined;
+    return __mockDbRpc?.(...a);
+  },
 }));
 
 vi.mock('@/integrations/supabase/externalClient', () => {
   const _mockFrom = (table: string) => {
-    (globalThis as Record<string, (t: string) => void>).__extMockFrom(table);
+    (globalThis as unknown as Record<string, (t: string) => void>).__extMockFrom(table);
     return {
       select: vi.fn(() => ({
         not: vi.fn(() => ({

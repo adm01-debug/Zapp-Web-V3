@@ -71,7 +71,7 @@ export function PlaybooksManager() {
         .order('category', { ascending: true });
       return (data || []).map((p) => ({
         ...p,
-        steps: Array.isArray(p.steps) ? (p.steps as PlaybookStep[]) : [],
+        steps: Array.isArray(p.steps) ? (p.steps as unknown as PlaybookStep[]) : [],
       }));
     },
   });

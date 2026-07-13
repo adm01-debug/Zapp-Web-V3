@@ -58,7 +58,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
     queryKey: ['message-send-history', messageId],
     enabled: Boolean(messageId) && enabled,
     staleTime: STALE_MS,
-    queryFn: async () => {
+    queryFn: async (): Promise<MessageSendHistory> => {
       if (!messageId) return { metric: null, auditEntries: [] };
 
       const idempotencyKey = `msg:${messageId}`;
@@ -113,7 +113,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         )
       );
 
-      const row = metricRes.data;
+      const row = metricRes.data as any;
       if (!row) return { metric: null, auditEntries: combinedAudit };
 
       const attempts = padRetryAttempts(

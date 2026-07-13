@@ -80,7 +80,7 @@ export const useDashboardData = (filters: DashboardFilters = getDefaultFilters()
       }
     >();
     messages.forEach((msg) => {
-      const m = msg as typeof contactMessages extends Map<string, infer V> ? V : never;
+      const m = msg as Message;
       if (!contactMessages.has(m.contact_id)) contactMessages.set(m.contact_id, m);
     });
 

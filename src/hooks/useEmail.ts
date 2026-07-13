@@ -33,6 +33,46 @@ export type EmailTokenStatus = 'valid' | 'expiring_soon' | 'expired' | 'no_token
 export type EmailWatchStatus = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
 export type TokenStatus = EmailTokenStatus;
 
+const supabase = _supabase;
+
+/**
+ * IDs vindos do fallback GMAIL_MOCKS (ex.: 'mock-account-123') não existem no
+ * banco e não são UUIDs — chamadas de rede com eles geram 400/22P02 em loop.
+ */
+const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
+
+interface BaseThreadRow {
+  id: string;
+  gmail_thread_id?: string | null;
+  gmail_account_id: string;
+  is_unread?: boolean;
+  message_count?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * A tabela-base email_app.email_threads não possui as colunas derivadas da view
+ * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
+ * replica exatamente as expressões da view para payloads de realtime.
+ */
+const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
+  emailMappers.thread({
+    ...row,
+    thread_id: row['id'],
+    email_thread_id: row['gmail_thread_id'] != null ? String(row['gmail_thread_id']) : null,
+    account_id: row['gmail_account_id'],
+    unread_count: row['is_unread'] ? Math.max(Number(row['message_count'] ?? 1), 1) : 0,
+  });
+
+/**
+ * Remove chaves undefined antes do spread de UPDATE: o mapper materializa
+ * todas as chaves do EmailThread, e um spread cru sobrescreveria campos que
+ * a linha-base nao possui (ex.: contact) com undefined, apagando estado
+ * previamente carregado via RPC.
+ */
+const definedOnly = <T extends object>(o: T): Partial<T> =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
+
 // ── Hook Principal ─────────────────────────────────────────────────────
 
 export function useEmail() {
@@ -212,7 +252,7 @@ export function useEmail() {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages(Array.isArray(data) ? data : []);
+      setMessages(Array.isArray(data) ? (data as any) : []);
     }
     setIsLoadingMessages(false);
   }, []);
@@ -308,7 +348,176 @@ export function useEmail() {
   });
   useEmailRealtime({ activeAccountId, setThreads });
 
-  // ── Token check automático (a cada 5 minutos) ──────────────────────
+    setError(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('gmail-oauth', {
+        body: { action: 'getAuthUrl' },
+      });
+
+      // A edge function retorna `{ url, state }` (action 'getAuthUrl' em
+      // supabase/functions/gmail-oauth), não `authUrl`.
+      if (fnErr || !data?.url) {
+        setError('Erro ao obter URL de autorização Google. Verifique GOOGLE_CLIENT_ID.');
+        oauthInFlightRef.current = false;
+        return;
+      }
+
+      // `state` emitido para este fluxo — validado no handler abaixo antes de
+      // trocar o code, para que uma mensagem postMessage forjada (de qualquer
+      // origem, já que o callback usa target '*') não consiga injetar o code
+      // de outra conta Google para ser vinculado ao usuário atual.
+      const expectedState = data.state as string | undefined;
+
+      const popup = window.open(data.url, 'email_oauth', 'width=500,height=600,scrollbars=yes');
+      if (!popup) {
+        setError('Popup bloqueado. Permita popups para este site.');
+        oauthInFlightRef.current = false;
+        return;
+      }
+
+      // `settled` evita que o poll de popup.closed e o handler de mensagem
+      // disparem cleanup duas vezes (ex.: a mensagem já fechou o popup via
+      // popup?.close() — sem essa flag, o próximo tick do poll veria
+      // popup.closed===true e tentaria limpar de novo, possivelmente
+      // resetando oauthInFlightRef no meio de um exchangeCode ainda em voo).
+      let settled = false;
+      let closeCheckInterval: ReturnType<typeof setInterval> | null = null;
+
+      const cleanupListeners = () => {
+        window.removeEventListener('message', handler);
+        if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
+      };
+
+      // Escutar callback do popup.
+      // Protocolo real do backend gmail-oauth (callback GET):
+      //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
+      //   { type: 'gmail-oauth-error', error }  -> falha (ex.: usuário negou consentimento)
+      const handler = async (event: MessageEvent) => {
+        if (settled) return;
+        if (event.data?.type === 'gmail-oauth-error') {
+          settled = true;
+          cleanupListeners();
+          setError(`Autorização Google negada: ${event.data.error ?? 'erro desconhecido'}`);
+          oauthInFlightRef.current = false;
+          return;
+        }
+        if (event.data?.type !== 'gmail-oauth-code') return;
+
+        const { code, state: returnedState } = event.data;
+        if (!expectedState || returnedState !== expectedState) {
+          // Não finaliza o fluxo (settled=false): uma mensagem forjada não deve
+          // encerrar a espera pela mensagem legítima do popup real.
+          log.warn('[gmail-oauth] state inválido no callback — mensagem ignorada');
+          return;
+        }
+        settled = true;
+        cleanupListeners();
+
+        if (!code) {
+          oauthInFlightRef.current = false;
+          return;
+        }
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          oauthInFlightRef.current = false;
+          if (mountedRef.current) setError('Sessão expirada. Faça login novamente.');
+          return;
+        }
+
+        const { data: exchangeData, error: exchangeErr } = await supabase.functions.invoke(
+          'gmail-oauth',
+          {
+            body: { action: 'exchangeCode', code, userId: user.id },
+          }
+        );
+
+        if (exchangeErr || !exchangeData?.success) {
+          oauthInFlightRef.current = false;
+          if (mountedRef.current) setError('Falha na autenticação Google. Tente novamente.');
+          return;
+        }
+
+        await loadAccounts();
+        await checkTokenStatus();
+        oauthInFlightRef.current = false;
+      };
+
+      window.addEventListener('message', handler);
+
+      // Detecta o usuário fechando o popup MANUALMENTE (sem completar o
+      // fluxo) — sem isto, a guarda de concorrência acima travaria o botão
+      // "Conectar" para sempre, já que nenhuma mensagem chegaria para
+      // resetar oauthInFlightRef. Em try/catch porque navegadores com
+      // Cross-Origin-Opener-Policy estrita podem bloquear o acesso a
+      // popup.closed; nesse caso simplesmente tentamos de novo no próximo
+      // tick em vez de derrubar a sessão.
+      closeCheckInterval = setInterval(() => {
+        if (settled) {
+          if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
+          return;
+        }
+        let closed = false;
+        try {
+          closed = popup.closed;
+        } catch {
+          closed = false;
+        }
+        if (closed) {
+          settled = true;
+          cleanupListeners();
+          oauthInFlightRef.current = false;
+        }
+      }, 500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      oauthInFlightRef.current = false;
+    }
+  }, [loadAccounts, checkTokenStatus]);
+
+  // ── Realtime subscription nas threads ──────────────────────────────
+  useEffect(() => {
+    if (!activeAccountId || isMockId(activeAccountId)) return;
+
+    // A view public.email_threads não emite eventos WAL. Assinamos a tabela-base
+    // email_app.email_threads (presente na publication supabase_realtime) e
+    // adaptamos o payload ao shape da view via mapBaseThreadRow.
+    const channel = supabase
+      .channel(`email-threads-${activeAccountId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'email_app',
+          table: 'email_threads',
+          filter: `gmail_account_id=eq.${activeAccountId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const nt = mapBaseThreadRow(payload.new as any);
+            setThreads((prev) => [nt, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            const ut = mapBaseThreadRow(payload.new as any);
+            setThreads((prev) =>
+              prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as { id?: string })?.id;
+            if (!deletedId) return;
+            setThreads((prev) => prev.filter((t) => t.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeAccountId]);
+
+  // ── Token check automático (a cada 5 minutos) ──────────────────────────
   useEffect(() => {
     if (!isAuthenticated) return;
     void checkTokenStatus();

@@ -38,7 +38,7 @@ export function useConversationReactionsRealtime(
           const messageId = newRow?.message_id ?? oldRow?.message_id;
           if (!messageId) return;
           if (!idsRef.current.has(messageId)) return;
-          void queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+          queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
         }
       )
       .subscribe((status) => {

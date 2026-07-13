@@ -28,7 +28,7 @@ interface Purchase {
   title: string;
   description: string | null;
   amount: number | null;
-  currency: string;
+  currency: string | null;
   status: string;
   purchase_type: string;
   purchased_at: string | null;

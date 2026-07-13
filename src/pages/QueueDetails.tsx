@@ -83,8 +83,7 @@ export default function QueueDetails() {
         .eq('id', id)
         .single();
       if (queueError) throw queueError;
-      if (isCancelled()) return;
-      setQueue(queueData);
+      setQueue(queueData as any);
 
       const { data: membersData } = await supabase
         .from('queue_members')

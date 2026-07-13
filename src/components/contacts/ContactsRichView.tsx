@@ -91,7 +91,7 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
   });
 
   // Stub de CRM batch
-  const getCRMData = (_phone: string) => null;
+  const getCRMData = (_phone: string) => undefined;
 
   const contactsForContent: Contact[] = useMemo(() => (contacts as Contact[]) ?? [], [contacts]);
 

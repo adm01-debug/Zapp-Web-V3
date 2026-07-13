@@ -51,8 +51,7 @@ export function PasswordResetRequestsPanel() {
       )
       .subscribe();
     return () => {
-      isMountedRef.current = false;
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, []);
 

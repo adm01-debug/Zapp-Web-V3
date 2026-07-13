@@ -101,7 +101,7 @@ export function useEvolutionApiIntegration() {
 
       const responseTime = Date.now() - startTime;
       const isSuccess = response.ok;
-      let errorMsg = null;
+      let errorMsg: string | null = null;
       let onlineCount = 0;
       let totalCount = 0;
 

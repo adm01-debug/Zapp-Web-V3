@@ -7,9 +7,13 @@ import { getLogger } from './lib/logger';
 import { initSentry, SentryErrorBoundary } from './lib/sentry';
 import { initWebVitals } from './lib/web-vitals';
 import { registerExternalSessionBridge } from './integrations/supabase/externalSessionBridge';
+import { initializeSilentErrorPrevention } from './lib/silentErrorPrevention';
 
 // Instala bridge dual-session (FATOR X external)
 registerExternalSessionBridge();
+
+// Initialize silent error prevention (MELHORIA #11)
+initializeSilentErrorPrevention();
 
 declare global {
   interface Window {

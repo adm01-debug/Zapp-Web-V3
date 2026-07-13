@@ -156,7 +156,7 @@ export default function AdminEvoApiHealthPage() {
         <TabsContent value="channels">
           <SectionErrorBoundary sectionName="Canais de Alerta">
             <ChannelsTab
-              channels={channels.data?.data}
+              channels={channels.data?.data ?? undefined}
               onTest={(id) => testChan.mutate(id)}
               isTesting={testChan.isPending}
               testResult={testChan.data}
@@ -166,13 +166,16 @@ export default function AdminEvoApiHealthPage() {
 
         <TabsContent value="history">
           <SectionErrorBoundary sectionName="Histórico">
-            <HistoryTab history={history.data?.data} />
+            <HistoryTab history={history.data?.data ?? undefined} />
           </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="dr">
           <SectionErrorBoundary sectionName="DR">
-            <DrTab drHealth={drHealth.data?.data} runbook={runbook.data?.data} />
+            <DrTab
+              drHealth={drHealth.data?.data ?? undefined}
+              runbook={runbook.data?.data ?? undefined}
+            />
           </SectionErrorBoundary>
         </TabsContent>
       </Tabs>

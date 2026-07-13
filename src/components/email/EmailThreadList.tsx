@@ -269,7 +269,7 @@ export function EmailThreadList({
                 key={thread.id}
                 thread={thread}
                 selected={selectedThreadId === thread.id}
-                slaStatus={getStatus(thread.thread_id)}
+                slaStatus={getStatus(thread.email_thread_id)}
                 onClick={() => onSelectThread(thread)}
               />
             ))}

@@ -248,7 +248,7 @@ export function sanitizeHtml(
     }
 
     if (typeof html !== 'string') {
-      log.error(`[sanitizeHtml] Received non-string: ${typeof html}`);
+      console.error(`[sanitizeHtml] Received non-string: ${typeof html}`);
       throw new TypeError(`sanitizeHtml() expects string, received ${typeof html}`);
     }
 

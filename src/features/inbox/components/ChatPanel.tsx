@@ -91,21 +91,43 @@ export function ChatPanel(props: ChatPanelProps) {
     handleQuickReply,
     handleKeyDown,
     handleInputChange,
-    contactJid,
-    contactAvatar,
-    handleScrollToMessage,
-    handleTransfer,
-    handleScheduleMessage,
-    handlePollSent,
-    handleContactSent,
-    onSendAudio,
-    onLoadOlder,
-    onCancelLoadOlder,
-    loadingOlder,
-    hasMoreOlder,
-    isLoading,
-    messageQueue,
-  } = useChatPanel(props);
+  } = useChatQuickReplyControl({
+    inputValue: handlers.inputValue,
+    dbQuickReplies,
+    quickRepliesOpen: dialogs.quickReplies,
+    openQuickReplies: () => openDialog('quickReplies'),
+    closeQuickReplies: () => closeDialog('quickReplies'),
+    slashCommandsOpen: dialogs.slashCommands,
+    setInputValue: handlers.setInputValue,
+    focusInput: () => handlers.inputRef.current?.focus(),
+    incrementUseCount,
+    baseHandleInputChange: handlers.handleInputChange,
+    baseHandleKeyDown: handlers.handleKeyDown,
+  });
+
+  // Stable refs for ChatMessagesArea to prevent re-renders on input change
+  const contactJid = useMemo(
+    () => (conversation.contact.phone ? `${conversation.contact.phone}@s.whatsapp.net` : ''),
+    [conversation.contact.phone]
+  );
+  const contactAvatar = conversation.contact.avatar || undefined;
+  const handleScrollToMessage = useCallback(
+    (id: string) => messagesAreaRef.current?.scrollToMessage(id),
+    []
+  );
+
+  const { transferConversation: handleTransfer } = useTransferConversation({
+    contactId: conversation.contact.id,
+    whatsappConnectionId: whatsappConnectionId ?? undefined,
+  });
+
+  const handleScheduleMessage = useChatScheduleMessage({
+    contactId: conversation.contact.id,
+    scheduleMessage,
+    onDone: () => closeDialog('scheduleDialog'),
+  });
+
+  const _ambient = useAmbientColor(conversation.sentiment);
 
   return (
     <div
@@ -151,7 +173,7 @@ export function ChatPanel(props: ChatPanelProps) {
         {activeTool === 'templates' && (
           <ChatTemplatesOverlay
             contactName={conversation.contact.name}
-            contactCompany={conversation.contact.company}
+            contactCompany={conversation.contact.company ?? undefined}
             onClose={() => setActiveTool(null)}
             onUseTemplate={(content) => {
               handlers.setInputValue(content);

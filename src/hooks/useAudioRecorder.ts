@@ -63,8 +63,14 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         streamRef.current = stream;
         chunksRef.current = [];
 
-        // Audio Level Analyzer
-        const audioContext = new AudioContext();
+        // Audio Level Analyzer — handle "suspended" state
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+        // Resume if suspended (common on mobile)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
@@ -169,9 +175,16 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
-            if (event.error === 'network' || event.error === 'service-not-allowed') {
-              setIsTranscribing(true); // Indicate background processing
-              // When stopping, we'll trigger the backend STT if local failed
+            if (
+              event.error === 'network' ||
+              event.error === 'service-not-allowed' ||
+              event.error === 'service-unavailable'
+            ) {
+              log.info('Local speech recognition unavailable, will use backend STT');
+              setIsTranscribing(true);
+            } else {
+              log.error('Unrecoverable speech recognition error:', event.error);
+              setIsTranscribing(true);
             }
           };
 
@@ -197,6 +210,20 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }, 1000);
       } catch (error) {
         log.error('Error starting recording:', error);
+        // Cleanup stream on error to avoid memory leak
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => {
+            track.stop();
+          });
+          streamRef.current = null;
+        }
+        // Close AudioContext on error
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+          audioContextRef.current.close().catch(() => {
+            /* ignore */
+          });
+          audioContextRef.current = null;
+        }
         toast({
           title: 'Erro ao gravar',
           description: 'Não foi possível acessar o microfone.',
