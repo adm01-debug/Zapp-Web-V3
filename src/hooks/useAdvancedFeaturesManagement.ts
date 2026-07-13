@@ -227,10 +227,47 @@ function readCache(): ConversationWithMessages[] | null {
   }
 }
 
+function writeCacheSync(data: ConversationWithMessages[]): boolean {
+  try {
+    const trimmed = data.slice(0, 50).map((c) => ({
+      ...c,
+      messages: c.messages.slice(-20),
+    }));
+    const entry: CacheEntry = { data: trimmed, timestamp: Date.now(), version: CACHE_VERSION };
+    const jsonStr = JSON.stringify(entry);
+
+    // Check estimated size and quota
+    const estimatedSize = new Blob([jsonStr]).size;
+    const maxAllowedSize = 5 * 1024 * 1024; // 5MB default quota
+    if (estimatedSize > maxAllowedSize * 0.8) {
+      log.warn(
+        `Offline cache size (${estimatedSize} bytes) exceeds 80% of quota, skipping write`,
+      );
+      return false;
+    }
+
+    localStorage.setItem(CACHE_KEY, jsonStr);
+    return true;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+      log.warn('Offline cache quota exceeded on first attempt', e);
+      return false;
+    }
+    log.error('Failed to write offline cache', e);
+    return false;
+  }
+}
+
 async function writeCacheWithRetry(
   data: ConversationWithMessages[],
   maxRetries = 3,
 ): Promise<boolean> {
+  // Try synchronous write first for better performance and testability
+  if (writeCacheSync(data)) {
+    return true;
+  }
+
+  // If sync write failed, try async retries with backoff (for quota errors)
   const trimmed = data.slice(0, 50).map((c) => ({
     ...c,
     messages: c.messages.slice(-20),
@@ -238,40 +275,24 @@ async function writeCacheWithRetry(
   const entry: CacheEntry = { data: trimmed, timestamp: Date.now(), version: CACHE_VERSION };
   const jsonStr = JSON.stringify(entry);
 
-  // Check estimated size and quota
-  const estimatedSize = new Blob([jsonStr]).size;
-  const maxAllowedSize = 5 * 1024 * 1024; // 5MB default quota
-  if (estimatedSize > maxAllowedSize * 0.8) {
-    log.warn(
-      `Offline cache size (${estimatedSize} bytes) exceeds 80% of quota, skipping write`,
-    );
-    return false;
-  }
+  for (let attempt = 0; attempt < maxRetries - 1; attempt++) {
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch {
+      // Ignore removal errors
+    }
+    const backoffDelay = Math.pow(2, attempt) * 100;
+    await new Promise((resolve) => setTimeout(resolve, backoffDelay));
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       localStorage.setItem(CACHE_KEY, jsonStr);
+      log.info('Offline cache recovered after retry');
       return true;
     } catch (e) {
-      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-        // Try to free space by removing cache on next attempt
-        if (attempt < maxRetries - 1) {
-          try {
-            localStorage.removeItem(CACHE_KEY);
-          } catch {
-            // Ignore removal errors
-          }
-          const backoffDelay = Math.pow(2, attempt) * 100;
-          await new Promise((resolve) => setTimeout(resolve, backoffDelay));
-          continue;
-        }
-        log.error('Offline cache quota exceeded after retries', e);
+      log.warn(`Retry ${attempt + 1} failed for offline cache`, e);
+      if (attempt === maxRetries - 2) {
+        log.error('All offline cache retries exhausted');
         return false;
-      }
-      log.error(`Failed to write offline cache (attempt ${attempt + 1}/${maxRetries})`, e);
-      if (attempt < maxRetries - 1) {
-        const backoffDelay = Math.pow(2, attempt) * 100;
-        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
       }
     }
   }
