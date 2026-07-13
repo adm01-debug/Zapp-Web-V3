@@ -269,8 +269,7 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
     return '';
   }
 
-  // Generate unique hook ID to prevent collisions (Gap 3.2)
-  const hookId = `afterSanitizeAttributes_sanitizeHtml_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const HOOK_NAME = 'afterSanitizeAttributes';
 
   const attributeSanitizer = function (node: Element) {
     // Force safe attributes on all elements
@@ -307,7 +306,7 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
   const purify = getDOMPurify() as DOMPurifyWithHooks;
 
   try {
-    purify.addHook(hookId, attributeSanitizer);
+    purify.addHook(HOOK_NAME, attributeSanitizer);
     return purify.sanitize(html, { ...SANITIZE_CONFIG }) as string;
   } catch (err) {
     console.error(`[sanitizeHtml] Hook error: ${err}`);
@@ -316,7 +315,7 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
   } finally {
     // CRITICAL: Guarantee hook cleanup despite exceptions (Gap 3.1)
     try {
-      purify.removeHook(hookId);
+      purify.removeHook(HOOK_NAME);
     } catch (cleanupErr) {
       console.warn(`[sanitizeHtml] Hook cleanup failed: ${cleanupErr}`);
     }

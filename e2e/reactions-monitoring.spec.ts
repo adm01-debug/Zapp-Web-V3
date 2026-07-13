@@ -9,13 +9,13 @@ test.describe('Reactions Operations Monitoring', () => {
   test('reaction actions appear in operations logs in real-time', async ({ authenticatedPage: page }) => {
     // 1. Open Inbox and Dash in separate context or switch
     await page.goto('/inbox');
-    
+
     // Locate a message to react
     const firstChat = page.locator('[data-testid="conversation-item"]').first();
     await firstChat.click();
     const msg = page.locator('[data-testid="chat-message"]').last();
-    const _msgId = await msg.getAttribute('data-message-id') || 'unknown';
-    
+    const msgId = await msg.getAttribute('data-message-id') || 'unknown';
+
     // 2. Perform Reaction
     await msg.hover();
     await page.locator('[data-testid="add-reaction-button"]').last().click();
@@ -24,14 +24,17 @@ test.describe('Reactions Operations Monitoring', () => {
     // 3. Go to Operations Dashboard
     // Assuming /admin/operations is the route based on project memory
     await page.goto('/admin/operations');
-    
+
     // Switch to Logs tab (based on mem://features/admin/operations-hub)
     await page.getByRole('tab', { name: /logs/i }).click();
 
-    // Check if the reaction event is there
-    // The event should contain "Reaction Event: add" and the msgId
+    // Check if the reaction event is there with the message ID
     const logEntry = page.locator(`text=Reaction Event: add`);
     await expect(logEntry.first()).toBeVisible({ timeout: 10000 });
+
+    // Verify the logged event contains the message ID
+    const logText = await logEntry.first().textContent();
+    expect(logText).toContain(msgId);
   });
 
   test('open_picker event fires exactly once per interaction', async ({ authenticatedPage: page }) => {

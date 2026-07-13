@@ -89,8 +89,16 @@ describe('ConnectionHealthPanel', () => {
     render(<ConnectionHealthPanel />);
     expect(mockChannel).toHaveBeenCalledWith('health-updates');
   });
+
   it('unsubscribes on unmount', () => {
+    const unsubscribeMock = vi.fn();
+    mockChannel.mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: unsubscribeMock,
+    });
     const { unmount } = render(<ConnectionHealthPanel />);
-    expect(() => unmount()).not.toThrow();
+    unmount();
+    expect(unsubscribeMock).toHaveBeenCalled();
   });
 });

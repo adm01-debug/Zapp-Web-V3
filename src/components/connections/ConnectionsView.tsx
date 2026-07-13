@@ -57,9 +57,7 @@ export function ConnectionsView() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
-  const maskSensitiveData = (obj: any) => {
-    if (!obj) return null;
-    const masked = { ...obj };
+  const maskSensitiveData = (value: unknown, seen = new WeakSet<object>()): unknown => {
     const sensitiveKeys = [
       'apikey',
       'key',
@@ -74,26 +72,23 @@ export function ConnectionsView() {
       'cookie',
     ];
 
-    const maskValue = (o: any) => {
-      if (typeof o !== 'object' || o === null) return o;
-      for (const key in o) {
-        if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
-          if (typeof o[key] === 'string') {
-            o[key] =
-              o[key].length > 10
-                ? `${o[key].substring(0, 4)}...${o[key].substring(o[key].length - 4)}`
-                : '****';
-          } else {
-            o[key] = '****';
-          }
-        } else if (typeof o[key] === 'object') {
-          maskValue(o[key]);
-        }
-      }
-      return o;
-    };
+    if (typeof value === 'string') return '****';
+    if (value === null || typeof value !== 'object') return value;
+    if (seen.has(value)) return '[Circular]';
+    seen.add(value);
 
-    return maskValue(JSON.parse(JSON.stringify(masked))); // Deep clone before masking
+    if (Array.isArray(value)) {
+      return value.map((item) => maskSensitiveData(item, seen));
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nested]) => [
+        key,
+        sensitiveKeys.some((sensitiveKey) => key.toLowerCase().includes(sensitiveKey))
+          ? '****'
+          : maskSensitiveData(nested, seen),
+      ])
+    );
   };
   const {
     connections,

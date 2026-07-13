@@ -15,17 +15,37 @@ const config = {
 };
 
 const testCases = [
-  '<b>bold</b>',
-  '<a href="https://example.com">link</a>',
-  '<span>test</span>',
-  '<script>alert(1)</script>',
-  '<div>content</div>',
+  { input: '<b>bold</b>', expected: '<b>bold</b>' },
+  { input: '<a href="https://example.com">link</a>', expected: '<a href="https://example.com">link</a>' },
+  { input: '<span>test</span>', expected: 'test' },
+  { input: '<script>alert(1)</script>', expected: '' },
+  { input: '<div>content</div>', expected: 'content' },
 ];
 
 console.log('DOMPurify config:', JSON.stringify(config, null, 2));
-testCases.forEach(html => {
-  const result = DOMPurify.sanitize(html, config);
-  console.log(`Input:  ${html}`);
-  console.log(`Output: ${result}`);
+
+let passedTests = 0;
+let failedTests = 0;
+
+testCases.forEach(({ input, expected }) => {
+  const result = DOMPurify.sanitize(input, config);
+  const passed = result === expected;
+
+  console.log(`Input:    ${input}`);
+  console.log(`Expected: ${expected}`);
+  console.log(`Output:   ${result}`);
+  console.log(`Status:   ${passed ? '✓ PASS' : '✗ FAIL'}`);
   console.log('---');
+
+  if (passed) {
+    passedTests++;
+  } else {
+    failedTests++;
+  }
 });
+
+console.log(`\nResults: ${passedTests} passed, ${failedTests} failed`);
+
+if (failedTests > 0) {
+  process.exit(1);
+}

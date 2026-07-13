@@ -63,11 +63,11 @@ test.describe('Teams - RBAC & RLS Enforcement @teams', () => {
     expect(securityCheck.deletedCount).toBe(0);
   });
 
-  test('Soft Delete: Admin enforcement and unauthorized recovery block', async ({ _page, browser }) => {
+  test('Soft Delete: Admin enforcement and unauthorized recovery block', async ({ browser }) => {
     // Use multi-context to simulate live interaction/isolation
     const adminContext = await browser.newContext();
     const agentContext = await browser.newContext();
-    
+
     const adminPage = await adminContext.newPage();
     const agentPage = await agentContext.newPage();
 

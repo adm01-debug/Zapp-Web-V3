@@ -77,8 +77,15 @@ describe('useRealtimeSentimentAlerts', () => {
   });
 
   it('cleans up channel on unmount', () => {
+    const unsubscribeMock = vi.fn();
+    mockChannel.mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: unsubscribeMock,
+    });
     const { unmount } = renderHook(() => useRealtimeSentimentAlerts());
-    expect(() => unmount()).not.toThrow();
+    unmount();
+    expect(unsubscribeMock).toHaveBeenCalled();
   });
 
   it('calls subscribe on channel', () => {

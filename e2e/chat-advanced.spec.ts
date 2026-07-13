@@ -37,12 +37,12 @@ test.describe('Chat Stickers, Memes e Interatividade', () => {
   test('deve renderizar mensagens interativas com botões', async ({ page }) => {
     // Simula o recebimento/envio de uma mensagem interativa via comando ou mock
     const input = page.locator('textarea[placeholder*="Digite"]').first();
-    await input.fill('/template'); 
+    await input.fill('/template');
     await page.keyboard.press('Enter');
 
-    const _interactiveMsg = page.locator('text=Escolha uma opção').last();
-    const button = page.locator('button:has-text("Sim"), button:has-text("Não")').first();
-    
+    const interactiveMsg = page.locator('text=Escolha uma opção').last();
+    const button = interactiveMsg.locator('button:has-text("Sim"), button:has-text("Não")').first();
+
     await expect(button).toBeVisible();
     await button.click();
 
