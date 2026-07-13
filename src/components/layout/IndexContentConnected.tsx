@@ -14,8 +14,7 @@ import { useIndexKeyboardShortcuts } from '@/hooks/useIndexKeyboardShortcuts';
 import { AppShell } from '@/components/layout/AppShell';
 import { CommandPalette } from '@/components/CommandPalette';
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
-import { SLANotificationProvider } from '@/components/notifications/SLANotificationProvider';
-import { GoalNotificationProvider } from '@/components/notifications/GoalNotificationProvider';
+import { UnifiedNotificationProviders } from '@/components/notifications/UnifiedNotificationProviders';
 import { OfflineIndicator, ConnectionToast } from '@/components/ui/offline-indicator';
 import { DegradedConnectionsBanner } from '@/components/alerts/DegradedConnectionsBanner';
 
@@ -68,9 +67,8 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(function IndexCo
   if (!user) return null;
 
   return (
-    <SLANotificationProvider>
-      <GoalNotificationProvider>
-        <AppShell
+    <UnifiedNotificationProviders>
+      <AppShell
           currentView={currentView}
           setCurrentView={setCurrentView}
           userId={user.id}
@@ -103,7 +101,6 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(function IndexCo
           }}
           userName={profile?.name}
         />
-      </GoalNotificationProvider>
-    </SLANotificationProvider>
+    </UnifiedNotificationProviders>
   );
 });
