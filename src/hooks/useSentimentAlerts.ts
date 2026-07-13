@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { playNotificationSound } from '@/utils/notificationSound';
-import { showBrowserNotification, requestNotificationPermission } from '@/utils/notificationSound';
+import { playNotificationSound, showBrowserNotification, requestNotificationPermission } from '@/utils/notificationSounds';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { log } from '@/lib/logger';
 
