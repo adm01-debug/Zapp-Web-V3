@@ -4,6 +4,9 @@
 import React, { useMemo } from 'react';
 import DOMPurify from 'isomorphic-dompurify';
 import { sanitizeHtmlWithHooks } from '@/lib/sanitize-v2';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('EmailChatBubble');
 
 interface EmailChatBubbleProps {
   email?: string;
@@ -18,7 +21,7 @@ export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({ email, classNa
     try {
       return sanitizeHtmlWithHooks(email);
     } catch (err) {
-      console.error('Email sanitization failed:', err);
+      log.error('Email sanitization failed:', err);
       return '';
     }
   }, [email]);
@@ -65,7 +68,7 @@ export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({ email, class
 
       return doc.body.innerHTML;
     } catch (err) {
-      console.error('Email rendering failed:', err);
+      log.error('Email rendering failed:', err);
       return '';
     }
   }, [email]);

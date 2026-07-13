@@ -387,7 +387,7 @@ export function useUserSettings() {
           success: boolean;
           version: number;
           error_code: string | null;
-        }>('user_settings', (q: any) =>
+        }>('user_settings', (q) =>
           q.rpc('upsert_user_settings', {
             _user_id: user.id,
             _data: validationResult.data,
