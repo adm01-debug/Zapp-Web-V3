@@ -4,7 +4,7 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
-import { Button } from '@/components/ui/button';
+import { ToastAction } from '@/components/ui/toast';
 import { RotateCcw, Undo2 } from 'lucide-react';
 import React from 'react';
 
@@ -92,10 +92,9 @@ export function useAudioRecorderUI(
         title: 'Gravação descartada',
         description: 'Você pode desfazer esta ação nos próximos segundos.',
         action: React.createElement(
-          Button,
+          ToastAction,
           {
-            variant: 'outline',
-            size: 'sm',
+            altText: 'Desfazer descarte da gravação',
             onClick: handleUndoCancel,
             className: 'gap-2 font-bold text-primary',
           },
@@ -212,8 +211,11 @@ export function useAudioRecorderUI(
             : 'Não foi possível enviar o áudio após várias tentativas. Verifique sua conexão.',
           variant: 'destructive',
           action: React.createElement(
-            Button,
-            { variant: 'outline', size: 'sm', onClick: () => void handleSend(retryCount + 1) },
+            ToastAction,
+            {
+              altText: 'Tentar enviar o áudio novamente agora',
+              onClick: () => void handleSend(retryCount + 1),
+            },
             React.createElement(RotateCcw, { className: 'mr-1 h-3 w-3' }),
             ' Tentar agora'
           ),

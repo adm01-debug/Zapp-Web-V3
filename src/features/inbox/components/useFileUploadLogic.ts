@@ -18,6 +18,14 @@ import {
 } from './useFileUploadLogicTypes';
 export type { FileMessageData, FilePreview, QueuedFile } from './useFileUploadLogicTypes';
 
+function buildFileMessageData(result: unknown, mediaUrl: string, messageType?: string): FileMessageData {
+  return {
+    ...(typeof result === 'object' && result !== null ? result : {}),
+    mediaUrl,
+    messageType,
+  };
+}
+
 export function useFileUploadLogic(opts: {
   instanceName?: string;
   recipientNumber?: string;
@@ -214,8 +222,7 @@ export function useFileUploadLogic(opts: {
       try {
         const sent = await sendFileViaApi(file, category, currentCaption);
         toast.success('Arquivo enviado!', { id: 'file-upload' });
-        if (sent)
-          onFileSent?.({ ...sent.result, mediaUrl: sent.mediaUrl, messageType: sent.category });
+        if (sent) onFileSent?.(buildFileMessageData(sent.result, sent.mediaUrl, sent.category));
       } catch (err) {
         if (err instanceof ScanBlockedError) {
           handleScanResult(err.result, {
@@ -261,8 +268,7 @@ export function useFileUploadLogic(opts: {
         setFileQueue((prev) =>
           prev.map((f, i) => (i === index ? { ...f, status: 'done', progress: 100 } : f))
         );
-        if (sent)
-          onFileSent?.({ ...sent.result, mediaUrl: sent.mediaUrl, messageType: sent.category });
+        if (sent) onFileSent?.(buildFileMessageData(sent.result, sent.mediaUrl, sent.category));
         return true;
       } catch (err) {
         if (err instanceof ScanBlockedError) {

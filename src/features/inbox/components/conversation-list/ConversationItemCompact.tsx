@@ -17,7 +17,7 @@ import {
 } from './conversationItemShared';
 import { TruncatedTooltip } from './TruncatedTooltip';
 import { useConversationDisplay } from './useConversationDisplay';
-import type { Message } from '@/types/chat';
+import type { Conversation, Message } from '@/types/chat';
 
 function isRetryBadgeMessage(
   message: ConversationItemProps['conversation']['lastMessage']
@@ -246,7 +246,7 @@ export const ConversationItemCompact = memo(function ConversationItemCompact({
             {lastMessage && (
               <div className="mt-1 flex flex-col gap-1">
                 <SLAIndicatorForContact
-                  conversation={conversation}
+                  conversation={conversation as unknown as Conversation}
                   compact={true}
                   className="w-full justify-start"
                 />
