@@ -236,7 +236,7 @@ export interface SanitizeResult {
  * @param _options - Reserved for API compatibility (not used by DOM sanitizer)
  * @returns SanitizeResult with success flag and sanitized HTML
  */
-export function sanitizeHtml(
+export function sanitizeHtmlStrict(
   html: unknown,
   _options?: Partial<typeof SANITIZE_CONFIG>
 ): SanitizeResult {
@@ -326,3 +326,12 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
     return '';
   }
 }
+
+
+/**
+ * @deprecated Use `sanitizeHtmlStrict` instead.
+ * This alias exists for internal test backward compatibility only.
+ * External code should use `sanitizeHtmlStrict` from this module
+ * or `sanitizeHtml` from '@/lib/sanitize' (returns string, not SanitizeResult).
+ */
+export const sanitizeHtml = sanitizeHtmlStrict;

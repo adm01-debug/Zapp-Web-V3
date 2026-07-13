@@ -50,8 +50,8 @@ export * from './jid';
 // sanitizeForSearch, sanitizePostgrestFilter, truncateText.
 // Uses DOMPurify from external npm package, no intra-lib deps.
 //
-// ⚠️  NOTE: sanitize-v2.ts has a DIFFERENT API (returns SanitizeResult object, not string).
-// Do NOT add sanitize-v2 here — it would create a naming collision with sanitizeHtml.
+// ✅ sanitize-v2.ts now exports: sanitizeHtmlStrict() → SanitizeResult (strict DOM sanitizer)
+// Do NOT barrel-export sanitize-v2 here — consumers should import directly for clarity:
 // Consumers needing the v2 API must import directly:
-//   import { sanitizeHtml as sanitizeHtmlV2 } from '@/lib/sanitize-v2';
+//   import { sanitizeHtmlStrict, sanitizeHtmlWithHooks } from '@/lib/sanitize-v2';
 export * from './sanitize';
