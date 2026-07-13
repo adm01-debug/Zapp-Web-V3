@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { z } from 'zod';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
@@ -12,52 +13,58 @@ const DEFAULT_TTS_SPEED = 1.0;
 // Validation schema for user settings - prevents invalid state mutations
 const TimeFormatRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
 
-const UserSettingsSchema = z.object({
-  user_id: z.string().uuid(),
-  business_hours_enabled: z.boolean(),
-  business_hours_start: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
-  business_hours_end: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
-  work_days: z.array(z.number().min(0).max(6)).default([1, 2, 3, 4, 5]),
-  welcome_message: z.string().max(500).default(''),
-  away_message: z.string().max(500).default(''),
-  closing_message: z.string().max(500).default(''),
-  auto_assignment_enabled: z.boolean(),
-  auto_assignment_method: z.enum(['roundrobin', 'random', 'least_active']).default('roundrobin'),
-  inactivity_timeout: z.number().min(1).max(300).default(30),
-  auto_transcription_enabled: z.boolean(),
-  sound_enabled: z.boolean(),
-  browser_notifications_enabled: z.boolean(),
-  quiet_hours_enabled: z.boolean(),
-  quiet_hours_start: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
-  quiet_hours_end: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
-  theme: z.enum(['light', 'dark', 'system']).default('system'),
-  language: z.string().default('pt-BR'),
-  compact_mode: z.boolean(),
-  tts_voice_id: z.string().default(DEFAULT_TTS_VOICE_ID),
-  tts_speed: z.number().min(0.5).max(2.0).default(DEFAULT_TTS_SPEED),
-  simulation_mode_enabled: z.boolean(),
-  global_sla_warning_minutes: z.number().min(1).max(1440).default(30),
-  global_sla_critical_minutes: z.number().min(1).max(1440).default(60),
-  global_sla_notification_message: z.string().max(1000).default('Alerta SLA: Tempo limite excedido para resposta.'),
-}).refine(
-  (data) => {
-    const [startH, startM] = data.business_hours_start.split(':').map(Number);
-    const [endH, endM] = data.business_hours_end.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-    return startMinutes < endMinutes;
-  },
-  { message: 'Business hours: end time must be after start time', path: ['business_hours_end'] }
-).refine(
-  (data) => {
-    const [startH, startM] = data.quiet_hours_start.split(':').map(Number);
-    const [endH, endM] = data.quiet_hours_end.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-    return data.quiet_hours_enabled ? startMinutes !== endMinutes : true;
-  },
-  { message: 'Quiet hours: start and end times must be different', path: ['quiet_hours_end'] }
-);
+const UserSettingsSchema = z
+  .object({
+    user_id: z.string().uuid(),
+    business_hours_enabled: z.boolean(),
+    business_hours_start: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
+    business_hours_end: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
+    work_days: z.array(z.number().min(0).max(6)).default([1, 2, 3, 4, 5]),
+    welcome_message: z.string().max(500).default(''),
+    away_message: z.string().max(500).default(''),
+    closing_message: z.string().max(500).default(''),
+    auto_assignment_enabled: z.boolean(),
+    auto_assignment_method: z.enum(['roundrobin', 'random', 'least_active']).default('roundrobin'),
+    inactivity_timeout: z.number().min(1).max(300).default(30),
+    auto_transcription_enabled: z.boolean(),
+    sound_enabled: z.boolean(),
+    browser_notifications_enabled: z.boolean(),
+    quiet_hours_enabled: z.boolean(),
+    quiet_hours_start: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
+    quiet_hours_end: z.string().regex(TimeFormatRegex, 'Must be HH:MM format'),
+    theme: z.enum(['light', 'dark', 'system']).default('system'),
+    language: z.string().default('pt-BR'),
+    compact_mode: z.boolean(),
+    tts_voice_id: z.string().default(DEFAULT_TTS_VOICE_ID),
+    tts_speed: z.number().min(0.5).max(2.0).default(DEFAULT_TTS_SPEED),
+    simulation_mode_enabled: z.boolean(),
+    global_sla_warning_minutes: z.number().min(1).max(1440).default(30),
+    global_sla_critical_minutes: z.number().min(1).max(1440).default(60),
+    global_sla_notification_message: z
+      .string()
+      .max(1000)
+      .default('Alerta SLA: Tempo limite excedido para resposta.'),
+  })
+  .refine(
+    (data) => {
+      const [startH, startM] = data.business_hours_start.split(':').map(Number);
+      const [endH, endM] = data.business_hours_end.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+      return startMinutes < endMinutes;
+    },
+    { message: 'Business hours: end time must be after start time', path: ['business_hours_end'] }
+  )
+  .refine(
+    (data) => {
+      const [startH, startM] = data.quiet_hours_start.split(':').map(Number);
+      const [endH, endM] = data.quiet_hours_end.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+      return data.quiet_hours_enabled ? startMinutes !== endMinutes : true;
+    },
+    { message: 'Quiet hours: start and end times must be different', path: ['quiet_hours_end'] }
+  );
 
 // Exponential backoff retry helper for optimistic locking conflicts
 async function retryWithBackoff<T>(
@@ -74,10 +81,7 @@ async function retryWithBackoff<T>(
       lastError = err instanceof Error ? err : new Error(String(err));
 
       // Check if it's a version conflict (retryable)
-      if (
-        lastError.message.includes('CONFLICT') ||
-        lastError.message.includes('version')
-      ) {
+      if (lastError.message.includes('CONFLICT') || lastError.message.includes('version')) {
         if (attempt < maxRetries - 1) {
           const delayMs = initialDelayMs * Math.pow(2, attempt);
           await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -214,7 +218,7 @@ export function useUserSettings() {
         const data = rows?.[0] ?? null;
 
         // Check if component unmounted during fetch
-        if (controller.signal.aborted) return;
+        if (abortController.signal.aborted) return;
 
         if (error && error.code !== 'PGRST116') {
           // PGRST116 = no rows returned
@@ -383,14 +387,12 @@ export function useUserSettings() {
           success: boolean;
           version: number;
           error_code: string | null;
-        }>(
-          'user_settings',
-          (q: any) =>
-            q.rpc('upsert_user_settings', {
-              _user_id: user.id,
-              _data: validationResult.data,
-              _expected_version: settings.version ?? 1,
-            })
+        }>('user_settings', (q: any) =>
+          q.rpc('upsert_user_settings', {
+            _user_id: user.id,
+            _data: validationResult.data,
+            _expected_version: settings.version ?? 1,
+          })
         );
 
         if (error) {
@@ -417,9 +419,7 @@ export function useUserSettings() {
         }
 
         if (!data.success) {
-          throw new Error(
-            `Save failed: ${data.error_code || 'unknown error'}`
-          );
+          throw new Error(`Save failed: ${data.error_code || 'unknown error'}`);
         }
 
         return data;
@@ -481,7 +481,36 @@ export function useUserSettings() {
       setPendingSaveId(null);
       setIsSaving(false);
     }
-  }, [user?.id, settings.business_hours_enabled, settings.business_hours_start, settings.business_hours_end, settings.work_days, settings.welcome_message, settings.away_message, settings.closing_message, settings.auto_assignment_enabled, settings.auto_assignment_method, settings.inactivity_timeout, settings.auto_transcription_enabled, settings.sound_enabled, settings.browser_notifications_enabled, settings.quiet_hours_enabled, settings.quiet_hours_start, settings.quiet_hours_end, settings.theme, settings.language, settings.compact_mode, settings.tts_voice_id, settings.tts_speed, settings.simulation_mode_enabled, settings.global_sla_warning_minutes, settings.global_sla_critical_minutes, settings.global_sla_notification_message, lastSaveId, pendingSaveId]);
+  }, [
+    user?.id,
+    settings.business_hours_enabled,
+    settings.business_hours_start,
+    settings.business_hours_end,
+    settings.work_days,
+    settings.welcome_message,
+    settings.away_message,
+    settings.closing_message,
+    settings.auto_assignment_enabled,
+    settings.auto_assignment_method,
+    settings.inactivity_timeout,
+    settings.auto_transcription_enabled,
+    settings.sound_enabled,
+    settings.browser_notifications_enabled,
+    settings.quiet_hours_enabled,
+    settings.quiet_hours_start,
+    settings.quiet_hours_end,
+    settings.theme,
+    settings.language,
+    settings.compact_mode,
+    settings.tts_voice_id,
+    settings.tts_speed,
+    settings.simulation_mode_enabled,
+    settings.global_sla_warning_minutes,
+    settings.global_sla_critical_minutes,
+    settings.global_sla_notification_message,
+    lastSaveId,
+    pendingSaveId,
+  ]);
 
   // Reset to defaults
   const resetSettings = useCallback(() => {
