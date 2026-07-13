@@ -3,9 +3,6 @@
  * Filters by event type, instance and date range. Reads from FATOR X
  * `evolution_webhook_events` via external-db-proxy.
  */
-import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { subHours } from 'date-fns';
 import {
   Webhook,
   RefreshCw,
@@ -46,63 +43,16 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { queryExternalProxy } from '@/lib/externalProxy';
-import { consumePendingWebhookEventsFilters } from '@/lib/webhookEventsDeepLink';
 import { cn } from '@/lib/utils';
-import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';
 import { formatDateTimeCompact } from '@/lib/formatters';
-
-const EVENT_TYPES = [
-  'all',
-  'PRESENCE_UPDATE',
-  'CONTACTS_UPDATE',
-  'CHATS_UPDATE',
-  'CALL',
-  'LABELS_ASSOCIATION',
-  'MESSAGES_UPSERT',
-  'MESSAGES_UPDATE',
-  'MESSAGES_DELETE',
-  'CONNECTION_UPDATE',
-  'QRCODE_UPDATED',
-] as const;
-
-type EventTypeFilter = (typeof EVENT_TYPES)[number];
-
-// Tipos de mensagem mais comuns recebidos pela Evolution. `all` desliga o filtro.
-const MESSAGE_TYPES = [
-  'all',
-  'conversation',
-  'extendedTextMessage',
-  'imageMessage',
-  'videoMessage',
-  'audioMessage',
-  'documentMessage',
-  'stickerMessage',
-  'locationMessage',
-  'contactMessage',
-  'reactionMessage',
-  'pollCreationMessage',
-  'protocolMessage',
-] as const;
-type MessageTypeFilter = (typeof MESSAGE_TYPES)[number];
-
-// Status agregado (independe do filtro textual livre).
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'processed', label: 'Processados' },
-  { value: 'pending', label: 'Pendentes' },
-  { value: 'error', label: 'Com erro' },
-] as const;
-type StatusFilter = (typeof STATUS_OPTIONS)[number]['value'];
-
-const RANGE_OPTIONS = [
-  { value: '1', label: 'Última hora' },
-  { value: '6', label: 'Últimas 6h' },
-  { value: '24', label: 'Últimas 24h' },
-  { value: '72', label: 'Últimos 3 dias' },
-  { value: '168', label: 'Últimos 7 dias' },
-  { value: '720', label: 'Últimos 30 dias' },
-] as const;
+import {
+  useWebhookEvents,
+  EVENT_TYPES,
+  MESSAGE_TYPES,
+  STATUS_OPTIONS,
+  RANGE_OPTIONS,
+  type EventTypeFilter,
+} from './admin-webhook-events/useWebhookEvents';
 
 function shortJid(jid: string | null) {
   if (!jid) return '—';
@@ -110,120 +60,36 @@ function shortJid(jid: string | null) {
 }
 
 export default function AdminWebhookEventsPage() {
-  // Drill-down do AdminWebhookOverviewPage: aplica filtros iniciais (uma vez)
-  // a partir do sessionStorage. Validamos contra a lista de tipos conhecidos
-  // para nunca aceitar input "envenenado".
-  const initialFilters = useMemo(() => {
-    const pending = consumePendingWebhookEventsFilters();
-    if (!pending) return null;
-    const eventType =
-      pending.eventType && (EVENT_TYPES as readonly string[]).includes(pending.eventType)
-        ? (pending.eventType as EventTypeFilter)
-        : undefined;
-    const instance = pending.instance && pending.instance.trim() ? pending.instance : undefined;
-    return { eventType, instance };
-  }, []);
-
-  const [hours, setHours] = useState<string>('24');
-  const [eventType, setEventType] = useState<EventTypeFilter>(initialFilters?.eventType ?? 'all');
-  const [instance, setInstance] = useState<string>(initialFilters?.instance ?? 'all');
-  const [messageType, setMessageType] = useState<MessageTypeFilter>('all');
-  const [status, setStatus] = useState<StatusFilter>('all');
-  const [remoteJidFilter, setRemoteJidFilter] = useState('');
-  const [pushNameFilter, setPushNameFilter] = useState('');
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<EvolutionWebhookEvent | null>(null);
-  const [viewMode, setViewMode] = useState<'events' | 'calls'>('events');
-
-  const sinceISO = useMemo(() => subHours(new Date(), Number(hours)).toISOString(), [hours]);
-
-  // ── Fetch events ──────────────────────────────────────────────
-  const { data, isLoading, isRefetching, refetch, error } = useQuery({
-    queryKey: [
-      'admin-webhook-events',
-      hours,
-      eventType,
-      instance,
-      messageType,
-      status,
-      remoteJidFilter.trim().toLowerCase(),
-      pushNameFilter.trim().toLowerCase(),
-    ],
-    queryFn: async () => {
-      const filters: { column: string; operator: string; value: unknown }[] = [
-        { column: 'created_at', operator: 'gte', value: sinceISO },
-      ];
-      if (eventType !== 'all')
-        filters.push({ column: 'event_type', operator: 'eq', value: eventType });
-      if (instance !== 'all')
-        filters.push({ column: 'instance_name', operator: 'eq', value: instance });
-      if (messageType !== 'all')
-        filters.push({ column: 'message_type', operator: 'eq', value: messageType });
-
-      // Status agregado — independe do search textual.
-      if (status === 'processed') {
-        filters.push({ column: 'processed', operator: 'eq', value: true });
-        filters.push({ column: 'error_message', operator: 'is', value: null });
-      } else if (status === 'pending') {
-        filters.push({ column: 'processed', operator: 'eq', value: false });
-        filters.push({ column: 'error_message', operator: 'is', value: null });
-      } else if (status === 'error') {
-        filters.push({ column: 'error_message', operator: 'not.is', value: null });
-      }
-
-      const jid = remoteJidFilter.trim();
-      if (jid) filters.push({ column: 'remote_jid', operator: 'ilike', value: `%${jid}%` });
-      const name = pushNameFilter.trim();
-      if (name) filters.push({ column: 'push_name', operator: 'ilike', value: `%${name}%` });
-
-      const res = await queryExternalProxy<EvolutionWebhookEvent>({
-        table: 'evolution_webhook_events',
-        select: '*',
-        filters,
-        order: { column: 'created_at', ascending: false },
-        limit: 200,
-      });
-      return res.data ?? [];
-    },
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
-
-  // ── Aggregates ────────────────────────────────────────────────
-  const aggregates = useMemo(() => {
-    const rows = data ?? [];
-    const byType: Record<string, number> = {};
-    const byInstance = new Set<string>();
-    let processed = 0;
-    let errored = 0;
-    for (const r of rows) {
-      byType[r.event_type] = (byType[r.event_type] ?? 0) + 1;
-      byInstance.add(r.instance_name);
-      if (r.processed) processed++;
-      if (r.error_message) errored++;
-    }
-    return {
-      total: rows.length,
-      processed,
-      errored,
-      types: Object.entries(byType).sort((a, b) => b[1] - a[1]),
-      instances: Array.from(byInstance).sort(),
-    };
-  }, [data]);
-
-  // ── Client-side text filter ───────────────────────────────────
-  const filtered = useMemo(() => {
-    const rows = data ?? [];
-    if (!search.trim()) return rows;
-    const q = search.toLowerCase();
-    return rows.filter(
-      (r) =>
-        r.remote_jid?.toLowerCase().includes(q) ||
-        r.push_name?.toLowerCase().includes(q) ||
-        r.event_type.toLowerCase().includes(q) ||
-        r.error_message?.toLowerCase().includes(q)
-    );
-  }, [data, search]);
+  const {
+    hours,
+    setHours,
+    eventType,
+    setEventType,
+    instance,
+    setInstance,
+    messageType,
+    setMessageType,
+    status,
+    setStatus,
+    remoteJidFilter,
+    setRemoteJidFilter,
+    pushNameFilter,
+    setPushNameFilter,
+    search,
+    setSearch,
+    selected,
+    setSelected,
+    viewMode,
+    setViewMode,
+    isLoading,
+    isRefetching,
+    refetch,
+    error,
+    aggregates,
+    filtered,
+    clearFilters,
+    hasActiveFilters,
+  } = useWebhookEvents();
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -243,7 +109,14 @@ export default function AdminWebhookEventsPage() {
           <ToggleGroup
             type="single"
             value={viewMode}
-            onValueChange={(v) => v && setViewMode(v as 'events' | 'calls' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
+            onValueChange={(v) =>
+              v &&
+              setViewMode(
+                v as
+                  | 'events'
+                  | 'calls' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
             size="sm"
           >
             <ToggleGroupItem value="events" aria-label="Lista de eventos">
@@ -302,7 +175,14 @@ export default function AdminWebhookEventsPage() {
           </FilterField>
 
           <FilterField label="Tipo de evento">
-            <Select value={eventType} onValueChange={(v) => setEventType(v as EventTypeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
+            <Select
+              value={eventType}
+              onValueChange={(v) =>
+                setEventType(
+                  v as EventTypeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+                )
+              }
+            >
               <SelectTrigger className="w-[220px]" data-testid="filter-webhook-event-type">
                 <SelectValue />
               </SelectTrigger>
@@ -335,7 +215,11 @@ export default function AdminWebhookEventsPage() {
           <FilterField label="Tipo de mensagem">
             <Select
               value={messageType}
-              onValueChange={(v) => setMessageType(v as MessageTypeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
+              onValueChange={(v) =>
+                setMessageType(
+                  v as (typeof MESSAGE_TYPES)[number] /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+                )
+              }
             >
               <SelectTrigger className="w-[200px]" data-testid="filter-webhook-message-type">
                 <SelectValue />
@@ -351,7 +235,14 @@ export default function AdminWebhookEventsPage() {
           </FilterField>
 
           <FilterField label="Status">
-            <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
+            <Select
+              value={status}
+              onValueChange={(v) =>
+                setStatus(
+                  v as (typeof STATUS_OPTIONS)[number]['value'] /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+                )
+              }
+            >
               <SelectTrigger className="w-[160px]" data-testid="filter-webhook-status">
                 <SelectValue />
               </SelectTrigger>
@@ -395,24 +286,14 @@ export default function AdminWebhookEventsPage() {
             />
           </FilterField>
 
-          {(remoteJidFilter ||
-            pushNameFilter ||
-            messageType !== 'all' ||
-            status !== 'all' ||
-            search) && (
+          {hasActiveFilters && (
             <FilterField label=" ">
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-9"
                 data-testid="filter-webhook-clear"
-                onClick={() => {
-                  setRemoteJidFilter('');
-                  setPushNameFilter('');
-                  setMessageType('all');
-                  setStatus('all');
-                  setSearch('');
-                }}
+                onClick={clearFilters}
               >
                 Limpar filtros
               </Button>
@@ -421,7 +302,7 @@ export default function AdminWebhookEventsPage() {
         </CardContent>
       </Card>
 
-      {/* Type breakdown (chips) — só faz sentido na visão lista */}
+      {/* Type breakdown chips — only in list view */}
       {viewMode === 'events' && aggregates.types.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {aggregates.types.map(([type, count]) => (
@@ -433,7 +314,10 @@ export default function AdminWebhookEventsPage() {
               tabIndex={0}
               aria-pressed={eventType === type}
               onClick={() => setEventType(eventType === type ? 'all' : (type as EventTypeFilter))}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setEventType(eventType === type ? 'all' : (type as EventTypeFilter))}
+              onKeyDown={(e) =>
+                (e.key === 'Enter' || e.key === ' ') &&
+                setEventType(eventType === type ? 'all' : (type as EventTypeFilter))
+              }
             >
               {type} · {count}
             </Badge>
@@ -517,9 +401,7 @@ export default function AdminWebhookEventsPage() {
                         </TableCell>
                         <TableCell className="text-xs">
                           <div className="flex flex-col">
-                            <span className="" data-testid="webhook-event-jid">
-                              {shortJid(row.remote_jid)}
-                            </span>
+                            <span data-testid="webhook-event-jid">{shortJid(row.remote_jid)}</span>
                             {row.push_name && (
                               <span
                                 className="max-w-[200px] truncate text-muted-foreground"
