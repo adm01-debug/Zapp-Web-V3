@@ -22,68 +22,13 @@ import { RetryMetricsPanel } from './RetryMetricsPanel';
 import { CrossTabDedupePanel } from './CrossTabDedupePanel';
 import { DLQPanel } from './DLQPanel';
 import { DLQAuditHistory } from './DLQAuditHistory';
-import type {
-  ConnectionInfo,
-  WebhookTestResult,
-  WebhookConfig,
-} from './hooks/useEvolutionMonitoring';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
-
-interface SecretStatus {
-  configured: boolean;
-  length: number;
-  hashPrefix: string | null;
-  strictMode: boolean;
-  checkedAt: string;
-}
-
-interface Props {
-  connections: ConnectionInfo[];
-  webhookTest: WebhookTestResult;
-  webhookConfig: WebhookConfig | null;
-  reconfiguring: boolean;
-  onTest: (instanceId: string) => void;
-  onReconfigure: (instanceId: string) => void;
-  onCheckConfig: (instanceId: string) => void;
-}
-
-const ALL_EXPECTED_EVENTS = [
-  'MESSAGES_UPSERT',
-  'MESSAGES_UPDATE',
-  'MESSAGES_DELETE',
-  'MESSAGES_SET',
-  'SEND_MESSAGE',
-  'CONTACTS_UPSERT',
-  'CONTACTS_UPDATE',
-  'CONTACTS_SET',
-  'PRESENCE_UPDATE',
-  'CHATS_UPSERT',
-  'CHATS_UPDATE',
-  'CHATS_DELETE',
-  'CHATS_SET',
-  'CONNECTION_UPDATE',
-  'LABELS_EDIT',
-  'LABELS_ASSOCIATION',
-  'GROUPS_UPSERT',
-  'GROUP_PARTICIPANTS_UPDATE',
-  'CALL',
-  'QRCODE_UPDATED',
-];
-
-const EVENT_CATEGORIES: Record<string, string[]> = {
-  Mensagens: [
-    'MESSAGES_UPSERT',
-    'MESSAGES_UPDATE',
-    'MESSAGES_DELETE',
-    'MESSAGES_SET',
-    'SEND_MESSAGE',
-  ],
-  Conexão: ['CONNECTION_UPDATE', 'QRCODE_UPDATED'],
-  Contatos: ['CONTACTS_UPSERT', 'CONTACTS_UPDATE', 'CONTACTS_SET'],
-  Chats: ['CHATS_UPSERT', 'CHATS_UPDATE', 'CHATS_DELETE', 'CHATS_SET'],
-  Grupos: ['GROUPS_UPSERT', 'GROUP_PARTICIPANTS_UPDATE'],
-  Outros: ['PRESENCE_UPDATE', 'LABELS_EDIT', 'LABELS_ASSOCIATION', 'CALL'],
-};
+import {
+  type SecretStatus,
+  type MonitoringWebhookPanelProps,
+  ALL_EXPECTED_EVENTS,
+  EVENT_CATEGORIES,
+} from './MonitoringWebhookPanelTypes';
 
 export function MonitoringWebhookPanel({
   connections,
@@ -93,7 +38,7 @@ export function MonitoringWebhookPanel({
   onTest,
   onReconfigure,
   onCheckConfig,
-}: Props) {
+}: MonitoringWebhookPanelProps) {
   const configuredEvents = webhookConfig?.events || [];
   const [secretStatus, setSecretStatus] = useState<SecretStatus | null>(null);
   const [loadingSecret, setLoadingSecret] = useState(false);
