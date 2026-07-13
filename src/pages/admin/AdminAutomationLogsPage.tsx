@@ -1,8 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,151 +21,30 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Sparkles,
-  RefreshCcw,
-  Eye,
-  ScrollText,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  XCircle,
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-interface ExecutionRow {
-  id: string;
-  rule_id: string | null;
-  remote_jid: string;
-  instance_name: string | null;
-  status: 'pending' | 'executed' | 'dismissed' | 'error' | string;
-  trigger_payload: Record<string, unknown> | null;
-  suggestion_text: string | null;
-  applied_tags: string[] | null;
-  recommended_tag: string | null;
-  kb_sources: string[] | null;
-  rule_snapshot: Record<string, unknown> | null;
-  channel_id: string | null;
-  department_id: string | null;
-  error_message: string | null;
-  error_at: string | null;
-  acted_at: string | null;
-  acted_by: string | null;
-  created_at: string;
-}
-
-interface RuleLite {
-  id: string;
-  name: string;
-}
-
-const STATUS_META: Record<
-  string,
-  { label: string; icon: React.ComponentType<{ className?: string }>; variant: string }
-> = {
-  pending: { label: 'Pendente', icon: Clock, variant: 'outline' },
-  accepted: { label: 'Aceita', icon: CheckCircle2, variant: 'default' },
-  executed: { label: 'Executada', icon: CheckCircle2, variant: 'default' },
-  dismissed: { label: 'Descartada', icon: XCircle, variant: 'secondary' },
-  failed: { label: 'Falhou', icon: AlertTriangle, variant: 'destructive' },
-};
-
-type AutomationStatus = 'pending' | 'accepted' | 'executed' | 'dismissed' | 'failed';
-
-const PAGE_SIZE = 50;
+import { Sparkles, RefreshCcw, Eye, ScrollText } from 'lucide-react';
+import { useAutomationLogs } from './useAutomationLogs';
+import { PAGE_SIZE, STATUS_META, statusBadge, Section, KV, Pre } from './automationLogsHelpers';
+import type { ExecutionRow } from './automationLogsHelpers';
 
 export default function AdminAutomationLogsPage() {
-  const { toast } = useToast();
-  const [rows, setRows] = useState<ExecutionRow[]>([]);
-  const [rules, setRules] = useState<RuleLite[]>([]);
-  const [loading, setLoading] = useState(false);
-
   const [filterRule, setFilterRule] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterJid, setFilterJid] = useState('');
   const [filterFrom, setFilterFrom] = useState<string>('');
   const [filterTo, setFilterTo] = useState<string>('');
   const [page, setPage] = useState(0);
-
   const [detail, setDetail] = useState<ExecutionRow | null>(null);
 
-  const mountedRef = useMountedRef();
+  const { rows, rules, ruleNameById, loading, load } = useAutomationLogs({
+    filterRule,
+    filterStatus,
+    filterJid,
+    filterFrom,
+    filterTo,
+    page,
+  });
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await safeClient.from<ExecutionRow>('automation_executions', (q) => {
-      let query = q
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
-      if (filterRule !== 'all') query = query.eq('rule_id', filterRule);
-      if (filterStatus !== 'all') query = query.eq('status', filterStatus as AutomationStatus);
-      if (filterJid.trim()) query = query.ilike('remote_jid', `%${filterJid.trim()}%`);
-      if (filterFrom) query = query.gte('created_at', new Date(filterFrom).toISOString());
-      if (filterTo) {
-        const to = new Date(filterTo);
-        to.setHours(23, 59, 59, 999);
-        query = query.lte('created_at', to.toISOString());
-      }
-      return query;
-    });
-    if (!mountedRef.current) return;
-    if (error) {
-      // Silently show empty state when table doesn't exist yet (pending migration)
-      const isMissing =
-        error.message?.includes('does not exist') || (error as { code?: string }).code === '42P01';
-      if (!isMissing) {
-        toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-      }
-      setRows([]);
-    } else {
-      setRows((data ?? []) as ExecutionRow[]);
-    }
-    setLoading(false);
-  }, [page, filterRule, filterStatus, filterJid, filterFrom, filterTo, toast]);
-
-  useEffect(() => {
-    supabase
-      .from('automations')
-      .select('id,name')
-      .order('name')
-      .then(({ data }) => {
-        if (mountedRef.current) setRules((data ?? []) as RuleLite[]);
-      });
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  // Realtime: novas execuções aparecem no topo
-  useEffect(() => {
-    const ch = supabase
-      .channel('automation-executions-audit')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'automation_executions' },
-        () => {
-          if (page === 0) void load();
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [page, load]);
-
-  const ruleNameById = useMemo(() => Object.fromEntries(rules.map((r) => [r.id, r.name])), [rules]);
-
-  const statusBadge = (s: string) => {
-    const meta = STATUS_META[s] ?? { label: s, icon: ScrollText, variant: 'outline' };
-    const Icon = meta.icon;
-    return (
-      <Badge variant={meta.variant} className="gap-1">
-        <Icon className="h-3 w-3" /> {meta.label}
-      </Badge>
-    );
-  };
+  const resetPage = () => setPage(0);
 
   return (
     <div className="container mx-auto max-w-7xl p-6">
@@ -199,7 +75,7 @@ export default function AdminAutomationLogsPage() {
           <Select
             value={filterRule}
             onValueChange={(v) => {
-              setPage(0);
+              resetPage();
               setFilterRule(v);
             }}
           >
@@ -221,7 +97,7 @@ export default function AdminAutomationLogsPage() {
           <Select
             value={filterStatus}
             onValueChange={(v) => {
-              setPage(0);
+              resetPage();
               setFilterStatus(v);
             }}
           >
@@ -243,7 +119,7 @@ export default function AdminAutomationLogsPage() {
           <Input
             value={filterJid}
             onChange={(e) => {
-              setPage(0);
+              resetPage();
               setFilterJid(e.target.value);
             }}
             placeholder="55..."
@@ -255,7 +131,7 @@ export default function AdminAutomationLogsPage() {
             type="date"
             value={filterFrom}
             onChange={(e) => {
-              setPage(0);
+              resetPage();
               setFilterFrom(e.target.value);
             }}
           />
@@ -266,7 +142,7 @@ export default function AdminAutomationLogsPage() {
             type="date"
             value={filterTo}
             onChange={(e) => {
-              setPage(0);
+              resetPage();
               setFilterTo(e.target.value);
             }}
           />
@@ -382,10 +258,10 @@ export default function AdminAutomationLogsPage() {
           {detail && (
             <div className="mt-4 space-y-4 text-sm">
               <Section title="Identificação">
-                <KV k="ID" v={detail.id} mono />
+                <KV k="ID" v={detail.id} />
                 <KV k="Quando" v={new Date(detail.created_at).toLocaleString()} />
                 <KV k="Status" v={STATUS_META[detail.status]?.label ?? detail.status} />
-                <KV k="Conversa" v={detail.remote_jid} mono />
+                <KV k="Conversa" v={detail.remote_jid} />
                 <KV k="Instância" v={detail.instance_name ?? '—'} />
                 {detail.acted_at && (
                   <KV k="Ação em" v={new Date(detail.acted_at).toLocaleString()} />
@@ -395,8 +271,8 @@ export default function AdminAutomationLogsPage() {
               <Section title="Regra (snapshot no disparo)">
                 {detail.rule_snapshot ? (
                   <>
-                    <KV k="Nome" v={detail.rule_snapshot.name ?? '—'} />
-                    <KV k="Gatilho" v={detail.rule_snapshot.trigger_type ?? '—'} />
+                    <KV k="Nome" v={String(detail.rule_snapshot.name ?? '—')} />
+                    <KV k="Gatilho" v={String(detail.rule_snapshot.trigger_type ?? '—')} />
                     <KV k="Prioridade" v={String(detail.rule_snapshot.priority ?? '—')} />
                     <KV k="Cooldown (s)" v={String(detail.rule_snapshot.cooldown_seconds ?? '—')} />
                     <Pre title="Condições" data={detail.rule_snapshot.trigger_config ?? {}} />
@@ -441,37 +317,6 @@ export default function AdminAutomationLogsPage() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2 rounded-md border p-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function KV({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
-  return (
-    <div className="flex justify-between gap-3 text-xs">
-      <span className="text-muted-foreground">{k}</span>
-      <span className={mono ? 'max-w-[280px] truncate' : 'max-w-[280px] truncate'}>{v}</span>
-    </div>
-  );
-}
-
-function Pre({ title, data }: { title: string; data: unknown }) {
-  return (
-    <div>
-      <Label className="text-xs">{title}</Label>
-      <pre className="mt-1 max-h-[200px] overflow-x-auto rounded-md border bg-muted/30 p-2 text-[11px]">
-        {JSON.stringify(data, null, 2)}
-      </pre>
     </div>
   );
 }
