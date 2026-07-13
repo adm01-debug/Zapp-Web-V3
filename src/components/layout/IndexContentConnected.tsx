@@ -3,7 +3,7 @@ import { useAuth } from '@/features/auth';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useOnboardingChecklist } from '@/hooks/useOnboardingChecklist';
 import { useTranscriptionNotifications } from '@/hooks/useTranscriptionNotifications';
-import { useConnectionAlertsPush } from '@/hooks/useConnectionAlertsPush';
+import { useConnectionAlertsPush } from '@/hooks/useConnectionManagement';
 import { useWebhookHealthAlerts } from '@/hooks/useWebhookHealthAlerts';
 import { useUserRole } from '@/features/auth';
 import { useTour, DEFAULT_ONBOARDING_STEPS } from '@/components/onboarding/OnboardingTour';
