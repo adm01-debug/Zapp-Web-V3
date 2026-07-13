@@ -76,7 +76,7 @@ function normalizeUnicodeNFKC(text: string): string {
 
     return normalized;
   } catch (err) {
-    console.warn(`[normalizeUnicodeNFKC] Normalization failed: ${err}`);
+    log.warn(`[normalizeUnicodeNFKC] Normalization failed: ${err}`);
     return text;
   }
 }

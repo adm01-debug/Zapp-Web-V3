@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import type { ExtendedDatabase } from './types-manual';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('supabase-client');
 
 // Re-export so callers that need the specific type can use it
 export type { Database, ExtendedDatabase };
@@ -19,9 +22,17 @@ const SELF_HOSTED_ANON_KEY =
 // Hardened configuration detection
 // ---------------------------------------------------------------------------
 const PLACEHOLDER_TOKENS = new Set([
-  'undefined', 'null', 'missing-anon-key', 'your-anon-key', 'your-project-url',
-  'your-supabase-url', 'your-supabase-anon-key', 'your_supabase_url',
-  'your_supabase_anon_key', 'changeme', 'todo',
+  'undefined',
+  'null',
+  'missing-anon-key',
+  'your-anon-key',
+  'your-project-url',
+  'your-supabase-url',
+  'your-supabase-anon-key',
+  'your_supabase_url',
+  'your_supabase_anon_key',
+  'changeme',
+  'todo',
 ]);
 const SENTINEL_HOST = 'supabase-unconfigured.invalid';
 
@@ -45,23 +56,18 @@ function isValidSupabaseKey(value: unknown): boolean {
 
 const envUrl = import.meta.env.VITE_SUPABASE_URL;
 const envKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const isLovableCloudUrl =
-  typeof envUrl === 'string' && envUrl.includes('.supabase.co');
+const isLovableCloudUrl = typeof envUrl === 'string' && envUrl.includes('.supabase.co');
 
-const SUPABASE_URL =
-  !isLovableCloudUrl && isValidSupabaseUrl(envUrl)
-    ? envUrl
-    : SELF_HOSTED_URL;
+const SUPABASE_URL = !isLovableCloudUrl && isValidSupabaseUrl(envUrl) ? envUrl : SELF_HOSTED_URL;
 
 const SUPABASE_ANON_KEY =
   SUPABASE_URL === SELF_HOSTED_URL
     ? SELF_HOSTED_ANON_KEY
     : isValidSupabaseKey(envKey)
-    ? envKey
-    : SELF_HOSTED_ANON_KEY;
+      ? envKey
+      : SELF_HOSTED_ANON_KEY;
 
 export const isSupabaseConfigured =
   isValidSupabaseUrl(SUPABASE_URL) && isValidSupabaseKey(SUPABASE_ANON_KEY);
@@ -70,7 +76,7 @@ let warnedUnconfigured = false;
 export function warnSupabaseUnconfigured(context?: string): void {
   if (warnedUnconfigured) return;
   warnedUnconfigured = true;
-  console.warn(
+  log.warn(
     '[Supabase] Modo degradado: cliente não configurado' +
       (context ? ` (origem: ${context})` : '') +
       '. Chamadas de rede desativadas.'
@@ -78,7 +84,7 @@ export function warnSupabaseUnconfigured(context?: string): void {
 }
 
 if (!isSupabaseConfigured) {
-  console.error(
+  log.error(
     '[Supabase] URL ou chave inválida — verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'
   );
 } else {
@@ -88,13 +94,13 @@ if (!isSupabaseConfigured) {
   // Action: set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY in the deploy env and
   // rotate the self-hosted anon key via `supabase gen secret` after deploy.
   if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
-    console.warn(
+    log.warn(
       '[Supabase] ATENÇÃO: usando credenciais hardcoded (fallback). ' +
-      'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
-      'e rotacione a anon key para remover a exposição do source control.'
+        'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
+        'e rotacione a anon key para remover a exposição do source control.'
     );
   } else if (import.meta.env.DEV) {
-    console.warn(
+    log.warn(
       `[Supabase] Conectado: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
     );
   }
@@ -115,22 +121,18 @@ const getSupabaseStorage = () => {
 const realtimeReconnectAfterMs = (tries: number): number =>
   Math.min(1000 * 2 ** Math.max(0, tries - 1), 30000);
 
-export const supabase = createClient<ExtendedDatabase>(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      storage: getSupabaseStorage(),
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce'
-    },
-    realtime: {
-      reconnectAfterMs: realtimeReconnectAfterMs
-    }
-  }
-);
+export const supabase = createClient<ExtendedDatabase>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: getSupabaseStorage(),
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
+  realtime: {
+    reconnectAfterMs: realtimeReconnectAfterMs,
+  },
+});
 
 if (!isSupabaseConfigured) {
   const originalChannel = supabase.channel.bind(supabase);
