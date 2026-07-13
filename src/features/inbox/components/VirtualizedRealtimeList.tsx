@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useRef, useMemo, memo } from 'react';
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, X, Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
