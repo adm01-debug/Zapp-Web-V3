@@ -35,7 +35,7 @@ import { InputPreviewBars } from './InputPreviewBars';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
-import { asRef } from '@/lib/react-refs';
+import { asRef } from '@/lib/reactRefs';
 
 function getQueueErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;

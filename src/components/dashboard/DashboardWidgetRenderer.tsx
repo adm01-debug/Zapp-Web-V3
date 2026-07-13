@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { motion, StaggeredList, StaggeredItem } from '@/components/ui/motion';
 import { EmptyState } from '@/components/ui/empty-state';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import {
   MessageSquare, Users, Clock, CheckCircle2,
   Sparkles, Target, Zap,

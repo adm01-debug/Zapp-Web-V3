@@ -182,13 +182,13 @@ describe('Security - Knowledge Base Search', () => {
 
 describe('Web Vitals', () => {
   it('should export initWebVitals and getWebVitalsReport', async () => {
-    const { initWebVitals, getWebVitalsReport } = await import('@/lib/web-vitals');
+    const { initWebVitals, getWebVitalsReport } = await import('./lib/webVitals');
     expect(typeof initWebVitals).toBe('function');
     expect(typeof getWebVitalsReport).toBe('function');
   });
 
   it('getWebVitalsReport should return array', async () => {
-    const { getWebVitalsReport } = await import('@/lib/web-vitals');
+    const { getWebVitalsReport } = await import('./lib/webVitals');
     const report = getWebVitalsReport();
     expect(Array.isArray(report)).toBe(true);
   });

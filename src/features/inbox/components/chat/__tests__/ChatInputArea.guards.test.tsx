@@ -17,7 +17,7 @@ import {
   getLastAttemptDuration,
   type QueueItemLike,
 } from '../chatInputGuards';
-import { asRef } from '@/lib/react-refs';
+import { asRef } from '@/lib/reactRefs';
 
 /** Reproduz o bloco de UI da fila do ChatInputArea, usando os mesmos guards. */
 function QueueBlock({ queue }: { queue?: QueueItemLike[] }) {

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import type { Message } from '@/types/chat';
 import { MentionAutocomplete, useMentions } from './MentionAutocomplete';
 import { MarkdownPreview } from './MarkdownPreview';
-import { asRef } from '@/lib/react-refs';
+import { asRef } from '@/lib/reactRefs';
 
 interface MessageTextareaProps {
   inputRef: React.RefObject<HTMLTextAreaElement | null>;

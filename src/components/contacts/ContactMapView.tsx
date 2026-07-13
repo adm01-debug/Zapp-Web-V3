@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MapPin, Users, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'company' | 'phone' | 'avatar_url'> & Partial<Pick<Tables<'contacts'>, 'lead_origin'>>;
