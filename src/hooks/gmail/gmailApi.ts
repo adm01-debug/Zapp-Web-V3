@@ -1,17 +1,3 @@
-/**
- * emailApi.ts — Funções utilitárias para chamadas à Email API
- *
- * Todas as operações que precisam ir diretamente à Email API (não ao banco).
- * Estas funções são chamadas pelas Edge Functions, não diretamente pelo frontend.
- *
- * NOTA: O frontend NUNCA chama a Email API diretamente.
- * Todas as operações passam pelas Edge Functions:
- *   - email-oauth   → auth e tokens
- *   - email-sync    → sincronização de threads/mensagens
- *   - email-send    → envio de emails
- *   - email-webhook → Pub/Sub watch e eventos
- */
-
 import { supabase } from '@/integrations/supabase/client';
 import {
   type EmailApiError,
@@ -37,11 +23,6 @@ export type {
   ListThreadsParams,
 } from './gmailApiTypes';
 
-// ── Funções de API (via Edge Functions) ─────────────────────────────────────
-
-/**
- * Busca o conteúdo completo de uma mensagem (body_html + attachments)
- */
 export async function fetchMessageBody(
   accountId: string,
   emailMessageId: string
@@ -57,9 +38,6 @@ export async function fetchMessageBody(
   return { data, error: null };
 }
 
-/**
- * Baixa um anexo Email
- */
 export async function downloadAttachment(
   accountId: string,
   messageId: string,
@@ -74,9 +52,6 @@ export async function downloadAttachment(
   return { data, error: null };
 }
 
-/**
- * Cria uma label no Email
- */
 export async function createEmailLabel(
   accountId: string,
   name: string,
@@ -91,9 +66,6 @@ export async function createEmailLabel(
   return { data, error: null };
 }
 
-/**
- * Move thread para a lixeira
- */
 export async function moveThreadToTrash(
   accountId: string,
   emailThreadId: string
@@ -107,9 +79,6 @@ export async function moveThreadToTrash(
   return { data, error: null };
 }
 
-/**
- * Aplica/remove labels em uma thread
- */
 export async function modifyThreadLabels(
   accountId: string,
   emailThreadId: string,
@@ -131,9 +100,6 @@ export async function modifyThreadLabels(
   return { data, error: null };
 }
 
-/**
- * Atualiza o Pub/Sub watch de uma conta Email
- */
 export async function renewEmailWatch(
   accountId: string
 ): Promise<EmailApiResponse<{ watchExpiry: string; historyId: string }>> {
@@ -146,9 +112,6 @@ export async function renewEmailWatch(
   return { data, error: null };
 }
 
-/**
- * Lista labels do Email via API
- */
 export async function listEmailLabels(
   accountId: string
 ): Promise<
@@ -163,9 +126,6 @@ export async function listEmailLabels(
   return { data, error: null };
 }
 
-/**
- * Cria um rascunho no Email
- */
 export async function createDraft(
   accountId: string,
   params: {
@@ -185,9 +145,6 @@ export async function createDraft(
   return { data, error: null };
 }
 
-/**
- * Atualiza um rascunho existente
- */
 export async function updateDraft(
   accountId: string,
   draftId: string,
@@ -207,9 +164,6 @@ export async function updateDraft(
   return { data, error: null };
 }
 
-/**
- * Envia um rascunho existente
- */
 export async function sendDraft(
   accountId: string,
   draftId: string
@@ -223,10 +177,6 @@ export async function sendDraft(
   return { data, error: null };
 }
 
-/**
- * Renova o access_token Email via refresh_token armazenado.
- * Edge function: email-token-refresh.
- */
 export async function emailRefreshToken(
   accountId: string
 ): Promise<EmailApiResponse<{ accessToken: string; expiresAt: string }>> {
@@ -239,9 +189,6 @@ export async function emailRefreshToken(
   return { data, error: null };
 }
 
-/**
- * Revoga a conta Email (tokens + watch) e remove credenciais armazenadas.
- */
 export async function emailRevokeAccount(
   accountId: string
 ): Promise<EmailApiResponse<{ success: boolean }>> {
@@ -254,24 +201,16 @@ export async function emailRevokeAccount(
   return { data, error: null };
 }
 
-/**
- * Registra/renova o Pub/Sub watch da conta Email.
- * Alias semântico de renewEmailWatch para clareza no fluxo de OAuth.
- */
 export async function emailRegisterWatch(
   accountId: string
 ): Promise<EmailApiResponse<{ watchExpiry: string; historyId: string }>> {
   return renewEmailWatch(accountId);
 }
 
-// ── Helper: verificar se error é de autenticação ────────────────────────
-
 export function isAuthError(error: EmailApiError | null): boolean {
   if (!error) return false;
   return error.code === 401 || error.status === 'UNAUTHENTICATED';
 }
-
-// ── Helper: construir MIME message para Email API ──────────────────────────
 
 export function buildMimeMessage(params: {
   from: string;
@@ -301,17 +240,6 @@ export function buildMimeMessage(params: {
     .replace(/=+$/, '');
 }
 
-// ───────────────────────────────────────────────────────────────────
-// IMPLEMENTAÇÕES (antes eram stubs 501 que quebravam UI Email).
-// Todas usam as Edge Functions já existentes (email-send, email-sync).
-// Se uma action ainda não existe na edge function, supabase retorna erro
-// estruturado — bem melhor que 501 silencioso.
-// ───────────────────────────────────────────────────────────────────
-
-/**
- * Marca mensagens como lidas/não-lidas no Email.
- * Edge function: email-send action=markRead
- */
 export async function emailMarkRead(params: MarkReadParams): Promise<EmailApiResponse<void>> {
   const { data, error } = await supabase.functions.invoke('gmail-send', {
     body: { action: 'markRead', ...params },
@@ -321,10 +249,6 @@ export async function emailMarkRead(params: MarkReadParams): Promise<EmailApiRes
   return { data: data ?? null, error: null };
 }
 
-/**
- * Adiciona/remove labels em mensagem ou thread.
- * Edge function: email-send action=modifyLabels
- */
 export async function emailModifyLabels(
   params: ModifyLabelsParams
 ): Promise<EmailApiResponse<void>> {
@@ -336,10 +260,6 @@ export async function emailModifyLabels(
   return { data: data ?? null, error: null };
 }
 
-/**
- * Envia uma mensagem nova ou reply.
- * Edge function: email-send action=send
- */
 export async function emailSendMessage(
   params: SendMessageParams
 ): Promise<EmailApiResponse<{ id: string; threadId: string }>> {
@@ -351,10 +271,6 @@ export async function emailSendMessage(
   return { data, error: null };
 }
 
-/**
- * Move uma mensagem específica para a lixeira.
- * Edge function: email-send action=trashMessage
- */
 export async function emailTrashMessage(
   params: TrashMessageParams
 ): Promise<EmailApiResponse<void>> {
@@ -366,11 +282,6 @@ export async function emailTrashMessage(
   return { data: data ?? null, error: null };
 }
 
-/**
- * Cria ou atualiza rascunho. Se draftId existe, atualiza; senão, cria.
- * Wrapper sobre createDraft/updateDraft para manter compatibilidade com
- * call-sites em useEmailDraft.ts que esperam interface unificada.
- */
 export async function emailSaveDraft(
   params: SaveDraftParams
 ): Promise<EmailApiResponse<{ draftId: string }>> {
@@ -385,10 +296,6 @@ export async function emailSaveDraft(
   }
 }
 
-/**
- * Remove um rascunho do Email.
- * Edge function: email-send action=deleteDraft
- */
 export async function emailDeleteDraft(
   accountId: string,
   draftId: string
@@ -401,13 +308,7 @@ export async function emailDeleteDraft(
   return { data: data ?? null, error: null };
 }
 
-/**
- * Lista threads do Email com filtros opcionais.
- * Edge function: email-sync action=listThreads
- */
-export async function emailListThreads(
-  params: ListThreadsParams
-): Promise<
+export async function emailListThreads(params: ListThreadsParams): Promise<
   EmailApiResponse<{
     threads: Array<{ id: string; snippet: string; historyId: string }>;
     nextPageToken?: string;
