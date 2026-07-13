@@ -140,6 +140,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id: string) {
           if (!id.includes('node_modules')) return;
+          // Heavy UI/visual libraries
           if (id.includes('mapbox-gl') || id.includes('mapbox')) return 'vendor-mapbox';
           if (id.includes('recharts') || id.includes('/d3-') || id.includes('victory-vendor')) return 'vendor-charts';
           if (id.includes('jspdf')) return 'vendor-pdf';
@@ -147,6 +148,20 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('sip.js')) return 'vendor-sip';
           if (id.includes('@sentry')) return 'vendor-sentry';
           if (id.includes('framer-motion')) return 'vendor-motion';
+          // React core — tiny but improves long-term caching
+          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/react-router')) return 'vendor-react';
+          // Supabase client
+          if (id.includes('@supabase/')) return 'vendor-supabase';
+          // Radix UI primitives (shadcn base)
+          if (id.includes('@radix-ui/')) return 'vendor-radix';
+          // Date utilities
+          if (id.includes('date-fns')) return 'vendor-date';
+          // Icon library
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          // Validation
+          if (id.includes('/zod/')) return 'vendor-zod';
+          // Tanstack Query
+          if (id.includes('@tanstack/')) return 'vendor-tanstack';
         },
       },
     },
