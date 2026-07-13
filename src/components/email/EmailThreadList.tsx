@@ -13,7 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { type EmailThread } from '@/hooks/gmail/gmailTypes';
 import { SLADot } from './EmailSLABadge';
-import { useEmailSLA } from '@/hooks/useEmailSLA';
+import { useEmailSLA } from '@/hooks/useEmailManagement';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
