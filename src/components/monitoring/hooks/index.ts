@@ -12,7 +12,18 @@
  *
  * Usage:
  *   import { useEvolutionMonitoring } from '@/components/monitoring/hooks';
+ *   import { useRetryMetricsPanelState } from '@/components/monitoring/hooks';
  */
 
 export { useEvolutionMonitoring } from './useEvolutionMonitoring';
 export { useMonitoringNotifications } from './useMonitoringNotifications';
+
+/**
+ * @note useRetryMetricsPanelState is intentionally placed at the monitoring/ root
+ * (colocated with RetryMetricsPanel.tsx) but also accessible here for convenience.
+ * The canonical import path remains:
+ *   import { useRetryMetricsPanelState } from '@/components/monitoring/useRetryMetricsPanelState'
+ * or via this barrel:
+ *   import { useRetryMetricsPanelState } from '@/components/monitoring/hooks'
+ */
+export { useRetryMetricsPanelState } from '../useRetryMetricsPanelState';
