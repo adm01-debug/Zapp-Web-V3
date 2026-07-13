@@ -36,12 +36,23 @@ export interface ConversationItemData {
   contact?: ConversationContactData | null;
   status?: string | null;
   unreadCount?: number;
-  lastMessage?: { content?: string | null; created_at?: string | null } | null;
-  updatedAt?: string | null;
+  lastMessage?: {
+    id?: string;
+    content?: string | null;
+    created_at?: string | null;
+    sender?: 'contact' | 'agent' | string;
+    status?: string | null;
+    retry_attempt?: number | null;
+    retry_total?: number | null;
+  } | null;
+  updatedAt?: string | Date | null;
+  createdAt?: string | Date | null;
   sentiment?: string | null;
   sentimentScore?: number;
   pinnedAt?: string | null;
-  assignedTo?: string | null;
+  assignedTo?: string | { id: string; name?: string; avatar?: string | null } | null;
+  queue?: { id: string; name?: string } | null;
+  tags?: string[] | null;
   connection_type?: string | null;
   priority?: string | null;
 }

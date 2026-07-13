@@ -17,6 +17,13 @@ import {
 } from './conversationItemShared';
 import { TruncatedTooltip } from './TruncatedTooltip';
 import { useConversationDisplay } from './useConversationDisplay';
+import type { Message } from '@/types/chat';
+
+function isRetryBadgeMessage(
+  message: ConversationItemProps['conversation']['lastMessage']
+): message is Pick<Message, 'id' | 'sender' | 'status' | 'retry_attempt' | 'retry_total'> {
+  return !!message && !!message.id && !!message.sender && !!message.status;
+}
 
 export const ConversationItemCompact = memo(function ConversationItemCompact({
   conversation,
@@ -98,7 +105,7 @@ export const ConversationItemCompact = memo(function ConversationItemCompact({
           <div className="relative mt-0.5 flex-shrink-0">
             <ChannelBadge type={contact?.contact_type} />
             <Avatar className="h-[38px] w-[38px]">
-              <AvatarImage src={avatarUrl} alt={contact?.name || 'Contato'} />
+              <AvatarImage src={avatarUrl ?? undefined} alt={contact?.name || 'Contato'} />
               <AvatarFallback className="bg-primary text-xs font-medium text-primary-foreground">
                 {(contact?.name && contact.name !== 'Você' ? contact.name : 'C')
                   .split(' ')
@@ -108,14 +115,14 @@ export const ConversationItemCompact = memo(function ConversationItemCompact({
               </AvatarFallback>
             </Avatar>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {(conversation.assignedTo as any)?.name ? (
+            {typeof conversation.assignedTo === 'object' && conversation.assignedTo?.name ? (
               <Avatar className="absolute -bottom-0.5 -right-0.5 h-4 w-4 ring-1 ring-sidebar">
                 <AvatarImage
-                  src={(conversation.assignedTo as any)?.avatar}
-                  alt={(conversation.assignedTo as any)?.name}
+                  src={conversation.assignedTo.avatar ?? undefined}
+                  alt={conversation.assignedTo.name}
                 />
                 <AvatarFallback className="bg-secondary text-[7px] font-bold text-secondary-foreground">
-                  {(conversation.assignedTo as any)?.name[0]}
+                  {conversation.assignedTo.name[0]}
                 </AvatarFallback>
               </Avatar>
             ) : (
@@ -243,7 +250,7 @@ export const ConversationItemCompact = memo(function ConversationItemCompact({
                   compact={true}
                   className="w-full justify-start"
                 />
-                <RetryFailureBadge message={lastMessage} compact />
+                {isRetryBadgeMessage(lastMessage) && <RetryFailureBadge message={lastMessage} compact />}
               </div>
             )}
           </div>

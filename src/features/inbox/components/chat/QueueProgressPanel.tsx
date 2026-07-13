@@ -63,7 +63,7 @@ export function QueueProgressPanel({
                             ? 'Enviado!'
                             : 'Aguardando na fila...'}
                     </span>
-                    {item.error && (
+                    {item.error !== undefined && item.error !== null && (
                       <span className="line-clamp-1 text-[9px] italic text-destructive/80">
                         {getQueueErrorMessage(item.error)}
                       </span>

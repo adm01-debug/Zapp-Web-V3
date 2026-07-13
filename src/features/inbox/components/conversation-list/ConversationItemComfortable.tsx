@@ -127,7 +127,7 @@ export const ConversationItemComfortable = memo(function ConversationItemComfort
                 )}
               >
                 <AvatarImage
-                  src={avatarUrl}
+                  src={avatarUrl ?? undefined}
                   alt={contact?.name || 'Contato'}
                   className="object-cover"
                 />
@@ -146,14 +146,14 @@ export const ConversationItemComfortable = memo(function ConversationItemComfort
                 </AvatarFallback>
               </Avatar>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {(conversation.assignedTo as any)?.name ? (
+              {typeof conversation.assignedTo === 'object' && conversation.assignedTo?.name ? (
                 <Avatar className="absolute -bottom-1 -right-1 h-5 w-5 shadow-sm ring-2 ring-background">
                   <AvatarImage
-                    src={(conversation.assignedTo as any)?.avatar}
-                    alt={(conversation.assignedTo as any)?.name}
+                    src={conversation.assignedTo.avatar ?? undefined}
+                    alt={conversation.assignedTo.name}
                   />
                   <AvatarFallback className="bg-secondary text-[8px] font-bold text-secondary-foreground">
-                    {(conversation.assignedTo as any)?.name[0]}
+                    {conversation.assignedTo.name[0]}
                   </AvatarFallback>
                 </Avatar>
               ) : (
